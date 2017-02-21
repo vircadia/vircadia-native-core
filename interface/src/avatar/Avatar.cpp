@@ -228,17 +228,43 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    bool success = true;
     QScriptEngine scriptEngine;
     entityTree->withWriteLock([&] {
         AvatarEntityMap avatarEntities = getAvatarEntityData();
-        for (auto entityID : avatarEntities.keys()) {
+        AvatarEntityMap::const_iterator dataItr = avatarEntities.begin();
+        while (dataItr != avatarEntities.end()) {
+            // compute hash of data.  TODO? cache this?
+            QByteArray data = dataItr.value();
+            uint32_t newHash = qHash(data);
+
+            // check to see if we recognize this hash and whether it was already successfully processed
+            QUuid entityID = dataItr.key();
+            MapOfAvatarEntityDataHashes::iterator stateItr = _avatarEntityDataHashes.find(entityID);
+            if (stateItr != _avatarEntityDataHashes.end()) {
+                if (stateItr.value().success) {
+                    if (newHash == stateItr.value().hash) {
+                        // data hasn't changed --> nothing to do
+                        ++dataItr;
+                        continue;
+                    }
+                } else {
+                    // NOTE: if the data was unsuccessful in producing an entity in the past
+                    // we will try again just in case something changed (unlikely).
+                    // Unfortunately constantly trying to build the entity for this data costs
+                    // CPU cycles that we'd rather not spend.
+                    // TODO? put a maximum number of tries on this?
+                }
+            } else {
+                // remember this hash for the future
+                stateItr = _avatarEntityDataHashes.insert(entityID, AvatarEntityDataHash(newHash));
+            }
+            ++dataItr;
+
             // see EntityEditPacketSender::queueEditEntityMessage for the other end of this.  unpack properties
             // and either add or update the entity.
-            QByteArray jsonByteArray = avatarEntities.value(entityID);
-            QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(jsonByteArray);
+            QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(data);
             if (!jsonProperties.isObject()) {
-                qCDebug(interfaceapp) << "got bad avatarEntity json" << QString(jsonByteArray.toHex());
+                qCDebug(interfaceapp) << "got bad avatarEntity json" << QString(data.toHex());
                 continue;
             }
 
@@ -266,8 +292,9 @@ void Avatar::updateAvatarEntities() {
                 properties.setScript(noScript);
             }
 
+            // try to build the entity
             EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
-
+            bool success = true;
             if (entity) {
                 if (entityTree->updateEntity(entityID, properties)) {
                     entity->updateLastEditedFromRemote();
@@ -280,6 +307,7 @@ void Avatar::updateAvatarEntities() {
                     success = false;
                 }
             }
+            stateItr.value().success = success;
         }
 
         AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
@@ -292,12 +320,18 @@ void Avatar::updateAvatarEntities() {
                     }
                 }
             });
+
+            // remove stale data hashes
+            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+                MapOfAvatarEntityDataHashes::iterator stateItr = _avatarEntityDataHashes.find(entityID);
+                if (stateItr != _avatarEntityDataHashes.end()) {
+                    _avatarEntityDataHashes.erase(stateItr);
+                }
+            }
         }
     });
 
-    if (success) {
-        setAvatarEntityDataChanged(false);
-    }
+    setAvatarEntityDataChanged(false);
 }
 
 bool Avatar::shouldDie() const {
@@ -364,6 +398,9 @@ void Avatar::simulate(float deltaTime, bool inView) {
         measureMotionDerivatives(deltaTime);
         simulateAttachments(deltaTime);
         updatePalms();
+    }
+    {
+        PROFILE_RANGE(simulation, "entities");
         updateAvatarEntities();
     }
 }
@@ -1324,6 +1361,7 @@ void Avatar::setParentID(const QUuid& parentID) {
     if (!isMyAvatar()) {
         return;
     }
+    QUuid initialParentID = getParentID();
     bool success;
     Transform beforeChangeTransform = getTransform(success);
     SpatiallyNestable::setParentID(parentID);
@@ -1331,6 +1369,9 @@ void Avatar::setParentID(const QUuid& parentID) {
         setTransform(beforeChangeTransform, success);
         if (!success) {
             qCDebug(interfaceapp) << "Avatar::setParentID failed to reset avatar's location.";
+        }
+        if (initialParentID != parentID) {
+            _parentChanged = usecTimestampNow();
         }
     }
 }

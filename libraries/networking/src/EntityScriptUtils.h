@@ -11,11 +11,23 @@
 
 #ifndef hifi_EntityScriptUtils_h
 #define hifi_EntityScriptUtils_h
+#include <QMetaEnum>
 
-enum EntityScriptStatus {
-    ERROR_LOADING_SCRIPT,
-    ERROR_RUNNING_SCRIPT,
-    RUNNING
+class EntityScriptStatus_ : public QObject {
+    Q_OBJECT
+public:
+    enum EntityScriptStatus {
+        PENDING,
+        LOADING,
+        ERROR_LOADING_SCRIPT,
+        ERROR_RUNNING_SCRIPT,
+        RUNNING,
+        UNLOADED
+    };
+    Q_ENUM(EntityScriptStatus)
+    static QString valueToKey(EntityScriptStatus status) {
+        return QMetaEnum::fromType<EntityScriptStatus>().valueToKey(status);
+    }
 };
-
+using EntityScriptStatus = EntityScriptStatus_::EntityScriptStatus;
 #endif // hifi_EntityScriptUtils_h

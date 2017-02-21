@@ -88,6 +88,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _isPushing(false),
     _isBeingPushed(false),
     _isBraking(false),
+    _isAway(false),
     _boomLength(ZOOM_DEFAULT),
     _yawSpeed(YAW_SPEED_DEFAULT),
     _pitchSpeed(PITCH_SPEED_DEFAULT),
@@ -376,7 +377,9 @@ void MyAvatar::update(float deltaTime) {
         Q_ARG(glm::vec3, (getPosition() - halfBoundingBoxDimensions)),
         Q_ARG(glm::vec3, (halfBoundingBoxDimensions*2.0f)));
 
-    if (_avatarEntityDataLocallyEdited) {
+    uint64_t now = usecTimestampNow();
+    if (now > _identityPacketExpiry || _avatarEntityDataLocallyEdited) {
+        _identityPacketExpiry = now + AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS;
         sendIdentityPacket();
     }
 
@@ -1212,7 +1215,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         setSkeletonModelURL(fullAvatarURL);
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
-    sendIdentityPacket();
+    _identityPacketExpiry = 0; // triggers an identity packet next update()
 }
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
@@ -2357,6 +2360,15 @@ bool MyAvatar::didTeleport() {
 
 bool MyAvatar::hasDriveInput() const {
     return fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Y]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
+}
+
+void MyAvatar::setAway(bool value) {
+    _isAway = value;
+    if (_isAway) {
+        emit wentAway();
+    } else {
+        emit wentActive();
+    }
 }
 
 // The resulting matrix is used to render the hand controllers, even if the camera is decoupled from the avatar.

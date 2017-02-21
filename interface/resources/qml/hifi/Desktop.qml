@@ -48,7 +48,16 @@ OriginalDesktop.Desktop {
     // This used to create sysToolbar dynamically with a call to getToolbar() within onCompleted.
     // Beginning with QT 5.6, this stopped working, as anything added to toolbars too early got
     // wiped during startup.
-    
+    Toolbar {
+        id: sysToolbar;
+        objectName: "com.highfidelity.interface.toolbar.system";
+        anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
+        // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
+        x: sysToolbar.x
+        y: 50
+        shown: false
+    }
+
     Settings {
         id: settings;
         category: "toolbar";
@@ -58,8 +67,9 @@ OriginalDesktop.Desktop {
         settings.constrainToolbarToCenterX = constrain;
     }
     property var toolbars: (function (map) { // answer dictionary preloaded with sysToolbar
-        return map; })({});
-
+        map[sysToolbar.objectName] = sysToolbar;
+        return map;
+    })({});
 
     Component.onCompleted: {
         WebEngine.settings.javascriptCanOpenWindows = true;

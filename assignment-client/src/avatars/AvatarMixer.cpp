@@ -405,12 +405,12 @@ void AvatarMixer::broadcastAvatarData() {
                                                              otherNodeData->getLastReceivedSequenceNumber());
 
                     // determine if avatar is in view, to determine how much data to include...
-                    glm::vec3 otherNodeBoxScale = (otherNodeData->getPosition() - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
+                    glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
                     AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
                     bool isInView = nodeData->otherAvatarInView(otherNodeBox);
 
                     // this throttles the extra data to only be sent every Nth message
-                    if (!isInView && getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
+                    if (!isInView && !getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
                         return;
                     }
 
@@ -431,7 +431,7 @@ void AvatarMixer::broadcastAvatarData() {
                     auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
                     QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
                     bool distanceAdjust = true;
-                    glm::vec3 viewerPosition = nodeData->getPosition();
+                    glm::vec3 viewerPosition = myPosition;
                     auto bytes = otherAvatar.toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, distanceAdjust, viewerPosition, &lastSentJointsForOther);
                     numAvatarDataBytes += avatarPacketList->write(bytes);
 
@@ -572,6 +572,7 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
             bool isRequesting;
             message->readPrimitive(&isRequesting);
             nodeData->setRequestsDomainListData(isRequesting);
+            qDebug() << "node" << nodeData->getNodeID() << "requestsDomainListData" << isRequesting;
         }
     }
 }

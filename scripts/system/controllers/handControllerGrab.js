@@ -1188,8 +1188,8 @@ function MyController(hand) {
                     return;
                 }
             } else {
-		this.homeButtonTouched = false;
-	    }
+        this.homeButtonTouched = false;
+        }
         } else {
             this.hideStylus();
         }
@@ -1680,6 +1680,7 @@ function MyController(hand) {
             } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
                 if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled && farSearching) {
                     this.grabbedEntity = entity;
+                    this.grabbedDistance = rayPickInfo.distance;
                     this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     return;
                 } else {
@@ -1987,9 +1988,11 @@ function MyController(hand) {
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
-         this.shouldScale = false;
+        this.shouldScale = false;
 
-        var worldControllerPosition = getControllerWorldLocation(this.handToController(), true).position;
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+        var worldControllerPosition = controllerLocation.position;
+        var worldControllerRotation = controllerLocation.orientation;
 
         // transform the position into room space
         var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
@@ -2004,10 +2007,15 @@ function MyController(hand) {
         this.currentObjectTime = now;
         this.currentCameraOrientation = Camera.orientation;
 
-        this.grabRadius = Vec3.distance(this.currentObjectPosition, worldControllerPosition);
+        this.grabRadius = this.grabbedDistance;
         this.grabRadialVelocity = 0.0;
 
-        // compute a constant based on the initial conditions which we use below to exagerate hand motion
+        // offset between controller vector at the grab radius and the entity position
+        var targetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
+        targetPosition = Vec3.sum(targetPosition, worldControllerPosition);
+        this.offsetPosition = Vec3.subtract(this.currentObjectPosition, targetPosition);
+
+        // compute a constant based on the initial conditions which we use below to exaggerate hand motion
         // onto the held object
         this.radiusScalar = Math.log(this.grabRadius + 1.0);
         if (this.radiusScalar < 1.0) {
@@ -2124,6 +2132,7 @@ function MyController(hand) {
 
         var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
         newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
+        newTargetPosition = Vec3.sum(newTargetPosition, this.offsetPosition);
 
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, MyAvatar.position);
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultMoveWithHeadData);
@@ -2152,7 +2161,7 @@ function MyController(hand) {
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
-        this.overlayLineOn(rayPickInfo.searchRay.origin, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
+        this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition), COLORS_GRAB_DISTANCE_HOLD);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {

@@ -872,8 +872,12 @@ void OctreeServer::parsePayload() {
     }
 }
 
+OctreeServer::UniqueSendThread OctreeServer::newSendThread(const SharedNodePointer& node) {
+    return std::unique_ptr<OctreeSendThread>(new OctreeSendThread(this, node));
+}
+
 OctreeServer::UniqueSendThread OctreeServer::createSendThread(const SharedNodePointer& node) {
-    auto sendThread = std::unique_ptr<OctreeSendThread>(new OctreeSendThread(this, node));
+    auto sendThread = newSendThread(node);
     
     // we want to be notified when the thread finishes
     connect(sendThread.get(), &GenericThread::finished, this, &OctreeServer::removeSendThread);
