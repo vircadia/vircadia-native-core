@@ -14,10 +14,27 @@
 (function() { // BEGIN LOCAL_SCOPE
     var gotoQmlSource = "TabletAddressDialog.qml";
     var buttonName = "GOTO";
+    var onGotoScreen = false;
+    var shouldActivateButton = false;
 
-    function onClicked(){
-        tablet.loadQMLSource(gotoQmlSource);
+    function onClicked() {
+        if (onGotoScreen) {
+            // for toolbar-mode: go back to home screen, this will close the window.
+            tablet.gotoHomeScreen();
+        } else {
+            shouldActivateButton = true;
+            tablet.loadQMLSource(gotoQmlSource);
+            onGotoScreen = true;
+        }
     }
+
+    function onScreenChanged(type, url) {
+        // for toolbar mode: change button to active when window is first openend, false otherwise.
+        button.editProperties({isActive: shouldActivateButton});
+        shouldActivateButton = false;
+        onGotoScreen = false;
+    }
+
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         icon: "icons/tablet-icons/goto-i.svg",
@@ -27,12 +44,12 @@
     });
 
     button.clicked.connect(onClicked);
+    tablet.screenChanged.connect(onScreenChanged);
 
     Script.scriptEnding.connect(function () {
         button.clicked.disconnect(onClicked);
-        if (tablet) {
-            tablet.removeButton(button);
-        }
+        tablet.removeButton(button);
+        tablet.screenChanged.disconnect(onScreenChanged);
     });
 
 }()); // END LOCAL_SCOPE
