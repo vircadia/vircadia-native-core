@@ -16,6 +16,7 @@
 #include <list>
 #include <vector>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 
 /* KTX Spec:
