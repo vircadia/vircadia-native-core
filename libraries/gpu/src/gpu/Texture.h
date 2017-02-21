@@ -506,7 +506,7 @@ public:
     ExternalUpdates getUpdates() const;
 
     static ktx::KTXUniquePointer serialize(const Texture& texture);
-    static Texture* unserialize(TextureUsageType usageType, const ktx::KTXUniquePointer& srcData);
+    static Texture* unserialize(Usage usage, TextureUsageType usageType, const ktx::KTXUniquePointer& srcData, const Sampler& sampler = Sampler());
 
 protected:
     const TextureUsageType _usageType;

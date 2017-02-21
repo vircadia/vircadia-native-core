@@ -16,8 +16,9 @@
 using namespace ktx;
 
 uint32_t Header::evalPadding(size_t byteSize) {
-    auto padding = byteSize % PACKING_SIZE;
-    return (uint32_t) (padding ? PACKING_SIZE - padding : 0);
+    //auto padding = byteSize % PACKING_SIZE;
+ //   return (uint32_t) (padding ? PACKING_SIZE - padding : 0);
+    return (uint32_t) (3 - (byteSize + 3) % PACKING_SIZE);// padding ? PACKING_SIZE - padding : 0);
 }
 
 

@@ -103,15 +103,25 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
             QString originalRelativePath = originalFileInfo.path();
             QDir(docsLocation).mkpath(originalRelativePath);
         }
+
+        std::string cleanedName = name;
+
+        cleanedName = cleanedName.substr(cleanedName.find_last_of('//') + 1);
+
         std::string filename(path.toStdString());
-            filename += name;
+            filename += cleanedName;
             filename += ".ktx";
 
         if (write) {
-            FILE* file = fopen (filename.c_str(),"wb");
+         /*   FILE *file = fopen(name.c_str(), "r");
             if (file != nullptr) {
-                fwrite(theKTX->_storage->data(), 1, theKTX->_storage->size(), file);
-                fclose (file);
+                fclose(file);
+            } else*/ {
+                FILE *file = fopen (filename.c_str(),"wb");
+                if (file != nullptr) {
+                    fwrite(theKTX->_storage->data(), 1, theKTX->_storage->size(), file);
+                    fclose (file);
+                }
             }
         }
 
@@ -128,7 +138,7 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
                 fclose (file);
 
                 //then create a new texture out of the ktx
-                auto theNewTexure = Texture::unserialize(srcTexture->getUsageType(), ktx::KTX::create(storage));
+                auto theNewTexure = Texture::unserialize(srcTexture->getUsage(), srcTexture->getUsageType(), ktx::KTX::create(storage), srcTexture->getSampler());
 
                 if (theNewTexure) {
                     returnedTexture = theNewTexure;
@@ -328,8 +338,8 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         if (generateMips) {
             ::generateMips(theTexture, image, false);
         }
-
-        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
+        theTexture->setSource(srcImageName);
+        theTexture = cacheTexture(theTexture->source(), theTexture);
     }
 
     return theTexture;
@@ -377,7 +387,8 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
         theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture, image, true);
 
-        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
+        theTexture->setSource(srcImageName);
+        theTexture = cacheTexture(theTexture->source(), theTexture);
     }
 
     return theTexture;
@@ -466,7 +477,8 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
         theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture, image, true);
 
-        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
+        theTexture->setSource(srcImageName);
+        theTexture = cacheTexture(theTexture->source(), theTexture);
     }
 
     return theTexture;
@@ -502,7 +514,8 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
         theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture, image, true);
         
-        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
+        theTexture->setSource(srcImageName);
+        theTexture = cacheTexture(theTexture->source(), theTexture);
     }
 
     return theTexture;
@@ -542,7 +555,8 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
         theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture, image, true);
 
-        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
+        theTexture->setSource(srcImageName);
+        theTexture = cacheTexture(theTexture->source(), theTexture);
     }
     
     return theTexture;
@@ -579,7 +593,8 @@ gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImag
         theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture, image, true);
 
-        theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
+        theTexture->setSource(srcImageName);
+        theTexture = cacheTexture(theTexture->source(), theTexture);
     }
 
     return theTexture;
@@ -912,7 +927,8 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
                 theTexture->generateIrradiance();
             }
 
-            theTexture = cacheTexture(std::to_string((size_t) theTexture), theTexture);
+            theTexture->setSource(srcImageName);
+            theTexture = cacheTexture(theTexture->source(), theTexture);
         }
     }
 

@@ -418,14 +418,32 @@ namespace ktx {
      
 
     struct Image {
+        using FaceBytes = std::vector<const Byte*>;
+
+        uint32_t _numFaces{ 1 };
         uint32_t _imageSize;
+        uint32_t _faceSize;
         uint32_t _padding;
-        const Byte* _bytes;
+        FaceBytes _faceBytes;
+        
 
         Image(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
+            _numFaces(1),
             _imageSize(imageSize),
             _padding(padding),
-            _bytes(bytes) {}
+            _faceSize(imageSize),
+            _faceBytes(1, bytes) {}
+
+        Image(uint32_t pageSize, uint32_t padding, const FaceBytes& cubeFaceBytes) :
+            _numFaces(NUM_CUBEMAPFACES),
+            _imageSize(pageSize * NUM_CUBEMAPFACES),
+            _padding(padding),
+            _faceSize(pageSize)
+            {
+                if (cubeFaceBytes.size() == NUM_CUBEMAPFACES) {
+                    _faceBytes = cubeFaceBytes;
+                }
+            }
     };
     using Images = std::vector<Image>;
 

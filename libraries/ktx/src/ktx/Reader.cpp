@@ -125,6 +125,7 @@ namespace ktx {
         Images images;
         auto currentPtr = srcBytes;
         auto numMips = header.getNumberOfLevels();
+        auto numFaces = header.numberOfFaces;
 
         // Keep identifying new mip as long as we can at list query the next imageSize
         while ((currentPtr - srcBytes) + sizeof(uint32_t) <= (srcSize)) {
@@ -137,9 +138,19 @@ namespace ktx {
             if ((currentPtr - srcBytes) + imageSize <= (srcSize)) {
                 auto padding = Header::evalPadding(imageSize);
 
-                images.emplace_back(Image(imageSize, padding, currentPtr));
-
-                currentPtr += imageSize + padding;
+                if (numFaces == 6) {
+                    size_t faceSize = imageSize / 6;
+                    Image::FaceBytes faces(6);
+                    for (uint32_t face = 0; face < 6; face++) {
+                        faces[face] = currentPtr;
+                        currentPtr += faceSize;
+                    }
+                    images.emplace_back(Image(faceSize, padding, faces));
+                    currentPtr += padding;
+                } else {
+                    images.emplace_back(Image(imageSize, padding, currentPtr));
+                    currentPtr += imageSize + padding;
+                }
             } else {
                 break;
             }

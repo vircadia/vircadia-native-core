@@ -436,6 +436,7 @@ void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePoin
     auto bytes = storage->data();
     if (size == expectedSize) {
         _storage->assignMipFaceData(level, face, storage);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
     } else if (size > expectedSize) {
         // NOTE: We are facing this case sometime because apparently QImage (from where we get the bits) is generating images
@@ -443,6 +444,7 @@ void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePoin
         // We should probably consider something a bit more smart to get the correct result but for now (UI elements)
         // it seems to work...
         _storage->assignMipFaceData(level, face, storage);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
     }
 }
@@ -960,3 +962,4 @@ Texture::ExternalUpdates Texture::getUpdates() const {
     }
     return result;
 }
+
