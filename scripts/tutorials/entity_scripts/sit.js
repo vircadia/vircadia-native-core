@@ -80,6 +80,9 @@
 
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
 
+        MyAvatar.bodyPitch = 0.0;
+        MyAvatar.bodyRoll = 0.0;
+
         Script.update.disconnect(this, this.update);
         Controller.keyPressEvent.disconnect(this, this.keyPressed);
         Controller.keyReleaseEvent.disconnect(this, this.keyReleased);
