@@ -309,6 +309,12 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
         return 0;
     }
 
+    if (nodeData->elementBag.isEmpty()) {
+        // if we're about to do a fresh pass,
+        // give our pre-distribution processing a chance to do what it needs
+        preDistributionProcessing();
+    }
+
     // calculate max number of packets that can be sent during this interval
     int clientMaxPacketsPerInterval = std::max(1, (nodeData->getMaxQueryPacketsPerSecond() / INTERVALS_PER_SECOND));
     int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
@@ -316,9 +322,17 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
-    bool isFullScene = nodeData->haveJSONParametersChanged() ||
-        (nodeData->getUsesFrustum()
-         && ((!viewFrustumChanged && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged()));
+
+    bool isFullScene = nodeData->shouldForceFullScene();
+    if (isFullScene) {
+        // we're forcing a full scene, clear the force in OctreeQueryNode so we don't force it next time again
+        nodeData->setShouldForceFullScene(false);
+    } else {
+        // we aren't forcing a full scene, check if something else suggests we should
+        isFullScene = nodeData->haveJSONParametersChanged() ||
+            (nodeData->getUsesFrustum()
+             && ((!viewFrustumChanged && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged()));
+    }
 
     bool somethingToSend = true; // assume we have something
 

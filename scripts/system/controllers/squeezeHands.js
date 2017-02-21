@@ -25,6 +25,11 @@ var OVERLAY_RAMP_RATE = 8.0;
 
 var animStateHandlerID;
 
+var isPointingIndex = false;
+var HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index";
+
+var indexfingerJointNames = ["LeftHandIndex1", "LeftHandIndex2", "LeftHandIndex3", "RightHandIndex1", "RightHandIndex2", "RightHandIndex3"];
+
 function clamp(val, min, max) {
     return Math.min(Math.max(val, min), max);
 }
@@ -43,6 +48,8 @@ function init() {
         animStateHandler,
         ["leftHandOverlayAlpha", "rightHandOverlayAlpha", "leftHandGraspAlpha", "rightHandGraspAlpha"]
     );
+    Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+    Messages.messageReceived.connect(handleMessages);
 }
 
 function animStateHandler(props) {
@@ -76,11 +83,37 @@ function update(dt) {
     } else {
         rightHandOverlayAlpha = clamp(rightHandOverlayAlpha - OVERLAY_RAMP_RATE * dt, 0, 1);
     }
+
+    // Point index finger.
+    if (isPointingIndex) {
+        var zeroRotation = { x: 0, y: 0, z: 0, w: 1 };
+        for (var i = 0; i < indexfingerJointNames.length; i++) {
+            MyAvatar.setJointRotation(indexfingerJointNames[i], zeroRotation);
+        }
+    }
+}
+
+function handleMessages(channel, message, sender) {
+    if (sender === MyAvatar.sessionUUID && channel === HIFI_POINT_INDEX_MESSAGE_CHANNEL) {
+        var data = JSON.parse(message);
+        if (data.pointIndex !== undefined) {
+            print("pointIndex: " + data.pointIndex);
+            isPointingIndex = data.pointIndex;
+
+            if (!isPointingIndex) {
+                for (var i = 0; i < indexfingerJointNames.length; i++) {
+                    MyAvatar.clearJointData(indexfingerJointNames[i]);
+                }
+            }
+        }
+    }
 }
 
 function shutdown() {
     Script.update.disconnect(update);
     MyAvatar.removeAnimationStateHandler(animStateHandlerID);
+    Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+    Messages.messageReceived.disconnect(handleMessages);
 }
 
 Script.scriptEnding.connect(shutdown);

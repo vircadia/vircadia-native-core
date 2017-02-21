@@ -70,6 +70,9 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
             _parentKnowsMe = false;
         }
     });
+
+    bool success = false;
+    getParentPointer(success);
 }
 
 Transform SpatiallyNestable::getParentTransform(bool& success, int depth) const {
