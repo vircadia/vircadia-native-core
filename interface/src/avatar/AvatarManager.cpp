@@ -154,8 +154,7 @@ public:
     AvatarPriority(AvatarSharedPointer a, float p) : avatar(a), priority(p) {}
     AvatarSharedPointer avatar;
     float priority;
-    // NOTE: we invert the less-than operator to sort high priorities to front
-    bool operator<(const AvatarPriority& other) const { return priority > other.priority; }
+    bool operator<(const AvatarPriority& other) const { return priority < other.priority; }
 };
 
 void AvatarManager::updateOtherAvatars(float deltaTime) {
@@ -206,9 +205,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             float radius = avatar->getBoundingRadius();
             const glm::vec3& forward = cameraView.getDirection();
             float apparentSize = radius / distance;
-            float cosineAngle = glm::length(offset - glm::dot(offset, forward) * forward) / distance;
-            const float TIME_PENALTY = 0.080f; // seconds
-            float age = (float)(startTime - avatar->getLastRenderUpdateTime()) / (float)(USECS_PER_SECOND) - TIME_PENALTY;
+            float cosineAngle = glm::length(glm::dot(offset, forward) * forward) / distance;
+            float age = (float)(startTime - avatar->getLastRenderUpdateTime()) / (float)(USECS_PER_SECOND);
             // NOTE: we are adding values of different units to get a single measure of "priority".
             // Thus we multiply each component by a conversion "weight" that scales its units
             // relative to the others.  These weights are pure magic tuning and are hard coded in the
