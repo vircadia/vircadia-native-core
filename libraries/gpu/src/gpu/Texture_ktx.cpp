@@ -20,13 +20,18 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
 
     // From texture format to ktx format description
     auto texelFormat = texture.getTexelFormat();
-    if ( !(   (texelFormat == Format::COLOR_RGBA_32)
-           || (texelFormat == Format::COLOR_SRGBA_32)
-          )) 
-         return nullptr;
+    auto mipFormat = texture.getStoredMipFormat();
 
-    header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
-
+    if (texelFormat == Format::COLOR_RGBA_32 && mipFormat == Format::COLOR_BGRA_32) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_SRGBA_32 && mipFormat == Format::COLOR_BGRA_32) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_R_8 && mipFormat == Format::COLOR_R_8) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RED, ktx::GLInternalFormat_Uncompressed::R8, ktx::GLBaseInternalFormat::RED);
+    } else {
+        return nullptr;
+    }
+ 
     // Set Dimensions
     uint32_t numFaces = 1;
     switch (texture.getType()) {
@@ -97,8 +102,26 @@ Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx
     }
     const auto& header = *srcData->getHeader();
 
-    Format mipFormat = Format::COLOR_SBGRA_32;
+    Format mipFormat = Format::COLOR_BGRA_32;
     Format texelFormat = Format::COLOR_SRGBA_32;
+
+    if (header.getGLFormat() == ktx::GLFormat::BGRA && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 4) {
+        mipFormat = Format::COLOR_BGRA_32;
+        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::RGBA8) {
+            texelFormat = Format::COLOR_RGBA_32;
+        } else if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8) {
+            texelFormat = Format::COLOR_SRGBA_32;
+        } else {
+            return nullptr;
+        }
+    } else if (header.getGLFormat() == ktx::GLFormat::RED && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 1) {
+        mipFormat = Format::COLOR_R_8;
+        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::R8) {
+            texelFormat = Format::COLOR_R_8;
+        } else {
+            return nullptr;
+        }
+    }
 
     // Find Texture Type based on dimensions
     Type type = TEX_1D;

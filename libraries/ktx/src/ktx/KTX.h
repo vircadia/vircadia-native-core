@@ -394,6 +394,14 @@ namespace ktx {
             glBaseInternalFormat = (uint32_t) baseInternalFormat;
         }
 
+        GLType getGLType() const { return (GLType)glType; }
+        uint32_t getTypeSize() const { return glTypeSize; }
+        GLFormat getGLFormat() const { return (GLFormat)glFormat; }
+        GLInternalFormat_Uncompressed getGLInternaFormat_Uncompressed() const { return (GLInternalFormat_Uncompressed)glInternalFormat; }
+        GLInternalFormat_Compressed getGLInternaFormat_Compressed() const { return (GLInternalFormat_Compressed)glInternalFormat; }
+        GLBaseInternalFormat getGLBaseInternalFormat() const { return (GLBaseInternalFormat)glBaseInternalFormat; }
+
+
         void setDimensions(uint32_t width, uint32_t height = 0, uint32_t depth = 0, uint32_t numSlices = 0, uint32_t numFaces = 1) {
             pixelWidth = (width > 0 ? width : 1);
             pixelHeight = height;

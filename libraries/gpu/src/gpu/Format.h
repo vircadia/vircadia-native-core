@@ -133,6 +133,7 @@ static const int SCALAR_COUNT[NUM_DIMENSIONS] = {
 enum Semantic {
     RAW = 0, // used as RAW memory
 
+    RED,
     RGB,
     RGBA,
     BGRA,
@@ -227,6 +228,7 @@ public:
         return getRaw() != right.getRaw();
     }
 
+    static const Element COLOR_R_8;
     static const Element COLOR_RGBA_32;
     static const Element COLOR_SRGBA_32;
     static const Element COLOR_BGRA_32;
