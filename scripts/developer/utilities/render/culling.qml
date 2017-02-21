@@ -95,7 +95,6 @@ Column {
 
     GroupBox {
         title: "Render Items"
-        Column{
 
         Column{
             Repeater {
@@ -110,21 +109,6 @@ Column {
                     min: -1
                 }
             }
-        }
-
-        Column{
-            Repeater {
-                model: [ "Draw Opaque [ms]:DrawOpaqueDeferred" ]
-                ConfigSlider {
-                    label: qsTr(modelData.split(":")[0])
-                    integral: false
-                    config: Render.getConfig(modelData.split(":")[1])
-                    property: "maxTimeBudget"
-                    max: 10.0
-                    min: 0.0
-                }
-            }
-        }
         }
     }
 }
