@@ -204,14 +204,17 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
             float radius = avatar->getBoundingRadius();
             const glm::vec3& forward = cameraView.getDirection();
-            float apparentSize = radius / distance;
+            float apparentSize = 2.0f * radius / distance;
             float cosineAngle = glm::length(glm::dot(offset, forward) * forward) / distance;
             float age = (float)(startTime - avatar->getLastRenderUpdateTime()) / (float)(USECS_PER_SECOND);
+
             // NOTE: we are adding values of different units to get a single measure of "priority".
-            // Thus we multiply each component by a conversion "weight" that scales its units
-            // relative to the others.  These weights are pure magic tuning and are hard coded in the
-            // relation below: (hint: unitary weights are not explicityly shown)
-            float priority = apparentSize + 0.25f * cosineAngle + age;
+            // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
+            // These weights are pure magic tuning and should be hard coded in the relation below,
+            // but are currently exposed for anyone who would like to explore fine tuning:
+            float priority = _avatarSortCoefficientSize * apparentSize
+                    + _avatarSortCoefficientCenter * cosineAngle
+                    + _avatarSortCoefficientAge * age;
 
             // decrement priority of avatars outside keyhole
             if (distance > cameraView.getCenterRadius()) {
@@ -590,4 +593,30 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
     }
 
     return result;
+}
+
+// HACK
+float AvatarManager::getAvatarSortCoefficient(const QString& name) {
+    if (name == "size") {
+        return _avatarSortCoefficientSize;
+    } else if (name == "center") {
+        return _avatarSortCoefficientCenter;
+    } else if (name == "age") {
+        return _avatarSortCoefficientAge;
+    }
+    return 0.0f;
+}
+
+// HACK
+void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptValue& value) {
+    if (value.isNumber()) {
+        float numericalValue = (float)value.toNumber();
+        if (name == "size") {
+            _avatarSortCoefficientSize = numericalValue;
+        } else if (name == "center") {
+            _avatarSortCoefficientCenter = numericalValue;
+        } else if (name == "age") {
+            _avatarSortCoefficientAge = numericalValue;
+        }
+    }
 }
