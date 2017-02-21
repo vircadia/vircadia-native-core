@@ -17,6 +17,7 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
     switch (dstFormat.getDimension()) {
         case gpu::SCALAR: {
             switch (dstFormat.getSemantic()) {
+                case gpu::RED:
                 case gpu::RGB:
                 case gpu::RGBA:
                 case gpu::SRGB:
@@ -262,6 +263,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
+            case gpu::RED:
             case gpu::RGB:
             case gpu::RGBA:
                 texel.internalFormat = GL_R8;
@@ -403,6 +405,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_COMPRESSED_RED_RGTC1;
                 break;
             }
+            case gpu::RED:
             case gpu::RGB:
             case gpu::RGBA:
             case gpu::SRGB:
