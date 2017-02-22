@@ -238,7 +238,11 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'refresh':
         removeOverlays();
-        populateUserList(message.params.selected, message.params.filter);
+        // If filter is specified from .qml instead of through settings, update the settings.
+        if (message.params.filter !== undefined) {
+            Settings.setValue('pal/filtered', !!message.params.filter);
+        }
+        populateUserList(message.params.selected);
         UserActivityLogger.palAction("refresh", "");
         break;
     case 'updateGain':
@@ -280,13 +284,10 @@ function addAvatarNode(id) {
         color: color(selected, false, 0.0),
         ignoreRayIntersection: false}, selected, !conserveResources);
 }
-var filter = false;
 // Each open/refresh will capture a stable set of avatarsOfInterest, within the specified filter.
 var avatarsOfInterest = {};
-function populateUserList(selectData, filterRequest) {
-    if (filterRequest !== undefined) {
-        filter = filterRequest;
-    }
+function populateUserList(selectData) {
+    var filter = Settings.getValue('pal/filtered') && {distance: Settings.getValue('pal/nearDistance')};
     var data = [], avatars = AvatarList.getAvatarIdentifiers();
     avatarsOfInterest = {};
     var myPosition = filter && Camera.position,
