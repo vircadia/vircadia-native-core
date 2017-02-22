@@ -77,7 +77,7 @@
             return;
         }
 
-        MyAvatar.resetSensors();
+        MyAvatar.resetSensorsAndBody();
 
         var that = this;
         Script.setTimeout(function() {
@@ -117,7 +117,9 @@
 
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
 
-        MyAvatar.resetSensors();
+        Script.setTimeout(function() {
+            MyAvatar.resetSensorsAndBody();
+        }, SIT_DELAY);
 
         Script.update.disconnect(this, this.update);
         Controller.keyPressEvent.disconnect(this, this.keyPressed);
