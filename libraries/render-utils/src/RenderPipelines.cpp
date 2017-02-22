@@ -50,6 +50,7 @@
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
+#include "overlay3D_model_frag.h"
 #include "overlay3D_translucent_frag.h"
 #include "overlay3D_unlit_frag.h"
 #include "overlay3D_translucent_unlit_frag.h"
@@ -70,17 +71,19 @@ void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch);
 
 void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
-    auto pixel = gpu::Shader::createPixel(std::string(overlay3D_frag));
+    auto pixel = gpu::Shader::createPixel(std::string(overlay3D_model_frag));
     auto pixelTranslucent = gpu::Shader::createPixel(std::string(overlay3D_translucent_frag));
     auto pixelUnlit = gpu::Shader::createPixel(std::string(overlay3D_unlit_frag));
     auto pixelTranslucentUnlit = gpu::Shader::createPixel(std::string(overlay3D_translucent_unlit_frag));
+    auto pixelMaterial = gpu::Shader::createPixel(std::string(overlay3D_model_frag));
 
     auto opaqueProgram = gpu::Shader::createProgram(vertex, pixel);
     auto translucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucent);
     auto unlitOpaqueProgram = gpu::Shader::createProgram(vertex, pixelUnlit);
     auto unlitTranslucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucentUnlit);
+    auto opaqueMaterialProgram = gpu::Shader::createProgram(vertex, pixelMaterial);
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 16; i++) {
         bool isCulled = (i & 1);
         bool isBiased = (i & 2);
         bool isOpaque = (i & 4);
