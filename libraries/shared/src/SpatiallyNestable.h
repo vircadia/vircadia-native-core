@@ -179,9 +179,9 @@ public:
             const glm::vec3& localVelocity,
             const glm::vec3& localAngularVelocity);
 
-    bool scaleChangedSince(quint64 time) { return _scaleChanged > time; }
-    bool tranlationChangedSince(quint64 time) { return _translationChanged > time; }
-    bool rotationChangedSince(quint64 time) { return _rotationChanged > time; }
+    bool scaleChangedSince(quint64 time) const { return _scaleChanged > time; }
+    bool tranlationChangedSince(quint64 time) const { return _translationChanged > time; }
+    bool rotationChangedSince(quint64 time) const { return _rotationChanged > time; }
 
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
