@@ -87,6 +87,8 @@ int main(int argc, char** argv) {
     QCoreApplication::setOrganizationDomain("highfidelity.com");
     logger.reset(new FileLogger());
 
+    Q_ASSERT(sizeof(ktx::Header) == 12 + (sizeof(uint32_t) * 13));
+
     DependencyManager::set<tracing::Tracer>();
     qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
@@ -94,22 +96,55 @@ int main(int argc, char** argv) {
     QImage image(TEST_IMAGE);
     gpu::Texture* testTexture = model::TextureUsage::process2DTextureColorFromImage(image, TEST_IMAGE.toStdString(), true, false, true);
 
-    auto ktxPtr = gpu::Texture::serialize(*testTexture);
-    const auto& ktxStorage = ktxPtr->getStorage();
-    auto header = ktxPtr->getHeader();
-    assert(sizeof(ktx::Header) == 12 + (sizeof(uint32_t) * 13));
-    QFile outFile(TEST_IMAGE_KTX);
-    if (!outFile.open(QFile::Truncate | QFile::ReadWrite)) {
-        throw std::runtime_error("Unable to open file");
+    auto ktxMemory = gpu::Texture::serialize(*testTexture);
+    {
+        const auto& ktxStorage = ktxMemory->getStorage();
+        auto header = ktxMemory->getHeader();
+        QFile outFile(TEST_IMAGE_KTX);
+        if (!outFile.open(QFile::Truncate | QFile::ReadWrite)) {
+            throw std::runtime_error("Unable to open file");
+        }
+        //auto ktxSize = sizeof(ktx::Header); // ktxStorage->size()
+        auto ktxSize = ktxStorage->size();
+        outFile.resize(ktxSize);
+        auto dest = outFile.map(0, ktxSize);
+        memcpy(dest, ktxStorage->data(), ktxSize);
+        outFile.unmap(dest);
+        outFile.close();
     }
-    //auto ktxSize = sizeof(ktx::Header); // ktxStorage->size()
-    auto ktxSize = ktxStorage->size();
-    outFile.resize(ktxSize);
-    auto dest = outFile.map(0, ktxSize);
-    memcpy(dest, ktxStorage->data(), ktxSize);
-    outFile.unmap(dest);
-    outFile.close();
-//    gpu::Texture* ktxTexture = cacheTexture(TEST_IMAGE.toStdString(), testTexture, true, true);
+
+    auto ktxFile = ktx::KTX::create(std::unique_ptr<storage::Storage>(new storage::FileStorage(TEST_IMAGE_KTX)));
+    {
+        const auto& memStorage = ktxMemory->getStorage();
+        const auto& fileStorage = ktxFile->getStorage();
+        Q_ASSERT(memStorage->size() == fileStorage->size());
+        Q_ASSERT(memStorage->data() != fileStorage->data());
+        Q_ASSERT(0 == memcmp(memStorage->data(), fileStorage->data(), memStorage->size()));
+        Q_ASSERT(ktxFile->_images.size() == ktxMemory->_images.size());
+        auto imageCount = ktxFile->_images.size();
+        auto startMemory = ktxMemory->_storage->data();
+        auto startFile = ktxFile->_storage->data();
+        for (size_t i = 0; i < imageCount; ++i) {
+            auto memImages = ktxMemory->_images[i];
+            auto fileImages = ktxFile->_images[i];
+            Q_ASSERT(memImages._padding == fileImages._padding);
+            Q_ASSERT(memImages._numFaces == fileImages._numFaces);
+            Q_ASSERT(memImages._imageSize == fileImages._imageSize);
+            Q_ASSERT(memImages._faceSize == fileImages._faceSize);
+            Q_ASSERT(memImages._faceBytes.size() == memImages._numFaces);
+            Q_ASSERT(fileImages._faceBytes.size() == fileImages._numFaces);
+            auto faceCount = fileImages._numFaces;
+            for (uint32_t face = 0; face < faceCount; ++face) {
+                auto memFace = memImages._faceBytes[face];
+                auto memOffset = memFace - startMemory;
+                auto fileFace = fileImages._faceBytes[face];
+                auto fileOffset = fileFace - startFile;
+                Q_ASSERT(memOffset % 4 == 0);
+                Q_ASSERT(memOffset == fileOffset);
+            }
+        }
+    }
+    testTexture->setKtxBacking(ktxFile);
     return 0;
 }
 

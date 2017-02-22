@@ -459,6 +459,7 @@ namespace ktx {
         const Header* getHeader() const;
         const Byte* getKeyValueData() const;
         const Byte* getTexelsData() const;
+        storage::StoragePointer getMipFaceTexelsData(uint16_t mip = 0, uint8_t face = 0) const;
         const StoragePointer& getStorage() const { return _storage; }
 
         size_t getKeyValueDataSize() const;

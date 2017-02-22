@@ -126,3 +126,15 @@ const Byte* KTX::getTexelsData() const {
     }
 }
 
+storage::StoragePointer KTX::getMipFaceTexelsData(uint16_t mip, uint8_t face) const {
+    storage::StoragePointer result;
+    if (mip < _images.size()) {
+        const auto& faces = _images[mip];
+        if (face < faces._numFaces) {
+            auto faceOffset = faces._faceBytes[face] - _storage->data();
+            auto faceSize = faces._faceSize;
+            result = _storage->createView(faceSize, faceOffset);
+        }
+    }
+    return result;
+}
