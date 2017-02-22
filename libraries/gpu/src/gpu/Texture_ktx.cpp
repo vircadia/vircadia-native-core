@@ -93,6 +93,27 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     }
 
     auto ktxBuffer = ktx::KTX::create(header, images);
+
+    assert(0 == memcmp(&header, ktxBuffer->getHeader(), sizeof(ktx::Header)));
+    assert(ktxBuffer->_images.size() == images.size());
+    auto start = ktxBuffer->_storage->data();
+    for (size_t i = 0; i < images.size(); ++i) {
+        auto expected = images[i];
+        auto actual = ktxBuffer->_images[i];
+        assert(expected._padding == actual._padding);
+        assert(expected._numFaces == actual._numFaces);
+        assert(expected._imageSize == actual._imageSize);
+        assert(expected._faceSize == actual._faceSize);
+        assert(actual._faceBytes.size() == actual._numFaces);
+        for (uint32_t face = 0; face < expected._numFaces; ++face) {
+            auto expectedFace = expected._faceBytes[face];
+            auto actualFace = actual._faceBytes[face];
+            auto offset = actualFace - start;
+            assert(offset % 4 == 0);
+            assert(expectedFace != actualFace);
+            assert(0 == memcmp(expectedFace, actualFace, expected._faceSize));
+        }
+    }
     return ktxBuffer;
 }
 

@@ -26,40 +26,15 @@ namespace ktx {
         const std::string _explanation;
     };
 
-
-    void KTX::resetHeader(const Header& header) {
-         if (!_storage) {
-            return;
-        }
-        memcpy(_storage->_bytes, &header, sizeof(Header));
-    }
-    void KTX::resetImages(const Images& srcImages) {
-        auto imagesDataPtr = getTexelsData();
-        if (!imagesDataPtr) {
-            return;
-        }
-        auto allocatedImagesDataSize = getTexelsDataSize();
-
-        // Just copy in our storage
-        _images = writeImages(imagesDataPtr, allocatedImagesDataSize, srcImages);
-    }
-
     std::unique_ptr<KTX> KTX::create(const Header& header, const Images& images, const KeyValues& keyValues) {
-        auto storageSize = evalStorageSize(header, images, keyValues);
-
-        std::unique_ptr<KTX> result(new KTX());
-        
-        result->resetStorage(new Storage(storageSize));
-
-        result->resetHeader(header);
-
-        // read metadata
-        result->_keyValues = keyValues;
-
-        // populate image table
-        result->resetImages(images);
-
-        return result;
+        std::unique_ptr<storage::Storage> storagePointer;
+        {
+            auto storageSize = ktx::KTX::evalStorageSize(header, images);
+            auto memoryStorage = new storage::MemoryStorage(storageSize);
+            ktx::KTX::write(memoryStorage->data(), memoryStorage->size(), header, images);
+            storagePointer.reset(memoryStorage);
+        }
+        return create(storagePointer);
     }
 
     size_t KTX::evalStorageSize(const Header& header, const Images& images, const KeyValues& keyValues) {
@@ -116,8 +91,6 @@ namespace ktx {
         auto allocatedImagesDataSize = destByteSize;
         size_t currentDataSize = 0;
         auto currentPtr = imagesDataPtr;
-
-
 
         for (uint32_t l = 0; l < srcImages.size(); l++) {
             if (currentDataSize + sizeof(uint32_t) < allocatedImagesDataSize) {
