@@ -89,66 +89,54 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
     if (!srcTexture) {
         return nullptr;
     }
-    gpu::Texture* returnedTexture = srcTexture;
 
-#if 0
-    auto theKTX = Texture::serialize(*srcTexture);
-    if (theKTX) {
+    static QString ktxCacheFolder;
+    static std::once_flag once;
+    std::call_once(once, [&] {
         // Prepare cache directory
-        QString path("hifi_ktx/");
-        QFileInfo originalFileInfo(path);
+        static const QString HIFI_KTX_FOLDER("hifi_ktx");
         QString docsLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        path = docsLocation + "/" + path;
-        QFileInfo info(path);
-        if (!info.absoluteDir().exists()) {
-            QString originalRelativePath = originalFileInfo.path();
-            QDir(docsLocation).mkpath(originalRelativePath);
+        ktxCacheFolder = docsLocation + "/" + HIFI_KTX_FOLDER;
+        QFileInfo info(ktxCacheFolder);
+        if (!info.exists()) {
+            QDir(docsLocation).mkpath(HIFI_KTX_FOLDER);
         }
+    });
 
-        std::string cleanedName = name;
 
-        cleanedName = cleanedName.substr(cleanedName.find_last_of('//') + 1);
+    std::string cleanedName = name;
+    cleanedName = cleanedName.substr(cleanedName.find_last_of('//') + 1);
+    std::string cacheFilename(ktxCacheFolder.toStdString());
+    cacheFilename += cleanedName;
+    cacheFilename += ".ktx";
 
-        std::string filename(path.toStdString());
-            filename += cleanedName;
-            filename += ".ktx";
-
-        if (write) {
-         /*   FILE *file = fopen(name.c_str(), "r");
-            if (file != nullptr) {
-                fclose(file);
-            } else*/ {
-                FILE *file = fopen (filename.c_str(),"wb");
-                if (file != nullptr) {
-                    fwrite(theKTX->_storage->data(), 1, theKTX->_storage->size(), file);
-                    fclose (file);
+    gpu::Texture* returnedTexture = srcTexture;
+    {
+        if (write && !QFileInfo(cacheFilename.c_str()).exists()) {
+            auto ktxMemory = gpu::Texture::serialize(*srcTexture);
+            if (ktxMemory) {
+                const auto& ktxStorage = ktxMemory->getStorage();
+                auto header = ktxMemory->getHeader();
+                QFile outFile(cacheFilename.c_str());
+                if (!outFile.open(QFile::Truncate | QFile::ReadWrite)) {
+                    throw std::runtime_error("Unable to open file");
                 }
+                //auto ktxSize = sizeof(ktx::Header); // ktxStorage->size()
+                auto ktxSize = ktxStorage->size();
+                outFile.resize(ktxSize);
+                auto dest = outFile.map(0, ktxSize);
+                memcpy(dest, ktxStorage->data(), ktxSize);
+                outFile.unmap(dest);
+                outFile.close();
             }
         }
 
-        if (read) {
-            FILE* file = fopen (filename.c_str(),"rb");
-            if (file != nullptr) {
-                // obtain file size:
-                fseek (file , 0 , SEEK_END);
-                auto size = ftell(file);
-                rewind(file);
-
-                std::unique_ptr<ktx::Storage> storage(new ktx::Storage(size));
-                fread(storage->_bytes, 1, storage->_size, file);
-                fclose (file);
-
-                //then create a new texture out of the ktx
-                auto theNewTexure = Texture::unserialize(srcTexture->getUsage(), srcTexture->getUsageType(), ktx::KTX::create(storage), srcTexture->getSampler());
-
-                if (theNewTexure) {
-                    returnedTexture = theNewTexure;
-                    delete srcTexture;
-                }
-            }
+        if (read && QFileInfo(cacheFilename.c_str()).exists()) {
+            auto ktxFile = ktx::KTX::create(std::unique_ptr<storage::Storage>(new storage::FileStorage(cacheFilename.c_str())));
+            returnedTexture->setKtxBacking(ktxFile);
         }
     }
-#endif
+
     return returnedTexture;
 }
 
