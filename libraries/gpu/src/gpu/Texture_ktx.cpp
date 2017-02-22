@@ -24,7 +24,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
 
     if (texelFormat == Format::COLOR_RGBA_32 && mipFormat == Format::COLOR_BGRA_32) {
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
-    } else if (texelFormat == Format::COLOR_SRGBA_32 && mipFormat == Format::COLOR_BGRA_32) {
+    } else if (texelFormat == Format::COLOR_SRGBA_32 && mipFormat == Format::COLOR_SBGRA_32) {
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
     } else if (texelFormat == Format::COLOR_R_8 && mipFormat == Format::COLOR_R_8) {
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RED, ktx::GLInternalFormat_Uncompressed::R8, ktx::GLBaseInternalFormat::RED);
@@ -110,7 +110,7 @@ Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx
             mipFormat = Format::COLOR_BGRA_32;
             texelFormat = Format::COLOR_RGBA_32;
         } else if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8) {
-            mipFormat = Format::COLOR_BGRA_32;
+            mipFormat = Format::COLOR_SBGRA_32;
             texelFormat = Format::COLOR_SRGBA_32;
         } else {
             return nullptr;
