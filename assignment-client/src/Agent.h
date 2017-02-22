@@ -82,6 +82,7 @@ private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
     void encodeFrameOfZeros(QByteArray& encodedZeros);
+    void computeLoudness(QByteArray* decodedBuffer);
 
     std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
