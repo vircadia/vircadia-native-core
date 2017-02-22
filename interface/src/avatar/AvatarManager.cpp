@@ -557,3 +557,29 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
 
     return result;
 }
+
+// HACK
+float AvatarManager::getAvatarSortCoefficient(const QString& name) {
+    if (name == "size") {
+        return AvatarData::_avatarSortCoefficientSize;
+    } else if (name == "center") {
+        return AvatarData::_avatarSortCoefficientCenter;
+    } else if (name == "age") {
+        return AvatarData::_avatarSortCoefficientAge;
+    }
+    return 0.0f;
+}
+
+// HACK
+void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptValue& value) {
+    if (value.isNumber()) {
+        float numericalValue = (float)value.toNumber();
+        if (name == "size") {
+            AvatarData::_avatarSortCoefficientSize = numericalValue;
+        } else if (name == "center") {
+            AvatarData::_avatarSortCoefficientCenter = numericalValue;
+        } else if (name == "age") {
+            AvatarData::_avatarSortCoefficientAge = numericalValue;
+        }
+    }
+}

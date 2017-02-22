@@ -81,6 +81,10 @@ public:
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue());
 
+    // TODO: remove this HACK once we settle on optimal default sort coefficients
+    Q_INVOKABLE float getAvatarSortCoefficient(const QString& name);
+    Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const QScriptValue& value);
+
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
 
 public slots:
@@ -119,7 +123,6 @@ private:
     int _fullySimulatedAvatars { 0 };
     int _partiallySimulatedAvatars { 0 };
     float _avatarSimulationTime { 0.0f };
-
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

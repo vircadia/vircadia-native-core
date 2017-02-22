@@ -51,13 +51,13 @@ void propertyBindingFromVariant(const QVariant& objectVar, PropertyBinding& valu
 }
 
 
-void OverlayPanel::addChild(unsigned int childId) {
+void OverlayPanel::addChild(OverlayID childId) {
     if (!_children.contains(childId)) {
         _children.append(childId);
     }
 }
 
-void OverlayPanel::removeChild(unsigned int childId) {
+void OverlayPanel::removeChild(OverlayID childId) {
     if (_children.contains(childId)) {
         _children.removeOne(childId);
     }
@@ -89,7 +89,7 @@ QVariant OverlayPanel::getProperty(const QString &property) {
     if (property == "children") {
         QVariantList array;
         for (int i = 0; i < _children.length(); i++) {
-            array.append(_children[i]);
+            array.append(OverlayIDtoScriptValue(nullptr, _children[i]).toVariant());
         }
         return array;
     }
