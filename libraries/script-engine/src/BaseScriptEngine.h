@@ -39,7 +39,7 @@ signals:
 
 protected:
     void _emitUnhandledException(const QScriptValue& exception);
-    QScriptValue newLambdaFunction(std::function<QScriptValue(QScriptContext *ctx, QScriptEngine* engine)> operation, const QScriptValue& data = QScriptValue(), const QScriptEngine::ValueOwnership& ownership = QScriptEngine::AutoOwnership);
+    QScriptValue newLambdaFunction(std::function<QScriptValue(QScriptContext *context, QScriptEngine* engine)> operation, const QScriptValue& data = QScriptValue(), const QScriptEngine::ValueOwnership& ownership = QScriptEngine::AutoOwnership);
 
     static const QString _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS;
     Setting::Handle<bool> _enableExtendedJSExceptions { _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS, true };
@@ -72,14 +72,14 @@ protected:
 class Lambda : public QObject {
     Q_OBJECT
 public:
-    Lambda(QScriptEngine *engine, std::function<QScriptValue(QScriptContext *ctx, QScriptEngine* engine)> operation, QScriptValue data);
+    Lambda(QScriptEngine *engine, std::function<QScriptValue(QScriptContext *context, QScriptEngine* engine)> operation, QScriptValue data);
     ~Lambda();
     public slots:
         QScriptValue call();
     QString toString() const;
 private:
     QScriptEngine* engine;
-    std::function<QScriptValue(QScriptContext *ctx, QScriptEngine* engine)> operation;
+    std::function<QScriptValue(QScriptContext *context, QScriptEngine* engine)> operation;
     QScriptValue data;
 };
 

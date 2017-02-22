@@ -118,14 +118,14 @@ QScriptValue BaseScriptEngine::cloneUncaughtException(const QString& extraDetail
     }
     if (fileName.isEmpty()) {
         // climb the stack frames looking for something useful to display
-        for(auto ctx = currentContext(); ctx && fileName.isEmpty(); ctx = ctx->parentContext()) {
-            QScriptContextInfo info { ctx };
+        for (auto c = currentContext(); c && fileName.isEmpty(); c = c->parentContext()) {
+            QScriptContextInfo info { c };
             if (!info.fileName().isEmpty()) {
                 // take fileName:lineNumber as a pair
                 fileName = info.fileName();
                 lineNumber = info.lineNumber();
                 if (backtrace.isEmpty()) {
-                    backtrace = ctx->backtrace();
+                    backtrace = c->backtrace();
                 }
                 break;
             }
@@ -181,8 +181,6 @@ QScriptValue BaseScriptEngine::evaluateInClosure(const QScriptValue& closure, co
         return QScriptValue();
     }
 
-    //_debugDump("evaluateInClosure.closure", closure);
-
     const auto fileName = program.fileName();
     const auto shortName = QUrl(fileName).fileName();
 
@@ -197,17 +195,17 @@ QScriptValue BaseScriptEngine::evaluateInClosure(const QScriptValue& closure, co
         setGlobalObject(global);
     }
 
-    auto ctx = pushContext();
+    auto context = pushContext();
 
     auto thiz = closure.property("this");
     if (thiz.isObject()) {
 #ifdef DEBUG_JS
         qCDebug(scriptengine) << " setting this = closure.this" << shortName;
 #endif
-        ctx->setThisObject(thiz);
+        context->setThisObject(thiz);
     }
 
-    ctx->pushScope(closure);
+    context->pushScope(closure);
 #ifdef DEBUG_JS
     qCDebug(scriptengine) << QString("[%1] evaluateInClosure %2").arg(isEvaluating()).arg(shortName);
 #endif
@@ -244,8 +242,8 @@ QScriptValue BaseScriptEngine::newLambdaFunction(std::function<QScriptValue(QScr
     auto lambda = new Lambda(this, operation, data);
     auto object = newQObject(lambda, ownership);
     auto call = object.property("call");
-    call.setPrototype(object); // ctx->callee().prototype() === Lambda QObject
-    call.setData(data);        // ctx->callee().data() will === data param
+    call.setPrototype(object); // context->callee().prototype() === Lambda QObject
+    call.setData(data);        // context->callee().data() will === data param
     return call;
 }
 QString Lambda::toString() const {

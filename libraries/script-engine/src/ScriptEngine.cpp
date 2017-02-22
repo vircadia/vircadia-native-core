@@ -172,7 +172,6 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
         qCDebug(scriptengine) << "isEntityServerScript() -- limiting maxRetries to 1";
         processLevelMaxRetries = 1;
     }
-    //qCDebug(scriptengine) << getContext() << "processLevelMaxRetries =" << processLevelMaxRetries << fileNameString;
 
     // this is where all unhandled exceptions end up getting logged
     connect(this, &BaseScriptEngine::unhandledException, this, [this](const QScriptValue& err) {
@@ -1185,7 +1184,6 @@ void ScriptEngine::timerFired() {
         _timerFunctionMap.remove(callingTimer);
         delete callingTimer;
     }
-    //qCWarning(scriptengine) << "timerFired" << timerData.function.toString();
 
     // call the associated JS function, if it exists
     if (timerData.function.isValid()) {
@@ -1500,18 +1498,14 @@ const auto RETRY_ATTEMPT_BATCH = 10; //glm::clamp(qgetenv("RETRY_ATTEMPT_BATCH")
 const auto RETRY_ATTEMPT_MSECS = 250; //glm::clamp(qgetenv("RETRY_ATTEMPT_MSECS").toInt(), 50, 1000);
 
 void ScriptEngine::deferLoadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
-    // forceRedownload doesn't make sense yet in this scenario (which only happens when another entity has taken lead on entityScript)
-    if (forceRedownload) {
-        qCDebug(scriptengine) << "deferLoadEntityScript -- TODO: ignoring forceRedownload =" << forceRedownload;
-    }
-
     const auto needTimer = _pendingLoadEntities.isEmpty();
+    // NOTE: forceRedownload isn't forwarded here because deferLoadEntityScript() is only ever called when another entity has taken lead for the script
     _pendingLoadEntities.push_back({ entityID, entityScript/*, forceRedownload*/ });
 
-    auto processDeferredEntities = [this](QScriptContext* ctx, QScriptEngine*) -> QScriptValue {
-        //qCDebug(scriptengine) << "deferLoadEntityScript.retry #" << _pendingLoadEntities.size() << " pending loads | " << QThread::currentThread();
+    auto processDeferredEntities = [this](QScriptContext* context, QScriptEngine*) -> QScriptValue {
+        QList<DeferredLoadEntity> stillPending;
 
-        for(int i=0; i < RETRY_ATTEMPT_BATCH && !_pendingLoadEntities.isEmpty(); i++) {
+        for (int i=0; i < RETRY_ATTEMPT_BATCH && !_pendingLoadEntities.isEmpty(); i++) {
             auto retry = _pendingLoadEntities.takeFirst();
             qCDebug(scriptengine) << "deferLoadEntityScript.retry[" << i << "]:" << retry.entityID << retry.entityScript;
             if(!_entityScripts.contains(retry.entityID)) {
@@ -1521,12 +1515,21 @@ void ScriptEngine::deferLoadEntityScript(const EntityItemID& entityID, const QSt
                 if (details.status != EntityScriptStatus::PENDING) {
                     qCDebug(scriptengine) << "deferLoadEntityScript.retry -- entity status no longer PENDING; " << details.status;
                 } else {
-                    loadEntityScript(retry.entityID, retry.entityScript, false);
+                    auto &locker = _lockPerUniqueScriptURL[retry.entityScript];
+                    if (locker.tryLock()) {
+                        locker.unlock();
+                        loadEntityScript(retry.entityID, retry.entityScript, false);
+                    } else {
+                        stillPending << retry;
+                    }
                 }
             }
         }
+        foreach(const DeferredLoadEntity& retry, stillPending) {
+            _pendingLoadEntities.push_back(retry);
+        }
         if (_pendingLoadEntities.isEmpty()) {
-            QObject *interval = ctx->callee().property("interval").toQObject();
+            QObject *interval = context->callee().property("interval").toQObject();
             // we're done processing so can kill the timer
             qCDebug(scriptengine) << "loadEntityScript.retry queue processing complete -- exiting" << interval;
             if (interval) {
@@ -1610,7 +1613,9 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
                 return;
             }
             executeOnScriptThread([=, &locker]{
-                //qCDebug(scriptengine) << "loadEntityScript.contentAvailable" << status << QUrl(url).fileName() << entityID.toString();
+#ifdef DEBUG_ENTITY_STATES
+                qCDebug(scriptengine) << "loadEntityScript.contentAvailable" << status << QUrl(url).fileName() << entityID.toString();
+#endif
                 if (!isStopping() && _entityScripts.contains(entityID)) {
                     entityScriptContentAvailable(entityID, url, contents, isURL, success, status);
                 } else {
