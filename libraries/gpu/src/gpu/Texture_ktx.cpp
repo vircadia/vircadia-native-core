@@ -106,10 +106,11 @@ Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx
     Format texelFormat = Format::COLOR_SRGBA_32;
 
     if (header.getGLFormat() == ktx::GLFormat::BGRA && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 4) {
-        mipFormat = Format::COLOR_BGRA_32;
         if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::RGBA8) {
+            mipFormat = Format::COLOR_BGRA_32;
             texelFormat = Format::COLOR_RGBA_32;
         } else if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8) {
+            mipFormat = Format::COLOR_BGRA_32;
             texelFormat = Format::COLOR_SRGBA_32;
         } else {
             return nullptr;
