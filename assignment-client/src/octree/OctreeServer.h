@@ -158,6 +158,7 @@ protected:
     QString getStatusLink();
     
     UniqueSendThread createSendThread(const SharedNodePointer& node);
+    virtual UniqueSendThread newSendThread(const SharedNodePointer& node);
 
     int _argc;
     const char** _argv;
