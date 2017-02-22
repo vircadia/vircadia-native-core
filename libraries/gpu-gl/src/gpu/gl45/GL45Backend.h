@@ -115,22 +115,29 @@ public:
             bool _bufferingCompleted { false };
             VoidLambda _transferLambda;
             VoidLambda _bufferingLambda;
-            static ThreadPointer _bufferThread;
+#if THREADED_TEXTURE_BUFFERING
             static Mutex _mutex;
             static VoidLambdaQueue _bufferLambdaQueue;
+            static ThreadPointer _bufferThread;
             static std::atomic<bool> _shutdownBufferingThread;
             static void bufferLoop();
+#endif
 
         public:
             TransferJob(const TransferJob& other) = delete;
             TransferJob(const GL45VariableAllocationTexture& parent, std::function<void()> transferLambda);
             TransferJob(const GL45VariableAllocationTexture& parent, uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lines = 0, uint32_t lineOffset = 0);
             bool tryTransfer();
+
+#if THREADED_TEXTURE_BUFFERING
             static void startTransferLoop();
             static void stopTransferLoop();
+#endif
 
         private:
+#if THREADED_TEXTURE_BUFFERING
             void startBuffering();
+#endif
             void transfer();
         };
 
