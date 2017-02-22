@@ -2317,7 +2317,8 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
     QList<AvatarSharedPointer> avatarList,
     const ViewFrustum& cameraView,
     std::function<uint64_t(AvatarSharedPointer)> lastUpdated,
-    std::function<bool(AvatarSharedPointer)> shouldIgnore) {
+    std::function<bool(AvatarSharedPointer)> shouldIgnore,
+    bool printDebug) {
 
     uint64_t startTime = usecTimestampNow();
 
@@ -2359,16 +2360,20 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
             // Thus we multiply each component by a conversion "weight" that scales its units
             // relative to the others.  These weights are pure magic tuning and are hard coded in the
             // relation below: (hint: unitary weights are not explicityly shown)
-            float priority = apparentSize + 0.25f * cosineAngle + age;
+            float priority = apparentSize + 10.0f * (0.25f * cosineAngle) + age;
 
             // decrement priority of avatars outside keyhole
+            bool outOfView = false;
             if (distance > cameraView.getCenterRadius()) {
                 if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
                     priority += OUT_OF_VIEW_PENALTY;
+                    outOfView = true;
                 }
             }
 
-            //qDebug() << "avatar:" << avatar.get() << "priority:" << priority << "apparentSize:" << apparentSize << "cosineAngle:" << cosineAngle << "age:" << age;
+            if (printDebug) {
+                qDebug() << "avatar:" << avatar.get() << "priority:" << priority << "apparentSize:" << apparentSize << "cosineAngle:" << cosineAngle << "age:" << age << "outOfView:" << outOfView;
+            }
             sortedAvatars.push(AvatarPriority(avatar, priority));
         }
     }

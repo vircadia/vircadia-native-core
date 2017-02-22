@@ -600,7 +600,8 @@ public:
         QList<AvatarSharedPointer> avatarList,
         const ViewFrustum& cameraView,
         std::function<uint64_t(AvatarSharedPointer)> lastUpdated,
-        std::function<bool(AvatarSharedPointer)> shouldIgnore);
+        std::function<bool(AvatarSharedPointer)> shouldIgnore,
+        bool printDebug = false);
 
 
 public slots:

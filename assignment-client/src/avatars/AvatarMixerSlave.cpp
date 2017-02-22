@@ -217,11 +217,19 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         qDebug() << "avatarDataToNodes.size:" << avatarDataToNodes.size();
         */
 
-        //qDebug() << "------------------------------";
         AvatarSharedPointer thisAvatar = nodeData->getAvatarSharedPointer();
 
         //qDebug() << "thisAvatar:" << thisAvatar.get();
 
+#ifdef WANT_DEBUG
+        bool printDebug = nodeData->getAvatarSharedPointer()->getDisplayName() == "ZappoMan";
+
+        if (printDebug) {
+            qDebug() << "------------------------------";
+        }
+#else
+        bool printDebug = false;
+#endif
         ViewFrustum cameraView = nodeData->getViewFrustom();
         std::priority_queue<AvatarPriority> sortedAvatars = AvatarData::sortAvatars(
                 avatarList, cameraView,
@@ -236,14 +244,15 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
                 [thisAvatar](AvatarSharedPointer avatar)->bool{
                     return (avatar == thisAvatar); // ignore ourselves...
-                });
-        //qDebug() << "------------------------------";
+                }, printDebug);
 
+#ifdef WANT_DEBUG
+        if (printDebug) {
+            qDebug() << "------------------------------";
+        }
+#endif
 
-        // this is an AGENT we have received head data from
-        // send back a packet with other active node data to this node
-        //std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
-
+        // loop through our sorted avatars and allocate our bandwidth to them accordingly
         int avatarRank = 0;
         while (!sortedAvatars.empty()) {
             AvatarPriority sortData = sortedAvatars.top();
