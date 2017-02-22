@@ -111,7 +111,7 @@ Rectangle {
                 id: filter
                 checked: settings.filtered
                 text: "in view"
-                boxSize: reload.height
+                boxSize: reload.height * 0.70
                 onCheckedChanged: refreshWithFilter()
             }
             HifiControls.GlyphButton {
@@ -120,7 +120,7 @@ Rectangle {
                 width: reload.height
                 onClicked: refreshWithFilter()
             }
-            spacing: 40
+            spacing: 50
             anchors {
                 right: parent.right
                 top: parent.top
