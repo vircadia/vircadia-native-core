@@ -10,13 +10,18 @@
 //
 #include "KTX.h"
 
+#ifndef _MSC_VER
+#define NOEXCEPT noexcept
+#else
+#define NOEXCEPT
+#endif
 
 namespace ktx {
 
     class WriterException : public std::exception {
     public:
         WriterException(const std::string& explanation) : _explanation("KTX serialization error: " + explanation) {}
-        const char* what() const noexcept override { return _explanation.c_str(); }
+        const char* what() const NOEXCEPT override { return _explanation.c_str(); }
     private:
         const std::string _explanation;
     };
