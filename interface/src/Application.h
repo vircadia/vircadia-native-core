@@ -298,8 +298,8 @@ public:
     Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
     Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
 
-    OverlayID getTabletScreenID();
-    OverlayID getTabletHomeButtonID();
+    OverlayID getTabletScreenID() const;
+    OverlayID getTabletHomeButtonID() const;
 
 signals:
     void svoImportRequested(const QString& url);
