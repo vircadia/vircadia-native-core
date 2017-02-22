@@ -91,6 +91,7 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
     }
     gpu::Texture* returnedTexture = srcTexture;
 
+#if 0
     auto theKTX = Texture::serialize(*srcTexture);
     if (theKTX) {
         // Prepare cache directory
@@ -147,6 +148,7 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
             }
         }
     }
+#endif
     return returnedTexture;
 }
 
