@@ -110,10 +110,6 @@ function getControllerLocation(controllerHand) {
         z: 0.93
     };
 
-    const MIN_ARROW_DISTANCE_FROM_BOW_REST = 0.2;
-    const MAX_ARROW_DISTANCE_FROM_BOW_REST = ARROW_DIMENSIONS.z - 0.2;
-    const MIN_ARROW_DISTANCE_FROM_BOW_REST_TO_SHOOT = 0.2;
-
     const MIN_ARROW_SPEED = 3;
     const MAX_ARROW_SPEED = 30;
 
@@ -140,8 +136,12 @@ function getControllerLocation(controllerHand) {
     const DRAW_STRING_THRESHOLD = 0.80;
     const DRAW_STRING_PULL_DELTA_HAPTIC_PULSE = 0.09;
     const DRAW_STRING_MAX_DRAW = 0.7;
-    const NEAR_TO_RELAXED_KNOCK_DISTANCE = 0.5; // if the hand is this close, rez the arrow
-    const NEAR_TO_RELAXED_SCHMITT = 0.05;
+
+
+    const MIN_ARROW_DISTANCE_FROM_BOW_REST = 0.2;
+    const MAX_ARROW_DISTANCE_FROM_BOW_REST = ARROW_DIMENSIONS.z - 0.2;
+    const MIN_HAND_DISTANCE_FROM_BOW_TO_KNOCK_ARROW = 0.25;
+    const MIN_ARROW_DISTANCE_FROM_BOW_REST_TO_SHOOT = 0.30;
 
     const NOTCH_OFFSET_FORWARD = 0.08;
     const NOTCH_OFFSET_UP = 0.035;
@@ -287,8 +287,7 @@ function getControllerLocation(controllerHand) {
                 this.pullBackDistance = 0;
 
                 this.resetStringToIdlePosition();
-                //this.deleteStrings();
-                if (this.triggerValue >= DRAW_STRING_THRESHOLD && pullBackDistance < (NEAR_TO_RELAXED_KNOCK_DISTANCE - NEAR_TO_RELAXED_SCHMITT) && !this.backHandBusy) {
+                if (this.triggerValue >= DRAW_STRING_THRESHOLD && pullBackDistance < MIN_HAND_DISTANCE_FROM_BOW_TO_KNOCK_ARROW && !this.backHandBusy) {
                     //the first time aiming the arrow
                     var handToDisable = (this.hand === 'right' ? 'left' : 'right');
                     this.state = STATE_ARROW_GRABBED;
@@ -305,8 +304,7 @@ function getControllerLocation(controllerHand) {
                 }
 
                 if (this.triggerValue < DRAW_STRING_THRESHOLD) {
-                    // they let go without pulling
-                    if (pullBackDistance >= (MIN_ARROW_DISTANCE_FROM_BOW_REST_TO_SHOOT + NEAR_TO_RELAXED_SCHMITT)) {
+                    if (pullBackDistance >= (MIN_ARROW_DISTANCE_FROM_BOW_REST_TO_SHOOT)) {
                         // The arrow has been pulled far enough back that we can release it
                         Messages.sendLocalMessage('Hifi-Hand-Disabler', "none");
                         this.updateArrowPositionInNotch(true, true);
