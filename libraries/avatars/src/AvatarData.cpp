@@ -2367,6 +2367,8 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
                     priority += OUT_OF_VIEW_PENALTY;
                 }
             }
+
+            //qDebug() << "avatar:" << avatar.get() << "priority:" << priority << "apparentSize:" << apparentSize << "cosineAngle:" << cosineAngle << "age:" << age;
             sortedAvatars.push(AvatarPriority(avatar, priority));
         }
     }

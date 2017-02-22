@@ -213,10 +213,14 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
         });
         /*
-        qDebug() << "------------------------------";
         qDebug() << "avatarList.size:" << avatarList.size();
         qDebug() << "avatarDataToNodes.size:" << avatarDataToNodes.size();
         */
+
+        //qDebug() << "------------------------------";
+        AvatarSharedPointer thisAvatar = nodeData->getAvatarSharedPointer();
+
+        //qDebug() << "thisAvatar:" << thisAvatar.get();
 
         ViewFrustum cameraView = nodeData->getViewFrustom();
         std::priority_queue<AvatarPriority> sortedAvatars = AvatarData::sortAvatars(
@@ -230,10 +234,10 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     return 0; // ???
                 },
 
-                [this](AvatarSharedPointer avatar)->bool{
-                    // FIXME -- when to ignore this node
-                    return false;
+                [thisAvatar](AvatarSharedPointer avatar)->bool{
+                    return (avatar == thisAvatar); // ignore ourselves...
                 });
+        //qDebug() << "------------------------------";
 
 
         // this is an AGENT we have received head data from
@@ -269,6 +273,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 || (otherNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
 
                 shouldConsider = false;
+                //qDebug() << "shouldConsider = false ... line:" << __LINE__;
 
             } else {
                 const AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
@@ -304,6 +309,8 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     if (nodeBox.touches(otherNodeBox)) {
                         nodeData->ignoreOther(node, otherNode);
                         shouldConsider = getsAnyIgnored;
+                        //qDebug() << "shouldConsider = getsAnyIgnored " << getsAnyIgnored << " ... line:" << __LINE__;
+
                     }
                 }
                 // Not close enough to ignore
@@ -352,12 +359,13 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 //       are out of view, this also appears to disable this random distribution.
                 if (distanceToAvatar != 0.0f
                     && !getsOutOfView
-                    //  -- && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar) /// FIX ME... no longer doing random
+                    && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar) /// FIX ME... we don't want to do this random stuff
                 ) {
 
                     quint64 endAvatarDataPacking = usecTimestampNow();
                     _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                     shouldConsider = false;
+                    //qDebug() << "shouldConsider = false ... line:" << __LINE__;
                 }
 
                 if (shouldConsider) {
@@ -380,7 +388,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                         quint64 endAvatarDataPacking = usecTimestampNow();
                         _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                         shouldConsider = false;
-                    } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
+                        //qDebug() << "shouldConsider = false ... line:" << __LINE__;
+                    }
+                    else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                         // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                         ++numAvatarsWithSkippedFrames;
                     }
@@ -399,6 +409,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
                             _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                             shouldConsider = false;
+                            //qDebug() << "shouldConsider = false ... line:" << __LINE__;
                         }
 
                         if (shouldConsider) {
