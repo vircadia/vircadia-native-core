@@ -229,15 +229,8 @@ GridTool = function(opts) {
     var listeners = [];
 
     var webView = null;
-    if (Settings.getValue("HUDUIEnabled")) {
-        var url = GRID_CONTROLS_HTML_URL;
-        webView = new OverlayWebWindow({
-            title: 'Grid',  source: url,  toolWindow: true
-        });
-    } else {
-        webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        webView.setVisible = function(value) {};
-    }
+    webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    webView.setVisible = function(value) {};
 
     horizontalGrid.addListener(function(data) {
         webView.emitScriptEvent(JSON.stringify(data));
