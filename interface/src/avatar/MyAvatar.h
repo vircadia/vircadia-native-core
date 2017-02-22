@@ -99,6 +99,7 @@ public:
 
     void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
 
+    Q_INVOKABLE void resetSensorsAndBody();
     Q_INVOKABLE void centerBody(); // thread-safe
     Q_INVOKABLE void clearIKJointLimitHistory(); // thread-safe
 

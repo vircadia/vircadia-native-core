@@ -260,6 +260,11 @@ QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
     return AvatarData::toByteArrayStateful(dataDetail);
 }
 
+void MyAvatar::resetSensorsAndBody() {
+    qApp->getActiveDisplayPlugin()->resetSensors();
+    reset(true, false, true);
+}
+
 void MyAvatar::centerBody() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "centerBody");
@@ -2481,7 +2486,6 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
         qWarning() << "Pinning is only supported for the hips joint at the moment.";
         return false;
     }
-    qApp->getActiveDisplayPlugin()->resetSensors();
 
     auto jointTranslation = getAbsoluteJointTranslationInObjectFrame(index);
     auto jointRotation = getAbsoluteJointRotationInObjectFrame(index);

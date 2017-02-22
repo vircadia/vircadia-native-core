@@ -12,6 +12,7 @@
     var MAX_IK_ERROR = 20;
     var DESKTOP_UI_CHECK_INTERVAL = 250;
     var DESKTOP_MAX_DISTANCE = 5;
+    var SIT_DELAY = 20
 
     this.entityID = null;
     this.timers = {};
@@ -48,40 +49,47 @@
             return;
         }
 
-        MyAvatar.overrideRoleAnimation(ROLE, ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
-        MyAvatar.setParentID(this.entityID);
-        MyAvatar.characterControllerEnabled = false;
-        MyAvatar.hmdLeanRecenterEnabled = false;
+        MyAvatar.resetSensors();
 
-        var properties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
-        var index = MyAvatar.getJointIndex("Hips");
-        MyAvatar.pinJoint(index, properties.position, properties.rotation);
+        var that = this;
+        Script.setTimeout(function() {
+            MyAvatar.setParentID(that.entityID);
+            MyAvatar.characterControllerEnabled = false;
+            MyAvatar.hmdLeanRecenterEnabled = false;
+            MyAvatar.overrideRoleAnimation(ROLE, ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
 
-        this.animStateHandlerID = MyAvatar.addAnimationStateHandler(function(props) {
-            return { headType: 0 };
-        }, ["headType"]);
+            var properties = Entities.getEntityProperties(that.entityID, ["position", "rotation"]);
+            var index = MyAvatar.getJointIndex("Hips");
+            MyAvatar.pinJoint(index, properties.position, properties.rotation);
 
-        Script.update.connect(this, this.update);
-        Controller.keyPressEvent.connect(this, this.keyPressed);
-        Controller.keyReleaseEvent.connect(this, this.keyReleased);
-        for (var i in RELEASE_KEYS) {
-            Controller.captureKeyEvents({ text: RELEASE_KEYS[i] });
-        }
+            that.animStateHandlerID = MyAvatar.addAnimationStateHandler(function(props) {
+                return { headType: 0 };
+            }, ["headType"]);
+
+            Script.update.connect(that, that.update);
+            Controller.keyPressEvent.connect(that, that.keyPressed);
+            Controller.keyReleaseEvent.connect(that, that.keyReleased);
+            for (var i in RELEASE_KEYS) {
+                Controller.captureKeyEvents({ text: RELEASE_KEYS[i] });
+            }
+        }, SIT_DELAY);
     }
 
     this.sitUp = function() {
+        MyAvatar.bodyPitch = 0.0;
+        MyAvatar.bodyRoll = 0.0;
+
         MyAvatar.restoreRoleAnimation(ROLE);
-        MyAvatar.setParentID("");
         MyAvatar.characterControllerEnabled = true;
         MyAvatar.hmdLeanRecenterEnabled = true;
+        MyAvatar.setParentID("");
 
         var index = MyAvatar.getJointIndex("Hips");
         MyAvatar.clearPinOnJoint(index);
 
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
 
-        MyAvatar.bodyPitch = 0.0;
-        MyAvatar.bodyRoll = 0.0;
+        MyAvatar.resetSensors();
 
         Script.update.disconnect(this, this.update);
         Controller.keyPressEvent.disconnect(this, this.keyPressed);
