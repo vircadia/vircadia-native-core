@@ -568,7 +568,7 @@ void Agent::computeLoudness(QByteArray* decodedBuffer) {
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
     if (decodedBuffer) {
         auto soundData = reinterpret_cast<const int16_t*>(decodedBuffer->constData());
-        auto numFrames = decodedBuffer->size() / sizeof(int16_t);
+        int numFrames = decodedBuffer->size() / sizeof(int16_t);
         // now iterate and come up with average
         if (numFrames > 0) {
             for(int i = 0; i < numFrames; i++) {
