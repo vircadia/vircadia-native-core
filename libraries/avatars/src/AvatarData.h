@@ -605,9 +605,9 @@ public:
 
     // TODO: remove this HACK once we settle on optimal sort coefficients
     // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
-    static float _avatarSortCoefficientSize { 0.5f };
-    static float _avatarSortCoefficientCenter { 0.25 };
-    static float _avatarSortCoefficientAge { 1.0f };
+    static float _avatarSortCoefficientSize;
+    static float _avatarSortCoefficientCenter;
+    static float _avatarSortCoefficientAge;
 
 
 

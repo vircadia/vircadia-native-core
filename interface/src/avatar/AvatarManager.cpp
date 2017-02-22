@@ -572,14 +572,29 @@ float AvatarManager::getAvatarSortCoefficient(const QString& name) {
 
 // HACK
 void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptValue& value) {
+    bool somethingChanged = false;
     if (value.isNumber()) {
         float numericalValue = (float)value.toNumber();
         if (name == "size") {
             AvatarData::_avatarSortCoefficientSize = numericalValue;
+            somethingChanged = true;
         } else if (name == "center") {
             AvatarData::_avatarSortCoefficientCenter = numericalValue;
+            somethingChanged = true;
         } else if (name == "age") {
             AvatarData::_avatarSortCoefficientAge = numericalValue;
+            somethingChanged = true;
         }
+    }
+    if (somethingChanged) {
+        size_t packetSize = sizeof(AvatarData::_avatarSortCoefficientSize) + 
+                            sizeof(AvatarData::_avatarSortCoefficientCenter) +
+                            sizeof(AvatarData::_avatarSortCoefficientAge);
+
+        auto packet = NLPacket::create(PacketType::AdjustAvatarSorting, packetSize);
+        packet->writePrimitive(AvatarData::_avatarSortCoefficientSize);
+        packet->writePrimitive(AvatarData::_avatarSortCoefficientCenter);
+        packet->writePrimitive(AvatarData::_avatarSortCoefficientAge);
+        DependencyManager::get<NodeList>()->broadcastToNodes(std::move(packet), NodeSet() << NodeType::AvatarMixer);
     }
 }

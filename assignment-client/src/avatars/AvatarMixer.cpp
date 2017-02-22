@@ -47,7 +47,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AvatarData, this, "queueIncomingPacket");
-
+    packetReceiver.registerListener(PacketType::AdjustAvatarSorting, this, "handleAdjustAvatarSorting");
     packetReceiver.registerListener(PacketType::ViewFrustum, this, "handleViewFrustumPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
@@ -316,6 +316,24 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         );
     }
 }
+
+
+void AvatarMixer::handleAdjustAvatarSorting(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto start = usecTimestampNow();
+
+    message->readPrimitive(&AvatarData::_avatarSortCoefficientSize);
+    message->readPrimitive(&AvatarData::_avatarSortCoefficientCenter);
+    message->readPrimitive(&AvatarData::_avatarSortCoefficientAge);
+
+    qCDebug(avatars) << "New avatar sorting... "
+                        << "size:" << AvatarData::_avatarSortCoefficientSize
+                        << "center:" << AvatarData::_avatarSortCoefficientCenter
+                        << "age:" << AvatarData::_avatarSortCoefficientAge;
+
+    auto end = usecTimestampNow();
+    _handleAdjustAvatarSortingElapsedTime += (end - start);
+}
+
 
 void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto start = usecTimestampNow();
