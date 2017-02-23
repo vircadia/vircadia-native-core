@@ -39,106 +39,111 @@ StackView {
                 enabled: true
                 property string originalUrl: ""
 
-                Flow {
-                    id: createEntitiesFlow
-                    spacing: 16
-                    anchors.right: parent.right
-                    anchors.rightMargin: 30
-                    anchors.left: parent.left
-                    anchors.leftMargin: 30
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 30
-                    anchors.top: parent.top
-                    anchors.topMargin: 30
+                Rectangle { 
+                    color: "#383838"
+                    Flow {
+                        id: createEntitiesFlow
+                        spacing: 35
+                        anchors.right: parent.right
+                        anchors.rightMargin: 55
+                        anchors.left: parent.left
+                        anchors.leftMargin: 55
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 30
+                        anchors.top: parent.top
+                        anchors.topMargin: 70
 
-                    TabletButton {
-                        icon: "icons/assets-01.svg"
-                        text: "ASSETS"
-                        onClicked: {
-                            editRoot.sendToScript({
-                                method: "newEntityButtonClicked", params: { buttonName: "openAssetBrowserButton" }
-                            });
+                        NewEntityButton {
+                            icon: "icons/assets-01.svg"
+                            text: "ASSETS"
+                            onClicked: {
+                                editRoot.sendToScript({
+                                    method: "newEntityButtonClicked", params: { buttonName: "openAssetBrowserButton" }
+                                });
+                            }
                         }
-                    }
 
-                    TabletButton {
-                        icon: "model-01.svg"
-                        text: "MODEL"
-                        onClicked: {
-                            editRoot.sendToScript({
-                                method: "newEntityButtonClicked", params: { buttonName: "newModelButton" }
-                            });
+                        NewEntityButton {
+                            icon: "model-01.svg"
+                            text: "MODEL"
+                            onClicked: {
+                                editRoot.sendToScript({
+                                    method: "newEntityButtonClicked", params: { buttonName: "newModelButton" }
+                                });
+                            }
                         }
-                    }
 
-                    TabletButton {
-                        icon: "../cube-01.svg"
-                        text: "CUBE"
-                        onClicked: {
-                            editRoot.sendToScript({
-                                method: "newEntityButtonClicked", params: { buttonName: "newCubeButton" }
-                            });
+                        NewEntityButton {
+                            icon: "../cube-01.svg"
+                            text: "CUBE"
+                            onClicked: {
+                                editRoot.sendToScript({
+                                    method: "newEntityButtonClicked", params: { buttonName: "newCubeButton" }
+                                });
+                            }
                         }
-                    }
 
-                    ToolbarButton {
-                        imageURL: "../images/sphere-01.svg"
-                        onClicked: {
-                            editRoot.sendToScript({
-                                method: "newEntityButtonClicked", params: { buttonName: "newSphereButton" }
-                            });
+                        NewEntityButton {
+                            icon: "../images/sphere-01.svg"
+                            text: "SPHERE"
+                            onClicked: {
+                                editRoot.sendToScript({
+                                    method: "newEntityButtonClicked", params: { buttonName: "newSphereButton" }
+                                });
+                            }
                         }
-                    }
 
-                    TabletButton {
-                        icon: "../scripts/system/assets/images/tools/light-01.svg"
-                        text: "LIGHT"
-                        onClicked: {
-                            editRoot.sendToScript({
-                                method: "newEntityButtonClicked", params: { buttonName: "newLightButton" }
-                            });
+                        NewEntityButton {
+                            icon: "../scripts/system/assets/images/tools/light-01.svg"
+                            text: "LIGHT"
+                            onClicked: {
+                                editRoot.sendToScript({
+                                    method: "newEntityButtonClicked", params: { buttonName: "newLightButton" }
+                                });
+                            }
                         }
-                    }
 
-                    TabletButton {
-                        icon: "../scripts/system/assets/images/tools/text-01.svg"
-                        text: "TEXT"
-                        onClicked: {
-                            editRoot.sendToScript({
-                                method: "newEntityButtonClicked", params: { buttonName: "newTextButton" }
-                            });
+                        NewEntityButton {
+                            icon: "../scripts/system/assets/images/tools/text-01.svg"
+                            text: "TEXT"
+                            onClicked: {
+                                editRoot.sendToScript({
+                                    method: "newEntityButtonClicked", params: { buttonName: "newTextButton" }
+                                });
+                            }
                         }
-                    }
 
-                    TabletButton {
-                        icon: "../scripts/system/assets/images/tools/web-01.svg"
-                        text: "WEB"
-                        onClicked: {
-                            editRoot.sendToScript({
-                                method: "newEntityButtonClicked", params: { buttonName: "newWebButton" }
-                            });
+                        NewEntityButton {
+                            icon: "../scripts/system/assets/images/tools/web-01.svg"
+                            text: "WEB"
+                            onClicked: {
+                                editRoot.sendToScript({
+                                    method: "newEntityButtonClicked", params: { buttonName: "newWebButton" }
+                                });
+                            }
                         }
-                    }
 
-                    TabletButton {
-                        icon: "../scripts/system/assets/images/tools/zone-01.svg"
-                        text: "ZONE"
-                        onClicked: {
-                            editRoot.sendToScript({
-                                method: "newEntityButtonClicked", params: { buttonName: "newZoneButton" }
-                            });
+                        NewEntityButton {
+                            icon: "../scripts/system/assets/images/tools/zone-01.svg"
+                            text: "ZONE"
+                            onClicked: {
+                                editRoot.sendToScript({
+                                    method: "newEntityButtonClicked", params: { buttonName: "newZoneButton" }
+                                });
+                            }
                         }
-                    }
 
-                    TabletButton {
-                        icon: "../scripts/system/assets/images/tools/particle-01.svg"
-                        text: "PARTICLE"
-                        onClicked: {
-                            editRoot.sendToScript({
-                                method: "newEntityButtonClicked", params: { buttonName: "newParticleButton" }
-                            });
+                        NewEntityButton {
+                            icon: "../scripts/system/assets/images/tools/particle-01.svg"
+                            text: "PARTICLE"
+                            onClicked: {
+                                editRoot.sendToScript({
+                                    method: "newEntityButtonClicked", params: { buttonName: "newParticleButton" }
+                                });
+                            }
                         }
-                    }
+                    } 
+
                 }
             }
 
