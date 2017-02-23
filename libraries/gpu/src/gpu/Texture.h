@@ -25,6 +25,7 @@
 namespace ktx {
     class KTX;
     using KTXUniquePointer = std::unique_ptr<KTX>;
+    struct Header;
 }
 
 namespace gpu {
@@ -509,8 +510,11 @@ public:
 
     ExternalUpdates getUpdates() const;
 
+    // Textures can be serialized directly to  ktx data file, here is how
     static ktx::KTXUniquePointer serialize(const Texture& texture);
     static Texture* unserialize(Usage usage, TextureUsageType usageType, const ktx::KTXUniquePointer& srcData, const Sampler& sampler = Sampler());
+    static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
+    static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);
 
 protected:
     const TextureUsageType _usageType;
