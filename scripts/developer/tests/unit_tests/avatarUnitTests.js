@@ -8,6 +8,15 @@ var ROT_IDENT = {x: 0, y: 0, z: 0, w: 1};
 
 describe("MyAvatar", function () {
 
+    // backup/restore current skeletonModelURL
+    beforeAll(function() {
+        this.oldURL = MyAvatar.skeletonModelURL;
+    });
+
+    afterAll(function() {
+        MyAvatar.skeletonModelURL = this.oldURL;
+    });
+
     // reload the avatar from scratch before each test.
     beforeEach(function (done) {
         MyAvatar.skeletonModelURL = DEFAULT_AVATAR_URL;
@@ -25,7 +34,7 @@ describe("MyAvatar", function () {
                 }, 500);
             }
         }, 500);
-    });
+    }, 10000 /*timeout -- allow time to download avatar*/);
 
     // makes the assumption that there is solid ground somewhat underneath the avatar.
     it("position and orientation getters", function () {

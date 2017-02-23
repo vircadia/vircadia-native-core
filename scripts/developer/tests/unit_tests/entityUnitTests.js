@@ -19,6 +19,14 @@ describe('Entity', function() {
         },
     };
 
+    it('serversExist', function() {
+        expect(Entities.serversExist()).toBe(true);
+    });
+
+    it('canRezTmp', function() {
+        expect(Entities.canRezTmp()).toBe(true);
+    });
+
     beforeEach(function() {
         boxEntity = Entities.addEntity(boxProps);
     });
