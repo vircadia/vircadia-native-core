@@ -108,7 +108,8 @@ const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
         }
 
         _permutationNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB), 256, 2));
-        _permutationNormalTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(data), data);
+        _permutationNormalTexture->setStoredMipFormat(_permutationNormalTexture->getTexelFormat());
+        _permutationNormalTexture->assignStoredMip(0, sizeof(data), data);
     }
     return _permutationNormalTexture;
 }
@@ -122,7 +123,8 @@ const gpu::TexturePointer& TextureCache::getWhiteTexture() {
     if (!_whiteTexture) {
         _whiteTexture = gpu::TexturePointer(gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1));
         _whiteTexture->setSource("TextureCache::_whiteTexture");
-        _whiteTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_WHITE);
+        _whiteTexture->setStoredMipFormat(_whiteTexture->getTexelFormat());
+        _whiteTexture->assignStoredMip(0, sizeof(OPAQUE_WHITE), OPAQUE_WHITE);
     }
     return _whiteTexture;
 }
@@ -131,7 +133,8 @@ const gpu::TexturePointer& TextureCache::getGrayTexture() {
     if (!_grayTexture) {
         _grayTexture = gpu::TexturePointer(gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1));
         _grayTexture->setSource("TextureCache::_grayTexture");
-        _grayTexture->assignStoredMip(0, _grayTexture->getTexelFormat(), sizeof(OPAQUE_GRAY), OPAQUE_GRAY);
+        _grayTexture->setStoredMipFormat(_grayTexture->getTexelFormat());
+        _grayTexture->assignStoredMip(0, sizeof(OPAQUE_GRAY), OPAQUE_GRAY);
     }
     return _grayTexture;
 }
@@ -140,7 +143,8 @@ const gpu::TexturePointer& TextureCache::getBlueTexture() {
     if (!_blueTexture) {
         _blueTexture = gpu::TexturePointer(gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1));
         _blueTexture->setSource("TextureCache::_blueTexture");
-        _blueTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
+        _blueTexture->setStoredMipFormat(_blueTexture->getTexelFormat());
+        _blueTexture->assignStoredMip(0, sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
     }
     return _blueTexture;
 }
@@ -149,7 +153,8 @@ const gpu::TexturePointer& TextureCache::getBlackTexture() {
     if (!_blackTexture) {
         _blackTexture = gpu::TexturePointer(gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1));
         _blackTexture->setSource("TextureCache::_blackTexture");
-        _blackTexture->assignStoredMip(0, _blackTexture->getTexelFormat(), sizeof(OPAQUE_BLACK), OPAQUE_BLACK);
+        _blackTexture->setStoredMipFormat(_blackTexture->getTexelFormat());
+        _blackTexture->assignStoredMip(0, sizeof(OPAQUE_BLACK), OPAQUE_BLACK);
     }
     return _blackTexture;
 }

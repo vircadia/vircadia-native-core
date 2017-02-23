@@ -103,6 +103,9 @@ public:
     // call only from OctreeSendThread for the given node
     bool haveJSONParametersChanged();
 
+    bool shouldForceFullScene() const { return _shouldForceFullScene; }
+    void setShouldForceFullScene(bool shouldForceFullScene) { _shouldForceFullScene = shouldForceFullScene; }
+
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
@@ -148,6 +151,8 @@ private:
     std::array<char, udt::MAX_PACKET_SIZE> _lastOctreePayload;
 
     QJsonObject _lastCheckJSONParameters;
+
+    bool _shouldForceFullScene { false };
 };
 
 #endif // hifi_OctreeQueryNode_h

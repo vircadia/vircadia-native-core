@@ -52,6 +52,7 @@ using TransferJob = GL45VariableAllocationTexture::TransferJob;
 static const uvec3 MAX_TRANSFER_DIMENSIONS { 1024, 1024, 1 };
 static const size_t MAX_TRANSFER_SIZE = MAX_TRANSFER_DIMENSIONS.x * MAX_TRANSFER_DIMENSIONS.y * 4;
 
+#if THREADED_TEXTURE_BUFFERING
 std::shared_ptr<std::thread> TransferJob::_bufferThread { nullptr };
 std::atomic<bool> TransferJob::_shutdownBufferingThread { false };
 Mutex TransferJob::_mutex;
@@ -76,6 +77,7 @@ void TransferJob::stopTransferLoop() {
     _bufferThread.reset();
     _shutdownBufferingThread = false;
 }
+#endif
 
 TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lines, uint32_t lineOffset)
     : _parent(parent) {
@@ -84,7 +86,7 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
     GLenum format;
     GLenum type;
     auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
-    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_parent._gpuObject.getTexelFormat(), mipData->getFormat());
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_parent._gpuObject.getTexelFormat(), _parent._gpuObject.getStoredMipFormat());
     format = texelFormat.format;
     type = texelFormat.type;
 
@@ -112,7 +114,8 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
 
     _transferLambda = [=] {
         _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, format, type, _buffer.data());
-        _buffer.swap(std::vector<uint8_t>());
+        std::vector<uint8_t> emptyVector;
+        _buffer.swap(emptyVector);
     };
 }
 
@@ -122,14 +125,7 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, std::funct
 
 bool TransferJob::tryTransfer() {
     // Disable threaded texture transfer for now
-#if 1
-    if (!_bufferingCompleted) {
-        _bufferingLambda();
-        _bufferingCompleted = true;
-    }
-    _transferLambda();
-    return true;
-#else
+#if THREADED_TEXTURE_BUFFERING
     // Are we ready to transfer
     if (_bufferingCompleted) {
         _transferLambda();
@@ -138,8 +134,17 @@ bool TransferJob::tryTransfer() {
 
     startBuffering();
     return false;
+#else
+    if (!_bufferingCompleted) {
+        _bufferingLambda();
+        _bufferingCompleted = true;
+    }
+    _transferLambda();
+    return true;
 #endif
 }
+
+#if THREADED_TEXTURE_BUFFERING
 
 void TransferJob::startBuffering() {
     if (_bufferingStarted) {
@@ -171,6 +176,7 @@ void TransferJob::bufferLoop() {
         }
     }
 }
+#endif
 
 
 void GL45VariableAllocationTexture::addMemoryManagedTexture(const TexturePointer& texturePointer) {
@@ -317,6 +323,7 @@ void GL45VariableAllocationTexture::updateMemoryPressure() {
     }
 
     if (newState != _memoryPressureState) {
+#if THREADED_TEXTURE_BUFFERING
         if (MemoryPressureState::Transfer == _memoryPressureState) {
             TransferJob::stopTransferLoop();
         }
@@ -324,7 +331,9 @@ void GL45VariableAllocationTexture::updateMemoryPressure() {
         if (MemoryPressureState::Transfer == _memoryPressureState) {
             TransferJob::startTransferLoop();
         }
-
+#else
+        _memoryPressureState = newState;
+#endif
         // Clear the existing queue
         _transferQueue = WorkQueue();
         _promoteQueue = WorkQueue();

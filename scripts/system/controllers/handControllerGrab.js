@@ -1233,7 +1233,13 @@ function MyController(hand) {
         });
         if (grabbableEntities.length > 0) {
             if (!this.grabPointIntersectsEntity) {
-                Controller.triggerHapticPulse(1, 20, this.hand);
+                // don't do haptic pulse for tablet
+                var nonTabletEntities = grabbableEntities.filter(function(entityID) {
+                    return entityID != HMD.tabletID && entityID != HMD.homeButtonID;
+                });
+                if (nonTabletEntities.length > 0) {
+                    Controller.triggerHapticPulse(1, 20, this.hand);
+                }
                 this.grabPointIntersectsEntity = true;
                 this.grabPointSphereOn();
             }
@@ -1680,6 +1686,7 @@ function MyController(hand) {
             } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
                 if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled && farSearching) {
                     this.grabbedEntity = entity;
+                    this.grabbedDistance = rayPickInfo.distance;
                     this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     return;
                 } else {
@@ -2006,7 +2013,7 @@ function MyController(hand) {
         this.currentObjectTime = now;
         this.currentCameraOrientation = Camera.orientation;
 
-        this.grabRadius = Vec3.distance(this.currentObjectPosition, worldControllerPosition);
+        this.grabRadius = this.grabbedDistance;
         this.grabRadialVelocity = 0.0;
 
         // offset between controller vector at the grab radius and the entity position
@@ -2160,7 +2167,7 @@ function MyController(hand) {
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
-        this.overlayLineOn(rayPickInfo.searchRay.origin, grabbedProperties.position, COLORS_GRAB_DISTANCE_HOLD);
+        this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition), COLORS_GRAB_DISTANCE_HOLD);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {

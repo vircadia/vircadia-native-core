@@ -12,54 +12,44 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
-    var gotoQmlSource = "TabletAddressDialog.qml"; 
-    var button;
+    var gotoQmlSource = "TabletAddressDialog.qml";
     var buttonName = "GOTO";
-    var toolBar = null;
-    var tablet = null;
-    function onAddressBarShown(visible) {
-        if (toolBar) { 
-            button.editProperties({isActive: visible});
+    var onGotoScreen = false;
+    var shouldActivateButton = false;
+
+    function onClicked() {
+        if (onGotoScreen) {
+            // for toolbar-mode: go back to home screen, this will close the window.
+            tablet.gotoHomeScreen();
+        } else {
+            shouldActivateButton = true;
+            tablet.loadQMLSource(gotoQmlSource);
+            onGotoScreen = true;
         }
     }
 
-    function onClicked(){
-        if (toolBar) {
-            DialogsManager.toggleAddressBar();
-        } else {
-            tablet.loadQMLSource(gotoQmlSource);
-        }
+    function onScreenChanged(type, url) {
+        // for toolbar mode: change button to active when window is first openend, false otherwise.
+        button.editProperties({isActive: shouldActivateButton});
+        shouldActivateButton = false;
+        onGotoScreen = false;
     }
-    if (Settings.getValue("HUDUIEnabled")) {
-        toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
-        button = toolBar.addButton({
-            objectName: buttonName,
-            imageURL: Script.resolvePath("assets/images/tools/directory.svg"),
-            visible: true,
-            alpha: 0.9
-        });
-    } else {
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        button = tablet.addButton({
-            icon: "icons/tablet-icons/goto-i.svg",
-            activeIcon: "icons/tablet-icons/goto-a.svg",
-            text: buttonName,
-            sortOrder: 8
-        });
-    }
-    
+
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var button = tablet.addButton({
+        icon: "icons/tablet-icons/goto-i.svg",
+        activeIcon: "icons/tablet-icons/goto-a.svg",
+        text: buttonName,
+        sortOrder: 8
+    });
+
     button.clicked.connect(onClicked);
-    DialogsManager.addressBarShown.connect(onAddressBarShown);
-    
+    tablet.screenChanged.connect(onScreenChanged);
+
     Script.scriptEnding.connect(function () {
         button.clicked.disconnect(onClicked);
-        if (tablet) {
-            tablet.removeButton(button);
-        }
-        if (toolBar) {
-            toolBar.removeButton(buttonName);
-        }
-        DialogsManager.addressBarShown.disconnect(onAddressBarShown);
+        tablet.removeButton(button);
+        tablet.screenChanged.disconnect(onScreenChanged);
     });
-    
+
 }()); // END LOCAL_SCOPE

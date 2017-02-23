@@ -13,13 +13,17 @@
 #include <list>
 #include <QtGlobal>
 
+#ifndef _MSC_VER
+#define NOEXCEPT noexcept
+#else
+#define NOEXCEPT
+#endif
+
 namespace ktx {
     class ReaderException: public std::exception {
     public:
         ReaderException(const std::string& explanation) : _explanation("KTX deserialization error: " + explanation) {}
-        const char* what() const override {
-            return _explanation.c_str();
-        }
+        const char* what() const NOEXCEPT override { return _explanation.c_str(); }
     private:
         const std::string _explanation;
     };
@@ -125,6 +129,7 @@ namespace ktx {
         Images images;
         auto currentPtr = srcBytes;
         auto numMips = header.getNumberOfLevels();
+        auto numFaces = header.numberOfFaces;
 
         // Keep identifying new mip as long as we can at list query the next imageSize
         while ((currentPtr - srcBytes) + sizeof(uint32_t) <= (srcSize)) {
@@ -137,9 +142,19 @@ namespace ktx {
             if ((currentPtr - srcBytes) + imageSize <= (srcSize)) {
                 auto padding = Header::evalPadding(imageSize);
 
-                images.emplace_back(Image(imageSize, padding, currentPtr));
-
-                currentPtr += imageSize + padding;
+                if (numFaces == 6) {
+                    size_t faceSize = imageSize / 6;
+                    Image::FaceBytes faces(6);
+                    for (uint32_t face = 0; face < 6; face++) {
+                        faces[face] = currentPtr;
+                        currentPtr += faceSize;
+                    }
+                    images.emplace_back(Image((uint32_t) faceSize, padding, faces));
+                    currentPtr += padding;
+                } else {
+                    images.emplace_back(Image((uint32_t) imageSize, padding, currentPtr));
+                    currentPtr += imageSize + padding;
+                }
             } else {
                 break;
             }
@@ -148,7 +163,7 @@ namespace ktx {
         return images;
     }
 
-    std::unique_ptr<KTX> KTX::create(std::unique_ptr<Storage>& src) {
+    std::unique_ptr<KTX> KTX::create(StoragePointer& src) {
         if (!src) {
             return nullptr;
         }
@@ -158,7 +173,7 @@ namespace ktx {
         }
 
         std::unique_ptr<KTX> result(new KTX());
-        result->resetStorage(src.release());
+        result->resetStorage(src);
 
         // read metadata
        // result->_keyValues = getKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());

@@ -16,7 +16,10 @@
 #include <list>
 #include <vector>
 #include <cstdint>
+#include <cstring>
 #include <memory>
+
+#include <shared/Storage.h>
 
 /* KTX Spec:
 
@@ -290,46 +293,8 @@ namespace ktx {
         NUM_CUBEMAPFACES = 6,
     };
 
-
-    // Chunk of data
-    struct Storage {
-        size_t _size {0};
-        Byte* _bytes {nullptr};
-
-        Byte* data() {
-            return _bytes;
-        }
-        const Byte* data() const {
-            return _bytes;
-        }
-        size_t size() const { return _size; }
-
-        ~Storage() { if (_bytes) { delete _bytes; } }
-
-        Storage() {}
-        Storage(size_t size) :
-                _size(size)
-        {
-            if (_size) { _bytes = new Byte[_size]; }
-        }
-
-        Storage(size_t size, Byte* bytes) :
-                _size(size)
-        {
-            if (_size && _bytes) { _bytes = bytes; }
-        }
-        Storage(size_t size, const Byte* bytes) :
-            Storage(size)
-        {
-            if (_size && _bytes && bytes) {
-                memcpy(_bytes, bytes, size);
-            }
-        }
-        Storage(const Storage& src) :
-            Storage(src.size(), src.data())
-        {}
-
-    };
+    using Storage = storage::Storage;
+    using StoragePointer = std::shared_ptr<Storage>;
 
     // Header
     struct Header {
@@ -369,7 +334,6 @@ namespace ktx {
         uint32_t getNumberOfLevels() const { return (numberOfMipmapLevels ? numberOfMipmapLevels : 1); }
 
         uint32_t evalMaxDimension() const;
-        uint32_t evalMaxLevel() const;
         uint32_t evalPixelWidth(uint32_t level) const;
         uint32_t evalPixelHeight(uint32_t level) const;
         uint32_t evalPixelDepth(uint32_t level) const;
@@ -381,7 +345,7 @@ namespace ktx {
 
         void setUncompressed(GLType type, uint32_t typeSize, GLFormat format, GLInternalFormat_Uncompressed internalFormat, GLBaseInternalFormat baseInternalFormat) {
             glType = (uint32_t) type;
-            glTypeSize = 0;
+            glTypeSize = typeSize;
             glFormat = (uint32_t) format;
             glInternalFormat = (uint32_t) internalFormat;
             glBaseInternalFormat = (uint32_t) baseInternalFormat;
@@ -393,6 +357,14 @@ namespace ktx {
             glInternalFormat = (uint32_t) internalFormat;
             glBaseInternalFormat = (uint32_t) baseInternalFormat;
         }
+
+        GLType getGLType() const { return (GLType)glType; }
+        uint32_t getTypeSize() const { return glTypeSize; }
+        GLFormat getGLFormat() const { return (GLFormat)glFormat; }
+        GLInternalFormat_Uncompressed getGLInternaFormat_Uncompressed() const { return (GLInternalFormat_Uncompressed)glInternalFormat; }
+        GLInternalFormat_Compressed getGLInternaFormat_Compressed() const { return (GLInternalFormat_Compressed)glInternalFormat; }
+        GLBaseInternalFormat getGLBaseInternalFormat() const { return (GLBaseInternalFormat)glBaseInternalFormat; }
+
 
         void setDimensions(uint32_t width, uint32_t height = 0, uint32_t depth = 0, uint32_t numSlices = 0, uint32_t numFaces = 1) {
             pixelWidth = (width > 0 ? width : 1);
@@ -418,23 +390,37 @@ namespace ktx {
      
 
     struct Image {
+        using FaceBytes = std::vector<const Byte*>;
+
+        uint32_t _numFaces{ 1 };
         uint32_t _imageSize;
+        uint32_t _faceSize;
         uint32_t _padding;
-        const Byte* _bytes;
+        FaceBytes _faceBytes;
+        
 
         Image(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
+            _numFaces(1),
             _imageSize(imageSize),
             _padding(padding),
-            _bytes(bytes) {}
+            _faceSize(imageSize),
+            _faceBytes(1, bytes) {}
+
+        Image(uint32_t pageSize, uint32_t padding, const FaceBytes& cubeFaceBytes) :
+            _numFaces(NUM_CUBEMAPFACES),
+            _imageSize(pageSize * NUM_CUBEMAPFACES),
+            _padding(padding),
+            _faceSize(pageSize)
+            {
+                if (cubeFaceBytes.size() == NUM_CUBEMAPFACES) {
+                    _faceBytes = cubeFaceBytes;
+                }
+            }
     };
     using Images = std::vector<Image>;
 
-    
     class KTX {
-        void resetStorage(Storage* src);
-
-        void resetHeader(const Header& header);
-        void resetImages(const Images& images);
+        void resetStorage(StoragePointer& src);
 
         KTX();
     public:
@@ -462,7 +448,7 @@ namespace ktx {
         static Images writeImages(Byte* destBytes, size_t destByteSize, const Images& images);
 
         // Parse a block of memory and create a KTX object from it
-        static std::unique_ptr<KTX> create(std::unique_ptr<Storage>& src);
+        static std::unique_ptr<KTX> create(StoragePointer& src);
 
         static bool checkHeaderFromStorage(size_t srcSize, const Byte* srcBytes);
         static Images parseImages(const Header& header, size_t srcSize, const Byte* srcBytes);
@@ -471,12 +457,13 @@ namespace ktx {
         const Header* getHeader() const;
         const Byte* getKeyValueData() const;
         const Byte* getTexelsData() const;
-        Byte* getTexelsData();
+        storage::StoragePointer getMipFaceTexelsData(uint16_t mip = 0, uint8_t face = 0) const;
+        const StoragePointer& getStorage() const { return _storage; }
 
         size_t getKeyValueDataSize() const;
         size_t getTexelsDataSize() const;
 
-        std::unique_ptr<Storage> _storage;
+        StoragePointer _storage;
         KeyValues _keyValues;
         Images _images;
     };

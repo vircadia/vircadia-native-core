@@ -14,10 +14,13 @@ using namespace storage;
 
 ViewStoragePointer Storage::createView(size_t viewSize, size_t offset) const {
     auto selfSize = size();
-    if ((viewSize + offset) > selfSize) {
-        throw std::runtime_error("Unable to map file");
+    if (0 == viewSize) {
+        viewSize = selfSize;
     }
-    return ViewStoragePointer(new ViewStorage(viewSize, data() + offset));
+    if ((viewSize + offset) > selfSize) {
+        throw std::runtime_error("Invalid mapping range");
+    }
+    return ViewStoragePointer(new ViewStorage(shared_from_this(), viewSize, data() + offset));
 }
 
 MemoryStoragePointer Storage::toMemoryStorage() const {
@@ -30,7 +33,9 @@ FileStoragePointer Storage::toFileStorage(const QString& filename) const {
 
 MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) {
     _data.resize(size);
-    memcpy(_data.data(), data, size);
+    if (data) {
+        memcpy(_data.data(), data, size);
+    }
 }
 
 FileStoragePointer FileStorage::create(const QString& filename, size_t size, const uint8_t* data) {
@@ -52,7 +57,8 @@ FileStoragePointer FileStorage::create(const QString& filename, size_t size, con
         }
     }
     file.close();
-    return FileStoragePointer(new FileStorage(filename));
+    //return FileStoragePointer(new FileStorage(filename));
+    return std::make_shared<FileStorage>(filename);
 }
 
 FileStorage::FileStorage(const QString& filename) : _file(filename) {

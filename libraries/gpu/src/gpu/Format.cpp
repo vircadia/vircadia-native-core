@@ -10,6 +10,9 @@
 
 using namespace gpu;
 
+const Element Element::COLOR_R_8 { SCALAR, NUINT8, RED };
+const Element Element::COLOR_SR_8 { SCALAR, NUINT8, SRED };
+
 const Element Element::COLOR_RGBA_32{ VEC4, NUINT8, RGBA };
 const Element Element::COLOR_SRGBA_32{ VEC4, NUINT8, SRGBA };
 

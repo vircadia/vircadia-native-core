@@ -19,6 +19,7 @@
 #include <QtCore/QThread>
 #include <Trace.h>
 
+#include <ktx/KTX.h>
 #include <NumericalConstants.h>
 
 #include "GPULogging.h"
@@ -120,40 +121,23 @@ void Texture::setAllowedGPUMemoryUsage(Size size) {
 
 uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = { 1, 1, 1, 6 };
 
-Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
-    _format(format),
-    _storage(new storage::MemoryStorage(size, bytes)) {
-    Texture::updateTextureCPUMemoryUsage(0, _storage->size());
-}
+using Storage = Texture::Storage;
+using PixelsPointer = Texture::PixelsPointer;
+using MemoryStorage = Texture::MemoryStorage;
 
-Texture::Pixels::~Pixels() {
-    if (_storage) {
-        Texture::updateTextureCPUMemoryUsage(_storage->size(), 0);
-    }
-}
-
-void Texture::Storage::assignTexture(Texture* texture) {
+void Storage::assignTexture(Texture* texture) {
     _texture = texture;
     if (_texture) {
         _type = _texture->getType();
     }
 }
 
-void Texture::Storage::reset() {
+void MemoryStorage::reset() {
     _mips.clear();
     bumpStamp();
 }
 
-Texture::PixelsPointer Texture::Storage::editMipFace(uint16 level, uint8 face) {
-    if (level < _mips.size()) {
-        assert(face < _mips[level].size());
-        bumpStamp();
-        return _mips[level][face];
-    }
-    return PixelsPointer();
-}
-
-const Texture::PixelsPointer Texture::Storage::getMipFace(uint16 level, uint8 face) const {
+PixelsPointer MemoryStorage::getMipFace(uint16 level, uint8 face) const {
     if (level < _mips.size()) {
         assert(face < _mips[level].size());
         return _mips[level][face];
@@ -161,12 +145,12 @@ const Texture::PixelsPointer Texture::Storage::getMipFace(uint16 level, uint8 fa
     return PixelsPointer();
 }
 
-bool Texture::Storage::isMipAvailable(uint16 level, uint8 face) const {
+bool MemoryStorage::isMipAvailable(uint16 level, uint8 face) const {
     PixelsPointer mipFace = getMipFace(level, face);
     return (mipFace && mipFace->getSize());
 }
 
-bool Texture::Storage::allocateMip(uint16 level) {
+bool MemoryStorage::allocateMip(uint16 level) {
     bool changed = false;
     if (level >= _mips.size()) {
         _mips.resize(level+1, std::vector<PixelsPointer>(Texture::NUM_FACES_PER_TYPE[getType()]));
@@ -176,7 +160,6 @@ bool Texture::Storage::allocateMip(uint16 level) {
     auto& mip = _mips[level];
     for (auto& face : mip) {
         if (!face) {
-            face = std::make_shared<Pixels>();
             changed = true;
         }
     }
@@ -186,7 +169,7 @@ bool Texture::Storage::allocateMip(uint16 level) {
     return changed;
 }
 
-bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size size, const Byte* bytes) {
+void MemoryStorage::assignMipData(uint16 level, const storage::StoragePointer& storagePointer) {
 
     allocateMip(level);
     auto& mip = _mips[level];
@@ -195,33 +178,24 @@ bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size s
     // The bytes assigned here are supposed to contain all the faces bytes of the mip.
     // For tex1D, 2D, 3D there is only one face
     // For Cube, we expect the 6 faces in the order X+, X-, Y+, Y-, Z+, Z-
-    auto sizePerFace = size / mip.size();
-    auto faceBytes = bytes;
-    Size allocated = 0;
+    auto sizePerFace = storagePointer->size() / mip.size();
+    size_t offset = 0;
     for (auto& face : mip) {
-        face.reset(new Pixels(format, size, bytes));
-        allocated += size;
-        faceBytes += sizePerFace;
+        face = storagePointer->createView(sizePerFace, offset);
+        offset += sizePerFace;
     }
 
     bumpStamp();
-
-    return allocated == size;
 }
 
 
-bool Texture::Storage::assignMipFaceData(uint16 level, const Element& format, Size size, const Byte* bytes, uint8 face) {
-
+void Texture::MemoryStorage::assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storagePointer) {
     allocateMip(level);
     auto& mip = _mips[level];
-    Size allocated = 0;
     if (face < mip.size()) { 
-        mip[face].reset(new Pixels(format, size, bytes));
-        allocated += size;
+        mip[face] = storagePointer;
         bumpStamp();
     }
-
-    return allocated == size;
 }
 
 Texture* Texture::createExternal(const ExternalRecycler& recycler, const Sampler& sampler) {
@@ -260,7 +234,7 @@ Texture* Texture::createCube(const Element& texelFormat, uint16 width, const Sam
 Texture* Texture::create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler)
 {
     Texture* tex = new Texture(usageType);
-    tex->_storage.reset(new Storage());
+    tex->_storage.reset(new MemoryStorage());
     tex->_type = type;
     tex->_storage->assignTexture(tex);
     tex->_maxMip = 0;
@@ -402,68 +376,84 @@ uint16 Texture::evalNumMips() const {
     return evalNumMips({ _width, _height, _depth });
 }
 
-bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, const Byte* bytes) {
+void Texture::setStoredMipFormat(const Element& format) {
+    _storage->setFormat(format);
+}
+
+const Element& Texture::getStoredMipFormat() const {
+    return _storage->getFormat();
+}
+
+void Texture::assignStoredMip(uint16 level, Size size, const Byte* bytes) {
+    storage::StoragePointer storage { new storage::MemoryStorage(size, bytes) };
+    assignStoredMip(level, storage);
+}
+
+void Texture::assignStoredMipFace(uint16 level, uint8 face, Size size, const Byte* bytes) {
+    storage::StoragePointer storage { new storage::MemoryStorage(size, bytes) };
+    assignStoredMipFace(level, face, storage);
+}
+
+void Texture::assignStoredMip(uint16 level, storage::StoragePointer& storage) {
     // Check that level accessed make sense
     if (level != 0) {
         if (_autoGenerateMips) {
-            return false;
+            return;
         }
         if (level >= evalNumMips()) {
-            return false;
+            return;
         }
     }
 
     // THen check that the mem texture passed make sense with its format
-    Size expectedSize = evalStoredMipSize(level, format);
-    if (size == expectedSize) {
-        _storage->assignMipData(level, format, size, bytes);
+    Size expectedSize = evalStoredMipSize(level, getStoredMipFormat());
+    auto size = storage->size();
+    auto bytes = storage->data();
+    if (storage->size() == expectedSize) {
+        _storage->assignMipData(level, storage);
         _maxMip = std::max(_maxMip, level);
         _stamp++;
-        return true;
     } else if (size > expectedSize) {
         // NOTE: We are facing this case sometime because apparently QImage (from where we get the bits) is generating images
         // and alligning the line of pixels to 32 bits.
         // We should probably consider something a bit more smart to get the correct result but for now (UI elements)
         // it seems to work...
-        _storage->assignMipData(level, format, size, bytes);
+        _storage->assignMipData(level, storage);
         _maxMip = std::max(_maxMip, level);
         _stamp++;
-        return true;
     }
-
-    return false;
 }
 
-
-bool Texture::assignStoredMipFace(uint16 level, const Element& format, Size size, const Byte* bytes, uint8 face) {
+void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePointer& storage) {
     // Check that level accessed make sense
     if (level != 0) {
         if (_autoGenerateMips) {
-            return false;
+            return;
         }
         if (level >= evalNumMips()) {
-            return false;
+            return;
         }
     }
 
     // THen check that the mem texture passed make sense with its format
-    Size expectedSize = evalStoredMipFaceSize(level, format);
+    Size expectedSize = evalStoredMipFaceSize(level, getStoredMipFormat());
+    auto size = storage->size();
+    auto bytes = storage->data();
     if (size == expectedSize) {
-        _storage->assignMipFaceData(level, format, size, bytes, face);
+        _storage->assignMipFaceData(level, face, storage);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
-        return true;
     } else if (size > expectedSize) {
         // NOTE: We are facing this case sometime because apparently QImage (from where we get the bits) is generating images
         // and alligning the line of pixels to 32 bits.
         // We should probably consider something a bit more smart to get the correct result but for now (UI elements)
         // it seems to work...
-        _storage->assignMipFaceData(level, format, size, bytes, face);
+        _storage->assignMipFaceData(level, face, storage);
+        _maxMip = std::max(_maxMip, level);
         _stamp++;
-        return true;
     }
-
-    return false;
 }
+
 
 uint16 Texture::autoGenerateMips(uint16 maxMip) {
     bool changed = false;
@@ -498,7 +488,7 @@ uint16 Texture::getStoredMipHeight(uint16 level) const {
     if (mip && mip->getSize()) {
         return evalMipHeight(level);
     }
-        return 0;
+    return 0;
 }
 
 uint16 Texture::getStoredMipDepth(uint16 level) const {
@@ -770,8 +760,8 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
         PROFILE_RANGE(render_gpu, "ProcessFace");
 
-        auto numComponents = cubeTexture.accessStoredMipFace(0,face)->getFormat().getScalarCount();
-        auto data = cubeTexture.accessStoredMipFace(0,face)->readData();
+        auto numComponents = cubeTexture.getStoredMipFormat().getScalarCount();
+        auto data = cubeTexture.accessStoredMipFace(0,face)->data();
         if (data == nullptr) {
             continue;
         }
@@ -977,3 +967,8 @@ Texture::ExternalUpdates Texture::getUpdates() const {
     }
     return result;
 }
+
+void Texture::setStorage(std::unique_ptr<Storage>& newStorage) {
+    _storage.swap(newStorage);
+}
+

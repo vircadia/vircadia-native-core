@@ -49,24 +49,30 @@ function calcSpawnInfo(hand, height) {
         var handController = getControllerWorldLocation(hand, true);
         var controllerPosition = handController.position;
 
-        // compute the angle of the chord with length (height / 2)
-        var theta = Math.asin(height / (2 * Vec3.distance(headPos, controllerPosition)));
+        // base of the tablet is slightly above controller position
+        var TABLET_BASE_DISPLACEMENT = {x: 0, y: 0.1, z: 0};
+        var tabletBase = Vec3.sum(controllerPosition, TABLET_BASE_DISPLACEMENT);
 
-        // then we can use this angle to rotate the vector between the HMD position and the center of the tablet.
-        // this vector, u, will become our new look at direction.
-        var d = Vec3.normalize(Vec3.subtract(headPos, controllerPosition));
+        var d = Vec3.subtract(headPos, tabletBase);
+        var theta = Math.acos(d.y / Vec3.length(d));
+        d.y = 0;
+        if (Vec3.length(d) < 0.0001) {
+            d = {x: 1, y: 0, z: 0};
+        } else {
+            d = Vec3.normalize(d);
+        }
         var w = Vec3.normalize(Vec3.cross(Y_AXIS, d));
-        var q = Quat.angleAxis(theta * (180 / Math.PI), w);
+        var ANGLE_OFFSET = 25;
+        var q = Quat.angleAxis(theta * (180 / Math.PI) - (90 - ANGLE_OFFSET), w);
         var u = Vec3.multiplyQbyV(q, d);
 
         // use u to compute a full lookAt quaternion.
-        var lookAtRot = Quat.lookAt(controllerPosition, Vec3.sum(controllerPosition, u), Y_AXIS);
-
-        // adjust the tablet position by a small amount.
-        var yDisplacement = (height / 2) + 0.1;
+        var lookAtRot = Quat.lookAt(tabletBase, Vec3.sum(tabletBase, u), Y_AXIS);
+        var yDisplacement = (height / 2);
         var zDisplacement = 0.05;
         var tabletOffset = Vec3.multiplyQbyV(lookAtRot, {x: 0, y: yDisplacement, z: zDisplacement});
-        finalPosition = Vec3.sum(controllerPosition, tabletOffset);
+        finalPosition = Vec3.sum(tabletBase, tabletOffset);
+
         return {
             position: finalPosition,
             rotation: lookAtRot
@@ -159,7 +165,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     });
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
-        if (_this.homeButtonEntity === parseInt(senderID)) {
+        if (_this.homeButtonEntity == senderID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             var onHomeScreen = tablet.onHomeScreen();
             if (onHomeScreen) {
@@ -219,7 +225,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
 };
 
 WebTablet.prototype.setHomeButtonTexture = function() {
-    print(this.homeButtonEntity);
     Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
 };
 
@@ -385,14 +390,10 @@ WebTablet.prototype.register = function() {
 WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
     children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, jointIndex));
-    print("cleanup " + children);
     children.forEach(function(childID) {
         var props = Entities.getEntityProperties(childID, ["name"]);
         if (props.name === "WebTablet Tablet") {
-            print("cleaning up " + props.name);
             Entities.deleteEntity(childID);
-        } else {
-            print("not cleaning up " + props.name);
         }
     });
 };

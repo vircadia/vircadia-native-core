@@ -10,53 +10,31 @@
 //
 #include "KTX.h"
 
+#ifndef _MSC_VER
+#define NOEXCEPT noexcept
+#else
+#define NOEXCEPT
+#endif
 
 namespace ktx {
 
     class WriterException : public std::exception {
     public:
         WriterException(const std::string& explanation) : _explanation("KTX serialization error: " + explanation) {}
-        const char* what() const override {
-            return _explanation.c_str();
-        }
+        const char* what() const NOEXCEPT override { return _explanation.c_str(); }
     private:
         const std::string _explanation;
     };
 
-
-    void KTX::resetHeader(const Header& header) {
-         if (!_storage) {
-            return;
-        }
-        memcpy(_storage->_bytes, &header, sizeof(Header));
-    }
-    void KTX::resetImages(const Images& srcImages) {
-        auto imagesDataPtr = getTexelsData();
-        if (!imagesDataPtr) {
-            return;
-        }
-        auto allocatedImagesDataSize = getTexelsDataSize();
-
-        // Just copy in our storage
-        _images = writeImages(imagesDataPtr, allocatedImagesDataSize, srcImages);
-    }
-
     std::unique_ptr<KTX> KTX::create(const Header& header, const Images& images, const KeyValues& keyValues) {
-        auto storageSize = evalStorageSize(header, images, keyValues);
-
-        std::unique_ptr<KTX> result(new KTX());
-        
-        result->resetStorage(new Storage(storageSize));
-
-        result->resetHeader(header);
-
-        // read metadata
-        result->_keyValues = keyValues;
-
-        // populate image table
-        result->resetImages(images);
-
-        return result;
+        StoragePointer storagePointer;
+        {
+            auto storageSize = ktx::KTX::evalStorageSize(header, images);
+            auto memoryStorage = new storage::MemoryStorage(storageSize);
+            ktx::KTX::write(memoryStorage->data(), memoryStorage->size(), header, images);
+            storagePointer.reset(memoryStorage);
+        }
+        return create(storagePointer);
     }
 
     size_t KTX::evalStorageSize(const Header& header, const Images& images, const KeyValues& keyValues) {
@@ -114,25 +92,34 @@ namespace ktx {
         size_t currentDataSize = 0;
         auto currentPtr = imagesDataPtr;
 
-
-
         for (uint32_t l = 0; l < srcImages.size(); l++) {
             if (currentDataSize + sizeof(uint32_t) < allocatedImagesDataSize) {
                 size_t imageSize = srcImages[l]._imageSize;
-                *(reinterpret_cast<uint32_t*> (currentPtr)) = imageSize;
+                *(reinterpret_cast<uint32_t*> (currentPtr)) = (uint32_t) imageSize;
                 currentPtr += sizeof(uint32_t);
                 currentDataSize += sizeof(uint32_t);
 
                 // If enough data ahead then capture the copy source pointer
                 if (currentDataSize + imageSize <= (allocatedImagesDataSize)) {
-
-                    auto copied = memcpy(currentPtr, srcImages[l]._bytes, imageSize);
-
                     auto padding = Header::evalPadding(imageSize);
 
-                    destImages.emplace_back(Image(imageSize, padding, currentPtr));
+                    // Single face vs cubes
+                    if (srcImages[l]._numFaces == 1) {
+                        auto copied = memcpy(currentPtr, srcImages[l]._faceBytes[0], imageSize);
+                        destImages.emplace_back(Image((uint32_t) imageSize, padding, currentPtr));
+                        currentPtr += imageSize;
+                    } else {
+                        Image::FaceBytes faceBytes(6);
+                        auto faceSize = srcImages[l]._faceSize;
+                        for (int face = 0; face < 6; face++) {
+                             auto copied = memcpy(currentPtr, srcImages[l]._faceBytes[face], faceSize);
+                             faceBytes[face] = currentPtr;
+                             currentPtr += faceSize;
+                        }
+                        destImages.emplace_back(Image(faceSize, padding, faceBytes));
+                    }
 
-                    currentPtr += imageSize + padding;
+                    currentPtr += padding;
                     currentDataSize += imageSize + padding;
                 }
             }

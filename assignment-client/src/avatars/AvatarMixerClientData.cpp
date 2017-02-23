@@ -16,10 +16,52 @@
 
 #include "AvatarMixerClientData.h"
 
+
+
+void AvatarMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
+    if (!_packetQueue.node) {
+        _packetQueue.node = node;
+    }
+    _packetQueue.push(message);
+}
+
+int AvatarMixerClientData::processPackets() {
+    int packetsProcessed = 0;
+    SharedNodePointer node = _packetQueue.node;
+    assert(_packetQueue.empty() || node);
+    _packetQueue.node.clear();
+
+    while (!_packetQueue.empty()) {
+        auto& packet = _packetQueue.front();
+
+        packetsProcessed++;
+
+        switch (packet->getType()) {
+            case PacketType::AvatarData:
+                parseData(*packet);
+                break;
+            default:
+                Q_UNREACHABLE();
+        }
+        _packetQueue.pop();
+    }
+    assert(_packetQueue.empty());
+
+    return packetsProcessed;
+}
+
 int AvatarMixerClientData::parseData(ReceivedMessage& message) {
+
     // pull the sequence number from the data first
-    message.readPrimitive(&_lastReceivedSequenceNumber);
+    uint16_t sequenceNumber;
+
+    message.readPrimitive(&sequenceNumber);
     
+    if (sequenceNumber < _lastReceivedSequenceNumber && _lastReceivedSequenceNumber != UINT16_MAX) {
+        incrementNumOutOfOrderSends();
+    }
+    _lastReceivedSequenceNumber = sequenceNumber;
+
     // compute the offset to the data payload
     return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }

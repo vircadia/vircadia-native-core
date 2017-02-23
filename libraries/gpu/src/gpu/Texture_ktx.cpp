@@ -15,19 +15,49 @@
 #include <ktx/KTX.h>
 using namespace gpu;
 
+using PixelsPointer = Texture::PixelsPointer;
+using KtxStorage = Texture::KtxStorage;
+
+KtxStorage::KtxStorage(ktx::KTXUniquePointer& ktxData) {
+
+    // if the source ktx is valid let's config this KtxStorage correctly
+    if (ktxData && ktxData->getHeader()) {
+
+        // now that we know the ktx, let's get the header info to configure this Texture::Storage:
+        Format mipFormat = Format::COLOR_BGRA_32;
+        Format texelFormat = Format::COLOR_SRGBA_32;
+        if (Texture::evalTextureFormat(*ktxData->getHeader(), mipFormat, texelFormat)) {
+            _format = mipFormat;
+        }
+
+
+    }
+
+    _ktxData.reset(ktxData.release());
+}
+
+PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
+    return _ktxData->getMipFaceTexelsData(level, face);
+}
+
+void Texture::setKtxBacking(ktx::KTXUniquePointer& ktxBacking) {
+    auto newBacking = std::unique_ptr<Storage>(new KtxStorage(ktxBacking));
+    setStorage(newBacking);
+}
+
 ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     ktx::Header header;
 
     // From texture format to ktx format description
     auto texelFormat = texture.getTexelFormat();
-    if ( !(   (texelFormat == Format::COLOR_RGBA_32)
-           || (texelFormat == Format::COLOR_SRGBA_32)
-          )) 
-         return nullptr;
+    auto mipFormat = texture.getStoredMipFormat();
 
-    header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
-
+    if (!Texture::evalKTXFormat(mipFormat, texelFormat, header)) {
+        return nullptr;
+    }
+ 
     // Set Dimensions
+    uint32_t numFaces = 1;
     switch (texture.getType()) {
     case TEX_1D: {
             if (texture.isArray()) {
@@ -59,6 +89,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
             } else {
                 header.setCube(texture.getWidth(), texture.getHeight());
             }
+            numFaces = 6;
             break;
         }
     default:
@@ -66,28 +97,65 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     }
 
     // Number level of mips coming
-    header.numberOfMipmapLevels = texture.maxMip();
+    header.numberOfMipmapLevels = texture.maxMip() + 1;
 
     ktx::Images images;
     for (uint32_t level = 0; level < header.numberOfMipmapLevels; level++) {
         auto mip = texture.accessStoredMipFace(level);
         if (mip) {
-            images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, mip->readData()));
+            if (numFaces == 1) {
+                images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, mip->readData()));
+            } else {
+                ktx::Image::FaceBytes cubeFaces(6);
+                cubeFaces[0] = mip->readData();
+                for (int face = 1; face < 6; face++) {
+                    cubeFaces[face] = texture.accessStoredMipFace(level, face)->readData();
+                }
+                images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, cubeFaces));
+            }
         }
     }
 
     auto ktxBuffer = ktx::KTX::create(header, images);
+    auto expectedMipCount = texture.evalNumMips();
+    assert(expectedMipCount == ktxBuffer->_images.size());
+    assert(expectedMipCount == header.numberOfMipmapLevels);
+
+    assert(0 == memcmp(&header, ktxBuffer->getHeader(), sizeof(ktx::Header)));
+    assert(ktxBuffer->_images.size() == images.size());
+    auto start = ktxBuffer->_storage->data();
+    for (size_t i = 0; i < images.size(); ++i) {
+        auto expected = images[i];
+        auto actual = ktxBuffer->_images[i];
+        assert(expected._padding == actual._padding);
+        assert(expected._numFaces == actual._numFaces);
+        assert(expected._imageSize == actual._imageSize);
+        assert(expected._faceSize == actual._faceSize);
+        assert(actual._faceBytes.size() == actual._numFaces);
+        for (uint32_t face = 0; face < expected._numFaces; ++face) {
+            auto expectedFace = expected._faceBytes[face];
+            auto actualFace = actual._faceBytes[face];
+            auto offset = actualFace - start;
+            assert(offset % 4 == 0);
+            assert(expectedFace != actualFace);
+            assert(0 == memcmp(expectedFace, actualFace, expected._faceSize));
+        }
+    }
     return ktxBuffer;
 }
 
-Texture* Texture::unserialize(TextureUsageType usageType, const ktx::KTXUniquePointer& srcData) {
+Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx::KTXUniquePointer& srcData, const Sampler& sampler) {
     if (!srcData) {
         return nullptr;
     }
     const auto& header = *srcData->getHeader();
 
-    Format mipFormat = Format::COLOR_SBGRA_32;
+    Format mipFormat = Format::COLOR_BGRA_32;
     Format texelFormat = Format::COLOR_SRGBA_32;
+
+    if (!Texture::evalTextureFormat(header, mipFormat, texelFormat)) {
+        return nullptr;
+    }
 
     // Find Texture Type based on dimensions
     Type type = TEX_1D;
@@ -113,14 +181,71 @@ Texture* Texture::unserialize(TextureUsageType usageType, const ktx::KTXUniquePo
                                 header.getPixelDepth(),
                                 1, // num Samples
                                 header.getNumberOfSlices(),
-                                Sampler());
+                                sampler);
+
+    tex->setUsage(usage);
 
     // Assing the mips availables
+    tex->setStoredMipFormat(mipFormat);
     uint16_t level = 0;
     for (auto& image : srcData->_images) {
-        tex->assignStoredMip(level, mipFormat, image._imageSize, image._bytes);
+        for (uint32_t face = 0; face < image._numFaces; face++) {
+            tex->assignStoredMipFace(level, face, image._faceSize, image._faceBytes[face]);
+        }
         level++;
     }
 
     return tex;
+}
+
+bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header) {
+    if (texelFormat == Format::COLOR_RGBA_32 && mipFormat == Format::COLOR_BGRA_32) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_RGBA_32 && mipFormat == Format::COLOR_RGBA_32) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RGBA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_SRGBA_32 && mipFormat == Format::COLOR_SBGRA_32) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_SRGBA_32 && mipFormat == Format::COLOR_SRGBA_32) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RGBA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_R_8 && mipFormat == Format::COLOR_R_8) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RED, ktx::GLInternalFormat_Uncompressed::R8, ktx::GLBaseInternalFormat::RED);
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
+bool Texture::evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat) {
+    if (header.getGLFormat() == ktx::GLFormat::BGRA && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 1) {
+        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::RGBA8) {
+            mipFormat = Format::COLOR_BGRA_32;
+            texelFormat = Format::COLOR_RGBA_32;
+        } else if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8) {
+            mipFormat = Format::COLOR_SBGRA_32;
+            texelFormat = Format::COLOR_SRGBA_32;
+        } else {
+            return false;
+        }
+    } else if (header.getGLFormat() == ktx::GLFormat::RGBA && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 1) {
+        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::RGBA8) {
+            mipFormat = Format::COLOR_RGBA_32;
+            texelFormat = Format::COLOR_RGBA_32;
+        } else if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8) {
+            mipFormat = Format::COLOR_SRGBA_32;
+            texelFormat = Format::COLOR_SRGBA_32;
+        } else {
+            return false;
+        }
+    } else if (header.getGLFormat() == ktx::GLFormat::RED && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 1) {
+        mipFormat = Format::COLOR_R_8;
+        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::R8) {
+            texelFormat = Format::COLOR_R_8;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+    return true;
 }
