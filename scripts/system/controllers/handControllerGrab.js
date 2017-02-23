@@ -644,6 +644,7 @@ EquipHotspotBuddy.prototype.updateHotspot = function(hotspot, timestamp) {
 
         // override default sphere with a user specified model, if it exists.
         overlayInfoSet.overlays.push(Overlays.addOverlay("model", {
+            name: "hotspot overlay",
             url: hotspot.modelURL ? hotspot.modelURL : DEFAULT_SPHERE_MODEL_URL,
             position: hotspot.worldPosition,
             rotation: {
@@ -906,6 +907,7 @@ function MyController(hand) {
 
         if (!this.grabPointSphere) {
             this.grabPointSphere = Overlays.addOverlay("sphere", {
+                name: "grabPointSphere",
                 localPosition: getGrabPointSphereOffset(this.handToController()),
                 localRotation: { x: 0, y: 0, z: 0, w: 1 },
                 dimensions: GRAB_POINT_SPHERE_RADIUS * 2,
@@ -936,6 +938,7 @@ function MyController(hand) {
         var brightColor = colorPow(color, 0.06);
         if (this.searchSphere === null) {
             var sphereProperties = {
+                name: "searchSphere",
                 position: location,
                 rotation: rotation,
                 outerRadius: size * 1.2,
@@ -958,7 +961,8 @@ function MyController(hand) {
                 innerAlpha: 1.0,
                 outerAlpha: 0.0,
                 outerRadius: size * 1.2,
-                visible: true
+                visible: true,
+                ignoreRayIntersection: true
             });
         }
     };
@@ -969,6 +973,7 @@ function MyController(hand) {
         }
 
         var stylusProperties = {
+            name: "stylus",
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
             localPosition: Vec3.sum({ x: 0.0,
                                       y: WEB_TOUCH_Y_OFFSET,
@@ -1003,6 +1008,7 @@ function MyController(hand) {
     this.overlayLineOn = function(closePoint, farPoint, color) {
         if (this.overlayLine === null) {
             var lineProperties = {
+                name: "line",
                 glow: 1.0,
                 start: closePoint,
                 end: farPoint,
@@ -1621,6 +1627,7 @@ function MyController(hand) {
             if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && holdEnabled) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.grabbedEntity = potentialEquipHotspot.entityID;
+                this.grabbedIsOverlay = false;
                 this.setState(STATE_HOLD, "equipping '" + entityPropertiesCache.getProps(this.grabbedEntity).name + "'");
 
                 return;
@@ -1632,7 +1639,7 @@ function MyController(hand) {
             return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
         });
 
-        var candidateOverlays = Overlays.findOverlays(handPosition, /*NEAR_GRAB_RADIUS*/ 0.4);
+        var candidateOverlays = Overlays.findOverlays(handPosition, NEAR_GRAB_RADIUS);
         var grabbableOverlays = candidateOverlays.filter(function(overlayID) {
             return Overlays.getProperty(overlayID, "grabbable");
         });
@@ -1651,7 +1658,14 @@ function MyController(hand) {
         }
 
         if (grabbableOverlays.length > 0) {
-            this.grabbedEntity = grabbableOverlays[0]; // XXX
+            grabbableOverlays.sort(function(a, b) {
+                var aPosition = Overlays.getProperty(a, "position");
+                var aDistance = Vec3.distance(aPosition, handPosition);
+                var bPosition = Overlays.getProperty(a, "position");
+                var bDistance = Vec3.distance(bPosition, handPosition);
+                return aDistance - bDistance;
+            });
+            this.grabbedEntity = grabbableOverlays[0];
             this.grabbedIsOverlay = true;
             if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && nearGrabEnabled) {
                 this.setState(STATE_NEAR_GRABBING, "near grab overlay '" +

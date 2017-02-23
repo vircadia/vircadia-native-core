@@ -806,18 +806,24 @@ void Overlays::mouseMoveEvent(QMouseEvent* event) {
 
 QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) const {
     QVector<QUuid> result;
-    glm::vec3 penetration;
 
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
     i.toBack();
     while (i.hasPrevious()) {
         i.previous();
         OverlayID thisID = i.key();
-        auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
-        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
-            // AABox overlayAABox;
-            // overlayAABox.findSpherePenetration(center, radius, penetration);
-            if (glm::distance(thisOverlay->getPosition(), center) <= radius) {
+        auto overlay = std::dynamic_pointer_cast<Volume3DOverlay>(i.value());
+        if (overlay && overlay->getVisible() && !overlay->getIgnoreRayIntersection() && overlay->isLoaded()) {
+            // get AABox in frame of overlay
+            glm::vec3 dimensions = overlay->getDimensions();
+            glm::vec3 low = dimensions * -0.5f;
+            AABox overlayFrameBox(low, dimensions);
+
+            Transform overlayToWorldMatrix = overlay->getTransform();
+            glm::mat4 worldToOverlayMatrix = glm::inverse(overlayToWorldMatrix.getMatrix());
+            glm::vec3 overlayFrameSearchPosition = glm::vec3(worldToOverlayMatrix * glm::vec4(center, 1.0f));
+            glm::vec3 penetration;
+            if (overlayFrameBox.findSpherePenetration(overlayFrameSearchPosition, radius, penetration)) {
                 result.append(thisID);
             }
         }
