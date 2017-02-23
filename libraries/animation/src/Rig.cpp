@@ -483,6 +483,10 @@ void Rig::setEnableInverseKinematics(bool enable) {
     _enableInverseKinematics = enable;
 }
 
+void Rig::setEnableAnimations(bool enable) {
+    _enabledAnimations = enable;
+}
+
 AnimPose Rig::getAbsoluteDefaultPose(int index) const {
     if (_animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints()) {
         return _absoluteDefaultPoses[index];
@@ -907,7 +911,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
     setModelOffset(rootTransform);
 
-    if (_animNode) {
+    if (_animNode && _enabledAnimations) {
         PerformanceTimer perfTimer("handleTriggers");
 
         updateAnimationStateHandlers();

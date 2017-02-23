@@ -37,6 +37,7 @@
 #include <ShapeInfo.h>
 #include <AudioHelpers.h>
 #include <Profile.h>
+#include <VariantMapToScriptValue.h>
 
 #include "AvatarLogging.h"
 
@@ -2378,4 +2379,38 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
         }
     }
     return sortedAvatars;
+}
+
+QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value) {
+    QScriptValue obj = engine->newObject();
+    for (auto entityID : value.keys()) {
+        QByteArray entityProperties = value.value(entityID);
+        QJsonDocument jsonEntityProperties = QJsonDocument::fromBinaryData(entityProperties);
+        if (!jsonEntityProperties.isObject()) {
+            qCDebug(avatars) << "bad AvatarEntityData in AvatarEntityMap" << QString(entityProperties.toHex());
+        }
+        
+        QVariant variantEntityProperties = jsonEntityProperties.toVariant();
+        QVariantMap entityPropertiesMap = variantEntityProperties.toMap();
+        QScriptValue scriptEntityProperties = variantMapToScriptValue(entityPropertiesMap, *engine);
+        
+        QString key = entityID.toString();
+        obj.setProperty(key, scriptEntityProperties);
+    }
+    return obj;
+}
+
+void AvatarEntityMapFromScriptValue(const QScriptValue& object, AvatarEntityMap& value) {
+    QScriptValueIterator itr(object);
+    while (itr.hasNext()) {
+        itr.next();
+        QUuid EntityID = QUuid(itr.name());
+        
+        QScriptValue scriptEntityProperties = itr.value();
+        QVariant variantEntityProperties = scriptEntityProperties.toVariant();
+        QJsonDocument jsonEntityProperties = QJsonDocument::fromVariant(variantEntityProperties);
+        QByteArray binaryEntityProperties = jsonEntityProperties.toBinaryData();
+        
+        value[EntityID] = binaryEntityProperties;
+    }
 }
