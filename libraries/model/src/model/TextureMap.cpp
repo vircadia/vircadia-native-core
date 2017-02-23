@@ -103,8 +103,7 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
         }
     });
 
-    std::string cleanedName = name;
-    cleanedName = cleanedName.substr(cleanedName.find_last_of((char) '//') + 1);
+    std::string cleanedName = QUrl::toPercentEncoding(name.c_str()).toStdString();
     std::string cacheFilename(ktxCacheFolder.toStdString());
     cacheFilename += "/";
     cacheFilename += cleanedName;
