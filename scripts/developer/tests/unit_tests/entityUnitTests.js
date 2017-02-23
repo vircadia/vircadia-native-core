@@ -1,3 +1,5 @@
+/* eslint-env jasmine */
+
 describe('Entity', function() {
     var center = Vec3.sum(
         MyAvatar.position,

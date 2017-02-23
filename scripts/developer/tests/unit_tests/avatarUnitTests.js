@@ -1,5 +1,7 @@
+/* eslint-env jasmine */
 
 // Art3mis
+// eslint-disable-next-line max-len
 var DEFAULT_AVATAR_URL = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/contents/e76946cc-c272-4adf-9bb6-02cde0a4b57d/8fd984ea6fe1495147a3303f87fa6e23.fst?1460131758";
 
 var ORIGIN = {x: 0, y: 0, z: 0};
@@ -29,12 +31,12 @@ describe("MyAvatar", function () {
                 MyAvatar.position = ORIGIN;
                 MyAvatar.orientation = ROT_IDENT;
                 // give the avatar 1/2 a second to settle on the ground in the idle pose.
-                 Script.setTimeout(function () {
+                Script.setTimeout(function () {
                     done();
                 }, 500);
             }
         }, 500);
-    }, 10000 /*timeout -- allow time to download avatar*/);
+    }, 10000 /* timeout -- allow time to download avatar*/);
 
     // makes the assumption that there is solid ground somewhat underneath the avatar.
     it("position and orientation getters", function () {

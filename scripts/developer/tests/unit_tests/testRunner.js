@@ -1,6 +1,8 @@
+/* eslint-env jasmine */
+
 // Include testing library
 Script.include('../../libraries/jasmine/jasmine.js');
-Script.include('../../libraries/jasmine/hifi-boot.js')
+Script.include('../../libraries/jasmine/hifi-boot.js');
 
 // Include unit tests
 Script.include('avatarUnitTests.js');
