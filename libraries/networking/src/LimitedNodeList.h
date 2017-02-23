@@ -34,6 +34,7 @@
 #include <tbb/concurrent_unordered_map.h>
 
 #include <DependencyManager.h>
+#include <SharedUtil.h>
 
 #include "DomainHandler.h"
 #include "Node.h"
@@ -182,15 +183,33 @@ public:
     //   This allows multiple threads (i.e. a thread pool) to share a lock
     //   without deadlocking when a dying node attempts to acquire a write lock
     template<typename NestedNodeLambda>
-    void nestedEach(NestedNodeLambda functor) {
-        QReadLocker readLock(&_nodeMutex);
+    void nestedEach(NestedNodeLambda functor, 
+                    int* lockWaitOut = nullptr, 
+                    int* nodeTransformOut = nullptr, 
+                    int* functorOut = nullptr) {
+        auto start = usecTimestampNow();
+        {
+            QReadLocker readLock(&_nodeMutex);
+            auto endLock = usecTimestampNow();
+            if (lockWaitOut) {
+                *lockWaitOut = (endLock - start);
+            }
 
-        std::vector<SharedNodePointer> nodes(_nodeHash.size());
-        std::transform(_nodeHash.cbegin(), _nodeHash.cend(), nodes.begin(), [](const NodeHash::value_type& it) {
-            return it.second;
-        });
+            std::vector<SharedNodePointer> nodes(_nodeHash.size());
+            std::transform(_nodeHash.cbegin(), _nodeHash.cend(), nodes.begin(), [](const NodeHash::value_type& it) {
+                return it.second;
+            });
+            auto endTransform = usecTimestampNow();
+            if (nodeTransformOut) {
+                *nodeTransformOut = (endTransform - endLock);
+            }
 
-        functor(nodes.cbegin(), nodes.cend());
+            functor(nodes.cbegin(), nodes.cend());
+            auto endFunctor = usecTimestampNow();
+            if (functorOut) {
+                *functorOut = (endFunctor - endTransform);
+            }
+        }
     }
 
     template<typename NodeLambda>

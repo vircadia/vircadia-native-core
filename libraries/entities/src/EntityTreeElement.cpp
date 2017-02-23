@@ -310,16 +310,17 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
                     if (entityMatchesFilters) {
                         // make sure this entity is in the set of entities sent last frame
-                        entityNodeData->insertEntitySentLastFrame(entity->getID());
-
-                    } else {
-                        // we might include this entity if it matched in the previous frame
-                        if (entityNodeData->sentEntityLastFrame(entity->getID())) {
-
-                            entityNodeData->removeEntitySentLastFrame(entity->getID());
-                        } else {
-                            includeThisEntity = false;
-                        }
+                        entityNodeData->insertSentFilteredEntity(entity->getID());
+                    } else if (entityNodeData->sentFilteredEntity(entity->getID())) {
+                        // this entity matched in the previous frame - we send it still so the client realizes it just
+                        // fell outside of their filter
+                        entityNodeData->removeSentFilteredEntity(entity->getID());
+                    } else if (!entityNodeData->isEntityFlaggedAsExtra(entity->getID())) {
+                        // we don't send this entity because
+                        // (1) it didn't match our filter
+                        // (2) it didn't match our filter last frame
+                        // (3) it isn't one the JSON query flags told us we should still include
+                        includeThisEntity = false;
                     }
                 }
 

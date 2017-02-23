@@ -51,7 +51,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityPhysics:
             return VERSION_ENTITIES_ZONE_FILTERS;
         case PacketType::EntityQuery:
-            return static_cast<PacketVersion>(EntityQueryPacketVersion::JsonFilter);
+            return static_cast<PacketVersion>(EntityQueryPacketVersion::JSONFilterWithFamilyTree);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:

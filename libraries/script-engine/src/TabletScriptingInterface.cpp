@@ -172,7 +172,7 @@ static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
 static const char* VRMENU_SOURCE_URL = "TabletMenu.qml";
 
 class TabletRootWindow : public QmlWindowClass {
-    virtual QString qmlSource() const { return "hifi/tablet/WindowRoot.qml"; }
+    virtual QString qmlSource() const override { return "hifi/tablet/WindowRoot.qml"; }
 };
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
@@ -366,6 +366,7 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
     }
 
     if (root) {
+        removeButtonsFromHomeScreen();
         QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         QMetaObject::invokeMethod(root, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
