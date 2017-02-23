@@ -26,6 +26,7 @@ public:
     int numIdentityPackets { 0 };
     int numOthersIncluded { 0 };
     int randomDrops { 0 };
+    int overBudgetAvatars { 0 };
 
     quint64 ignoreCalculationElapsedTime { 0 };
     quint64 avatarDataPackingElapsedTime { 0 };
@@ -46,6 +47,7 @@ public:
         numIdentityPackets = 0;
         numOthersIncluded = 0;
         randomDrops = 0;
+        overBudgetAvatars = 0;
 
         ignoreCalculationElapsedTime = 0;
         avatarDataPackingElapsedTime = 0;
@@ -65,6 +67,7 @@ public:
         numIdentityPackets += rhs.numIdentityPackets;
         numOthersIncluded += rhs.numOthersIncluded;
         randomDrops += rhs.randomDrops;
+        overBudgetAvatars += rhs.overBudgetAvatars;
 
         ignoreCalculationElapsedTime += rhs.ignoreCalculationElapsedTime;
         avatarDataPackingElapsedTime += rhs.avatarDataPackingElapsedTime;

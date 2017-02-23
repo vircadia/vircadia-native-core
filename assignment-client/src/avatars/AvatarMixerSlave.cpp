@@ -129,6 +129,11 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // keep track of outbound data rate specifically for avatar data
         int numAvatarDataBytes = 0;
 
+        // max number of avatarBytes per frame
+        auto maxAvatarBytesPerFrame = (_maxKbpsPerNode * BYTES_PER_KILOBIT) / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
+
+        int overBudgetAvatars = 0;
+
         // keep track of the number of other avatars held back in this frame
         int numAvatarsHeldBack = 0;
 
@@ -333,10 +338,10 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 // NOTE: If the recieving node is in "PAL mode" then it's asked to get things even that
                 //       are out of view, this also appears to disable this random distribution.
                 //
-                // FIXME - This approach for managing the outbound bandwidth is less than ideal,
-                //         it would be better to more directly budget the number of bytes to send
-                //         per frame and simply exit the sorted avatar list once that budget is
-                //         surpassed. We will work on that next. [BHG 2/22/17]
+                // FIXME - This is the old approach for managing the outbound bandwidth. I've left it
+                //         in for now, even though we're also directly managing budget by calculating the 
+                //         number of  bytes to send per frame and simply exiting the sorted avatar list 
+                //         once that budget is surpassed. I need to remove this old logic next. [BHG 2/22/17]
                 if (distanceToAvatar != 0.0f
                     && !getsOutOfView
                     && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)
@@ -370,6 +375,16 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                         // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                         ++numAvatarsWithSkippedFrames;
+                    }
+
+                    // NOTE: Here's where we determine if we are over budget and stop considering avatars after this.
+                    //
+                    // FIXME - revisit this code, remove the random drop logic, and move this code higher up into
+                    // the loop so we don't bother with all these other calculations once over budget.  [BHG 2/22/17]
+                    if (numAvatarDataBytes > maxAvatarBytesPerFrame) {
+                        overBudgetAvatars++;
+                        _stats.overBudgetAvatars++;
+                        shouldConsider = false;
                     }
 
                     // we're going to send this avatar
