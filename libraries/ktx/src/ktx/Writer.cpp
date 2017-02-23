@@ -27,7 +27,7 @@ namespace ktx {
     };
 
     std::unique_ptr<KTX> KTX::create(const Header& header, const Images& images, const KeyValues& keyValues) {
-        std::unique_ptr<storage::Storage> storagePointer;
+        StoragePointer storagePointer;
         {
             auto storageSize = ktx::KTX::evalStorageSize(header, images);
             auto memoryStorage = new storage::MemoryStorage(storageSize);

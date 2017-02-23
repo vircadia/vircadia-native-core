@@ -232,6 +232,10 @@ NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type t
             return model::TextureUsage::createMetallicTextureFromImage;
             break;
         }
+        case Type::OCCLUSION_TEXTURE: {
+            return model::TextureUsage::create2DTextureFromImage;
+            break;
+        }
         case Type::STRICT_TEXTURE: {
             return model::TextureUsage::createStrict2DTextureFromImage;
             break;

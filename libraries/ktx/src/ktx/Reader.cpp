@@ -163,7 +163,7 @@ namespace ktx {
         return images;
     }
 
-    std::unique_ptr<KTX> KTX::create(std::unique_ptr<Storage>& src) {
+    std::unique_ptr<KTX> KTX::create(StoragePointer& src) {
         if (!src) {
             return nullptr;
         }
@@ -173,7 +173,7 @@ namespace ktx {
         }
 
         std::unique_ptr<KTX> result(new KTX());
-        result->resetStorage(src.release());
+        result->resetStorage(src);
 
         // read metadata
        // result->_keyValues = getKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());

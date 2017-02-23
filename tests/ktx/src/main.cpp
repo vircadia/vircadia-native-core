@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
         outFile.close();
     }
 
-    auto ktxFile = ktx::KTX::create(std::unique_ptr<storage::Storage>(new storage::FileStorage(TEST_IMAGE_KTX)));
+    auto ktxFile = ktx::KTX::create(std::shared_ptr<storage::Storage>(new storage::FileStorage(TEST_IMAGE_KTX)));
     {
         const auto& memStorage = ktxMemory->getStorage();
         const auto& fileStorage = ktxFile->getStorage();
