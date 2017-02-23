@@ -96,7 +96,7 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
         // Prepare cache directory
         static const QString HIFI_KTX_FOLDER("hifi_ktx");
         QString docsLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        ktxCacheFolder = docsLocation + "/" + HIFI_KTX_FOLDER;
+        ktxCacheFolder = docsLocation + "/" + HIFI_KTX_FOLDER + "/";
         QFileInfo info(ktxCacheFolder);
         if (!info.exists()) {
             QDir(docsLocation).mkpath(HIFI_KTX_FOLDER);
@@ -132,8 +132,8 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
         }
 
         if (read && QFileInfo(cacheFilename.c_str()).exists()) {
-#define DEBUG_KTX_LOADING 1
-#ifdef DEBUG_KTX_LOADING
+#define DEBUG_KTX_LOADING 0
+#if DEBUG_KTX_LOADING
             { 
                 FILE* file = fopen(cacheFilename.c_str(), "rb");
                 if (file != nullptr) {
@@ -157,12 +157,12 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
                 }
             }
 #else
-            auto ktxFile = ktx::KTX::create(std::unique_ptr<storage::Storage>(new storage::FileStorage(cacheFilename.c_str())));
+            ktx::StoragePointer storage = std::make_shared<storage::FileStorage>(cacheFilename.c_str());
+            auto ktxFile = ktx::KTX::create(storage);
             returnedTexture->setKtxBacking(ktxFile);
 #endif
         }
     }
-
     return returnedTexture;
 }
 
