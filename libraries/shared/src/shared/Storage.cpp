@@ -57,7 +57,8 @@ FileStoragePointer FileStorage::create(const QString& filename, size_t size, con
         }
     }
     file.close();
-    return FileStoragePointer(new FileStorage(filename));
+    //return FileStoragePointer(new FileStorage(filename));
+    return std::make_shared<FileStorage>(filename);
 }
 
 FileStorage::FileStorage(const QString& filename) : _file(filename) {

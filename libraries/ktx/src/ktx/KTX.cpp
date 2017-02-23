@@ -34,10 +34,6 @@ uint32_t Header::evalMaxDimension() const {
     return std::max(getPixelWidth(), std::max(getPixelHeight(), getPixelDepth()));
 }
 
-uint32_t Header::evalMaxLevel() const {
-    return 1 + log2(evalMaxDimension());
-}
-
 uint32_t Header::evalPixelWidth(uint32_t level) const {
     return std::max(getPixelWidth() >> level, 1U);
 }

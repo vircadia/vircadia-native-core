@@ -193,7 +193,7 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _calibrationCount(0),
     _calibrationValues(),
     _calibrationBillboard(NULL),
-    _calibrationBillboardID(0),
+    _calibrationBillboardID(UNKNOWN_OVERLAY_ID),
     _calibrationMessage(QString()),
     _isCalibrated(false)
 {

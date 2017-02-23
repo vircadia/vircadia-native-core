@@ -198,7 +198,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
         currentContext->makeCurrent(currentSurface);
 
-        auto forwardPointerEvent = [=](unsigned int overlayID, const PointerEvent& event) {
+        auto forwardPointerEvent = [=](OverlayID overlayID, const PointerEvent& event) {
             if (overlayID == getOverlayID()) {
                 handlePointerEvent(event);
             }
@@ -208,7 +208,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         _mouseReleaseConnection = connect(&(qApp->getOverlays()), &Overlays::mouseReleaseOnOverlay, forwardPointerEvent);
         _mouseMoveConnection = connect(&(qApp->getOverlays()), &Overlays::mouseMoveOnOverlay, forwardPointerEvent);
         _hoverLeaveConnection = connect(&(qApp->getOverlays()), &Overlays::hoverLeaveOverlay,
-            [=](unsigned int overlayID, const PointerEvent& event) {
+            [=](OverlayID overlayID, const PointerEvent& event) {
             if (this->_pressed && this->getOverlayID() == overlayID) {
                 // If the user mouses off the overlay while the button is down, simulate a touch end.
                 QTouchEvent::TouchPoint point;

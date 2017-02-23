@@ -85,7 +85,7 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     return srcImage;
 }
 
-gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bool write = true, bool read = true) {
+gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bool write = true, bool read = false) { // FIXME: set read to false for a working state
     if (!srcTexture) {
         return nullptr;
     }
@@ -103,10 +103,10 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
         }
     });
 
-
     std::string cleanedName = name;
-    cleanedName = cleanedName.substr(cleanedName.find_last_of('//') + 1);
+    cleanedName = cleanedName.substr(cleanedName.find_last_of((char) '//') + 1);
     std::string cacheFilename(ktxCacheFolder.toStdString());
+    cacheFilename += "/";
     cacheFilename += cleanedName;
     cacheFilename += ".ktx";
 
@@ -368,8 +368,8 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
-        gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-        gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+        gpu::Element formatMip = gpu::Element::COLOR_RGBA_32;
+        gpu::Element formatGPU = gpu::Element::COLOR_RGBA_32;
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->setSource(srcImageName);
@@ -378,7 +378,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
         generateMips(theTexture, image, true);
 
         theTexture->setSource(srcImageName);
-        theTexture = cacheTexture(theTexture->source(), theTexture);
+        theTexture = cacheTexture(theTexture->source(), theTexture, true, false);
     }
 
     return theTexture;
@@ -458,8 +458,9 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
-        gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-        gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+
+        gpu::Element formatMip = gpu::Element::COLOR_RGBA_32;
+        gpu::Element formatGPU = gpu::Element::COLOR_RGBA_32;
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->setSource(srcImageName);
@@ -468,7 +469,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
         generateMips(theTexture, image, true);
 
         theTexture->setSource(srcImageName);
-        theTexture = cacheTexture(theTexture->source(), theTexture);
+        theTexture = cacheTexture(theTexture->source(), theTexture, true, false);
     }
 
     return theTexture;
