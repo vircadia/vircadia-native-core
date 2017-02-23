@@ -733,26 +733,26 @@ PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay r
 
 RayToOverlayIntersectionResult Overlays::findRayIntersectionForMouseEvent(PickRay ray) {
     QVector<OverlayID> overlaysToInclude;
-    QVector<OverlayID> overlaysToDircard;
+    QVector<OverlayID> overlaysToDiscard;
     RayToOverlayIntersectionResult rayPickResult;
 
     // first priority is tablet screen
     overlaysToInclude << qApp->getTabletScreenID();
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDircard);
+    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }
     // then tablet home button
     overlaysToInclude.clear();
     overlaysToInclude << qApp->getTabletHomeButtonID();
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDircard);
+    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }
     // then tablet frame
     overlaysToInclude.clear();
     overlaysToInclude << OverlayID(qApp->getTabletFrameID());
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDircard);
+    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }

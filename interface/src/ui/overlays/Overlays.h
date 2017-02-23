@@ -207,7 +207,7 @@ public slots:
                                                        bool collidableOnly = false);
 
     /**jsdoc
-     * Return a list of overlays with centers within a given distance of a point
+     * Return a list of 3d overlays with bounding boxes that touch the given sphere
      *
      * @function Overlays.findOverlays
      * @param {Vec3} center the point to search from.

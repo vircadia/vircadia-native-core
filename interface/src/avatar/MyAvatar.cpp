@@ -2411,7 +2411,7 @@ glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& c
 
 glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
     if (index < 0) {
-        index += 65536;
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
     }
 
     switch (index) {
@@ -2448,7 +2448,7 @@ glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
 
 glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
     if (index < 0) {
-        index += 65536;
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
     }
 
     switch (index) {
