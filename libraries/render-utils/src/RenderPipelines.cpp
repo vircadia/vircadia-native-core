@@ -106,6 +106,7 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
         }
 
         ShapeKey::Filter::Builder builder;
+
         isCulled ? builder.withCullFace() : builder.withoutCullFace();
         isBiased ? builder.withDepthBias() : builder.withoutDepthBias();
         isOpaque ? builder.withOpaque() : builder.withTranslucent();
@@ -113,6 +114,7 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
         auto simpleProgram = isOpaque ? opaqueProgram : translucentProgram;
         auto unlitProgram = isOpaque ? unlitOpaqueProgram : unlitTranslucentProgram;
         plumber.addPipeline(builder.withoutUnlit().build(), simpleProgram, state, &lightBatchSetter);
+        plumber.addPipeline(builder.withMaterial().build(), opaqueMaterialProgram, state, &lightBatchSetter);
         plumber.addPipeline(builder.withUnlit().build(), unlitProgram, state, &batchSetter);
     }
 }
@@ -147,78 +149,78 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     // TODO: Refactor this to use a filter
     // Opaques
     addPipeline(
-        Key::Builder(),
+        Key::Builder().withMaterial(),
         modelVertex, modelPixel);
     addPipeline(
-        Key::Builder().withUnlit(),
+        Key::Builder().withMaterial().withUnlit(),
         modelVertex, modelUnlitPixel);
     addPipeline(
-        Key::Builder().withTangents(),
+        Key::Builder().withMaterial().withTangents(),
         modelNormalMapVertex, modelNormalMapPixel);
     addPipeline(
-        Key::Builder().withSpecular(),
+        Key::Builder().withMaterial().withSpecular(),
         modelVertex, modelSpecularMapPixel);
     addPipeline(
-        Key::Builder().withTangents().withSpecular(),
+        Key::Builder().withMaterial().withTangents().withSpecular(),
         modelNormalMapVertex, modelNormalSpecularMapPixel);
     // Translucents
     addPipeline(
-        Key::Builder().withTranslucent(),
+        Key::Builder().withMaterial().withTranslucent(),
         modelVertex, modelTranslucentPixel);
     addPipeline(
-        Key::Builder().withTranslucent().withUnlit(),
+        Key::Builder().withMaterial().withTranslucent().withUnlit(),
         modelVertex, modelTranslucentUnlitPixel);
     addPipeline(
-        Key::Builder().withTranslucent().withTangents(),
+        Key::Builder().withMaterial().withTranslucent().withTangents(),
         modelNormalMapVertex, modelTranslucentPixel);
     addPipeline(
-        Key::Builder().withTranslucent().withSpecular(),
+        Key::Builder().withMaterial().withTranslucent().withSpecular(),
         modelVertex, modelTranslucentPixel);
     addPipeline(
-        Key::Builder().withTranslucent().withTangents().withSpecular(),
+        Key::Builder().withMaterial().withTranslucent().withTangents().withSpecular(),
         modelNormalMapVertex, modelTranslucentPixel);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
-        Key::Builder().withTranslucent().withLightmap(),
+        Key::Builder().withMaterial().withTranslucent().withLightmap(),
         modelVertex, modelTranslucentPixel);
     // Lightmapped
     addPipeline(
-        Key::Builder().withLightmap(),
+        Key::Builder().withMaterial().withLightmap(),
         modelLightmapVertex, modelLightmapPixel);
     addPipeline(
-        Key::Builder().withLightmap().withTangents(),
+        Key::Builder().withMaterial().withLightmap().withTangents(),
         modelLightmapNormalMapVertex, modelLightmapNormalMapPixel);
     addPipeline(
-        Key::Builder().withLightmap().withSpecular(),
+        Key::Builder().withMaterial().withLightmap().withSpecular(),
         modelLightmapVertex, modelLightmapSpecularMapPixel);
     addPipeline(
-        Key::Builder().withLightmap().withTangents().withSpecular(),
+        Key::Builder().withMaterial().withLightmap().withTangents().withSpecular(),
         modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel);
     // Skinned
     addPipeline(
-        Key::Builder().withSkinned(),
+        Key::Builder().withMaterial().withSkinned(),
         skinModelVertex, modelPixel);
     addPipeline(
-        Key::Builder().withSkinned().withTangents(),
+        Key::Builder().withMaterial().withSkinned().withTangents(),
         skinModelNormalMapVertex, modelNormalMapPixel);
     addPipeline(
-        Key::Builder().withSkinned().withSpecular(),
+        Key::Builder().withMaterial().withSkinned().withSpecular(),
         skinModelVertex, modelSpecularMapPixel);
     addPipeline(
-        Key::Builder().withSkinned().withTangents().withSpecular(),
+        Key::Builder().withMaterial().withSkinned().withTangents().withSpecular(),
         skinModelNormalMapVertex, modelNormalSpecularMapPixel);
     // Skinned and Translucent
     addPipeline(
-        Key::Builder().withSkinned().withTranslucent(),
+        Key::Builder().withMaterial().withSkinned().withTranslucent(),
         skinModelVertex, modelTranslucentPixel);
     addPipeline(
-        Key::Builder().withSkinned().withTranslucent().withTangents(),
+        Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents(),
         skinModelNormalMapVertex, modelTranslucentPixel);
     addPipeline(
-        Key::Builder().withSkinned().withTranslucent().withSpecular(),
+        Key::Builder().withMaterial().withSkinned().withTranslucent().withSpecular(),
         skinModelVertex, modelTranslucentPixel);
     addPipeline(
-        Key::Builder().withSkinned().withTranslucent().withTangents().withSpecular(),
+        Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withSpecular(),
         skinModelNormalMapVertex, modelTranslucentPixel);
     // Depth-only
     addPipeline(
@@ -247,32 +249,32 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
     auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3);
     // Opaques
     addPipeline(
-        Key::Builder(),
+        Key::Builder().withMaterial(),
         modelVertex, modelPixel);
     addPipeline(
-        Key::Builder().withUnlit(),
+        Key::Builder().withMaterial().withUnlit(),
         modelVertex, modelUnlitPixel);
     addPipeline(
-        Key::Builder().withTangents(),
+        Key::Builder().withMaterial().withTangents(),
         modelNormalMapVertex, modelNormalMapPixel);
     addPipeline(
-        Key::Builder().withSpecular(),
+        Key::Builder().withMaterial().withSpecular(),
         modelVertex, modelSpecularMapPixel);
     addPipeline(
-        Key::Builder().withTangents().withSpecular(),
+        Key::Builder().withMaterial().withTangents().withSpecular(),
         modelNormalMapVertex, modelNormalSpecularMapPixel);
     // Skinned
     addPipeline(
-        Key::Builder().withSkinned(),
+        Key::Builder().withMaterial().withSkinned(),
         skinModelVertex, modelPixel);
     addPipeline(
-        Key::Builder().withSkinned().withTangents(),
+        Key::Builder().withMaterial().withSkinned().withTangents(),
         skinModelNormalMapVertex, modelNormalMapPixel);
     addPipeline(
-        Key::Builder().withSkinned().withSpecular(),
+        Key::Builder().withMaterial().withSkinned().withSpecular(),
         skinModelVertex, modelSpecularMapPixel);
     addPipeline(
-        Key::Builder().withSkinned().withTangents().withSpecular(),
+        Key::Builder().withMaterial().withSkinned().withTangents().withSpecular(),
         skinModelNormalMapVertex, modelNormalSpecularMapPixel);
 }
 

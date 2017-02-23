@@ -22,7 +22,8 @@ namespace render {
 class ShapeKey {
 public:
     enum FlagBit {
-        TRANSLUCENT = 0,
+        MATERIAL = 0,
+        TRANSLUCENT,
         LIGHTMAP,
         TANGENTS,
         SPECULAR,
@@ -53,6 +54,7 @@ public:
 
         ShapeKey build() const { return ShapeKey{_flags}; }
 
+        Builder& withMaterial() { _flags.set(MATERIAL); return (*this); }
         Builder& withTranslucent() { _flags.set(TRANSLUCENT); return (*this); }
         Builder& withLightmap() { _flags.set(LIGHTMAP); return (*this); }
         Builder& withTangents() { _flags.set(TANGENTS); return (*this); }
@@ -88,6 +90,9 @@ public:
             Builder();
 
             Filter build() const { return Filter(_flags, _mask); }
+
+            Builder& withMaterial() { _flags.set(MATERIAL); _mask.set(MATERIAL); return (*this); }
+            Builder& withoutMaterial() { _flags.reset(MATERIAL); _mask.set(MATERIAL); return (*this); }
 
             Builder& withTranslucent() { _flags.set(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
             Builder& withOpaque() { _flags.reset(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
@@ -134,6 +139,7 @@ public:
         Flags _mask{0};
     };
 
+    bool useMaterial() const { return _flags[MATERIAL]; }
     bool hasLightmap() const { return _flags[LIGHTMAP]; }
     bool hasTangents() const { return _flags[TANGENTS]; }
     bool hasSpecular() const { return _flags[SPECULAR]; }
@@ -170,6 +176,7 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
             debug << "[ShapeKey: OWN_PIPELINE]";
         } else {
             debug << "[ShapeKey:"
+                << "useMaterial:" << key.useMaterial()
                 << "hasLightmap:" << key.hasLightmap()
                 << "hasTangents:" << key.hasTangents()
                 << "hasSpecular:" << key.hasSpecular()
