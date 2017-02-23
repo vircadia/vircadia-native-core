@@ -56,21 +56,23 @@ QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& propert
 
     // make "position" and "orientation" be relative-to-parent
     if (result["localPosition"].isValid()) {
-        result.remove("localPosition");
         result["position"] = result["localPosition"];
     } else if (result["position"].isValid()) {
         glm::vec3 localPosition = SpatiallyNestable::worldToLocal(vec3FromVariant(result["position"]),
                                                                   parentID, parentJointIndex, success);
-        result["position"] = vec3toVariant(localPosition);
+        if (success) {
+            result["position"] = vec3toVariant(localPosition);
+        }
     }
 
     if (result["localOrientation"].isValid()) {
         result["orientation"] = result["localOrientation"];
-        result.remove("localOrientation");
     } else if (result["orientation"].isValid()) {
         glm::quat localOrientation = SpatiallyNestable::worldToLocal(quatFromVariant(result["orientation"]),
-                                                                  parentID, parentJointIndex, success);
-        result["orientation"] = quatToVariant(localOrientation);
+                                                                     parentID, parentJointIndex, success);
+        if (success) {
+            result["orientation"] = quatToVariant(localOrientation);
+        }
     }
 
     return result;
