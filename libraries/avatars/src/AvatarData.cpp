@@ -2358,7 +2358,7 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
 
             const glm::vec3& forward = cameraView.getDirection();
             float apparentSize = 2.0f * radius / distance;
-            float cosineAngle = glm::length(glm::dot(offset, forward) * forward) / distance;
+            float cosineAngle = glm::dot(offset, forward) / distance;
             float age = (float)(startTime - getLastUpdated(avatar)) / (float)(USECS_PER_SECOND);
 
             // NOTE: we are adding values of different units to get a single measure of "priority".
