@@ -586,9 +586,10 @@ function loaded() {
         var elGrabbable = document.getElementById("property-grabbable");
 
         var elCloneable = document.getElementById("property-cloneable");
+
         var elCloneableGroup = document.getElementById("group-cloneable-group");
         var elCloneableLifetime = document.getElementById("property-cloneable-lifetime");
-        var elCloneableLimit = document.getElementById("property-cloneable-limit")
+        var elCloneableLimit = document.getElementById("property-cloneable-limit");
 
         var elWantsTrigger = document.getElementById("property-wants-trigger");
         var elIgnoreIK = document.getElementById("property-ignore-ik");
@@ -853,6 +854,7 @@ function loaded() {
                         elCollideOtherAvatar.checked = properties.collidesWith.indexOf("otherAvatar") > -1;
 
                         elGrabbable.checked = properties.dynamic;
+
                         elWantsTrigger.checked = false;
                         elIgnoreIK.checked = true;
                         var parsedUserData = {}
@@ -869,8 +871,27 @@ function loaded() {
                                 if ("ignoreIK" in parsedUserData["grabbableKey"]) {
                                     elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
                                 }
+                                if ("cloneable" in parsedUserData["grabbableKey"]) {
+                                    elCloneable.checked = parsedUserData["grabbableKey"].cloneable;
+
+                                    elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
+                                    elCloneableLimit.value = elCloneable.checked ? 10: 0;
+                                    elCloneableLifetime.value = elCloneable.checked ? 300: 0;
+                                } else {
+                                    elCloneable.checked = false;
+                                    elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
+                                    elCloneableLimit.value = 0;
+                                    elCloneableLifetime.value = 0;
+                                }
+                                if ("cloneLifetime" in parsedUserData["grabbableKey"]) {
+                                    elCloneableLifetime.value = parsedUserData["grabbableKey"].cloneLifetime;
+                                }
+                                if ("cloneLimit" in parsedUserData["grabbableKey"]) {
+                                    elCloneableLimit.value = parsedUserData["grabbableKey"].cloneLimit;
+                                }
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                        }
 
                         elCollisionSoundURL.value = properties.collisionSoundURL;
                         elLifetime.value = properties.lifetime;
@@ -1162,23 +1183,19 @@ function loaded() {
         elGrabbable.addEventListener('change', function() {
             userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
         });
-        elCloneable.addEventListener('change', function () {
-            userDataChanger("grabbableKey", "cloneable", elCloneable, elUserData, false);
-            if (elCloneable.checked) {
-                var cloneProperties = {
-                    lifetime: 300,
-                    limit: 10
-                };
-                userDataChanger("grabbableKey", "cloneable-properties", cloneProperties, elUserData, false);
+        elCloneable.addEventListener('change', function (event) {
+            if (event.target.checked) {
+                userDataChanger("grabbableKey", "cloneLifetime", 300, elUserData, -1);
+                userDataChanger("grabbableKey", "cloneLimit", 10, elUserData, -1);
                 elCloneableGroup.style.display = "block";
             } else {
-                userDataChanger("grabbableKey", "cloneable-properties", {}, elUserData, false);
                 elCloneableGroup.style.display = "none";
             }
+            userDataChanger("grabbableKey", "cloneable", event.target, elUserData, null);
         });
-        
+
         var numberListener = function (event) {
-            userDataChanger("grabbableKey", event.target.getAttribute("data-user-data-type"), event.target.value, elUserData, false});
+            userDataChanger("grabbableKey", event.target.getAttribute("data-user-data-type"), parseInt(event.target.value), elUserData, false);
         };
         elCloneableLifetime.addEventListener('change', numberListener);
         elCloneableLimit.addEventListener('change', numberListener);
