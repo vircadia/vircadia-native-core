@@ -294,7 +294,7 @@ namespace ktx {
     };
 
     using Storage = storage::Storage;
-    using StoragePointer = std::unique_ptr<Storage>;
+    using StoragePointer = std::shared_ptr<Storage>;
 
     // Header
     struct Header {
