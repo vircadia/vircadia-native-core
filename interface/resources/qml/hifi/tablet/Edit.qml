@@ -41,6 +41,18 @@ StackView {
 
                 Rectangle { 
                     color: "#383838"
+
+                    Text {
+                        color: "#ffffff"
+                        text: "Choose an Entity Type to Create:"
+                        font.pixelSize: 14
+                        font.bold: true
+                        anchors.top: parent.top
+                        anchors.topMargin: 28
+                        anchors.left: parent.left
+                        anchors.leftMargin: 28
+                    }
+
                     Flow {
                         id: createEntitiesFlow
                         spacing: 35
