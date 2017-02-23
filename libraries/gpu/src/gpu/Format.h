@@ -150,6 +150,7 @@ enum Semantic {
     STENCIL, // Stencil only buffer
     DEPTH_STENCIL, // Depth Stencil buffer
 
+    SRED,
     SRGB,
     SRGBA,
     SBGRA,
@@ -229,6 +230,7 @@ public:
     }
 
     static const Element COLOR_R_8;
+    static const Element COLOR_SR_8;
     static const Element COLOR_RGBA_32;
     static const Element COLOR_SRGBA_32;
     static const Element COLOR_BGRA_32;

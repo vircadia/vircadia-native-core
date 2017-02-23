@@ -345,8 +345,7 @@ namespace ktx {
 
         void setUncompressed(GLType type, uint32_t typeSize, GLFormat format, GLInternalFormat_Uncompressed internalFormat, GLBaseInternalFormat baseInternalFormat) {
             glType = (uint32_t) type;
-            // FIXME this should correspond to the size of glType
-            glTypeSize = 1;
+            glTypeSize = typeSize;
             glFormat = (uint32_t) format;
             glInternalFormat = (uint32_t) internalFormat;
             glBaseInternalFormat = (uint32_t) baseInternalFormat;
@@ -421,7 +420,7 @@ namespace ktx {
     using Images = std::vector<Image>;
 
     class KTX {
-        void resetStorage(Storage* src);
+        void resetStorage(StoragePointer& src);
 
         KTX();
     public:
@@ -449,7 +448,7 @@ namespace ktx {
         static Images writeImages(Byte* destBytes, size_t destByteSize, const Images& images);
 
         // Parse a block of memory and create a KTX object from it
-        static std::unique_ptr<KTX> create(std::unique_ptr<Storage>& src);
+        static std::unique_ptr<KTX> create(StoragePointer& src);
 
         static bool checkHeaderFromStorage(size_t srcSize, const Byte* srcBytes);
         static Images parseImages(const Header& header, size_t srcSize, const Byte* srcBytes);

@@ -85,7 +85,7 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     return srcImage;
 }
 
-gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bool write = true, bool read = false) { // FIXME: set read to false for a working state
+gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bool write = true, bool read = true) {
     if (!srcTexture) {
         return nullptr;
     }
@@ -132,8 +132,34 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
         }
 
         if (read && QFileInfo(cacheFilename.c_str()).exists()) {
+#define DEBUG_KTX_LOADING 1
+#ifdef DEBUG_KTX_LOADING
+            { 
+                FILE* file = fopen(cacheFilename.c_str(), "rb");
+                if (file != nullptr) {
+                    // obtain file size:
+                    fseek (file , 0 , SEEK_END);
+                    auto size = ftell(file);
+                    rewind(file);
+
+                    auto storage = std::make_shared<storage::MemoryStorage>(size);
+                    fread(storage->data(), 1, storage->size(), file);
+                    fclose (file);
+
+                    //then create a new texture out of the ktx
+                    auto theNewTexure = Texture::unserialize(srcTexture->getUsage(), srcTexture->getUsageType(),
+                            ktx::KTX::create(std::static_pointer_cast<storage::Storage>(storage)), srcTexture->getSampler());
+
+                    if (theNewTexure) {
+                        returnedTexture = theNewTexure;
+                        delete srcTexture;
+                    }
+                }
+            }
+#else
             auto ktxFile = ktx::KTX::create(std::unique_ptr<storage::Storage>(new storage::FileStorage(cacheFilename.c_str())));
             returnedTexture->setKtxBacking(ktxFile);
+#endif
         }
     }
 
@@ -360,15 +386,16 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
     PROFILE_RANGE(resource_parse, "createNormalTextureFromNormalImage");
     QImage image = processSourceImage(srcImage, false);
 
-    // Make sure the normal map source image is RGBA32
-    if (image.format() != QImage::Format_RGBA8888) {
-        image = image.convertToFormat(QImage::Format_RGBA8888);
+    // Make sure the normal map source image is ARGB32
+    if (image.format() != QImage::Format_ARGB32) {
+        image = image.convertToFormat(QImage::Format_ARGB32);
     }
+    
 
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
-        gpu::Element formatMip = gpu::Element::COLOR_RGBA_32;
+        gpu::Element formatMip = gpu::Element::COLOR_BGRA_32;
         gpu::Element formatGPU = gpu::Element::COLOR_RGBA_32;
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
@@ -378,7 +405,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
         generateMips(theTexture, image, true);
 
         theTexture->setSource(srcImageName);
-        theTexture = cacheTexture(theTexture->source(), theTexture, true, false);
+        theTexture = cacheTexture(theTexture->source(), theTexture, true, true);
     }
 
     return theTexture;
