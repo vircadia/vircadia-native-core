@@ -110,8 +110,8 @@ function getControllerLocation(controllerHand) {
         z: 0.93
     };
 
-    const MIN_ARROW_SPEED = 3;
-    const MAX_ARROW_SPEED = 30;
+    const MIN_ARROW_SPEED = 3.0;
+    const MAX_ARROW_SPEED = 30.0;
 
     const ARROW_TIP_OFFSET = 0.47;
     const ARROW_GRAVITY = {
@@ -128,9 +128,9 @@ function getControllerLocation(controllerHand) {
     const BOTTOM_NOTCH_OFFSET = 0.6;
 
     const LINE_DIMENSIONS = {
-        x: 5,
-        y: 5,
-        z: 5
+        x: 5.0,
+        y: 5.0,
+        z: 5.0
     };
 
     const DRAW_STRING_THRESHOLD = 0.80;
@@ -147,10 +147,10 @@ function getControllerLocation(controllerHand) {
     const NOTCH_OFFSET_UP = 0.035;
 
     const SHOT_SCALE = {
-        min1: 0,
+        min1: 0.0,
         max1: 0.6,
-        min2: 1,
-        max2: 15
+        min2: 1.0,
+        max2: 15.0
     };
 
     const USE_DEBOUNCE = false;
@@ -450,12 +450,10 @@ function getControllerLocation(controllerHand) {
 
             var stringProps = Entities.getEntityProperties(this.stringID, ['position', 'rotation']);
             var handPositionLocal = Vec3.subtract(this.arrowRearPosition, stringProps.position);
-            //handPositionLocal = Vec3.subtract(handPositionLocal, { x: 0, y: 0.6, z: 0 });
             handPositionLocal = Vec3.multiplyQbyV(Quat.inverse(stringProps.rotation), handPositionLocal);
 
             var linePoints = [
                 { x: 0, y: 0, z: 0 },
-                //{ x: 0, y: -0.6, z: 1 },
                 handPositionLocal,
                 { x: 0, y: -1.2, z: 0 },
             ];
@@ -491,7 +489,6 @@ function getControllerLocation(controllerHand) {
                 Controller.triggerHapticPulse(1, 20, backHand);
                 this.pullBackDistance = pullBackDistance;
             }
-            // this.changeStringPullSoundVolume(pullBackDistance);
 
             if (pullBackDistance > DRAW_STRING_MAX_DRAW) {
                 pullBackDistance = DRAW_STRING_MAX_DRAW;
@@ -582,8 +579,6 @@ function getControllerLocation(controllerHand) {
                 // play the sound of a shooting arrow
                 this.playShootArrowSound();
 
-                // Controller.triggerShortHapticPulse(1, backHand);
-
                 Entities.addAction("travel-oriented", this.arrow, {
                     forward: { x: 0, y: 0, z: -1 },
                     angularTimeScale: 0.1,
@@ -596,8 +591,9 @@ function getControllerLocation(controllerHand) {
         },
 
         scaleArrowShotStrength: function(value) {
-            var pct = (value - MIN_ARROW_DISTANCE_FROM_BOW_REST) / (MAX_ARROW_DISTANCE_FROM_BOW_REST - MIN_ARROW_DISTANCE_FROM_BOW_REST);
-            return MIN_ARROW_SPEED + (pct * (MAX_ARROW_SPEED - MIN_ARROW_SPEED)) ;
+            var percentage = (value - MIN_ARROW_DISTANCE_FROM_BOW_REST)
+                / (MAX_ARROW_DISTANCE_FROM_BOW_REST - MIN_ARROW_DISTANCE_FROM_BOW_REST);
+            return MIN_ARROW_SPEED + (percentage * (MAX_ARROW_SPEED - MIN_ARROW_SPEED)) ;
         },
 
         playStringPullSound: function() {

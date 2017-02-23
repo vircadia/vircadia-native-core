@@ -6,6 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* globals SHORTBOW_ENTITIES:true */
+
 // This is a copy of the data in shortbow.json, which is an export of the shortbow
 // scene.
 //

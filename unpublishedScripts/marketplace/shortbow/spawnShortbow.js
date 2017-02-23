@@ -105,7 +105,7 @@ function createLocalGame() {
             grabbableKey: {
                 wantsTrigger: true
             }
-        }),
+        })
     });
     entityIDs.push(buttonID);
 
@@ -114,7 +114,7 @@ function createLocalGame() {
         parentID: scoreboardID,
         userData: JSON.stringify({
             displayType: "wave"
-        }),
+        })
     });
     entityIDs.push(waveDisplayID);
 
@@ -122,7 +122,7 @@ function createLocalGame() {
         parentID: scoreboardID,
         userData: JSON.stringify({
             displayType: "score"
-        }),
+        })
     });
     entityIDs.push(scoreDisplayID);
 
@@ -130,7 +130,7 @@ function createLocalGame() {
         parentID: scoreboardID,
         userData: JSON.stringify({
             displayType: "lives"
-        }),
+        })
     });
     entityIDs.push(livesDisplayID);
 
@@ -138,7 +138,7 @@ function createLocalGame() {
         parentID: scoreboardID,
         userData: JSON.stringify({
             displayType: "highscore"
-        }),
+        })
     });
     entityIDs.push(highScoreDisplayID);
 

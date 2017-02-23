@@ -6,6 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* globals TEMPLATES:true, SHORTBOW_ENTITIES, ShortbowGameManager */
+
 (function() {
     Script.include('utils.js');
     Script.include('shortbow.js');
@@ -17,8 +19,6 @@
     var gameManager = null;
     this.preload = function(entityID) {
         this.entityID = entityID;
-
-        var rootPosition = Entities.getEntityProperties(entityID, 'position').position;
 
         var bowPositions = [];
         var spawnPositions = [];

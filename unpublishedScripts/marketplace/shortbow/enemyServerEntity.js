@@ -6,11 +6,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* globals utils */
+
 (function() {
     Script.include('utils.js');
 
-    Enemy = function() {
-    };
+    function Enemy() {
+    }
     Enemy.prototype = {
         preload: function(entityID) {
             this.entityID = entityID;
@@ -32,7 +34,7 @@
         },
         unload: function() {
             Script.clearInterval(this.heartbeatTimerID);
-        },
+        }
     };
 
     return new Enemy();
