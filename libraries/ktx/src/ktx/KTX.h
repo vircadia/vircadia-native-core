@@ -19,6 +19,8 @@
 #include <cstring>
 #include <memory>
 
+#include <shared/Storage.h>
+
 /* KTX Spec:
 
 Byte[12] identifier
@@ -291,46 +293,8 @@ namespace ktx {
         NUM_CUBEMAPFACES = 6,
     };
 
-
-    // Chunk of data
-    struct Storage {
-        size_t _size {0};
-        Byte* _bytes {nullptr};
-
-        Byte* data() {
-            return _bytes;
-        }
-        const Byte* data() const {
-            return _bytes;
-        }
-        size_t size() const { return _size; }
-
-        ~Storage() { if (_bytes) { delete _bytes; } }
-
-        Storage() {}
-        Storage(size_t size) :
-                _size(size)
-        {
-            if (_size) { _bytes = new Byte[_size]; }
-        }
-
-        Storage(size_t size, Byte* bytes) :
-                _size(size)
-        {
-            if (_size && _bytes) { _bytes = bytes; }
-        }
-        Storage(size_t size, const Byte* bytes) :
-            Storage(size)
-        {
-            if (_size && _bytes && bytes) {
-                memcpy(_bytes, bytes, size);
-            }
-        }
-        Storage(const Storage& src) :
-            Storage(src.size(), src.data())
-        {}
-
-    };
+    using Storage = storage::Storage;
+    using StoragePointer = std::unique_ptr<Storage>;
 
     // Header
     struct Header {
@@ -382,7 +346,8 @@ namespace ktx {
 
         void setUncompressed(GLType type, uint32_t typeSize, GLFormat format, GLInternalFormat_Uncompressed internalFormat, GLBaseInternalFormat baseInternalFormat) {
             glType = (uint32_t) type;
-            glTypeSize = 0;
+            // FIXME this should correspond to the size of glType
+            glTypeSize = 1;
             glFormat = (uint32_t) format;
             glInternalFormat = (uint32_t) internalFormat;
             glBaseInternalFormat = (uint32_t) baseInternalFormat;
@@ -456,12 +421,8 @@ namespace ktx {
     };
     using Images = std::vector<Image>;
 
-    
     class KTX {
         void resetStorage(Storage* src);
-
-        void resetHeader(const Header& header);
-        void resetImages(const Images& images);
 
         KTX();
     public:
@@ -498,12 +459,13 @@ namespace ktx {
         const Header* getHeader() const;
         const Byte* getKeyValueData() const;
         const Byte* getTexelsData() const;
-        Byte* getTexelsData();
+        storage::StoragePointer getMipFaceTexelsData(uint16_t mip = 0, uint8_t face = 0) const;
+        const StoragePointer& getStorage() const { return _storage; }
 
         size_t getKeyValueDataSize() const;
         size_t getTexelsDataSize() const;
 
-        std::unique_ptr<Storage> _storage;
+        StoragePointer _storage;
         KeyValues _keyValues;
         Images _images;
     };

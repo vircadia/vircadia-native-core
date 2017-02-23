@@ -33,7 +33,9 @@ FileStoragePointer Storage::toFileStorage(const QString& filename) const {
 
 MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) {
     _data.resize(size);
-    memcpy(_data.data(), data, size);
+    if (data) {
+        memcpy(_data.data(), data, size);
+    }
 }
 
 FileStoragePointer FileStorage::create(const QString& filename, size_t size, const uint8_t* data) {

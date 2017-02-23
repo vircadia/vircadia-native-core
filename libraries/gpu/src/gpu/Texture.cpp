@@ -19,6 +19,7 @@
 #include <QtCore/QThread>
 #include <Trace.h>
 
+#include <ktx/KTX.h>
 #include <NumericalConstants.h>
 
 #include "GPULogging.h"
@@ -120,19 +121,24 @@ void Texture::setAllowedGPUMemoryUsage(Size size) {
 
 uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = { 1, 1, 1, 6 };
 
-void Texture::Storage::assignTexture(Texture* texture) {
+using Storage = Texture::Storage;
+using PixelsPointer = Texture::PixelsPointer;
+using MemoryStorage = Texture::MemoryStorage;
+using KtxStorage = Texture::KtxStorage;
+
+void Storage::assignTexture(Texture* texture) {
     _texture = texture;
     if (_texture) {
         _type = _texture->getType();
     }
 }
 
-void Texture::MemoryStorage::reset() {
+void MemoryStorage::reset() {
     _mips.clear();
     bumpStamp();
 }
 
-const Texture::PixelsPointer Texture::MemoryStorage::getMipFace(uint16 level, uint8 face) const {
+PixelsPointer MemoryStorage::getMipFace(uint16 level, uint8 face) const {
     if (level < _mips.size()) {
         assert(face < _mips[level].size());
         return _mips[level][face];
@@ -140,12 +146,12 @@ const Texture::PixelsPointer Texture::MemoryStorage::getMipFace(uint16 level, ui
     return PixelsPointer();
 }
 
-bool Texture::MemoryStorage::isMipAvailable(uint16 level, uint8 face) const {
+bool MemoryStorage::isMipAvailable(uint16 level, uint8 face) const {
     PixelsPointer mipFace = getMipFace(level, face);
     return (mipFace && mipFace->getSize());
 }
 
-bool Texture::MemoryStorage::allocateMip(uint16 level) {
+bool MemoryStorage::allocateMip(uint16 level) {
     bool changed = false;
     if (level >= _mips.size()) {
         _mips.resize(level+1, std::vector<PixelsPointer>(Texture::NUM_FACES_PER_TYPE[getType()]));
@@ -164,7 +170,7 @@ bool Texture::MemoryStorage::allocateMip(uint16 level) {
     return changed;
 }
 
-void Texture::MemoryStorage::assignMipData(uint16 level, const storage::StoragePointer& storagePointer) {
+void MemoryStorage::assignMipData(uint16 level, const storage::StoragePointer& storagePointer) {
 
     allocateMip(level);
     auto& mip = _mips[level];
@@ -191,6 +197,13 @@ void Texture::MemoryStorage::assignMipFaceData(uint16 level, uint8 face, const s
         mip[face] = storagePointer;
         bumpStamp();
     }
+}
+
+KtxStorage::KtxStorage(ktx::KTXUniquePointer& ktxData) : _ktxData(ktxData.release()) {
+}
+
+PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
+    return _ktxData->getMipFaceTexelsData(level, face);
 }
 
 Texture* Texture::createExternal(const ExternalRecycler& recycler, const Sampler& sampler) {
@@ -963,3 +976,11 @@ Texture::ExternalUpdates Texture::getUpdates() const {
     return result;
 }
 
+void Texture::setStorage(std::unique_ptr<Storage>& newStorage) {
+    _storage.swap(newStorage);
+}
+
+void Texture::setKtxBacking(ktx::KTXUniquePointer& ktxBacking) {
+    auto newBacking = std::unique_ptr<Storage>(new KtxStorage(ktxBacking));
+    setStorage(newBacking);
+}
