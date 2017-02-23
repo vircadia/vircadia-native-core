@@ -327,6 +327,12 @@ private:
 
     OverlayID _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
     OverlayID _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
+
+    RayToOverlayIntersectionResult findRayIntersectionInternal(const PickRay& ray, bool precisionPicking,
+                                                               const QVector<OverlayID>& overlaysToInclude,
+                                                               const QVector<OverlayID>& overlaysToDiscard,
+                                                               bool visibleOnly = false, bool collidableOnly = false);
+    RayToOverlayIntersectionResult findRayIntersectionForMouseEvent(PickRay ray);
 };
 
 #endif // hifi_Overlays_h
