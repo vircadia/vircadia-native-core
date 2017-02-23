@@ -195,8 +195,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     uint64_t renderExpiry = startTime + RENDER_UPDATE_BUDGET;
     uint64_t maxExpiry = startTime + MAX_UPDATE_BUDGET;
 
-    int fullySimulatedAvatars = 0;
-    int partiallySimulatedAvatars = 0;
+    int numAvatarsUpdated = 0;
+    int numAVatarsNotUpdated = 0;
     while (!sortedAvatars.empty()) {
         const AvatarPriority& sortData = sortedAvatars.top();
         const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
@@ -217,33 +217,57 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         }
         avatar->animateScaleChanges(deltaTime);
 
+        const float OUT_OF_VIEW_THRESHOLD = 0.5f * AvatarData::OUT_OF_VIEW_PENALTY;
         uint64_t now = usecTimestampNow();
         if (now < renderExpiry) {
             // we're within budget
-            const float OUT_OF_VIEW_THRESHOLD = 0.5f * AvatarData::OUT_OF_VIEW_PENALTY;
             bool inView = sortData.priority > OUT_OF_VIEW_THRESHOLD;
+            if (inView && avatar->hasNewJointData()) {
+                numAvatarsUpdated++;
+            }
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(pendingChanges);
             avatar->setLastRenderUpdateTime(startTime);
-            fullySimulatedAvatars++;
         } else if (now < maxExpiry) {
             // we've spent most of our time budget, but we still simulate() the avatar as it if were out of view
             // --> some avatars may freeze until their priority trickles up
-            const bool inView = false;
-            avatar->simulate(deltaTime, inView);
-            partiallySimulatedAvatars++;
+            bool inView = sortData.priority > OUT_OF_VIEW_THRESHOLD;
+            if (inView && avatar->hasNewJointData()) {
+                numAVatarsNotUpdated++;
+            }
+            avatar->simulate(deltaTime, false);
         } else {
             // we've spent ALL of our time budget --> bail on the rest of the avatar updates
+            // --> more avatars may freeze until their priority trickles up
             // --> some scale or fade animations may glitch
             // --> some avatar velocity measurements may be a little off
+
+            // HACK: no time simulate, but we will take the time to count how many were tragically missed
+            bool inView = sortData.priority > OUT_OF_VIEW_THRESHOLD;
+            if (!inView) {
+                break;
+            }
+            if (inView && avatar->hasNewJointData()) {
+                numAVatarsNotUpdated++;
+            }
+            sortedAvatars.pop();
+            while (inView && !sortedAvatars.empty()) {
+                const AvatarPriority& newSortData = sortedAvatars.top();
+                const auto& newAvatar = std::static_pointer_cast<Avatar>(newSortData.avatar);
+                inView = newSortData.priority > OUT_OF_VIEW_THRESHOLD;
+                if (inView && newAvatar->hasNewJointData()) {
+                    numAVatarsNotUpdated++;
+                }
+                sortedAvatars.pop();
+            }
             break;
         }
         sortedAvatars.pop();
     }
 
     _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
-    _fullySimulatedAvatars = fullySimulatedAvatars;
-    _partiallySimulatedAvatars = partiallySimulatedAvatars;
+    _numAvatarsUpdated = numAvatarsUpdated;
+    _numAvatarsNotUpdated = numAVatarsNotUpdated;
     qApp->getMain3DScene()->enqueuePendingChanges(pendingChanges);
 
     simulateAvatarFades(deltaTime);

@@ -183,6 +183,8 @@ public:
 
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
 
+    bool hasNewJointData() const { return _hasNewJointData; }
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
