@@ -79,7 +79,7 @@
             hideTabletUI();
             HMD.closeTablet();
         } else if (HMD.showTablet && !tabletShown && !toolbarMode) {
-            UserActivityLogger.openedTablet();
+            UserActivityLogger.openedTablet(Settings.getValue("tabletVisibleToOthers"));
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
             UserActivityLogger.closedTablet();
