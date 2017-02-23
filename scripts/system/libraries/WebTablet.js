@@ -193,7 +193,16 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     };
 
     this.getLocation = function() {
-        return Entities.getEntityProperties(_this.tabletEntityID, ["localPosition", "localRotation"]);
+        if (this.tabletIsOverlay) {
+            var location = Overlays.getProperty(this.tabletEntityID, "localPosition");
+            var orientation = Overlays.getProperty(this.tabletEntityID, "localOrientation");
+            return {
+                localPosition: location,
+                localRotation: orientation
+            };
+        } else {
+            return Entities.getEntityProperties(_this.tabletEntityID, ["localPosition", "localRotation"]);
+        }
     };
     this.clicked = false;
 
@@ -461,7 +470,11 @@ WebTablet.prototype.mousePressEvent = function (event) {
             this.dragging = true;
             var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
             this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);
-            this.initialLocalPosition = Entities.getEntityProperties(this.tabletEntityID, ["localPosition"]).localPosition;
+            if (this.tabletIsOverlay) {
+                this.initialLocalPosition = Overlays.getProperty(this.tabletEntityID, "localPosition");
+            } else {
+                this.initialLocalPosition = Entities.getEntityProperties(this.tabletEntityID, ["localPosition"]).localPosition;
+            }
         }
     }
 };
