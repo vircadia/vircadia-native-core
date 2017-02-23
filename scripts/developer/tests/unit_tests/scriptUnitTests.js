@@ -31,8 +31,7 @@ describe('Script', function () {
            '/~/libraries/utils.js': 'file:///~/libraries/utils.js',
                    '/temp/file.js': 'file:///temp/file.js',
                              '/~/': 'file:///~/',
-        };
-    }
+    };
     describe('resolvePath', function () {
         Object.keys(testCases).forEach(function(input) {
             it('(' + JSON.stringify(input) + ')', function () {
