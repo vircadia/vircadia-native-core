@@ -69,8 +69,7 @@ AvatarData::AvatarData() :
     _displayNameAlpha(1.0f),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
-    _targetVelocity(0.0f),
-    _localAABox(DEFAULT_LOCAL_AABOX_CORNER, DEFAULT_LOCAL_AABOX_SCALE)
+    _targetVelocity(0.0f)
 {
     setBodyPitch(0.0f);
     setBodyYaw(-90.0f);
@@ -2321,8 +2320,7 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
     QList<AvatarSharedPointer> avatarList,
     const ViewFrustum& cameraView,
     std::function<uint64_t(AvatarSharedPointer)> lastUpdated,
-    std::function<bool(AvatarSharedPointer)> shouldIgnore,
-    bool printDebug) {
+    std::function<bool(AvatarSharedPointer)> shouldIgnore) {
 
     uint64_t startTime = usecTimestampNow();
 
@@ -2334,8 +2332,6 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
         for (int32_t i = 0; i < avatarList.size(); ++i) {
             const auto& avatar = avatarList.at(i);
             bool outOfView = false;
-
-            // FIXME - probably some lambda that allows the caller to reject some avatars
 
             if (shouldIgnore(avatar)) {
                 continue;
@@ -2352,13 +2348,10 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
             // FIXME - AvatarData has something equivolent to this
             float radius = 1.0f; // avatar->getBoundingRadius();
 
-
             const glm::vec3& forward = cameraView.getDirection();
             float apparentSize = 2.0f * radius / distance;
             float cosineAngle = glm::length(glm::dot(offset, forward) * forward) / distance;
-
-            uint64_t lastUpdatedTime = lastUpdated(avatar); // avatar->getLastRenderUpdateTime()
-            float age = (float)(startTime - lastUpdatedTime) / (float)(USECS_PER_SECOND);
+            float age = (float)(startTime - lastUpdated(avatar)) / (float)(USECS_PER_SECOND);
 
             // NOTE: we are adding values of different units to get a single measure of "priority".
             // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
@@ -2374,10 +2367,6 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
                     priority += OUT_OF_VIEW_PENALTY;
                     outOfView = true;
                 }
-            }
-
-            if (printDebug) {
-                qDebug() << "avatar:" << avatar.get() << "priority:" << priority << "apparentSize:" << apparentSize << "cosineAngle:" << cosineAngle << "age:" << age << "outOfView:" << outOfView;
             }
             sortedAvatars.push(AvatarPriority(avatar, priority));
         }

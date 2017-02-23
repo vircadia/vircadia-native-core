@@ -187,7 +187,8 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // setup a PacketList for the avatarPackets
         auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
-
+        // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
+        // for calling the AvatarData::sortAvatars() function and getting our sorted list of client nodes
         QList<AvatarSharedPointer> avatarList;
         std::unordered_map<AvatarSharedPointer, SharedNodePointer> avatarDataToNodes;
 
@@ -204,9 +205,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         });
 
         AvatarSharedPointer thisAvatar = nodeData->getAvatarSharedPointer();
-
-        //qDebug() << "thisAvatar:" << thisAvatar.get();
-
         ViewFrustum cameraView = nodeData->getViewFrustom();
         std::priority_queue<AvatarPriority> sortedAvatars = AvatarData::sortAvatars(
                 avatarList, cameraView,

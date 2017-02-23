@@ -550,8 +550,6 @@ public:
 
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
 
-    //const AABox& getLocalAABox() const { return _localAABox; }
-
     int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
@@ -600,8 +598,7 @@ public:
         QList<AvatarSharedPointer> avatarList,
         const ViewFrustum& cameraView,
         std::function<uint64_t(AvatarSharedPointer)> lastUpdated,
-        std::function<bool(AvatarSharedPointer)> shouldIgnore,
-        bool printDebug = false);
+        std::function<bool(AvatarSharedPointer)> shouldIgnore);
 
     // TODO: remove this HACK once we settle on optimal sort coefficients
     // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
@@ -691,8 +688,6 @@ protected:
     virtual void updateJointMappings();
 
     glm::vec3 _targetVelocity;
-
-    AABox _localAABox;
 
     SimpleMovingAverage _averageBytesReceived;
 

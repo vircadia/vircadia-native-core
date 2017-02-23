@@ -309,7 +309,6 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
             },
             [&](const SharedNodePointer& node) {
                 QMetaObject::invokeMethod(node->getLinkedData(),
-                                        //"removeLastBroadcastSequenceNumber",
                                          "cleanupKilledNode",
                                           Qt::AutoConnection,
                                           Q_ARG(const QUuid&, QUuid(killedNode->getUUID())));
