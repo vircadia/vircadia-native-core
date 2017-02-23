@@ -130,7 +130,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
 
     this.cleanUpOldTablets();
 
-    if (true || Settings.getValue("tabletVisibleToOthers")) {
+    if (Settings.getValue("tabletVisibleToOthers")) {
         this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
         this.tabletIsOverlay = false;
     } else {
