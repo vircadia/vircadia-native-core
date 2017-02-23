@@ -323,13 +323,9 @@ function setUserDataFromEditor(noUpdate) {
                 })
             );
         }
-
     }
-
-
 }
-
-function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, defaultValue) {
+function userDataChanger(groupName, keyName, values, userDataElement, defaultValue) {
     var properties = {};
     var parsedData = {};
     try {
@@ -339,15 +335,19 @@ function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, d
         } else {
             parsedData = JSON.parse(userDataElement.value);
         }
-
     } catch (e) {}
 
     if (!(groupName in parsedData)) {
         parsedData[groupName] = {}
     }
+
     delete parsedData[groupName][keyName];
-    if (checkBoxElement.checked !== defaultValue) {
-        parsedData[groupName][keyName] = checkBoxElement.checked;
+    if (values instanceof Element) {
+      if (values.checked !== defaultValue) {
+          parsedData[groupName][keyName] = values.checked;
+      }
+    } else {
+        parsedData[groupName][keyName] = values;
     }
 
     if (Object.keys(parsedData[groupName]).length == 0) {
@@ -584,7 +584,12 @@ function loaded() {
         var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
 
         var elGrabbable = document.getElementById("property-grabbable");
+
         var elCloneable = document.getElementById("property-cloneable");
+        var elCloneableGroup = document.getElementById("group-cloneable-group");
+        var elCloneableLifetime = document.getElementById("property-cloneable-lifetime");
+        var elCloneableLimit = document.getElementById("property-cloneable-limit")
+
         var elWantsTrigger = document.getElementById("property-wants-trigger");
         var elIgnoreIK = document.getElementById("property-ignore-ik");
 
@@ -1160,9 +1165,24 @@ function loaded() {
         elCloneable.addEventListener('change', function () {
             userDataChanger("grabbableKey", "cloneable", elCloneable, elUserData, false);
             if (elCloneable.checked) {
-                
+                var cloneProperties = {
+                    lifetime: 300,
+                    limit: 10
+                };
+                userDataChanger("grabbableKey", "cloneable-properties", cloneProperties, elUserData, false);
+                elCloneableGroup.style.display = "block";
+            } else {
+                userDataChanger("grabbableKey", "cloneable-properties", {}, elUserData, false);
+                elCloneableGroup.style.display = "none";
             }
         });
+        
+        var numberListener = function (event) {
+            userDataChanger("grabbableKey", event.target.getAttribute("data-user-data-type"), event.target.value, elUserData, false});
+        };
+        elCloneableLifetime.addEventListener('change', numberListener);
+        elCloneableLimit.addEventListener('change', numberListener);
+
         elWantsTrigger.addEventListener('change', function() {
             userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);
         });
