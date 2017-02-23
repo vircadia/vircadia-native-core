@@ -91,4 +91,4 @@ void injectorOptionsFromScriptValue(const QScriptValue& object, AudioInjectorOpt
             qCWarning(audio) << "Unknown audio injector option:" << it.name();
         }
     }
- }
+}

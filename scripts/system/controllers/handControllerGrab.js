@@ -1233,7 +1233,13 @@ function MyController(hand) {
         });
         if (grabbableEntities.length > 0) {
             if (!this.grabPointIntersectsEntity) {
-                Controller.triggerHapticPulse(1, 20, this.hand);
+                // don't do haptic pulse for tablet
+                var nonTabletEntities = grabbableEntities.filter(function(entityID) {
+                    return entityID != HMD.tabletID && entityID != HMD.homeButtonID;
+                });
+                if (nonTabletEntities.length > 0) {
+                    Controller.triggerHapticPulse(1, 20, this.hand);
+                }
                 this.grabPointIntersectsEntity = true;
                 this.grabPointSphereOn();
             }

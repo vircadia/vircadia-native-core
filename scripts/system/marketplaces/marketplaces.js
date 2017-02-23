@@ -52,10 +52,16 @@ function onMessageBoxClosed(id, button) {
 
 Window.messageBoxClosed.connect(onMessageBoxClosed);
 
+var shouldActivateButton = false;
+var onMarketplaceScreen = false;
+
 function showMarketplace() {
     UserActivityLogger.openedMarketplace();
 
+    shouldActivateButton = true;
     tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+    onMarketplaceScreen = true;
+
     tablet.webEventReceived.connect(function (message) {
 
         if (message === GOTO_DIRECTORY) {
@@ -98,15 +104,10 @@ function showMarketplace() {
     });
 }
 
-function toggleMarketplace() {
-    var entity = HMD.tabletID;
-    Entities.editEntity(entity, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
-    showMarketplace();
-}
-
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var marketplaceButton = tablet.addButton({
     icon: "icons/tablet-icons/market-i.svg",
+    activeIcon: "icons/tablet-icons/market-a.svg",
     text: "MARKET",
     sortOrder: 9
 });
@@ -117,16 +118,30 @@ function onCanWriteAssetsChanged() {
 }
 
 function onClick() {
-    toggleMarketplace();
+    if (onMarketplaceScreen) {
+        // for toolbar-mode: go back to home screen, this will close the window.
+        tablet.gotoHomeScreen();
+    } else {
+        var entity = HMD.tabletID;
+        Entities.editEntity(entity, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
+        showMarketplace();
+    }
+}
+
+function onScreenChanged(type, url) {
+    // for toolbar mode: change button to active when window is first openend, false otherwise.
+    marketplaceButton.editProperties({isActive: shouldActivateButton});
+    shouldActivateButton = false;
+    onMarketplaceScreen = false;
 }
 
 marketplaceButton.clicked.connect(onClick);
+tablet.screenChanged.connect(onScreenChanged);
 Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
 
 Script.scriptEnding.connect(function () {
-    if (tablet) {
-        tablet.removeButton(marketplaceButton);
-    }
+    tablet.removeButton(marketplaceButton);
+    tablet.screenChanged.disconnect(onScreenChanged);
     Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
 });
 

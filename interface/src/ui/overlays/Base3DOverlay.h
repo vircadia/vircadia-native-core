@@ -23,6 +23,9 @@ public:
     Base3DOverlay();
     Base3DOverlay(const Base3DOverlay* base3DOverlay);
 
+    virtual OverlayID getOverlayID() const override { return OverlayID(getID().toString()); }
+    void setOverlayID(OverlayID overlayID) override { setID(overlayID); }
+
     // getters
     virtual bool is3D() const override { return true; }
 
