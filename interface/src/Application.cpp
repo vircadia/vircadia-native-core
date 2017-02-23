@@ -6909,5 +6909,10 @@ OverlayID Application::getTabletScreenID() const {
 
 OverlayID Application::getTabletHomeButtonID() const {
     auto HMD = DependencyManager::get<HMDScriptingInterface>();
-    return HMD->getCurrentHomeButtonUUID();
+    return HMD->getCurrentHomeButtonID();
+}
+
+QUuid Application::getTabletFrameID() const {
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    return HMD->getCurrentTabletFrameID();
 }
