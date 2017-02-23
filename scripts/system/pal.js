@@ -521,23 +521,17 @@ var button;
 var buttonName = "PEOPLE";
 var tablet = null;
 
-function onTabletScreenChanged(type, url) {
-    if (type !== "QML" || url !== "../Pal.qml") {
-        off();
-    }
-}
-
 function startup() {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         text: buttonName,
         icon: "icons/tablet-icons/people-i.svg",
+        activeIcon: "icons/tablet-icons/people-a.svg",
         sortOrder: 7
     });
     tablet.fromQml.connect(fromQml);
     button.clicked.connect(onTabletButtonClicked);
     tablet.screenChanged.connect(onTabletScreenChanged);
-
     Users.usernameFromIDReply.connect(usernameFromIDReply);
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
@@ -567,17 +561,40 @@ function off() {
     removeOverlays();
     Users.requestsDomainListData = false;
 }
+
+var onPalScreen = false;
+var shouldActivateButton = false;
+
 function onTabletButtonClicked() {
-    tablet.loadQMLSource("../Pal.qml");
-    Users.requestsDomainListData = true;
-    populateUserList();
-    isWired = true;
-    Script.update.connect(updateOverlays);
-    Controller.mousePressEvent.connect(handleMouseEvent);
-    Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-    triggerMapping.enable();
-    triggerPressMapping.enable();
-    audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+    if (onPalScreen) {
+        // for toolbar-mode: go back to home screen, this will close the window.
+        tablet.gotoHomeScreen();
+    } else {
+        shouldActivateButton = true;
+        tablet.loadQMLSource("../Pal.qml");
+        onPalScreen = true;
+        Users.requestsDomainListData = true;
+        populateUserList();
+        isWired = true;
+        Script.update.connect(updateOverlays);
+        Controller.mousePressEvent.connect(handleMouseEvent);
+        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+        triggerMapping.enable();
+        triggerPressMapping.enable();
+        audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+    }
+}
+
+function onTabletScreenChanged(type, url) {
+    // for toolbar mode: change button to active when window is first openend, false otherwise.
+    button.editProperties({isActive: shouldActivateButton});
+    shouldActivateButton = false;
+    onPalScreen = false;
+
+    // disable sphere overlays when not on pal screen.
+    if (type !== "QML" || url !== "../Pal.qml") {
+        off();
+    }
 }
 
 //
@@ -664,14 +681,12 @@ function shutdown() {
     button.clicked.disconnect(onTabletButtonClicked);
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
-
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.subscribe(CHANNEL);
     Messages.messageReceived.disconnect(receiveMessage);
     Users.avatarDisconnected.disconnect(avatarDisconnected);
-
     off();
 }
 
