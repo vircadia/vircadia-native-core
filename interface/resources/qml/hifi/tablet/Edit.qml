@@ -76,7 +76,7 @@ StackView {
                         }
 
                         NewEntityButton {
-                            icon: "model-01.svg"
+                            icon: "icons/create-icons/94-model-01.svg"
                             text: "MODEL"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -86,7 +86,7 @@ StackView {
                         }
 
                         NewEntityButton {
-                            icon: "../cube-01.svg"
+                            icon: "icons/create-icons/21-cube-01.svg"
                             text: "CUBE"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -96,7 +96,7 @@ StackView {
                         }
 
                         NewEntityButton {
-                            icon: "../images/sphere-01.svg"
+                            icon: "icons/create-icons/22-sphere-01.svg"
                             text: "SPHERE"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -106,7 +106,7 @@ StackView {
                         }
 
                         NewEntityButton {
-                            icon: "../scripts/system/assets/images/tools/light-01.svg"
+                            icon: "icons/create-icons/24-light-01.svg"
                             text: "LIGHT"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -116,7 +116,7 @@ StackView {
                         }
 
                         NewEntityButton {
-                            icon: "../scripts/system/assets/images/tools/text-01.svg"
+                            icon: "icons/create-icons/20-text-01.svg"
                             text: "TEXT"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -126,7 +126,7 @@ StackView {
                         }
 
                         NewEntityButton {
-                            icon: "../scripts/system/assets/images/tools/web-01.svg"
+                            icon: "icons/create-icons/25-web-1-01.svg"
                             text: "WEB"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -136,7 +136,7 @@ StackView {
                         }
 
                         NewEntityButton {
-                            icon: "../scripts/system/assets/images/tools/zone-01.svg"
+                            icon: "icons/create-icons/23-zone-01.svg"
                             text: "ZONE"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -146,7 +146,7 @@ StackView {
                         }
 
                         NewEntityButton {
-                            icon: "../scripts/system/assets/images/tools/particle-01.svg"
+                            icon: "icons/create-icons/90-particles-01.svg"
                             text: "PARTICLE"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -154,7 +154,9 @@ StackView {
                                 });
                             }
                         }
-                    } 
+                    }
+
+
 
                 }
             }
