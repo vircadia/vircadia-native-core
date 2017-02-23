@@ -145,7 +145,7 @@ public:
     void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
-    void setPlayingBackRecording(bool playingBackRecording) { _playingBackRecording = playingBackRecording; }
+    void setIsPlayingBackRecording(bool isPlayingBackRecording) { _isPlayingBackRecording = isPlayingBackRecording; }
 
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
 
@@ -328,14 +328,14 @@ private:
     // for local audio (used by audio injectors thread)
     float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
-    float* _localOutputMixBuffer { nullptr };
+    float* _localOutputMixBuffer { NULL };
     AudioInjectorsThread _localAudioThread;
     Mutex _localAudioMutex;
 
     // for output audio (used by this thread)
     int _outputPeriod { 0 };
-    float* _outputMixBuffer { nullptr };
-    int16_t* _outputScratchBuffer { nullptr };
+    float* _outputMixBuffer { NULL };
+    int16_t* _outputScratchBuffer { NULL };
 
     AudioLimiter _audioLimiter;
 
@@ -373,7 +373,7 @@ private:
 
     QVector<AudioInjector*> _activeLocalAudioInjectors;
 
-    bool _playingBackRecording { false };
+    bool _isPlayingBackRecording { false };
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;

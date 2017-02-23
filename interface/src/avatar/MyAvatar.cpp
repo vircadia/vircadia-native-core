@@ -160,7 +160,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
         }
 
         auto audioIO = DependencyManager::get<AudioClient>();
-        audioIO->setPlayingBackRecording(isPlaying);
+        audioIO->setIsPlayingBackRecording(isPlaying);
 
         if (_rig) {
             _rig->setEnableAnimations(!isPlaying);
