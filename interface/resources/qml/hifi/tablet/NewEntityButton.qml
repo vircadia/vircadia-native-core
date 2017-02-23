@@ -33,7 +33,7 @@ Item {
 
     Rectangle {
         id: buttonBg
-        color: "#222222"
+        color: "#1c1c1c"
         opacity: 1
         radius: 8
         anchors.right: parent.right
