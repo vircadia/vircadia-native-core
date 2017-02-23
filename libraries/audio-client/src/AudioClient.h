@@ -147,6 +147,8 @@ public:
     void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
+    void setIsPlayingBackRecording(bool isPlayingBackRecording) { _isPlayingBackRecording = isPlayingBackRecording; }
+
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
 
     void checkDevices();
@@ -369,9 +371,11 @@ private:
     QVector<QString> _inputDevices;
     QVector<QString> _outputDevices;
 
-    bool _hasReceivedFirstPacket = false;
+    bool _hasReceivedFirstPacket { false };
 
     QVector<AudioInjector*> _activeLocalAudioInjectors;
+
+    bool _isPlayingBackRecording { false };
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
