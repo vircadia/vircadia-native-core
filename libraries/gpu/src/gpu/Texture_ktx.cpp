@@ -15,6 +15,36 @@
 #include <ktx/KTX.h>
 using namespace gpu;
 
+using PixelsPointer = Texture::PixelsPointer;
+using KtxStorage = Texture::KtxStorage;
+
+KtxStorage::KtxStorage(ktx::KTXUniquePointer& ktxData) {
+
+    // if the source ktx is valid let's config this KtxStorage correctly
+    if (ktxData && ktxData->getHeader()) {
+
+        // now that we know the ktx, let's get the header info to configure this Texture::Storage:
+        Format mipFormat = Format::COLOR_BGRA_32;
+        Format texelFormat = Format::COLOR_SRGBA_32;
+        if (Texture::evalTextureFormat(*ktxData->getHeader(), mipFormat, texelFormat)) {
+            _format = mipFormat;
+        }
+
+
+    }
+
+    _ktxData.reset(ktxData.release());
+}
+
+PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
+    return _ktxData->getMipFaceTexelsData(level, face);
+}
+
+void Texture::setKtxBacking(ktx::KTXUniquePointer& ktxBacking) {
+    auto newBacking = std::unique_ptr<Storage>(new KtxStorage(ktxBacking));
+    setStorage(newBacking);
+}
+
 ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     ktx::Header header;
 
@@ -22,17 +52,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     auto texelFormat = texture.getTexelFormat();
     auto mipFormat = texture.getStoredMipFormat();
 
-    if (texelFormat == Format::COLOR_RGBA_32 && mipFormat == Format::COLOR_BGRA_32) {
-        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
-    } else if (texelFormat == Format::COLOR_RGBA_32 && mipFormat == Format::COLOR_RGBA_32) {
-        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::RGBA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
-    } else if (texelFormat == Format::COLOR_SRGBA_32 && mipFormat == Format::COLOR_SBGRA_32) {
-        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
-    } else if (texelFormat == Format::COLOR_SRGBA_32 && mipFormat == Format::COLOR_SRGBA_32) {
-        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 4, ktx::GLFormat::RGBA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
-    } else if (texelFormat == Format::COLOR_R_8 && mipFormat == Format::COLOR_R_8) {
-        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RED, ktx::GLInternalFormat_Uncompressed::R8, ktx::GLBaseInternalFormat::RED);
-    } else {
+    if (!Texture::evalKTXFormat(mipFormat, texelFormat, header)) {
         return nullptr;
     }
  
@@ -130,33 +150,8 @@ Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx
     Format mipFormat = Format::COLOR_BGRA_32;
     Format texelFormat = Format::COLOR_SRGBA_32;
 
-    if (header.getGLFormat() == ktx::GLFormat::BGRA && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 4) {
-        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::RGBA8) {
-            mipFormat = Format::COLOR_BGRA_32;
-            texelFormat = Format::COLOR_RGBA_32;
-        } else if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8) {
-            mipFormat = Format::COLOR_SBGRA_32;
-            texelFormat = Format::COLOR_SRGBA_32;
-        } else {
-            return nullptr;
-        }
-    } else if (header.getGLFormat() == ktx::GLFormat::RGBA && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 4) {
-        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::RGBA8) {
-            mipFormat = Format::COLOR_RGBA_32;
-            texelFormat = Format::COLOR_RGBA_32;
-        } else if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8) {
-            mipFormat = Format::COLOR_SRGBA_32;
-            texelFormat = Format::COLOR_SRGBA_32;
-        } else {
-            return nullptr;
-        }
-    } else if (header.getGLFormat() == ktx::GLFormat::RED && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 1) {
-        mipFormat = Format::COLOR_R_8;
-        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::R8) {
-            texelFormat = Format::COLOR_R_8;
-        } else {
-            return nullptr;
-        }
+    if (!Texture::evalTextureFormat(header, mipFormat, texelFormat)) {
+        return nullptr;
     }
 
     // Find Texture Type based on dimensions
@@ -198,4 +193,56 @@ Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx
     }
 
     return tex;
+}
+
+bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header) {
+    if (texelFormat == Format::COLOR_RGBA_32 && mipFormat == Format::COLOR_BGRA_32) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_RGBA_32 && mipFormat == Format::COLOR_RGBA_32) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RGBA, ktx::GLInternalFormat_Uncompressed::RGBA8, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_SRGBA_32 && mipFormat == Format::COLOR_SBGRA_32) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::BGRA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_SRGBA_32 && mipFormat == Format::COLOR_SRGBA_32) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RGBA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_R_8 && mipFormat == Format::COLOR_R_8) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RED, ktx::GLInternalFormat_Uncompressed::R8, ktx::GLBaseInternalFormat::RED);
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
+bool Texture::evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat) {
+    if (header.getGLFormat() == ktx::GLFormat::BGRA && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 1) {
+        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::RGBA8) {
+            mipFormat = Format::COLOR_BGRA_32;
+            texelFormat = Format::COLOR_RGBA_32;
+        } else if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8) {
+            mipFormat = Format::COLOR_SBGRA_32;
+            texelFormat = Format::COLOR_SRGBA_32;
+        } else {
+            return false;
+        }
+    } else if (header.getGLFormat() == ktx::GLFormat::RGBA && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 1) {
+        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::RGBA8) {
+            mipFormat = Format::COLOR_RGBA_32;
+            texelFormat = Format::COLOR_RGBA_32;
+        } else if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8) {
+            mipFormat = Format::COLOR_SRGBA_32;
+            texelFormat = Format::COLOR_SRGBA_32;
+        } else {
+            return false;
+        }
+    } else if (header.getGLFormat() == ktx::GLFormat::RED && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 1) {
+        mipFormat = Format::COLOR_R_8;
+        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::R8) {
+            texelFormat = Format::COLOR_R_8;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+    return true;
 }

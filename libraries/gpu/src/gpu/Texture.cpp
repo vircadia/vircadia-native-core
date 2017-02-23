@@ -124,7 +124,6 @@ uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = { 1, 1, 1, 6 };
 using Storage = Texture::Storage;
 using PixelsPointer = Texture::PixelsPointer;
 using MemoryStorage = Texture::MemoryStorage;
-using KtxStorage = Texture::KtxStorage;
 
 void Storage::assignTexture(Texture* texture) {
     _texture = texture;
@@ -197,13 +196,6 @@ void Texture::MemoryStorage::assignMipFaceData(uint16 level, uint8 face, const s
         mip[face] = storagePointer;
         bumpStamp();
     }
-}
-
-KtxStorage::KtxStorage(ktx::KTXUniquePointer& ktxData) : _ktxData(ktxData.release()) {
-}
-
-PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
-    return _ktxData->getMipFaceTexelsData(level, face);
 }
 
 Texture* Texture::createExternal(const ExternalRecycler& recycler, const Sampler& sampler) {
@@ -980,7 +972,3 @@ void Texture::setStorage(std::unique_ptr<Storage>& newStorage) {
     _storage.swap(newStorage);
 }
 
-void Texture::setKtxBacking(ktx::KTXUniquePointer& ktxBacking) {
-    auto newBacking = std::unique_ptr<Storage>(new KtxStorage(ktxBacking));
-    setStorage(newBacking);
-}
