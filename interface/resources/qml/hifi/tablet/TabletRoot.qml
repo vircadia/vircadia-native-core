@@ -1,6 +1,7 @@
 import QtQuick 2.0
 import Hifi 1.0
-
+import QtQuick.Controls 1.4
+import "../../dialogs"
 Item {
     id: tabletRoot
     objectName: "tabletRoot"
@@ -9,11 +10,24 @@ Item {
 
     property var rootMenu;
     property string subMenu: ""
-
     signal showDesktop();
 
     function setOption(value) {
         option = value;
+    }
+
+    Component { id: inputDialogBuilder; TabletQueryDialog { } }
+    function inputDialog(properties) {
+        return inputDialogBuilder.createObject(tabletRoot, properties);
+    }
+
+    function messageBox(properties) {
+    }
+
+    function customInputDialog(properties) {
+    }
+
+    function fileDialog(properties) {
     }
 
     function setMenuProperties(rootMenu, subMenu) {
@@ -68,6 +82,7 @@ Item {
         objectName: "loader"
         asynchronous: false
 
+        
         width: parent.width
         height: parent.height
 
@@ -89,7 +104,6 @@ Item {
                 loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
             }
             loader.item.forceActiveFocus();
-            tabletRoot.findStackableChild();
         }
     }
 

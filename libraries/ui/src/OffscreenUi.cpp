@@ -19,7 +19,8 @@
 
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
-
+#include <DependencyManager.h>
+#include <TabletScriptingInterface.h>
 #include "FileDialogHelper.h"
 #include "VrMenu.h"
 
@@ -405,10 +406,21 @@ QQuickItem* OffscreenUi::createInputDialog(const Icon icon, const QString& title
     map.insert("label", label);
     map.insert("current", current);
     QVariant result;
-    bool invokeResult = QMetaObject::invokeMethod(_desktop, "inputDialog",
-        Q_RETURN_ARG(QVariant, result),
-        Q_ARG(QVariant, QVariant::fromValue(map)));
 
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+
+    bool invokeResult;
+    if (tablet->getToolbarMode()) {
+        invokeResult = QMetaObject::invokeMethod(_desktop, "inputDialog",
+                                                 Q_RETURN_ARG(QVariant, result),
+                                                 Q_ARG(QVariant, QVariant::fromValue(map)));
+    } else {
+        QQuickItem* tabletRoot = tablet->getTabletRoot();
+        invokeResult = QMetaObject::invokeMethod(tabletRoot, "inputDialog",
+                                                 Q_RETURN_ARG(QVariant, result),
+                                                 Q_ARG(QVariant, QVariant::fromValue(map)));
+    }
     if (!invokeResult) {
         qWarning() << "Failed to create message box";
         return nullptr;

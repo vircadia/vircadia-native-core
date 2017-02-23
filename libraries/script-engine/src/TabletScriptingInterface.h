@@ -154,6 +154,8 @@ public:
 
     Q_INVOKABLE bool onHomeScreen();
 
+    QQuickItem* getTabletRoot() const { return _qmlTabletRoot; }
+
     QObject* getTabletSurface();
 
     QQuickItem* getQmlTablet() const;
