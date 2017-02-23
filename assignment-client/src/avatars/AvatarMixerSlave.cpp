@@ -66,13 +66,16 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
 }
 
 
-void AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
+int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
+    int bytesSent = 0;
     QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
     auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
-    individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122());
+    individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
+    bytesSent += individualData.size();
     identityPacket->write(individualData);
     DependencyManager::get<NodeList>()->sendPacket(std::move(identityPacket), *destinationNode);
     _stats.numIdentityPackets++;
+    return bytesSent;
 }
 
 static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
@@ -117,9 +120,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // reset the internal state for correct random number distribution
         distribution.reset();
 
-        // reset the max distance for this frame
-        float maxAvatarDistanceThisFrame = 0.0f;
-
         // reset the number of sent avatars
         nodeData->resetNumAvatarsSentLastFrame();
 
@@ -128,9 +128,13 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
         // keep track of outbound data rate specifically for avatar data
         int numAvatarDataBytes = 0;
+        int identityBytesSent = 0;
 
         // max number of avatarBytes per frame
         auto maxAvatarBytesPerFrame = (_maxKbpsPerNode * BYTES_PER_KILOBIT) / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
+
+        // FIXME - find a way to not send the sessionID for every avatar
+        int minimumBytesPerAvatar = AvatarDataPacket::AVATAR_HAS_FLAGS_SIZE + NUM_BYTES_RFC4122_UUID;
 
         int overBudgetAvatars = 0;
 
@@ -140,9 +144,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // keep track of the number of other avatar frames skipped
         int numAvatarsWithSkippedFrames = 0;
 
-        // use the data rate specifically for avatar data for FRD adjustment checks
-        float avatarDataRateLastSecond = nodeData->getOutboundAvatarDataKbps();
-
         // When this is true, the AvatarMixer will send Avatar data to a client about avatars that are not in the view frustrum
         bool getsOutOfView = nodeData->getRequestsDomainListData();
 
@@ -151,43 +152,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
         // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
         bool getsAnyIgnored = getsIgnoredByMe && node->getCanKick();
-
-        // Check if it is time to adjust what we send this client based on the observed
-        // bandwidth to this node. We do this once a second, which is also the window for
-        // the bandwidth reported by node->getOutboundBandwidth();
-        if (nodeData->getNumFramesSinceFRDAdjustment() > AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) {
-
-            const float FRD_ADJUSTMENT_ACCEPTABLE_RATIO = 0.8f;
-            const float HYSTERISIS_GAP = (1 - FRD_ADJUSTMENT_ACCEPTABLE_RATIO);
-            const float HYSTERISIS_MIDDLE_PERCENTAGE = (1 - (HYSTERISIS_GAP * 0.5f));
-
-            // get the current full rate distance so we can work with it
-            float currentFullRateDistance = nodeData->getFullRateDistance();
-
-            if (avatarDataRateLastSecond > _maxKbpsPerNode) {
-
-                // is the FRD greater than the farthest avatar?
-                // if so, before we calculate anything, set it to that distance
-                currentFullRateDistance = std::min(currentFullRateDistance, nodeData->getMaxAvatarDistance());
-
-                // we're adjusting the full rate distance to target a bandwidth in the middle
-                // of the hysterisis gap
-                currentFullRateDistance *= (_maxKbpsPerNode * HYSTERISIS_MIDDLE_PERCENTAGE) / avatarDataRateLastSecond;
-
-                nodeData->setFullRateDistance(currentFullRateDistance);
-                nodeData->resetNumFramesSinceFRDAdjustment();
-            } else if (currentFullRateDistance < nodeData->getMaxAvatarDistance()
-                && avatarDataRateLastSecond < _maxKbpsPerNode * FRD_ADJUSTMENT_ACCEPTABLE_RATIO) {
-                // we are constrained AND we've recovered to below the acceptable ratio
-                // lets adjust the full rate distance to target a bandwidth in the middle of the hyterisis gap
-                currentFullRateDistance *= (_maxKbpsPerNode * HYSTERISIS_MIDDLE_PERCENTAGE) / avatarDataRateLastSecond;
-
-                nodeData->setFullRateDistance(currentFullRateDistance);
-                nodeData->resetNumFramesSinceFRDAdjustment();
-            }
-        } else {
-            nodeData->incrementNumFramesSinceFRDAdjustment();
-        }
 
         // setup a PacketList for the avatarPackets
         auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
@@ -233,17 +197,38 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
         // loop through our sorted avatars and allocate our bandwidth to them accordingly
         int avatarRank = 0;
+
+        // this is overly conservative, because it includes some avatars we might not consider
+        // FIXME - move the ignore logic up into the sorting list so we get a better estimate
+        int remainingAvatars = (int)sortedAvatars.size(); 
+
         while (!sortedAvatars.empty()) {
             AvatarPriority sortData = sortedAvatars.top();
             sortedAvatars.pop();
             const auto& avatarData = sortData.avatar;
             avatarRank++;
+            remainingAvatars--;
 
             auto otherNode = avatarDataToNodes[avatarData];
 
+            // FIXME - should't this be an assert?
             if (!otherNode) {
                 continue;
             }
+
+            // NOTE: Here's where we determine if we are over budget and drop to bare minimum data
+            int minimRemainingAvatarBytes = minimumBytesPerAvatar * remainingAvatars;
+            bool overBudget = (identityBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes) > maxAvatarBytesPerFrame;
+            /**
+                qDebug() << "Budget debugging:"
+                    << "numAvatarDataBytes:" << numAvatarDataBytes << "\n"
+                    << "identityBytesSent:" << identityBytesSent << "\n"
+                    << "remainingAvatars:" << remainingAvatars << "\n"
+                    << "minimumBytesPerAvatar:" << minimumBytesPerAvatar << "\n"
+                    << "minimRemainingAvatarBytes:" << minimRemainingAvatarBytes << "\n"
+                    << "overBudget:" << overBudget << "\n"
+                    << "overBudgetAvatars:" << overBudgetAvatars;
+            **/
 
             bool shouldConsider = false;
             quint64 startIgnoreCalculation = usecTimestampNow();
@@ -313,44 +298,20 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 bool forceSend = !nodeData->checkAndSetHasReceivedFirstPacketsFrom(otherNode->getUUID());
 
                 // FIXME - this clause seems suspicious "... || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp ..."
-                if (otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
+                if (!overBudget
+                    && otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
                     && (forceSend
                     || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                     || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
 
-                    sendIdentityPacket(otherNodeData, node);
+                    identityBytesSent += sendIdentityPacket(otherNodeData, node);
                 }
 
                 const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
                 //  Decide whether to send this avatar's data based on it's distance from us
 
-                //  The full rate distance is the distance at which EVERY update will be sent for this avatar
-                //  at twice the full rate distance, there will be a 50% chance of sending this avatar's update
                 glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
                 float distanceToAvatar = glm::length(myPosition - otherPosition);
-
-                // potentially update the max full rate distance for this frame
-                maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
-
-                // This code handles the random dropping of avatar data based on the ratio of
-                // "getFullRateDistance" to actual distance.
-                //
-                // NOTE: If the recieving node is in "PAL mode" then it's asked to get things even that
-                //       are out of view, this also appears to disable this random distribution.
-                //
-                // FIXME - This is the old approach for managing the outbound bandwidth. I've left it
-                //         in for now, even though we're also directly managing budget by calculating the 
-                //         number of  bytes to send per frame and simply exiting the sorted avatar list 
-                //         once that budget is surpassed. I need to remove this old logic next. [BHG 2/22/17]
-                if (distanceToAvatar != 0.0f
-                    && !getsOutOfView
-                    && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)
-                ) {
-                    quint64 endAvatarDataPacking = usecTimestampNow();
-                    _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                    shouldConsider = false;
-                    _stats.randomDrops++;
-                }
 
                 if (shouldConsider) {
                     AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
@@ -377,16 +338,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                         ++numAvatarsWithSkippedFrames;
                     }
 
-                    // NOTE: Here's where we determine if we are over budget and stop considering avatars after this.
-                    //
-                    // FIXME - revisit this code, remove the random drop logic, and move this code higher up into
-                    // the loop so we don't bother with all these other calculations once over budget.  [BHG 2/22/17]
-                    if (numAvatarDataBytes > maxAvatarBytesPerFrame) {
-                        overBudgetAvatars++;
-                        _stats.overBudgetAvatars++;
-                        shouldConsider = false;
-                    }
-
                     // we're going to send this avatar
                     if (shouldConsider) {
 
@@ -396,19 +347,26 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                         bool isInView = nodeData->otherAvatarInView(otherNodeBox);
 
                         // this throttles the extra data to only be sent every Nth message
+                        /**
                         if (!isInView && !getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
                             quint64 endAvatarDataPacking = usecTimestampNow();
 
                             _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                             shouldConsider = false;
                         }
+                        ***/
 
                         if (shouldConsider) {
                             // start a new segment in the PacketList for this avatar
                             avatarPacketList->startSegment();
 
                             AvatarData::AvatarDataDetail detail;
-                            if (!isInView && !getsOutOfView) {
+
+                            if (overBudget) {
+                                overBudgetAvatars++;
+                                _stats.overBudgetAvatars++;
+                                detail = AvatarData::NoData;
+                            } else  if (!isInView && !getsOutOfView) {
                                 detail = AvatarData::MinimumData;
                                 nodeData->incrementAvatarOutOfView();
                             } else {
@@ -497,13 +455,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // record the number of avatars held back this frame
         nodeData->recordNumOtherAvatarStarves(numAvatarsHeldBack);
         nodeData->recordNumOtherAvatarSkips(numAvatarsWithSkippedFrames);
-
-        if (numOtherAvatars == 0) {
-            // update the full rate distance to FLOAT_MAX since we didn't have any other avatars to send
-            nodeData->setMaxAvatarDistance(FLT_MAX);
-        } else {
-            nodeData->setMaxAvatarDistance(maxAvatarDistanceThisFrame);
-        }
 
         quint64 endPacketSending = usecTimestampNow();
         _stats.packetSendingElapsedTime += (endPacketSending - startPacketSending);

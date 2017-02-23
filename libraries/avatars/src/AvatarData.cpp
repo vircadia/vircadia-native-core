@@ -192,6 +192,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
 
+    // special case, if we were asked for no data, then just include the flags all set to nothing
+    if (dataDetail == NoData) {
+        AvatarDataPacket::HasFlags packetStateFlags = 0;
+        memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
+        return avatarDataByteArray.left(sizeof(packetStateFlags));
+    }
+
     // FIXME -
     //
     //    BUG -- if you enter a space bubble, and then back away, the avatar has wrong orientation until "send all" happens... 

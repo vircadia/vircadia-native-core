@@ -25,7 +25,6 @@ public:
     int numBytesSent { 0 };
     int numIdentityPackets { 0 };
     int numOthersIncluded { 0 };
-    int randomDrops { 0 };
     int overBudgetAvatars { 0 };
 
     quint64 ignoreCalculationElapsedTime { 0 };
@@ -46,7 +45,6 @@ public:
         numBytesSent = 0;
         numIdentityPackets = 0;
         numOthersIncluded = 0;
-        randomDrops = 0;
         overBudgetAvatars = 0;
 
         ignoreCalculationElapsedTime = 0;
@@ -66,7 +64,6 @@ public:
         numBytesSent += rhs.numBytesSent;
         numIdentityPackets += rhs.numIdentityPackets;
         numOthersIncluded += rhs.numOthersIncluded;
-        randomDrops += rhs.randomDrops;
         overBudgetAvatars += rhs.overBudgetAvatars;
 
         ignoreCalculationElapsedTime += rhs.ignoreCalculationElapsedTime;
@@ -94,7 +91,7 @@ public:
     void harvestStats(AvatarMixerSlaveStats& stats);
 
 private:
-    void sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
+    int sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
     // frame state
     ConstIter _begin;

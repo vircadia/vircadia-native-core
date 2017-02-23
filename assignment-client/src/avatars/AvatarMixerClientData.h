@@ -68,12 +68,6 @@ public:
     bool getAvatarSessionDisplayNameMustChange() const { return _avatarSessionDisplayNameMustChange; }
     void setAvatarSessionDisplayNameMustChange(bool set = true) { _avatarSessionDisplayNameMustChange = set; }
 
-    void setFullRateDistance(float fullRateDistance) { _fullRateDistance = fullRateDistance; }
-    float getFullRateDistance() const { return _fullRateDistance; }
-
-    void setMaxAvatarDistance(float maxAvatarDistance) { _maxAvatarDistance = maxAvatarDistance; }
-    float getMaxAvatarDistance() const { return _maxAvatarDistance; }
-
     void resetNumAvatarsSentLastFrame() { _numAvatarsSentLastFrame = 0; }
     void incrementNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
     int getNumAvatarsSentLastFrame() const { return _numAvatarsSentLastFrame; }
@@ -155,9 +149,6 @@ private:
 
     HRCTime _identityChangeTimestamp;
     bool _avatarSessionDisplayNameMustChange{ false };
-
-    float _fullRateDistance = FLT_MAX;
-    float _maxAvatarDistance = FLT_MAX;
 
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;

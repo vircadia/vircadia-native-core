@@ -126,8 +126,6 @@ bool AvatarMixerClientData::otherAvatarInView(const AABox& otherAvatarBox) {
 
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["display_name"] = _avatar->getDisplayName();
-    jsonObject["full_rate_distance"] = _fullRateDistance;
-    jsonObject["max_av_distance"] = _maxAvatarDistance;
     jsonObject["num_avs_sent_last_frame"] = _numAvatarsSentLastFrame;
     jsonObject["avg_other_av_starves_per_second"] = getAvgNumOtherAvatarStarvesPerSecond();
     jsonObject["avg_other_av_skips_per_second"] = getAvgNumOtherAvatarSkipsPerSecond();

@@ -136,6 +136,7 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION  = 1U << 9;
     const HasFlags PACKET_HAS_FACE_TRACKER_INFO      = 1U << 10;
     const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
+    const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
     // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
@@ -373,6 +374,7 @@ public:
     void setHandPosition(const glm::vec3& handPosition);
 
     typedef enum { 
+        NoData,
         MinimumData, 
         CullSmallData,
         IncludeSmallData,
