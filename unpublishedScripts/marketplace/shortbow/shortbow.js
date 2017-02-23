@@ -11,6 +11,8 @@
 //
 // Because .json can't be Script.include'd directly, the contents are copied over
 // to here and exposed as a global variable.
+//
+
 SHORTBOW_ENTITIES =
 {
     "Entities": [
@@ -831,17 +833,18 @@ SHORTBOW_ENTITIES =
         }
     ],
     "Version": 65
-}
+};
 
 // Add LocalPosition to entity data if parent properties are available
 var entities = SHORTBOW_ENTITIES.Entities;
-var entitiesByID = {}
-for (var i = 0; i < entities.length; ++i) {
-    var entity = entities[i];
+var entitiesByID = {};
+var i, entity;
+for (i = 0; i < entities.length; ++i) {
+    entity = entities[i];
     entitiesByID[entity.id] = entity;
 }
-for (var i = 0; i < entities.length; ++i) {
-    var entity = entities[i];
+for (i = 0; i < entities.length; ++i) {
+    entity = entities[i];
     if (entity.parentID !== undefined) {
         var parent = entitiesByID[entity.parentID];
         if (parent !== undefined) {

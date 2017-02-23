@@ -5,6 +5,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/* globals utils, SHORTBOW_ENTITIES, TEMPLATES:true */
 
 Script.include('utils.js');
 Script.include('shortbow.js');
@@ -19,10 +20,11 @@ TEMPLATES = SHORTBOW_ENTITIES.Entities;
 // @returns {object} The new object
 function mergeObjects(a, b) {
     var obj = {};
-    for (var key in b) {
+    var key;
+    for (key in b) {
         obj[key] = b[key];
     }
-    for (var key in a) {
+    for (key in a) {
         obj[key] = a[key];
     }
     return obj;
@@ -55,7 +57,7 @@ function spawnTemplate(templateName, overrides) {
 // @return {object} The matching template, or null if not found
 function getTemplate(name) {
     for (var i = 0; i < TEMPLATES.length; ++i) {
-        if (TEMPLATES[i].name == name) {
+        if (TEMPLATES[i].name === name) {
             return TEMPLATES[i];
         }
     }
@@ -68,7 +70,7 @@ for (var i = 0; i < TEMPLATES.length; ++i) {
     var template = TEMPLATES[i];
 
     // Fixup model url
-    if (template.type == "Model") {
+    if (template.type === "Model") {
         var urlParts = template.modelURL.split("/");
         var filename = urlParts[urlParts.length - 1];
         var newURL = Script.resolvePath("models/" + filename);
@@ -155,8 +157,8 @@ function createLocalGame() {
         serverScripts: Script.resolvePath('shortbowServerEntity.js')
     });
 
-    bowPositions = [];
-    spawnPositions = [];
+    var bowPositions = [];
+    var spawnPositions = [];
     for (var i = 0; i < TEMPLATES.length; ++i) {
         var template = TEMPLATES[i];
         if (template.name === "SB.BowSpawn") {

@@ -7,45 +7,45 @@
 //
 
 if (!Function.prototype.bind) {
-  Function.prototype.bind = function(oThis) {
-    if (typeof this !== 'function') {
-      // closest thing possible to the ECMAScript 5
-      // internal IsCallable function
-      throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
-    }
+    Function.prototype.bind = function(oThis) {
+        if (typeof this !== 'function') {
+            // closest thing possible to the ECMAScript 5
+            // internal IsCallable function
+            throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
+        }
 
-    var aArgs   = Array.prototype.slice.call(arguments, 1),
-        fToBind = this,
-        fNOP    = function() {},
-        fBound  = function() {
-          return fToBind.apply(this instanceof fNOP
-                 ? this
-                 : oThis,
-                 aArgs.concat(Array.prototype.slice.call(arguments)));
-        };
+        var aArgs = Array.prototype.slice.call(arguments, 1),
+            fToBind = this,
+            NOP = function() {},
+            fBound = function() {
+                return fToBind.apply(this instanceof NOP
+                        ? this
+                        : oThis,
+                        aArgs.concat(Array.prototype.slice.call(arguments)));
+            };
 
-    if (this.prototype) {
-      // Function.prototype doesn't have a prototype property
-      fNOP.prototype = this.prototype;
-    }
-    fBound.prototype = new fNOP();
+        if (this.prototype) {
+            // Function.prototype doesn't have a prototype property
+            NOP.prototype = this.prototype;
+        }
+        fBound.prototype = new NOP();
 
-    return fBound;
-  };
+        return fBound;
+    };
 }
 
 utils = {
     parseJSON: function(json) {
         try {
             return JSON.parse(json);
-        } catch(e) {
+        } catch (e) {
             return undefined;
         }
     },
     findSurfaceBelowPosition: function(pos) {
         var result = Entities.findRayIntersection({
             origin: pos,
-            direction: { x: 0, y: -1, z: 0 }
+            direction: { x: 0.0, y: -1.0, z: 0.0 }
         });
         if (result.intersects) {
             return result.intersection;
