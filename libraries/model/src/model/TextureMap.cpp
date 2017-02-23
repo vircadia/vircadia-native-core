@@ -85,7 +85,7 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     return srcImage;
 }
 
-gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bool write = true, bool read = true) {
+gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bool write = true, bool read = false) { // FIXME: set read to false for a working state
     if (!srcTexture) {
         return nullptr;
     }
@@ -469,7 +469,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
         generateMips(theTexture, image, true);
 
         theTexture->setSource(srcImageName);
-        theTexture = cacheTexture(theTexture->source(), theTexture, true, true);
+        theTexture = cacheTexture(theTexture->source(), theTexture, true, false);
     }
 
     return theTexture;
