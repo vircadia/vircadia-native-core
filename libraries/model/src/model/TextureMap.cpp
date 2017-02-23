@@ -132,6 +132,8 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
         }
 
         if (read && QFileInfo(cacheFilename.c_str()).exists()) {
+#define DEBUG_KTX_LOADING 1
+#ifdef DEBUG_KTX_LOADING
             { 
                 FILE* file = fopen(cacheFilename.c_str(), "rb");
                 if (file != nullptr) {
@@ -154,10 +156,10 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
                     }
                 }
             }
-
-              //  auto ktxFile = ktx::KTX::create(std::unique_ptr<storage::Storage>(new storage::FileStorage(cacheFilename.c_str())));
-              //  returnedTexture->setKtxBacking(ktxFile);
-
+#else
+            auto ktxFile = ktx::KTX::create(std::unique_ptr<storage::Storage>(new storage::FileStorage(cacheFilename.c_str())));
+            returnedTexture->setKtxBacking(ktxFile);
+#endif
         }
     }
 
