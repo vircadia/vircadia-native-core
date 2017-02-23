@@ -803,3 +803,25 @@ void Overlays::mouseMoveEvent(QMouseEvent* event) {
         }
     }
 }
+
+QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) const {
+    QVector<QUuid> result;
+    glm::vec3 penetration;
+
+    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
+    i.toBack();
+    while (i.hasPrevious()) {
+        i.previous();
+        OverlayID thisID = i.key();
+        auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
+        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
+            // AABox overlayAABox;
+            // overlayAABox.findSpherePenetration(center, radius, penetration);
+            if (glm::distance(thisOverlay->getPosition(), center) <= radius) {
+                result.append(thisID);
+            }
+        }
+    }
+
+    return result;
+}

@@ -7,8 +7,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global getControllerWorldLocation, setEntityCustomData, Tablet, WebTablet:true, HMD, Settings, Script,
-   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp */
+/* global getControllerWorldLocation, Tablet, WebTablet:true, HMD, Settings, Script,
+   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp, Controller, Mat4 */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
@@ -110,6 +110,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         name: "WebTablet Tablet",
         type: "Model",
         modelURL: TABLET_MODEL_PATH,
+        url: TABLET_MODEL_PATH, // for overlay
+        grabbable: true, // for overlay
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
@@ -121,7 +123,14 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     this.calculateTabletAttachmentProperties(hand, true, tabletProperties);
 
     this.cleanUpOldTablets();
-    this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
+
+    // this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
+    // this.tabletIsOverlay = false;
+
+    tabletProperties.parentID = "{00000000-0000-0000-0000-000000000000}";
+    // tabletProperties.parentJointIndex = -2;
+    this.tabletEntityID = Overlays.addOverlay("model", tabletProperties);
+    this.tabletIsOverlay = true;
 
     if (this.webOverlayID) {
         Overlays.deleteOverlay(this.webOverlayID);
@@ -236,7 +245,11 @@ WebTablet.prototype.getOverlayObject = function () {
 
 WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
-    Entities.deleteEntity(this.tabletEntityID);
+    if (this.tabletIsOverlay) {
+        Overlays.deleteOverlay(this.tabletEntityID);
+    } else {
+        Entities.deleteEntity(this.tabletEntityID);
+    }
     Overlays.deleteOverlay(this.homeButtonEntity);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
@@ -432,7 +445,7 @@ WebTablet.prototype.mousePressEvent = function (event) {
                 tablet.gotoHomeScreen();
                 this.setHomeButtonTexture();
             }
-        } else if (!HMD.active && (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID)) {
+        } else if (!HMD.active && (!overlayPickResults.intersects || overlayPickResults.overlayID !== this.webOverlayID)) {
             this.dragging = true;
             var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
             this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);

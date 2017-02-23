@@ -207,6 +207,16 @@ public slots:
                                                        bool collidableOnly = false);
 
     /**jsdoc
+     * Return a list of overlays with centers within a given distance of a point
+     *
+     * @function Overlays.findOverlays
+     * @param {Vec3} center the point to search from.
+     * @param {float} radius search radius
+     * @return {List of Overlays.OverlayID} list of overlays withing the radius
+     */
+    QVector<QUuid> findOverlays(const glm::vec3& center, float radius) const;
+
+    /**jsdoc
      * Check whether an overlay's assets have been loaded. For example, if the
      * overlay is an "image" overlay, this will indicate whether the its image
      * has loaded.

@@ -39,7 +39,8 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     _isDashedLine(base3DOverlay->_isDashedLine),
     _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection),
     _drawInFront(base3DOverlay->_drawInFront),
-    _isAA(base3DOverlay->_isAA)
+    _isAA(base3DOverlay->_isAA),
+    _isGrabbable(base3DOverlay->_isGrabbable)
 {
     setTransform(base3DOverlay->getTransform());
 }
@@ -123,6 +124,11 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
         bool value = drawInFront.toBool();
         setDrawInFront(value);
         needRenderItemUpdate = true;
+    }
+
+    auto isGrabbable = properties["grabbable"];
+    if (isGrabbable.isValid()) {
+        setIsGrabbable(isGrabbable.toBool());
     }
 
     if (properties["position"].isValid()) {
@@ -226,6 +232,9 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
     }
     if (property == "drawInFront") {
         return _drawInFront;
+    }
+    if (property == "grabbable") {
+        return _isGrabbable;
     }
     if (property == "parentID") {
         return getParentID();
