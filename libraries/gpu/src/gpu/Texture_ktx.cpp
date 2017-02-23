@@ -117,6 +117,9 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     }
 
     auto ktxBuffer = ktx::KTX::create(header, images);
+    auto expectedMipCount = texture.evalNumMips();
+    assert(expectedMipCount == ktxBuffer->_images.size());
+    assert(expectedMipCount == header.numberOfMipmapLevels);
 
     assert(0 == memcmp(&header, ktxBuffer->getHeader(), sizeof(ktx::Header)));
     assert(ktxBuffer->_images.size() == images.size());
