@@ -171,6 +171,10 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             return std::static_pointer_cast<Avatar>(avatar)->getLastRenderUpdateTime();
         },
 
+        [](AvatarSharedPointer avatar)->float{
+            return std::static_pointer_cast<Avatar>(avatar)->getBoundingRadius();
+        },
+
         [this](AvatarSharedPointer avatar)->bool{
             const auto& castedAvatar = std::static_pointer_cast<Avatar>(avatar);
             if (castedAvatar == _myAvatar || !castedAvatar->isInitialized()) {

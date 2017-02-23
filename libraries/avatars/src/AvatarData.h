@@ -597,7 +597,8 @@ public:
     static std::priority_queue<AvatarPriority> sortAvatars(
         QList<AvatarSharedPointer> avatarList,
         const ViewFrustum& cameraView,
-        std::function<uint64_t(AvatarSharedPointer)> lastUpdated,
+        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
+        std::function<float(AvatarSharedPointer)> getBoundingRadius,
         std::function<bool(AvatarSharedPointer)> shouldIgnore);
 
     // TODO: remove this HACK once we settle on optimal sort coefficients

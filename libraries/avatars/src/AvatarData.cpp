@@ -2319,7 +2319,8 @@ float AvatarData::_avatarSortCoefficientAge { 1.0f };
 std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
     QList<AvatarSharedPointer> avatarList,
     const ViewFrustum& cameraView,
-    std::function<uint64_t(AvatarSharedPointer)> lastUpdated,
+    std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
+    std::function<float(AvatarSharedPointer)> getBoundingRadius,
     std::function<bool(AvatarSharedPointer)> shouldIgnore) {
 
     uint64_t startTime = usecTimestampNow();
@@ -2346,12 +2347,12 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
             float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
 
             // FIXME - AvatarData has something equivolent to this
-            float radius = 1.0f; // avatar->getBoundingRadius();
+            float radius = getBoundingRadius(avatar);
 
             const glm::vec3& forward = cameraView.getDirection();
             float apparentSize = 2.0f * radius / distance;
             float cosineAngle = glm::length(glm::dot(offset, forward) * forward) / distance;
-            float age = (float)(startTime - lastUpdated(avatar)) / (float)(USECS_PER_SECOND);
+            float age = (float)(startTime - getLastUpdated(avatar)) / (float)(USECS_PER_SECOND);
 
             // NOTE: we are adding values of different units to get a single measure of "priority".
             // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.

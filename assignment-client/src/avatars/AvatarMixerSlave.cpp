@@ -217,6 +217,11 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     return 0;
                 },
 
+                [&](AvatarSharedPointer avatar)->float{
+                    glm::vec3 nodeBoxHalfScale = (avatar->getPosition() - avatar->getGlobalBoundingBoxCorner());
+                    return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
+                },
+
                 [thisAvatar](AvatarSharedPointer avatar)->bool{
                     return (avatar == thisAvatar); // ignore ourselves...
                 });
