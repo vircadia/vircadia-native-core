@@ -130,13 +130,13 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
 
     this.cleanUpOldTablets();
 
-    // this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
-    // this.tabletIsOverlay = false;
-
-    tabletProperties.parentID = "{00000000-0000-0000-0000-000000000000}";
-    // tabletProperties.parentJointIndex = -2;
-    this.tabletEntityID = Overlays.addOverlay("model", tabletProperties);
-    this.tabletIsOverlay = true;
+    if (true || Settings.getValue("tabletVisibleToOthers")) {
+        this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
+        this.tabletIsOverlay = false;
+    } else {
+        this.tabletEntityID = Overlays.addOverlay("model", tabletProperties);
+        this.tabletIsOverlay = true;
+    }
 
     if (this.webOverlayID) {
         Overlays.deleteOverlay(this.webOverlayID);
