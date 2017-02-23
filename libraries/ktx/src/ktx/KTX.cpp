@@ -82,11 +82,10 @@ void KTX::resetStorage(Storage* storage) {
 }
 
 const Header* KTX::getHeader() const {
-    if (_storage) {
-        return reinterpret_cast<const Header*> (_storage->_bytes);
-    } else {
+    if (!_storage) {
         return nullptr;
-    }
+    } 
+    return reinterpret_cast<const Header*>(_storage->data());
 }
 
 
@@ -101,7 +100,7 @@ size_t KTX::getKeyValueDataSize() const {
 size_t KTX::getTexelsDataSize() const {
     if (_storage) {
         //return  _storage->size() - (sizeof(Header) + getKeyValueDataSize());
-        return  (_storage->_bytes + _storage->_size) - getTexelsData();
+        return  (_storage->data() + _storage->size()) - getTexelsData();
     } else {
         return 0;
     }
@@ -109,7 +108,7 @@ size_t KTX::getTexelsDataSize() const {
 
 const Byte* KTX::getKeyValueData() const {
     if (_storage) {
-        return (_storage->_bytes + sizeof(Header));
+        return (_storage->data() + sizeof(Header));
     } else {
         return nullptr;
     }
@@ -117,16 +116,21 @@ const Byte* KTX::getKeyValueData() const {
 
 const Byte* KTX::getTexelsData() const {
     if (_storage) {
-        return (_storage->_bytes + sizeof(Header) + getKeyValueDataSize());
+        return (_storage->data() + sizeof(Header) + getKeyValueDataSize());
     } else {
         return nullptr;
     }
 }
 
-Byte* KTX::getTexelsData() {
-    if (_storage) {
-        return (_storage->_bytes + sizeof(Header) + getKeyValueDataSize());
-    } else {
-        return nullptr;
+storage::StoragePointer KTX::getMipFaceTexelsData(uint16_t mip, uint8_t face) const {
+    storage::StoragePointer result;
+    if (mip < _images.size()) {
+        const auto& faces = _images[mip];
+        if (face < faces._numFaces) {
+            auto faceOffset = faces._faceBytes[face] - _storage->data();
+            auto faceSize = faces._faceSize;
+            result = _storage->createView(faceSize, faceOffset);
+        }
     }
+    return result;
 }

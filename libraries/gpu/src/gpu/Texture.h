@@ -256,7 +256,7 @@ public:
         virtual ~Storage() {}
 
         virtual void reset() = 0;
-        virtual const PixelsPointer getMipFace(uint16 level, uint8 face = 0) const = 0;
+        virtual PixelsPointer getMipFace(uint16 level, uint8 face = 0) const = 0;
         virtual void assignMipData(uint16 level, const storage::StoragePointer& storage) = 0;
         virtual void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) = 0;
         virtual bool isMipAvailable(uint16 level, uint8 face = 0) const = 0;
@@ -281,7 +281,7 @@ public:
     class MemoryStorage : public Storage {
     public:
         void reset() override;
-        const PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
+        PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
         void assignMipData(uint16 level, const storage::StoragePointer& storage) override;
         void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) override;
         bool isMipAvailable(uint16 level, uint8 face = 0) const override;
@@ -294,8 +294,9 @@ public:
     class KtxStorage : public Storage {
     public:
         KtxStorage(ktx::KTXUniquePointer& ktxData);
-        const PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
-        bool isMipAvailable(uint16 level, uint8 face = 0) const override;
+        PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
+        // By convention, all mip levels and faces MUST be populated when using KTX backing
+        bool isMipAvailable(uint16 level, uint8 face = 0) const override { return true; }
 
         void assignMipData(uint16 level, const storage::StoragePointer& storage) override {
             throw std::runtime_error("Invalid call");
@@ -473,6 +474,9 @@ public:
     // Access the the sub mips
     bool isStoredMipFaceAvailable(uint16 level, uint8 face = 0) const { return _storage->isMipAvailable(level, face); }
     const PixelsPointer accessStoredMipFace(uint16 level, uint8 face = 0) const { return _storage->getMipFace(level, face); }
+
+    void setStorage(std::unique_ptr<Storage>& newStorage);
+    void setKtxBacking(ktx::KTXUniquePointer& newBacking);
 
     // access sizes for the stored mips
     uint16 getStoredMipWidth(uint16 level) const;

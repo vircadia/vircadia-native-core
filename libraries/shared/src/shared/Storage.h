@@ -43,8 +43,9 @@ namespace storage {
 
     class MemoryStorage : public Storage {
     public:
-        MemoryStorage(size_t size, const uint8_t* data);
+        MemoryStorage(size_t size, const uint8_t* data = nullptr);
         const uint8_t* data() const override { return _data.data(); }
+        uint8_t* data() { return _data.data(); }
         size_t size() const override { return _data.size(); }
     private:
         std::vector<uint8_t> _data;
