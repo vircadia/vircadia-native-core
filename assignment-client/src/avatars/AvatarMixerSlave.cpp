@@ -80,13 +80,6 @@ int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, 
 
 static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 
-// only send extra avatar data (avatars out of view, ignored) every Nth AvatarData frame
-// Extra avatar data will be sent (AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND/EXTRA_AVATAR_DATA_FRAME_RATIO) times
-// per second.
-// This value should be a power of two for performance purposes, as the mixer performs a modulo operation every frame
-// to determine whether the extra data should be sent.
-static const int EXTRA_AVATAR_DATA_FRAME_RATIO = 16;
-
 // FIXME - There is some old logic (unchanged as of 2/17/17) that randomly decides to send an identity
 // packet. That logic had the following comment about the constants it uses...
 //
@@ -156,6 +149,20 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // setup a PacketList for the avatarPackets
         auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
+        // Define the minimum bubble size
+        static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
+        // Define the scale of the box for the current node
+        glm::vec3 nodeBoxScale = (nodeData->getPosition() - nodeData->getGlobalBoundingBoxCorner()) * 2.0f;
+        // Set up the bounding box for the current node
+        AABox nodeBox(nodeData->getGlobalBoundingBoxCorner(), nodeBoxScale);
+        // Clamp the size of the bounding box to a minimum scale
+        if (glm::any(glm::lessThan(nodeBoxScale, minBubbleSize))) {
+            nodeBox.setScaleStayCentered(minBubbleSize);
+        }
+        // Quadruple the scale of both bounding boxes
+        nodeBox.embiggen(4.0f);
+
+
         // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
         // for calling the AvatarData::sortAvatars() function and getting our sorted list of client nodes
         QList<AvatarSharedPointer> avatarList;
@@ -170,7 +177,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 avatarList << otherAvatar;
                 avatarDataToNodes[otherAvatar] = otherNode;
             }
-
         });
 
         AvatarSharedPointer thisAvatar = nodeData->getAvatarSharedPointer();
@@ -191,8 +197,87 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
                 },
 
-                [thisAvatar](AvatarSharedPointer avatar)->bool{
-                    return (avatar == thisAvatar); // ignore ourselves...
+                [&](AvatarSharedPointer avatar)->bool{
+                    if (avatar == thisAvatar) {
+                        return true; // ignore ourselves...
+                    }
+
+                    bool shouldIgnore = false;
+
+                    // We will also ignore other nodes for a couple of different reasons:
+                    //   1) ignore bubbles and ignore specific node
+                    //   2) the node hasn't really updated it's frame data recently, this can
+                    //      happen if for example the avatar is connected on a desktop and sending
+                    //      updates at ~30hz. So every 3 frames we skip a frame.
+                    auto avatarNode = avatarDataToNodes[avatar];
+                    if (avatarNode) {
+                        const AvatarMixerClientData* avatarNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
+                        if (avatarNodeData) {
+                            quint64 startIgnoreCalculation = usecTimestampNow();
+
+                            // make sure we have data for this avatar, that it isn't the same node,
+                            // and isn't an avatar that the viewing node has ignored
+                            // or that has ignored the viewing node
+                            if (!avatarNode->getLinkedData()
+                                || avatarNode->getUUID() == node->getUUID()
+                                || (node->isIgnoringNodeWithID(avatarNode->getUUID()) && !getsIgnoredByMe)
+                                || (avatarNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
+                                shouldIgnore = true;
+                            } else {
+
+                                // Check to see if the space bubble is enabled
+                                if (node->isIgnoreRadiusEnabled() || avatarNode->isIgnoreRadiusEnabled()) {
+
+                                    // Define the scale of the box for the current other node
+                                    glm::vec3 otherNodeBoxScale = (avatarNodeData->getPosition() - avatarNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
+                                    // Set up the bounding box for the current other node
+                                    AABox otherNodeBox(avatarNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+                                    // Clamp the size of the bounding box to a minimum scale
+                                    if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
+                                        otherNodeBox.setScaleStayCentered(minBubbleSize);
+                                    }
+                                    // Quadruple the scale of both bounding boxes
+                                    otherNodeBox.embiggen(4.0f);
+
+                                    // Perform the collision check between the two bounding boxes
+                                    if (nodeBox.touches(otherNodeBox)) {
+                                        nodeData->ignoreOther(node, avatarNode);
+                                        shouldIgnore = !getsAnyIgnored;
+                                    }
+                                }
+                                // Not close enough to ignore
+                                if (!shouldIgnore) {
+                                    nodeData->removeFromRadiusIgnoringSet(node, avatarNode->getUUID());
+                                }
+                            }
+                            quint64 endIgnoreCalculation = usecTimestampNow();
+                            _stats.ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
+
+                            if (!shouldIgnore) {
+                                AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(avatarNode->getUUID());
+                                AvatarDataSequenceNumber lastSeqFromSender = avatarNodeData->getLastReceivedSequenceNumber();
+
+                                // FIXME - This code does appear to be working. But it seems brittle.
+                                //         It supports determining if the frame of data for this "other"
+                                //         avatar has already been sent to the reciever. This has been
+                                //         verified to work on a desktop display that renders at 60hz and
+                                //         therefore sends to mixer at 30hz. Each second you'd expect to
+                                //         have 15 (45hz-30hz) duplicate frames. In this case, the stat
+                                //         avg_other_av_skips_per_second does report 15.
+                                //
+                                // make sure we haven't already sent this data from this sender to this receiver
+                                // or that somehow we haven't sent
+                                if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
+                                    ++numAvatarsHeldBack;
+                                    shouldIgnore = true;
+                                } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
+                                    // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
+                                    ++numAvatarsWithSkippedFrames;
+                                }
+                            }
+                        }
+                    }
+                    return shouldIgnore;
                 });
 
         // loop through our sorted avatars and allocate our bandwidth to them accordingly
@@ -219,223 +304,107 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             // NOTE: Here's where we determine if we are over budget and drop to bare minimum data
             int minimRemainingAvatarBytes = minimumBytesPerAvatar * remainingAvatars;
             bool overBudget = (identityBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes) > maxAvatarBytesPerFrame;
-            /**
-                qDebug() << "Budget debugging:"
-                    << "numAvatarDataBytes:" << numAvatarDataBytes << "\n"
-                    << "identityBytesSent:" << identityBytesSent << "\n"
-                    << "remainingAvatars:" << remainingAvatars << "\n"
-                    << "minimumBytesPerAvatar:" << minimumBytesPerAvatar << "\n"
-                    << "minimRemainingAvatarBytes:" << minimRemainingAvatarBytes << "\n"
-                    << "overBudget:" << overBudget << "\n"
-                    << "overBudgetAvatars:" << overBudgetAvatars;
-            **/
 
-            bool shouldConsider = false;
-            quint64 startIgnoreCalculation = usecTimestampNow();
+            quint64 startAvatarDataPacking = usecTimestampNow();
 
-            // make sure we have data for this avatar, that it isn't the same node,
-            // and isn't an avatar that the viewing node has ignored
-            // or that has ignored the viewing node
-            if (!otherNode->getLinkedData()
-                || otherNode->getUUID() == node->getUUID()
-                || (node->isIgnoringNodeWithID(otherNode->getUUID()) && !getsIgnoredByMe)
-                || (otherNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
+            ++numOtherAvatars;
 
-                shouldConsider = false;
+            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
+
+            // make sure we send out identity packets to and from new arrivals.
+            bool forceSend = !nodeData->checkAndSetHasReceivedFirstPacketsFrom(otherNode->getUUID());
+
+            // FIXME - this clause seems suspicious "... || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp ..."
+            if (!overBudget
+                && otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
+                && (forceSend
+                || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
+                || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
+
+                identityBytesSent += sendIdentityPacket(otherNodeData, node);
+            }
+
+            const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
+            glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
+
+            // determine if avatar is in view, to determine how much data to include...
+            glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
+            AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+            bool isInView = nodeData->otherAvatarInView(otherNodeBox);
+
+            // start a new segment in the PacketList for this avatar
+            avatarPacketList->startSegment();
+
+            AvatarData::AvatarDataDetail detail;
+
+            if (overBudget) {
+                overBudgetAvatars++;
+                _stats.overBudgetAvatars++;
+                detail = AvatarData::NoData;
+            } else  if (!isInView && !getsOutOfView) {
+                detail = AvatarData::NoData;
+                nodeData->incrementAvatarOutOfView();
             } else {
-                const AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-
-                shouldConsider = true; // assume we will consider...
-
-                // Check to see if the space bubble is enabled
-                if (node->isIgnoreRadiusEnabled() || otherNode->isIgnoreRadiusEnabled()) {
-                    // Define the minimum bubble size
-                    static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
-                    // Define the scale of the box for the current node
-                    glm::vec3 nodeBoxScale = (nodeData->getPosition() - nodeData->getGlobalBoundingBoxCorner()) * 2.0f;
-                    // Define the scale of the box for the current other node
-                    glm::vec3 otherNodeBoxScale = (otherData->getPosition() - otherData->getGlobalBoundingBoxCorner()) * 2.0f;
-
-                    // Set up the bounding box for the current node
-                    AABox nodeBox(nodeData->getGlobalBoundingBoxCorner(), nodeBoxScale);
-                    // Clamp the size of the bounding box to a minimum scale
-                    if (glm::any(glm::lessThan(nodeBoxScale, minBubbleSize))) {
-                        nodeBox.setScaleStayCentered(minBubbleSize);
-                    }
-                    // Set up the bounding box for the current other node
-                    AABox otherNodeBox(otherData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-                    // Clamp the size of the bounding box to a minimum scale
-                    if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
-                        otherNodeBox.setScaleStayCentered(minBubbleSize);
-                    }
-                    // Quadruple the scale of both bounding boxes
-                    nodeBox.embiggen(4.0f);
-                    otherNodeBox.embiggen(4.0f);
-
-                    // Perform the collision check between the two bounding boxes
-                    if (nodeBox.touches(otherNodeBox)) {
-                        nodeData->ignoreOther(node, otherNode);
-                        shouldConsider = getsAnyIgnored;
-                    }
-                }
-                // Not close enough to ignore
-                if (shouldConsider) {
-                    nodeData->removeFromRadiusIgnoringSet(node, otherNode->getUUID());
-                }
-
-                quint64 endIgnoreCalculation = usecTimestampNow();
-                _stats.ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
+                detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
+                    ? AvatarData::SendAllData : AvatarData::CullSmallData;
+                nodeData->incrementAvatarInView();
             }
 
-            if (shouldConsider) {
-                quint64 startAvatarDataPacking = usecTimestampNow();
+            bool includeThisAvatar = true;
+            auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
+            QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
+            bool distanceAdjust = true;
+            glm::vec3 viewerPosition = myPosition;
+            AvatarDataPacket::HasFlags hasFlagsOut; // the result of the toByteArray
+            bool dropFaceTracking = false;
 
-                ++numOtherAvatars;
-
-                const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
-
-                // make sure we send out identity packets to and from new arrivals.
-                bool forceSend = !nodeData->checkAndSetHasReceivedFirstPacketsFrom(otherNode->getUUID());
-
-                // FIXME - this clause seems suspicious "... || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp ..."
-                if (!overBudget
-                    && otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
-                    && (forceSend
-                    || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
-                    || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
-
-                    identityBytesSent += sendIdentityPacket(otherNodeData, node);
-                }
-
-                const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
-                //  Decide whether to send this avatar's data based on it's distance from us
-
-                glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
-                float distanceToAvatar = glm::length(myPosition - otherPosition);
-
-                if (shouldConsider) {
-                    AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
-                    AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
-
-                    // FIXME - This code does appear to be working. But it seems brittle.
-                    //         It supports determining if the frame of data for this "other"
-                    //         avatar has already been sent to the reciever. This has been
-                    //         verified to work on a desktop display that renders at 60hz and
-                    //         therefore sends to mixer at 30hz. Each second you'd expect to
-                    //         have 15 (45hz-30hz) duplicate frames. In this case, the stat
-                    //         avg_other_av_skips_per_second does report 15.
-                    //
-                    // make sure we haven't already sent this data from this sender to this receiver
-                    // or that somehow we haven't sent
-                    if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
-                        ++numAvatarsHeldBack;
-
-                        quint64 endAvatarDataPacking = usecTimestampNow();
-                        _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                        shouldConsider = false;
-                    } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
-                        // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
-                        ++numAvatarsWithSkippedFrames;
-                    }
-
-                    // we're going to send this avatar
-                    if (shouldConsider) {
-
-                        // determine if avatar is in view, to determine how much data to include...
-                        glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
-                        AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-                        bool isInView = nodeData->otherAvatarInView(otherNodeBox);
-
-                        // this throttles the extra data to only be sent every Nth message
-                        /**
-                        if (!isInView && !getsOutOfView && (lastSeqToReceiver % EXTRA_AVATAR_DATA_FRAME_RATIO > 0)) {
-                            quint64 endAvatarDataPacking = usecTimestampNow();
-
-                            _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                            shouldConsider = false;
-                        }
-                        ***/
-
-                        if (shouldConsider) {
-                            // start a new segment in the PacketList for this avatar
-                            avatarPacketList->startSegment();
-
-                            AvatarData::AvatarDataDetail detail;
-
-                            if (overBudget) {
-                                overBudgetAvatars++;
-                                _stats.overBudgetAvatars++;
-                                detail = AvatarData::NoData;
-                            } else  if (!isInView && !getsOutOfView) {
-                                detail = AvatarData::NoData;
-                                nodeData->incrementAvatarOutOfView();
-                            } else {
-                                detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
-                                    ? AvatarData::SendAllData : AvatarData::CullSmallData;
-                                nodeData->incrementAvatarInView();
-                            }
-
-                            {
-                                bool includeThisAvatar = true;
-                                auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
-                                QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
-                                bool distanceAdjust = true;
-                                glm::vec3 viewerPosition = myPosition;
-                                AvatarDataPacket::HasFlags hasFlagsOut; // the result of the toByteArray
-                                bool dropFaceTracking = false;
-
-                                quint64 start = usecTimestampNow();
-                                QByteArray bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, 
-                                                                hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
-                                quint64 end = usecTimestampNow();
-                                _stats.toByteArrayElapsedTime += (end - start);
-
-                                static const int MAX_ALLOWED_AVATAR_DATA = (1400 - NUM_BYTES_RFC4122_UUID);
-                                if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                                    qCWarning(avatars) << "otherAvatar.toByteArray() resulted in very large buffer:" << bytes.size() << "... attempt to drop facial data";
-
-                                    dropFaceTracking = true; // first try dropping the facial data
-                                    bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
-                                        hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
-
-                                    if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                                        qCWarning(avatars) << "otherAvatar.toByteArray() without facial data resulted in very large buffer:" << bytes.size() << "... reduce to MinimumData";
-                                        bytes = otherAvatar->toByteArray(AvatarData::MinimumData, lastEncodeForOther, lastSentJointsForOther,
+            quint64 start = usecTimestampNow();
+            QByteArray bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther, 
                                             hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
-                                    }
+            quint64 end = usecTimestampNow();
+            _stats.toByteArrayElapsedTime += (end - start);
 
-                                    if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                                        qCWarning(avatars) << "otherAvatar.toByteArray() MinimumData resulted in very large buffer:" << bytes.size() << "... FAIL!!";
-                                        includeThisAvatar = false;
-                                    }
-                                }
+            static const int MAX_ALLOWED_AVATAR_DATA = (1400 - NUM_BYTES_RFC4122_UUID);
+            if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
+                qCWarning(avatars) << "otherAvatar.toByteArray() resulted in very large buffer:" << bytes.size() << "... attempt to drop facial data";
 
-                                if (includeThisAvatar) {
-                                    numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
-                                    numAvatarDataBytes += avatarPacketList->write(bytes);
-                                    _stats.numOthersIncluded++;
+                dropFaceTracking = true; // first try dropping the facial data
+                bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
+                    hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
 
-                                    // increment the number of avatars sent to this reciever
-                                    nodeData->incrementNumAvatarsSentLastFrame();
+                if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
+                    qCWarning(avatars) << "otherAvatar.toByteArray() without facial data resulted in very large buffer:" << bytes.size() << "... reduce to MinimumData";
+                    bytes = otherAvatar->toByteArray(AvatarData::MinimumData, lastEncodeForOther, lastSentJointsForOther,
+                        hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
+                }
 
-                                    // set the last sent sequence number for this sender on the receiver
-                                    nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                                        otherNodeData->getLastReceivedSequenceNumber());
-
-                                    // remember the last time we sent details about this other node to the receiver
-                                    nodeData->setLastBroadcastTime(otherNode->getUUID(), start);
-
-                                }
-                            }
-
-                            avatarPacketList->endSegment();
-
-                            quint64 endAvatarDataPacking = usecTimestampNow();
-                            _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-                        }
-                    }
+                if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
+                    qCWarning(avatars) << "otherAvatar.toByteArray() MinimumData resulted in very large buffer:" << bytes.size() << "... FAIL!!";
+                    includeThisAvatar = false;
                 }
             }
+
+            if (includeThisAvatar) {
+                numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
+                numAvatarDataBytes += avatarPacketList->write(bytes);
+                _stats.numOthersIncluded++;
+
+                // increment the number of avatars sent to this reciever
+                nodeData->incrementNumAvatarsSentLastFrame();
+
+                // set the last sent sequence number for this sender on the receiver
+                nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
+                    otherNodeData->getLastReceivedSequenceNumber());
+
+                // remember the last time we sent details about this other node to the receiver
+                nodeData->setLastBroadcastTime(otherNode->getUUID(), start);
+
+            }
+
+            avatarPacketList->endSegment();
+
+            quint64 endAvatarDataPacking = usecTimestampNow();
+            _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
         };
 
         quint64 startPacketSending = usecTimestampNow();
