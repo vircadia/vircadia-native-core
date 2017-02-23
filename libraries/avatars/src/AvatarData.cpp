@@ -2332,7 +2332,6 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
         PROFILE_RANGE(simulation, "sort");
         for (int32_t i = 0; i < avatarList.size(); ++i) {
             const auto& avatar = avatarList.at(i);
-            bool outOfView = false;
 
             if (shouldIgnore(avatar)) {
                 continue;
@@ -2366,7 +2365,6 @@ std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
             if (distance > cameraView.getCenterRadius()) {
                 if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
                     priority += OUT_OF_VIEW_PENALTY;
-                    outOfView = true;
                 }
             }
             sortedAvatars.push(AvatarPriority(avatar, priority));
