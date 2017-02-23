@@ -18,27 +18,39 @@
 #include <QRunnable>
 #include <QThreadPool>
 #include <QImageReader>
+
+#if DEBUG_DUMP_TEXTURE_LOADS
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
+#endif
 
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
 #include <gpu/Batch.h>
 
+#include <ktx/KTX.h>
+
 #include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>
 
 #include <Finally.h>
 #include <PathUtils.h>
+#include <ServerPathUtils.h>
 
 #include "ModelNetworkingLogging.h"
 #include <Trace.h>
 #include <StatTracker.h>
 
 Q_LOGGING_CATEGORY(trace_resource_parse_image, "trace.resource.parse.image")
+Q_LOGGING_CATEGORY(trace_resource_parse_ktx, "trace.resource.parse.ktx")
+Q_LOGGING_CATEGORY(trace_resource_cache_ktx, "trace.resource.cache.ktx")
 
-TextureCache::TextureCache() {
+const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
+const std::string TextureCache::KTX_EXT { "ktx" };
+
+TextureCache::TextureCache() :
+    _ktxCache(KTX_DIRNAME, KTX_EXT) {
     setUnusedResourceCacheSize(0);
     setObjectName("TextureCache");
 
@@ -61,7 +73,7 @@ TextureCache::~TextureCache() {
 // this list taken from Ken Perlin's Improved Noise reference implementation (orig. in Java) at
 // http://mrl.nyu.edu/~perlin/noise/
 
-const int permutation[256] = 
+const int permutation[256] =
 {
     151, 160, 137,  91,  90,  15, 131,  13, 201,  95,  96,  53, 194, 233,   7, 225,
     140,  36, 103,  30,  69, 142,   8,  99,  37, 240,  21,  10,  23, 190,   6, 148,
@@ -241,7 +253,7 @@ NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type t
             return NetworkTexture::TextureLoaderFunc();
             break;
         }
-                                   
+
         case Type::DEFAULT_TEXTURE:
         default: {
             return model::TextureUsage::create2DTextureFromImage;
@@ -259,12 +271,32 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, Type type
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
     const void* extra) {
+    KTXFilePointer file = _ktxCache.getFile(url);
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     auto type = textureExtra ? textureExtra->type : Type::DEFAULT_TEXTURE;
-    auto content = textureExtra ? textureExtra->content : QByteArray();
-    auto maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
-    return QSharedPointer<Resource>(new NetworkTexture(url, type, content, maxNumPixels),
-        &Resource::deleter);
+
+    NetworkTexture* texture;
+    if (file) {
+        texture = new NetworkTexture(url, type, file);
+    } else {
+        auto content = textureExtra ? textureExtra->content : QByteArray();
+        auto maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
+        texture = new NetworkTexture(url, type, content, maxNumPixels);
+    }
+
+    return QSharedPointer<Resource>(texture, &Resource::deleter);
+}
+
+NetworkTexture::NetworkTexture(const QUrl& url, Type type, const KTXFilePointer& file) :
+    Resource(url),
+    _type(type),
+    _file(file) {
+    _textureSource = std::make_shared<gpu::TextureSource>();
+
+    if (file) {
+        _startedLoading = true;
+        QMetaObject::invokeMethod(this, "loadFile", Qt::QueuedConnection);
+    }
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels) :
@@ -278,7 +310,6 @@ NetworkTexture::NetworkTexture(const QUrl& url, Type type, const QByteArray& con
         _loaded = true;
     }
 
-    std::string theName = url.toString().toStdString();
     // if we have content, load it after we have our self pointer
     if (!content.isEmpty()) {
         _startedLoading = true;
@@ -297,149 +328,6 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
         return _textureLoader;
     }
     return getTextureLoaderForType(_type);
-}
-
-
-class ImageReader : public QRunnable {
-public:
-
-    ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data,
-            const QUrl& url = QUrl(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
-
-    virtual void run() override;
-
-private:
-    static void listSupportedImageFormats();
-
-    QWeakPointer<Resource> _resource;
-    QUrl _url;
-    QByteArray _content;
-    int _maxNumPixels;
-};
-
-void NetworkTexture::downloadFinished(const QByteArray& data) {
-    // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new ImageReader(_self, data, _url));
-}
-
-void NetworkTexture::loadContent(const QByteArray& content) {
-    QThreadPool::globalInstance()->start(new ImageReader(_self, content, _url, _maxNumPixels));
-}
-
-ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data,
-        const QUrl& url, int maxNumPixels) :
-    _resource(resource),
-    _url(url),
-    _content(data),
-    _maxNumPixels(maxNumPixels)
-{
-#if DEBUG_DUMP_TEXTURE_LOADS
-    static auto start = usecTimestampNow() / USECS_PER_MSEC;
-    auto now = usecTimestampNow() / USECS_PER_MSEC - start;
-    QString urlStr = _url.toString();
-    auto dot = urlStr.lastIndexOf(".");
-    QString outFileName = QString(QCryptographicHash::hash(urlStr.toLocal8Bit(), QCryptographicHash::Md5).toHex()) + urlStr.right(urlStr.length() - dot);
-    QFile loadRecord("h:/textures/loads.txt");
-    loadRecord.open(QFile::Text | QFile::Append | QFile::ReadWrite);
-    loadRecord.write(QString("%1 %2\n").arg(now).arg(outFileName).toLocal8Bit());
-    outFileName = "h:/textures/" + outFileName;
-    QFileInfo outInfo(outFileName);
-    if (!outInfo.exists()) {
-        QFile outFile(outFileName);
-        outFile.open(QFile::WriteOnly | QFile::Truncate);
-        outFile.write(data);
-        outFile.close();
-    }
-#endif
-    DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
-}
-
-void ImageReader::listSupportedImageFormats() {
-    static std::once_flag once;
-    std::call_once(once, []{
-        auto supportedFormats = QImageReader::supportedImageFormats();
-        qCDebug(modelnetworking) << "List of supported Image formats:" << supportedFormats.join(", ");
-    });
-}
-
-void ImageReader::run() {
-    DependencyManager::get<StatTracker>()->decrementStat("PendingProcessing");
-
-    CounterStat counter("Processing");
-
-    PROFILE_RANGE_EX(resource_parse_image, __FUNCTION__, 0xffff0000, 0, { { "url", _url.toString() } });
-    auto originalPriority = QThread::currentThread()->priority();
-    if (originalPriority == QThread::InheritPriority) {
-        originalPriority = QThread::NormalPriority;
-    }
-    QThread::currentThread()->setPriority(QThread::LowPriority);
-    Finally restorePriority([originalPriority]{
-        QThread::currentThread()->setPriority(originalPriority);
-    });
-
-    if (!_resource.data()) {
-        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
-        return;
-    }
-    listSupportedImageFormats();
-
-    // Help the QImage loader by extracting the image file format from the url filename ext.
-    // Some tga are not created properly without it.
-    auto filename = _url.fileName().toStdString();
-    auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
-    QImage image = QImage::fromData(_content, filenameExtension.c_str());
-
-    // Note that QImage.format is the pixel format which is different from the "format" of the image file...
-    auto imageFormat = image.format();
-    int imageWidth = image.width();
-    int imageHeight = image.height();
-
-    if (imageWidth == 0 || imageHeight == 0 || imageFormat == QImage::Format_Invalid) {
-        if (filenameExtension.empty()) {
-            qCDebug(modelnetworking) << "QImage failed to create from content, no file extension:" << _url;
-        } else {
-            qCDebug(modelnetworking) << "QImage failed to create from content" << _url;
-        }
-        return;
-    }
-
-    if (imageWidth * imageHeight > _maxNumPixels) {
-        float scaleFactor = sqrtf(_maxNumPixels / (float)(imageWidth * imageHeight));
-        int originalWidth = imageWidth;
-        int originalHeight = imageHeight;
-        imageWidth = (int)(scaleFactor * (float)imageWidth + 0.5f);
-        imageHeight = (int)(scaleFactor * (float)imageHeight + 0.5f);
-        QImage newImage = image.scaled(QSize(imageWidth, imageHeight), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        image.swap(newImage);
-        qCDebug(modelnetworking) << "Downscale image" << _url
-            << "from" << originalWidth << "x" << originalHeight
-            << "to" << imageWidth << "x" << imageHeight;
-    }
-
-    gpu::TexturePointer texture = nullptr;
-    {
-        // Double-check the resource still exists between long operations.
-        auto resource = _resource.toStrongRef();
-        if (!resource) {
-            qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
-            return;
-        }
-
-        auto url = _url.toString().toStdString();
-
-        PROFILE_RANGE_EX(resource_parse_image, __FUNCTION__, 0xffffff00, 0);
-        texture.reset(resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url));
-    }
-
-    // Ensure the resource has not been deleted
-    auto resource = _resource.toStrongRef();
-    if (!resource) {
-        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
-    } else {
-        QMetaObject::invokeMethod(resource.data(), "setImage",
-            Q_ARG(gpu::TexturePointer, texture),
-            Q_ARG(int, imageWidth), Q_ARG(int, imageHeight));
-    }
 }
 
 void NetworkTexture::setImage(gpu::TexturePointer texture, int originalWidth,
@@ -463,4 +351,197 @@ void NetworkTexture::setImage(gpu::TexturePointer texture, int originalWidth,
     finishedLoading(true);
 
     emit networkTextureCreated(qWeakPointerCast<NetworkTexture, Resource> (_self));
+}
+
+class Reader : public QRunnable {
+public:
+    Reader(const QWeakPointer<Resource>& resource, const QUrl& url) : _resource(resource), _url(url) {
+        DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
+    }
+    void run() override final {
+        DependencyManager::get<StatTracker>()->decrementStat("PendingProcessing");
+        CounterStat counter("Processing");
+
+        // Run this with low priority, then restore thread priority
+        auto originalPriority = QThread::currentThread()->priority();
+        if (originalPriority == QThread::InheritPriority) {
+            originalPriority = QThread::NormalPriority;
+        }
+        QThread::currentThread()->setPriority(QThread::LowPriority);
+        Finally restorePriority([originalPriority]{
+                QThread::currentThread()->setPriority(originalPriority);
+                });
+
+        if (!_resource.lock()) { // to ensure the resource is still needed
+            qCDebug(modelnetworking) << _url << "loading stopped; resource out of scope";
+            return;
+        }
+
+        read();
+    }
+    virtual void read() = 0;
+
+protected:
+    QWeakPointer<Resource> _resource;
+    QUrl _url;
+};
+
+class FileReader : public Reader {
+public:
+    FileReader(const QWeakPointer<Resource>& resource, const QUrl& url) : Reader(resource, url) {}
+    void read() override final;
+};
+
+class ImageReader : public Reader {
+public:
+    ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url,
+            const QByteArray& data, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
+    void read() override final;
+
+private:
+    static void listSupportedImageFormats();
+
+    QByteArray _content;
+    int _maxNumPixels;
+};
+
+void NetworkTexture::downloadFinished(const QByteArray& data) {
+    // send the reader off to the thread pool
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _url, data));
+}
+
+void NetworkTexture::loadFile() {
+    QThreadPool::globalInstance()->start(new FileReader(_self, _url));
+}
+
+void NetworkTexture::loadContent(const QByteArray& content) {
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, _maxNumPixels));
+}
+
+ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url,
+        const QByteArray& data, int maxNumPixels) :
+    Reader(resource, url), _content(data), _maxNumPixels(maxNumPixels) {
+    listSupportedImageFormats();
+#if DEBUG_DUMP_TEXTURE_LOADS
+    static auto start = usecTimestampNow() / USECS_PER_MSEC;
+    auto now = usecTimestampNow() / USECS_PER_MSEC - start;
+    QString urlStr = _url.toString();
+    auto dot = urlStr.lastIndexOf(".");
+    QString outFileName = QString(QCryptographicHash::hash(urlStr.toLocal8Bit(), QCryptographicHash::Md5).toHex()) + urlStr.right(urlStr.length() - dot);
+    QFile loadRecord("h:/textures/loads.txt");
+    loadRecord.open(QFile::Text | QFile::Append | QFile::ReadWrite);
+    loadRecord.write(QString("%1 %2\n").arg(now).arg(outFileName).toLocal8Bit());
+    outFileName = "h:/textures/" + outFileName;
+    QFileInfo outInfo(outFileName);
+    if (!outInfo.exists()) {
+        QFile outFile(outFileName);
+        outFile.open(QFile::WriteOnly | QFile::Truncate);
+        outFile.write(data);
+        outFile.close();
+    }
+#endif
+}
+
+void ImageReader::listSupportedImageFormats() {
+    static std::once_flag once;
+    std::call_once(once, []{
+        auto supportedFormats = QImageReader::supportedImageFormats();
+        qCDebug(modelnetworking) << "List of supported Image formats:" << supportedFormats.join(", ");
+    });
+}
+
+void FileReader::read() {
+    PROFILE_RANGE_EX(resource_parse_ktx, __FUNCTION__, 0xffff0000, 0);
+
+    // TODO:
+    // auto ktx = ktx::KTX::create();
+    // auto texture = gpu::Texture::unserialize(getUsage(), getUsageType(), ktx, getSampler());
+    // FIXME: do I need to set the file as a backing file here?
+}
+
+void ImageReader::read() {
+    PROFILE_RANGE_EX(resource_parse_image, __FUNCTION__, 0xffff0000, 0, { { "url", _url.toString() } });
+
+    // Help the QImage loader by extracting the image file format from the url filename ext.
+    // Some tga are not created properly without it.
+    auto filename = _url.fileName().toStdString();
+    auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
+    QImage image = QImage::fromData(_content, filenameExtension.c_str());
+    int imageWidth = image.width();
+    int imageHeight = image.height();
+
+    // Validate that the image loaded
+    if (imageWidth == 0 || imageHeight == 0 || image.format() == QImage::Format_Invalid) {
+        QString reason(filenameExtension.empty() ? "" : "(no file extension)");
+        qCWarning(modelnetworking) << "Failed to load" << _url << reason;
+        return;
+    }
+
+    // Validate the image is less than _maxNumPixels, and downscale if necessary
+    if (imageWidth * imageHeight > _maxNumPixels) {
+        float scaleFactor = sqrtf(_maxNumPixels / (float)(imageWidth * imageHeight));
+        int originalWidth = imageWidth;
+        int originalHeight = imageHeight;
+        imageWidth = (int)(scaleFactor * (float)imageWidth + 0.5f);
+        imageHeight = (int)(scaleFactor * (float)imageHeight + 0.5f);
+        QImage newImage = image.scaled(QSize(imageWidth, imageHeight), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        image.swap(newImage);
+        qCDebug(modelnetworking).nospace() << "Downscaled " << _url << " (" <<
+            QSize(originalWidth, originalHeight) << " to " <<
+            QSize(imageWidth, imageHeight) << ")";
+    }
+
+    // Load the image into a gpu::Texture
+    gpu::TexturePointer texture = nullptr;
+    {
+        auto resource = _resource.lock(); // to ensure the resource is still needed
+        if (!resource) {
+            qCDebug(modelnetworking) << _url << "loading stopped; resource out of scope";
+            return;
+        }
+
+        auto url = _url.toString().toStdString();
+
+        PROFILE_RANGE_EX(resource_parse_image, __FUNCTION__, 0xffff0000, 0);
+        texture.reset(resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url));
+        texture->setSource(url);
+    }
+
+    // Hash the source image to use as a filename for on-disk caching
+    std::string hash;
+    {
+        QCryptographicHash hasher(QCryptographicHash::Md5);
+        hasher.addData((const char*)image.bits(), image.byteCount() * sizeof(char));
+        hash = hasher.result().toHex().toStdString();
+    }
+
+    {
+        auto resource = _resource.lock(); // to ensure the resource is still needed
+        if (!resource) {
+            qCDebug(modelnetworking) << _url << "loading stopped; resource out of scope";
+            return;
+        }
+
+        PROFILE_RANGE_EX(resource_cache_ktx, __FUNCTION__, 0xffffff00, 0);
+        auto ktx = gpu::Texture::serialize(*texture);
+        const char* data = reinterpret_cast<const char*>(ktx->_storage->data());
+        size_t length = ktx->_storage->size();
+        KTXFilePointer file;
+        auto& ktxCache = DependencyManager::get<TextureCache>()->_ktxCache;
+        if (!ktx || !(file = ktxCache.writeFile({ _url, hash, data, length }))) {
+            qCWarning(modelnetworking) << _url << "file cache failed";
+        } else {
+            resource.dynamicCast<NetworkTexture>()->_file = file;
+            // FIXME: do I need to set the file as a backing file here?
+        }
+    }
+
+    auto resource = _resource.toStrongRef(); // to ensure the resource is still needed
+    if (resource) {
+        QMetaObject::invokeMethod(resource.data(), "setImage",
+            Q_ARG(gpu::TexturePointer, texture),
+            Q_ARG(int, imageWidth), Q_ARG(int, imageHeight));
+    } else {
+        qCDebug(modelnetworking) << _url << "loading stopped; resource out of scope";
+    }
 }
