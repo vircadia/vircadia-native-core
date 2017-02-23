@@ -72,7 +72,7 @@
 static const QScriptEngine::QObjectWrapOptions DEFAULT_QOBJECT_WRAP_OPTIONS =
                 QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects;
 static const QScriptValue::PropertyFlags READONLY_PROP_FLAGS { QScriptValue::ReadOnly | QScriptValue::Undeletable };
-static const QScriptValue::PropertyFlags HIDDEN_PROP_FLAGS { READONLY_PROP_FLAGS | QScriptValue::SkipInEnumeration };
+static const QScriptValue::PropertyFlags READONLY_HIDDEN_PROP_FLAGS { READONLY_PROP_FLAGS | QScriptValue::SkipInEnumeration };
 
 
 
@@ -165,7 +165,7 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
             // ... but may not always be available -- so if needed we fallback to the passed exception
             emit unhandledException(exception);
         }
-    });
+    }, Qt::DirectConnection);
     
     setProcessEventsInterval(MSECS_PER_SECOND);
     if (isEntityServerScript()) {
@@ -1250,7 +1250,7 @@ void ScriptEngine::stopTimer(QTimer *timer) {
 
 QUrl ScriptEngine::resolvePath(const QString& include) const {
     QUrl url(include);
-    // first lets check to see if it's already a full URL
+    // first lets check to see if it's already a full URL -- or a Windows path like "c:/"
     if (include.startsWith("/") || url.scheme().length() == 1) {
         url = QUrl::fromLocalFile(include);
     }
@@ -1261,12 +1261,12 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     // we apparently weren't a fully qualified url, so, let's assume we're relative
     // to the first absolute URL in the JS scope chain
     QUrl parentURL;
-    auto ctx = currentContext();
+    auto context = currentContext();
     do {
-        QScriptContextInfo contextInfo { ctx };
+        QScriptContextInfo contextInfo { context };
         parentURL = QUrl(contextInfo.fileName());
-        ctx = ctx->parentContext();
-    } while (parentURL.isRelative() && ctx);
+        context = context->parentContext();
+    } while (parentURL.isRelative() && context);
 
     if (parentURL.isRelative()) {
         // fallback to the "include" parent (if defined, this will already be absolute)
