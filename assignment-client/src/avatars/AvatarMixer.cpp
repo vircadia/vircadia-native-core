@@ -506,6 +506,9 @@ void AvatarMixer::sendStatsPacket() {
         float averageOthersIncluded = averageNodes ? stats.numOthersIncluded / averageNodes : 0.0f;
         slaveObject["sent_6_averageOthersIncluded"] = TIGHT_LOOP_STAT(averageOthersIncluded);
 
+        float averageRandomDrops = averageNodes ? stats.randomDrops / averageNodes : 0.0f;
+        slaveObject["sent_7_averageRandomDrops"] = TIGHT_LOOP_STAT(averageRandomDrops);
+
         slaveObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(stats.processIncomingPacketsElapsedTime);
         slaveObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(stats.ignoreCalculationElapsedTime);
         slaveObject["timing_3_toByteArray"] = TIGHT_LOOP_STAT_UINT64(stats.toByteArrayElapsedTime);
@@ -533,9 +536,12 @@ void AvatarMixer::sendStatsPacket() {
     float averageOutboundAvatarKbps = averageNodes ? ((aggregateStats.numBytesSent / secondsSinceLastStats) / BYTES_PER_KILOBIT) / averageNodes : 0.0f;
     slavesAggregatObject["sent_5_averageOutboundAvatarKbps"] = averageOutboundAvatarKbps;
 
+    float averageRandomDrops = averageNodes ? aggregateStats.randomDrops / averageNodes : 0.0f;
+    slavesAggregatObject["sent_7_averageRandomDrops"] = TIGHT_LOOP_STAT(averageRandomDrops);
+
     float averageOthersIncluded = averageNodes ? aggregateStats.numOthersIncluded / averageNodes : 0.0f;
     slavesAggregatObject["sent_6_averageOthersIncluded"] = TIGHT_LOOP_STAT(averageOthersIncluded);
-    
+
     slavesAggregatObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.processIncomingPacketsElapsedTime);
     slavesAggregatObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.ignoreCalculationElapsedTime);
     slavesAggregatObject["timing_3_toByteArray"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.toByteArrayElapsedTime);

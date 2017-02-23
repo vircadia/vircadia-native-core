@@ -332,15 +332,19 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 //
                 // NOTE: If the recieving node is in "PAL mode" then it's asked to get things even that
                 //       are out of view, this also appears to disable this random distribution.
+                //
+                // FIXME - This approach for managing the outbound bandwidth is less than ideal,
+                //         it would be better to more directly budget the number of bytes to send
+                //         per frame and simply exit the sorted avatar list once that budget is
+                //         surpassed. We will work on that next. [BHG 2/22/17]
                 if (distanceToAvatar != 0.0f
                     && !getsOutOfView
-                    && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar) /// FIX ME... we don't want to do this random stuff
+                    && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)
                 ) {
-
                     quint64 endAvatarDataPacking = usecTimestampNow();
                     _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                     shouldConsider = false;
-                    //qDebug() << "shouldConsider = false ... line:" << __LINE__;
+                    _stats.randomDrops++;
                 }
 
                 if (shouldConsider) {

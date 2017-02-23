@@ -25,6 +25,8 @@ public:
     int numBytesSent { 0 };
     int numIdentityPackets { 0 };
     int numOthersIncluded { 0 };
+    int randomDrops { 0 };
+
     quint64 ignoreCalculationElapsedTime { 0 };
     quint64 avatarDataPackingElapsedTime { 0 };
     quint64 packetSendingElapsedTime { 0 };
@@ -43,6 +45,8 @@ public:
         numBytesSent = 0;
         numIdentityPackets = 0;
         numOthersIncluded = 0;
+        randomDrops = 0;
+
         ignoreCalculationElapsedTime = 0;
         avatarDataPackingElapsedTime = 0;
         packetSendingElapsedTime = 0;
@@ -60,6 +64,8 @@ public:
         numBytesSent += rhs.numBytesSent;
         numIdentityPackets += rhs.numIdentityPackets;
         numOthersIncluded += rhs.numOthersIncluded;
+        randomDrops += rhs.randomDrops;
+
         ignoreCalculationElapsedTime += rhs.ignoreCalculationElapsedTime;
         avatarDataPackingElapsedTime += rhs.avatarDataPackingElapsedTime;
         packetSendingElapsedTime += rhs.packetSendingElapsedTime;
