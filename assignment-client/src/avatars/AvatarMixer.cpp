@@ -309,7 +309,8 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
             },
             [&](const SharedNodePointer& node) {
                 QMetaObject::invokeMethod(node->getLinkedData(),
-                                          "removeLastBroadcastSequenceNumber",
+                                        //"removeLastBroadcastSequenceNumber",
+                                         "cleanupKilledNode",
                                           Qt::AutoConnection,
                                           Q_ARG(const QUuid&, QUuid(killedNode->getUUID())));
             }
@@ -321,14 +322,17 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
 void AvatarMixer::handleAdjustAvatarSorting(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto start = usecTimestampNow();
 
-    message->readPrimitive(&AvatarData::_avatarSortCoefficientSize);
-    message->readPrimitive(&AvatarData::_avatarSortCoefficientCenter);
-    message->readPrimitive(&AvatarData::_avatarSortCoefficientAge);
+    // only allow admins with kick rights to change this value...
+    if (senderNode->getCanKick()) {
+        message->readPrimitive(&AvatarData::_avatarSortCoefficientSize);
+        message->readPrimitive(&AvatarData::_avatarSortCoefficientCenter);
+        message->readPrimitive(&AvatarData::_avatarSortCoefficientAge);
 
-    qCDebug(avatars) << "New avatar sorting... "
-                        << "size:" << AvatarData::_avatarSortCoefficientSize
-                        << "center:" << AvatarData::_avatarSortCoefficientCenter
-                        << "age:" << AvatarData::_avatarSortCoefficientAge;
+        qCDebug(avatars) << "New avatar sorting... "
+                            << "size:" << AvatarData::_avatarSortCoefficientSize
+                            << "center:" << AvatarData::_avatarSortCoefficientCenter
+                            << "age:" << AvatarData::_avatarSortCoefficientAge;
+    }
 
     auto end = usecTimestampNow();
     _handleAdjustAvatarSortingElapsedTime += (end - start);

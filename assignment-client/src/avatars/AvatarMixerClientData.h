@@ -53,10 +53,13 @@ public:
     Q_INVOKABLE void removeLastBroadcastSequenceNumber(const QUuid& nodeUUID) { _lastBroadcastSequenceNumbers.erase(nodeUUID); }
 
     uint64_t getLastBroadcastTime(const QUuid& nodeUUID) const;
-    void setLastBroadcastTime(const QUuid& nodeUUID, uint64_t broadcastTime) {
-        _lastBroadcastTimes[nodeUUID] = broadcastTime;
-    }
+    void setLastBroadcastTime(const QUuid& nodeUUID, uint64_t broadcastTime) { _lastBroadcastTimes[nodeUUID] = broadcastTime; }
     Q_INVOKABLE void removeLastBroadcastTime(const QUuid& nodeUUID) { _lastBroadcastTimes.erase(nodeUUID); }
+
+    Q_INVOKABLE void cleanupKilledNode(const QUuid& nodeUUID) {
+        removeLastBroadcastSequenceNumber(nodeUUID);
+        removeLastBroadcastTime(nodeUUID);
+    }
 
     uint16_t getLastReceivedSequenceNumber() const { return _lastReceivedSequenceNumber; }
 
@@ -114,7 +117,6 @@ public:
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
     ViewFrustum getViewFrustom() const { return _currentViewFrustum; }
-
 
     quint64 getLastOtherAvatarEncodeTime(QUuid otherAvatar) {
         quint64 result = 0;

@@ -191,7 +191,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         QList<AvatarSharedPointer> avatarList;
         std::unordered_map<AvatarSharedPointer, SharedNodePointer> avatarDataToNodes;
 
-        //qDebug() << "------------------------------";
         int listItem = 0;
         std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
             const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
@@ -200,36 +199,14 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 AvatarSharedPointer otherAvatar = otherNodeData->getAvatarSharedPointer();
                 avatarList << otherAvatar;
                 avatarDataToNodes[otherAvatar] = otherNode;
-                /*
-                qDebug() << "listItem [" << listItem << "] " 
-                        << "otherNode:" << otherNode.data()
-                        << "otherNode->getUUID():" << otherNode->getUUID() 
-                        << "otherNodeData:" << otherNodeData
-                        << "otherAvatar:" << otherAvatar.get();
-
-                qDebug() << "avatarDataToNodes[" << otherAvatar.get() << "]=" << otherNode.data();
-                */
             }
 
         });
-        /*
-        qDebug() << "avatarList.size:" << avatarList.size();
-        qDebug() << "avatarDataToNodes.size:" << avatarDataToNodes.size();
-        */
 
         AvatarSharedPointer thisAvatar = nodeData->getAvatarSharedPointer();
 
         //qDebug() << "thisAvatar:" << thisAvatar.get();
 
-#ifdef WANT_DEBUG
-        bool printDebug = nodeData->getAvatarSharedPointer()->getDisplayName() == "ZappoMan";
-
-        if (printDebug) {
-            qDebug() << "------------------------------";
-        }
-#else
-        bool printDebug = false;
-#endif
         ViewFrustum cameraView = nodeData->getViewFrustom();
         std::priority_queue<AvatarPriority> sortedAvatars = AvatarData::sortAvatars(
                 avatarList, cameraView,
@@ -239,18 +216,12 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     if (avatarNode) {
                         return nodeData->getLastBroadcastTime(avatarNode->getUUID());
                     }
-                    return 0; // ???
+                    return 0;
                 },
 
                 [thisAvatar](AvatarSharedPointer avatar)->bool{
                     return (avatar == thisAvatar); // ignore ourselves...
-                }, printDebug);
-
-#ifdef WANT_DEBUG
-        if (printDebug) {
-            qDebug() << "------------------------------";
-        }
-#endif
+                });
 
         // loop through our sorted avatars and allocate our bandwidth to them accordingly
         int avatarRank = 0;
@@ -262,13 +233,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
             auto otherNode = avatarDataToNodes[avatarData];
 
-            //qDebug() << "otherNode (" << otherNode.data() << ")= avatarDataToNodes[" << avatarData.get() << "]";
-
             if (!otherNode) {
-                //qDebug() << "For viewer:" << node->getUUID() << "... process other avatar [" << avatarRank << ":" << avatarData.get() << "... otherNode unknown!!";
                 continue;
             }
-            //qDebug() << "For viewer:" << node->getUUID() << "... process other avatar [" << avatarRank << "] avatarData: " << avatarData.get() << " otherNode:" << otherNode->getUUID() << " ... ";
 
             bool shouldConsider = false;
             quint64 startIgnoreCalculation = usecTimestampNow();
@@ -282,8 +249,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 || (otherNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
 
                 shouldConsider = false;
-                //qDebug() << "shouldConsider = false ... line:" << __LINE__;
-
             } else {
                 const AvatarMixerClientData* otherData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
 
@@ -318,8 +283,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     if (nodeBox.touches(otherNodeBox)) {
                         nodeData->ignoreOther(node, otherNode);
                         shouldConsider = getsAnyIgnored;
-                        //qDebug() << "shouldConsider = getsAnyIgnored " << getsAnyIgnored << " ... line:" << __LINE__;
-
                     }
                 }
                 // Not close enough to ignore
@@ -397,9 +360,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                         quint64 endAvatarDataPacking = usecTimestampNow();
                         _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                         shouldConsider = false;
-                        //qDebug() << "shouldConsider = false ... line:" << __LINE__;
-                    }
-                    else if (lastSeqFromSender - lastSeqToReceiver > 1) {
+                    } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                         // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                         ++numAvatarsWithSkippedFrames;
                     }
@@ -418,7 +379,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
                             _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
                             shouldConsider = false;
-                            //qDebug() << "shouldConsider = false ... line:" << __LINE__;
                         }
 
                         if (shouldConsider) {
