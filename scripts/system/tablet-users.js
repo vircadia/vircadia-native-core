@@ -49,7 +49,6 @@
     }
 
     function onWebEventReceived(event) {
-        print("Script received a web event, its type is " + typeof event);
         if (typeof event === "string") {
             event = JSON.parse(event);
         }

@@ -32,6 +32,8 @@ var gui = null;
 var settings = new Settings();
 var updateInterval;
 
+var active = false;
+
 var currentInputField;
 var storedController;
 //CHANGE TO WHITELIST
@@ -363,6 +365,19 @@ function listenForSettingsUpdates() {
             } else {
                 loadGUI();
             }
+            if (!active) {
+                // gui.toggleHide();
+                gui.closed = false;
+            }
+            active = true;
+
+        } else if (data.messageType === "particle_close") {
+            // none of this seems to work.
+            // if (active) {
+            //     gui.toggleHide();
+            // }
+            active = false;
+            gui.closed = true;
         }
     });
 }

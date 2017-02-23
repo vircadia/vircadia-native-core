@@ -462,7 +462,7 @@ RayToOverlayIntersectionResult::RayToOverlayIntersectionResult() :
 QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
     auto obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
-	obj.setProperty("overlayID", OverlayIDtoScriptValue(engine, value.overlayID));
+    obj.setProperty("overlayID", OverlayIDtoScriptValue(engine, value.overlayID));
     obj.setProperty("distance", value.distance);
 
     QString faceName = "";

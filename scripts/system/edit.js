@@ -1,7 +1,6 @@
 "use strict";
 
-//  newEditEntities.js
-//  examples
+//  edit.js
 //
 //  Created by Brad Hefta-Gaub on 10/2/14.
 //  Persist toolbar by HRS 6/11/15.
@@ -13,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTook, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
+/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -208,27 +207,7 @@ var toolBar = (function () {
     var buttonHandlers = {}; // only used to tablet mode
 
     function addButton(name, image, handler) {
-        if (Settings.getValue("HUDUIEnabled")) {
-            var imageUrl = TOOLS_PATH + image;
-            var button = toolBar.addButton({
-                objectName: name,
-                imageURL: imageUrl,
-                imageOffOut: 1,
-                imageOffIn: 2,
-                imageOnOut: 0,
-                imageOnIn: 2,
-                alpha: 0.9,
-                visible: true
-            });
-            if (handler) {
-                button.clicked.connect(function () {
-                    Script.setTimeout(handler, 100);
-                });
-            }
-            return button;
-        } else {
-            buttonHandlers[name] = handler;
-        }
+        buttonHandlers[name] = handler;
     }
 
     var SHAPE_TYPE_NONE = 0;
@@ -272,7 +251,6 @@ var toolBar = (function () {
     }
 
     function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
-        print("fromQml: " + JSON.stringify(message));
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         tablet.popFromStack();
         switch (message.method) {
@@ -299,41 +277,23 @@ var toolBar = (function () {
             }
         });
 
-
-        if (Settings.getValue("HUDUIEnabled")) {
-            systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
-            activeButton = systemToolbar.addButton({
-                objectName: EDIT_TOGGLE_BUTTON,
-                imageURL: TOOLS_PATH + "edit.svg",
-                visible: true,
-                alpha: 0.9,
-                defaultState: 1
-            });
-            systemToolbar.fromQml.connect(fromQml);
-        } else {
-            tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            activeButton = tablet.addButton({
-                icon: "icons/tablet-icons/edit-i.svg",
-                activeIcon: "icons/tablet-icons/edit-a.svg",
-                text: "EDIT",
-                sortOrder: 10
-            });
-            tablet.screenChanged.connect(function (type, url) {
-                if (isActive && (type !== "QML" || url !== "Edit.qml")) {
-                    that.toggle();
-                }
-            });
-            tablet.fromQml.connect(fromQml);
-        }
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        activeButton = tablet.addButton({
+            icon: "icons/tablet-icons/edit-i.svg",
+            activeIcon: "icons/tablet-icons/edit-a.svg",
+            text: "EDIT",
+            sortOrder: 10
+        });
+        tablet.screenChanged.connect(function (type, url) {
+            if (isActive && (type !== "QML" || url !== "Edit.qml")) {
+                that.toggle();
+            }
+        });
+        tablet.fromQml.connect(fromQml);
 
         activeButton.clicked.connect(function() {
             that.toggle();
         });
-
-        if (Settings.getValue("HUDUIEnabled")) {
-            toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
-            toolBar.writeProperty("shown", false);
-        }
 
         addButton("openAssetBrowserButton", "assets-01.svg", function(){
             Window.showAssetServer();
@@ -348,34 +308,9 @@ var toolBar = (function () {
             SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
             var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
 
-            if (Settings.getValue("HUDUIEnabled")) {
-                // HUD-ui version of new-model dialog
-                var result = Window.customPrompt({
-                    textInput: {
-                        label: "Model URL"
-                    },
-                    comboBox: {
-                        label: "Automatic Collisions",
-                        index: SHAPE_TYPE_DEFAULT,
-                        items: SHAPE_TYPES
-                    },
-                    checkBox: {
-                        label: "Dynamic",
-                        checked: DYNAMIC_DEFAULT,
-                        disableForItems: [
-                            SHAPE_TYPE_STATIC_MESH
-                        ],
-                        checkStateOnDisable: false,
-                        warningOnDisable: "Models with automatic collisions set to 'Exact' cannot be dynamic"
-                    }
-                });
-
-                handleNewModelDialogResult(result);
-            } else {
-                // tablet version of new-model dialog
-                var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-                tablet.pushOntoStack("NewModelDialog.qml");
-            }
+            // tablet version of new-model dialog
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.pushOntoStack("NewModelDialog.qml");
         });
 
         addButton("newCubeButton", "cube-01.svg", function () {
@@ -497,11 +432,11 @@ var toolBar = (function () {
         entityListTool.clearEntityList();
     };
 
-
     that.toggle = function () {
         that.setActive(!isActive);
-        if (Settings.getValue("HUDUIEnabled")) {
-            activeButton.editProperties({isActive: isActive});
+        activeButton.editProperties({isActive: isActive});
+        if (!isActive) {
+            tablet.gotoHomeScreen();
         }
     };
 
@@ -532,10 +467,8 @@ var toolBar = (function () {
             cameraManager.disable();
             selectionDisplay.triggerMapping.disable();
         } else {
-            if (!Settings.getValue("HUDUIEnabled")) {
-                var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-                tablet.loadQMLSource("Edit.qml");
-            }
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.loadQMLSource("Edit.qml");
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
             gridTool.setVisible(true);
@@ -545,15 +478,6 @@ var toolBar = (function () {
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
-        }
-        if (Settings.getValue("HUDUIEnabled")) {
-            // Sets visibility of tool buttons, excluding the power button
-            toolBar.writeProperty("shown", active);
-            var visible = toolBar.readProperty("visible");
-            if (active && !visible) {
-                toolBar.writeProperty("shown", false);
-                toolBar.writeProperty("shown", true);
-            }
         }
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
@@ -815,6 +739,12 @@ function mouseClickEvent(event) {
                 orientation = MyAvatar.orientation;
                 intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
 
+                if (event.isShifted) {
+                    particleExplorerTool.destroyWebView();
+                }
+                if (properties.type !== "ParticleEffect") {
+                    particleExplorerTool.destroyWebView();
+                }
 
                 if (!event.isShifted) {
                     selectionManager.setSelections([foundEntity]);
@@ -1493,16 +1423,8 @@ var PropertiesTool = function (opts) {
     var that = {};
 
     var webView = null;
-    if (Settings.getValue("HUDUIEnabled")) {
-        webView = new OverlayWebWindow({
-            title: 'Entity Properties',
-            source: ENTITY_PROPERTIES_URL,
-            toolWindow: true
-        });
-    } else {
-        webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        webView.setVisible = function(value) {};
-    }
+    webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    webView.setVisible = function(value) {};
 
     var visible = false;
 
@@ -1924,18 +1846,7 @@ function selectParticleEntity(entityID) {
 
     selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
-
-    if (Settings.getValue("HUDUIEnabled")) {
-        particleExplorerTool.webView.webEventReceived.connect(function (data) {
-            data = JSON.parse(data);
-            if (data.messageType === "page_loaded") {
-                particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-            }
-        });
-    } else {
-        // in the tablet version, the page was loaded earlier
-        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-    }
+    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
 }
 
 entityListTool.webView.webEventReceived.connect(function (data) {
@@ -1949,7 +1860,7 @@ entityListTool.webView.webEventReceived.connect(function (data) {
                     return;
                 }
                 // Destroy the old particles web view first
-                selectParticleEntity(ids[0])
+                selectParticleEntity(ids[0]);
             } else {
                 selectedParticleEntity = 0;
                 particleExplorerTool.destroyWebView();

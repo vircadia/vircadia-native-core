@@ -18,33 +18,21 @@ ParticleExplorerTool = function() {
     var that = {};
 
     that.createWebView = function() {
-        if (Settings.getValue("HUDUIEnabled")) {
-            var url = PARTICLE_EXPLORER_HTML_URL;
-            that.webView = new OverlayWebWindow({
-                title: 'Particle Explorer',
-                source: url,
-                toolWindow: true
-            });
-        } else {
-            that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            that.webView.setVisible = function(value) {};
-        }
-
-        that.webView.setVisible(true);
+        that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        that.webView.setVisible = function(value) {};
         that.webView.webEventReceived.connect(that.webEventReceived);        
     }
-
 
     that.destroyWebView = function() {
         if (!that.webView) {
             return;
         }
-
-        if (Settings.getValue("HUDUIEnabled")) {
-            that.webView.close();
-            that.webView = null;
-        }
         that.activeParticleEntity = 0;
+
+        var messageData = {
+            messageType: "particle_close"
+        };
+        that.webView.emitScriptEvent(JSON.stringify(messageData));
     }
 
     that.webEventReceived = function(data) {
@@ -56,10 +44,6 @@ ParticleExplorerTool = function() {
 
     that.setActiveParticleEntity = function(id) {
         that.activeParticleEntity = id;
-    }
-
-    if (Settings.getValue("HUDUIEnabled")) {
-        that.createWebView();
     }
 
     return that;

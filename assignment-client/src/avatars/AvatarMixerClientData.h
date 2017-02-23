@@ -16,6 +16,7 @@
 #include <cfloat>
 #include <unordered_map>
 #include <unordered_set>
+#include <queue>
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QUrl>
@@ -41,6 +42,7 @@ public:
 
     int parseData(ReceivedMessage& message) override;
     AvatarData& getAvatar() { return *_avatar; }
+    const AvatarData* getConstAvatarData() const { return _avatar.get(); }
 
     bool checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid);
 
@@ -85,9 +87,9 @@ public:
 
     void loadJSONStats(QJsonObject& jsonObject) const;
 
-    glm::vec3 getPosition() { return _avatar ? _avatar->getPosition() : glm::vec3(0); }
-    glm::vec3 getGlobalBoundingBoxCorner() { return _avatar ? _avatar->getGlobalBoundingBoxCorner() : glm::vec3(0); }
-    bool isRadiusIgnoring(const QUuid& other) { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
+    glm::vec3 getPosition() const { return _avatar ? _avatar->getPosition() : glm::vec3(0); }
+    glm::vec3 getGlobalBoundingBoxCorner() const { return _avatar ? _avatar->getGlobalBoundingBoxCorner() : glm::vec3(0); }
+    bool isRadiusIgnoring(const QUuid& other) const { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
     void addToRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.insert(other); }
     void removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other);
     void ignoreOther(SharedNodePointer self, SharedNodePointer other);
@@ -118,9 +120,15 @@ public:
         return _lastOtherAvatarSentJoints[otherAvatar];
     }
 
-    
+    void queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
+    int processPackets(); // returns number of packets processed
 
 private:
+    struct PacketQueue : public std::queue<QSharedPointer<ReceivedMessage>> {
+        QWeakPointer<Node> node;
+    };
+    PacketQueue _packetQueue;
+
     AvatarSharedPointer _avatar { new AvatarData() };
 
     uint16_t _lastReceivedSequenceNumber { 0 };

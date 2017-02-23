@@ -313,6 +313,6 @@ Fadable {
         }
     }
 
-    onMouseEntered: console.log("Mouse entered " + window)
-    onMouseExited: console.log("Mouse exited " + window)
+    // onMouseEntered: console.log("Mouse entered " + window)
+    // onMouseExited: console.log("Mouse exited " + window)
 }
