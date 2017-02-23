@@ -1365,12 +1365,12 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                     doWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, operation);
                     if (tryCatch.hasPending()) {
                         // match previous include behavior where possible by logging, not propagating, exceptions.
-                        // for nested evaluations, exceptions are now allowed to propagate
                         auto err = tryCatch.pending();
                         emit unhandledException(err);
-                        if (tryCatch.wouldEmit()) {
-                            tryCatch.consume();
-                        }
+                        // FIXME: to be revisited with next PR 21114-part3 for compat with require/module
+                        //if (tryCatch.wouldEmit()) {
+                        tryCatch.consume();
+                        //}
                     }
                 } else {
                     scriptWarningMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
