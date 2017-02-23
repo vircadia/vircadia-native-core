@@ -367,7 +367,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                                 _stats.overBudgetAvatars++;
                                 detail = AvatarData::NoData;
                             } else  if (!isInView && !getsOutOfView) {
-                                detail = AvatarData::MinimumData;
+                                detail = AvatarData::NoData;
                                 nodeData->incrementAvatarOutOfView();
                             } else {
                                 detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
