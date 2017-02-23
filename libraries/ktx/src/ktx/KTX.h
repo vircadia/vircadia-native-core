@@ -370,7 +370,6 @@ namespace ktx {
         uint32_t getNumberOfLevels() const { return (numberOfMipmapLevels ? numberOfMipmapLevels : 1); }
 
         uint32_t evalMaxDimension() const;
-        uint32_t evalMaxLevel() const;
         uint32_t evalPixelWidth(uint32_t level) const;
         uint32_t evalPixelHeight(uint32_t level) const;
         uint32_t evalPixelDepth(uint32_t level) const;

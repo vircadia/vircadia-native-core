@@ -149,10 +149,10 @@ namespace ktx {
                         faces[face] = currentPtr;
                         currentPtr += faceSize;
                     }
-                    images.emplace_back(Image(faceSize, padding, faces));
+                    images.emplace_back(Image((uint32_t) faceSize, padding, faces));
                     currentPtr += padding;
                 } else {
-                    images.emplace_back(Image(imageSize, padding, currentPtr));
+                    images.emplace_back(Image((uint32_t) imageSize, padding, currentPtr));
                     currentPtr += imageSize + padding;
                 }
             } else {
