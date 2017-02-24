@@ -1587,16 +1587,20 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
             } else {
                 // since not reloading, assume that the exact same input would produce the exact same output again
                 // note: this state gets reset with "reload all scripts," leaving/returning to a Domain, clear cache, etc.
+#ifdef DEBUG_ENTITY_STATES
                 qCDebug(scriptengine) << QString("loadEntityScript.cancelled entity: %1 script: %2 (previous script failure)")
                     .arg(entityID.toString()).arg(entityScript);
+#endif
                 updateEntityScriptStatus(entityID, EntityScriptStatus::ERROR_LOADING_SCRIPT,
                                          "A previous Entity failed to load using this script URL; reload to try again.");
                 return;
             }
         } else {
             // another entity is busy loading from this script URL so wait for them to finish
+#ifdef DEBUG_ENTITY_STATES
             qCDebug(scriptengine) << QString("loadEntityScript.deferring[%0] entity: %1 script: %2 (waiting on %3)")
                 .arg( _deferredEntityLoads.size()).arg(entityID.toString()).arg(entityScript).arg(currentEntityID.toString());
+#endif
             _deferredEntityLoads.push_back({ entityID, entityScript });
             return;
         }
@@ -1687,7 +1691,9 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         newDetails.status = status;
         setEntityScriptDetails(entityID, newDetails);
 
+#ifdef DEBUG_ENTITY_STATES
         qCDebug(scriptengine) << "entityScriptContentAvailable -- flagging " << entityScript << " as BAD_SCRIPT_UUID_PLACEHOLDER";
+#endif
         // flag the original entityScript as unusuable
         _occupiedScriptURLs[entityScript] = BAD_SCRIPT_UUID_PLACEHOLDER;
         processDeferredEntityLoads(entityScript, entityID);
