@@ -14,6 +14,8 @@
 
 #include <string>
 #include <memory>
+#include <queue>
+
 /* VS2010 defines stdint.h, but not inttypes.h */
 #if defined(_MSC_VER)
 typedef signed char  int8_t;
@@ -58,6 +60,7 @@ typedef unsigned long long quint64;
 #include <ThreadSafeValueCache.h>
 #include <SharedUtil.h>
 #include <shared/RateCounter.h>
+#include <ViewFrustum.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -134,6 +137,7 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION  = 1U << 9;
     const HasFlags PACKET_HAS_FACE_TRACKER_INFO      = 1U << 10;
     const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
+    const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
     // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
@@ -305,6 +309,14 @@ public:
     RateCounter<> jointDataRate;
 };
 
+class AvatarPriority {
+public:
+    AvatarPriority(AvatarSharedPointer a, float p) : avatar(a), priority(p) {}
+    AvatarSharedPointer avatar;
+    float priority;
+    // NOTE: we invert the less-than operator to sort high priorities to front
+    bool operator<(const AvatarPriority& other) const { return priority < other.priority; }
+};
 
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
@@ -363,6 +375,7 @@ public:
     void setHandPosition(const glm::vec3& handPosition);
 
     typedef enum { 
+        NoData,
         MinimumData, 
         CullSmallData,
         IncludeSmallData,
@@ -540,8 +553,6 @@ public:
 
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
 
-    const AABox& getLocalAABox() const { return _localAABox; }
-
     int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
@@ -577,6 +588,28 @@ public:
         _lastSentJointData.resize(_jointData.size());
         return _lastSentJointData;
     }
+
+
+    bool shouldDie() const {
+        const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
+        return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS;
+    }
+
+    static const float OUT_OF_VIEW_PENALTY;
+
+    static std::priority_queue<AvatarPriority> sortAvatars(
+        QList<AvatarSharedPointer> avatarList,
+        const ViewFrustum& cameraView,
+        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
+        std::function<float(AvatarSharedPointer)> getBoundingRadius,
+        std::function<bool(AvatarSharedPointer)> shouldIgnore);
+
+    // TODO: remove this HACK once we settle on optimal sort coefficients
+    // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
+    static float _avatarSortCoefficientSize;
+    static float _avatarSortCoefficientCenter;
+    static float _avatarSortCoefficientAge;
+
 
 
 public slots:
@@ -659,8 +692,6 @@ protected:
     virtual void updateJointMappings();
 
     glm::vec3 _targetVelocity;
-
-    AABox _localAABox;
 
     SimpleMovingAverage _averageBytesReceived;
 

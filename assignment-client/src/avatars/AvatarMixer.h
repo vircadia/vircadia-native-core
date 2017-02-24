@@ -39,6 +39,7 @@ public slots:
 
 private slots:
     void queueIncomingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
+    void handleAdjustAvatarSorting(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
@@ -92,6 +93,7 @@ private:
     quint64 _broadcastAvatarDataNodeTransform { 0 };
     quint64 _broadcastAvatarDataNodeFunctor { 0 };
 
+    quint64 _handleAdjustAvatarSortingElapsedTime { 0 };
     quint64 _handleViewFrustumPacketElapsedTime { 0 };
     quint64 _handleAvatarIdentityPacketElapsedTime { 0 };
     quint64 _handleKillAvatarPacketElapsedTime { 0 };
