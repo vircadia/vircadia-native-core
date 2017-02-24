@@ -1494,7 +1494,7 @@ bool ScriptEngine::getEntityScriptDetails(const EntityItemID& entityID, EntitySc
     return true;
 }
 
-const auto RETRY_ATTEMPT_BATCH = 10; //glm::clamp(qgetenv("RETRY_ATTEMPT_BATCH").toInt(), 1, 50);
+const auto RETRY_ATTEMPT_BATCH = 100; //glm::clamp(qgetenv("RETRY_ATTEMPT_BATCH").toInt(), 1, 50);
 const auto RETRY_ATTEMPT_MSECS = 250; //glm::clamp(qgetenv("RETRY_ATTEMPT_MSECS").toInt(), 50, 1000);
 
 void ScriptEngine::deferLoadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
