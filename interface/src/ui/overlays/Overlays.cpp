@@ -760,7 +760,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionForMouseEvent(PickRa
     return findRayIntersection(ray);
 }
 
-void Overlays::mousePressEvent(QMouseEvent* event) {
+bool Overlays::mousePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mousePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
@@ -773,15 +773,14 @@ void Overlays::mousePressEvent(QMouseEvent* event) {
         if (thisOverlay) {
             auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Press);
             emit mousePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
-        } else {
-            emit mousePressOffOverlay();
+            return true;
         }
-    } else {
-        emit mousePressOffOverlay();
     }
+    emit mousePressOffOverlay();
+    return false;
 }
 
-void Overlays::mouseReleaseEvent(QMouseEvent* event) {
+bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
@@ -797,9 +796,10 @@ void Overlays::mouseReleaseEvent(QMouseEvent* event) {
     }
 
     _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
+    return false;
 }
 
-void Overlays::mouseMoveEvent(QMouseEvent* event) {
+bool Overlays::mouseMoveEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseMoveEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
@@ -843,6 +843,7 @@ void Overlays::mouseMoveEvent(QMouseEvent* event) {
             _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
         }
     }
+    return false;
 }
 
 QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) const {
