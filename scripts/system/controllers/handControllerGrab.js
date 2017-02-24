@@ -863,7 +863,7 @@ function MyController(hand) {
     };
 
     this.setState = function(newState, reason) {
-        if ((isInEditMode() && this.grabbedEntity !== HMD.tabletID) &&
+        if ((isInEditMode() && this.grabbedThingID !== HMD.tabletID) &&
             (newState !== STATE_OFF &&
              newState !== STATE_SEARCHING &&
              newState !== STATE_OVERLAY_STYLUS_TOUCHING &&
@@ -1446,7 +1446,7 @@ function MyController(hand) {
 
         var okToEquipFromOtherHand = ((this.getOtherHandController().state == STATE_NEAR_GRABBING ||
                                        this.getOtherHandController().state == STATE_DISTANCE_HOLDING) &&
-                                      this.getOtherHandController().grabbedEntity == hotspot.entityID);
+                                      this.getOtherHandController().grabbedThingID == hotspot.entityID);
         var hasParent = true;
         if (props.parentID === NULL_UUID) {
             hasParent = false;
@@ -1666,7 +1666,7 @@ function MyController(hand) {
             grabbableOverlays.sort(function(a, b) {
                 var aPosition = Overlays.getProperty(a, "position");
                 var aDistance = Vec3.distance(aPosition, handPosition);
-                var bPosition = Overlays.getProperty(a, "position");
+                var bPosition = Overlays.getProperty(b, "position");
                 var bDistance = Vec3.distance(bPosition, handPosition);
                 return aDistance - bDistance;
             });
@@ -3352,8 +3352,8 @@ var handleHandMessages = function(channel, message, sender) {
                 selectedController.release();
                 var wearableEntity = data.entityID;
                 entityPropertiesCache.addEntity(wearableEntity);
-                selectedController.grabbedEntity = wearableEntity;
-                var hotspots = selectedController.collectEquipHotspots(selectedController.grabbedEntity);
+                selectedController.grabbedThingID = wearableEntity;
+                var hotspots = selectedController.collectEquipHotspots(selectedController.grabbedThingID);
                 if (hotspots.length > 0) {
                     if (hotspotIndex >= hotspots.length) {
                         hotspotIndex = 0;
