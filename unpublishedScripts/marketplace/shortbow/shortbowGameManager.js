@@ -93,11 +93,11 @@ function findChildrenWithName(parentID, name) {
 }
 
 function getPropertiesForEntities(entityIDs, properties) {
-    var properties = [];
+    var props = [];
     for (var i = 0; i < entityIDs.length; ++i) {
-        properties.push(Entities.getEntityProperties(entityIDs[i], properties));
+        props.push(Entities.getEntityProperties(entityIDs[i], properties));
     }
-    return properties;
+    return props;
 }
 
 
