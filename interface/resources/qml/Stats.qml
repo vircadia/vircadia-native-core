@@ -107,11 +107,11 @@ Item {
                     }
                     StatText {
                         visible: root.expanded
-                        text: "Fully Simulated Avatars: " + root.fullySimulatedAvatarCount
+                        text: "Avatars Updated: " + root.updatedAvatarCount
                     }
                     StatText {
                         visible: root.expanded
-                        text: "Partially Simulated Avatars: " + root.partiallySimulatedAvatarCount
+                        text: "Avatars NOT Updated: " + root.notUpdatedAvatarCount
                     }
                 }
             }

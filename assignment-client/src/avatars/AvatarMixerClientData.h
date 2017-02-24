@@ -43,6 +43,7 @@ public:
     int parseData(ReceivedMessage& message) override;
     AvatarData& getAvatar() { return *_avatar; }
     const AvatarData* getConstAvatarData() const { return _avatar.get(); }
+    AvatarSharedPointer getAvatarSharedPointer() const { return _avatar; }
 
     bool checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid);
 
@@ -51,18 +52,21 @@ public:
         { _lastBroadcastSequenceNumbers[nodeUUID] = sequenceNumber; }
     Q_INVOKABLE void removeLastBroadcastSequenceNumber(const QUuid& nodeUUID) { _lastBroadcastSequenceNumbers.erase(nodeUUID); }
 
+    uint64_t getLastBroadcastTime(const QUuid& nodeUUID) const;
+    void setLastBroadcastTime(const QUuid& nodeUUID, uint64_t broadcastTime) { _lastBroadcastTimes[nodeUUID] = broadcastTime; }
+    Q_INVOKABLE void removeLastBroadcastTime(const QUuid& nodeUUID) { _lastBroadcastTimes.erase(nodeUUID); }
+
+    Q_INVOKABLE void cleanupKilledNode(const QUuid& nodeUUID) {
+        removeLastBroadcastSequenceNumber(nodeUUID);
+        removeLastBroadcastTime(nodeUUID);
+    }
+
     uint16_t getLastReceivedSequenceNumber() const { return _lastReceivedSequenceNumber; }
 
     HRCTime getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
     void flagIdentityChange() { _identityChangeTimestamp = p_high_resolution_clock::now(); }
     bool getAvatarSessionDisplayNameMustChange() const { return _avatarSessionDisplayNameMustChange; }
     void setAvatarSessionDisplayNameMustChange(bool set = true) { _avatarSessionDisplayNameMustChange = set; }
-
-    void setFullRateDistance(float fullRateDistance) { _fullRateDistance = fullRateDistance; }
-    float getFullRateDistance() const { return _fullRateDistance; }
-
-    void setMaxAvatarDistance(float maxAvatarDistance) { _maxAvatarDistance = maxAvatarDistance; }
-    float getMaxAvatarDistance() const { return _maxAvatarDistance; }
 
     void resetNumAvatarsSentLastFrame() { _numAvatarsSentLastFrame = 0; }
     void incrementNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
@@ -106,6 +110,8 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
+    ViewFrustum getViewFrustom() const { return _currentViewFrustum; }
+
     quint64 getLastOtherAvatarEncodeTime(QUuid otherAvatar) {
         quint64 result = 0;
         if (_lastOtherAvatarEncodeTime.find(otherAvatar) != _lastOtherAvatarEncodeTime.end()) {
@@ -134,6 +140,7 @@ private:
     uint16_t _lastReceivedSequenceNumber { 0 };
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
+    std::unordered_map<QUuid, uint64_t> _lastBroadcastTimes;
 
     // this is a map of the last time we encoded an "other" avatar for
     // sending to "this" node
@@ -142,9 +149,6 @@ private:
 
     HRCTime _identityChangeTimestamp;
     bool _avatarSessionDisplayNameMustChange{ false };
-
-    float _fullRateDistance = FLT_MAX;
-    float _maxAvatarDistance = FLT_MAX;
 
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;
