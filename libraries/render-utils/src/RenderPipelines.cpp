@@ -84,7 +84,7 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto unlitTranslucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucentUnlit);
     auto opaqueMaterialProgram = gpu::Shader::createProgram(vertexModel, pixelMaterial);
 
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 8; i++) {
         bool isCulled = (i & 1);
         bool isBiased = (i & 2);
         bool isOpaque = (i & 4);
@@ -115,7 +115,7 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
         auto simpleProgram = isOpaque ? opaqueProgram : translucentProgram;
         auto unlitProgram = isOpaque ? unlitOpaqueProgram : unlitTranslucentProgram;
         plumber.addPipeline(builder.withoutUnlit().withoutMaterial().build(), simpleProgram, state, &lightBatchSetter);
-        plumber.addPipeline(builder.withMaterial().withoutUnlit().build(), opaqueMaterialProgram, state, &lightBatchSetter);
+        plumber.addPipeline(builder.withoutUnlit().withMaterial().build(), opaqueMaterialProgram, state, &lightBatchSetter);
         plumber.addPipeline(builder.withUnlit().withoutMaterial().build(), unlitProgram, state, &batchSetter);
     }
 }

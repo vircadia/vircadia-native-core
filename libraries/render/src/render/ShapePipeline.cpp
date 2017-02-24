@@ -39,6 +39,10 @@ void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit
         }
     } else {
         // Add the brand new pipeline and cache its location in the lib
+        auto precedent = _pipelineMap.find(key);
+        if (precedent != _pipelineMap.end()) {
+            qCDebug(renderlogging) << "Key already assigned: " << key;
+        }
         _pipelineMap.insert(PipelineMap::value_type(key, pipeline));
     }
 }
