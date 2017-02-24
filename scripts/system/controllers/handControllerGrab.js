@@ -3213,9 +3213,13 @@ function MyController(hand) {
                     }
                     _this.previouslyUnhooked[childID] = now;
 
+                    // we don't know if it's an entity or an overlay
                     Entities.editEntity(childID, { parentID: previousParentID, parentJointIndex: previousParentJointIndex });
+                    Overlays.editOverlay(childID, { parentID: previousParentID, parentJointIndex: previousParentJointIndex });
+
                 } else {
                     Entities.editEntity(childID, { parentID: NULL_UUID });
+                    Overlays.editOverlay(childID, { parentID: NULL_UUID });
                 }
             }
         });
