@@ -899,9 +899,11 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
 
     QScriptValue result;
     {
-        // catch any exceptions throw by nested operations
-        ExceptionEmitter tryCatch(this, __FUNCTION__);
         result = BaseScriptEngine::evaluate(program);
+        if (!isEvaluating() && hasUncaughtException()) {
+            emit unhandledException(cloneUncaughtException(__FUNCTION__));
+            clearExceptions();
+        }
     }
     return result;
 }
@@ -923,9 +925,11 @@ void ScriptEngine::run() {
     emit runningStateChanged();
 
     {
-        // catch any exceptions throw by nested operations
-        ExceptionEmitter tryCatch(this, __FUNCTION__);
         evaluate(_scriptContents, _fileNameString);
+        if (!isEvaluating() && hasUncaughtException()) {
+            emit unhandledException(cloneUncaughtException(__FUNCTION__));
+            clearExceptions();
+        }
     }
 #ifdef _WIN32
     // VS13 does not sleep_until unless it uses the system_clock, see:
@@ -1361,16 +1365,10 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                         evaluate(contents, url.toString());
                     };
 
-                    ExceptionEmitter tryCatch(this, "include");
                     doWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, operation);
-                    if (tryCatch.hasPending()) {
-                        // match previous include behavior where possible by logging, not propagating, exceptions.
-                        auto err = tryCatch.pending();
-                        emit unhandledException(err);
-                        // FIXME: to be revisited with next PR 21114-part3 for compat with require/module
-                        //if (tryCatch.wouldEmit()) {
-                        tryCatch.consume();
-                        //}
+                    if (hasUncaughtException()) {
+                        emit unhandledException(cloneUncaughtException(__FUNCTION__));
+                        clearExceptions();
                     }
                 } else {
                     scriptWarningMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
@@ -1508,7 +1506,7 @@ void ScriptEngine::deferLoadEntityScript(const EntityItemID& entityID, const QSt
         for (int i=0; i < RETRY_ATTEMPT_BATCH && !_pendingLoadEntities.isEmpty(); i++) {
             auto retry = _pendingLoadEntities.takeFirst();
             qCDebug(scriptengine) << "deferLoadEntityScript.retry[" << i << "]:" << retry.entityID << retry.entityScript;
-            if(!_entityScripts.contains(retry.entityID)) {
+            if (!_entityScripts.contains(retry.entityID)) {
                 qCDebug(scriptengine) << "deferLoadEntityScript.retry -- entity details gone (entity deleted?)";
             } else {
                 auto details = _entityScripts[retry.entityID];
@@ -1715,7 +1713,6 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     sandbox.setProcessEventsInterval(SANDBOX_TIMEOUT);
     QScriptValue testConstructor, exception;
     {
-        ExceptionEmitter tryCatch(&sandbox, QString("(preflight %1)").arg(entityID.toString()));
         QTimer timeout;
         timeout.setSingleShot(true);
         timeout.start(SANDBOX_TIMEOUT);
@@ -1731,8 +1728,9 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
         testConstructor = sandbox.evaluate(program);
 
-        if (tryCatch.hasPending()) {
-            exception = tryCatch.consume();
+        if (sandbox.hasUncaughtException()) {
+            exception = sandbox.cloneUncaughtException(QString("(preflight %1)").arg(entityID.toString()));
+            sandbox.clearExceptions();
         } else if (testConstructor.isError()) {
             exception = testConstructor;
         }
@@ -1780,13 +1778,12 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     QScriptValue entityScriptConstructor, entityScriptObject;
     QUrl sandboxURL = currentSandboxURL.isEmpty() ? scriptOrURL : currentSandboxURL;
     auto initialization = [&]{
-        ExceptionEmitter tryCatch(this, "(construct " + entityID.toString() + ")");
-
         entityScriptConstructor = evaluate(contents, fileName);
         entityScriptObject = entityScriptConstructor.construct();
 
-        if (tryCatch.hasPending()) {
-            entityScriptObject = tryCatch.consume();
+        if (hasUncaughtException()) {
+            entityScriptObject = cloneUncaughtException("(construct " + entityID.toString() + ")");
+            clearExceptions();
         }
     };
 
@@ -1914,8 +1911,6 @@ void ScriptEngine::doWithEnvironment(const EntityItemID& entityID, const QUrl& s
     currentEntityIdentifier = entityID;
     currentSandboxURL = sandboxURL;
 
-    ExceptionEmitter tryCatcher(this, !entityID.isNull() ? entityID.toString() : __FUNCTION__);
-
 #if DEBUG_CURRENT_ENTITY
     QScriptValue oldData = this->globalObject().property("debugEntityID");
     this->globalObject().setProperty("debugEntityID", entityID.toScriptValue(this)); // Make the entityID available to javascript as a global.
@@ -1924,6 +1919,10 @@ void ScriptEngine::doWithEnvironment(const EntityItemID& entityID, const QUrl& s
 #else
     operation();
 #endif
+    if (!isEvaluating() && hasUncaughtException()) {
+        emit unhandledException(cloneUncaughtException(!entityID.isNull() ? entityID.toString() : __FUNCTION__));
+        clearExceptions();
+    }
     currentEntityIdentifier = oldIdentifier;
     currentSandboxURL = oldSandboxURL;
 }

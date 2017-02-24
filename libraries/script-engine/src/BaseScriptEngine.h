@@ -46,25 +46,6 @@ protected:
 #ifdef DEBUG_JS
     static void _debugDump(const QString& header, const QScriptValue& object, const QString& footer = QString());
 #endif
-
-    // ExceptionEmitter can be placed above calls that might throw JS exceptions and it'll
-    // automatically signal BaseScriptEngine when falling out of scope (recursion aware).
-    class ExceptionEmitter {
-    public:
-        ExceptionEmitter(BaseScriptEngine* engine, const QString& debugName = QString());
-        // is there a pending exception?
-        bool hasPending();
-        QScriptValue pending();
-        // would it be emitted at scope's end?
-        bool wouldEmit();
-        // consume and return the pending exception
-        QScriptValue consume();
-        ~ExceptionEmitter();
-    protected:
-        BaseScriptEngine* _engine;
-        QString _debugName;
-        QScriptValue _consumedException;
-    };
 };
 
 // Lambda helps create callable QScriptValues out of std::functions:

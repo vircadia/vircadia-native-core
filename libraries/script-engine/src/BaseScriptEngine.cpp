@@ -210,10 +210,9 @@ QScriptValue BaseScriptEngine::evaluateInClosure(const QScriptValue& closure, co
     qCDebug(scriptengine) << QString("[%1] evaluateInClosure %2").arg(isEvaluating()).arg(shortName);
 #endif
     {
-        ExceptionEmitter tryCatch(this, __FUNCTION__);
         result = BaseScriptEngine::evaluate(program);
-        if (tryCatch.hasPending()) {
-            auto err = tryCatch.pending();
+        if (hasUncaughtException()) {
+            auto err = cloneUncaughtException(__FUNCTION__);
 #ifdef DEBUG_JS_EXCEPTIONS
             qCWarning(scriptengine) << __FUNCTION__ << "---------- hasCaught:" << err.toString() << result.toString();
             err.setProperty("_result", result);
@@ -265,37 +264,6 @@ Lambda::Lambda(QScriptEngine *engine, std::function<QScriptValue(QScriptContext 
 QScriptValue Lambda::call() {
     return operation(engine->currentContext(), engine);
 }
-
-// BaseScriptEngine::ExceptionEmitter
-
-void BaseScriptEngine::_emitUnhandledException(const QScriptValue& exception) {
-    emit unhandledException(exception);
-}
-BaseScriptEngine::ExceptionEmitter::ExceptionEmitter(BaseScriptEngine* engine, const QString& debugName)
-    : _engine(engine), _debugName(debugName) {
-}
-bool BaseScriptEngine::ExceptionEmitter::hasPending() {
-    return _engine->hasUncaughtException();
-}
-QScriptValue BaseScriptEngine::ExceptionEmitter::pending() {
-    return _engine->cloneUncaughtException(_debugName);
-}
-QScriptValue BaseScriptEngine::ExceptionEmitter::consume() {
-    if (hasPending()) {
-        _consumedException = pending();
-        _engine->clearExceptions();
-    }
-    return _consumedException;
-}
-bool BaseScriptEngine::ExceptionEmitter::wouldEmit() {
-    return !_engine->isEvaluating() && _engine->hasUncaughtException();
-}
-BaseScriptEngine::ExceptionEmitter::~ExceptionEmitter() {
-    if (wouldEmit()) {
-        _engine->_emitUnhandledException(consume());
-    }
-}
-
 
 #ifdef DEBUG_JS
 void BaseScriptEngine::_debugDump(const QString& header, const QScriptValue& object, const QString& footer) {
