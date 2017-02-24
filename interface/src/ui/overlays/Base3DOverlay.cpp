@@ -259,6 +259,8 @@ bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3
 }
 
 void Base3DOverlay::locationChanged(bool tellPhysics) {
+    SpatiallyNestable::locationChanged(tellPhysics);
+
     auto itemID = getRenderItemID();
     if (render::Item::isValidID(itemID)) {
         render::ScenePointer scene = qApp->getMain3DScene();
@@ -266,8 +268,6 @@ void Base3DOverlay::locationChanged(bool tellPhysics) {
         pendingChanges.updateItem(itemID);
         scene->enqueuePendingChanges(pendingChanges);
     }
-    // Overlays can't currently have children.
-    // SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
 }
 
 void Base3DOverlay::parentDeleted() {

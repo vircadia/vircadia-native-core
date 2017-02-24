@@ -34,7 +34,7 @@ var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
-// var TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
+var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
 
 // returns object with two fields:
 //    * position - position in front of the user
@@ -112,11 +112,18 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
     }
 
+    var modelURL;
+    if (Settings.getValue("tabletVisibleToOthers")) {
+        modelURL = TABLET_MODEL_PATH;
+    } else {
+        modelURL = LOCAL_TABLET_MODEL_PATH;
+    }
+
     var tabletProperties = {
         name: "WebTablet Tablet",
         type: "Model",
-        modelURL: TABLET_MODEL_PATH,
-        url: TABLET_MODEL_PATH, // for overlay
+        modelURL: modelURL,
+        url: modelURL, // for overlay
         grabbable: true, // for overlay
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
