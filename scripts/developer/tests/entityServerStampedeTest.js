@@ -1,7 +1,7 @@
 var NUM_ENTITIES = 100;
 var RADIUS = 2;
 var DIV = NUM_ENTITIES / Math.PI / 2;
-var PASS_SCRIPT_URL = Script.resolvePath('entityStampedeTest-entity.js');
+var PASS_SCRIPT_URL = Script.resolvePath('entityServerStampedeTest-entity.js');
 var FAIL_SCRIPT_URL = Script.resolvePath('entityStampedeTest-entity-fail.js');
 
 var origin = Vec3.sum(MyAvatar.position, Vec3.multiply(5, Quat.getFront(MyAvatar.orientation)));

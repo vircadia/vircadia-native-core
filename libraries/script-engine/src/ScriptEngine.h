@@ -170,7 +170,6 @@ public:
     Q_INVOKABLE bool isEntityScriptRunning(const EntityItemID& entityID) {
         return _entityScripts.contains(entityID) && _entityScripts[entityID].status == EntityScriptStatus::RUNNING;
     }
-    Q_INVOKABLE void deferLoadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
     Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
@@ -247,6 +246,7 @@ protected:
     void updateEntityScriptStatus(const EntityItemID& entityID, const EntityScriptStatus& status, const QString& errorInfo = QString());
     void setEntityScriptDetails(const EntityItemID& entityID, const EntityScriptDetails& details);
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
+    void processDeferredEntityLoads(const QString& entityScript, const EntityItemID& leaderID);
 
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
@@ -271,7 +271,7 @@ protected:
     QSet<QUrl> _includedURLs;
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
     QHash<QString, EntityItemID> _occupiedScriptURLs;
-    QList<DeferredLoadEntity> _pendingLoadEntities;
+    QList<DeferredLoadEntity> _deferredEntityLoads;
 
     bool _isThreaded { false };
     QScriptEngineDebugger* _debugger { nullptr };

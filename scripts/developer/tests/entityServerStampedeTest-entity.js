@@ -2,7 +2,7 @@
     return {
         preload: function(uuid) {
             var props = Entities.getEntityProperties(uuid);
-            var shape = props.shape === 'Sphere' ? 'Cube' : 'Sphere';
+            var shape = props.shape === 'Sphere' ? 'Hexagon' : 'Sphere';
 
             Entities.editEntity(uuid, {
                 shape: shape,
@@ -14,7 +14,7 @@
         unload: function(uuid) {
             print("unload", this.name);
             Entities.editEntity(uuid, {
-                color: { red: 0xff, green: 0x0f, blue: 0x0f },
+                color: { red: 0x0f, green: 0x0f, blue: 0xff },
             });
         },
     };
