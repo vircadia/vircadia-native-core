@@ -128,6 +128,7 @@ public:
             Flags _mask{0};
         };
         Filter(const Filter::Builder& builder) : Filter(builder._flags, builder._mask) {}
+        ShapeKey key() const { return ShapeKey(_flags); }
     protected:
         friend class ShapePlumber;
         Flags _flags{0};

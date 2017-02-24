@@ -114,9 +114,10 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
 
         auto simpleProgram = isOpaque ? opaqueProgram : translucentProgram;
         auto unlitProgram = isOpaque ? unlitOpaqueProgram : unlitTranslucentProgram;
-        plumber.addPipeline(builder.withoutUnlit().withMaterial().build(), opaqueMaterialProgram, state, &lightBatchSetter);
-        plumber.addPipeline(builder.withoutUnlit().build(), simpleProgram, state, &lightBatchSetter);
-        plumber.addPipeline(builder.withUnlit().build(), unlitProgram, state, &batchSetter);
+
+        plumber.addPipeline(builder.withoutUnlit().withMaterial().build().key(), opaqueMaterialProgram, state, &lightBatchSetter);
+        plumber.addPipeline(builder.withoutUnlit().withoutMaterial().build().key(), simpleProgram, state, &lightBatchSetter);
+        plumber.addPipeline(builder.withUnlit().withoutMaterial().build().key(), unlitProgram, state, &batchSetter);
     }
 }
 
