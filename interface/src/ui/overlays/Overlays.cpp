@@ -341,27 +341,26 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
         return UNKNOWN_OVERLAY_ID;
     }
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysHUD);
-    i.toBack();
 
     const float LARGE_NEGATIVE_FLOAT = -9999999;
     glm::vec3 origin(pointCopy.x, pointCopy.y, LARGE_NEGATIVE_FLOAT);
     glm::vec3 direction(0, 0, 1);
-    BoxFace thisFace;
+    // BoxFace thisFace;
     glm::vec3 thisSurfaceNormal;
-    float distance;
+    // float distance;
     unsigned int bestStackOrder = 0;
     OverlayID bestOverlayID = UNKNOWN_OVERLAY_ID;
 
-    while (i.hasPrevious()) {
-        i.previous();
+    while (i.hasNext()) {
+        i.next();
         OverlayID thisID = i.key();
         if (i.value()->is3D()) {
-            auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
-            if (thisOverlay && !thisOverlay->getIgnoreRayIntersection()) {
-                if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace, thisSurfaceNormal)) {
-                    return thisID;
-                }
-            }
+            // auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
+            // if (thisOverlay && !thisOverlay->getIgnoreRayIntersection()) {
+            //     if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace, thisSurfaceNormal)) {
+            //         return thisID;
+            //     }
+            // }
         } else {
             auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
             if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
@@ -423,9 +422,8 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
 
     RayToOverlayIntersectionResult result;
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
-    i.toBack();
-    while (i.hasPrevious()) {
-        i.previous();
+    while (i.hasNext()) {
+        i.next();
         OverlayID thisID = i.key();
         auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
 
@@ -850,9 +848,10 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) con
     QVector<QUuid> result;
 
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
-    i.toBack();
-    while (i.hasPrevious()) {
-        i.previous();
+    int checked = 0;
+    while (i.hasNext()) {
+        checked++;
+        i.next();
         OverlayID thisID = i.key();
         auto overlay = std::dynamic_pointer_cast<Volume3DOverlay>(i.value());
         if (overlay && overlay->getVisible() && !overlay->getIgnoreRayIntersection() && overlay->isLoaded()) {
