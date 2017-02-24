@@ -27,7 +27,6 @@
 
 #include "AvatarData.h"
 
-
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY

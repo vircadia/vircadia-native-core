@@ -47,7 +47,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AvatarData, this, "queueIncomingPacket");
-
+    packetReceiver.registerListener(PacketType::AdjustAvatarSorting, this, "handleAdjustAvatarSorting");
     packetReceiver.registerListener(PacketType::ViewFrustum, this, "handleViewFrustumPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
@@ -309,13 +309,34 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
             },
             [&](const SharedNodePointer& node) {
                 QMetaObject::invokeMethod(node->getLinkedData(),
-                                          "removeLastBroadcastSequenceNumber",
+                                         "cleanupKilledNode",
                                           Qt::AutoConnection,
                                           Q_ARG(const QUuid&, QUuid(killedNode->getUUID())));
             }
         );
     }
 }
+
+
+void AvatarMixer::handleAdjustAvatarSorting(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto start = usecTimestampNow();
+
+    // only allow admins with kick rights to change this value...
+    if (senderNode->getCanKick()) {
+        message->readPrimitive(&AvatarData::_avatarSortCoefficientSize);
+        message->readPrimitive(&AvatarData::_avatarSortCoefficientCenter);
+        message->readPrimitive(&AvatarData::_avatarSortCoefficientAge);
+
+        qCDebug(avatars) << "New avatar sorting... "
+                            << "size:" << AvatarData::_avatarSortCoefficientSize
+                            << "center:" << AvatarData::_avatarSortCoefficientCenter
+                            << "age:" << AvatarData::_avatarSortCoefficientAge;
+    }
+
+    auto end = usecTimestampNow();
+    _handleAdjustAvatarSortingElapsedTime += (end - start);
+}
+
 
 void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto start = usecTimestampNow();
@@ -485,6 +506,9 @@ void AvatarMixer::sendStatsPacket() {
         float averageOthersIncluded = averageNodes ? stats.numOthersIncluded / averageNodes : 0.0f;
         slaveObject["sent_6_averageOthersIncluded"] = TIGHT_LOOP_STAT(averageOthersIncluded);
 
+        float averageOverBudgetAvatars = averageNodes ? stats.overBudgetAvatars / averageNodes : 0.0f;
+        slaveObject["sent_7_averageOverBudgetAvatars"] = TIGHT_LOOP_STAT(averageOverBudgetAvatars);
+
         slaveObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(stats.processIncomingPacketsElapsedTime);
         slaveObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(stats.ignoreCalculationElapsedTime);
         slaveObject["timing_3_toByteArray"] = TIGHT_LOOP_STAT_UINT64(stats.toByteArrayElapsedTime);
@@ -514,7 +538,10 @@ void AvatarMixer::sendStatsPacket() {
 
     float averageOthersIncluded = averageNodes ? aggregateStats.numOthersIncluded / averageNodes : 0.0f;
     slavesAggregatObject["sent_6_averageOthersIncluded"] = TIGHT_LOOP_STAT(averageOthersIncluded);
-    
+
+    float averageOverBudgetAvatars = averageNodes ? aggregateStats.overBudgetAvatars / averageNodes : 0.0f;
+    slavesAggregatObject["sent_7_averageOverBudgetAvatars"] = TIGHT_LOOP_STAT(averageOverBudgetAvatars);
+
     slavesAggregatObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.processIncomingPacketsElapsedTime);
     slavesAggregatObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.ignoreCalculationElapsedTime);
     slavesAggregatObject["timing_3_toByteArray"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.toByteArrayElapsedTime);

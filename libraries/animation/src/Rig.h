@@ -210,6 +210,7 @@ public:
     void computeAvatarBoundingCapsule(const FBXGeometry& geometry, float& radiusOut, float& heightOut, glm::vec3& offsetOut) const;
 
     void setEnableInverseKinematics(bool enable);
+    void setEnableAnimations(bool enable);
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
@@ -314,6 +315,7 @@ protected:
     int32_t _numOverrides { 0 };
     bool _lastEnableInverseKinematics { true };
     bool _enableInverseKinematics { true };
+    bool _enabledAnimations { true };
 
     mutable uint32_t _jointNameWarningCount { 0 };
 
