@@ -485,6 +485,7 @@ private:
     std::unordered_set<int> _headBoneSet;
     RigPointer _rig;
     bool _prevShouldDrawHead;
+    bool _rigEnabled { true };
 
     bool _enableDebugDrawDefaultPose { false };
     bool _enableDebugDrawAnimPose { false };
