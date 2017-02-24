@@ -1,5 +1,5 @@
 import QtQuick 2.5
-import QtQuick.Controls 1.0
+import QtQuick.Controls 1.4
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 import QtQuick.Controls.Styles 1.4
@@ -7,6 +7,7 @@ import "../../controls"
 import "../toolbars"
 import HFWebEngineProfile 1.0
 import QtGraphicalEffects 1.0
+import "../../styles-uit"
 
 StackView {
     id: editRoot
@@ -323,6 +324,17 @@ StackView {
                         font.pixelSize: 16
                         font.bold: true
                         color: styleData.selected ? "white" : "white"
+                        property string glyphtext: ""
+                        HiFiGlyphs {
+                            anchors.centerIn: parent
+                            size: 30
+                            color: "#ffffff"
+                            text: text.glyphtext
+                        }
+                        Component.onCompleted: if (styleData.title == "P") {
+                            text.text = "   ";
+                            text.glyphtext = "\ue004";
+                        }
                     }
                 }
                 tabBar: Rectangle {
