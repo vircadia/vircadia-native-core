@@ -13,6 +13,7 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtGraphicalEffects 1.0
 import "../styles-uit"
 import "../controls-uit" as HifiControls
 
@@ -164,6 +165,14 @@ Rectangle {
         onSortIndicatorOrderChanged: sortModel()
 
         TableViewColumn {
+            role: "avgAudioLevel"
+            title: "VOL"
+            width: actionButtonWidth
+            movable: false
+            resizable: false
+        }
+
+        TableViewColumn {
             id: displayNameHeader
             role: "displayName"
             title: table.rowCount + (table.rowCount === 1 ? " NAME" : " NAMES")
@@ -181,13 +190,6 @@ Rectangle {
         TableViewColumn {
             role: "ignore"
             title: "IGNORE"
-            width: actionButtonWidth
-            movable: false
-            resizable: false
-        }
-        TableViewColumn {
-            role: "avgAudioLevel"
-            title: "VOL"
             width: actionButtonWidth
             movable: false
             resizable: false
@@ -226,7 +228,8 @@ Rectangle {
             id: itemCell
             property bool isCheckBox: styleData.role === "personalMute" || styleData.role === "ignore"
             property bool isButton: styleData.role === "mute" || styleData.role === "kick"
-            property bool isText: styleData.role == "avgAudioLevel"
+            property bool isAvgAudio: styleData.role === "avgAudioLevel"
+
             // This NameCard refers to the cell that contains an avatar's
             // DisplayName and UserName
             NameCard {
@@ -236,7 +239,7 @@ Rectangle {
                 userName: model ? model.userName : ""
                 audioLevel: model ? model.audioLevel : 0.0
                 avgAudioLevel: model ? model.avgAudioLevel : 0.0
-                visible: !isCheckBox && !isButton && !isText
+                visible: !isCheckBox && !isButton && !isAvgAudio
                 uuid: model ? model.sessionId : ""
                 selected: styleData.selected
                 isAdmin: model && model.admin
@@ -246,14 +249,19 @@ Rectangle {
                 // Anchors
                 anchors.left: parent.left
             }
-            Text {
+            Image {
+                visible: isAvgAudio
+                function getImage() {
+                    var fileName = "../../../images/Audio-Loudness-Icons/vol-";
+                    fileName += (4.0*(model ? model.avgAudioLevel : 0.0)).toFixed(0);
+                    fileName += ".svg";
+                    return fileName;
+                }
                 id: avgAudioVolume
-                text: model ? (10 * model.avgAudioLevel).toFixed(0) : 0.0
-                visible: isText
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                width: parent.width
-                height: parent.height
+                width: hifi.dimensions.tableHeaderHeight
+                fillMode: Image.PreserveAspectFit
+                source: getImage()
+                anchors.verticalCenter: parent.verticalCenter
             }
 
             // This CheckBox belongs in the columns that contain the stateful action buttons ("Mute" & "Ignore" for now)

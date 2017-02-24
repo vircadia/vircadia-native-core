@@ -197,6 +197,17 @@ HighlightedEntity.updateOverlays = function updateHighlightedEntities() {
     });
 };
 
+/* this contains current gain for a given node (by session id).  More efficient than 
+ * querying it, plus there isn't a getGain function so why write one */
+var sessionGains = {};
+function convertDbToLinear(decibels) {
+    // +20db = 10x, 0dB = 1x, -10dB = 0.1x, etc...
+    // but, your perception is that something 2x as loud is +10db
+    // so we go from -60 to +20 or 1/64x to 4x.  For now, we can
+    // maybe scale the signal this way??
+    return Math.pow(2, decibels/10.0);   
+}
+
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
     var data;
     switch (message.method) {
@@ -242,6 +253,8 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             UserActivityLogger.palAction("avatar_gain_changed", data['sessionId']);
         } else {
             Users.setAvatarGain(data['sessionId'], data['gain']);
+            sessionGains[data['sessionId']] = convertDbToLinear(data['gain']);
+            print("set " + data['sessionId'] + " to " + sessionGains[data['sessionId']]);
         }
         break;
     case 'displayNameUpdate':
@@ -576,6 +589,7 @@ function scaleAudio(val) {
     }
     return audioLevel;
 }
+
 function getAudioLevel(id) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
     // But of course it gets the data at a different rate, so we tweak the averaging ratio and frequency
@@ -594,9 +608,10 @@ function getAudioLevel(id) {
         // natural log, so to get log base 2, just divide by ln(2).
         audioLevel = scaleAudio(Math.log(data.accumulatedLevel + 1) / LOG2);
         avgAudioLevel = scaleAudio(Math.log(data.longAccumulatedLevel + 1) / LOG2);
-
+        // scale avgAudioLevel given that there can be a gain (4x to 1/64x)
+        avgAudioLevel = Math.min(1.0, avgAudioLevel *(sessionGains[id] || 0.75));
+        data.avgAudioLevel = avgAudioLevel;
         data.audioLevel = audioLevel;
-        data.averageAudioLevel = avgAudioLevel;
     }
     return [audioLevel, avgAudioLevel];
 }
