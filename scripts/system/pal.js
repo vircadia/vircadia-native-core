@@ -197,7 +197,7 @@ HighlightedEntity.updateOverlays = function updateHighlightedEntities() {
     });
 };
 
-/* this contains current gain for a given node (by session id).  More efficient than 
+/* this contains current gain for a given node (by session id).  More efficient than
  * querying it, plus there isn't a getGain function so why write one */
 var sessionGains = {};
 function convertDbToLinear(decibels) {
@@ -205,7 +205,7 @@ function convertDbToLinear(decibels) {
     // but, your perception is that something 2x as loud is +10db
     // so we go from -60 to +20 or 1/64x to 4x.  For now, we can
     // maybe scale the signal this way??
-    return Math.pow(2, decibels/10.0);   
+    return Math.pow(2, decibels/10.0);
 }
 
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
@@ -571,10 +571,10 @@ function receiveMessage(channel, messageString, senderID) {
 }
 
 var AVERAGING_RATIO = 0.05;
-var LONG_AVERAGING_RATIO = 0.75;
 var LOUDNESS_FLOOR = 11.0;
 var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
+var AUDIO_PEAK_DECAY = 0.03;
 var myData = {}; // we're not includied in ExtendedOverlay.get.
 
 function scaleAudio(val) {
@@ -602,16 +602,19 @@ function getAudioLevel(id) {
 
         // we will do exponential moving average by taking some the last loudness and averaging
         data.accumulatedLevel = AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
-        data.longAccumulatedLevel = LONG_AVERAGING_RATIO * (data.longAccumulatedLevel || 0) + (1 - LONG_AVERAGING_RATIO) * (avatar.audioLoudness);
 
         // add 1 to insure we don't go log() and hit -infinity.  Math.log is
         // natural log, so to get log base 2, just divide by ln(2).
         audioLevel = scaleAudio(Math.log(data.accumulatedLevel + 1) / LOG2);
-        avgAudioLevel = scaleAudio(Math.log(data.longAccumulatedLevel + 1) / LOG2);
-        // scale avgAudioLevel given that there can be a gain (4x to 1/64x)
-        avgAudioLevel = Math.min(1.0, avgAudioLevel *(sessionGains[id] || 0.75));
+
+        // decay avgAudioLevel
+        avgAudioLevel = Math.max((1-AUDIO_PEAK_DECAY) * (data.avgAudioLevel || 0), audioLevel);
+
         data.avgAudioLevel = avgAudioLevel;
         data.audioLevel = audioLevel;
+
+        // now scale for the gain
+        avgAudioLevel = Math.min(1.0, avgAudioLevel *(sessionGains[id] || 0.75));
     }
     return [audioLevel, avgAudioLevel];
 }
