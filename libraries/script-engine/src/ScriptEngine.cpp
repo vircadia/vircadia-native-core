@@ -576,6 +576,7 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
     qScriptRegisterMetaType(this, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
     qScriptRegisterMetaType(this, RayToAvatarIntersectionResultToScriptValue, RayToAvatarIntersectionResultFromScriptValue);
+    qScriptRegisterMetaType(this, AvatarEntityMapToScriptValue, AvatarEntityMapFromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<QUuid>>(this);
     qScriptRegisterSequenceMetaType<QVector<EntityItemID>>(this);
 
