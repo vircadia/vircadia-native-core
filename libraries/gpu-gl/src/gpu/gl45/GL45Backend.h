@@ -17,6 +17,7 @@
 #include <thread>
 
 #define INCREMENTAL_TRANSFER 0
+#define THREADED_TEXTURE_BUFFERING 1
 
 namespace gpu { namespace gl45 {
     
