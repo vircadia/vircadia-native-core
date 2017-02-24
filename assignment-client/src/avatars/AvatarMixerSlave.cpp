@@ -311,7 +311,8 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
 
             // make sure we send out identity packets to and from new arrivals.
-            bool forceSend = !nodeData->checkAndSetHasReceivedFirstPacketsFrom(otherNode->getUUID());
+            // Also make sure we send identity packets if the PAL is open.
+            bool forceSend = !nodeData->checkAndSetHasReceivedFirstPacketsFrom(otherNode->getUUID()) || (PALIsOpen || getsAnyIgnored);
 
             // FIXME - this clause seems suspicious "... || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp ..."
             if (!overBudget
