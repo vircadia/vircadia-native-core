@@ -168,7 +168,7 @@ public:
         //bool canPromoteNoAllocate() const { return _allocatedMip < _populatedMip; }
         bool canPromote() const { return _allocatedMip > 0; }
         bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
-        bool hasPendingTransfers() const { return !_pendingTransfers.empty(); }
+        bool hasPendingTransfers() const { return _populatedMip > _allocatedMip; }
         void executeNextTransfer(const TexturePointer& currentTexture);
         uint32 size() const override { return _size; }
         virtual void populateTransferQueue() = 0;
