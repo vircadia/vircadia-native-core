@@ -1,18 +1,22 @@
-var ENTITY_LIST_HTML_URL = Script.resolvePath('../html/entityList.html');
+"use strict";
+
+//  entityList.js
+//
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+/* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
+   cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
 
 EntityListTool = function(opts) {
     var that = {};
 
     var webView = null;
-    if (Settings.getValue("HUDUIEnabled")) {
-        var url = ENTITY_LIST_HTML_URL;
-        webView = new OverlayWebWindow({
-            title: 'Entity List',  source: url,  toolWindow: true
-        });
-    } else {
-        webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        webView.setVisible = function(value) {};
-    }
+    webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    webView.setVisible = function(value) {};
 
     var filterInView = false;
     var searchRadius = 100;
@@ -30,7 +34,7 @@ EntityListTool = function(opts) {
 
     that.toggleVisible = function() {
         that.setVisible(!visible);
-    }
+    };
 
     selectionManager.addEventListener(function() {
         var selectedIDs = [];
@@ -49,7 +53,7 @@ EntityListTool = function(opts) {
     that.clearEntityList = function () {
         var data = {
             type: 'clearEntityList'
-        }
+        };
         webView.emitScriptEvent(JSON.stringify(data));
     };
 
@@ -91,8 +95,8 @@ EntityListTool = function(opts) {
         }
 
         var selectedIDs = [];
-        for (var i = 0; i < selectionManager.selections.length; i++) {
-            selectedIDs.push(selectionManager.selections[i].id);
+        for (var j = 0; j < selectionManager.selections.length; j++) {
+            selectedIDs.push(selectionManager.selections[j].id);
         }
 
         var data = {
@@ -101,7 +105,7 @@ EntityListTool = function(opts) {
             selectedIDs: selectedIDs,
         };
         webView.emitScriptEvent(JSON.stringify(data));
-    }
+    };
 
     webView.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
