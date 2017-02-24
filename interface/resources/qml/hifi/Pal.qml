@@ -30,7 +30,7 @@ Rectangle {
     property int myCardHeight: 90
     property int rowHeight: 70
     property int actionButtonWidth: 55
-    property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 5 : 3) - 4 - hifi.dimensions.scrollbarBackgroundWidth
+    property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4.5 : 2.5) - 4 - hifi.dimensions.scrollbarBackgroundWidth
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0, avgAudioLevel: 0.0, admin: true}) // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
@@ -167,7 +167,7 @@ Rectangle {
         TableViewColumn {
             role: "avgAudioLevel"
             title: "VOL"
-            width: actionButtonWidth
+            width: actionButtonWidth/2
             movable: false
             resizable: false
         }
@@ -397,7 +397,7 @@ Rectangle {
         anchors.left: table.left
         anchors.top: table.top
         anchors.topMargin: 1
-        anchors.leftMargin: nameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6
+        anchors.leftMargin: actionButtonWidth/2 + nameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6
         RalewayRegular {
             id: helpText
             text: "[?]"
