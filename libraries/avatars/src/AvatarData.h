@@ -379,7 +379,8 @@ public:
         MinimumData, 
         CullSmallData,
         IncludeSmallData,
-        SendAllData
+        SendAllData,
+        PALMinimum
     } AvatarDataDetail;
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail);

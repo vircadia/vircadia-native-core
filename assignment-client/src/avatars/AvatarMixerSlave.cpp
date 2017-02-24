@@ -137,14 +137,18 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // keep track of the number of other avatar frames skipped
         int numAvatarsWithSkippedFrames = 0;
 
-        // When this is true, the AvatarMixer will send Avatar data to a client about avatars that are not in the view frustrum
-        bool getsOutOfView = nodeData->getRequestsDomainListData();
-
-        // When this is true, the AvatarMixer will send Avatar data to a client about avatars that they've ignored
-        bool getsIgnoredByMe = getsOutOfView;
+        // When this is true, the AvatarMixer will send Avatar data to a client
+        // about avatars they've ignored or that are out of view
+        bool PALIsOpen = nodeData->getRequestsDomainListData();
 
         // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
-        bool getsAnyIgnored = getsIgnoredByMe && node->getCanKick();
+        bool getsAnyIgnored = PALIsOpen && node->getCanKick();
+
+        // Increase minimumBytesPerAvatar if the PAL is open or we're gettingAnyIgnored
+        if (PALIsOpen || getsAnyIgnored) {
+            minimumBytesPerAvatar += sizeof(AvatarDataPacket::AvatarGlobalPosition) +
+                sizeof(AvatarDataPacket::AudioLoudness);
+        }
 
         // setup a PacketList for the avatarPackets
         auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
@@ -222,7 +226,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     // or that has ignored the viewing node
                     if (!avatarNode->getLinkedData()
                         || avatarNode->getUUID() == node->getUUID()
-                        || (node->isIgnoringNodeWithID(avatarNode->getUUID()) && !getsIgnoredByMe)
+                        || (node->isIgnoringNodeWithID(avatarNode->getUUID()) && !PALIsOpen)
                         || (avatarNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
                         shouldIgnore = true;
                     } else {
@@ -335,9 +339,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             if (overBudget) {
                 overBudgetAvatars++;
                 _stats.overBudgetAvatars++;
-                detail = AvatarData::NoData;
-            } else  if (!isInView && !getsOutOfView) {
-                detail = AvatarData::NoData;
+                detail = (PALIsOpen || getsAnyIgnored) ? AvatarData::PALMinimum : AvatarData::NoData;
+            } else if (!isInView) {
+                detail = (PALIsOpen || getsAnyIgnored) ? AvatarData::PALMinimum : AvatarData::NoData;
                 nodeData->incrementAvatarOutOfView();
             } else {
                 detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
