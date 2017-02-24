@@ -50,6 +50,22 @@ function spawnTemplate(templateName, overrides) {
     return Entities.addEntity(properties);
 }
 
+function spawnTemplates(templateName, overrides) {
+    var templates = getTemplates(templateName);
+    if (template.length === 0) {
+        print("ERROR, unknown template name:", templateName);
+        return [];
+    }
+
+    var spawnedEntities = [];
+    for (var i = 0; i < templates.length; ++i) {
+        print("Spawning: ", templateName);
+        var properties = mergeObjects(overrides, templates[i]);
+        spawnedEntities.push(Entities.addEntity(properties));
+    }
+    return spawnedEntities;
+}
+
 // TEMPLATES contains a dictionary of different named entity templates. An entity
 // template is just a list of properties.
 //
@@ -62,6 +78,15 @@ function getTemplate(name) {
         }
     }
     return null;
+}
+function getTemplates(name) {
+    var templates = [];
+    for (var i = 0; i < TEMPLATES.length; ++i) {
+        if (TEMPLATES[i].name === name) {
+            templates.push(TEMPLATES[i]);
+        }
+    }
+    return templates;
 }
 
 
@@ -157,10 +182,20 @@ function createLocalGame() {
         serverScripts: Script.resolvePath('shortbowServerEntity.js')
     });
 
+    spawnTemplates("SB.BowSpawn", {
+        parentID: scoreboardID,
+        visible: false
+    });
+    spawnTemplates("SB.EnemySpawn", {
+        parentID: scoreboardID,
+        visible: false
+    });
+
     var bowPositions = [];
     var spawnPositions = [];
     for (var i = 0; i < TEMPLATES.length; ++i) {
         var template = TEMPLATES[i];
+
         if (template.name === "SB.BowSpawn") {
             bowPositions.push(Vec3.sum(rootPosition, template.localPosition));
             Vec3.print("Pushing bow position", Vec3.sum(rootPosition, template.localPosition));

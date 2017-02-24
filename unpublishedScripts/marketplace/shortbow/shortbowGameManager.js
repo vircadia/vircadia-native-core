@@ -41,6 +41,7 @@ var ESCAPE_SOUND = SoundCache.getSound(Script.resolvePath("sounds/escape.wav"));
 const STARTING_NUMBER_OF_LIVES = 6;
 const ENEMIES_PER_WAVE_MULTIPLIER = 2;
 const POINTS_PER_KILL = 100;
+const ENEMY_SPEED = 3.0;
 
 // Encode a set of key-value pairs into a param string. Does NOT do any URL escaping.
 function encodeURLParams(params) {
@@ -77,6 +78,28 @@ function sendAndUpdateHighScore(entityID, score, wave, numPlayers, onResposeRece
     request.timeout = 10000;
     request.send();
 }
+
+function findChildrenWithName(parentID, name) {
+    var childrenIDs = Entities.getChildrenIDs(parentID);
+    var matchingIDs = [];
+    for (var i = 0; i < childrenIDs.length; ++i) {
+        var id = childrenIDs[i];
+        var childName = Entities.getEntityProperties(id, 'name').name;
+        if (childName === name) {
+            matchingIDs.push(id);
+        }
+    }
+    return matchingIDs;
+}
+
+function getPropertiesForEntities(entityIDs, properties) {
+    var properties = [];
+    for (var i = 0; i < entityIDs.length; ++i) {
+        properties.push(Entities.getEntityProperties(entityIDs[i], properties));
+    }
+    return properties;
+}
+
 
 var baseEnemyProperties = {
     "name": "SB.Enemy",
@@ -116,19 +139,8 @@ var baseEnemyProperties = {
         "y": -0.54996079206466675,
         "z": -0.54996079206466675
     },
-    "rotation": {
-        "w": 0.52459806203842163,
-        "x": 0.3808099627494812,
-        "y": -0.16060420870780945,
-        "z": 0.74430292844772339
-    },
     "shapeType": "sphere",
     "type": "Model",
-    "velocity": {
-        "x": 0,
-        "y": 0,
-        "z": -3
-    },
     "script": Script.resolvePath('enemyClientEntity.js'),
     "serverScripts": Script.resolvePath('enemyServerEntity.js')
 };
@@ -269,11 +281,14 @@ ShortbowGameManager.prototype = {
         Entities.editEntity(this.startButtonID, { visible: false });
 
         // Spawn bows
-        for (var i = 0; i < this.bowPositions.length; ++i) {
-            const bowPosition = Vec3.sum(this.rootPosition, this.bowPositions[i]);
-            Vec3.print("Creating bow: " + i, this.bowPositions[i]);
+        var bowSpawnEntityIDs = findChildrenWithName(this.rootEntityID, 'SB.BowSpawn');
+        var bowSpawnProperties = getPropertiesForEntities(bowSpawnEntityIDs, ['position', 'rotation']);
+        for (var i = 0; i < bowSpawnProperties.length; ++i) {
+            const props = bowSpawnProperties[i];
+            Vec3.print("Creating bow: " + i, props.position);
             this.bowIDs.push(Entities.addEntity({
-                "position": bowPosition,
+                "position": props.position,
+                "rotation": props.rotation,
                 "collisionsWillMove": 1,
                 "compoundShapeURL": Script.resolvePath("bow/bow_collision_hull.obj"),
                 "created": "2016-09-01T23:57:55Z",
@@ -290,12 +305,6 @@ ShortbowGameManager.prototype = {
                 },
                 "modelURL": Script.resolvePath("bow/bow-deadly.fbx"),
                 "name": "WG.Hifi-Bow",
-                "rotation": {
-                    "w": 0.9718012809753418,
-                    "x": 0.15440607070922852,
-                    "y": -0.10469216108322144,
-                    "z": -0.14418250322341919
-                },
                 "script": Script.resolvePath("bow/bow.js"),
                 "shapeType": "compound",
                 "type": "Model",
@@ -349,10 +358,20 @@ ShortbowGameManager.prototype = {
         print("Number of enemies:", numberOfEnemiesLeftToSpawn);
         this.checkEnemiesTimer = Script.setInterval(this.checkEnemies.bind(this), 100);
 
+        var enemySpawnEntityIDs = findChildrenWithName(this.rootEntityID, 'SB.EnemySpawn');
+        var enemySpawnProperties = getPropertiesForEntities(enemySpawnEntityIDs, ['position', 'rotation']);
+
         for (var i = 0; i < numberOfEnemiesLeftToSpawn; ++i) {
             print("Adding enemy");
-            var idx = Math.floor(Math.random() * this.spawnPositions.length);
-            this.spawnQueue.push({ spawnAt: currentDelay, position: Vec3.sum(this.rootPosition, this.spawnPositions[idx]) });
+            var idx = Math.floor(Math.random() * enemySpawnProperties.length);
+            var props = enemySpawnProperties[idx];
+            this.spawnQueue.push({
+                spawnAt: currentDelay,
+                position: props.position,
+                rotation: props.rotation,
+                velocity: Vec3.multiply(ENEMY_SPEED, Quat.getFront(props.rotation))
+
+            });
             currentDelay += delayBetweenSpawns;
         }
 
@@ -404,6 +423,8 @@ ShortbowGameManager.prototype = {
         var waveElapsedTime = Date.now() - this.spawnStartTime;
         while (this.spawnQueue.length > 0 && waveElapsedTime > this.spawnQueue[0].spawnAt) {
             baseEnemyProperties.position = this.spawnQueue[0].position;
+            baseEnemyProperties.rotation = this.spawnQueue[0].rotation;
+            baseEnemyProperties.velocity= this.spawnQueue[0].velocity;
 
             baseEnemyProperties.userData = JSON.stringify({
                 gameChannel: this.commChannelName,
