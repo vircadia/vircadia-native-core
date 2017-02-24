@@ -129,7 +129,7 @@ var baseEnemyProperties = {
         "y": -15,
         "z": 0
     },
-    "lifetime": 60,
+    "lifetime": 30,
     "id": "{ed8f7339-8bbd-4750-968e-c3ceb9d64721}",
     "modelURL": Script.resolvePath("models/Amber.fbx"),
     "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
