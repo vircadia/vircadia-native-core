@@ -48,7 +48,7 @@ utils = {
         var result = Entities.findRayIntersection({
             origin: pos,
             direction: { x: 0.0, y: -1.0, z: 0.0 }
-        });
+        }, true);
         if (result.intersects) {
             return result.intersection;
         }
