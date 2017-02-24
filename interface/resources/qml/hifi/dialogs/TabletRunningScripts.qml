@@ -17,7 +17,7 @@ import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows"
 
-Item {
+Rectangle {
     id: root
     objectName: "RunningScripts"
     HifiConstants { id: hifi }
@@ -27,6 +27,8 @@ Item {
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
     property bool isHMD: false
+
+    color: hifi.colors.baseGray
 
     Connections {
         target: ScriptDiscoveryService

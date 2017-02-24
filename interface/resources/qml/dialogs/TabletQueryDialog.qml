@@ -61,10 +61,10 @@ TabletModalWindow {
         iconText = hifi.glyphForIcon(root.icon);
     }
 
-    Rectangle {
+    TabletModalFrame {
         id: modalWindowItem
         width: parent.width
-        height: 480
+        height: 240
         anchors.margins: 0
         anchors {
             verticalCenter: parent.verticalCenter
@@ -82,13 +82,13 @@ TabletModalWindow {
                 var targetWidth = Math.max(titleWidth, 480)
                 var targetHeight = (items ? comboBox.controlHeight : textResult.controlHeight) + 5 * hifi.dimensions.contentSpacing.y + buttons.height
                 modalWindowItem.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
-                modalWindowItem.height = ((targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)) + ((keyboardEnabled && keyboardRaised) ? (keyboard.raisedHeight + 2 * hifi.dimensions.contentSpacing.y) : 0)
+                modalWindowItem.height = ((targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)) + ((keyboardEnabled && keyboardRaised) ? (keyboard.raisedHeight + 2 * hifi.dimensions.contentSpacing.y) : 0) + modalWindowItem.frameMarginTop
             }
         }
         
         Item {
             anchors {
-                top: frameTitle.bottom
+                top: parent.top
                 bottom: keyboard.top;
                 left: parent.left;
                 right: parent.right;

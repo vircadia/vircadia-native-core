@@ -9,6 +9,7 @@ Item {
     property var eventBridge;
 
     property var rootMenu;
+    property var openModal: null;
     property string subMenu: ""
     signal showDesktop();
 
@@ -18,16 +19,22 @@ Item {
 
     Component { id: inputDialogBuilder; TabletQueryDialog { } }
     function inputDialog(properties) {
-        return inputDialogBuilder.createObject(tabletRoot, properties);
+        openModal = inputDialogBuilder.createObject(tabletRoot, properties);
+        return openModal;
     }
-
+    Component { id: messageBoxBuilder; TabletMessageBox { } }
     function messageBox(properties) {
+        openModal = messageBoxBuilder.createObject(tabletRoot, properties);
+        return openModal;
     }
 
     function customInputDialog(properties) {
     }
 
+    Component { id: fileDialogBuilder; TabletFileDialog { } }
     function fileDialog(properties) {
+        openModal = fileDialogBuilder.createObject(tabletRoot, properties);
+        return openModal; 
     }
 
     function setMenuProperties(rootMenu, subMenu) {
@@ -104,6 +111,12 @@ Item {
                 loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
             }
             loader.item.forceActiveFocus();
+
+            if (openModal) {
+                openModal.canceled();
+                openModal.destroy();
+                openModal = null;
+            }
         }
     }
 
