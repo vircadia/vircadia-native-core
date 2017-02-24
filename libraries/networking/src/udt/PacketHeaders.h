@@ -112,7 +112,8 @@ public:
         ReloadEntityServerScript,
         EntityPhysics,
         EntityServerScriptLog,
-        LAST_PACKET_TYPE = EntityServerScriptLog
+        AdjustAvatarSorting,
+        LAST_PACKET_TYPE = AdjustAvatarSorting
     };
 };
 

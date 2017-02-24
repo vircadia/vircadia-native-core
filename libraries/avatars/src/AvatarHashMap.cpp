@@ -190,3 +190,4 @@ void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& ol
     _lastOwnerSessionUUID = oldUUID;
     emit avatarSessionChangedEvent(sessionUUID, oldUUID);
 }
+

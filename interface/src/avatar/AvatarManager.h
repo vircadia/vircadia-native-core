@@ -43,8 +43,8 @@ public:
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
     AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const override;
 
-    int getFullySimulatedAvatars() const { return _fullySimulatedAvatars; }
-    int getPartiallySimulatedAvatars() const { return _partiallySimulatedAvatars; }
+    int getNumAvatarsUpdated() const { return _numAvatarsUpdated; }
+    int getNumAvatarsNotUpdated() const { return _numAvatarsNotUpdated; }
     float getAvatarSimulationTime() const { return _avatarSimulationTime; }
 
     void updateMyAvatar(float deltaTime);
@@ -120,15 +120,9 @@ private:
     VectorOfMotionStates _motionStatesToRemoveFromPhysics;
 
     RateCounter<> _myAvatarSendRate;
-    int _fullySimulatedAvatars { 0 };
-    int _partiallySimulatedAvatars { 0 };
+    int _numAvatarsUpdated { 0 };
+    int _numAvatarsNotUpdated { 0 };
     float _avatarSimulationTime { 0.0f };
-
-    // TODO: remove this HACK once we settle on optimal sort coefficients
-    // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
-    float _avatarSortCoefficientSize { 0.5f };
-    float _avatarSortCoefficientCenter { 0.25 };
-    float _avatarSortCoefficientAge { 1.0f };
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)
