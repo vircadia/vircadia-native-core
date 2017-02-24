@@ -128,7 +128,17 @@
                                                     "id": "rightHandGrasp",
                                                     "interpTarget": 3,
                                                     "interpDuration": 3,
-                                                    "transitions": []
+                                                    "transitions": [
+                                                        { "var": "isRightIndexPoint", "state": "rightIndexPoint" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "rightIndexPoint",
+                                                    "interpTarget": 15,
+                                                    "interpDuration": 3,
+                                                    "transitions": [
+                                                        { "var": "isRightHandGrasp", "state": "rightHandGrasp" }
+                                                    ]
                                                 }
                                             ]
                                         },
@@ -166,6 +176,40 @@
                                                         "children": []
                                                     }
                                                 ]
+                                            },
+                                            {
+                                                "id": "rightIndexPoint",
+                                                "type": "blendLinear",
+                                                "data":  {
+                                                    "alpha": 0.0,
+                                                    "alphaVar": "rightHandGraspAlpha"
+                                                },
+                                                "children": [
+                                                    {
+                                                        "id": "rightIndexPointOpen",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/touch_point_open_right.fbx",
+                                                            "startFrame": 15.0,
+                                                            "endFrame": 15.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "rightIndexPointClosed",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/touch_point_closed_right.fbx",
+                                                            "startFrame": 15.0,
+                                                            "endFrame": 15.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
                                             }
                                         ]
                                     },
@@ -175,7 +219,7 @@
                                         "data": {
                                             "alpha": 0.0,
                                             "boneSet": "leftHand",
-                                            "alphaVar" : "leftHandOverlayAlpha"
+                                            "alphaVar": "leftHandOverlayAlpha"
                                         },
                                         "children": [
                                             {
@@ -188,7 +232,17 @@
                                                             "id": "leftHandGrasp",
                                                             "interpTarget": 3,
                                                             "interpDuration": 3,
-                                                            "transitions": []
+                                                            "transitions": [
+                                                                { "var": "isLeftIndexPoint", "state": "leftIndexPoint" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "leftIndexPoint",
+                                                            "interpTarget": 15,
+                                                            "interpDuration": 3,
+                                                            "transitions": [
+                                                                { "var": "isLeftHandGrasp", "state": "leftHandGrasp" }
+                                                            ]
                                                         }
                                                     ]
                                                 },
@@ -220,6 +274,40 @@
                                                                     "url": "animations/hydra_pose_closed_left.fbx",
                                                                     "startFrame": 10.0,
                                                                     "endFrame": 10.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "id": "leftIndexPoint",
+                                                        "type": "blendLinear",
+                                                        "data":  {
+                                                            "alpha": 0.0,
+                                                            "alphaVar": "leftHandGraspAlpha"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "leftIndexPointOpen",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/touch_point_open_left.fbx",
+                                                                    "startFrame": 15.0,
+                                                                    "endFrame": 15.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "leftIndexPointClosed",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/touch_point_closed_left.fbx",
+                                                                    "startFrame": 15.0,
+                                                                    "endFrame": 15.0,
                                                                     "timeScale": 1.0,
                                                                     "loopFlag": true
                                                                 },
