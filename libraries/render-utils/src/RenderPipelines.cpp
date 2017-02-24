@@ -71,6 +71,7 @@ void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch);
 
 void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
+    auto vertexModel = gpu::Shader::createVertex(std::string(model_vert));
     auto pixel = gpu::Shader::createPixel(std::string(overlay3D_model_frag));
     auto pixelTranslucent = gpu::Shader::createPixel(std::string(overlay3D_translucent_frag));
     auto pixelUnlit = gpu::Shader::createPixel(std::string(overlay3D_unlit_frag));
@@ -81,7 +82,7 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto translucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucent);
     auto unlitOpaqueProgram = gpu::Shader::createProgram(vertex, pixelUnlit);
     auto unlitTranslucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucentUnlit);
-    auto opaqueMaterialProgram = gpu::Shader::createProgram(vertex, pixelMaterial);
+    auto opaqueMaterialProgram = gpu::Shader::createProgram(vertexModel, pixelMaterial);
 
     for (int i = 0; i < 16; i++) {
         bool isCulled = (i & 1);
@@ -113,9 +114,9 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
 
         auto simpleProgram = isOpaque ? opaqueProgram : translucentProgram;
         auto unlitProgram = isOpaque ? unlitOpaqueProgram : unlitTranslucentProgram;
-        plumber.addPipeline(builder.withoutUnlit().build(), simpleProgram, state, &lightBatchSetter);
-        plumber.addPipeline(builder.withMaterial().build(), opaqueMaterialProgram, state, &lightBatchSetter);
-        plumber.addPipeline(builder.withUnlit().build(), unlitProgram, state, &batchSetter);
+        plumber.addPipeline(builder.withoutUnlit().withoutMaterial().build(), simpleProgram, state, &lightBatchSetter);
+        plumber.addPipeline(builder.withMaterial().withoutUnlit().build(), opaqueMaterialProgram, state, &lightBatchSetter);
+        plumber.addPipeline(builder.withUnlit().withoutMaterial().build(), unlitProgram, state, &batchSetter);
     }
 }
 

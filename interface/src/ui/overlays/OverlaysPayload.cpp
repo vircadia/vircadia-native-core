@@ -62,7 +62,11 @@ namespace render {
         if (overlay->is3D()) {
             auto overlay3D = std::dynamic_pointer_cast<Base3DOverlay>(overlay);
             if (overlay3D->isAA())
-                return (overlay3D->getDrawInFront() ? LAYER_3D_FRONT : LAYER_3D);
+                if (overlay3D->getDrawInFront()) {
+                    return LAYER_3D_FRONT;
+                } else {
+                    return LAYER_3D;
+                }
             else
                 return LAYER_NO_AA;
         } else {
