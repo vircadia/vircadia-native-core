@@ -384,18 +384,20 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             if (includeThisAvatar) {
                 numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                 numAvatarDataBytes += avatarPacketList->write(bytes);
-                _stats.numOthersIncluded++;
 
-                // increment the number of avatars sent to this reciever
-                nodeData->incrementNumAvatarsSentLastFrame();
+                if (detail != AvatarData::NoData) {
+                    _stats.numOthersIncluded++;
 
-                // set the last sent sequence number for this sender on the receiver
-                nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                    otherNodeData->getLastReceivedSequenceNumber());
+                    // increment the number of avatars sent to this reciever
+                    nodeData->incrementNumAvatarsSentLastFrame();
 
-                // remember the last time we sent details about this other node to the receiver
-                nodeData->setLastBroadcastTime(otherNode->getUUID(), start);
+                    // set the last sent sequence number for this sender on the receiver
+                    nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(), 
+                                    otherNodeData->getLastReceivedSequenceNumber());
 
+                    // remember the last time we sent details about this other node to the receiver
+                    nodeData->setLastBroadcastTime(otherNode->getUUID(), start);
+                }
             }
 
             avatarPacketList->endSegment();
