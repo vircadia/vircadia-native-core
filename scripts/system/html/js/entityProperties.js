@@ -27,6 +27,7 @@ var EDITOR_TIMEOUT_DURATION = 1500;
 
 var colorPickers = [];
 var lastEntityID = null;
+
 debugPrint = function(message) {
     EventBridge.emitWebEvent(
         JSON.stringify({
@@ -325,49 +326,65 @@ function setUserDataFromEditor(noUpdate) {
         }
     }
 }
-function userDataChanger(groupName, keyName, values, userDataElement, defaultValue) {
-    var properties = {};
-    var parsedData = {};
-    try {
-        if ($('#userdata-editor').css('height') !== "0px") {
-            //if there is an expanded, we want to use its json.
-            parsedData = getEditorJSON();
-        } else {
-            parsedData = JSON.parse(userDataElement.value);
+function multiUserDataChanger(groupName, keyPair, userDataElement, defaults) {
+  var properties = {};
+  var parsedData = {};
+  try {
+      if ($('#userdata-editor').css('height') !== "0px") {
+          //if there is an expanded, we want to use its json.
+          parsedData = getEditorJSON();
+      } else {
+          parsedData = JSON.parse(userDataElement.value);
+      }
+  } catch (e) {}
+
+  if (!(groupName in parsedData)) {
+      parsedData[groupName] = {}
+  }
+  var keys = Object.keys(keyPair);
+  keys.forEach(function (key) {
+    delete parsedData[groupName][key];
+    if (keyPair[key] instanceof Element) {
+      if(keyPair[key].type === "checkbox") {
+        if (keyPair[key].checked !== defaults[key]) {
+            parsedData[groupName][key] = keyPair[key].checked;
         }
-    } catch (e) {}
-
-    if (!(groupName in parsedData)) {
-        parsedData[groupName] = {}
-    }
-
-    delete parsedData[groupName][keyName];
-    if (values instanceof Element) {
-      if (values.checked !== defaultValue) {
-          parsedData[groupName][keyName] = values.checked;
+      } else {
+        var val = isNaN(keyPair[key].value) ? keyPair[key].value : parseInt(keyPair[key].value);
+        if (val !== defaults[key]) {
+            parsedData[groupName][key] = val;
+        }
       }
     } else {
-        parsedData[groupName][keyName] = values;
+        parsedData[groupName][key] = keyPair[key];
     }
+  });
 
-    if (Object.keys(parsedData[groupName]).length == 0) {
-        delete parsedData[groupName];
-    }
-    if (Object.keys(parsedData).length > 0) {
-        properties['userData'] = JSON.stringify(parsedData);
-    } else {
-        properties['userData'] = '';
-    }
+  if (Object.keys(parsedData[groupName]).length == 0) {
+      delete parsedData[groupName];
+  }
+  if (Object.keys(parsedData).length > 0) {
+      properties['userData'] = JSON.stringify(parsedData);
+  } else {
+      properties['userData'] = '';
+  }
 
-    userDataElement.value = properties['userData'];
+  userDataElement.value = properties['userData'];
 
-    EventBridge.emitWebEvent(
-        JSON.stringify({
-            id: lastEntityID,
-            type: "update",
-            properties: properties,
-        })
-    );
+  EventBridge.emitWebEvent(
+      JSON.stringify({
+          id: lastEntityID,
+          type: "update",
+          properties: properties,
+      })
+  );
+
+}
+function userDataChanger(groupName, keyName, values, userDataElement, defaultValue) {
+    var val = {}, def = {};
+    val[keyName] = values;
+    def[keyName] = defaultValue;
+    multiUserDataChanger(groupName, val, userDataElement, def);
 };
 
 function setTextareaScrolling(element) {
@@ -873,15 +890,18 @@ function loaded() {
                                 }
                                 if ("cloneable" in parsedUserData["grabbableKey"]) {
                                     elCloneable.checked = parsedUserData["grabbableKey"].cloneable;
-
                                     elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
                                     elCloneableLimit.value = elCloneable.checked ? 10: 0;
                                     elCloneableLifetime.value = elCloneable.checked ? 300: 0;
+                                    elDynamic.checked = elCloneable.checked ? false: properties.dynamic;
+
                                 } else {
                                     elCloneable.checked = false;
+
                                     elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
                                     elCloneableLimit.value = 0;
                                     elCloneableLifetime.value = 0;
+
                                 }
                                 if ("cloneLifetime" in parsedUserData["grabbableKey"]) {
                                     elCloneableLifetime.value = parsedUserData["grabbableKey"].cloneLifetime;
@@ -1184,14 +1204,24 @@ function loaded() {
             userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
         });
         elCloneable.addEventListener('change', function (event) {
-            if (event.target.checked) {
-                userDataChanger("grabbableKey", "cloneLifetime", 300, elUserData, -1);
-                userDataChanger("grabbableKey", "cloneLimit", 10, elUserData, -1);
+            var checked = event.target.checked;
+            if (checked) {
+              multiUserDataChanger("grabbableKey",
+              {cloneLifetime: elCloneableLifetime, cloneLimit: elCloneableLimit, cloneable: event.target},
+              elUserData,
+              {cloneLifetime: 300, cloneLimit: 10, cloneable: false});
                 elCloneableGroup.style.display = "block";
+                EventBridge.emitWebEvent(
+                    '{"id":' + lastEntityID + ', "type":"update", "properties":{"dynamic":false}}'
+                );
+                EventBridge.emitWebEvent(
+                    '{"id":' + lastEntityID + ', "type":"update", "properties":{"grabbable":true}}'
+                );
             } else {
                 elCloneableGroup.style.display = "none";
             }
-            userDataChanger("grabbableKey", "cloneable", event.target, elUserData, null);
+
+            userDataChanger("grabbableKey", "cloneable", checked, elUserData, null);
         });
 
         var numberListener = function (event) {
