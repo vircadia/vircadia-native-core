@@ -406,10 +406,20 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray,
                                                              const QScriptValue& overlayIDsToInclude,
                                                              const QScriptValue& overlayIDsToDiscard,
                                                              bool visibleOnly, bool collidableOnly) {
-    float bestDistance = std::numeric_limits<float>::max();
-    bool bestIsFront = false;
     const QVector<OverlayID> overlaysToInclude = qVectorOverlayIDFromScriptValue(overlayIDsToInclude);
     const QVector<OverlayID> overlaysToDiscard = qVectorOverlayIDFromScriptValue(overlayIDsToDiscard);
+
+    return findRayIntersectionInternal(ray, precisionPicking,
+                                       overlaysToInclude, overlaysToDiscard, visibleOnly, collidableOnly);
+}
+
+
+RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickRay& ray, bool precisionPicking,
+                                                                     const QVector<OverlayID>& overlaysToInclude,
+                                                                     const QVector<OverlayID>& overlaysToDiscard,
+                                                                     bool visibleOnly, bool collidableOnly) {
+    float bestDistance = std::numeric_limits<float>::max();
+    bool bestIsFront = false;
 
     RayToOverlayIntersectionResult result;
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
@@ -719,11 +729,41 @@ PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay r
     return pointerEvent;
 }
 
+
+RayToOverlayIntersectionResult Overlays::findRayIntersectionForMouseEvent(PickRay ray) {
+    QVector<OverlayID> overlaysToInclude;
+    QVector<OverlayID> overlaysToDiscard;
+    RayToOverlayIntersectionResult rayPickResult;
+
+    // first priority is tablet screen
+    overlaysToInclude << qApp->getTabletScreenID();
+    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    if (rayPickResult.intersects) {
+        return rayPickResult;
+    }
+    // then tablet home button
+    overlaysToInclude.clear();
+    overlaysToInclude << qApp->getTabletHomeButtonID();
+    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    if (rayPickResult.intersects) {
+        return rayPickResult;
+    }
+    // then tablet frame
+    overlaysToInclude.clear();
+    overlaysToInclude << OverlayID(qApp->getTabletFrameID());
+    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    if (rayPickResult.intersects) {
+        return rayPickResult;
+    }
+    // then whatever
+    return findRayIntersection(ray);
+}
+
 void Overlays::mousePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mousePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersection(ray);
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
@@ -744,7 +784,7 @@ void Overlays::mouseReleaseEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersection(ray);
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
     if (rayPickResult.intersects) {
 
         // Only Web overlays can have focus.
@@ -762,7 +802,7 @@ void Overlays::mouseMoveEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseMoveEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersection(ray);
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
     if (rayPickResult.intersects) {
 
         // Only Web overlays can have focus.
@@ -802,4 +842,32 @@ void Overlays::mouseMoveEvent(QMouseEvent* event) {
             _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
         }
     }
+}
+
+QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) const {
+    QVector<QUuid> result;
+
+    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
+    i.toBack();
+    while (i.hasPrevious()) {
+        i.previous();
+        OverlayID thisID = i.key();
+        auto overlay = std::dynamic_pointer_cast<Volume3DOverlay>(i.value());
+        if (overlay && overlay->getVisible() && !overlay->getIgnoreRayIntersection() && overlay->isLoaded()) {
+            // get AABox in frame of overlay
+            glm::vec3 dimensions = overlay->getDimensions();
+            glm::vec3 low = dimensions * -0.5f;
+            AABox overlayFrameBox(low, dimensions);
+
+            Transform overlayToWorldMatrix = overlay->getTransform();
+            glm::mat4 worldToOverlayMatrix = glm::inverse(overlayToWorldMatrix.getMatrix());
+            glm::vec3 overlayFrameSearchPosition = glm::vec3(worldToOverlayMatrix * glm::vec4(center, 1.0f));
+            glm::vec3 penetration;
+            if (overlayFrameBox.findSpherePenetration(overlayFrameSearchPosition, radius, penetration)) {
+                result.append(thisID);
+            }
+        }
+    }
+
+    return result;
 }
