@@ -28,19 +28,19 @@ void DebugDraw::drawRay(const glm::vec3& start, const glm::vec3& end, const glm:
     _rays.push_back(Ray(start, end, color));
 }
 
-void DebugDraw::addMarker(const std::string& key, const glm::quat& rotation, const glm::vec3& position, const glm::vec4& color) {
+void DebugDraw::addMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position, const glm::vec4& color) {
     _markers[key] = MarkerInfo(rotation, position, color);
 }
 
-void DebugDraw::removeMarker(const std::string& key) {
+void DebugDraw::removeMarker(const QString& key) {
     _markers.erase(key);
 }
 
-void DebugDraw::addMyAvatarMarker(const std::string& key, const glm::quat& rotation, const glm::vec3& position, const glm::vec4& color) {
+void DebugDraw::addMyAvatarMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position, const glm::vec4& color) {
     _myAvatarMarkers[key] = MarkerInfo(rotation, position, color);
 }
 
-void DebugDraw::removeMyAvatarMarker(const std::string& key) {
+void DebugDraw::removeMyAvatarMarker(const QString& key) {
     _myAvatarMarkers.erase(key);
 }
 
