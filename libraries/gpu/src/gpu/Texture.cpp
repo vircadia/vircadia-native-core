@@ -89,6 +89,10 @@ uint32_t Texture::getTextureGPUSparseCount() {
     return Context::getTextureGPUSparseCount();
 }
 
+Texture::Size Texture::getTextureTransferPendingSize() {
+    return Context::getTextureTransferPendingSize();
+}
+
 Texture::Size Texture::getTextureGPUMemoryUsage() {
     return Context::getTextureGPUMemoryUsage();
 }

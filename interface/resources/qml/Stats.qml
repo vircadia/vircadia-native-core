@@ -253,6 +253,9 @@ Item {
                         text: "  Decimated: " + root.decimatedTextureCount;
                     }
                     StatText {
+                        text: "  Pending Transfer: " + root.texturePendingTransfers + " MB";
+                    }
+                    StatText {
                         text: "  Resource Memory: " + root.gpuTextureMemory + " MB";
                     }
                     StatText {

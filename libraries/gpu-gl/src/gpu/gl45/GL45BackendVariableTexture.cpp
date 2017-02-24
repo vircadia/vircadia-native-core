@@ -91,26 +91,28 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
     type = texelFormat.type;
 
     if (0 == lines) {
+        _transferSize = mipData->getSize();
         _bufferingLambda = [=] {
-            auto size = mipData->getSize();
-            _buffer.resize(size);
-            memcpy(&_buffer[0], mipData->readData(), size);
+            _buffer.resize(_transferSize);
+            memcpy(&_buffer[0], mipData->readData(), _transferSize);
             _bufferingCompleted = true;
         };
 
     } else {
         transferDimensions.y = lines;
+        auto dimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
+        auto mipSize = mipData->getSize();
+        auto bytesPerLine = (uint32_t)mipSize / dimensions.y;
+        _transferSize = bytesPerLine * lines;
+        auto sourceOffset = bytesPerLine * lineOffset;
         _bufferingLambda = [=] {
-            auto dimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
-            auto mipSize = mipData->getSize();
-            auto bytesPerLine = (uint32_t)mipSize / dimensions.y;
-            auto transferSize = bytesPerLine * lines;
-            auto sourceOffset = bytesPerLine * lineOffset;
-            _buffer.resize(transferSize);
-            memcpy(&_buffer[0], mipData->readData() + sourceOffset, transferSize);
+            _buffer.resize(_transferSize);
+            memcpy(&_buffer[0], mipData->readData() + sourceOffset, _transferSize);
             _bufferingCompleted = true;
         };
     }
+
+    Backend::updateTextureTransferPendingSize(0, _transferSize);
 
     _transferLambda = [=] {
         _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, format, type, _buffer.data());
@@ -122,6 +124,11 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
 TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, std::function<void()> transferLambda)
     : _parent(parent), _bufferingCompleted(true), _transferLambda(transferLambda) {
 }
+
+TransferJob::~TransferJob() {
+    Backend::updateTextureTransferPendingSize(_transferSize, 0);
+}
+
 
 bool TransferJob::tryTransfer() {
     // Disable threaded texture transfer for now
