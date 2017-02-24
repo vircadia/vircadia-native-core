@@ -121,8 +121,8 @@ void Stats::updateStats(bool force) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
-    STAT_UPDATE(fullySimulatedAvatarCount, avatarManager->getFullySimulatedAvatars());
-    STAT_UPDATE(partiallySimulatedAvatarCount, avatarManager->getPartiallySimulatedAvatars());
+    STAT_UPDATE(updatedAvatarCount, avatarManager->getNumAvatarsUpdated());
+    STAT_UPDATE(notUpdatedAvatarCount, avatarManager->getNumAvatarsNotUpdated());
     STAT_UPDATE(serverCount, (int)nodeList->size());
     STAT_UPDATE(framerate, qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {

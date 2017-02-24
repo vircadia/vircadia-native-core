@@ -1,7 +1,7 @@
 "use strict";
 
 //
-//  users.js
+//  tablet-users.js
 //
 //  Created by Faye Li on 18 Jan 2017.
 //  Copyright 2017 High Fidelity, Inc.
@@ -36,16 +36,34 @@
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         icon: "icons/tablet-icons/users-i.svg",
+        activeIcon: "icons/tablet-icons/users-a.svg",
         text: "USERS",
         sortOrder: 11
     });
 
+    var onUsersScreen = false;
+    var shouldActivateButton = false;
+
     function onClicked() {
-        var tabletEntity = HMD.tabletID;
-        if (tabletEntity) {
-            Entities.editEntity(tabletEntity, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
+        if (onUsersScreen) {
+            // for toolbar-mode: go back to home screen, this will close the window.
+            tablet.gotoHomeScreen();
+        } else {
+            var tabletEntity = HMD.tabletID;
+            if (tabletEntity) {
+                Entities.editEntity(tabletEntity, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
+            }
+            shouldActivateButton = true;
+            tablet.gotoWebScreen(USERS_URL);
+            onUsersScreen = true;
         }
-        tablet.gotoWebScreen(USERS_URL);
+    }
+
+    function onScreenChanged() {
+        // for toolbar mode: change button to active when window is first openend, false otherwise.
+        button.editProperties({isActive: shouldActivateButton});
+        shouldActivateButton = false;
+        onUsersScreen = false;
     }
 
     function onWebEventReceived(event) {
@@ -88,12 +106,13 @@
                 // update your visibility (all, friends, or none)
                 myVisibility = event.data.visibility;
                 GlobalServices.findableBy = myVisibility;
-            } 
+            }
         }
     }
 
     button.clicked.connect(onClicked);
     tablet.webEventReceived.connect(onWebEventReceived);
+    tablet.screenChanged.connect(onScreenChanged);
 
     function cleanup() {
         button.clicked.disconnect(onClicked);
