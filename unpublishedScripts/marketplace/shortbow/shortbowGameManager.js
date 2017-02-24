@@ -92,12 +92,12 @@ function findChildrenWithName(parentID, name) {
     return matchingIDs;
 }
 
-function getPropertiesForEntities(entityIDs, properties) {
-    var props = [];
+function getPropertiesForEntities(entityIDs, desiredProperties) {
+    var properties = [];
     for (var i = 0; i < entityIDs.length; ++i) {
-        props.push(Entities.getEntityProperties(entityIDs[i], properties));
+        properties.push(Entities.getEntityProperties(entityIDs[i], desiredProperties));
     }
-    return props;
+    return properties;
 }
 
 
