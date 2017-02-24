@@ -1494,6 +1494,7 @@ bool ScriptEngine::getEntityScriptDetails(const EntityItemID& entityID, EntitySc
 
 const auto RETRY_ATTEMPT_BATCH = 100; //glm::clamp(qgetenv("RETRY_ATTEMPT_BATCH").toInt(), 1, 50);
 const auto RETRY_ATTEMPT_MSECS = 250; //glm::clamp(qgetenv("RETRY_ATTEMPT_MSECS").toInt(), 50, 1000);
+const static EntityItemID BAD_SCRIPT_UUID_PLACEHOLDER { "{20170224-dead-face-0000-cee000021114}" };
 
 void ScriptEngine::deferLoadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
     const auto needTimer = _pendingLoadEntities.isEmpty();
@@ -1513,12 +1514,18 @@ void ScriptEngine::deferLoadEntityScript(const EntityItemID& entityID, const QSt
                 if (details.status != EntityScriptStatus::PENDING) {
                     qCDebug(scriptengine) << "deferLoadEntityScript.retry -- entity status no longer PENDING; " << details.status;
                 } else {
-                    auto &locker = _lockPerUniqueScriptURL[retry.entityScript];
-                    if (locker.tryLock()) {
-                        locker.unlock();
+                    if (!_occupiedScriptURLs.contains(retry.entityScript)) {
+                        // the URL is no longer busy with another Entity, so now it's our turn
                         loadEntityScript(retry.entityID, retry.entityScript, false);
                     } else {
-                        stillPending << retry;
+                        auto entityID = _occupiedScriptURLs[retry.entityScript];
+                        if (entityID == BAD_SCRIPT_UUID_PLACEHOLDER) {
+                            // the URL was marked bad by an earlier load attempt, so abort the retry mission
+                            qCDebug(scriptengine) << "... pending load of " << retry.entityID << " cancelled";
+                        } else {
+                            // the URL is still occupied by another Entity, so add to next retry pass
+                            stillPending << retry;
+                        }
                     }
                 }
             }
@@ -1543,7 +1550,7 @@ void ScriptEngine::deferLoadEntityScript(const EntityItemID& entityID, const QSt
 
         // processDeferredEntities gets wrapped as a "regular" JavaScript callback so that it can then
         // be scheduled using setInterval per usual -- allowing the script engine to own its lifecycle.
-        // we stil need to call clearInterval manually when done, so its passed to calle() above as a property.
+        // we stil need to call clearInterval manually when done, so its passed to callee() above as a property.
 
         QScriptValue function = newLambdaFunction(processDeferredEntities, "processDeferredEntities-loader");
         QObject *interval = setInterval( function, RETRY_ATTEMPT_MSECS );
@@ -1577,14 +1584,28 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
         updateEntityScriptStatus(entityID, EntityScriptStatus::PENDING, "...pending...");
     }
 
-    // This lock/defer approach allows multiple Entities to boot from the same script URL while still taking
+    // This "occupied" approach allows multiple Entities to boot from the same script URL while still taking
     // full advantage of cacheable require modules.  This only affects Entities literally coming in back-to-back
     // before the first one has time to finish loading.
-    auto &locker = _lockPerUniqueScriptURL[entityScript];
-    if (!locker.tryLock()) {
-        qCDebug(scriptengine) << QString("loadEntityScript.deferring[%1] entity: %2 script: %3")
-            .arg( _pendingLoadEntities.size()).arg(entityID.toString()).arg(entityScript);
-        deferLoadEntityScript(entityID, entityScript, forceRedownload);
+    if (!_occupiedScriptURLs.contains(entityScript)) {
+        // the scriptURL is available -- flag as in-use and proceed
+        _occupiedScriptURLs[entityScript] = entityID;
+    } else {
+        // another Entity is either still booting from this script URL or has failed and marked it "out of order"
+        auto currentEntityID = _occupiedScriptURLs[entityScript];
+        if (currentEntityID == BAD_SCRIPT_UUID_PLACEHOLDER && !forceRedownload) {
+            // since not force-reloading, assume that the exact same input would produce the exact same output again
+            // note: this state gets reset with "reload all scripts," leaving/returning to a Domain, clear cache, etc.
+            qCDebug(scriptengine) << QString("loadEntityScript.cancelled entity: %1 script: %2 (previous script failure)")
+                .arg(entityID.toString()).arg(entityScript);
+            updateEntityScriptStatus(entityID, EntityScriptStatus::ERROR_LOADING_SCRIPT,
+                                     "Cached Script was marked invalid by previous Entity load failure.");
+        } else {
+            // another entity is busy loading from this script URL so wait for them to finish
+            qCDebug(scriptengine) << QString("loadEntityScript.deferring[%0] entity: %1 script: %2")
+                .arg( _pendingLoadEntities.size()).arg(entityID.toString()).arg(entityScript);
+            deferLoadEntityScript(entityID, entityScript, forceRedownload);
+        }
         return;
     }
 
@@ -1598,19 +1619,18 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     newDetails.scriptText = entityScript;
     newDetails.status = EntityScriptStatus::LOADING;
     newDetails.definingSandboxURL = currentSandboxURL;
-    _entityScripts[entityID] = newDetails;
+    setEntityScriptDetails(entityID, newDetails);
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
     scriptCache->getScriptContents(entityScript,
-        [=, &locker](const QString& url, const QString& contents, bool isURL, bool success, const QString& status) {
+        [this, entityScript, entityID](const QString& url, const QString& contents, bool isURL, bool success, const QString& status) {
             if (isStopping()) {
 #ifdef DEBUG_ENTITY_STATES
                 qCDebug(scriptengine) << "loadEntityScript.contentAvailable -- stopping";
 #endif
-                locker.unlock();
                 return;
             }
-            executeOnScriptThread([=, &locker]{
+            executeOnScriptThread([=]{
 #ifdef DEBUG_ENTITY_STATES
                 qCDebug(scriptengine) << "loadEntityScript.contentAvailable" << status << QUrl(url).fileName() << entityID.toString();
 #endif
@@ -1621,7 +1641,10 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
                     qCDebug(scriptengine) << "loadEntityScript.contentAvailable -- aborting";
 #endif
                 }
-                locker.unlock();
+                // recheck whether us since may have been set to BAD_SCRIPT_UUID_PLACEHOLDER in entityScriptContentAvailable
+                if (_occupiedScriptURLs[entityScript] == entityID) {
+                    _occupiedScriptURLs.remove(entityScript);
+                }
             });
     }, forceRedownload);
 }
@@ -1666,16 +1689,10 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         newDetails.status = status;
         setEntityScriptDetails(entityID, newDetails);
 
-        QMutableListIterator<DeferredLoadEntity> i(_pendingLoadEntities);
+        qCDebug(scriptengine) << "entityScriptContentAvailable -- flagging " << oldDetails.scriptText << " as BAD_SCRIPT_UUID_PLACEHOLDER";
+        // flag this scriptURL as unusuable
         // note: we want the *original* entityScript string (not the potentially normalized one from ScriptCache results)
-        const auto entityScript = oldDetails.scriptText;
-        while (i.hasNext()) {
-            auto retry = i.next();
-            if (retry.entityScript == entityScript) {
-                qCDebug(scriptengine) << "... pending load of " << retry.entityID << " cancelled";
-                i.remove();
-            }
-        }
+        _occupiedScriptURLs[oldDetails.scriptText] = BAD_SCRIPT_UUID_PLACEHOLDER;
     };
 
     // NETWORK / FILESYSTEM ERRORS
@@ -1856,7 +1873,7 @@ void ScriptEngine::unloadAllEntityScripts() {
     }
     _entityScripts.clear();
     emit entityScriptDetailsUpdated();
-    _lockPerUniqueScriptURL.clear();
+    _occupiedScriptURLs.clear();
 
 #ifdef DEBUG_ENGINE_STATE
     _debugDump(

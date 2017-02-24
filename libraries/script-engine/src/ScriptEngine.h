@@ -270,7 +270,7 @@ protected:
     QHash<QTimer*, CallbackData> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
-    std::map<QString, QMutex> _lockPerUniqueScriptURL;
+    QHash<QString, EntityItemID> _occupiedScriptURLs;
     QList<DeferredLoadEntity> _pendingLoadEntities;
 
     bool _isThreaded { false };
