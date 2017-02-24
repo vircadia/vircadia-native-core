@@ -338,6 +338,7 @@ void GL45VariableAllocationTexture::updateMemoryPressure() {
         _transferQueue = WorkQueue();
         _promoteQueue = WorkQueue();
         _demoteQueue = WorkQueue();
+
         // Populate the existing textures into the queue
         for (const auto& texture : strongTextures) {
             addToWorkQueue(texture);
@@ -387,7 +388,7 @@ void GL45VariableAllocationTexture::processWorkQueues() {
     }
 
     if (workQueue.empty()) {
-        _memoryPressureState = MemoryPressureState::Idle;
+        _memoryPressureStateStale = true;
     }
 }
 
@@ -406,6 +407,14 @@ GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
 }
 
 void GL45VariableAllocationTexture::executeNextTransfer(const TexturePointer& currentTexture) {
+    if (_populatedMip <= _allocatedMip) {
+        return;
+    }
+
+    if (_pendingTransfers.empty()) {
+        populateTransferQueue();
+    }
+
     if (!_pendingTransfers.empty()) {
         // Keeping hold of a strong pointer during the transfer ensures that the transfer thread cannot try to access a destroyed texture
         _currentTransferTexture = currentTexture;
