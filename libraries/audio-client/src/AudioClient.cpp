@@ -39,13 +39,10 @@
 #include <plugins/CodecPlugin.h>
 #include <plugins/PluginManager.h>
 #include <udt/PacketHeaders.h>
-#include <PositionalAudioStream.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
-#include <UUID.h>
 #include <Transform.h>
 
-#include "PositionalAudioStream.h"
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
 
@@ -294,12 +291,12 @@ QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
     IPropertyStore* pPropertyStore;
     pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
     pEndpoint->Release();
-    pEndpoint = NULL;
+    pEndpoint = nullptr;
     PROPVARIANT pv;
     PropVariantInit(&pv);
     HRESULT hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
     pPropertyStore->Release();
-    pPropertyStore = NULL;
+    pPropertyStore = nullptr;
     deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
     if (!IsWindows8OrGreater()) {
         // Windows 7 provides only the 31 first characters of the device name.
@@ -313,9 +310,9 @@ QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
 QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
     QString deviceName;
     HRESULT hr = S_OK;
-    CoInitialize(NULL);
-    IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
-    CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
+    CoInitialize(nullptr);
+    IMMDeviceEnumerator* pMMDeviceEnumerator = nullptr;
+    CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
     IMMDevice* pEndpoint;
     hr = pMMDeviceEnumerator->GetDevice(guid, &pEndpoint);
     if (hr == E_NOTFOUND) {
@@ -325,7 +322,7 @@ QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
         deviceName = ::friendlyNameForAudioDevice(pEndpoint);
     }
     pMMDeviceEnumerator->Release();
-    pMMDeviceEnumerator = NULL;
+    pMMDeviceEnumerator = nullptr;
     CoUninitialize();
     return deviceName;
 }
@@ -968,8 +965,7 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput() {
-
-    if (!_inputDevice) {
+    if (!_inputDevice || _isPlayingBackRecording) {
         return;
     }
 

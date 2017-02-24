@@ -16,19 +16,51 @@
 var TABLET_BUTTON_NAME = "AUDIO";
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 
+var MUTE_ICONS = {
+    icon: "icons/tablet-icons/mic-mute-i.svg",
+    activeIcon: "icons/tablet-icons/mic-mute-a.svg"
+};
+
+var UNMUTE_ICONS = {
+    icon: "icons/tablet-icons/mic-unmute-i.svg",
+    activeIcon: "icons/tablet-icons/mic-unmute-a.svg"
+};
+
 function onMuteToggled() {
-    button.editProperties({ isActive: AudioDevice.getMuted() });
+    if (AudioDevice.getMuted()) {
+        button.editProperties(MUTE_ICONS);
+    } else {
+        button.editProperties(UNMUTE_ICONS);
+    }
 }
-function onClicked(){
-    var entity = HMD.tabletID;
-    Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
-    tablet.gotoMenuScreen("Audio");
+
+var shouldActivateButton = false;
+var onAudioScreen = false;
+
+function onClicked() {
+    if (onAudioScreen) {
+        // for toolbar-mode: go back to home screen, this will close the window.
+        tablet.gotoHomeScreen();
+    } else {
+        var entity = HMD.tabletID;
+        Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
+        shouldActivateButton = true;
+        tablet.gotoMenuScreen("Audio");
+        onAudioScreen = true;
+    }
+}
+
+function onScreenChanged(type, url) {
+    // for toolbar mode: change button to active when window is first openend, false otherwise.
+    button.editProperties({isActive: shouldActivateButton});
+    shouldActivateButton = false;
+    onAudioScreen = false;
 }
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
-    icon: "icons/tablet-icons/mic-unmute-i.svg",
-    activeIcon: "icons/tablet-icons/mic-mute-a.svg",
+    icon: AudioDevice.getMuted() ? MUTE_ICONS.icon : UNMUTE_ICONS.icon,
+    activeIcon: AudioDevice.getMuted() ? MUTE_ICONS.activeIcon : UNMUTE_ICONS.activeIcon,
     text: TABLET_BUTTON_NAME,
     sortOrder: 1
 });
@@ -36,10 +68,12 @@ var button = tablet.addButton({
 onMuteToggled();
 
 button.clicked.connect(onClicked);
+tablet.screenChanged.connect(onScreenChanged);
 AudioDevice.muteToggled.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
+    tablet.screenChanged.disconnect(onScreenChanged);
     AudioDevice.muteToggled.disconnect(onMuteToggled);
     tablet.removeButton(button);
 });
