@@ -213,8 +213,6 @@ public:
             OCCLUSION,
             SCATTERING,
             LIGHT_AMBIENT,
-
-            NORMAL_FITTING = 10,
         };
     };
 
@@ -226,7 +224,6 @@ public:
         int metallicTextureUnit;
         int emissiveTextureUnit;
         int occlusionTextureUnit;
-        int normalFittingMapUnit;
         int lightingModelBufferUnit;
         int skinClusterBufferUnit;
         int materialBufferUnit;

@@ -65,25 +65,4 @@ float packUnlit() {
     return FRAG_PACK_UNLIT;
 }
 
-<!
-uniform sampler2D normalFittingMap;
-
-vec3 bestFitNormal(vec3 normal) {
-    vec3 absNorm = abs(normal);
-    float maxNAbs = max(absNorm.z, max(absNorm.x, absNorm.y));
-
-    vec2 texcoord = (absNorm.z < maxNAbs ? 
-                        (absNorm.y < maxNAbs ? absNorm.yz : absNorm.xz) :
-                        absNorm.xy);
-    texcoord = (texcoord.x < texcoord.y ? texcoord.yx : texcoord.xy);
-    texcoord.y /= texcoord.x;
-    vec3 cN = normal / maxNAbs;
-
-    float fittingScale = texture(normalFittingMap, texcoord).a;
-    cN *= fittingScale;
-
-    return (cN * 0.5 + 0.5);
-}
-!>
-
 <@endif@>

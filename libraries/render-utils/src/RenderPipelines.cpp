@@ -114,9 +114,9 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
 
         auto simpleProgram = isOpaque ? opaqueProgram : translucentProgram;
         auto unlitProgram = isOpaque ? unlitOpaqueProgram : unlitTranslucentProgram;
-        plumber.addPipeline(builder.withoutUnlit().withoutMaterial().build(), simpleProgram, state, &lightBatchSetter);
         plumber.addPipeline(builder.withoutUnlit().withMaterial().build(), opaqueMaterialProgram, state, &lightBatchSetter);
-        plumber.addPipeline(builder.withUnlit().withoutMaterial().build(), unlitProgram, state, &batchSetter);
+        plumber.addPipeline(builder.withoutUnlit().build(), simpleProgram, state, &lightBatchSetter);
+        plumber.addPipeline(builder.withUnlit().build(), unlitProgram, state, &batchSetter);
     }
 }
 
@@ -325,9 +325,6 @@ void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
     // Set a default albedo map
     batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
         DependencyManager::get<TextureCache>()->getWhiteTexture());
-    // Set a default normal map
-    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-        DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 
     // Set a default material
     if (pipeline.locations->materialBufferUnit >= 0) {
