@@ -166,6 +166,7 @@ public:
     static Size getTextureCPUMemoryUsage();
     static uint32_t getTextureGPUCount();
     static uint32_t getTextureGPUSparseCount();
+    static Size getTextureTransferPendingSize();
     static Size getTextureGPUMemoryUsage();
     static Size getTextureGPUVirtualMemoryUsage();
     static Size getTextureGPUFramebufferMemoryUsage();

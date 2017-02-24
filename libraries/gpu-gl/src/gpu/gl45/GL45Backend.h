@@ -128,6 +128,7 @@ public:
             TransferJob(const TransferJob& other) = delete;
             TransferJob(const GL45VariableAllocationTexture& parent, std::function<void()> transferLambda);
             TransferJob(const GL45VariableAllocationTexture& parent, uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lines = 0, uint32_t lineOffset = 0);
+            ~TransferJob();
             bool tryTransfer();
 
 #if THREADED_TEXTURE_BUFFERING
@@ -136,6 +137,7 @@ public:
 #endif
 
         private:
+            size_t _transferSize { 0 };
 #if THREADED_TEXTURE_BUFFERING
             void startBuffering();
 #endif
