@@ -100,9 +100,9 @@ public:
     OverlayID addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
     OverlayID addOverlay(Overlay::Pointer overlay);
 
-    void mousePressEvent(QMouseEvent* event);
-    void mouseReleaseEvent(QMouseEvent* event);
-    void mouseMoveEvent(QMouseEvent* event);
+    bool mousePressEvent(QMouseEvent* event);
+    bool mouseReleaseEvent(QMouseEvent* event);
+    bool mouseMoveEvent(QMouseEvent* event);
 
     void cleanupAllOverlays();
 
