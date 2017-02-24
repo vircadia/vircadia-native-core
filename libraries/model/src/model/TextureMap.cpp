@@ -18,7 +18,7 @@
 #include <QStandardPaths>
 #include <QFileInfo>
 #include <QDir>
-
+#include <QCryptographicHash>
 #include <Profile.h>
 
 #include "ModelLogging.h"
@@ -103,7 +103,8 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
         }
     });
 
-    std::string cleanedName = QUrl::toPercentEncoding(name.c_str()).toStdString();
+    
+    std::string cleanedName = QCryptographicHash::hash(QUrl::toPercentEncoding(name.c_str()), QCryptographicHash::Sha1).toHex().toStdString();
     std::string cacheFilename(ktxCacheFolder.toStdString());
     cacheFilename += "/";
     cacheFilename += cleanedName;
