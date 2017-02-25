@@ -116,7 +116,7 @@ void Image3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Image3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
+    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias().withOwnPipeline();
     if (_emissive) {
         builder.withUnlit();
     }

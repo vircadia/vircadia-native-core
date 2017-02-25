@@ -61,7 +61,7 @@ void Shape3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Shape3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder();
+    auto builder = render::ShapeKey::Builder().withOwnPipeline();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
     }

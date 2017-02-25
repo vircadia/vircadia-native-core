@@ -118,7 +118,8 @@ public:
 
 private:
     mutable quint64 _fadeStartTime { 0 };
-    mutable uint8_t _fadeState { FADE_WAITING_TO_START };
+    //mutable uint8_t _fadeState { FADE_WAITING_TO_START };
+    mutable uint8_t _fadeState { FADE_COMPLETE };
 };
 
 namespace render {

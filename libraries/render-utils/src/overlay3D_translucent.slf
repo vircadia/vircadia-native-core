@@ -82,8 +82,8 @@ void main(void) {
         fragRoughness,
         fragOpacity);
 
-    color.xyz += vec3(0.0, 1.0, 0.0) * fragOpacity;
-    color.w = 1.0;
+  //  color.xyz += vec3(0.0, 1.0, 0.0) * fragOpacity;
+  //  color.w = 1.0;
 
     // Apply standard tone mapping
     _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);

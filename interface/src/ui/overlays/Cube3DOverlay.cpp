@@ -116,7 +116,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Cube3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder();
+    auto builder = render::ShapeKey::Builder().withOwnPipeline();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
     }
