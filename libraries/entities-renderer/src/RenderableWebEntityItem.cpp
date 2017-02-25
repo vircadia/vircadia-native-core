@@ -113,7 +113,7 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
 
     // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
     // and the current rendering load)
-    _webSurface->setMaxFps(10);
+    _webSurface->setMaxFps(30);
 
     // The lifetime of the QML surface MUST be managed by the main thread
     // Additionally, we MUST use local variables copied by value, rather than
