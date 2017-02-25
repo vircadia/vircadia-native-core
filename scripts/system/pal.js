@@ -175,7 +175,8 @@ function HighlightedEntity(id, entityProperties) {
         },
         lineWidth: 1.0,
         ignoreRayIntersection: true,
-        drawInFront: false // Arguable. For now, let's not distract with mysterious wires around the scene.
+        //drawInFront: false // Arguable. For now, let's not distract with mysterious wires around the scene.
+        drawInFront: true // Arguable. For now, let's not distract with mysterious wires around the scene.
     });
     HighlightedEntity.overlays.push(this);
 }
