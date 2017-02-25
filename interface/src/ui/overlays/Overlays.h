@@ -100,9 +100,9 @@ public:
     OverlayID addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
     OverlayID addOverlay(Overlay::Pointer overlay);
 
-    void mousePressEvent(QMouseEvent* event);
-    void mouseReleaseEvent(QMouseEvent* event);
-    void mouseMoveEvent(QMouseEvent* event);
+    bool mousePressEvent(QMouseEvent* event);
+    bool mouseReleaseEvent(QMouseEvent* event);
+    bool mouseMoveEvent(QMouseEvent* event);
 
     void cleanupAllOverlays();
 
@@ -205,6 +205,16 @@ public slots:
                                                        const QScriptValue& overlayIDsToDiscard = QScriptValue(),
                                                        bool visibleOnly = false,
                                                        bool collidableOnly = false);
+
+    /**jsdoc
+     * Return a list of 3d overlays with bounding boxes that touch the given sphere
+     *
+     * @function Overlays.findOverlays
+     * @param {Vec3} center the point to search from.
+     * @param {float} radius search radius
+     * @return {List of Overlays.OverlayID} list of overlays withing the radius
+     */
+    QVector<QUuid> findOverlays(const glm::vec3& center, float radius) const;
 
     /**jsdoc
      * Check whether an overlay's assets have been loaded. For example, if the
@@ -317,6 +327,12 @@ private:
 
     OverlayID _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
     OverlayID _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
+
+    RayToOverlayIntersectionResult findRayIntersectionInternal(const PickRay& ray, bool precisionPicking,
+                                                               const QVector<OverlayID>& overlaysToInclude,
+                                                               const QVector<OverlayID>& overlaysToDiscard,
+                                                               bool visibleOnly = false, bool collidableOnly = false);
+    RayToOverlayIntersectionResult findRayIntersectionForMouseEvent(PickRay ray);
 };
 
 #endif // hifi_Overlays_h

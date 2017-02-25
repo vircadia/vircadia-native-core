@@ -114,7 +114,7 @@ public:
     void setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
-    bool isLoaded() const { return (bool)_renderGeometry; }
+    bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
 
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
     bool isWireframe() const { return _isWireframe; }
