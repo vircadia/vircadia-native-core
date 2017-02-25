@@ -262,14 +262,14 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
     glm::vec3 tipPosition = absolutePoses[tipIndex].trans();
 
     // descend toward root, pivoting each joint to get tip closer to target position
-    while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {
+    while (pivotIndex != -1) {
         // compute the two lines that should be aligned
         glm::vec3 jointPosition = absolutePoses[pivotIndex].trans();
         glm::vec3 leverArm = tipPosition - jointPosition;
 
         glm::quat deltaRotation;
         if (targetType == IKTarget::Type::RotationAndPosition ||
-                targetType == IKTarget::Type::HipsRelativeRotationAndPosition) {
+            targetType == IKTarget::Type::HipsRelativeRotationAndPosition) {
             // compute the swing that would get get tip closer
             glm::vec3 targetLine = target.getTranslation() - jointPosition;
 
@@ -338,10 +338,15 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
             deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, ANGLE_DISTRIBUTION_FACTOR));
         }
 
+        glm::quat parentRotation;
+        if (pivotsParentIndex != -1) {
+            parentRotation = absolutePoses[pivotsParentIndex].rot();
+        }
+
         // compute joint's new parent-relative rotation after swing
         // Q' = dQ * Q   and   Q = Qp * q   -->   q' = Qp^ * dQ * Q
         glm::quat newRot = glm::normalize(glm::inverse(
-                absolutePoses[pivotsParentIndex].rot()) *
+                parentRotation) *
                 deltaRotation *
                 absolutePoses[pivotIndex].rot());
 
@@ -353,7 +358,7 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
                 // the constraint will modify the local rotation of the tip so we must
                 // compute the corresponding model-frame deltaRotation
                 // Q' = Qp^ * dQ * Q  -->  dQ =   Qp * Q' * Q^
-                deltaRotation = absolutePoses[pivotsParentIndex].rot() * newRot * glm::inverse(absolutePoses[pivotIndex].rot());
+                deltaRotation = parentRotation * newRot * glm::inverse(absolutePoses[pivotIndex].rot());
             }
         }
 
@@ -538,10 +543,9 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 _hipsOffset += additionalHipsOffset * tau;
 
                 // clamp the horizontal component of the hips offset
-                float hipsOffsetLength2D = glm::length(glm::vec2(_hipsOffset.x, _hipsOffset.z));
-                if (hipsOffsetLength2D > _maxHipsOffsetLength) {
-                    _hipsOffset.x *= _maxHipsOffsetLength / hipsOffsetLength2D;
-                    _hipsOffset.z *= _maxHipsOffsetLength / hipsOffsetLength2D;
+                float hipsOffsetLength = glm::length(_hipsOffset);
+                if (hipsOffsetLength > _maxHipsOffsetLength) {
+                    _hipsOffset *= _maxHipsOffsetLength / hipsOffsetLength;
                 }
 
             }

@@ -2496,7 +2496,7 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
     setPosition(targetPosition);
     setOrientation(targetOrientation);
 
-    _rig->setMaxHipsOffsetLength(0.0f);
+    _rig->setMaxHipsOffsetLength(0.05f);
 
     auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
     if (it == _pinnedJoints.end()) {

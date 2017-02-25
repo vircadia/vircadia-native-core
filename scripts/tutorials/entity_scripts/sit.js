@@ -12,7 +12,7 @@
     var MAX_IK_ERROR = 20;
     var DESKTOP_UI_CHECK_INTERVAL = 250;
     var DESKTOP_MAX_DISTANCE = 5;
-    var SIT_DELAY = 20
+    var SIT_DELAY = 25
 
     this.entityID = null;
     this.timers = {};
