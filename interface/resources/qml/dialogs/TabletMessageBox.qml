@@ -66,7 +66,8 @@ TabletModalWindow {
         id: messageBox
         clip: true
         anchors.verticalCenter: parent.verticalCenter
-        width: parent.width
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: parent.width - 6
         height: 300
 
         QtObject {
@@ -77,15 +78,11 @@ TabletModalWindow {
             readonly property int maxHeight: 720
 
             function resize() {
-                console.log("[DR]-> setting the target height");
                 var targetWidth = Math.max(titleWidth, mainTextContainer.contentWidth)
                 var targetHeight = mainTextContainer.height + 3 * hifi.dimensions.contentSpacing.y
                         + (informativeTextContainer.text != "" ? informativeTextContainer.contentHeight + 3 * hifi.dimensions.contentSpacing.y : 0)
                         + buttons.height
                         + (details.implicitHeight + hifi.dimensions.contentSpacing.y) + messageBox.frameMarginTop
-                //messageBox.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWidth) ? d.maxWidth : targetWidth)
-
-                console.log("[DR} -> about to set the height");
                 messageBox.height = (targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)
             }
         }
@@ -93,24 +90,28 @@ TabletModalWindow {
         RalewaySemiBold {
             id: mainTextContainer
             onTextChanged: d.resize();
-            wrapMode: Text.WrapAnywhere
+            wrapMode: Text.WordWrap
             size: hifi.fontSizes.sectionName
             color: hifi.colors.baseGrayHighlight
+            width: parent.width - 6
             anchors {
                 top: parent.top
                 horizontalCenter: parent.horizontalCenter
                 margins: 0
                 topMargin: hifi.dimensions.contentSpacing.y + messageBox.frameMarginTop
             }
+            maximumLineCount: 30
+            elide: Text.ElideLeft
             lineHeight: 2
             lineHeightMode: Text.ProportionalHeight
             horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
         }
 
         RalewaySemiBold {
             id: informativeTextContainer
             onTextChanged: d.resize();
-            wrapMode: Text.WrapAnywhere
+            wrapMode: Text.WordWrap
             size: hifi.fontSizes.sectionName
             color: hifi.colors.baseGrayHighlight
             anchors {

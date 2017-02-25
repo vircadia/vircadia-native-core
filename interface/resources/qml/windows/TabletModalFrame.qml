@@ -39,6 +39,8 @@ Rectangle {
         visible: frameContent.hasTitle
         
         anchors {
+            horizontalCenter: parent.horizontalCenter
+            verticalCenter: parent.verticalCenter
             fill: parent
             topMargin: frameMarginTop
             leftMargin: frameMarginLeft
@@ -71,6 +73,7 @@ Rectangle {
                 y: -hifi.dimensions.modalDialogTitleHeight
                 anchors.rightMargin: -50
                 anchors.right: parent.right
+                //anchors.horizontalCenter: parent.horizontalCenter
             }
         }
         

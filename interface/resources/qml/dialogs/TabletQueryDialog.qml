@@ -63,9 +63,8 @@ TabletModalWindow {
 
     TabletModalFrame {
         id: modalWindowItem
-        width: parent.width
+        width: parent.width - 12
         height: 240
-        anchors.margins: 0
         anchors {
             verticalCenter: parent.verticalCenter
             horizontalCenter: parent.horizontalCenter
@@ -73,13 +72,13 @@ TabletModalWindow {
         
        QtObject {
             id: d
-            readonly property int minWidth: 480
-            readonly property int maxWdith: 480
+            readonly property int minWidth: 470
+            readonly property int maxWidth: 470
             readonly property int minHeight: 120
             readonly property int maxHeight: 720
 
             function resize() {
-                var targetWidth = Math.max(titleWidth, 480)
+                var targetWidth = Math.max(titleWidth, 470)
                 var targetHeight = (items ? comboBox.controlHeight : textResult.controlHeight) + 5 * hifi.dimensions.contentSpacing.y + buttons.height
                 modalWindowItem.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
                 modalWindowItem.height = ((targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)) + ((keyboardEnabled && keyboardRaised) ? (keyboard.raisedHeight + 2 * hifi.dimensions.contentSpacing.y) : 0) + modalWindowItem.frameMarginTop
@@ -106,6 +105,7 @@ TabletModalWindow {
                     left: parent.left;
                     right: parent.right;
                     bottom: parent.bottom
+                    leftMargin: 5
                 }
             }
 
@@ -118,6 +118,7 @@ TabletModalWindow {
                     left: parent.left
                     right: parent.right
                     bottom: parent.bottom
+                    rightMargin: 5
                 }
                 model: items ? items : []
             }

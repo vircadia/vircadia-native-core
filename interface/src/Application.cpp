@@ -1617,9 +1617,13 @@ void Application::toggleTabletUI() const {
         return;
     }
     lastTabletUIToggle = now;
-
-    auto HMD = DependencyManager::get<HMDScriptingInterface>();
-    HMD->toggleShouldShowTablet();
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    bool messageOpen = tablet->isMessageDialogOpen();
+    if (!messageOpen) {
+        auto HMD = DependencyManager::get<HMDScriptingInterface>();
+        HMD->toggleShouldShowTablet();
+    }
 }
 
 void Application::checkChangeCursor() {
@@ -5776,8 +5780,14 @@ void Application::toggleRunningScriptsWidget() const {
         static const QUrl url("hifi/dialogs/RunningScripts.qml");
         DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
     } else {
-        static const QUrl url("../../hifi/dialogs/TabletRunningScripts.qml");
-        tablet->pushOntoStack(url);
+        QQuickItem* tabletRoot = tablet->getTabletRoot();
+        if (!tabletRoot && !isHMDMode()) {
+            static const QUrl url("hifi/dialogs/RunningScripts.qml");
+            DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
+        } else {
+            static const QUrl url("../../hifi/dialogs/TabletRunningScripts.qml");
+            tablet->pushOntoStack(url);
+        }
     }
     //DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
     //if (_runningScriptsWidget->isVisible()) {

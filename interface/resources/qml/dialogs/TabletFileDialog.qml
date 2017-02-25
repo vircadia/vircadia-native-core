@@ -101,9 +101,13 @@ TabletModalWindow {
 
     TabletModalFrame {
         id: fileDialogItem
-        width: parent.width
-        height: parent.height
-        anchors.margins: 0
+        width: parent.width - 6
+        height: parent.height - 6
+
+        anchors {
+            horizontalCenter: root.horizontalCenter
+            verticalCenter: root.verticalCenter
+        }
 
         property bool keyboardEnabled: false
         property bool keyboardRaised: false
@@ -123,6 +127,7 @@ TabletModalWindow {
                 top: parent.top
                 topMargin: (fileDialogItem.hasTitle ? (fileDialogItem.frameMarginTop + hifi.dimensions.modalDialogMargin.y) : hifi.dimension.modalDialogMargin.y) 
                 left: parent.left
+                leftMargin: hifi.dimensions.contentSpacing.x
             }
             spacing: hifi.dimensions.contentSpacing.x
 
@@ -623,7 +628,8 @@ TabletModalWindow {
             anchors {
                 left: parent.left
                 right: selectionType.visible ? selectionType.left: parent.right
-                rightMargin: selectionType.visible ? hifi.dimensions.contentSpacing.x : 0
+                rightMargin: hifi.dimensions.contentSpacing.x
+                leftMargin: hifi.dimensions.contentSpacing.x
                 bottom: keyboard.top
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }

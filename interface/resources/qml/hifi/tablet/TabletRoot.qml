@@ -10,6 +10,7 @@ Item {
 
     property var rootMenu;
     property var openModal: null;
+    property var openMessage: null;
     property string subMenu: ""
     signal showDesktop();
 
@@ -24,7 +25,7 @@ Item {
     }
     Component { id: messageBoxBuilder; TabletMessageBox { } }
     function messageBox(properties) {
-        openModal = messageBoxBuilder.createObject(tabletRoot, properties);
+        openMessage  = messageBoxBuilder.createObject(tabletRoot, properties);
         return openModal;
     }
 
@@ -40,6 +41,14 @@ Item {
     function setMenuProperties(rootMenu, subMenu) {
         tabletRoot.rootMenu = rootMenu;
         tabletRoot.subMenu = subMenu;
+    }
+
+    function isDialogOpen() {
+        if (openMessage !== null || openModal !== null) {
+            return true;
+        }
+
+        return false;
     }
 
     function loadSource(url) {
