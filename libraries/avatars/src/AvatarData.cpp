@@ -250,10 +250,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         hasAudioLoudness = sendAll || audioLoudnessChangedSince(lastSentTime);
         hasSensorToWorldMatrix = sendAll || sensorToWorldMatrixChangedSince(lastSentTime);
         hasAdditionalFlags = sendAll || additionalFlagsChangedSince(lastSentTime);
-
-        // local position, and parent info only apply to avatars that are parented. The local position
-        // and the parent info can change independently though, so we track their "changed since"
-        // separately
         hasParentInfo = sendAll || parentInfoChangedSince(lastSentTime);
         hasAvatarLocalPosition = hasParent() && (sendAll ||
             tranlationChangedSince(lastSentTime) ||
