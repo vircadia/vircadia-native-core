@@ -783,6 +783,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
+        getOverlays().deleteOverlay(getTabletScreenID());
+        getOverlays().deleteOverlay(getTabletHomeButtonID());
+        getOverlays().deleteOverlay(getTabletFrameID());
+    });
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
 
     // We could clear ATP assets only when changing domains, but it's possible that the domain you are connected
