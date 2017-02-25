@@ -75,7 +75,6 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
     const auto primaryFramebuffer = addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
-   // const auto fullFrameRangeTimer = addJob<BeginGPURangeTimer>("BeginRangeTimer");
     const auto opaqueRangeTimer = addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
 
     const auto prepareDeferredInputs = PrepareDeferred::Inputs(primaryFramebuffer, lightingModel).hasVarying();
@@ -167,6 +166,8 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
 
         // Bounds do not draw on stencil buffer, so they must come last
         addJob<DrawBounds>("DrawMetaBounds", metas);
+        addJob<DrawBounds>("DrawOverlaysOpaques", overlayOpaques);
+        addJob<DrawBounds>("DrawOverlaysTransparents", overlayTransparents);
 
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
@@ -207,9 +208,6 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
 
     // Blit!
     addJob<Blit>("Blit", primaryFramebuffer);
-
- //   addJob<EndGPURangeTimer>("RangeTimer", fullFrameRangeTimer);
-
 }
 
 void BeginGPURangeTimer::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {

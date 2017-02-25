@@ -114,9 +114,9 @@ void main(void) {
     color.rgb += emissive;
     color.rgb += vec3(1, 0.0, 0.0);
     // Apply standard tone mapping
-   // _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), 1.0);
-    _fragColor = vec4(albedo, 0.5);
-    //_fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);
+    _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), 1.0);
+    //_fragColor = vec4(albedo, 0.5);
+   // _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);
 
     /*_fragColor = vec4(evalGlobalLightingAlphaBlended(
         cam._viewInverse,

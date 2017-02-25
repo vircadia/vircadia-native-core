@@ -157,6 +157,9 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         Key::Builder().withMaterial().withUnlit(),
         modelVertex, modelUnlitPixel);
     addPipeline(
+        Key::Builder().withUnlit(),
+        modelVertex, modelUnlitPixel);
+    addPipeline(
         Key::Builder().withMaterial().withTangents(),
         modelNormalMapVertex, modelNormalMapPixel);
     addPipeline(
@@ -170,7 +173,13 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         Key::Builder().withMaterial().withTranslucent(),
         modelVertex, modelTranslucentPixel);
     addPipeline(
+        Key::Builder().withTranslucent(),
+        modelVertex, modelTranslucentPixel);
+    addPipeline(
         Key::Builder().withMaterial().withTranslucent().withUnlit(),
+        modelVertex, modelTranslucentUnlitPixel);
+    addPipeline(
+        Key::Builder().withTranslucent().withUnlit(),
         modelVertex, modelTranslucentUnlitPixel);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents(),
