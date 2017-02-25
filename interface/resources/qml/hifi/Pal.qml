@@ -14,6 +14,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
+import Qt.labs.settings 1.0
 import "../styles-uit"
 import "../controls-uit" as HifiControls
 
@@ -30,7 +31,9 @@ Rectangle {
     property int myCardHeight: 90
     property int rowHeight: 70
     property int actionButtonWidth: 55
-    property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4.5 : 2.5) - 4 - hifi.dimensions.scrollbarBackgroundWidth
+    property int actionButtonAllowance: actionButtonWidth * 2
+    property int minNameCardWidth: palContainer.width - (actionButtonAllowance * 2 ) - 4 - hifi.dimensions.scrollbarBackgroundWidth
+    property int nameCardWidth: minNameCardWidth + (iAmAdmin ? 0 : actionButtonAllowance)
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0, avgAudioLevel: 0.0, admin: true}) // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
@@ -52,6 +55,16 @@ Rectangle {
         letterboxMessage.text = message
         letterboxMessage.visible = true
         letterboxMessage.popupRadius = 0
+    }
+    Settings {
+        id: settings
+        category: "pal"
+        property bool filtered: false
+        property int nearDistance: 30
+    }
+    function refreshWithFilter() {
+        // We should just be able to set settings.filtered to filter.checked, but see #3249, so send to .js for saving.
+        pal.sendToScript({method: 'refresh', params: {filter: filter.checked && {distance: settings.nearDistance}}});
     }
 
     // This is the container for the PAL
@@ -90,10 +103,31 @@ Rectangle {
             avgAudioLevel: myData.avgAudioLevel
             isMyCard: true
             // Size
-            width: nameCardWidth
+            width: minNameCardWidth
             height: parent.height
             // Anchors
             anchors.left: parent.left
+        }
+        Row {
+            HifiControls.CheckBox {
+                id: filter
+                checked: settings.filtered
+                text: "in view"
+                boxSize: reload.height * 0.70
+                onCheckedChanged: refreshWithFilter()
+            }
+            HifiControls.GlyphButton {
+                id: reload
+                glyph: hifi.glyphs.reload
+                width: reload.height
+                onClicked: refreshWithFilter()
+            }
+            spacing: 50
+            anchors {
+                right: parent.right
+                top: parent.top
+                topMargin: 10
+            }
         }
     }
     // Rectangles used to cover up rounded edges on bottom of MyInfo Rectangle
@@ -167,7 +201,7 @@ Rectangle {
         TableViewColumn {
             role: "avgAudioLevel"
             title: "VOL"
-            width: actionButtonWidth/2
+            width: actionButtonWidth
             movable: false
             resizable: false
         }
@@ -180,13 +214,13 @@ Rectangle {
             movable: false
             resizable: false
         }
-        TableViewColumn {
-            role: "personalMute"
-            title: "MUTE"
-            width: actionButtonWidth
-            movable: false
-            resizable: false
-        }
+        //TableViewColumn {
+        //    role: "personalMute"
+        //    title: "MUTE"
+        //    width: actionButtonWidth
+        //    movable: false
+        //    resizable: false
+        //}
         TableViewColumn {
             role: "ignore"
             title: "IGNORE"
@@ -249,21 +283,38 @@ Rectangle {
                 // Anchors
                 anchors.left: parent.left
             }
-            Image {
-                visible: isAvgAudio
-                function getImage() {
-                    var fileName = "../../../images/Audio-Loudness-Icons/vol-";
-                    fileName += (4.0*(model ? model.avgAudioLevel : 0.0)).toFixed(0);
-                    fileName += ".svg";
-                    return fileName;
-                }
+            HifiControls.Button {
                 id: avgAudioVolume
-                width: hifi.dimensions.tableHeaderHeight
-                fillMode: Image.PreserveAspectFit
-                source: getImage()
+                visible: isAvgAudio
+                width: 32
+                height: 32
+                iconSource: getImage()
                 anchors.verticalCenter: parent.verticalCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+                onClicked: {
+                    var newValue = !model["personalMute"];
+                    userModel.setProperty(model.userIndex, "personalMute", newValue)
+                    userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
+                    Users["personalMute"](model.sessionId, newValue)
+                    UserActivityLogger["palAction"](newValue ? "personalMute" : "un-personalMute", model.sessionId)
+                }
+                HiFiGlyphs {
+                    function getGlyph() {
+                        var fileName = "vol-";
+                        if (model["personalMute"]) {
+                            fileName += "x-";
+                        }
+                        fileName += (4.0*(model ? model.avgAudioLevel : 0.0)).toFixed(0);
+                        return hifi.glyphs[fileName];
+                    }
+                    text: getGlyph()
+                    size: parent.height*1.3
+                    anchors.fill: parent
+                    horizontalAlignment: Text.AlignHCenter
+                    color: enabled ? hifi.buttons.textColor[actionButton.color]
+                                   : hifi.buttons.disabledTextColor[actionButton.colorScheme]
+                }
             }
-
             // This CheckBox belongs in the columns that contain the stateful action buttons ("Mute" & "Ignore" for now)
             // KNOWN BUG with the Checkboxes: When clicking in the center of the sorting header, the checkbox
             // will appear in the "hovered" state. Hovering over the checkbox will fix it.
@@ -307,7 +358,7 @@ Rectangle {
                 visible: isButton
                 anchors.centerIn: parent
                 width: 32
-                height: 24
+                height: 32
                 onClicked: {
                     Users[styleData.role](model.sessionId)
                     UserActivityLogger["palAction"](styleData.role, model.sessionId)
@@ -333,45 +384,7 @@ Rectangle {
             }
         }
     }
-    // Refresh button
-    Rectangle {
-        // Size
-        width: hifi.dimensions.tableHeaderHeight-1
-        height: hifi.dimensions.tableHeaderHeight-1
-        // Anchors
-        anchors.left: table.left
-        anchors.leftMargin: 4
-        anchors.top: table.top
-        // Style
-        color: hifi.colors.tableBackgroundLight
-        // Actual refresh icon
-        HiFiGlyphs {
-            id: reloadButton
-            text: hifi.glyphs.reloadSmall
-            // Size
-            size: parent.width*1.5
-            // Anchors
-            anchors.fill: parent
-            // Style
-            horizontalAlignment: Text.AlignHCenter
-            color: hifi.colors.darkGray
-        }
-        MouseArea {
-            id: reloadButtonArea
-            // Anchors
-            anchors.fill: parent
-            hoverEnabled: true
-            // Everyone likes a responsive refresh button!
-            // So use onPressed instead of onClicked
-            onPressed: {
-                reloadButton.color = hifi.colors.lightGrayText
-                pal.sendToScript({method: 'refresh'})
-            }
-            onReleased: reloadButton.color = (containsMouse ? hifi.colors.baseGrayHighlight : hifi.colors.darkGray)
-            onEntered: reloadButton.color = hifi.colors.baseGrayHighlight
-            onExited: reloadButton.color = (pressed ?  hifi.colors.lightGrayText: hifi.colors.darkGray)
-        }
-    }
+
     // Separator between user and admin functions
     Rectangle {
         // Size
@@ -397,7 +410,7 @@ Rectangle {
         anchors.left: table.left
         anchors.top: table.top
         anchors.topMargin: 1
-        anchors.leftMargin: actionButtonWidth/2 + nameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6
+        anchors.leftMargin: actionButtonWidth + nameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6
         RalewayRegular {
             id: helpText
             text: "[?]"
@@ -528,7 +541,7 @@ Rectangle {
                 if (alreadyRefreshed === true) {
                     letterbox('', '', 'The last editor of this object is either you or not among this list of users.');
                 } else {
-                    pal.sendToScript({method: 'refresh', params: message.params});
+                    pal.sendToScript({method: 'refresh', params: {selected: message.params}});
                 }
             } else {
                 // If we've already refreshed the PAL and found the avatar in the model
