@@ -501,6 +501,9 @@ PolyVox::RaycastResult RenderablePolyVoxEntityItem::doRayCast(glm::vec4 originIn
 
 // virtual
 ShapeType RenderablePolyVoxEntityItem::getShapeType() const {
+    if (_collisionless) {
+        return SHAPE_TYPE_NONE;
+    }
     return SHAPE_TYPE_COMPOUND;
 }
 
@@ -512,6 +515,11 @@ void RenderablePolyVoxEntityItem::updateRegistrationPoint(const glm::vec3& value
 }
 
 bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
+    ShapeType shapeType = getShapeType();
+    if (shapeType == SHAPE_TYPE_NONE) {
+        return true;
+    }
+
     // we determine if we are ready to compute the physics shape by actually doing so.
     // if _voxelDataDirty or _volDataDirty is set, don't do this yet -- wait for their
     // threads to finish before creating the collision shape.
@@ -524,6 +532,12 @@ bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
 }
 
 void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
+    ShapeType shapeType = getShapeType();
+    if (shapeType == SHAPE_TYPE_NONE) {
+        info.setParams(getShapeType(), 0.5f * getDimensions());
+        return;
+    }
+
     // the shape was actually computed in isReadyToComputeShape.  Just hand it off, here.
     withWriteLock([&] {
         info = _shapeInfo;
@@ -736,7 +750,7 @@ glm::vec3 RenderablePolyVoxEntityItem::localCoordsToVoxelCoords(glm::vec3& local
 
 void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
     // This controls how many individual voxels are in the entity.  This is unrelated to
-    // the dimentions of the entity -- it defines the size of the arrays that hold voxel values.
+    // the dimentions of the entity -- it defines the sizes of the arrays that hold voxel values.
     // In addition to setting the number of voxels, this is used in a few places for its
     // side-effect of allocating _volData to be the correct size.
     withWriteLock([&] {
