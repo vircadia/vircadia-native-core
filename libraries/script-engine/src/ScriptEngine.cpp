@@ -1506,7 +1506,7 @@ void ScriptEngine::processDeferredEntityLoads(const QString& entityScript, const
             i.remove();
         }
     }
-    foreach(auto &retry, retryLoads) {
+    foreach(DeferredLoadEntity retry, retryLoads) {
         // check whether entity was since been deleted
         if (!_entityScripts.contains(retry.entityID)) {
             qCDebug(scriptengine) << "processDeferredEntityLoads -- entity details gone (entity deleted?)"
@@ -1528,7 +1528,7 @@ void ScriptEngine::processDeferredEntityLoads(const QString& entityScript, const
             qCDebug(scriptengine) << QString("... pending load of %1 cancelled (leader: %2 status: %3)")
                 .arg(retry.entityID.toString()).arg(leaderID.toString()).arg(leaderDetails.status);
 
-            auto extraDetail = "\n(propagated from " + leaderID.toString() + ")";
+            auto extraDetail = QString("\n(propagated from %1)").arg(leaderID.toString());
             if (leaderDetails.status == EntityScriptStatus::ERROR_LOADING_SCRIPT ||
                 leaderDetails.status == EntityScriptStatus::ERROR_RUNNING_SCRIPT) {
                 // propagate same error so User doesn't have to hunt down stampede's leader
@@ -1599,7 +1599,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
             // another entity is busy loading from this script URL so wait for them to finish
 #ifdef DEBUG_ENTITY_STATES
             qCDebug(scriptengine) << QString("loadEntityScript.deferring[%0] entity: %1 script: %2 (waiting on %3)")
-                .arg( _deferredEntityLoads.size()).arg(entityID.toString()).arg(entityScript).arg(currentEntityID.toString());
+                .arg(_deferredEntityLoads.size()).arg(entityID.toString()).arg(entityScript).arg(currentEntityID.toString());
 #endif
             _deferredEntityLoads.push_back({ entityID, entityScript });
             return;
@@ -1679,7 +1679,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     auto fileName = isURL ? scriptOrURL : "about:EmbeddedEntityScript";
 
     const EntityScriptDetails &oldDetails = _entityScripts[entityID];
-    const auto entityScript = oldDetails.scriptText;
+    const QString entityScript = oldDetails.scriptText;
 
     EntityScriptDetails newDetails;
     newDetails.scriptText = scriptOrURL;
@@ -1852,7 +1852,7 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
 #endif
 
     if (_entityScripts.contains(entityID)) {
-        auto oldDetails = _entityScripts[entityID];
+        const EntityScriptDetails &oldDetails = _entityScripts[entityID];
         if (isEntityScriptRunning(entityID)) {
             callEntityScriptMethod(entityID, "unload");
         } else {
