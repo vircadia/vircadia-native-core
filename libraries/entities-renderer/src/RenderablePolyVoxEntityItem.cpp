@@ -40,7 +40,6 @@
 #include <PolyVoxCore/SurfaceMesh.h>
 #include <PolyVoxCore/SimpleVolume.h>
 #include <PolyVoxCore/Material.h>
-#include <PolyVoxCore/VolumeResampler.h>
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
@@ -1129,47 +1128,35 @@ void RenderablePolyVoxEntityItem::getMesh() {
         // A mesh object to hold the result of surface extraction
         PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
 
-        PolyVox::SimpleVolume<uint8_t>* volData = nullptr;
-
         entity->withReadLock([&] {
-            PolyVox::SimpleVolume<uint8_t>* entityVolData = entity->getVolData();
-            PolyVox::Region region = entityVolData->getEnclosingRegion();
-            volData = new PolyVox::SimpleVolume<uint8_t>(region);
-            volData->setBorderValue(255);
-            PolyVox::VolumeResampler<PolyVox::SimpleVolume<uint8_t>,
-                                     PolyVox::SimpleVolume<uint8_t>> copier =
-                PolyVox::VolumeResampler<PolyVox::SimpleVolume<uint8_t>,
-                                         PolyVox::SimpleVolume<uint8_t>>(entityVolData, region, volData, region);
-            copier.execute();
+            PolyVox::SimpleVolume<uint8_t>* volData = entity->getVolData();
+            switch (voxelSurfaceStyle) {
+                case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES: {
+                    PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                        (volData, volData->getEnclosingRegion(), &polyVoxMesh);
+                    surfaceExtractor.execute();
+                    break;
+                }
+                case PolyVoxEntityItem::SURFACE_MARCHING_CUBES: {
+                    PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                        (volData, volData->getEnclosingRegion(), &polyVoxMesh);
+                    surfaceExtractor.execute();
+                    break;
+                }
+                case PolyVoxEntityItem::SURFACE_EDGED_CUBIC: {
+                    PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                        (volData, volData->getEnclosingRegion(), &polyVoxMesh);
+                    surfaceExtractor.execute();
+                    break;
+                }
+                case PolyVoxEntityItem::SURFACE_CUBIC: {
+                    PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                        (volData, volData->getEnclosingRegion(), &polyVoxMesh);
+                    surfaceExtractor.execute();
+                    break;
+                }
+            }
         });
-
-        switch (voxelSurfaceStyle) {
-            case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES: {
-                PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-                    (volData, volData->getEnclosingRegion(), &polyVoxMesh);
-                surfaceExtractor.execute();
-                break;
-            }
-            case PolyVoxEntityItem::SURFACE_MARCHING_CUBES: {
-                PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-                    (volData, volData->getEnclosingRegion(), &polyVoxMesh);
-                surfaceExtractor.execute();
-                break;
-            }
-            case PolyVoxEntityItem::SURFACE_EDGED_CUBIC: {
-                PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-                    (volData, volData->getEnclosingRegion(), &polyVoxMesh);
-                surfaceExtractor.execute();
-                break;
-            }
-            case PolyVoxEntityItem::SURFACE_CUBIC: {
-                PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-                    (volData, volData->getEnclosingRegion(), &polyVoxMesh);
-                surfaceExtractor.execute();
-                break;
-            }
-        }
-        delete volData;
 
         // convert PolyVox mesh to a Sam mesh
         const std::vector<uint32_t>& vecIndices = polyVoxMesh.getIndices();
