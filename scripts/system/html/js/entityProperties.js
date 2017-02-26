@@ -603,7 +603,7 @@ function loaded() {
         var elGrabbable = document.getElementById("property-grabbable");
 
         var elCloneable = document.getElementById("property-cloneable");
-
+        var elCloneableDynamic = document.getElementById("property-cloneable-dynamic");
         var elCloneableGroup = document.getElementById("group-cloneable-group");
         var elCloneableLifetime = document.getElementById("property-cloneable-lifetime");
         var elCloneableLimit = document.getElementById("property-cloneable-limit");
@@ -893,15 +893,14 @@ function loaded() {
                                     elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
                                     elCloneableLimit.value = elCloneable.checked ? 10: 0;
                                     elCloneableLifetime.value = elCloneable.checked ? 300: 0;
+                                    elCloneableDynamic.checked = parsedUserData["grabbableKey"].cloneDynamic ? parsedUserData["grabbableKey"].cloneDynamic : properties.dynamic;
                                     elDynamic.checked = elCloneable.checked ? false: properties.dynamic;
-
                                 } else {
                                     elCloneable.checked = false;
-
+                                    elCloneableDynamic.checked = false;
                                     elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
                                     elCloneableLimit.value = 0;
                                     elCloneableLifetime.value = 0;
-
                                 }
                                 if ("cloneLifetime" in parsedUserData["grabbableKey"]) {
                                     elCloneableLifetime.value = parsedUserData["grabbableKey"].cloneLifetime;
@@ -1203,11 +1202,14 @@ function loaded() {
         elGrabbable.addEventListener('change', function() {
             userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
         });
+        elCloneableDynamic.addEventListener('change', function (event){
+            userDataChanger("grabbableKey", "cloneDynamic", event.target, elUserData, -1);
+        });
         elCloneable.addEventListener('change', function (event) {
             var checked = event.target.checked;
             if (checked) {
               multiUserDataChanger("grabbableKey",
-              {cloneLifetime: elCloneableLifetime, cloneLimit: elCloneableLimit, cloneable: event.target},
+              {cloneLifetime: elCloneableLifetime, cloneLimit: elCloneableLimit, cloneDynamic: elCloneableDynamic, cloneable: event.target},
               elUserData,
               {cloneLifetime: 300, cloneLimit: 10, cloneable: false});
                 elCloneableGroup.style.display = "block";

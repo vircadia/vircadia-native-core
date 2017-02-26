@@ -2409,6 +2409,7 @@ function MyController(hand) {
                   var cloneableProps = Entities.getEntityProperties(grabbedProperties.id);
                   var lifetime = grabInfo.cloneLifetime ? grabInfo.cloneLifetime : 300;
                   var limit = grabInfo.cloneLimit ? grabInfo.cloneLimit : 10;
+                  var dynamic = grabInfo.cloneDynamic ? grabInfo.cloneDynamic : false;
                   var cUserData = Object.assign({}, userData);
                   var cProperties = Object.assign({}, cloneableProps);
 
@@ -2422,8 +2423,12 @@ function MyController(hand) {
 
                   delete cUserData.grabbableKey.cloneLifetime;
                   delete cUserData.grabbableKey.cloneable;
+                  delete cUserData.grabbableKey.cloneDynamic;
                   delete cUserData.grabbableKey.cloneLimit;
                   delete cProperties.id
+
+                  cProperties.dynamic = dynamic;
+                  cProperties.locked = false;
                   cUserData.grabbableKey.triggerable = true;
                   cUserData.grabbableKey.grabbable = true;
                   cProperties.lifetime = lifetime;
