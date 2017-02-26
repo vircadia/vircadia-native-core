@@ -266,6 +266,35 @@ void RenderablePolyVoxEntityItem::forEachVoxelValue(quint16 voxelXSize, quint16 
     });
 }
 
+QByteArray RenderablePolyVoxEntityItem::volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const {
+    int totalSize = voxelXSize * voxelYSize * voxelZSize;
+    QByteArray result = QByteArray(totalSize, '\0');
+    int index = 0;
+    int lowX = 0;
+    int lowY = 0;
+    int lowZ = 0;
+
+    withReadLock([&] {
+        if (isEdged(_voxelSurfaceStyle)) {
+            lowX++;
+            lowY++;
+            lowZ++;
+            voxelXSize++;
+            voxelYSize++;
+            voxelYSize++;
+        }
+
+        for (int z = lowZ; z < voxelZSize; z++) {
+            for (int y = lowY; y < voxelYSize; y++) {
+                for (int x = lowX; x < voxelXSize; x++) {
+                    result[index++] = _volData->getVoxelAt(x, y, z);
+                }
+            }
+        }
+    });
+
+    return result;
+}
 
 bool RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
     bool result = false;
@@ -837,7 +866,7 @@ uint8_t RenderablePolyVoxEntityItem::getVoxel(int x, int y, int z) {
 }
 
 
-uint8_t RenderablePolyVoxEntityItem::getVoxelInternal(int x, int y, int z) {
+uint8_t RenderablePolyVoxEntityItem::getVoxelInternal(int x, int y, int z) const {
     if (!inUserBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
         return 0;
     }
@@ -979,17 +1008,8 @@ void RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacket() {
     EntityTreePointer tree = element ? element->getTree() : nullptr;
 
     QtConcurrent::run([voxelXSize, voxelYSize, voxelZSize, entity, tree] {
-        int rawSize = voxelXSize * voxelYSize * voxelZSize;
-        QByteArray uncompressedData = QByteArray(rawSize, '\0');
-
         auto polyVoxEntity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity);
-        polyVoxEntity->forEachVoxelValue(voxelXSize, voxelYSize, voxelZSize, [&] (int x, int y, int z, uint8_t uVoxelValue) {
-            int uncompressedIndex =
-                z * voxelYSize * voxelXSize +
-                y * voxelXSize +
-                x;
-            uncompressedData[uncompressedIndex] = uVoxelValue;
-        });
+        QByteArray uncompressedData = polyVoxEntity->volDataToArray(voxelXSize, voxelYSize, voxelZSize);
 
         QByteArray newVoxelData;
         QDataStream writer(&newVoxelData, QIODevice::WriteOnly | QIODevice::Truncate);
