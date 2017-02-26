@@ -266,6 +266,27 @@ CONTROLLER_STATE_MACHINE[STATE_OVERLAY_STYLUS_TOUCHING] = {
 };
 CONTROLLER_STATE_MACHINE[STATE_OVERLAY_LASER_TOUCHING] = CONTROLLER_STATE_MACHINE[STATE_OVERLAY_STYLUS_TOUCHING];
 
+// Object assign  polyfill
+if (typeof Object.assign != 'function') {
+  Object.assign = function(target, varArgs) {
+    'use strict';
+    if (target == null) {
+      throw new TypeError('Cannot convert undefined or null to object');
+    }
+    var to = Object(target);
+    for (var index = 1; index < arguments.length; index++) {
+      var nextSource = arguments[index];
+      if (nextSource != null) {
+        for (var nextKey in nextSource) {
+          if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+            to[nextKey] = nextSource[nextKey];
+          }
+        }
+      }
+    }
+    return to;
+  };
+}
 
 function distanceBetweenPointAndEntityBoundingBox(point, entityProps) {
     var entityXform = new Xform(entityProps.rotation, entityProps.position);
@@ -1437,7 +1458,18 @@ function MyController(hand) {
 
         return true;
     };
+    this.entityIsCloneable = function(entityID) {
+      var entityProps = entityPropertiesCache.getGrabbableProps(entityID);
+      var props = entityPropertiesCache.getProps(entityID);
+      if (!props) {
+          return false;
+      }
 
+      if (entityProps.hasOwnProperty("cloneable")/*&& props.locked*/) {
+          return entityProps.cloneable;
+      }
+      return false;
+    }
     this.entityIsGrabbable = function(entityID) {
         var grabbableProps = entityPropertiesCache.getGrabbableProps(entityID);
         var props = entityPropertiesCache.getProps(entityID);
@@ -1517,7 +1549,7 @@ function MyController(hand) {
 
     this.entityIsNearGrabbable = function(entityID, handPosition, maxDistance) {
 
-        if (!this.entityIsGrabbable(entityID)) {
+        if (!this.entityIsCloneable(entityID) && !this.entityIsGrabbable(entityID)) {
             return false;
         }
 
@@ -2358,6 +2390,55 @@ function MyController(hand) {
             if (hasPresetPosition) {
                 reparentProps.localPosition = this.offsetPosition;
                 reparentProps.localRotation = this.offsetRotation;
+            }
+
+            if (grabbedProperties.userData.length > 0) {
+              try{
+                var userData = JSON.parse(grabbedProperties.userData);
+                var grabInfo = userData.grabbableKey;
+                if (grabInfo && grabInfo.cloneable) {
+
+                  var worldEntities = Entities.findEntitiesInBox(Vec3.subtract(MyAvatar.position, {x:25,y:25, z:25}), {x:50, y: 50, z: 50})
+                  var count = 0;
+                  worldEntities.forEach(function(item) {
+                    var item = Entities.getEntityProperties(item, ["name"]);
+                    if (item.name === grabbedProperties.name) {
+                      count++;
+                    }
+                  })
+                  var cloneableProps = Entities.getEntityProperties(grabbedProperties.id);
+                  var lifetime = grabInfo.cloneLifetime ? grabInfo.cloneLifetime : 300;
+                  var limit = grabInfo.cloneLimit ? grabInfo.cloneLimit : 10;
+                  var cUserData = Object.assign({}, userData);
+                  var cProperties = Object.assign({}, cloneableProps);
+
+                  if (count > limit) {
+                    delete cloneableProps;
+                    delete lifetime;
+                    delete cUserData;
+                    delete cProperties;
+                    return;
+                  }
+
+                  delete cUserData.grabbableKey.cloneLifetime;
+                  delete cUserData.grabbableKey.cloneable;
+                  delete cUserData.grabbableKey.cloneLimit;
+                  delete cProperties.id
+                  cUserData.grabbableKey.triggerable = true;
+                  cUserData.grabbableKey.grabbable = true;
+                  cProperties.lifetime = lifetime;
+                  cProperties.userData = JSON.stringify(cUserData);
+                  this.grabbedEntity = Entities.addEntity(cProperties);
+                  grabbedProperties = Entities.getEntityProperties(this.grabbedEntity);
+                  var _this = this;
+                  Script.setTimeout(function () {
+                    // This is needed to wait for the grabbed entity to have been instanciated.
+                    _this.callEntityMethodOnGrabbed("startEquip");
+                  },400);
+                }
+              }catch(e) {
+                print("ERROR: " + e);
+              }
             }
             Entities.editEntity(this.grabbedEntity, reparentProps);
 
