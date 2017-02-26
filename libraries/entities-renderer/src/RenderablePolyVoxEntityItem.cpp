@@ -437,6 +437,59 @@ bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
     return result;
 }
 
+bool RenderablePolyVoxEntityItem::setCapsule(glm::vec3 startWorldCoords, glm::vec3 endWorldCoords,
+                                             float radiusWorldCoords, uint8_t toValue) {
+    bool result = false;
+    if (_locked) {
+        return result;
+    }
+
+    glm::mat4 vtwMatrix = voxelToWorldMatrix();
+    glm::mat4 wtvMatrix = glm::inverse(vtwMatrix);
+
+    glm::vec3 dimensions = getDimensions();
+    glm::vec3 voxelSize = dimensions / _voxelVolumeSize;
+    float smallestDimensionSize = voxelSize.x;
+    smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
+    smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.z);
+
+    glm::vec3 maxRadiusInVoxelCoords = glm::vec3(radiusWorldCoords / smallestDimensionSize);
+
+    glm::vec3 startInVoxelCoords = wtvMatrix * glm::vec4(startWorldCoords, 1.0f);
+    glm::vec3 endInVoxelCoords = wtvMatrix * glm::vec4(endWorldCoords, 1.0f);
+
+    glm::vec3 low = glm::min(glm::floor(startInVoxelCoords - maxRadiusInVoxelCoords),
+                             glm::floor(endInVoxelCoords - maxRadiusInVoxelCoords));
+    glm::vec3 high = glm::max(glm::ceil(startInVoxelCoords + maxRadiusInVoxelCoords),
+                              glm::ceil(endInVoxelCoords + maxRadiusInVoxelCoords));
+
+    glm::ivec3 lowI = glm::clamp(low, glm::vec3(0.0f), _voxelVolumeSize);
+    glm::ivec3 highI = glm::clamp(high, glm::vec3(0.0f), _voxelVolumeSize);
+
+    // This three-level for loop iterates over every voxel in the volume that might be in the capsule
+    withWriteLock([&] {
+        for (int z = lowI.z; z < highI.z; z++) {
+            for (int y = lowI.y; y < highI.y; y++) {
+                for (int x = lowI.x; x < highI.x; x++) {
+                    // Store our current position as a vector...
+                    glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
+                    // convert to world coordinates
+                    glm::vec3 worldPos = glm::vec3(vtwMatrix * pos);
+                    if (pointInCapsule(worldPos, startWorldCoords, endWorldCoords, radiusWorldCoords)) {
+                        result |= setVoxelInternal(x, y, z, toValue);
+                    }
+                }
+            }
+        }
+    });
+
+    if (result) {
+        compressVolumeDataAndSendEditPacket();
+    }
+    return result;
+}
+
+
 class RaycastFunctor
 {
 public:

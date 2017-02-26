@@ -891,6 +891,16 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
     });
 }
 
+bool EntityScriptingInterface::setVoxelCapsule(QUuid entityID,
+                                               const glm::vec3& start, const glm::vec3& end,
+                                               float radius, int value) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
+    return setVoxels(entityID, [start, end, radius, value](PolyVoxEntityItem& polyVoxEntity) {
+        return polyVoxEntity.setCapsule(start, end, radius, value);
+    });
+}
+
 bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
@@ -1523,4 +1533,12 @@ QObject* EntityScriptingInterface::getWebViewRoot(const QUuid& entityID) {
     } else {
         return nullptr;
     }
+}
+
+// TODO move this someplace that makes more sense...
+bool EntityScriptingInterface::AABoxIntersectsCapsule(const glm::vec3& low, const glm::vec3& dimensions,
+                                                      const glm::vec3& start, const glm::vec3& end, float radius) {
+    glm::vec3 penetration;
+    AABox aaBox(low, dimensions);
+    return aaBox.findCapsulePenetration(start, end, radius, penetration);
 }
