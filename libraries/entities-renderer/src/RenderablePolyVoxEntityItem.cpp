@@ -365,12 +365,28 @@ bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
     }
 
     glm::mat4 vtwMatrix = voxelToWorldMatrix();
+    glm::mat4 wtvMatrix = glm::inverse(vtwMatrix);
 
-    // This three-level for loop iterates over every voxel in the volume
+    glm::vec3 dimensions = getDimensions();
+    glm::vec3 voxelSize = dimensions / _voxelVolumeSize;
+    float smallestDimensionSize = voxelSize.x;
+    smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
+    smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.z);
+
+    glm::vec3 maxRadiusInVoxelCoords = glm::vec3(radiusWorldCoords / smallestDimensionSize);
+    glm::vec3 centerInVoxelCoords = wtvMatrix * glm::vec4(centerWorldCoords, 1.0f);
+
+    glm::vec3 low = glm::floor(centerInVoxelCoords - maxRadiusInVoxelCoords);
+    glm::vec3 high = glm::ceil(centerInVoxelCoords + maxRadiusInVoxelCoords);
+
+    glm::ivec3 lowI = glm::clamp(low, glm::vec3(0.0f), _voxelVolumeSize);
+    glm::ivec3 highI = glm::clamp(high, glm::vec3(0.0f), _voxelVolumeSize);
+
+    // This three-level for loop iterates over every voxel in the volume that might be in the sphere
     withWriteLock([&] {
-        for (int z = 0; z < _voxelVolumeSize.z; z++) {
-            for (int y = 0; y < _voxelVolumeSize.y; y++) {
-                for (int x = 0; x < _voxelVolumeSize.x; x++) {
+        for (int z = lowI.z; z < highI.z; z++) {
+            for (int y = lowI.y; y < highI.y; y++) {
+                for (int x = lowI.x; x < highI.x; x++) {
                     // Store our current position as a vector...
                     glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
                     // convert to world coordinates
