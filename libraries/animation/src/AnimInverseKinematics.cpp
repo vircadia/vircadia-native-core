@@ -938,10 +938,22 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         } else {
             _hipsParentIndex = -1;
         }
+
+        auto currentJointIndex = _headIndex;
+        auto parentJointIndex = _skeleton->getParentIndex(currentJointIndex);
+        _spineLength = 0.0f;
+        while (currentJointIndex != _hipsIndex && parentJointIndex != -1) {
+            _spineLength += glm::distance(_skeleton->getAbsoluteDefaultPose(currentJointIndex).trans(),
+                                          _skeleton->getAbsoluteDefaultPose(parentJointIndex).trans());
+
+            currentJointIndex = parentJointIndex;
+            parentJointIndex = _skeleton->getParentIndex(currentJointIndex);
+        }
     } else {
         clearConstraints();
         _headIndex = -1;
         _hipsIndex = -1;
         _hipsParentIndex = -1;
+        _spineLength = 0.0f;
     }
 }
