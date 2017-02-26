@@ -537,6 +537,10 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                     additionalHipsOffset /= totalWeight;
                 }
 
+                // Add downward pressure on the hips
+                additionalHipsOffset *= 0.95f;
+                additionalHipsOffset -= 1.0f;
+
                 // smooth transitions by relaxing _hipsOffset toward the new value
                 const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.10f;
                 float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
