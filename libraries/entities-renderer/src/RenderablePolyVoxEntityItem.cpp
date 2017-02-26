@@ -1188,7 +1188,9 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
     // this catches the payload from getMesh
     bool neighborsNeedUpdate;
     withWriteLock([&] {
-        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        if (!_collisionless) {
+            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        }
         _mesh = mesh;
         _meshDirty = true;
         _meshInitialized = true;
