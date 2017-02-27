@@ -214,13 +214,6 @@ Rectangle {
             movable: false
             resizable: false
         }
-        //TableViewColumn {
-        //    role: "personalMute"
-        //    title: "MUTE"
-        //    width: actionButtonWidth
-        //    movable: false
-        //    resizable: false
-        //}
         TableViewColumn {
             role: "ignore"
             title: "IGNORE"
@@ -283,12 +276,19 @@ Rectangle {
                 // Anchors
                 anchors.left: parent.left
             }
-            HifiControls.Button {
+            HifiControls.GlyphButton {
+                function getGlyph() {
+                    var fileName = "vol_";
+                    if (model["personalMute"]) {
+                        fileName += "x_";
+                    }
+                    fileName += (4.0*(model ? model.avgAudioLevel : 0.0)).toFixed(0);
+                    return hifi.glyphs[fileName];
+                }
                 id: avgAudioVolume
                 visible: isAvgAudio
+                glyph: getGlyph()
                 width: 32
-                height: 32
-                iconSource: getImage()
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: {
@@ -297,22 +297,6 @@ Rectangle {
                     userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
                     Users["personalMute"](model.sessionId, newValue)
                     UserActivityLogger["palAction"](newValue ? "personalMute" : "un-personalMute", model.sessionId)
-                }
-                HiFiGlyphs {
-                    function getGlyph() {
-                        var fileName = "vol-";
-                        if (model["personalMute"]) {
-                            fileName += "x-";
-                        }
-                        fileName += (4.0*(model ? model.avgAudioLevel : 0.0)).toFixed(0);
-                        return hifi.glyphs[fileName];
-                    }
-                    text: getGlyph()
-                    size: parent.height*1.3
-                    anchors.fill: parent
-                    horizontalAlignment: Text.AlignHCenter
-                    color: enabled ? hifi.buttons.textColor[actionButton.color]
-                                   : hifi.buttons.disabledTextColor[actionButton.colorScheme]
                 }
             }
             // This CheckBox belongs in the columns that contain the stateful action buttons ("Mute" & "Ignore" for now)
