@@ -113,7 +113,14 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
 
     // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
     // and the current rendering load)
-    _webSurface->setMaxFps(30);
+
+    // We special case YouTube URLs since we know they are videos that we should play with at least 30 FPS.
+    if (QUrl(_sourceUrl).host().endsWith("youtube.com", Qt::CaseInsensitive)) {
+        _webSurface->setMaxFps(30);
+    } else {
+        _webSurface->setMaxFps(10);
+    }
+
 
     // The lifetime of the QML surface MUST be managed by the main thread
     // Additionally, we MUST use local variables copied by value, rather than
