@@ -275,7 +275,7 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
 
             const float MIN_AXIS_LENGTH = 1.0e-4f;
             RotationConstraint* constraint = getConstraint(pivotIndex);
-            if (constraint && constraint->isLowerSpine()) {
+            if (constraint && constraint->isLowerSpine() && tipIndex != _headIndex) {
                 // for these types of targets we only allow twist at the lower-spine
                 // (this prevents the hand targets from bending the spine too much and thereby driving the hips too far)
                 glm::vec3 twistAxis = absolutePoses[pivotIndex].trans() - absolutePoses[pivotsParentIndex].trans();
@@ -817,11 +817,11 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Head", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            const float MAX_HEAD_TWIST = PI / 9.0f;
+            const float MAX_HEAD_TWIST = PI / 6.0f;
             stConstraint->setTwistLimits(-MAX_HEAD_TWIST, MAX_HEAD_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_HEAD_SWING = PI / 10.0f;
+            const float MAX_HEAD_SWING = PI / 6.0f;
             minDots.push_back(cosf(MAX_HEAD_SWING));
             stConstraint->setSwingLimits(minDots);
 
