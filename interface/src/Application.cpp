@@ -1216,6 +1216,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         if (entity && entity->wantsKeyboardFocus()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
             setKeyboardFocusEntity(entityItemID);
+        } else {
+            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         }
     });
 
@@ -3429,7 +3431,7 @@ void Application::idle(float nsecsElapsed) {
 #ifdef Q_OS_WIN
     static std::once_flag once;
     std::call_once(once, [] {
-        initCpuUsage(); 
+        initCpuUsage();
     });
 
     vec3 kernelUserAndSystem;
