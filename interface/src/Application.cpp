@@ -1216,6 +1216,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         if (entity && entity->wantsKeyboardFocus()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
             setKeyboardFocusEntity(entityItemID);
+        } else {
+            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         }
     });
 
