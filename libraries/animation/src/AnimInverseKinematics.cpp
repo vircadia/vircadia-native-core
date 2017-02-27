@@ -262,8 +262,7 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
     glm::vec3 tipPosition = absolutePoses[tipIndex].trans();
 
     // descend toward root, pivoting each joint to get tip closer to target position
-    while (pivotIndex != -1) {
-        pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
+    while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {
         // compute the two lines that should be aligned
         glm::vec3 jointPosition = absolutePoses[pivotIndex].trans();
         glm::vec3 leverArm = tipPosition - jointPosition;
@@ -340,15 +339,10 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
             deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, ANGLE_DISTRIBUTION_FACTOR));
         }
 
-        glm::quat parentRotation;
-        if (pivotsParentIndex != -1) {
-            parentRotation = absolutePoses[pivotsParentIndex].rot();
-        }
-
         // compute joint's new parent-relative rotation after swing
         // Q' = dQ * Q   and   Q = Qp * q   -->   q' = Qp^ * dQ * Q
         glm::quat newRot = glm::normalize(glm::inverse(
-                parentRotation) *
+                absolutePoses[pivotsParentIndex].rot()) *
                 deltaRotation *
                 absolutePoses[pivotIndex].rot());
 
@@ -360,7 +354,7 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
                 // the constraint will modify the local rotation of the tip so we must
                 // compute the corresponding model-frame deltaRotation
                 // Q' = Qp^ * dQ * Q  -->  dQ =   Qp * Q' * Q^
-                deltaRotation = parentRotation * newRot * glm::inverse(absolutePoses[pivotIndex].rot());
+                deltaRotation = absolutePoses[pivotsParentIndex].rot() * newRot * glm::inverse(absolutePoses[pivotIndex].rot());
             }
         }
 
@@ -378,6 +372,7 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
         tipParentOrientation = glm::normalize(deltaRotation * tipParentOrientation);
 
         pivotIndex = pivotsParentIndex;
+        pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
     }
     return lowestMovedIndex;
 }
