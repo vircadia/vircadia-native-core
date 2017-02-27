@@ -1731,7 +1731,11 @@ function MyController(hand) {
                     var avatar = AvatarList.getAvatar(this.otherGrabbingUUID);
                     var IN_FRONT_OF_AVATAR = { x: 0, y: 0.2, z: 0.4 };  // Up from hips and in front of avatar.
                     var startPosition = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.rotation, IN_FRONT_OF_AVATAR));
-                    this.otherGrabbingLineOn(startPosition, rayPickInfo.properties.position, COLORS_GRAB_DISTANCE_HOLD);
+                    var finishPisition = Vec3.sum(rayPickInfo.properties.position,  // Entity's centroid.
+                        Vec3.multiplyQbyV(rayPickInfo.properties.rotation ,
+                        Vec3.multiplyVbyV(rayPickInfo.properties.dimensions,
+                        Vec3.subtract(DEFAULT_REGISTRATION_POINT, rayPickInfo.properties.registrationPoint))));
+                    this.otherGrabbingLineOn(startPosition, finishPisition, COLORS_GRAB_DISTANCE_HOLD);
                 } else {
                     this.otherGrabbingLineOff();
                 }
