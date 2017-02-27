@@ -77,17 +77,17 @@
             return;
         }
 
+        that.setSeatUser(MyAvatar.sessionUUID);
+        MyAvatar.characterControllerEnabled = false;
+        MyAvatar.hmdLeanRecenterEnabled = false;
+        MyAvatar.overrideRoleAnimation(ROLE, ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
         MyAvatar.resetSensorsAndBody();
+
+        var properties = Entities.getEntityProperties(that.entityID, ["position", "rotation"]);
+        var index = MyAvatar.getJointIndex("Hips");
 
         var that = this;
         Script.setTimeout(function() {
-            that.setSeatUser(MyAvatar.sessionUUID);
-            MyAvatar.characterControllerEnabled = false;
-            MyAvatar.hmdLeanRecenterEnabled = false;
-            MyAvatar.overrideRoleAnimation(ROLE, ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
-
-            var properties = Entities.getEntityProperties(that.entityID, ["position", "rotation"]);
-            var index = MyAvatar.getJointIndex("Hips");
             MyAvatar.pinJoint(index, properties.position, properties.rotation);
 
             that.animStateHandlerID = MyAvatar.addAnimationStateHandler(function(properties) {
@@ -104,9 +104,6 @@
     }
 
     this.sitUp = function() {
-        MyAvatar.bodyPitch = 0.0;
-        MyAvatar.bodyRoll = 0.0;
-
         MyAvatar.restoreRoleAnimation(ROLE);
         MyAvatar.characterControllerEnabled = true;
         MyAvatar.hmdLeanRecenterEnabled = true;
@@ -118,6 +115,8 @@
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
 
         Script.setTimeout(function() {
+            MyAvatar.bodyPitch = 0.0;
+            MyAvatar.bodyRoll = 0.0;
             MyAvatar.resetSensorsAndBody();
         }, SIT_DELAY);
 
