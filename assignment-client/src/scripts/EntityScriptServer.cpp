@@ -324,16 +324,8 @@ void EntityScriptServer::nodeActivated(SharedNodePointer activatedNode) {
 void EntityScriptServer::nodeKilled(SharedNodePointer killedNode) {
     switch (killedNode->getType()) {
         case NodeType::EntityServer: {
-            if (!_shuttingDown) {
-                if (_entitiesScriptEngine) {
-                    _entitiesScriptEngine->unloadAllEntityScripts();
-                    _entitiesScriptEngine->stop();
-                }
-
-                resetEntitiesScriptEngine();
-
-                _entityViewer.clear();
-            }
+            clear();
+            
             break;
         }
         case NodeType::Agent: {
@@ -440,12 +432,12 @@ void EntityScriptServer::clear() {
         _entitiesScriptEngine->stop();
     }
 
+    _entityViewer.clear();
+
     // reset the engine
     if (!_shuttingDown) {
         resetEntitiesScriptEngine();
     }
-
-    _entityViewer.clear();
 }
 
 void EntityScriptServer::shutdownScriptEngine() {
