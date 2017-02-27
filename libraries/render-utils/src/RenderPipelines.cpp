@@ -51,6 +51,7 @@
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
 #include "overlay3D_model_frag.h"
+#include "overlay3D_model_translucent_frag.h"
 #include "overlay3D_translucent_frag.h"
 #include "overlay3D_unlit_frag.h"
 #include "overlay3D_translucent_unlit_frag.h"
@@ -72,17 +73,19 @@ void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch);
 void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
     auto vertexModel = gpu::Shader::createVertex(std::string(model_vert));
-    auto pixel = gpu::Shader::createPixel(std::string(overlay3D_model_frag));
+    auto pixel = gpu::Shader::createPixel(std::string(overlay3D_frag));
     auto pixelTranslucent = gpu::Shader::createPixel(std::string(overlay3D_translucent_frag));
     auto pixelUnlit = gpu::Shader::createPixel(std::string(overlay3D_unlit_frag));
     auto pixelTranslucentUnlit = gpu::Shader::createPixel(std::string(overlay3D_translucent_unlit_frag));
-    auto pixelMaterial = gpu::Shader::createPixel(std::string(overlay3D_model_frag));
+    auto pixelModel = gpu::Shader::createPixel(std::string(overlay3D_model_frag));
+    auto pixelModelTranslucent = gpu::Shader::createPixel(std::string(overlay3D_model_translucent_frag));
 
     auto opaqueProgram = gpu::Shader::createProgram(vertex, pixel);
     auto translucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucent);
     auto unlitOpaqueProgram = gpu::Shader::createProgram(vertex, pixelUnlit);
     auto unlitTranslucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucentUnlit);
-    auto opaqueMaterialProgram = gpu::Shader::createProgram(vertexModel, pixelMaterial);
+    auto materialOpaqueProgram = gpu::Shader::createProgram(vertexModel, pixelModel);
+    auto materialTranslucentProgram = gpu::Shader::createProgram(vertexModel, pixelModelTranslucent);
 
     for (int i = 0; i < 8; i++) {
         bool isCulled = (i & 1);
@@ -114,8 +117,9 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
 
         auto simpleProgram = isOpaque ? opaqueProgram : translucentProgram;
         auto unlitProgram = isOpaque ? unlitOpaqueProgram : unlitTranslucentProgram;
+        auto materialProgram = isOpaque ? materialOpaqueProgram : materialTranslucentProgram;
 
-        plumber.addPipeline(builder.withoutUnlit().withMaterial().build().key(), opaqueMaterialProgram, state, &lightBatchSetter);
+        plumber.addPipeline(builder.withMaterial().build().key(), materialProgram, state, &lightBatchSetter);
         plumber.addPipeline(builder.withoutUnlit().withoutMaterial().build().key(), simpleProgram, state, &lightBatchSetter);
         plumber.addPipeline(builder.withUnlit().withoutMaterial().build().key(), unlitProgram, state, &batchSetter);
     }

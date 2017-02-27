@@ -153,22 +153,25 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
     addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
+    { // DEbug the bounds of the rendered items, still look at the zbuffer
+        addJob<DrawBounds>("DrawMetaBounds", metas);
+        addJob<DrawBounds>("DrawOpaqueBounds", opaques);
+        addJob<DrawBounds>("DrawTransparentBounds", transparents);
+    }
+
     // Overlays
     const auto overlayOpaquesInputs = DrawOverlay3D::Inputs(overlayOpaques, lightingModel).hasVarying();
     const auto overlayTransparentsInputs = DrawOverlay3D::Inputs(overlayTransparents, lightingModel).hasVarying();
     addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaquesInputs, true);
     addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparentsInputs, false);
 
+    { // DEbug the bounds of the rendered OVERLAY items, still look at the zbuffer
+        addJob<DrawBounds>("DrawOverlayOpaqueBounds", overlayOpaques);
+        addJob<DrawBounds>("DrawOverlayTransparentBounds", overlayTransparents);
+    }
     
-    // Debugging stages
+     // Debugging stages
     {
-
-
-        // Bounds do not draw on stencil buffer, so they must come last
-        addJob<DrawBounds>("DrawMetaBounds", metas);
-        addJob<DrawBounds>("DrawOverlaysOpaques", overlayOpaques);
-        addJob<DrawBounds>("DrawOverlaysTransparents", overlayTransparents);
-
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);

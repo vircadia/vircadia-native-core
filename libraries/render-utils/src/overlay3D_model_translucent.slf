@@ -1,18 +1,17 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  overlay3D.slf
-//  fragment shader
+//  overlay3D_model_transparent.slf
 //
-//  Created by Sam Gateau on 6/16/15.
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Sam Gateau on 2/27/2017.
+//  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 <@include DeferredGlobalLight.slh@>
-<$declareEvalSkyboxGlobalColor()$>
+<$declareEvalGlobalLightingAlphaBlended()$>
 
 <@include model/Material.slh@>
 
@@ -39,7 +38,6 @@ void main(void) {
 
     float opacity = 1.0;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
-    <$discardTransparent(opacity)$>;
 
     vec3 albedo = getMaterialAlbedo(mat);
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
@@ -62,13 +60,12 @@ void main(void) {
 
 
     vec3 fragPosition = _position.xyz;
-    //vec3 fragNormal = normalize(_normal);
 
     TransformCamera cam = getTransformCamera();
     vec3 fragNormal;
-    <$transformEyeToWorldDir(cam, _normal, fragNormal)$>;
+    <$transformEyeToWorldDir(cam, _normal, fragNormal)$>
 
-    vec4 color = vec4(evalSkyboxGlobalColor(
+    vec4 color = vec4(evalGlobalLightingAlphaBlended(
         cam._viewInverse,
         1.0,
         occlusionTex,
@@ -77,11 +74,9 @@ void main(void) {
         albedo,
         fresnel,
         metallic,
-        roughness),
+        emissive,
+        roughness, opacity),
         opacity);
-
-    // And emissive
-    color.rgb += emissive * isEmissiveEnabled();
 
     // Apply standard tone mapping
     _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);
