@@ -1465,7 +1465,7 @@ function MyController(hand) {
           return false;
       }
 
-      if (entityProps.hasOwnProperty("cloneable")/*&& props.locked*/) {
+      if (entityProps.hasOwnProperty("cloneable")) {
           return entityProps.cloneable;
       }
       return false;
@@ -2393,57 +2393,58 @@ function MyController(hand) {
             }
 
             if (grabbedProperties.userData.length > 0) {
-              try{
-                var userData = JSON.parse(grabbedProperties.userData);
-                var grabInfo = userData.grabbableKey;
-                if (grabInfo && grabInfo.cloneable) {
+                try{
+                    var userData = JSON.parse(grabbedProperties.userData);
+                    var grabInfo = userData.grabbableKey;
+                    if (grabInfo && grabInfo.cloneable) {
+                        // Check if
+                        var worldEntities = Entities.findEntitiesInBox(Vec3.subtract(MyAvatar.position, {x:25,y:25, z:25}), {x:50, y: 50, z: 50})
+                        var count = 0;
+                        worldEntities.forEach(function(item) {
+                            var item = Entities.getEntityProperties(item, ["name"]);
+                            if (item.name === grabbedProperties.name) {
+                                count++;
+                            }
+                        })
+                        var cloneableProps = Entities.getEntityProperties(grabbedProperties.id);
+                        var lifetime = grabInfo.cloneLifetime ? grabInfo.cloneLifetime : 300;
+                        var limit = grabInfo.cloneLimit ? grabInfo.cloneLimit : 10;
+                        var dynamic = grabInfo.cloneDynamic ? grabInfo.cloneDynamic : false;
+                        var cUserData = Object.assign({}, userData);
+                        var cProperties = Object.assign({}, cloneableProps);
 
-                  var worldEntities = Entities.findEntitiesInBox(Vec3.subtract(MyAvatar.position, {x:25,y:25, z:25}), {x:50, y: 50, z: 50})
-                  var count = 0;
-                  worldEntities.forEach(function(item) {
-                    var item = Entities.getEntityProperties(item, ["name"]);
-                    if (item.name === grabbedProperties.name) {
-                      count++;
+                        if (count > limit) {
+                            delete cloneableProps;
+                            delete lifetime;
+                            delete cUserData;
+                            delete cProperties;
+                            return;
+                        }
+
+                        delete cUserData.grabbableKey.cloneLifetime;
+                        delete cUserData.grabbableKey.cloneable;
+                        delete cUserData.grabbableKey.cloneDynamic;
+                        delete cUserData.grabbableKey.cloneLimit;
+                        delete cProperties.id
+
+                        cProperties.dynamic = dynamic;
+                        cProperties.locked = false;
+                        cUserData.grabbableKey.triggerable = true;
+                        cUserData.grabbableKey.grabbable = true;
+                        cProperties.lifetime = lifetime;
+                        cProperties.userData = JSON.stringify(cUserData);
+                        this.grabbedEntity = Entities.addEntity(cProperties);
+                        grabbedProperties = Entities.getEntityProperties(this.grabbedEntity);
+                        var _this = this;
+
+                        Script.setTimeout(function () {
+                            // This is needed to wait for the grabbed entity to have been instanciated.
+                            _this.callEntityMethodOnGrabbed("startEquip");
+                        },400);
                     }
-                  })
-                  var cloneableProps = Entities.getEntityProperties(grabbedProperties.id);
-                  var lifetime = grabInfo.cloneLifetime ? grabInfo.cloneLifetime : 300;
-                  var limit = grabInfo.cloneLimit ? grabInfo.cloneLimit : 10;
-                  var dynamic = grabInfo.cloneDynamic ? grabInfo.cloneDynamic : false;
-                  var cUserData = Object.assign({}, userData);
-                  var cProperties = Object.assign({}, cloneableProps);
-
-                  if (count > limit) {
-                    delete cloneableProps;
-                    delete lifetime;
-                    delete cUserData;
-                    delete cProperties;
-                    return;
-                  }
-
-                  delete cUserData.grabbableKey.cloneLifetime;
-                  delete cUserData.grabbableKey.cloneable;
-                  delete cUserData.grabbableKey.cloneDynamic;
-                  delete cUserData.grabbableKey.cloneLimit;
-                  delete cProperties.id
-
-                  cProperties.dynamic = dynamic;
-                  cProperties.locked = false;
-                  cUserData.grabbableKey.triggerable = true;
-                  cUserData.grabbableKey.grabbable = true;
-                  cProperties.lifetime = lifetime;
-                  cProperties.userData = JSON.stringify(cUserData);
-                  this.grabbedEntity = Entities.addEntity(cProperties);
-                  grabbedProperties = Entities.getEntityProperties(this.grabbedEntity);
-                  var _this = this;
-                  Script.setTimeout(function () {
-                    // This is needed to wait for the grabbed entity to have been instanciated.
-                    _this.callEntityMethodOnGrabbed("startEquip");
-                  },400);
+                }catch(e) {
+                    print("ERROR: " + e);
                 }
-              }catch(e) {
-                print("ERROR: " + e);
-              }
             }
             Entities.editEntity(this.grabbedEntity, reparentProps);
 
