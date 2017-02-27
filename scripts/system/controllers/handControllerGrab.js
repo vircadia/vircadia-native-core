@@ -413,13 +413,13 @@ function entityIsGrabbedByOther(entityID) {
         var actionID = actionIDs[actionIndex];
         var actionArguments = Entities.getActionArguments(entityID, actionID);
         var tag = actionArguments.tag;
-        if (tag == getTag()) {
+        if (tag === getTag()) {
             // we see a grab-*uuid* shaped tag, but it's our tag, so that's okay.
             continue;
         }
         var GRAB_PREFIX_LENGTH = 5;
         var UUID_LENGTH = 38;
-        if (tag.slice(0, GRAB_PREFIX_LENGTH) == "grab-") {
+        if (tag && tag.slice(0, GRAB_PREFIX_LENGTH) == "grab-") {
             // we see a grab-*uuid* shaped tag and it's not ours, so someone else is grabbing it.
             return tag.slice(GRAB_PREFIX_LENGTH, GRAB_PREFIX_LENGTH + UUID_LENGTH - 1);
         }
