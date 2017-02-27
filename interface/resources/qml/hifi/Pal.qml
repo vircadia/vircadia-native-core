@@ -32,7 +32,7 @@ Rectangle {
     property int rowHeight: 70
     property int actionButtonWidth: 55
     property int actionButtonAllowance: actionButtonWidth * 2
-    property int minNameCardWidth: palContainer.width - (actionButtonAllowance * 2 ) - 4 - hifi.dimensions.scrollbarBackgroundWidth
+    property int minNameCardWidth: palContainer.width - (actionButtonAllowance * 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
     property int nameCardWidth: minNameCardWidth + (iAmAdmin ? 0 : actionButtonAllowance)
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0, avgAudioLevel: 0.0, admin: true}) // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
