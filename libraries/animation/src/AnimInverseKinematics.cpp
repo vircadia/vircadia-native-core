@@ -263,6 +263,7 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
 
     // descend toward root, pivoting each joint to get tip closer to target position
     while (pivotIndex != -1) {
+        pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
         // compute the two lines that should be aligned
         glm::vec3 jointPosition = absolutePoses[pivotIndex].trans();
         glm::vec3 leverArm = tipPosition - jointPosition;
@@ -301,8 +302,8 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
                 const float MIN_ADJUSTMENT_ANGLE = 1.0e-4f;
                 if (angle > MIN_ADJUSTMENT_ANGLE) {
                     // reduce angle by a fraction (for stability)
-                    const float FRACTION = 0.5f;
-                    angle *= FRACTION;
+                    const float STABILITY_FRACTION = 0.5f;
+                    angle *= STABILITY_FRACTION;
                     deltaRotation = glm::angleAxis(angle, axis);
 
                     // The swing will re-orient the tip but there will tend to be be a non-zero delta between the tip's
@@ -324,7 +325,8 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
                             glm::vec3 axis = glm::normalize(deltaRotation * leverArm);
                             swingTwistDecomposition(missingRotation, axis, swingPart, twistPart);
                             float dotSign = copysignf(1.0f, twistPart.w);
-                            deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * twistPart, FRACTION)) * deltaRotation;
+                            const float LIMIT_LEAK_FRACTION = 0.1f;
+                            deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * twistPart, LIMIT_LEAK_FRACTION)) * deltaRotation;
                         }
                     }
                 }
@@ -376,7 +378,6 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
         tipParentOrientation = glm::normalize(deltaRotation * tipParentOrientation);
 
         pivotIndex = pivotsParentIndex;
-        pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
     }
     return lowestMovedIndex;
 }
@@ -781,7 +782,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_SPINE_SWING = PI / 14.0f;
+            const float MAX_SPINE_SWING = PI / 10.0f;
             minDots.push_back(cosf(MAX_SPINE_SWING));
             stConstraint->setSwingLimits(minDots);
             if (0 == baseName.compare("Spine1", Qt::CaseSensitive)
