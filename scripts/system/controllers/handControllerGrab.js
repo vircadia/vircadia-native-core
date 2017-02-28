@@ -2497,7 +2497,7 @@ function MyController(hand) {
                             cProperties.lifetime = lifetime;
                             cProperties.userData = JSON.stringify(cUserData);
                             this.grabbedThingID = Entities.addEntity(cProperties);
-                            grabbedProperties = Entities.getEntityProperties(this.grabbedEntity);
+                            grabbedProperties = Entities.getEntityProperties(this.grabbedThingID);
                             var _this = this;
 
                             Script.setTimeout(function () {
