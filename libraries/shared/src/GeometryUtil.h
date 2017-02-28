@@ -73,6 +73,9 @@ glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& 
 bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& direction,
     const glm::vec3& center, float radius, float& distance);
 
+bool pointInSphere(const glm::vec3& origin, const glm::vec3& center, float radius);
+bool pointInCapsule(const glm::vec3& origin, const glm::vec3& start, const glm::vec3& end, float radius);
+
 bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direction,
     const glm::vec3& start, const glm::vec3& end, float radius, float& distance);
 
