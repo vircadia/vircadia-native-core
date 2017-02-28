@@ -81,7 +81,7 @@
               type="text"
               data-provide="slider"
               data-slider-ticks="[-180, 0, 180]"
-              data-slider-ticks-labels='["anti-clockwise","centre", "clockwise"]'
+              data-slider-ticks-labels='["clockwise", "centre", "anti-clockwise"]'
               data-slider-min="-180"
               data-slider-max="180"
               data-slider-step="1"
@@ -141,6 +141,10 @@
         // Send an event to hifi for loading the given model URL
         $("#reload-model-button").click(function() {
           emit("onClickReloadModelButton", {value: $("#model-url").val()});
+        });
+        $("#rotate-slider").slider().on("slide", function(e){
+          console.log("slided " + e.value);
+          emit("onRotateSlider", {value: e.value});
         });
       });
     </script>

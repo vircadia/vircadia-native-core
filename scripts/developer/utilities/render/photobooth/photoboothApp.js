@@ -29,9 +29,11 @@
             PhotoBooth.init();
             photoboothCreated = true;
         }
+
     }
     button.clicked.connect(onClicked);
     tablet.webEventReceived.connect(onWebEventReceived);
+
 
     function onWebEventReceived(event) {
         print("photobooth.js received a web event:" + event);
@@ -76,6 +78,10 @@
                     var cameraID = PhotoBooth.cameraEntities[event.data.value];
                     Camera.setCameraEntity(cameraID);
                 }
+            } else if (event.type === "onRotateSlider") {
+                var props = {};
+                props.rotation = Quat.fromPitchYawRollDegrees(0, event.data.value, 0);
+                Entities.editEntity(PhotoBooth.modelEntityID, props);
             }
         }
     }
