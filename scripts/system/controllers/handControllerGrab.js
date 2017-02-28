@@ -205,14 +205,15 @@ var HARDWARE_MOUSE_ID = 0;  // Value reserved for hardware mouse.
 var STATE_OFF = 0;
 var STATE_SEARCHING = 1;
 var STATE_DISTANCE_HOLDING = 2;
-var STATE_NEAR_GRABBING = 3;
-var STATE_NEAR_TRIGGER = 4;
-var STATE_FAR_TRIGGER = 5;
-var STATE_HOLD = 6;
-var STATE_ENTITY_STYLUS_TOUCHING = 7;
-var STATE_ENTITY_LASER_TOUCHING = 8;
-var STATE_OVERLAY_STYLUS_TOUCHING = 9;
-var STATE_OVERLAY_LASER_TOUCHING = 10;
+var STATE_DISTANCE_ROTATING = 3;
+var STATE_NEAR_GRABBING = 4;
+var STATE_NEAR_TRIGGER = 5;
+var STATE_FAR_TRIGGER = 6;
+var STATE_HOLD = 7;
+var STATE_ENTITY_STYLUS_TOUCHING = 8;
+var STATE_ENTITY_LASER_TOUCHING = 9;
+var STATE_OVERLAY_STYLUS_TOUCHING = 10;
+var STATE_OVERLAY_LASER_TOUCHING = 11;
 
 var CONTROLLER_STATE_MACHINE = {};
 
@@ -230,6 +231,11 @@ CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
     name: "distance_holding",
     enterMethod: "distanceHoldingEnter",
     updateMethod: "distanceHolding"
+};
+CONTROLLER_STATE_MACHINE[STATE_DISTANCE_ROTATING] = {
+    name: "distance_rotating",
+    enterMethod: "distanceRotatingEnter",
+    updateMethod: "distanceRotating"
 };
 CONTROLLER_STATE_MACHINE[STATE_NEAR_GRABBING] = {
     name: "near_grabbing",
@@ -869,7 +875,8 @@ function MyController(hand) {
              newState !== STATE_OVERLAY_LASER_TOUCHING)) {
             return;
         }
-        setGrabCommunications((newState === STATE_DISTANCE_HOLDING) || (newState === STATE_NEAR_GRABBING));
+        setGrabCommunications((newState === STATE_DISTANCE_HOLDING) || (newState === STATE_DISTANCE_ROTATING)
+            || (newState === STATE_NEAR_GRABBING));
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
             var oldStateName = stateToName(this.state);
             var newStateName = stateToName(newState);
@@ -1439,9 +1446,10 @@ function MyController(hand) {
         var props = entityPropertiesCache.getProps(hotspot.entityID);
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
 
-        var okToEquipFromOtherHand = ((this.getOtherHandController().state == STATE_NEAR_GRABBING ||
-                                       this.getOtherHandController().state == STATE_DISTANCE_HOLDING) &&
-                                      this.getOtherHandController().grabbedThingID == hotspot.entityID);
+        var otherHandControllerState = this.getOtherHandController().state;
+        var okToEquipFromOtherHand = ((otherHandControllerState === STATE_NEAR_GRABBING
+            || otherHandControllerState === STATE_DISTANCE_HOLDING || otherHandControllerState === STATE_DISTANCE_ROTATING)
+            && this.getOtherHandController().grabbedThingID === hotspot.entityID);
         var hasParent = true;
         if (props.parentID === NULL_UUID) {
             hasParent = false;
@@ -1731,7 +1739,11 @@ function MyController(hand) {
                     this.grabbedThingID = entity;
                     this.grabbedIsOverlay = false;
                     this.grabbedDistance = rayPickInfo.distance;
-                    this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
+                    if (this.getOtherHandController().state === STATE_DISTANCE_HOLDING) {
+                        this.setState(STATE_DISTANCE_ROTATING, "distance rotate '" + name + "'");
+                    } else {
+                        this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
+                    }
                     return;
                 } else {
                     // potentialFarGrabEntity = entity;
@@ -2036,6 +2048,19 @@ function MyController(hand) {
         return (dimensions.x * dimensions.y * dimensions.z) * density;
     };
 
+    this.ensureDynamic = function () {
+        // if we distance hold something and keep it very still before releasing it, it ends up
+        // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
+        var props = Entities.getEntityProperties(this.grabbedThingID, ["velocity", "dynamic", "parentID"]);
+        if (props.dynamic && props.parentID == NULL_UUID) {
+            var velocity = props.velocity;
+            if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
+                velocity = { x: 0.0, y: 0.2, z: 0.0 };
+                Entities.editEntity(this.grabbedThingID, { velocity: velocity });
+            }
+        }
+    };
+
     this.distanceHoldingEnter = function() {
         this.clearEquipHaptics();
         this.grabPointSphereOff();
@@ -2102,25 +2127,20 @@ function MyController(hand) {
         this.previousRoomControllerPosition = roomControllerPosition;
     };
 
-    this.ensureDynamic = function() {
-        // if we distance hold something and keep it very still before releasing it, it ends up
-        // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
-        var props = Entities.getEntityProperties(this.grabbedThingID, ["velocity", "dynamic", "parentID"]);
-        if (props.dynamic && props.parentID == NULL_UUID) {
-            var velocity = props.velocity;
-            if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
-                velocity = { x: 0.0, y: 0.2, z:0.0 };
-                Entities.editEntity(this.grabbedThingID, { velocity: velocity });
-            }
-        }
-    };
-
     this.distanceHolding = function(deltaTime, timestamp) {
 
         if (!this.triggerClicked) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.ensureDynamic();
             this.setState(STATE_OFF, "trigger released");
+            if (this.getOtherHandController().state === STATE_DISTANCE_ROTATING) {
+                this.getOtherHandController().setState(STATE_SEARCHING, "trigger released on holding controller");
+                // Can't set state of other controller to STATE_DISTANCE_HOLDING because then either:
+                // (a) The entity would jump to line up with the formerly rotating controller's orientation, or
+                // (b) The grab beam would need an orientation offset to the controller's true orientation.
+                // Neither of these options is good, so instead set STATE_SEARCHING and subsequently let the formerly distance 
+                // rotating controller start distance holding the entity if it happens to be pointing at the entity.
+            }
             return;
         }
 
@@ -2209,11 +2229,11 @@ function MyController(hand) {
         }
 
         this.maybeScale(grabbedProperties);
+
         // visualizations
-
         var rayPickInfo = this.calcRayPickInfo(this.hand);
-
-        this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition), COLORS_GRAB_DISTANCE_HOLD);
+        this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition),
+            COLORS_GRAB_DISTANCE_HOLD);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
@@ -2231,6 +2251,66 @@ function MyController(hand) {
 
         this.previousRoomControllerPosition = roomControllerPosition;
     };
+
+    this.distanceRotatingEnter = function() {
+        this.clearEquipHaptics();
+        this.grabPointSphereOff();
+
+        this.shouldScale = false;
+
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+        var worldControllerPosition = controllerLocation.position;
+        var worldControllerRotation = controllerLocation.orientation;
+
+        // transform the position into room space
+        var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
+        var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
+
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
+        var now = Date.now();
+
+        // add the action and initialize some variables
+        this.currentObjectPosition = grabbedProperties.position;
+        this.currentObjectRotation = grabbedProperties.rotation;
+        this.currentObjectTime = now;
+        this.currentCameraOrientation = Camera.orientation;
+
+        this.grabRadius = this.grabbedDistance;
+        this.grabRadialVelocity = 0.0;
+
+        // offset between controller vector at the grab radius and the entity position
+        var targetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
+        targetPosition = Vec3.sum(targetPosition, worldControllerPosition);
+        this.offsetPosition = Vec3.subtract(this.currentObjectPosition, targetPosition);
+
+        // TODO
+
+        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+        this.turnOffVisualizations();
+        this.previousRoomControllerPosition = roomControllerPosition;
+    };
+
+    this.distanceRotating = function(deltaTime, timestamp) {
+
+        if (!this.triggerClicked) {
+            this.callEntityMethodOnGrabbed("releaseGrab");
+            this.ensureDynamic();
+            this.setState(STATE_OFF, "trigger released");
+            return;
+        }
+
+        // TODO
+
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
+
+        // TODO
+
+        var rayPickInfo = this.calcRayPickInfo(this.hand);
+        this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition),
+            COLORS_GRAB_DISTANCE_HOLD);
+
+        // TODO
+    }
 
     this.setupHoldAction = function() {
         this.actionID = Entities.addAction("hold", this.grabbedThingID, {
