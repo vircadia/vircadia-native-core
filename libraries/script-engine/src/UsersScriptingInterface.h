@@ -150,7 +150,6 @@ signals:
 private:
     bool getRequestsDomainListData();
     void setRequestsDomainListData(bool requests);
-    bool _requestsDomainListData;
 };
 
 

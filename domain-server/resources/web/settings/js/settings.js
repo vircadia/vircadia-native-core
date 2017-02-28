@@ -996,6 +996,10 @@ function saveSettings() {
       if (password && password.length > 0) {
         formJSON["security"]["http_password"] = sha256_digest(password);
       }
+      var verify_password = formJSON["security"]["verify_http_password"];
+      if (verify_password && verify_password.length > 0) {
+        formJSON["security"]["verify_http_password"] = sha256_digest(verify_password);
+      }
     }
 
     // verify that the password and confirmation match before saving
@@ -1010,7 +1014,6 @@ function saveSettings() {
           bootbox.alert({"message": "Passwords must match!", "title":"Password Error"});
           canPost = false;
         } else {
-          formJSON["security"]["http_password"] = sha256_digest(password);
           delete formJSON["security"]["verify_http_password"];
         }
       }

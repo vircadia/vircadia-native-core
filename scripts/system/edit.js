@@ -564,6 +564,11 @@ function findClickedEntity(event) {
 
     var pickRay = Camera.computePickRay(event.x, event.y);
 
+    var overlayResult = Overlays.findRayIntersection(pickRay, true, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    if (overlayResult.intersects) {
+        return null;
+    }
+
     var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
     var lightResult = lightOverlayManager.findRayIntersection(pickRay);
     lightResult.accurate = true;
