@@ -2487,14 +2487,8 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
         return false;
     }
 
-    auto jointTranslation = getAbsoluteJointTranslationInObjectFrame(index);
-    auto jointRotation = getAbsoluteJointRotationInObjectFrame(index);
-
-    auto targetOrientation = orientation * glm::conjugate(glm::normalize(jointRotation));
-    auto targetPosition = position - orientation * jointTranslation;
-
-    setPosition(targetPosition);
-    setOrientation(targetOrientation);
+    setPosition(position);
+    setOrientation(orientation);
 
     _rig->setMaxHipsOffsetLength(0.05f);
 
