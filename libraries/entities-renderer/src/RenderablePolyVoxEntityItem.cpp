@@ -281,7 +281,7 @@ QByteArray RenderablePolyVoxEntityItem::volDataToArray(quint16 voxelXSize, quint
             lowZ++;
             voxelXSize++;
             voxelYSize++;
-            voxelYSize++;
+            voxelZSize++;
         }
 
         for (int z = lowZ; z < voxelZSize; z++) {
