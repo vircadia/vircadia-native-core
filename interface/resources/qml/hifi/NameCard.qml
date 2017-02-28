@@ -335,7 +335,7 @@ Item {
             }
         }
 
-        // Per-Avatar Gain Slider 
+        // Per-Avatar Gain Slider
         Slider {
             id: gainSlider
             // Size
@@ -345,7 +345,7 @@ Item {
             anchors.verticalCenter: nameCardVUMeter.verticalCenter
             // Properties
             visible: !isMyCard && selected
-            value: pal.gainSliderValueDB[uuid] ? pal.gainSliderValueDB[uuid] : 0.0
+            value: pal.gainSliderValueDB[uuid] ? pal.gainSliderValueDB[uuid] : Users.getAvatarGain(uuid)
             minimumValue: -60.0
             maximumValue: 20.0
             stepSize: 5
@@ -369,7 +369,7 @@ Item {
                     mouse.accepted = false
                 }
                 onReleased: {
-                    // the above mouse.accepted seems to make this 
+                    // the above mouse.accepted seems to make this
                     // never get called, nonetheless...
                     mouse.accepted = false
                 }
