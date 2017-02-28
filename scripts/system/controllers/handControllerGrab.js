@@ -2283,7 +2283,8 @@ function MyController(hand) {
         targetPosition = Vec3.sum(targetPosition, worldControllerPosition);
         this.offsetPosition = Vec3.subtract(this.currentObjectPosition, targetPosition);
 
-        // TODO
+        // Initial controller rotation.
+        this.previousWorldControllerRotation = worldControllerRotation;
 
         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
         this.turnOffVisualizations();
@@ -2299,17 +2300,24 @@ function MyController(hand) {
             return;
         }
 
-        // TODO
-
         var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
 
-        // TODO
+        // Delta rotation of grabbing controller since last update.
+        var worldControllerRotation = getControllerWorldLocation(this.handToController(), true).orientation;
+        var controllerRotationDelta = Quat.multiply(worldControllerRotation, Quat.inverse(this.previousWorldControllerRotation));
+
+        // Rotate entity by twice the delta rotation.
+        controllerRotationDelta = Quat.multiply(controllerRotationDelta, controllerRotationDelta);
+
+        // Perform the rotation in the translation controller's action update.
+        this.getOtherHandController().currentObjectRotation = Quat.multiply(controllerRotationDelta,
+            this.getOtherHandController().currentObjectRotation);
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
         this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition),
             COLORS_GRAB_DISTANCE_HOLD);
 
-        // TODO
+        this.previousWorldControllerRotation = worldControllerRotation;
     }
 
     this.setupHoldAction = function() {
