@@ -289,6 +289,7 @@ Rectangle {
                 visible: isAvgAudio
                 glyph: getGlyph()
                 width: 32
+                size: height
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: {
