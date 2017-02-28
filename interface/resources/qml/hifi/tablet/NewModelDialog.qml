@@ -11,12 +11,15 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import "../../styles-uit"
+import "../../controls-uit"
 
 Rectangle {
     id: newModelDialog
     // width: parent.width
     // height: parent.height
-
+    HifiConstants { id: hifi }
+    color: hifi.colors.baseGray;
     property var eventBridge;
     signal sendToScript(var message);
 
@@ -32,6 +35,7 @@ Rectangle {
         Text {
             id: text1
             text: qsTr("Model URL")
+            color: "#ffffff"
             font.pixelSize: 12
         }
 
@@ -64,6 +68,7 @@ Rectangle {
                 CheckBox {
                     id: dynamic
                     text: qsTr("Dynamic")
+                    
                 }
 
                 Row {
@@ -82,6 +87,7 @@ Rectangle {
                     Text {
                         id: text2
                         width: 160
+                        color: "#ffffff"
                         text: qsTr("Models with automatic collisions set to 'Exact' cannot be dynamic")
                         wrapMode: Text.WordWrap
                         font.pixelSize: 12
@@ -97,30 +103,34 @@ Rectangle {
                 Text {
                     id: text3
                     text: qsTr("Automatic Collisions")
+                    color: "#ffffff"
                     font.pixelSize: 12
                 }
 
-                ComboBox {
+                TabletComboBox {
                     id: collisionType
                     width: 200
+                    z: 100
                     transformOrigin: Item.Center
-                    model: ListModel {
-                        id: collisionDropdown
-                        ListElement { text: "No Collision" }
-                        ListElement { text: "Basic - Whole model" }
-                        ListElement { text: "Good - Sub-meshes" }
-                        ListElement { text: "Exact - All polygons" }
-                    }
+                    model: ["No Collision",
+                            "Basic - Whole model",
+                            "Good - Sub-meshes",
+                            "Exact - All polygons"]
                 }
 
                 Row {
                     id: row3
                     width: 200
                     height: 400
-
+                    spacing: 5
+                    
+                    anchors {
+                        rightMargin: 15
+                    }
                     Button {
                         id: button1
                         text: qsTr("Add")
+                        z: -1
                         onClicked: {
                             newModelDialog.sendToScript({
                                 method: "newModelDialogAdd",
@@ -135,6 +145,7 @@ Rectangle {
 
                     Button {
                         id: button2
+                        z: -1
                         text: qsTr("Cancel")
                         onClicked: {
                             newModelDialog.sendToScript({method: "newModelDialogCancel"})
