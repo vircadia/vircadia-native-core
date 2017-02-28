@@ -88,6 +88,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _isPushing(false),
     _isBeingPushed(false),
     _isBraking(false),
+    _isAway(false),
     _boomLength(ZOOM_DEFAULT),
     _yawSpeed(YAW_SPEED_DEFAULT),
     _pitchSpeed(PITCH_SPEED_DEFAULT),
@@ -147,13 +148,22 @@ MyAvatar::MyAvatar(RigPointer rig) :
     auto player = DependencyManager::get<Deck>();
     auto recorder = DependencyManager::get<Recorder>();
     connect(player.data(), &Deck::playbackStateChanged, [=] {
-        if (player->isPlaying()) {
+        bool isPlaying = player->isPlaying();
+        if (isPlaying) {
             auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 setRecordingBasis();
             }
         } else {
             clearRecordingBasis();
+            useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
+        }
+
+        auto audioIO = DependencyManager::get<AudioClient>();
+        audioIO->setIsPlayingBackRecording(isPlaying);
+
+        if (_rig) {
+            _rig->setEnableAnimations(!isPlaying);
         }
     });
 
@@ -179,8 +189,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
 
         if (recordingInterface->getPlayerUseSkeletonModel() && dummyAvatar.getSkeletonModelURL().isValid() &&
             (dummyAvatar.getSkeletonModelURL() != getSkeletonModelURL())) {
-            // FIXME
-            //myAvatar->useFullAvatarURL()
+
+            setSkeletonModelURL(dummyAvatar.getSkeletonModelURL());
         }
 
         if (recordingInterface->getPlayerUseDisplayName() && dummyAvatar.getDisplayName() != getDisplayName()) {
@@ -202,6 +212,11 @@ MyAvatar::MyAvatar(RigPointer rig) :
             }
             // head orientation
             _headData->setLookAtPosition(headData->getLookAtPosition());
+        }
+
+        auto jointData = dummyAvatar.getRawJointData();
+        if (jointData.length() > 0 && _rig) {
+            _rig->copyJointsFromJointData(jointData);
         }
     });
 
@@ -226,8 +241,7 @@ void MyAvatar::simulateAttachments(float deltaTime) {
     // don't update attachments here, do it in harvestResultsFromPhysicsSimulation()
 }
 
-QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-                        bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) {
+QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
     CameraMode mode = qApp->getCamera()->getMode();
     _globalPosition = getPosition();
     _globalBoundingBoxDimensions.x = _characterController.getCapsuleRadius();
@@ -238,12 +252,12 @@ QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTi
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = getPosition();
         setPosition(getSkeletonPosition());
-        QByteArray array = AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
+        QByteArray array = AvatarData::toByteArrayStateful(dataDetail);
         // copy the correct position back
         setPosition(oldPosition);
         return array;
     }
-    return AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
+    return AvatarData::toByteArrayStateful(dataDetail);
 }
 
 void MyAvatar::centerBody() {
@@ -376,7 +390,9 @@ void MyAvatar::update(float deltaTime) {
         Q_ARG(glm::vec3, (getPosition() - halfBoundingBoxDimensions)),
         Q_ARG(glm::vec3, (halfBoundingBoxDimensions*2.0f)));
 
-    if (_avatarEntityDataLocallyEdited) {
+    uint64_t now = usecTimestampNow();
+    if (now > _identityPacketExpiry || _avatarEntityDataLocallyEdited) {
+        _identityPacketExpiry = now + AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS;
         sendIdentityPacket();
     }
 
@@ -469,7 +485,9 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
-        _rig->copyJointsIntoJointData(_jointData);
+        if (_rigEnabled) {
+            _rig->copyJointsIntoJointData(_jointData);
+        }
     }
 
     {
@@ -795,12 +813,17 @@ void MyAvatar::saveData() {
     }
     settings.endArray();
 
+    if (_avatarEntityData.size() == 0) {
+        // HACK: manually remove empty 'avatarEntityData' else deleted avatarEntityData may show up in settings file
+        settings.remove("avatarEntityData");
+    }
+
     settings.beginWriteArray("avatarEntityData");
     int avatarEntityIndex = 0;
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     _avatarEntitiesLock.withReadLock([&] {
         for (auto entityID : _avatarEntityData.keys()) {
-            if (hmdInterface->getCurrentTableUIID() == entityID) {
+            if (hmdInterface->getCurrentTabletUIID() == entityID) {
                 // don't persist the tablet between domains / sessions
                 continue;
             }
@@ -931,6 +954,10 @@ void MyAvatar::loadData() {
         updateAvatarEntity(entityID, properties);
     }
     settings.endArray();
+    if (avatarEntityCount == 0) {
+        // HACK: manually remove empty 'avatarEntityData' else legacy data may persist in settings file
+        settings.remove("avatarEntityData");
+    }
     setAvatarEntityDataChanged(true);
 
     setDisplayName(settings.value("displayName").toString());
@@ -1165,7 +1192,6 @@ void MyAvatar::clearJointsData() {
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-
     Avatar::setSkeletonModelURL(skeletonModelURL);
     render::ScenePointer scene = qApp->getMain3DScene();
     _skeletonModel->setVisibleInScene(true, scene);
@@ -1204,7 +1230,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         setSkeletonModelURL(fullAvatarURL);
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
-    sendIdentityPacket();
+    _identityPacketExpiry = 0; // triggers an identity packet next update()
 }
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
@@ -2349,6 +2375,15 @@ bool MyAvatar::didTeleport() {
 
 bool MyAvatar::hasDriveInput() const {
     return fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Y]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
+}
+
+void MyAvatar::setAway(bool value) {
+    _isAway = value;
+    if (_isAway) {
+        emit wentAway();
+    } else {
+        emit wentActive();
+    }
 }
 
 // The resulting matrix is used to render the hand controllers, even if the camera is decoupled from the avatar.

@@ -65,12 +65,10 @@ public:
         AudioDecoder::process((const int16_t*)encodedBuffer.constData(), (int16_t*)decodedBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL, true);
     }
 
-    virtual void trackLostFrames(int numFrames)  override { 
-        QByteArray encodedBuffer;
-        QByteArray decodedBuffer;
+    virtual void lostFrame(QByteArray& decodedBuffer) override {
         decodedBuffer.resize(_decodedSize);
-        // NOTE: we don't actually use the results of this decode, we just do it to keep the state of the codec clean
-        AudioDecoder::process((const int16_t*)encodedBuffer.constData(), (int16_t*)decodedBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL, false);
+        // this performs packet loss interpolation
+        AudioDecoder::process(nullptr, (int16_t*)decodedBuffer.data(), AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL, false);
     }
 private:
     int _decodedSize;

@@ -105,6 +105,14 @@ Item {
                         visible: root.expanded
                         text: "Asset Mbps In/Out: " + root.assetMbpsIn.toFixed(2) + "/" + root.assetMbpsOut.toFixed(2)
                     }
+                    StatText {
+                        visible: root.expanded
+                        text: "Avatars Updated: " + root.updatedAvatarCount
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text: "Avatars NOT Updated: " + root.notUpdatedAvatarCount
+                    }
                 }
             }
 
@@ -217,7 +225,10 @@ Item {
                         text: "      Batch: " + root.batchFrameTime.toFixed(1) + " ms"
                     }
                     StatText {
-                        text: "      GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                        text: "        GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                    }
+                    StatText {
+                        text: "     Avatar: " + root.avatarSimulationTime.toFixed(1) + " ms"
                     }
                     StatText {
                         text: "Triangles: " + root.triangles +

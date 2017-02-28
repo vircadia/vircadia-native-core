@@ -177,7 +177,7 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
         prefixString.append(QString(" [%1]").arg(_targetName));
     }
 
-    QString logMessage = QString("%1 %2").arg(prefixString, message.split("\n").join("\n" + prefixString + " "));
+    QString logMessage = QString("%1 %2").arg(prefixString, message.split('\n').join('\n' + prefixString + " "));
     fprintf(stdout, "%s\n", qPrintable(logMessage));
     return logMessage;
 }

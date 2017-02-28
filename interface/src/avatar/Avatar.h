@@ -178,9 +178,12 @@ public:
     uint64_t getLastRenderUpdateTime() const { return _lastRenderUpdateTime; }
     void setLastRenderUpdateTime(uint64_t time) { _lastRenderUpdateTime = time; }
 
-    bool shouldDie() const;
     void animateScaleChanges(float deltaTime);
     void setTargetScale(float targetScale) override;
+
+    Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
+
+    bool hasNewJointData() const { return _hasNewJointData; }
 
 public slots:
 
@@ -259,7 +262,24 @@ protected:
     void addToScene(AvatarSharedPointer self);
     void ensureInScene(AvatarSharedPointer self);
 
+    // Some rate tracking support
+    RateCounter<> _simulationRate;
+    RateCounter<> _simulationInViewRate;
+    RateCounter<> _skeletonModelSimulationRate;
+    RateCounter<> _jointDataSimulationRate;
+
+
 private:
+    class AvatarEntityDataHash {
+    public:
+        AvatarEntityDataHash(uint32_t h) : hash(h) {};
+        uint32_t hash { 0 };
+        bool success { false };
+    };
+
+    using MapOfAvatarEntityDataHashes = QMap<QUuid, AvatarEntityDataHash>;
+    MapOfAvatarEntityDataHashes _avatarEntityDataHashes;
+
     uint64_t _lastRenderUpdateTime { 0 };
     int _leftPointerGeometryID { 0 };
     int _rightPointerGeometryID { 0 };

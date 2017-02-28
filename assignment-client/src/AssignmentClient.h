@@ -27,6 +27,7 @@ public:
                      QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort,
                      quint16 assignmentMonitorPort);
     ~AssignmentClient();
+
 private slots:
     void sendAssignmentRequest();
     void assignmentCompleted();

@@ -159,7 +159,7 @@ protected:
     class Texture {
     public:
         QString name;
-        QSharedPointer<NetworkTexture> texture;
+        NetworkTexturePointer texture;
     };
     using Textures = std::vector<Texture>;
 

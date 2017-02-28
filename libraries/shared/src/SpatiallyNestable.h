@@ -179,16 +179,13 @@ public:
             const glm::vec3& localVelocity,
             const glm::vec3& localAngularVelocity);
 
-    bool scaleChangedSince(quint64 time) { return _scaleChanged > time; }
-    bool tranlationChangedSince(quint64 time) { return _translationChanged > time; }
-    bool rotationChangedSince(quint64 time) { return _rotationChanged > time; }
+    bool scaleChangedSince(quint64 time) const { return _scaleChanged > time; }
+    bool tranlationChangedSince(quint64 time) const { return _translationChanged > time; }
+    bool rotationChangedSince(quint64 time) const { return _rotationChanged > time; }
 
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
-    QUuid _parentID; // what is this thing's transform relative to?
-    quint16 _parentJointIndex { INVALID_JOINT_INDEX }; // which joint of the parent is this relative to?
-
     mutable SpatiallyNestableWeakPointer _parent;
 
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const;
@@ -211,6 +208,9 @@ protected:
     quint64 _rotationChanged { 0 };
 
 private:
+    QUuid _parentID; // what is this thing's transform relative to?
+    quint16 _parentJointIndex { INVALID_JOINT_INDEX }; // which joint of the parent is this relative to?
+
     mutable ReadWriteLockable _transformLock;
     mutable ReadWriteLockable _idLock;
     mutable ReadWriteLockable _velocityLock;

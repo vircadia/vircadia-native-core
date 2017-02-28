@@ -17,6 +17,8 @@
 #include <atomic>
 
 #include <GenericThread.h>
+#include <Node.h>
+#include <OctreePacketData.h>
 
 class OctreeQueryNode;
 class OctreeServer;
@@ -49,13 +51,17 @@ protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process() override;
 
+    /// Called before a packetDistributor pass to allow for pre-distribution processing
+    virtual void preDistributionProcessing() {};
+
+    OctreeServer* _myServer { nullptr };
+    QWeakPointer<Node> _node;
+
 private:
     int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent, bool dontSuppressDuplicate = false);
     int packetDistributor(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
     
-    
-    OctreeServer* _myServer { nullptr };
-    QWeakPointer<Node> _node;
+
     QUuid _nodeUuid;
 
     OctreePacketData _packetData;

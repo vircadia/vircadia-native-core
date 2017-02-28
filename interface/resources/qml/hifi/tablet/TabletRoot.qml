@@ -7,15 +7,38 @@ Item {
     property string username: "Unknown user"
     property var eventBridge;
 
+    property var rootMenu;
+    property string subMenu: ""
+
     signal showDesktop();
 
+    function setOption(value) {
+        option = value;
+    }
+
+    function setMenuProperties(rootMenu, subMenu) {
+        tabletRoot.rootMenu = rootMenu;
+        tabletRoot.subMenu = subMenu;
+    }
+
     function loadSource(url) {
+        loader.source = "";  // make sure we load the qml fresh each time.
         loader.source = url;
     }
 
     function loadWebUrl(url, injectedJavaScriptUrl) {
         loader.item.url = url;
         loader.item.scriptURL = injectedJavaScriptUrl;
+    }
+
+    // used to send a message from qml to interface script.
+    signal sendToScript(var message);
+
+    // used to receive messages from interface script
+    function fromScript(message) {
+        if (loader.item.hasOwnProperty("fromScript")) {
+            loader.item.fromScript(message);
+        }
     }
 
     SoundEffect {
@@ -30,6 +53,10 @@ Item {
         if (typeof globalPosition !== 'undefined') {
             buttonClickSound.play(globalPosition);
         }
+    }
+
+    function toggleMicEnabled() {
+        ApplicationInterface.toggleMuteAudio();
     }
 
     function setUsername(newUsername) {
@@ -55,10 +82,18 @@ Item {
                     }
                 });
             }
+            if (loader.item.hasOwnProperty("sendToScript")) {
+                loader.item.sendToScript.connect(tabletRoot.sendToScript);
+            }
+            if (loader.item.hasOwnProperty("setRootMenu")) {
+                loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
+            }
             loader.item.forceActiveFocus();
         }
     }
 
     width: 480
-    height: 720
+    height: 706
+
+    function setShown(value) {}
 }

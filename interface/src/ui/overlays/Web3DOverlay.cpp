@@ -23,14 +23,22 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
+#include <scripting/HMDScriptingInterface.h>
 #include <gl/OffscreenQmlSurface.h>
 #include <PathUtils.h>
 #include <RegisteredMetaTypes.h>
 #include <TabletScriptingInterface.h>
 #include <TextureCache.h>
+#include <UsersScriptingInterface.h>
+#include <UserActivityLoggerScriptingInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <gl/OffscreenQmlSurface.h>
 #include <gl/OffscreenQmlSurfaceCache.h>
+#include <AddressManager.h>
+#include "scripting/AccountScriptingInterface.h"
+#include "scripting/HMDScriptingInterface.h"
+#include <Preferences.h>
+#include "FileDialogHelper.h"
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -149,10 +157,19 @@ void Web3DOverlay::loadSourceURL() {
         _webSurface->load(_url, [&](QQmlContext* context, QObject* obj) {});
         _webSurface->resume();
 
+        _webSurface->getRootContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
+        _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+        _webSurface->getRootContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
+        _webSurface->getRootContext()->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
+
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
             auto flags = tabletScriptingInterface->getFlags();
             _webSurface->getRootContext()->setContextProperty("offscreenFlags", flags);
+            _webSurface->getRootContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+            _webSurface->getRootContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
+            _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+            _webSurface->getRootContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
 
             // Override min fps for tablet UI, for silky smooth scrolling
@@ -181,7 +198,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
         currentContext->makeCurrent(currentSurface);
 
-        auto forwardPointerEvent = [=](unsigned int overlayID, const PointerEvent& event) {
+        auto forwardPointerEvent = [=](OverlayID overlayID, const PointerEvent& event) {
             if (overlayID == getOverlayID()) {
                 handlePointerEvent(event);
             }
@@ -191,7 +208,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         _mouseReleaseConnection = connect(&(qApp->getOverlays()), &Overlays::mouseReleaseOnOverlay, forwardPointerEvent);
         _mouseMoveConnection = connect(&(qApp->getOverlays()), &Overlays::mouseMoveOnOverlay, forwardPointerEvent);
         _hoverLeaveConnection = connect(&(qApp->getOverlays()), &Overlays::hoverLeaveOverlay,
-            [=](unsigned int overlayID, const PointerEvent& event) {
+            [=](OverlayID overlayID, const PointerEvent& event) {
             if (this->_pressed && this->getOverlayID() == overlayID) {
                 // If the user mouses off the overlay while the button is down, simulate a touch end.
                 QTouchEvent::TouchPoint point;

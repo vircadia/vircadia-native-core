@@ -138,7 +138,6 @@ void Agent::handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, Sh
 
 void Agent::handleAudioPacket(QSharedPointer<ReceivedMessage> message) {
     _receivedAudioStream.parseData(*message);
-
     _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
     _receivedAudioStream.clearBuffer();
 }
@@ -323,12 +322,14 @@ void Agent::scriptRequestFinished() {
     request->deleteLater();
 }
 
+
 void Agent::executeScript() {
     _scriptEngine = std::unique_ptr<ScriptEngine>(new ScriptEngine(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload));
     _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
     // setup an Avatar for the script to use
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+
     connect(_scriptEngine.get(), SIGNAL(update(float)), scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
     scriptedAvatar->setForceFaceTrackerConnected(true);
 
@@ -338,11 +339,33 @@ void Agent::executeScript() {
     // give this AvatarData object to the script engine
     _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
 
+    auto player = DependencyManager::get<recording::Deck>();
+    connect(player.data(), &recording::Deck::playbackStateChanged, [=] {
+        if (player->isPlaying()) {
+            auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+            if (recordingInterface->getPlayFromCurrentLocation()) {
+                scriptedAvatar->setRecordingBasis();
+            }
+        } else {
+            scriptedAvatar->clearRecordingBasis();
+        }
+    });
 
     using namespace recording;
     static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
-    // FIXME how to deal with driving multiple avatars locally?
     Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this, scriptedAvatar](Frame::ConstPointer frame) {
+
+        auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+        bool useFrameSkeleton = recordingInterface->getPlayerUseSkeletonModel();
+
+        // FIXME - the ability to switch the avatar URL is not actually supported when playing back from a recording
+        if (!useFrameSkeleton) {
+            static std::once_flag warning;
+            std::call_once(warning, [] {
+                qWarning() << "Recording.setPlayerUseSkeletonModel(false) is not currently supported.";
+            });
+        }
+
         AvatarData::fromFrame(frame->data, *scriptedAvatar);
     });
 
@@ -352,8 +375,11 @@ void Agent::executeScript() {
         const QByteArray& audio = frame->data;
         static quint16 audioSequenceNumber{ 0 };
         Transform audioTransform;
+
+        auto headOrientation = scriptedAvatar->getHeadOrientation();
         audioTransform.setTranslation(scriptedAvatar->getPosition());
-        audioTransform.setRotation(scriptedAvatar->getOrientation());
+        audioTransform.setRotation(headOrientation);
+
         QByteArray encodedBuffer;
         if (_encoder) {
             _encoder->encode(audio, encodedBuffer);
@@ -408,8 +434,16 @@ void Agent::executeScript() {
     connect(&_avatarAudioTimerThread, &QThread::finished, audioTimerWorker, &QObject::deleteLater); 
     _avatarAudioTimerThread.start();
     
-    // 60Hz timer for avatar
-    QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatar);
+    // Agents should run at 45hz
+    static const int AVATAR_DATA_HZ = 45;
+    static const int AVATAR_DATA_IN_MSECS = MSECS_PER_SECOND / AVATAR_DATA_HZ;
+    QTimer* avatarDataTimer = new QTimer(this);
+    connect(avatarDataTimer, &QTimer::timeout, this, &Agent::processAgentAvatar);
+    avatarDataTimer->setSingleShot(false);
+    avatarDataTimer->setInterval(AVATAR_DATA_IN_MSECS);
+    avatarDataTimer->setTimerType(Qt::PreciseTimer);
+    avatarDataTimer->start();
+
     _scriptEngine->run();
 
     Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
@@ -512,7 +546,7 @@ void Agent::processAgentAvatar() {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
         AvatarData::AvatarDataDetail dataDetail = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) ? AvatarData::SendAllData : AvatarData::CullSmallData;
-        QByteArray avatarByteArray = scriptedAvatar->toByteArray(dataDetail, 0, scriptedAvatar->getLastSentJointData());
+        QByteArray avatarByteArray = scriptedAvatar->toByteArrayStateful(dataDetail);
         scriptedAvatar->doneEncoding(true);
 
         static AvatarDataSequenceNumber sequenceNumber = 0;
@@ -537,7 +571,10 @@ void Agent::encodeFrameOfZeros(QByteArray& encodedZeros) {
 }
 
 void Agent::processAgentAvatarAudio() {
-    if (_isAvatar && (_isListeningToAudioStream || _avatarSound)) {
+    auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+    bool isPlayingRecording = recordingInterface->isPlaying();
+
+    if (_isAvatar && ((_isListeningToAudioStream && !isPlayingRecording) || _avatarSound)) {
         // if we have an avatar audio stream then send it out to our audio-mixer
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
         bool silentFrame = true;

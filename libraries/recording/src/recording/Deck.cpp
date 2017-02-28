@@ -145,10 +145,8 @@ void Deck::processFrames() {
     }
 
     if (!nextClip) {
-        qCDebug(recordingLog) << "No more frames available";
         // No more frames available, so handle the end of playback
         if (_loop) {
-            qCDebug(recordingLog) << "Looping enabled, seeking back to beginning";
             // If we have looping enabled, start the playback over
             seek(0);
             // FIXME configure the recording scripting interface to reset the avatar basis on a loop 
