@@ -548,6 +548,7 @@ const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 100.0f;
 const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
+const bool DEFAULT_TABLET_VISIBLE_TO_OTHERS = false;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
     QApplication(argc, argv),
@@ -570,6 +571,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _desktopTabletScale("desktopTabletScale", DEFAULT_DESKTOP_TABLET_SCALE_PERCENT),
     _desktopTabletBecomesToolbarSetting("desktopTabletBecomesToolbar", DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR),
     _hmdTabletBecomesToolbarSetting("hmdTabletBecomesToolbar", DEFAULT_HMD_TABLET_BECOMES_TOOLBAR),
+    _tabletVisibleToOthersSetting("tabletVisibleToOthers", DEFAULT_TABLET_VISIBLE_TO_OTHERS),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _scaleMirror(1.0f),
     _rotateMirror(0.0f),
@@ -781,6 +783,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
+        getOverlays().deleteOverlay(getTabletScreenID());
+        getOverlays().deleteOverlay(getTabletHomeButtonID());
+        getOverlays().deleteOverlay(getTabletFrameID());
+    });
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
 
     // We could clear ATP assets only when changing domains, but it's possible that the domain you are connected
@@ -2350,6 +2357,11 @@ void Application::setHmdTabletBecomesToolbarSetting(bool value) {
     updateSystemTabletMode();
 }
 
+void Application::setTabletVisibleToOthersSetting(bool value) {
+    _tabletVisibleToOthersSetting.set(value);
+    updateSystemTabletMode();
+}
+
 void Application::setSettingConstrainToolbarPosition(bool setting) {
     _constrainToolbarPosition.set(setting);
     DependencyManager::get<OffscreenUi>()->setConstrainToolbarToCenterX(setting);
@@ -3095,6 +3107,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         getOverlays().mouseMoveEvent(&mappedEvent);
         getEntities()->mouseMoveEvent(&mappedEvent);
     }
+
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -3127,7 +3140,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
     if (!_aboutToQuit) {
         getOverlays().mousePressEvent(&mappedEvent);
-
         if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
             getEntities()->mousePressEvent(&mappedEvent);
         }
@@ -6904,5 +6916,10 @@ OverlayID Application::getTabletScreenID() const {
 
 OverlayID Application::getTabletHomeButtonID() const {
     auto HMD = DependencyManager::get<HMDScriptingInterface>();
-    return HMD->getCurrentHomeButtonUUID();
+    return HMD->getCurrentHomeButtonID();
+}
+
+QUuid Application::getTabletFrameID() const {
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    return HMD->getCurrentTabletFrameID();
 }

@@ -331,6 +331,12 @@ Grabber.prototype.pressEvent = function(event) {
     }
 
     var pickRay = Camera.computePickRay(event.x, event.y);
+
+    var overlayResult = Overlays.findRayIntersection(pickRay, true, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    if (overlayResult.intersects) {
+        return;
+    }
+
     var pickResults = Entities.findRayIntersection(pickRay, true); // accurate picking
     if (!pickResults.intersects) {
         // didn't click on anything

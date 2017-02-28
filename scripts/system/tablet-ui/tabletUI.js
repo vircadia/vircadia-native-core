@@ -37,7 +37,8 @@
         UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", DEFAULT_WIDTH * (TABLET_SCALE / 100), null, activeHand, true);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
-        HMD.homeButtonID = UIWebTablet.homeButtonEntity;
+        HMD.homeButtonID = UIWebTablet.homeButtonID;
+        HMD.tabletScreenID = UIWebTablet.webOverlayID;
     }
 
     function hideTabletUI() {
@@ -54,6 +55,7 @@
             UIWebTablet = null;
             HMD.tabletID = null;
             HMD.homeButtonID = null;
+            HMD.tabletScreenID = null;
         }
     }
 
@@ -83,7 +85,7 @@
             hideTabletUI();
             HMD.closeTablet();
         } else if (HMD.showTablet && !tabletShown && !toolbarMode) {
-            UserActivityLogger.openedTablet();
+            UserActivityLogger.openedTablet(Settings.getValue("tabletVisibleToOthers"));
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
             UserActivityLogger.closedTablet();
@@ -132,5 +134,6 @@
         Entities.deleteEntity(HMD.tabletID);
         HMD.tabletID = null;
         HMD.homeButtonID = null;
+        HMD.tabletScreenID = null;
     });
 }()); // END LOCAL_SCOPE
