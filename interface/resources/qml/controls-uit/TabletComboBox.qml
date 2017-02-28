@@ -14,7 +14,6 @@ import QtQuick.Controls.Styles 1.4
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
-//import "." as VrControls
 
 FocusScope {
     id: root
