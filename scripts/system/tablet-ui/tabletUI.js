@@ -26,9 +26,15 @@
         print("show tablet-ui");
 
         var DEFAULT_WIDTH = 0.4375;
-        var DEFAULT_HMD_TABLET_SCALE = 100;
-        var HMD_TABLET_SCALE = Settings.getValue("hmdTabletScale") || DEFAULT_HMD_TABLET_SCALE;
-        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", DEFAULT_WIDTH * (HMD_TABLET_SCALE / 100), null, activeHand, true);
+        var DEFAULT_TABLET_SCALE = 100;
+        var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
+        var TABLET_SCALE = DEFAULT_TABLET_SCALE;
+        if (toolbarMode) {
+            TABLET_SCALE = Settings.getValue("desktopTabletScale") || DEFAULT_TABLET_SCALE;
+        } else {
+            TABLET_SCALE = Settings.getValue("hmdTabletScale") || DEFAULT_TABLET_SCALE;
+        }
+        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", DEFAULT_WIDTH * (TABLET_SCALE / 100), null, activeHand, true);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;

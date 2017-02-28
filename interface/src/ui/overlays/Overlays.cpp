@@ -345,23 +345,14 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
     const float LARGE_NEGATIVE_FLOAT = -9999999;
     glm::vec3 origin(pointCopy.x, pointCopy.y, LARGE_NEGATIVE_FLOAT);
     glm::vec3 direction(0, 0, 1);
-    // BoxFace thisFace;
     glm::vec3 thisSurfaceNormal;
-    // float distance;
     unsigned int bestStackOrder = 0;
     OverlayID bestOverlayID = UNKNOWN_OVERLAY_ID;
 
     while (i.hasNext()) {
         i.next();
         OverlayID thisID = i.key();
-        if (i.value()->is3D()) {
-            // auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
-            // if (thisOverlay && !thisOverlay->getIgnoreRayIntersection()) {
-            //     if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace, thisSurfaceNormal)) {
-            //         return thisID;
-            //     }
-            // }
-        } else {
+        if (!i.value()->is3D()) {
             auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
             if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
                 thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {

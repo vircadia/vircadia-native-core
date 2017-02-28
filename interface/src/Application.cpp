@@ -3104,23 +3104,18 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     if (compositor.getReticleVisible() || !isHMDMode() || !compositor.getReticleOverDesktop() ||
         getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y())) != UNKNOWN_OVERLAY_ID) {
-        if (_mouseToOverlays) {
-            getOverlays().mouseMoveEvent(&mappedEvent);
-        } else {
-            getEntities()->mouseMoveEvent(&mappedEvent);
-        }
+        getOverlays().mouseMoveEvent(&mappedEvent);
+        getEntities()->mouseMoveEvent(&mappedEvent);
     }
 
-    if (!_mouseToOverlays) {
-        _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
-    }
+    _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
     }
 
-    if (!_mouseToOverlays && _keyboardMouseDevice->isActive()) {
+    if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->mouseMoveEvent(event);
     }
 }
@@ -3128,7 +3123,6 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 void Application::mousePressEvent(QMouseEvent* event) {
     // Inhibit the menu if the user is using alt-mouse dragging
     _altPressed = false;
-    _mouseToOverlays = false;
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     // If we get a mouse press event it means it wasn't consumed by the offscreen UI,
@@ -3145,23 +3139,20 @@ void Application::mousePressEvent(QMouseEvent* event) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
-        if (getOverlays().mousePressEvent(&mappedEvent)) {
-            _mouseToOverlays = true;
-        } else if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
+        getOverlays().mousePressEvent(&mappedEvent);
+        if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
             getEntities()->mousePressEvent(&mappedEvent);
         }
     }
 
-    if (!_mouseToOverlays) {
-        _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
-    }
+    _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
     }
 
-    if (!_mouseToOverlays && hasFocus()) {
+    if (hasFocus()) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mousePressEvent(event);
         }
@@ -3195,23 +3186,18 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
-        if (_mouseToOverlays) {
-            getOverlays().mouseReleaseEvent(&mappedEvent);
-        } else {
-            getEntities()->mouseReleaseEvent(&mappedEvent);
-        }
+        getOverlays().mouseReleaseEvent(&mappedEvent);
+        getEntities()->mouseReleaseEvent(&mappedEvent);
     }
 
-    if (!_mouseToOverlays) {
-        _controllerScriptingInterface->emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
-    }
+    _controllerScriptingInterface->emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
     }
 
-    if (!_mouseToOverlays && hasFocus()) {
+    if (hasFocus()) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mouseReleaseEvent(event);
         }
@@ -3457,7 +3443,7 @@ void Application::idle(float nsecsElapsed) {
 #ifdef Q_OS_WIN
     static std::once_flag once;
     std::call_once(once, [] {
-        initCpuUsage(); 
+        initCpuUsage();
     });
 
     vec3 kernelUserAndSystem;
