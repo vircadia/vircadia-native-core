@@ -1,6 +1,7 @@
 (function() {
     Script.include("/~/system/libraries/utils.js");
 
+    var SETTING_KEY = "com.highfidelity.avatar.isSitting";
     var ROLE = "fly";
     var ANIMATION_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
     var ANIMATION_FPS = 30;
@@ -77,23 +78,28 @@
             return;
         }
 
-        that.setSeatUser(MyAvatar.sessionUUID);
-        MyAvatar.characterControllerEnabled = false;
-        MyAvatar.hmdLeanRecenterEnabled = false;
-        MyAvatar.overrideRoleAnimation(ROLE, ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
-        MyAvatar.resetSensorsAndBody();
+        this.setSeatUser(MyAvatar.sessionUUID);
 
-        var properties = Entities.getEntityProperties(that.entityID, ["position", "rotation"]);
-        var index = MyAvatar.getJointIndex("Hips");
+        var previousValue = Settings.getValue(SETTING_KEY);
+        Settings.setValue(SETTING_KEY, this.entityID);
+        if (previousValue === "") {
+            MyAvatar.characterControllerEnabled = false;
+            MyAvatar.hmdLeanRecenterEnabled = false;
+            MyAvatar.overrideRoleAnimation(ROLE, ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
+        }
+        MyAvatar.resetSensorsAndBody();
+        MyAvatar.bodyRoll = 0.0;
+        MyAvatar.bodyPitch = 0.0;
 
         var that = this;
         Script.setTimeout(function() {
+            var properties = Entities.getEntityProperties(that.entityID, ["position", "rotation"]);
+            var index = MyAvatar.getJointIndex("Hips");
             MyAvatar.pinJoint(index, properties.position, properties.rotation);
 
             that.animStateHandlerID = MyAvatar.addAnimationStateHandler(function(properties) {
                 return { headType: 0 };
             }, ["headType"]);
-
             Script.update.connect(that, that.update);
             Controller.keyPressEvent.connect(that, that.keyPressed);
             Controller.keyReleaseEvent.connect(that, that.keyReleased);
@@ -104,22 +110,27 @@
     }
 
     this.sitUp = function() {
-        MyAvatar.restoreRoleAnimation(ROLE);
-        MyAvatar.characterControllerEnabled = true;
-        MyAvatar.hmdLeanRecenterEnabled = true;
         this.setSeatUser(null);
 
-        var index = MyAvatar.getJointIndex("Hips");
-        MyAvatar.clearPinOnJoint(index);
+        if (Settings.getValue(SETTING_KEY) === this.entityID) {
+            MyAvatar.restoreRoleAnimation(ROLE);
+            MyAvatar.characterControllerEnabled = true;
+            MyAvatar.hmdLeanRecenterEnabled = true;
+
+            var index = MyAvatar.getJointIndex("Hips");
+            MyAvatar.clearPinOnJoint(index);
+
+            MyAvatar.resetSensorsAndBody();
+
+            Script.setTimeout(function() {
+                MyAvatar.bodyPitch = 0.0;
+                MyAvatar.bodyRoll = 0.0;
+            }, SIT_DELAY);
+
+            Settings.setValue(SETTING_KEY, "");
+        }
 
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
-
-        Script.setTimeout(function() {
-            MyAvatar.bodyPitch = 0.0;
-            MyAvatar.bodyRoll = 0.0;
-            MyAvatar.resetSensorsAndBody();
-        }, SIT_DELAY);
-
         Script.update.disconnect(this, this.update);
         Controller.keyPressEvent.disconnect(this, this.keyPressed);
         Controller.keyReleaseEvent.disconnect(this, this.keyReleased);
