@@ -86,10 +86,8 @@
             MyAvatar.characterControllerEnabled = false;
             MyAvatar.hmdLeanRecenterEnabled = false;
             MyAvatar.overrideRoleAnimation(ROLE, ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
+            MyAvatar.resetSensorsAndBody();
         }
-        MyAvatar.resetSensorsAndBody();
-        MyAvatar.bodyRoll = 0.0;
-        MyAvatar.bodyPitch = 0.0;
 
         var that = this;
         Script.setTimeout(function() {
