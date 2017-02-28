@@ -62,7 +62,6 @@ FilePointer FileCache::writeFile(const Key& key, const char* data, size_t length
     FILE* saveFile = fopen(filepath.c_str(), "wb");
     if (saveFile != nullptr && fwrite(data, length, 1, saveFile) && fclose(saveFile) == 0) {
         file.reset(createFile(key, filepath, length, extra), &fileDeleter);
-        fclose(saveFile);
         file->_cache = this;
         _files[key] = file;
         _numTotalFiles += 1;
