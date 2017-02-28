@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="../../../../../system/html/css/edit-style.css">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.2/css/bootstrap-slider.min.css">
     <style>
       body {
           margin: 0;
@@ -33,6 +34,10 @@
           padding: 30px;
       }
 
+      .slider {
+        margin-left: 70px;
+      }
+
       #camera-toggle {
         font-family: Raleway-Bold;
         font-size: 13px;
@@ -55,6 +60,7 @@
       }
 
 
+
     </style> 
   </head>
   <body>
@@ -67,6 +73,21 @@
           <label>Model URL</label>
           <input type="text" id="model-url"></input>
           <input type="button" id="reload-model-button" class="glyph" value="F">
+        </div>
+        <div class="property">
+          <label>Rotate Model</label>
+            <input
+              id="rotate-slider"
+              type="text"
+              data-provide="slider"
+              data-slider-ticks="[-180, 0, 180]"
+              data-slider-ticks-labels='["anti-clockwise","centre", "clockwise"]'
+              data-slider-min="-180"
+              data-slider-max="180"
+              data-slider-step="1"
+              data-slider-value="0"
+              data-slider-tooltip="show"
+            >
         </div>
         <div class="property">
           <label>Camera</label>
@@ -90,6 +111,7 @@
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.2/bootstrap-slider.min.js"></script>
     <script>
 
       // Helper function to emit web events to photoboothApp.js
