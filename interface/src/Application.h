@@ -676,8 +676,6 @@ private:
     void addAssetToWorldInfoDone(QString modelName);
     void addAssetToWorldError(QString modelName, QString errorText);
 
-    bool _mouseToOverlays { false };
-
     QQuickItem* _addAssetToWorldMessageBox{ nullptr };
     QStringList _addAssetToWorldInfoKeys;  // Model name
     QStringList _addAssetToWorldInfoMessages;  // Info message

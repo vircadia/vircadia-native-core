@@ -1,0 +1,44 @@
+{
+    "Entities": [
+        {
+            "clientOnly": 0,
+            "collisionsWillMove": 1,
+            "compoundShapeURL": "http://mpassets.highfidelity.com/a9221d01-95eb-4b2e-85e5-d9e0970a7f51-v1/bow_collision_hull.obj",
+            "created": "2017-02-14T18:54:38Z",
+            "dimensions": {
+                "x": 0.039999999105930328,
+                "y": 1.2999999523162842,
+                "z": 0.20000000298023224
+            },
+            "dynamic": 1,
+            "gravity": {
+                "x": 0,
+                "y": -9.8000001907348633,
+                "z": 0
+            },
+            "id": "{73954924-2e18-4787-91a7-092c2afb6242}",
+            "lastEdited": 1487098438422164,
+            "lastEditedBy": "{d2da5e17-9125-414d-ac4e-cd7fba6c22f8}",
+            "modelURL": "http://mpassets.highfidelity.com/a9221d01-95eb-4b2e-85e5-d9e0970a7f51-v1/bow-deadly.fbx",
+            "name": "WG.Hifi-Bow",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "queryAACube": {
+                "scale": 1.3159027099609375,
+                "x": -0.65795135498046875,
+                "y": -0.65795135498046875,
+                "z": -0.65795135498046875
+            },
+            "rotation": {
+                "w": 0.9717707633972168,
+                "x": 0.15437555313110352,
+                "y": -0.10472267866134644,
+                "z": -0.14421302080154419
+            },
+            "script": "http://mpassets.highfidelity.com/a9221d01-95eb-4b2e-85e5-d9e0970a7f51-v1/bow.js",
+            "shapeType": "compound",
+            "type": "Model",
+            "userData": "{\"grabbableKey\":{\"grabbable\":true},\"wearable\":{\"joints\":{\"RightHand\":[{\"x\":0.0813,\"y\":0.0452,\"z\":0.0095},{\"x\":-0.3946,\"y\":-0.6604,\"z\":0.4748,\"w\":-0.4275}],\"LeftHand\":[{\"x\":-0.0881,\"y\":0.0259,\"z\":0.0159},{\"x\":0.4427,\"y\":-0.6519,\"z\":0.4592,\"w\":0.4099}]}}}"
+        }
+    ],
+    "Version": 67
+}

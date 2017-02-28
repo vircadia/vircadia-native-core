@@ -167,12 +167,12 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         isAA: HMD.active
     });
 
-    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.035;
+    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.009;
     this.homeButtonID = Overlays.addOverlay("sphere", {
         name: "homeButton",
-        localPosition: {x: 0.0, y: -HOME_BUTTON_Y_OFFSET, z: -0.01},
+        localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
         localRotation: Quat.angleAxis(0, Y_AXIS),
-        dimensions: { x: 0.04, y: 0.04, z: 0.02},
+        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor},
         alpha: 0.0,
         visible: true,
         drawInFront: false,
