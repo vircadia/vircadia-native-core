@@ -2256,29 +2256,15 @@ function MyController(hand) {
         this.clearEquipHaptics();
         this.grabPointSphereOff();
 
-        this.shouldScale = false;
-
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var worldControllerPosition = controllerLocation.position;
         var worldControllerRotation = controllerLocation.orientation;
 
-        // transform the position into room space
-        var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
-        var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
-
         var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
-        var now = Date.now();
-
-        // add the action and initialize some variables
         this.currentObjectPosition = grabbedProperties.position;
-        this.currentObjectRotation = grabbedProperties.rotation;
-        this.currentObjectTime = now;
-        this.currentCameraOrientation = Camera.orientation;
-
         this.grabRadius = this.grabbedDistance;
-        this.grabRadialVelocity = 0.0;
 
-        // offset between controller vector at the grab radius and the entity position
+        // Offset between controller vector at the grab radius and the entity position.
         var targetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
         targetPosition = Vec3.sum(targetPosition, worldControllerPosition);
         this.offsetPosition = Vec3.subtract(this.currentObjectPosition, targetPosition);
@@ -2288,7 +2274,6 @@ function MyController(hand) {
 
         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
         this.turnOffVisualizations();
-        this.previousRoomControllerPosition = roomControllerPosition;
     };
 
     this.distanceRotating = function(deltaTime, timestamp) {
