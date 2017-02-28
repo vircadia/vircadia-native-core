@@ -331,6 +331,34 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
             emit screenChanged(QVariant("QML"), path);
             QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
+    } else {
+        qCDebug(scriptengine) << "tablet cannot load QML because _qmlTabletRoot is null";
+    }
+}
+
+void TabletProxy::pushOntoStack(const QVariant& path) {
+    if (_qmlTabletRoot) {
+        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
+        if (stack) {
+            QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
+        } else {
+            qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot doesn't have child stack";
+        }
+    } else {
+        qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot is null";
+    }
+}
+
+void TabletProxy::popFromStack() {
+    if (_qmlTabletRoot) {
+        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
+        if (stack) {
+            QMetaObject::invokeMethod(stack, "popSource");
+        } else {
+            qCDebug(scriptengine) << "tablet cannot pop QML because _qmlTabletRoot doesn't have child stack";
+        }
+    } else {
+        qCDebug(scriptengine) << "tablet cannot pop QML because _qmlTabletRoot is null";
     }
 }
 
@@ -560,7 +588,7 @@ QQuickItem* TabletProxy::getQmlTablet() const {
 }
 
 QQuickItem* TabletProxy::getQmlMenu() const {
-     if (!_qmlTabletRoot) {
+    if (!_qmlTabletRoot) {
         return nullptr;
     }
 
