@@ -1624,7 +1624,8 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     QWeakPointer<ScriptEngine> weakRef(sharedFromThis());
     scriptCache->getScriptContents(entityScript,
         [this, weakRef, entityScript, entityID](const QString& url, const QString& contents, bool isURL, bool success, const QString& status) {
-            if (!weakRef) {
+            QSharedPointer<ScriptEngine> strongRef(weakRef);
+            if (!strongRef) {
                 qCWarning(scriptengine) << "loadEntityScript.contentAvailable -- ScriptEngine was deleted during getScriptContents!!";
                 return;
             }
