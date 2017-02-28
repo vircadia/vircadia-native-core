@@ -2298,6 +2298,11 @@ function MyController(hand) {
         this.getOtherHandController().currentObjectRotation = Quat.multiply(controllerRotationDelta,
             this.getOtherHandController().currentObjectRotation);
 
+        // Rotate about the translation controller's target position.
+        this.offsetPosition = Vec3.multiplyQbyV(controllerRotationDelta, this.offsetPosition);
+        this.getOtherHandController().offsetPosition = Vec3.multiplyQbyV(controllerRotationDelta,
+            this.getOtherHandController().offsetPosition);
+
         var rayPickInfo = this.calcRayPickInfo(this.hand);
         this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition),
             COLORS_GRAB_DISTANCE_HOLD);
