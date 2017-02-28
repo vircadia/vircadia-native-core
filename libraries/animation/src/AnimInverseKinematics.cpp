@@ -489,7 +489,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 // by looking for discrepancies between where a targeted endEffector is
                 // and where it wants to be (after IK solutions are done)
 
-                // OUTOFBODY_HACK:use weighted average between HMD and other targets
+                // use weighted average between HMD and other targets
                 float HMD_WEIGHT = 10.0f;
                 float OTHER_WEIGHT = 1.0f;
                 float totalWeight = 0.0f;
@@ -542,7 +542,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
                 _hipsOffset += additionalHipsOffset * tau;
 
-                // clamp the horizontal component of the hips offset
+                // clamp the hips offset
                 float hipsOffsetLength = glm::length(_hipsOffset);
                 if (hipsOffsetLength > _maxHipsOffsetLength) {
                     _hipsOffset *= _maxHipsOffsetLength / hipsOffsetLength;
@@ -555,7 +555,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 }
 
 void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
-    // OUTOFBODY_HACK: manually adjust scale here
+    // manually adjust scale here
     const float METERS_TO_CENTIMETERS = 100.0f;
     _maxHipsOffsetLength = METERS_TO_CENTIMETERS * maxLength;
 }
@@ -938,22 +938,10 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         } else {
             _hipsParentIndex = -1;
         }
-
-        auto currentJointIndex = _headIndex;
-        auto parentJointIndex = _skeleton->getParentIndex(currentJointIndex);
-        _spineLength = 0.0f;
-        while (currentJointIndex != _hipsIndex && parentJointIndex != -1) {
-            _spineLength += glm::distance(_skeleton->getAbsoluteDefaultPose(currentJointIndex).trans(),
-                                          _skeleton->getAbsoluteDefaultPose(parentJointIndex).trans());
-
-            currentJointIndex = parentJointIndex;
-            parentJointIndex = _skeleton->getParentIndex(currentJointIndex);
-        }
     } else {
         clearConstraints();
         _headIndex = -1;
         _hipsIndex = -1;
         _hipsParentIndex = -1;
-        _spineLength = 0.0f;
     }
 }
