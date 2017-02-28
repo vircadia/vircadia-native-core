@@ -336,8 +336,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     const double pStrength = 2.0;
     int width = image.width();
     int height = image.height();
-    // THe end result image for normal map is RGBA32 even though the A is not used
-    QImage result(width, height, QImage::Format_RGBA8888);
+    QImage result(width, height, QImage::Format_RGB888);
     
     for (int i = 0; i < width; i++) {
         const int iNextClamped = clampPixelCoordinate(i + 1, width - 1);
@@ -377,21 +376,19 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
             glm::normalize(v);
     
             // convert to rgb from the value obtained computing the filter
-            QRgb qRgbValue = qRgb(mapComponent(v.x), mapComponent(v.y), mapComponent(v.z));
+            QRgb qRgbValue = qRgba(mapComponent(v.x), mapComponent(v.y), mapComponent(v.z), 1.0);
             result.setPixel(i, j, qRgbValue);
         }
     }
 
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-
-        gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-        gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->setSource(srcImageName);
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        generateMips(theTexture, image, formatMip, true);
     }
 
     return theTexture;
