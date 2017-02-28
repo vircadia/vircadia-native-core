@@ -54,13 +54,14 @@ FilePointer FileCache::writeFile(const Key& key, const char* data, size_t length
     // if file already exists, return it
     FilePointer file = getFile(key);
     if (file) {
-        qCWarning(file_cache) << "Attempted to overwrite" << filepath.c_str();
+        qCWarning(file_cache, "Attempted to overwrite %", key.c_str());
         return file;
     }
 
     // write the new file
     FILE* saveFile = fopen(filepath.c_str(), "wb");
     if (saveFile != nullptr && fwrite(data, length, 1, saveFile) && fclose(saveFile) == 0) {
+        qCInfo(file_cache, "Wrote %s", key.c_str());
         file.reset(createFile(key, filepath, length, extra), &fileDeleter);
         file->_cache = this;
         _files[key] = file;
@@ -69,7 +70,7 @@ FilePointer FileCache::writeFile(const Key& key, const char* data, size_t length
 
         emit dirty();
     } else {
-        qCWarning(file_cache, "Failed to write %s (%s)", filepath.c_str(), strerror(errno));
+        qCWarning(file_cache, "Failed to write %s (%s)", key.c_str(), strerror(errno));
         errno = 0;
     }
 
@@ -88,6 +89,7 @@ FilePointer FileCache::getFile(const Key& key) {
         if (file) {
             // if it exists, it is active - remove it from the cache
             removeUnusedFile(file);
+            qCInfo(file_cache, "Found %s", key.c_str());
             emit dirty();
         } else {
             // if not, remove the weak_ptr
@@ -115,28 +117,30 @@ std::string FileCache::createDir(const std::string& dirname) {
                 std::string entry;
                 manifest >> entry;
                 persistedEntries.insert(entry);
-
-                // ZZMP: rm
-                for (const auto& entry : persistedEntries)
-                    qDebug() << "ZZMP" << entry.c_str();
-                qDebug() << "ZZMP" << "---";
+                qCInfo(file_cache, "Manifest contents: %s", entry.c_str());
             }
+        } else {
+            qCWarning(file_cache, "Missing manifest");
         }
+        
 
         foreach(QString filename, dir.entryList()) {
             if (persistedEntries.find(filename.toStdString()) == persistedEntries.cend()) {
                 dir.remove(filename);
+                qCInfo(file_cache) << "Cleaned" << filename;
             }
         }
+        qCDebug(file_cache, "Initiated %s", dirpath.data());
     } else {
         dir.mkpath(dirpath);
+        qCDebug(file_cache, "Created %s", dirpath.data());
     }
 
     return dirpath.toStdString();
 }
 
 std::string FileCache::getFilepath(const Key& key) {
-    return _dir + key + '.' + _ext;
+    return _dir + '/' + key + '.' + _ext;
 }
 
 void FileCache::addUnusedFile(const FilePointer file) {
@@ -197,34 +201,46 @@ void FileCache::reserve(size_t length) {
 }
 
 void FileCache::clear() {
-    std::string manifestPath= _dir + MANIFEST_NAME;
-    FILE* manifest = fopen(manifestPath.c_str(), "wb");
+    try {
+        std::string manifestPath= _dir + '/' + MANIFEST_NAME;
+        std::ofstream manifest(manifestPath);
 
-    Lock lock(_unusedFilesMutex);
-    for (const auto& val : _unusedFiles) {
-        const FilePointer& file = val.second;
-        file->_cache = nullptr;
+        bool firstEntry = true;
 
-        if (_unusedFilesSize > _offlineFilesMaxSize) {
-            _unusedFilesSize -= file->getLength();
-        } else {
-            std::string key = file->getKey() + '.' + _ext + '\n';
-            if (manifest != nullptr && !fwrite(key.c_str(), key.length(), 1, manifest)) {
-                manifest = nullptr; // to prevent future writes
+        {
+            Lock lock(_unusedFilesMutex);
+            for (const auto& val : _unusedFiles) {
+                const FilePointer& file = val.second;
+                file->_cache = nullptr;
+
+                if (_unusedFilesSize > _offlineFilesMaxSize) {
+                    _unusedFilesSize -= file->getLength();
+                } else {
+                    if (!firstEntry) {
+                        manifest << '\n';
+                    }
+                    firstEntry = false;
+                    manifest << file->getKey();
+
+                    file->_shouldPersist = true;
+                    qCInfo(file_cache, "Persisting %s", file->getKey().c_str());
+                }
             }
-            file->_shouldPersist = true;
         }
-    }
 
-    if (manifest == nullptr || fclose(manifest) != 0) {
+        {
+            Lock lock(_filesMutex);
+            for (const auto& val : _files) {
+                const FilePointer& file = val.second
+        }
+    } catch (std::exception& e) {
+        qCWarning(file_cache, "Failed to write manifest (%s)", e.what());
         for (const auto& val : _unusedFiles) {
             val.second->_shouldPersist = false;
         }
-
-        qCWarning(file_cache, "Failed to write %s (%s)", manifestPath.c_str(), strerror(errno));
-        errno = 0;
     }
 
+    Lock lock(_unusedFilesMutex);
     _unusedFiles.clear();
 }
 
@@ -240,6 +256,7 @@ void File::deleter() {
 File::~File() {
     QFile file(getFilepath().c_str());
     if (file.exists() && !_shouldPersist) {
+        qCInfo(file_cache, "Unlinked %s", getFilepath().c_str());
         file.remove();
     }
 }
