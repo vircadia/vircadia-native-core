@@ -269,10 +269,9 @@ void RenderableWebEntityItem::loadSourceURL() {
         _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
             context->setContextProperty("eventBridgeJavaScriptToInject", QVariant(_javaScriptToInject));
         });
+
         _webSurface->getRootItem()->setProperty("url", _sourceUrl);
         _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
-
-
 
     } else {
         _contentType = qmlContent;
