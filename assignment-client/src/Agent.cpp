@@ -380,6 +380,8 @@ void Agent::executeScript() {
         audioTransform.setTranslation(scriptedAvatar->getPosition());
         audioTransform.setRotation(headOrientation);
 
+        computeLoudness(&audio);
+
         QByteArray encodedBuffer;
         if (_encoder) {
             _encoder->encode(audio, encodedBuffer);
@@ -571,7 +573,7 @@ void Agent::encodeFrameOfZeros(QByteArray& encodedZeros) {
     }
 }
 
-void Agent::computeLoudness(QByteArray* decodedBuffer) {
+void Agent::computeLoudness(const QByteArray* decodedBuffer) {
     float loudness = 0.0f;
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
     if (decodedBuffer) {

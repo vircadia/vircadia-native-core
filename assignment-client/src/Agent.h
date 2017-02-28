@@ -68,10 +68,10 @@ private slots:
     void handleAudioPacket(QSharedPointer<ReceivedMessage> message);
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message); 
+    void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message);
 
     void nodeActivated(SharedNodePointer activatedNode);
-    
+
     void processAgentAvatar();
     void processAgentAvatarAudio();
 
@@ -82,7 +82,7 @@ private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
     void encodeFrameOfZeros(QByteArray& encodedZeros);
-    void computeLoudness(QByteArray* decodedBuffer);
+    void computeLoudness(const QByteArray* decodedBuffer);
 
     std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
@@ -104,10 +104,10 @@ private:
     bool _isAvatar = false;
     QTimer* _avatarIdentityTimer = nullptr;
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
-    
+
     CodecPluginPointer _codec;
     QString _selectedCodecName;
-    Encoder* _encoder { nullptr }; 
+    Encoder* _encoder { nullptr };
     QThread _avatarAudioTimerThread;
     bool _flushEncoder { false };
 };
