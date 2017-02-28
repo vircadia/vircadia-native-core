@@ -3,6 +3,7 @@
     <title>Photo Booth</title>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="../../../../../system/html/css/edit-style.css">
     <style>
       body {
@@ -31,6 +32,29 @@
           margin-top: 90px;
           padding: 30px;
       }
+
+      #camera-toggle {
+        font-family: Raleway-Bold;
+        font-size: 13px;
+        text-transform: uppercase;
+        vertical-align: top;
+        height: 28px;
+        min-width: 120px;
+        padding: 0px 18px;
+        margin-right: 0px;
+        border-radius: 5px;
+        border: none;
+        color: #121212;
+        background-color: #afafaf;
+        background: linear-gradient(#fff 20%, #afafaf 100%);
+        cursor: pointer;
+      }
+
+      .dropdown li {
+        background-color: #ffffff;
+      }
+
+
     </style> 
   </head>
   <body>
@@ -44,14 +68,20 @@
           <input type="text" id="model-url"></input>
           <input type="button" id="reload-model-button" class="glyph" value="F">
         </div>
-        <div class="property dropdown">
+        <div class="property">
           <label>Camera</label>
-          <select id="property-camera">
-            <option>First Person Camera</option>
-            <option>Main Camera</option>
-            <option>Left Camera</option>
-            <option>Right Camera</option>
-          </select>
+          <div class="dropdown">
+            <button id="camera-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              First Person Camera
+              <span class="glyphicon glyphicon-menu-down"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+              <li>First Person Camera</li>
+              <li>Main Camera</li>
+              <li>Left Camera</li>
+              <li>Right Camera</li>
+            </ul>
+          </div>
         </div>
         <div class="property">
           <input id="picture-button" type="button" class="blue" value="Take Picture">
@@ -59,6 +89,7 @@
       </div>
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script>
 
       // Helper function to emit web events to photoboothApp.js
@@ -75,9 +106,11 @@
         // Send a ready event to hifi
         emit("ready", null);
         // Send an event when camera selection changes
-        $("#property-camera").on('change', function() {
-          console.log($("#property-camera").val());
-          emit("onSelectCamera", {value: $("#property-camera").val()});
+        $(".dropdown-menu li").click(function() {
+          console.log("clicked " + this.textContent);
+          $("#camera-toggle").text(this.textContent + " ");
+          $("#camera-toggle").append("<span class='glyphicon glyphicon-menu-down'></span>");
+          emit("onSelectCamera", {value: this.textContent});
         });
         // Send an event to hifi to trigger snapshot
         $("#picture-button").click(function() {
