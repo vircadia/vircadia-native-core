@@ -37,6 +37,15 @@ var conserveResources = true;
 
 Script.include("/~/system/libraries/controllers.js");
 
+function projectVectorOntoPlane(normalizedVector, planeNormal) {
+    return Vec3.cross(planeNormal, Vec3.cross(normalizedVector, planeNormal));
+}
+function angleBetweenVectorsInPlane(from, to, normal) {
+    var projectedFrom = projectVectorOntoPlane(from, normal);
+    var projectedTo = projectVectorOntoPlane(to, normal);
+    return Vec3.orientedAngle(projectedFrom, projectedTo, normal);
+}
+
 //
 // Overlays.
 //
@@ -229,7 +238,11 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'refresh':
         removeOverlays();
-        populateUserList(message.params);
+        // If filter is specified from .qml instead of through settings, update the settings.
+        if (message.params.filter !== undefined) {
+            Settings.setValue('pal/filtered', !!message.params.filter);
+        }
+        populateUserList(message.params.selected);
         UserActivityLogger.palAction("refresh", "");
         break;
     case 'updateGain':
@@ -271,13 +284,42 @@ function addAvatarNode(id) {
         color: color(selected, false, 0.0),
         ignoreRayIntersection: false}, selected, !conserveResources);
 }
+// Each open/refresh will capture a stable set of avatarsOfInterest, within the specified filter.
+var avatarsOfInterest = {};
 function populateUserList(selectData) {
+    var filter = Settings.getValue('pal/filtered') && {distance: Settings.getValue('pal/nearDistance')};
     var data = [], avatars = AvatarList.getAvatarIdentifiers();
-    conserveResources = avatars.length > 20;
+    avatarsOfInterest = {};
+    var myPosition = filter && Camera.position,
+        frustum = filter && Camera.frustum,
+        verticalHalfAngle = filter && (frustum.fieldOfView / 2),
+        horizontalHalfAngle = filter && (verticalHalfAngle * frustum.aspectRatio),
+        orientation = filter && Camera.orientation,
+        front = filter && Quat.getFront(orientation),
+        verticalAngleNormal = filter && Quat.getRight(orientation),
+        horizontalAngleNormal = filter && Quat.getUp(orientation);
     avatars.forEach(function (id) { // sorting the identifiers is just an aid for debugging
         var avatar = AvatarList.getAvatar(id);
+        var name = avatar.sessionDisplayName;
+        if (!name) {
+            // Either we got a data packet but no identity yet, or something is really messed up. In any case,
+            // we won't be able to do anything with this user, so don't include them.
+            // In normal circumstances, a refresh will bring in the new user, but if we're very heavily loaded,
+            // we could be losing and gaining people randomly.
+            print('No avatar identity data for', id);
+            return;
+        }
+        if (id && myPosition && (Vec3.distance(avatar.position, myPosition) > filter.distance)) {
+            return;
+        }
+        var normal = id && filter && Vec3.normalize(Vec3.subtract(avatar.position, myPosition));
+        var horizontal = normal && angleBetweenVectorsInPlane(normal, front, horizontalAngleNormal);
+        var vertical = normal && angleBetweenVectorsInPlane(normal, front, verticalAngleNormal);
+        if (id && filter && ((Math.abs(horizontal) > horizontalHalfAngle) || (Math.abs(vertical) > verticalHalfAngle))) {
+            return;
+        }
         var avatarPalDatum = {
-            displayName: avatar.sessionDisplayName,
+            displayName: name,
             userName: '',
             sessionId: id || '',
             audioLevel: 0.0,
@@ -289,10 +331,12 @@ function populateUserList(selectData) {
             addAvatarNode(id); // No overlay for ourselves
             // Everyone needs to see admin status. Username and fingerprint returns default constructor output if the requesting user isn't an admin.
             Users.requestUsernameFromID(id);
+            avatarsOfInterest[id] = true;
         }
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
+    conserveResources = Object.keys(avatarsOfInterest).length > 20;
     sendToQml({ method: 'users', params: data });
     if (selectData) {
         selectData[2] = true;
@@ -317,8 +361,8 @@ var pingPong = true;
 function updateOverlays() {
     var eye = Camera.position;
     AvatarList.getAvatarIdentifiers().forEach(function (id) {
-        if (!id) {
-            return; // don't update ourself
+        if (!id || !avatarsOfInterest[id]) {
+            return; // don't update ourself, or avatars we're not interested in
         }
         var avatar = AvatarList.getAvatar(id);
         if (!avatar) {
@@ -477,23 +521,17 @@ var button;
 var buttonName = "PEOPLE";
 var tablet = null;
 
-function onTabletScreenChanged(type, url) {
-    if (type !== "QML" || url !== "../Pal.qml") {
-        off();
-    }
-}
-
 function startup() {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         text: buttonName,
         icon: "icons/tablet-icons/people-i.svg",
+        activeIcon: "icons/tablet-icons/people-a.svg",
         sortOrder: 7
     });
     tablet.fromQml.connect(fromQml);
     button.clicked.connect(onTabletButtonClicked);
     tablet.screenChanged.connect(onTabletScreenChanged);
-
     Users.usernameFromIDReply.connect(usernameFromIDReply);
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
@@ -524,17 +562,39 @@ function off() {
     Users.requestsDomainListData = false;
 }
 
+var onPalScreen = false;
+var shouldActivateButton = false;
+
 function onTabletButtonClicked() {
-    tablet.loadQMLSource("../Pal.qml");
-    Users.requestsDomainListData = true;
-    populateUserList();
-    isWired = true;
-    Script.update.connect(updateOverlays);
-    Controller.mousePressEvent.connect(handleMouseEvent);
-    Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-    triggerMapping.enable();
-    triggerPressMapping.enable();
-    audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+    if (onPalScreen) {
+        // for toolbar-mode: go back to home screen, this will close the window.
+        tablet.gotoHomeScreen();
+    } else {
+        shouldActivateButton = true;
+        tablet.loadQMLSource("../Pal.qml");
+        onPalScreen = true;
+        Users.requestsDomainListData = true;
+        populateUserList();
+        isWired = true;
+        Script.update.connect(updateOverlays);
+        Controller.mousePressEvent.connect(handleMouseEvent);
+        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+        triggerMapping.enable();
+        triggerPressMapping.enable();
+        audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+    }
+}
+
+function onTabletScreenChanged(type, url) {
+    // for toolbar mode: change button to active when window is first openend, false otherwise.
+    button.editProperties({isActive: shouldActivateButton});
+    shouldActivateButton = false;
+    onPalScreen = false;
+
+    // disable sphere overlays when not on pal screen.
+    if (type !== "QML" || url !== "../Pal.qml") {
+        off();
+    }
 }
 
 //
@@ -621,14 +681,12 @@ function shutdown() {
     button.clicked.disconnect(onTabletButtonClicked);
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
-
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.subscribe(CHANNEL);
     Messages.messageReceived.disconnect(receiveMessage);
     Users.avatarDisconnected.disconnect(avatarDisconnected);
-
     off();
 }
 

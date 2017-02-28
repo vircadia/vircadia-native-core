@@ -338,8 +338,7 @@ private:
     glm::quat getWorldBodyOrientation() const;
 
 
-    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-                            bool distanceAdjust = false, glm::vec3 viewerPosition = glm::vec3(0), QVector<JointData>* sentJointDataOut = nullptr) override;
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
@@ -486,6 +485,7 @@ private:
     std::unordered_set<int> _headBoneSet;
     RigPointer _rig;
     bool _prevShouldDrawHead;
+    bool _rigEnabled { true };
 
     bool _enableDebugDrawDefaultPose { false };
     bool _enableDebugDrawAnimPose { false };

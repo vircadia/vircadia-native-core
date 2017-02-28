@@ -39,13 +39,10 @@
 #include <plugins/CodecPlugin.h>
 #include <plugins/PluginManager.h>
 #include <udt/PacketHeaders.h>
-#include <PositionalAudioStream.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
-#include <UUID.h>
 #include <Transform.h>
 
-#include "PositionalAudioStream.h"
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
 
@@ -294,12 +291,12 @@ QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
     IPropertyStore* pPropertyStore;
     pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
     pEndpoint->Release();
-    pEndpoint = NULL;
+    pEndpoint = nullptr;
     PROPVARIANT pv;
     PropVariantInit(&pv);
     HRESULT hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
     pPropertyStore->Release();
-    pPropertyStore = NULL;
+    pPropertyStore = nullptr;
     deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
     if (!IsWindows8OrGreater()) {
         // Windows 7 provides only the 31 first characters of the device name.
@@ -313,9 +310,9 @@ QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
 QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
     QString deviceName;
     HRESULT hr = S_OK;
-    CoInitialize(NULL);
-    IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
-    CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
+    CoInitialize(nullptr);
+    IMMDeviceEnumerator* pMMDeviceEnumerator = nullptr;
+    CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
     IMMDevice* pEndpoint;
     hr = pMMDeviceEnumerator->GetDevice(guid, &pEndpoint);
     if (hr == E_NOTFOUND) {
@@ -325,7 +322,7 @@ QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
         deviceName = ::friendlyNameForAudioDevice(pEndpoint);
     }
     pMMDeviceEnumerator->Release();
-    pMMDeviceEnumerator = NULL;
+    pMMDeviceEnumerator = nullptr;
     CoUninitialize();
     return deviceName;
 }
@@ -968,8 +965,7 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput() {
-
-    if (!_inputDevice) {
+    if (!_inputDevice || _isPlayingBackRecording) {
         return;
     }
 
@@ -1120,7 +1116,7 @@ void AudioClient::prepareLocalAudioInjectors() {
     while (samplesNeeded > 0) {
         // lock for every write to avoid locking out the device callback
         // this lock is intentional - the buffer is only lock-free in its use in the device callback
-        Lock lock(_localAudioMutex);
+        RecursiveLock lock(_localAudioMutex);
 
         samplesNeeded = bufferCapacity - _localSamplesAvailable.load(std::memory_order_relaxed);
         if (samplesNeeded <= 0) {
@@ -1457,7 +1453,7 @@ void AudioClient::outputNotify() {
 bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
     bool supportedFormat = false;
 
-    Lock lock(_localAudioMutex);
+    RecursiveLock lock(_localAudioMutex);
     _localSamplesAvailable.exchange(0, std::memory_order_release);
 
     // cleanup any previously initialized device
@@ -1671,7 +1667,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 
     int injectorSamplesPopped = 0;
     {
-        Lock lock(_audio->_localAudioMutex);
+        RecursiveLock lock(_audio->_localAudioMutex);
         bool append = networkSamplesPopped > 0;
         samplesRequested = std::min(samplesRequested, _audio->_localSamplesAvailable.load(std::memory_order_acquire));
         if ((injectorSamplesPopped = _localInjectorsStream.appendSamples(mixBuffer, samplesRequested, append)) > 0) {
