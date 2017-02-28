@@ -3443,7 +3443,7 @@ void Application::idle(float nsecsElapsed) {
 #ifdef Q_OS_WIN
     static std::once_flag once;
     std::call_once(once, [] {
-        initCpuUsage(); 
+        initCpuUsage();
     });
 
     vec3 kernelUserAndSystem;
