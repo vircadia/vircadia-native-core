@@ -78,7 +78,7 @@ public:
     QUrl definingSandboxURL { QUrl("about:EntityScript") };
 };
 
-class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
+class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider, public QEnableSharedFromThis<ScriptEngine> {
     Q_OBJECT
     Q_PROPERTY(QString context READ getContext)
 public:
