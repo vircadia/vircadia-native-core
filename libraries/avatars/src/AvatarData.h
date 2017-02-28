@@ -376,11 +376,11 @@ public:
 
     typedef enum { 
         NoData,
+        PALMinimum,
         MinimumData, 
         CullSmallData,
         IncludeSmallData,
-        SendAllData,
-        PALMinimum
+        SendAllData
     } AvatarDataDetail;
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail);

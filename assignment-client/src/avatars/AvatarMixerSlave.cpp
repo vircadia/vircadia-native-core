@@ -80,16 +80,6 @@ int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, 
 
 static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 
-// FIXME - There is some old logic (unchanged as of 2/17/17) that randomly decides to send an identity
-// packet. That logic had the following comment about the constants it uses...
-//
-//         An 80% chance of sending a identity packet within a 5 second interval.
-//         assuming 60 htz update rate.
-//
-// Assuming the calculation of the constant is in fact correct for 80% and 60hz and 5 seconds (an assumption
-// that I have not verified) then the constant is definitely wrong now, since we send at 45hz.
-const float IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
-
 void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
     quint64 start = usecTimestampNow();
 
@@ -148,6 +138,23 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         if (PALIsOpen || getsAnyIgnored) {
             minimumBytesPerAvatar += sizeof(AvatarDataPacket::AvatarGlobalPosition) +
                 sizeof(AvatarDataPacket::AudioLoudness);
+        }
+
+        if (PALIsOpen) {
+            if (_identitySendProbability == DEFAULT_IDENTITY_SEND_PROBABILITY)
+            {
+                // The client has just opened the PAL. Force all identity packets to be sent to
+                // this client.
+                _identitySendProbability = 1.0f;
+            } else {
+                // The user recently opened the PAL, but we've already gone through the above conditional.
+                // We want to receive identity updates more often than default when the PAL is open
+                // to be more confident that the user will see the most up-to-date information in the PAL.
+                _identitySendProbability = DEFAULT_IDENTITY_SEND_PROBABILITY * 2;
+            }
+        } else {
+            // If the PAL is closed, reset the identitySendProbability to the default.
+            _identitySendProbability = DEFAULT_IDENTITY_SEND_PROBABILITY;
         }
 
         // setup a PacketList for the avatarPackets
@@ -318,9 +325,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 && otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
                 && (forceSend
                 || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
-                || distribution(generator) < IDENTITY_SEND_PROBABILITY)) ||
+                || distribution(generator) < _identitySendProbability)) ||
                 // Also make sure we send identity packets if the PAL is open.
-                (PALIsOpen || getsAnyIgnored)) {
+                ((PALIsOpen || getsAnyIgnored) && distribution(generator) < _identitySendProbability)) {
 
                 identityBytesSent += sendIdentityPacket(otherNodeData, node);
             }
