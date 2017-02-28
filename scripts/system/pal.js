@@ -634,7 +634,7 @@ var AVERAGING_RATIO = 0.05;
 var LOUDNESS_FLOOR = 11.0;
 var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
-var AUDIO_PEAK_DECAY = 0.03;
+var AUDIO_PEAK_DECAY = 0.02;
 var myData = {}; // we're not includied in ExtendedOverlay.get.
 
 function scaleAudio(val) {
@@ -673,8 +673,9 @@ function getAudioLevel(id) {
         data.avgAudioLevel = avgAudioLevel;
         data.audioLevel = audioLevel;
 
-        // now scale for the gain
-        avgAudioLevel = Math.min(1.0, avgAudioLevel *(sessionGains[id] || 0.75));
+        // now scale for the gain.  Also, asked to boost the low end, so one simple way is
+        // to take sqrt of the value.  Lets try that, see how it feels.
+        avgAudioLevel = Math.min(1.0, Math.sqrt(avgAudioLevel *(sessionGains[id] || 0.75)));
     }
     return [audioLevel, avgAudioLevel];
 }
