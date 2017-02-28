@@ -16,8 +16,8 @@ void UserActivityLoggerScriptingInterface::enabledEdit() {
     logAction("enabled_edit");
 }
 
-void UserActivityLoggerScriptingInterface::openedTablet() {
-    logAction("opened_tablet");
+void UserActivityLoggerScriptingInterface::openedTablet(bool visibleToOthers) {
+    logAction("opened_tablet", { { "visible_to_others", visibleToOthers } });
 }
 
 void UserActivityLoggerScriptingInterface::closedTablet() {

@@ -1429,8 +1429,7 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& pare
             return;
         }
         parent->forEachChild([&](SpatiallyNestablePointer child) {
-            if (child->getParentJointIndex() == jointIndex &&
-                child->getNestableType() != NestableType::Overlay) {
+            if (child->getParentJointIndex() == jointIndex) {
                 result.push_back(child->getID());
             }
         });
