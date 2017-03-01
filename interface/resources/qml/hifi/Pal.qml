@@ -58,6 +58,8 @@ Rectangle {
         category: "pal"
         property bool filtered: false
         property int nearDistance: 30
+        property int sortIndicatorColumn: 1
+        property int sortIndicatorOrder: Qt.AscendingOrder
     }
     function refreshWithFilter() {
         // We should just be able to set settings.filtered to filter.checked, but see #3249, so send to .js for saving.
@@ -192,8 +194,16 @@ Rectangle {
         centerHeaderText: true
         sortIndicatorVisible: true
         headerVisible: true
-        onSortIndicatorColumnChanged: sortModel()
-        onSortIndicatorOrderChanged: sortModel()
+        sortIndicatorColumn: settings.sortIndicatorColumn
+        sortIndicatorOrder: settings.sortIndicatorOrder
+        onSortIndicatorColumnChanged: {
+            settings.sortIndicatorColumn = sortIndicatorColumn
+            sortModel()
+        }
+        onSortIndicatorOrderChanged: {
+            settings.sortIndicatorOrder = sortIndicatorOrder
+            sortModel()
+        }
 
         TableViewColumn {
             role: "avgAudioLevel"
