@@ -361,7 +361,6 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
             }
         }
     });
-    debugPrint(JSON.stringify(parsedData));
     if (Object.keys(parsedData[groupName]).length == 0) {
         delete parsedData[groupName];
     }
