@@ -326,65 +326,66 @@ function setUserDataFromEditor(noUpdate) {
         }
     }
 }
-function multiUserDataChanger(groupName, keyPair, userDataElement, defaults) {
-  var properties = {};
-  var parsedData = {};
-  try {
-      if ($('#userdata-editor').css('height') !== "0px") {
-          //if there is an expanded, we want to use its json.
-          parsedData = getEditorJSON();
-      } else {
-          parsedData = JSON.parse(userDataElement.value);
-      }
-  } catch (e) {}
+function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
+    var properties = {};
+    var parsedData = {};
+    try {
+        if ($('#userdata-editor').css('height') !== "0px") {
+            //if there is an expanded, we want to use its json.
+            parsedData = getEditorJSON();
+        } else {
+            parsedData = JSON.parse(userDataElement.value);
+        }
+    } catch (e) {}
 
-  if (!(groupName in parsedData)) {
-      parsedData[groupName] = {}
-  }
-  var keys = Object.keys(keyPair);
-  keys.forEach(function (key) {
-    delete parsedData[groupName][key];
-    if (keyPair[key] instanceof Element) {
-      if(keyPair[key].type === "checkbox") {
-        if (keyPair[key].checked !== defaults[key]) {
-            parsedData[groupName][key] = keyPair[key].checked;
-        }
-      } else {
-        var val = isNaN(keyPair[key].value) ? keyPair[key].value : parseInt(keyPair[key].value);
-        if (val !== defaults[key]) {
-            parsedData[groupName][key] = val;
-        }
-      }
-    } else {
-        parsedData[groupName][key] = keyPair[key];
+    if (!(groupName in parsedData)) {
+        parsedData[groupName] = {}
     }
-  });
+    var keys = Object.keys(updateKeyPair);
+    keys.forEach(function (key) {
+        delete parsedData[groupName][key];
+        if (updateKeyPair[key] !== null && updateKeyPair[key] !== "null") {
+            if (updateKeyPair[key] instanceof Element) {
+                if(updateKeyPair[key].type === "checkbox") {
+                    if (updateKeyPair[key].checked !== defaults[key]) {
+                        parsedData[groupName][key] = updateKeyPair[key].checked;
+                    }
+                } else {
+                    var val = isNaN(updateKeyPair[key].value) ? updateKeyPair[key].value : parseInt(updateKeyPair[key].value);
+                    if (val !== defaults[key]) {
+                        parsedData[groupName][key] = val;
+                    }
+                }
+            } else {
+                parsedData[groupName][key] = updateKeyPair[key];
+            }
+        }
+    });
+    debugPrint(JSON.stringify(parsedData));
+    if (Object.keys(parsedData[groupName]).length == 0) {
+        delete parsedData[groupName];
+    }
+    if (Object.keys(parsedData).length > 0) {
+        properties['userData'] = JSON.stringify(parsedData);
+    } else {
+        properties['userData'] = '';
+    }
 
-  if (Object.keys(parsedData[groupName]).length == 0) {
-      delete parsedData[groupName];
-  }
-  if (Object.keys(parsedData).length > 0) {
-      properties['userData'] = JSON.stringify(parsedData);
-  } else {
-      properties['userData'] = '';
-  }
+    userDataElement.value = properties['userData'];
 
-  userDataElement.value = properties['userData'];
-
-  EventBridge.emitWebEvent(
-      JSON.stringify({
-          id: lastEntityID,
-          type: "update",
-          properties: properties,
-      })
-  );
-
+    EventBridge.emitWebEvent(
+        JSON.stringify({
+            id: lastEntityID,
+            type: "update",
+            properties: properties,
+        })
+    );
 }
 function userDataChanger(groupName, keyName, values, userDataElement, defaultValue) {
     var val = {}, def = {};
     val[keyName] = values;
     def[keyName] = defaultValue;
-    multiUserDataChanger(groupName, val, userDataElement, def);
+    multiDataUpdater(groupName, val, userDataElement, def);
 };
 
 function setTextareaScrolling(element) {
@@ -538,6 +539,7 @@ function unbindAllInputs() {
 
 function loaded() {
     openEventBridge(function() {
+
         var allSections = [];
         var elID = document.getElementById("property-id");
         var elType = document.getElementById("property-type");
@@ -874,6 +876,13 @@ function loaded() {
 
                         elWantsTrigger.checked = false;
                         elIgnoreIK.checked = true;
+
+                        elCloneable.checked = false;
+                        elCloneableDynamic.checked = false;
+                        elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
+                        elCloneableLimit.value = 10;
+                        elCloneableLifetime.value = 300;
+
                         var parsedUserData = {}
                         try {
                             parsedUserData = JSON.parse(properties.userData);
@@ -895,18 +904,14 @@ function loaded() {
                                     elCloneableLifetime.value = elCloneable.checked ? 300: 0;
                                     elCloneableDynamic.checked = parsedUserData["grabbableKey"].cloneDynamic ? parsedUserData["grabbableKey"].cloneDynamic : properties.dynamic;
                                     elDynamic.checked = elCloneable.checked ? false: properties.dynamic;
-                                } else {
-                                    elCloneable.checked = false;
-                                    elCloneableDynamic.checked = false;
-                                    elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
-                                    elCloneableLimit.value = 0;
-                                    elCloneableLifetime.value = 0;
-                                }
-                                if ("cloneLifetime" in parsedUserData["grabbableKey"]) {
-                                    elCloneableLifetime.value = parsedUserData["grabbableKey"].cloneLifetime;
-                                }
-                                if ("cloneLimit" in parsedUserData["grabbableKey"]) {
-                                    elCloneableLimit.value = parsedUserData["grabbableKey"].cloneLimit;
+                                    if (elCloneable.checked) {
+                                      if ("cloneLifetime" in parsedUserData["grabbableKey"]) {
+                                          elCloneableLifetime.value = parsedUserData["grabbableKey"].cloneLifetime ? parsedUserData["grabbableKey"].cloneLifetime : 300;
+                                      }
+                                      if ("cloneLimit" in parsedUserData["grabbableKey"]) {
+                                          elCloneableLimit.value = parsedUserData["grabbableKey"].cloneLimit ? parsedUserData["grabbableKey"].cloneLimit : 10;
+                                      }
+                                    }
                                 }
                             }
                         } catch (e) {
@@ -1200,6 +1205,9 @@ function loaded() {
         });
 
         elGrabbable.addEventListener('change', function() {
+            if(elCloneable.checked) {
+              elGrabbable.checked = false;
+            }
             userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
         });
         elCloneableDynamic.addEventListener('change', function (event){
@@ -1208,22 +1216,19 @@ function loaded() {
         elCloneable.addEventListener('change', function (event) {
             var checked = event.target.checked;
             if (checked) {
-              multiUserDataChanger("grabbableKey",
-              {cloneLifetime: elCloneableLifetime, cloneLimit: elCloneableLimit, cloneDynamic: elCloneableDynamic, cloneable: event.target},
-              elUserData,
-              {cloneLifetime: 300, cloneLimit: 10, cloneable: false});
+                multiDataUpdater("grabbableKey",
+                    {cloneLifetime: elCloneableLifetime, cloneLimit: elCloneableLimit, cloneDynamic: elCloneableDynamic, cloneable: event.target},
+                    elUserData, {});
                 elCloneableGroup.style.display = "block";
                 EventBridge.emitWebEvent(
-                    '{"id":' + lastEntityID + ', "type":"update", "properties":{"dynamic":false}}'
-                );
-                EventBridge.emitWebEvent(
-                    '{"id":' + lastEntityID + ', "type":"update", "properties":{"grabbable":true}}'
+                    '{"id":' + lastEntityID + ', "type":"update", "properties":{"dynamic":false, "grabbable": false}}'
                 );
             } else {
+                multiDataUpdater("grabbableKey",
+                    {cloneLifetime: null, cloneLimit: null, cloneDynamic: null, cloneable: false},
+                    elUserData, {});
                 elCloneableGroup.style.display = "none";
             }
-
-            userDataChanger("grabbableKey", "cloneable", checked, elUserData, null);
         });
 
         var numberListener = function (event) {
