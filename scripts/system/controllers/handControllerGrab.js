@@ -2417,6 +2417,9 @@ function MyController(hand) {
             this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
         }
 
+        // This boolean is used to check if the object that is grabbed has just been cloned
+        // It is only set true, if the object that is grabbed creates a new clone.
+        var isClone = false;
         var isPhysical = propsArePhysical(grabbedProperties) ||
             (!this.grabbedIsOverlay && entityHasActions(this.grabbedThingID));
         if (isPhysical && this.state == STATE_NEAR_GRABBING && grabbedProperties.parentID === NULL_UUID) {
@@ -2475,6 +2478,7 @@ function MyController(hand) {
                             var dynamic = grabInfo.cloneDynamic ? grabInfo.cloneDynamic : false;
                             var cUserData = Object.assign({}, userData);
                             var cProperties = Object.assign({}, cloneableProps);
+                            isClone = true;
 
                             if (count > limit) {
                                 delete cloneableProps;
@@ -2496,14 +2500,9 @@ function MyController(hand) {
                             cUserData.grabbableKey.grabbable = true;
                             cProperties.lifetime = lifetime;
                             cProperties.userData = JSON.stringify(cUserData);
-                            this.grabbedThingID = Entities.addEntity(cProperties);
-                            grabbedProperties = Entities.getEntityProperties(this.grabbedThingID);
-                            var _this = this;
-
-                            Script.setTimeout(function () {
-                                // This is needed to wait for the grabbed entity to have been instanciated.
-                                _this.callEntityMethodOnGrabbed("startEquip");
-                            },400);
+                            var cloneID = Entities.addEntity(cProperties);
+                            this.grabbedThingID = cloneID;
+                            grabbedProperties = Entities.getEntityProperties(cloneID);
                         }
                     }catch(e) {}
                 }
@@ -2518,7 +2517,6 @@ function MyController(hand) {
                 this.previousParentID[this.grabbedThingID] = grabbedProperties.parentID;
                 this.previousParentJointIndex[this.grabbedThingID] = grabbedProperties.parentJointIndex;
             }
-
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'equip',
                 grabbedEntity: this.grabbedThingID,
@@ -2534,22 +2532,37 @@ function MyController(hand) {
             });
         }
 
-        if (this.state == STATE_NEAR_GRABBING) {
-            this.callEntityMethodOnGrabbed("startNearGrab");
-        } else { // this.state == STATE_HOLD
-            this.callEntityMethodOnGrabbed("startEquip");
+        var _this = this;
+        /*
+         * Setting context for function that is either called via timer or directly, depending if
+         * if the object in question is a clone. If it is a clone, we need to make sure that the intial equipment event
+         * is called correctly, as these just freshly created entity may not have completely initialized.
+        */
+        var grabEquipCheck = function () {
+          if (_this.state == STATE_NEAR_GRABBING) {
+              _this.callEntityMethodOnGrabbed("startNearGrab");
+          } else { // this.state == STATE_HOLD
+              _this.callEntityMethodOnGrabbed("startEquip");
+          }
+
+          _this.currentHandControllerTipPosition =
+              (_this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
+          _this.currentObjectTime = Date.now();
+
+          _this.currentObjectPosition = grabbedProperties.position;
+          _this.currentObjectRotation = grabbedProperties.rotation;
+          _this.currentVelocity = ZERO_VEC;
+          _this.currentAngularVelocity = ZERO_VEC;
+
+          _this.prevDropDetected = false;
         }
 
-        this.currentHandControllerTipPosition =
-            (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
-        this.currentObjectTime = Date.now();
-
-        this.currentObjectPosition = grabbedProperties.position;
-        this.currentObjectRotation = grabbedProperties.rotation;
-        this.currentVelocity = ZERO_VEC;
-        this.currentAngularVelocity = ZERO_VEC;
-
-        this.prevDropDetected = false;
+        if (isClone) {
+            // 100 ms seems to be sufficient time to force the check even occur after the object has been initialized.
+            Script.setTimeout(grabEquipCheck, 100);
+        } else {
+            grabEquipCheck();
+        }
     };
 
     this.nearGrabbing = function(deltaTime, timestamp) {
