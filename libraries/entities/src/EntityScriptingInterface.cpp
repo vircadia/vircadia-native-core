@@ -285,7 +285,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
                     desiredProperties = entity->getEntityProperties(params);
                     desiredProperties.setHasProperty(PROP_LOCAL_POSITION);
                     desiredProperties.setHasProperty(PROP_LOCAL_ROTATION);
-                 }
+                }
 
                 results = entity->getProperties(desiredProperties);
 
@@ -825,7 +825,7 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
 
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
     if (!entity) {
-        qCDebug(entities) << "EntityScriptingInterface::setVoxelSphere no entity with ID" << entityID;
+        qCDebug(entities) << "EntityScriptingInterface::setVoxels no entity with ID" << entityID;
         return false;
     }
 
@@ -887,24 +887,34 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     return setVoxels(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
-            return polyVoxEntity.setSphere(center, radius, value);
-        });
+        return polyVoxEntity.setSphere(center, radius, value);
+    });
+}
+
+bool EntityScriptingInterface::setVoxelCapsule(QUuid entityID,
+                                               const glm::vec3& start, const glm::vec3& end,
+                                               float radius, int value) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
+    return setVoxels(entityID, [start, end, radius, value](PolyVoxEntityItem& polyVoxEntity) {
+        return polyVoxEntity.setCapsule(start, end, radius, value);
+    });
 }
 
 bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     return setVoxels(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
-            return polyVoxEntity.setVoxelInVolume(position, value);
-        });
+        return polyVoxEntity.setVoxelInVolume(position, value);
+    });
 }
 
 bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     return setVoxels(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
-            return polyVoxEntity.setAll(value);
-        });
+        return polyVoxEntity.setAll(value);
+    });
 }
 
 bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition,
@@ -912,8 +922,8 @@ bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     return setVoxels(entityID, [lowPosition, cuboidSize, value](PolyVoxEntityItem& polyVoxEntity) {
-            return polyVoxEntity.setCuboid(lowPosition, cuboidSize, value);
-        });
+        return polyVoxEntity.setCuboid(lowPosition, cuboidSize, value);
+    });
 }
 
 bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::vec3>& points) {
@@ -1020,25 +1030,25 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
     auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
     bool success = false;
     actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
-            // create this action even if the entity doesn't have physics info.  it will often be the
-            // case that a script adds an action immediately after an object is created, and the physicsInfo
-            // is computed asynchronously.
-            // if (!entity->getPhysicsInfo()) {
-            //     return false;
-            // }
-            EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
-            if (actionType == ACTION_TYPE_NONE) {
-                return false;
-            }
-            EntityActionPointer action = actionFactory->factory(actionType, actionID, entity, arguments);
-            if (!action) {
-                return false;
-            }
-            action->setIsMine(true);
-            success = entity->addAction(simulation, action);
-            entity->grabSimulationOwnership();
-            return false; // Physics will cause a packet to be sent, so don't send from here.
-        });
+        // create this action even if the entity doesn't have physics info.  it will often be the
+        // case that a script adds an action immediately after an object is created, and the physicsInfo
+        // is computed asynchronously.
+        // if (!entity->getPhysicsInfo()) {
+        //     return false;
+        // }
+        EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
+        if (actionType == ACTION_TYPE_NONE) {
+            return false;
+        }
+        EntityActionPointer action = actionFactory->factory(actionType, actionID, entity, arguments);
+        if (!action) {
+            return false;
+        }
+        action->setIsMine(true);
+        success = entity->addAction(simulation, action);
+        entity->grabSimulationOwnership();
+        return false; // Physics will cause a packet to be sent, so don't send from here.
+    });
     if (success) {
         return actionID;
     }
@@ -1050,12 +1060,12 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     return actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
-            bool success = entity->updateAction(simulation, actionID, arguments);
-            if (success) {
-                entity->grabSimulationOwnership();
-            }
-            return success;
-        });
+        bool success = entity->updateAction(simulation, actionID, arguments);
+        if (success) {
+            entity->grabSimulationOwnership();
+        }
+        return success;
+    });
 }
 
 bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& actionID) {
@@ -1063,13 +1073,13 @@ bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& 
 
     bool success = false;
     actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
-            success = entity->removeAction(simulation, actionID);
-            if (success) {
-                // reduce from grab to poke
-                entity->pokeSimulationOwnership();
-            }
-            return false; // Physics will cause a packet to be sent, so don't send from here.
-        });
+        success = entity->removeAction(simulation, actionID);
+        if (success) {
+            // reduce from grab to poke
+            entity->pokeSimulationOwnership();
+        }
+        return false; // Physics will cause a packet to be sent, so don't send from here.
+    });
     return success;
 }
 
@@ -1078,10 +1088,10 @@ QVector<QUuid> EntityScriptingInterface::getActionIDs(const QUuid& entityID) {
 
     QVector<QUuid> result;
     actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
-            QList<QUuid> actionIDs = entity->getActionIDs();
-            result = QVector<QUuid>::fromList(actionIDs);
-            return false; // don't send an edit packet
-        });
+        QList<QUuid> actionIDs = entity->getActionIDs();
+        result = QVector<QUuid>::fromList(actionIDs);
+        return false; // don't send an edit packet
+    });
     return result;
 }
 
@@ -1090,9 +1100,9 @@ QVariantMap EntityScriptingInterface::getActionArguments(const QUuid& entityID, 
 
     QVariantMap result;
     actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
-            result = entity->getActionArguments(actionID);
-            return false; // don't send an edit packet
-        });
+        result = entity->getActionArguments(actionID);
+        return false; // don't send an edit packet
+    });
     return result;
 }
 
@@ -1522,4 +1532,12 @@ QObject* EntityScriptingInterface::getWebViewRoot(const QUuid& entityID) {
     } else {
         return nullptr;
     }
+}
+
+// TODO move this someplace that makes more sense...
+bool EntityScriptingInterface::AABoxIntersectsCapsule(const glm::vec3& low, const glm::vec3& dimensions,
+                                                      const glm::vec3& start, const glm::vec3& end, float radius) {
+    glm::vec3 penetration;
+    AABox aaBox(low, dimensions);
+    return aaBox.findCapsulePenetration(start, end, radius, penetration);
 }

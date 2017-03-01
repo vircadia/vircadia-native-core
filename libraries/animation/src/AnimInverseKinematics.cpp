@@ -189,6 +189,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             }
         }
     }
+    _maxErrorOnLastSolve = maxError;
 
     // finally set the relative rotation of each tip to agree with absolute target rotation
     for (auto& target: targets) {
@@ -268,13 +269,13 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
 
         glm::quat deltaRotation;
         if (targetType == IKTarget::Type::RotationAndPosition ||
-                targetType == IKTarget::Type::HipsRelativeRotationAndPosition) {
+            targetType == IKTarget::Type::HipsRelativeRotationAndPosition) {
             // compute the swing that would get get tip closer
             glm::vec3 targetLine = target.getTranslation() - jointPosition;
 
             const float MIN_AXIS_LENGTH = 1.0e-4f;
             RotationConstraint* constraint = getConstraint(pivotIndex);
-            if (constraint && constraint->isLowerSpine()) {
+            if (constraint && constraint->isLowerSpine() && tipIndex != _headIndex) {
                 // for these types of targets we only allow twist at the lower-spine
                 // (this prevents the hand targets from bending the spine too much and thereby driving the hips too far)
                 glm::vec3 twistAxis = absolutePoses[pivotIndex].trans() - absolutePoses[pivotsParentIndex].trans();
@@ -300,8 +301,8 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
                 const float MIN_ADJUSTMENT_ANGLE = 1.0e-4f;
                 if (angle > MIN_ADJUSTMENT_ANGLE) {
                     // reduce angle by a fraction (for stability)
-                    const float FRACTION = 0.5f;
-                    angle *= FRACTION;
+                    const float STABILITY_FRACTION = 0.5f;
+                    angle *= STABILITY_FRACTION;
                     deltaRotation = glm::angleAxis(angle, axis);
 
                     // The swing will re-orient the tip but there will tend to be be a non-zero delta between the tip's
@@ -323,7 +324,8 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
                             glm::vec3 axis = glm::normalize(deltaRotation * leverArm);
                             swingTwistDecomposition(missingRotation, axis, swingPart, twistPart);
                             float dotSign = copysignf(1.0f, twistPart.w);
-                            deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * twistPart, FRACTION)) * deltaRotation;
+                            const float LIMIT_LEAK_FRACTION = 0.1f;
+                            deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * twistPart, LIMIT_LEAK_FRACTION)) * deltaRotation;
                         }
                     }
                 }
@@ -486,7 +488,13 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 // measure new _hipsOffset for next frame
                 // by looking for discrepancies between where a targeted endEffector is
                 // and where it wants to be (after IK solutions are done)
-                glm::vec3 newHipsOffset = Vectors::ZERO;
+
+                // use weighted average between HMD and other targets
+                float HMD_WEIGHT = 10.0f;
+                float OTHER_WEIGHT = 1.0f;
+                float totalWeight = 0.0f;
+
+                glm::vec3 additionalHipsOffset = Vectors::ZERO;
                 for (auto& target: targets) {
                     int targetIndex = target.getIndex();
                     if (targetIndex == _headIndex && _headIndex != -1) {
@@ -497,30 +505,59 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                             glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans();
                             glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
                             const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
-                            newHipsOffset += HEAD_OFFSET_SLAVE_FACTOR * (actual - under);
+                            additionalHipsOffset += (OTHER_WEIGHT * HEAD_OFFSET_SLAVE_FACTOR) * (under- actual);
+                            totalWeight += OTHER_WEIGHT;
                         } else if (target.getType() == IKTarget::Type::HmdHead) {
-                            // we want to shift the hips to bring the head to its designated position
                             glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
-                            _hipsOffset += target.getTranslation() - actual;
-                            // and ignore all other targets
-                            newHipsOffset = _hipsOffset;
-                            break;
+                            glm::vec3 thisOffset = target.getTranslation() - actual;
+                            glm::vec3 futureHipsOffset = _hipsOffset + thisOffset;
+                            if (glm::length(glm::vec2(futureHipsOffset.x, futureHipsOffset.z)) < _maxHipsOffsetLength) {
+                                // it is imperative to shift the hips and bring the head to its designated position
+                                // so we slam newHipsOffset here and ignore all other targets
+                                additionalHipsOffset = futureHipsOffset - _hipsOffset;
+                                totalWeight = 0.0f;
+                                break;
+                            } else {
+                                additionalHipsOffset += HMD_WEIGHT * (target.getTranslation() - actual);
+                                totalWeight += HMD_WEIGHT;
+                            }
                         }
                     } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
                         glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
                         glm::vec3 targetPosition = target.getTranslation();
-                        newHipsOffset += targetPosition - actualPosition;
+                        additionalHipsOffset += OTHER_WEIGHT * (targetPosition - actualPosition);
+                        totalWeight += OTHER_WEIGHT;
                     }
                 }
+                if (totalWeight > 1.0f) {
+                    additionalHipsOffset /= totalWeight;
+                }
+
+                // Add downward pressure on the hips
+                additionalHipsOffset *= 0.95f;
+                additionalHipsOffset -= 1.0f;
 
                 // smooth transitions by relaxing _hipsOffset toward the new value
-                const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
+                const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.10f;
                 float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
-                _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
+                _hipsOffset += additionalHipsOffset * tau;
+
+                // clamp the hips offset
+                float hipsOffsetLength = glm::length(_hipsOffset);
+                if (hipsOffsetLength > _maxHipsOffsetLength) {
+                    _hipsOffset *= _maxHipsOffsetLength / hipsOffsetLength;
+                }
+
             }
         }
     }
     return _relativePoses;
+}
+
+void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
+    // manually adjust scale here
+    const float METERS_TO_CENTIMETERS = 100.0f;
+    _maxHipsOffsetLength = METERS_TO_CENTIMETERS * maxLength;
 }
 
 void AnimInverseKinematics::clearIKJointLimitHistory() {
@@ -740,7 +777,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_SPINE_SWING = PI / 14.0f;
+            const float MAX_SPINE_SWING = PI / 10.0f;
             minDots.push_back(cosf(MAX_SPINE_SWING));
             stConstraint->setSwingLimits(minDots);
             if (0 == baseName.compare("Spine1", Qt::CaseSensitive)
@@ -776,11 +813,11 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Head", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            const float MAX_HEAD_TWIST = PI / 9.0f;
+            const float MAX_HEAD_TWIST = PI / 6.0f;
             stConstraint->setTwistLimits(-MAX_HEAD_TWIST, MAX_HEAD_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_HEAD_SWING = PI / 10.0f;
+            const float MAX_HEAD_SWING = PI / 6.0f;
             minDots.push_back(cosf(MAX_HEAD_SWING));
             stConstraint->setSwingLimits(minDots);
 
