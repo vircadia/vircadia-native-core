@@ -260,6 +260,11 @@ QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
     return AvatarData::toByteArrayStateful(dataDetail);
 }
 
+void MyAvatar::resetSensorsAndBody() {
+    qApp->getActiveDisplayPlugin()->resetSensors();
+    reset(true, false, true);
+}
+
 void MyAvatar::centerBody() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "centerBody");
@@ -2481,6 +2486,45 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);
         }
     }
+}
+
+bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& orientation) {
+    auto hipsIndex = getJointIndex("Hips");
+    if (index != hipsIndex) {
+        qWarning() << "Pinning is only supported for the hips joint at the moment.";
+        return false;
+    }
+
+    setPosition(position);
+    setOrientation(orientation);
+
+    _rig->setMaxHipsOffsetLength(0.05f);
+
+    auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
+    if (it == _pinnedJoints.end()) {
+        _pinnedJoints.push_back(index);
+    }
+
+    return true;
+}
+
+bool MyAvatar::clearPinOnJoint(int index) {
+    auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
+    if (it != _pinnedJoints.end()) {
+        _pinnedJoints.erase(it);
+
+        auto hipsIndex = getJointIndex("Hips");
+        if (index == hipsIndex) {
+            _rig->setMaxHipsOffsetLength(FLT_MAX);
+        }
+
+        return true;
+    }
+    return false;
+}
+
+float MyAvatar::getIKErrorOnLastSolve() const {
+    return _rig->getIKErrorOnLastSolve();
 }
 
 // thread-safe
