@@ -2956,13 +2956,11 @@ function MyController(hand) {
         var intersectInfo = handLaserIntersectEntity(this.grabbedThingID, controllerLocation);
         if (intersectInfo) {
 
-            var max, min;
+            var max;
             if (this.useFingerInsteadOfStylus && this.state === STATE_ENTITY_STYLUS_TOUCHING) {
                 max = FINGER_TOUCH_MAX;
-                min = FINGER_TOUCH_MIN;
             } else {
                 max = WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET;
-                min = WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_TOO_CLOSE;
             }
 
             if (this.state == STATE_ENTITY_STYLUS_TOUCHING &&
