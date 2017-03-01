@@ -38,9 +38,6 @@ Rectangle {
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
     property bool iAmAdmin: false
-    // Keep a local list of per-avatar gainSliderValueDBs. Far faster than fetching this data from the server.
-    // NOTE: if another script modifies the per-avatar gain, this value won't be accurate!
-    property var gainSliderValueDB: ({});
 
     HifiConstants { id: hifi }
 
@@ -244,7 +241,7 @@ Rectangle {
         // This Rectangle refers to each Row in the table.
         rowDelegate: Rectangle { // The only way I know to specify a row height.
             // Size
-            height: styleData.selected ? rowHeight : rowHeight - 20
+            height: styleData.selected ? rowHeight : rowHeight - 15
             color: styleData.selected
                    ? hifi.colors.orangeHighlight
                    : styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd
@@ -300,6 +297,7 @@ Rectangle {
                     UserActivityLogger["palAction"](newValue ? "personalMute" : "un-personalMute", model.sessionId)
                 }
             }
+
             // This CheckBox belongs in the columns that contain the stateful action buttons ("Mute" & "Ignore" for now)
             // KNOWN BUG with the Checkboxes: When clicking in the center of the sorting header, the checkbox
             // will appear in the "hovered" state. Hovering over the checkbox will fix it.
@@ -590,7 +588,6 @@ Rectangle {
             break;
         case 'clearLocalQMLData':
             ignored = {};
-            gainSliderValueDB = {};
             break;
         case 'avatarDisconnected':
             var sessionID = message.params[0];

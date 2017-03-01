@@ -256,20 +256,6 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         populateUserList(message.params.selected);
         UserActivityLogger.palAction("refresh", "");
         break;
-    case 'updateGain':
-        data = message.params;
-        if (data['isReleased']) {
-            // isReleased=true happens once at the end of a cycle of dragging
-            // the slider about, but with same gain as last isReleased=false so
-            // we don't set the gain in that case, and only here do we want to
-            // send an analytic event.
-            UserActivityLogger.palAction("avatar_gain_changed", data['sessionId']);
-        } else {
-            Users.setAvatarGain(data['sessionId'], data['gain']);
-            sessionGains[data['sessionId']] = convertDbToLinear(data['gain']);
-            print("set " + data['sessionId'] + " to " + sessionGains[data['sessionId']]);
-        }
-        break;
     case 'displayNameUpdate':
         if (MyAvatar.displayName !== message.params) {
             MyAvatar.displayName = message.params;

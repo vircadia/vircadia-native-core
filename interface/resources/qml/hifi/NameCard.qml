@@ -56,7 +56,7 @@ Item {
         id: textContainer
         // Size
         width: parent.width - /*avatarImage.width - parent.spacing - */parent.anchors.leftMargin - parent.anchors.rightMargin
-        height: selected || isMyCard ? childrenRect.height : childrenRect.height - 20
+        height: selected || isMyCard ? childrenRect.height : childrenRect.height - 15
         anchors.verticalCenter: parent.verticalCenter
 
         // DisplayName field for my card
@@ -349,7 +349,7 @@ Item {
             anchors.verticalCenter: nameCardVUMeter.verticalCenter
             // Properties
             visible: !isMyCard && selected
-            value: pal.gainSliderValueDB[uuid] ? pal.gainSliderValueDB[uuid] : 0.0
+            value: Users.getAvatarGain(uuid)
             minimumValue: -60.0
             maximumValue: 20.0
             stepSize: 5
@@ -397,14 +397,9 @@ Item {
     }
 
     function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
-        if (isReleased || pal.gainSliderValueDB[avatarUuid] !== sliderValue) {
-            pal.gainSliderValueDB[avatarUuid] = sliderValue;
-            var data = {
-                sessionId: avatarUuid,
-                gain: sliderValue,
-                isReleased: isReleased
-            };
-            pal.sendToScript({method: 'updateGain', params: data});
+        Users.setAvatarGain(avatarUuid, sliderValue);
+        if (isReleased) {
+           UserActivityLogger.palAction("avatar_gain_changed", avatarUuid);
         }
     }
 }

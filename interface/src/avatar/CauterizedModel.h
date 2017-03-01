@@ -37,7 +37,6 @@ public:
 	void createVisibleRenderItemSet() override;
     void createCollisionRenderItemSet() override;
 
-    virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
     virtual void updateClusterMatrices() override;
     void updateRenderItems() override;
 

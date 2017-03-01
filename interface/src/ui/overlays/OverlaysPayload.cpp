@@ -53,7 +53,7 @@ namespace render {
         return overlay->getBounds();
     }
     template <> int payloadGetLayer(const Overlay::Pointer& overlay) {
-        // MAgic number while we are defining the layering mechanism:
+        // Magic number while we are defining the layering mechanism:
         const int LAYER_NO_AA = 3;
         const int LAYER_2D = 2;
         const int LAYER_3D_FRONT = 1;
