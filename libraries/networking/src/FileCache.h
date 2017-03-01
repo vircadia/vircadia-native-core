@@ -98,8 +98,9 @@ private:
     std::atomic<size_t> _totalFilesSize { 0 };
     std::atomic<size_t> _unusedFilesSize { 0 };
 
-    std::string _dir;
     std::string _ext;
+    std::string _dirname;
+    std::string _dir;
 
     std::unordered_map<Key, std::weak_ptr<File>> _files;
     Mutex _filesMutex;

@@ -35,8 +35,9 @@ void FileCache::setOfflineFileCacheSize(size_t offlineFilesMaxSize) {
 
 FileCache::FileCache(const std::string& dirname, const std::string& ext, QObject* parent) :
     QObject(parent),
-    _dir(createDir(dirname)),
-    _ext(ext) {}
+    _ext(ext),
+    _dirname(dirname),
+    _dir(createDir(_dirname)) {}
 
 FileCache::~FileCache() {
     clear();
@@ -54,14 +55,13 @@ FilePointer FileCache::writeFile(const Key& key, const char* data, size_t length
     // if file already exists, return it
     FilePointer file = getFile(key);
     if (file) {
-        qCWarning(file_cache, "Attempted to overwrite %", key.c_str());
+        qCWarning(file_cache, "[%s] Attempted to overwrite %s", _dirname.c_str(), key.c_str());
         return file;
     }
 
     // write the new file
     FILE* saveFile = fopen(filepath.c_str(), "wb");
     if (saveFile != nullptr && fwrite(data, length, 1, saveFile) && fclose(saveFile) == 0) {
-        qCInfo(file_cache, "Wrote %s", key.c_str());
         file.reset(createFile(key, filepath, length, extra), &fileDeleter);
         file->_cache = this;
         _files[key] = file;
@@ -70,7 +70,7 @@ FilePointer FileCache::writeFile(const Key& key, const char* data, size_t length
 
         emit dirty();
     } else {
-        qCWarning(file_cache, "Failed to write %s (%s)", key.c_str(), strerror(errno));
+        qCWarning(file_cache, "[%s] Failed to write %s (%s)", _dirname.c_str(), key.c_str(), strerror(errno));
         errno = 0;
     }
 
@@ -89,7 +89,7 @@ FilePointer FileCache::getFile(const Key& key) {
         if (file) {
             // if it exists, it is active - remove it from the cache
             removeUnusedFile(file);
-            qCInfo(file_cache, "Found %s", key.c_str());
+            qCInfo(file_cache, "[%s] Found %s", _dirname.c_str(), key.c_str());
             emit dirty();
         } else {
             // if not, remove the weak_ptr
@@ -101,6 +101,7 @@ FilePointer FileCache::getFile(const Key& key) {
 }
 
 File* FileCache::createFile(const Key& key, const std::string& filepath, size_t length, void* extra) {
+    qCInfo(file_cache, "Wrote %s", key.c_str());
     return new File(key, filepath, length);
 }
 
@@ -116,24 +117,26 @@ std::string FileCache::createDir(const std::string& dirname) {
             while (manifest.good()) {
                 std::string entry;
                 manifest >> entry;
-                persistedEntries.insert(entry);
-                qCInfo(file_cache, "Manifest contents: %s", entry.c_str());
+                if (!entry.empty()) {
+                    qCInfo(file_cache, "[%s] Manifest contains %s", _dirname.c_str(), entry.c_str());
+                    persistedEntries.insert(entry + '.' + _ext);
+                }
             }
         } else {
-            qCWarning(file_cache, "Missing manifest");
+            qCWarning(file_cache, "[%s] Missing manifest", _dirname.c_str());
         }
         
 
-        foreach(QString filename, dir.entryList()) {
+        foreach(QString filename, dir.entryList(QDir::Filters(QDir::NoDotAndDotDot | QDir::Files))) {
             if (persistedEntries.find(filename.toStdString()) == persistedEntries.cend()) {
                 dir.remove(filename);
-                qCInfo(file_cache) << "Cleaned" << filename;
+                qCInfo(file_cache, "[%s] Cleaned %s", _dirname.c_str(), filename.toStdString().c_str());
             }
         }
-        qCDebug(file_cache, "Initiated %s", dirpath.data());
+        qCDebug(file_cache) << "Initiated" << dirpath;
     } else {
         dir.mkpath(dirpath);
-        qCDebug(file_cache, "Created %s", dirpath.data());
+        qCDebug(file_cache) << "Created" << dirpath;
     }
 
     return dirpath.toStdString();
@@ -201,43 +204,46 @@ void FileCache::reserve(size_t length) {
 }
 
 void FileCache::clear() {
+    auto forAllFiles = [&](std::function<void(const FilePointer& file)> functor) {
+        Lock unusedFilesLock(_unusedFilesMutex);
+        for (const auto& pair : _unusedFiles) {
+            functor(pair.second);
+        }
+        // clear files so they are not reiterated from _files
+        _unusedFiles.clear();
+        unusedFilesLock.unlock();
+
+        Lock filesLock(_filesMutex);
+        for (const auto& pair : _files) {
+            FilePointer file;
+            if ((file = pair.second.lock())) {
+                functor(file);
+            }
+        }
+    };
+
     try {
         std::string manifestPath= _dir + '/' + MANIFEST_NAME;
         std::ofstream manifest(manifestPath);
 
-        bool firstEntry = true;
+        forAllFiles([&](const FilePointer& file) {
+            file->_cache = nullptr;
 
-        {
-            Lock lock(_unusedFilesMutex);
-            for (const auto& val : _unusedFiles) {
-                const FilePointer& file = val.second;
-                file->_cache = nullptr;
-
-                if (_unusedFilesSize > _offlineFilesMaxSize) {
-                    _unusedFilesSize -= file->getLength();
-                } else {
-                    if (!firstEntry) {
-                        manifest << '\n';
-                    }
-                    firstEntry = false;
-                    manifest << file->getKey();
-
-                    file->_shouldPersist = true;
-                    qCInfo(file_cache, "Persisting %s", file->getKey().c_str());
-                }
+            if (_totalFilesSize > _offlineFilesMaxSize) {
+                _totalFilesSize -= file->getLength();
+            } else {
+                manifest << file->getKey() << '\n';
+                file->_shouldPersist = true;
+                qCInfo(file_cache, "[%s] Persisting %s", _dirname.c_str(), file->getKey().c_str());
             }
-        }
-
-        {
-            Lock lock(_filesMutex);
-            for (const auto& val : _files) {
-                const FilePointer& file = val.second
-        }
+        });
     } catch (std::exception& e) {
-        qCWarning(file_cache, "Failed to write manifest (%s)", e.what());
-        for (const auto& val : _unusedFiles) {
-            val.second->_shouldPersist = false;
-        }
+        qCWarning(file_cache, "[%s] Failed to write manifest (%s)", _dirname.c_str(), e.what());
+
+        forAllFiles([](const FilePointer& file) {
+            file->_cache = nullptr;
+            file->_shouldPersist = false;
+        });
     }
 
     Lock lock(_unusedFilesMutex);

@@ -39,6 +39,7 @@ File* KTXCache::createFile(const Key& key, const std::string& filepath, size_t l
     const QUrl& url = reinterpret_cast<Data*>(extra)->url;
     Lock lock(_urlMutex);
     _urlMap[url] = key;
+    qCInfo(file_cache) << "Wrote KTX" << key.c_str() << url;
     return new KTXFile(key, filepath, length, url);
 }
 
