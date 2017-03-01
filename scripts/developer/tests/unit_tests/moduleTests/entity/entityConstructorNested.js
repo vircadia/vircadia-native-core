@@ -1,3 +1,4 @@
+/* global module */
 // test Entity constructor based on inherited constructor from a module
 function constructor() {
     print("entityConstructorNested::constructor");
@@ -7,7 +8,7 @@ function constructor() {
 
 try {
     module.exports = constructor;
-} catch(e) {
+} catch (e) {
     constructor;
 }
 

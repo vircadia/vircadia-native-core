@@ -1,3 +1,4 @@
+/* eslint-env node */
 var a = exports;
 a.done = false;
 var b = require('./b.js');

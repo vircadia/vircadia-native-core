@@ -1,17 +1,64 @@
-/* eslint-env jasmine */
+/* eslint-env jasmine, node */
+/* global print:true, Script:true, global:true, require:true */
+/* eslint-disable comma-dangle */
+var isNode = instrumentTestrunner(),
+    runInterfaceTests = !isNode,
+    runNetworkTests = true;
 
-var isNode = instrument_testrunner();
+// describe wrappers (note: `xdescribe` indicates a disabled or "pending" jasmine test)
+var INTERFACE = { describe: runInterfaceTests ? describe : xdescribe },
+    NETWORK = { describe: runNetworkTests ? describe : xdescribe };
 
-var NETWORK_describe   = xdescribe,
-    INTERFACE_describe = !isNode ? describe : xdescribe,
-    NODE_describe      = isNode ? describe : xdescribe;
-
-print("DESCRIBING");
 describe('require', function() {
     describe('resolve', function() {
         it('should resolve relative filenames', function() {
             var expected = Script.resolvePath('./moduleTests/example.json');
             expect(require.resolve('./moduleTests/example.json')).toEqual(expected);
+        });
+        describe('exceptions', function() {
+            it('should reject blank "" module identifiers', function() {
+                expect(function() {
+                    require.resolve('');
+                }).toThrowError(/Cannot find/);
+            });
+            it('should reject excessive identifier sizes', function() {
+                expect(function() {
+                    require.resolve(new Array(8193).toString());
+                }).toThrowError(/Cannot find/);
+            });
+            it('should reject implicitly-relative filenames', function() {
+                expect(function() {
+                    var mod = require.resolve('example.js');
+                    mod.exists;
+                }).toThrowError(/Cannot find/);
+            });
+            it('should reject non-existent filenames', function() {
+                expect(function() {
+                    require.resolve('./404error.js');
+                }).toThrowError(/Cannot find/);
+            });
+            it('should reject identifiers resolving to a directory', function() {
+                expect(function() {
+                    var mod = require.resolve('.');
+                    mod.exists;
+                    // console.warn('resolved(.)', mod);
+                }).toThrowError(/Cannot find/);
+                expect(function() {
+                    var mod = require.resolve('..');
+                    mod.exists;
+                    // console.warn('resolved(..)', mod);
+                }).toThrowError(/Cannot find/);
+                expect(function() {
+                    var mod = require.resolve('../');
+                    mod.exists;
+                    // console.warn('resolved(../)', mod);
+                }).toThrowError(/Cannot find/);
+            });
+            (isNode ? xit : it)('should reject non-system, extensionless identifiers', function() {
+                expect(function() {
+                    require.resolve('./example');
+                }).toThrowError(/Cannot find/);
+            });
         });
     });
 
@@ -20,12 +67,12 @@ describe('require', function() {
             var example = require('./moduleTests/example.json');
             expect(example.name).toEqual('Example JSON Module');
         });
-        INTERFACE_describe('inteface', function() {
-            NETWORK_describe('network', function() {
-                //xit('should import #content-type=application/json modules', function() {
-                //    var results = require('https://jsonip.com#content-type=application/json');
-                //    expect(results.ip).toMatch(/^[.0-9]+$/);
-                //});
+        INTERFACE.describe('interface', function() {
+            NETWORK.describe('network', function() {
+                // xit('should import #content-type=application/json modules', function() {
+                //     var results = require('https://jsonip.com#content-type=application/json');
+                //     expect(results.ip).toMatch(/^[.0-9]+$/);
+                // });
                 it('should import content-type: application/json modules', function() {
                     var scope = { 'content-type': 'application/json' };
                     var results = require.call(scope, 'https://jsonip.com');
@@ -36,66 +83,32 @@ describe('require', function() {
 
     });
 
-    INTERFACE_describe('system', function() {
-        it('require(id)', function() {
+    INTERFACE.describe('system', function() {
+        it('require("vec3")', function() {
             expect(require('vec3')).toEqual(jasmine.any(Function));
         });
-        it('require(id).function', function() {
+        it('require("vec3").method', function() {
             expect(require('vec3')().isValid).toEqual(jasmine.any(Function));
         });
-    });
-
-    describe('exceptions', function() {
-        it('should reject blank "" module identifiers', function() {
-            expect(function() {
-                require.resolve('');
-            }).toThrowError(/Cannot find/);
+        it('require("vec3") as constructor', function() {
+            var vec3 = require('vec3');
+            var v = vec3(1.1, 2.2, 3.3);
+            expect(v).toEqual(jasmine.any(Object));
+            expect(v.isValid).toEqual(jasmine.any(Function));
+            expect(v.isValid()).toBe(true);
+            expect(v.toString()).toEqual('[Vec3 (1.100,2.200,3.300)]');
         });
-        it('should reject excessive identifier sizes', function() {
-            expect(function() {
-                require.resolve(new Array(8193).toString());
-            }).toThrowError(/Cannot find/);
-        });
-        it('should reject implicitly-relative filenames', function() {
-            expect(function() {
-                var mod = require.resolve('example.js');
-            }).toThrowError(/Cannot find/);
-        });
-        it('should reject non-existent filenames', function() {
-            expect(function() {
-                var mod = require.resolve('./404error.js');
-            }).toThrowError(/Cannot find/);
-        });
-        it('should reject identifiers resolving to a directory', function() {
-            expect(function() {
-                var mod = require.resolve('.');
-                //console.warn('resolved(.)', mod);
-            }).toThrowError(/Cannot find/);
-            expect(function() {
-                var mod = require.resolve('..');
-                //console.warn('resolved(..)', mod);
-            }).toThrowError(/Cannot find/);
-            expect(function() {
-                var mod = require.resolve('../');
-                //console.warn('resolved(../)', mod);
-            }).toThrowError(/Cannot find/);
-        });
-        if (typeof MODE !== 'undefined' && MODE !== 'node') {
-            it('should reject non-system, extensionless identifiers', function() {
-                expect(function() {
-                    require.resolve('./example');
-                }).toThrowError(/Cannot find/);
-            });
-        }
     });
 
     describe('cache', function() {
         it('should cache modules by resolved module id', function() {
             var value = new Date;
             var example = require('./moduleTests/example.json');
+            // earmark the module object with a unique value
             example['.test'] = value;
             var example2 = require('../../tests/unit_tests/moduleTests/example.json');
             expect(example2).toBe(example);
+            // verify earmark is still the same after a second require()
             expect(example2['.test']).toBe(example['.test']);
         });
         it('should reload cached modules set to null', function() {
@@ -104,6 +117,7 @@ describe('require', function() {
             example['.test'] = value;
             require.cache[require.resolve('../../tests/unit_tests/moduleTests/example.json')] = null;
             var example2 = require('../../tests/unit_tests/moduleTests/example.json');
+            // verify the earmark is *not* the same as before
             expect(example2).not.toBe(example);
             expect(example2['.test']).not.toBe(example['.test']);
         });
@@ -113,6 +127,7 @@ describe('require', function() {
             example['.test'] = value;
             delete require.cache[require.resolve('../../tests/unit_tests/moduleTests/example.json')];
             var example2 = require('../../tests/unit_tests/moduleTests/example.json');
+            // verify the earmark is *not* the same as before
             expect(example2).not.toBe(example);
             expect(example2['.test']).not.toBe(example['.test']);
         });
@@ -120,30 +135,29 @@ describe('require', function() {
 
     describe('cyclic dependencies', function() {
         describe('should allow lazy-ref cyclic module resolution', function() {
-            const MODULE_PATH = './moduleTests/cycles/main.js';
             var main;
             beforeEach(function() {
-                try { this._print = print; } catch(e) {}
-                // for this test print is no-op'd so it doesn't disrupt the reporter output
-                //console = typeof console === 'object' ? console : { log: function() {} };
+                // eslint-disable-next-line
+                try { this._print = print; } catch (e) {}
+                // during these tests print() is no-op'd so that it doesn't disrupt the reporter output
                 print = function() {};
                 Script.resetModuleCache();
             });
             afterEach(function() {
                 print = this._print;
             });
-            it('main requirable', function() {
-                main = require(MODULE_PATH);
+            it('main is requirable', function() {
+                main = require('./moduleTests/cycles/main.js');
                 expect(main).toEqual(jasmine.any(Object));
             });
-            it('main with both a and b', function() {
+            it('transient a and b done values', function() {
                 expect(main.a['b.done?']).toBe(true);
                 expect(main.b['a.done?']).toBe(false);
             });
-            it('a.done?', function() {
+            it('ultimate a.done?', function() {
                 expect(main['a.done?']).toBe(true);
             });
-            it('b.done?', function() {
+            it('ultimate b.done?', function() {
                 expect(main['b.done?']).toBe(true);
             });
         });
@@ -166,8 +180,8 @@ describe('require', function() {
             }).toThrowError(/could not resolve|Cannot find.*foobar:/);
         });
 
-        NETWORK_describe('network', function() {
-            // note: with retries these tests can take up to 60 seconds each to timeout
+        NETWORK.describe('network', function() {
+            // note: depending on retries these tests can take up to 60 seconds each to timeout
             var timeout = 75 * 1000;
             it('should throw catchable host errors', function() {
                 expect(function() {
@@ -183,7 +197,7 @@ describe('require', function() {
         });
     });
 
-    INTERFACE_describe('entity', function() {
+    INTERFACE.describe('entity', function() {
         var sampleScripts = [
             'entityConstructorAPIException.js',
             'entityConstructorModule.js',
@@ -192,72 +206,98 @@ describe('require', function() {
             'entityConstructorRequireException.js',
             'entityPreloadAPIError.js',
             'entityPreloadRequire.js',
-        ].filter(Boolean).map(function(id) { return Script.require.resolve('./moduleTests/entity/'+id); });
+        ].filter(Boolean).map(function(id) {
+            return Script.require.resolve('./moduleTests/entity/'+id);
+        });
 
         var uuids = [];
-
-        for(var i=0; i < sampleScripts.length; i++) {
-            (function(i) {
-                var script = sampleScripts[ i % sampleScripts.length ];
-                var shortname = '['+i+'] ' + script.split('/').pop();
-                var position = MyAvatar.position;
-                position.y -= i/2;
-                it(shortname, function(done) {
-                    var uuid = Entities.addEntity({
-                        text: shortname,
-                        description: Script.resolvePath('').split('/').pop(),
-                        type: 'Text',
-                        position: position,
-                        rotation: MyAvatar.orientation,
-                        script: script,
-                        scriptTimestamp: +new Date,
-                        lifetime: 20,
-                        lineHeight: 1/8,
-                        dimensions: { x: 2, y: .5, z: .01 },
-                        backgroundColor: { red: 0, green: 0, blue: 0 },
-                        color: { red: 0xff, green: 0xff, blue: 0xff },
-                    }, !Entities.serversExist() || !Entities.canRezTmp());
-                    uuids.push(uuid);
-                    var ii = Script.setInterval(function() {
-                        Entities.queryPropertyMetadata(uuid, "script", function(err, result) {
-                            if (err) {
-                                throw new Error(err);
-                            }
-                            if (result.success) {
-                                clearInterval(ii);
-                                if (/Exception/.test(script))
-                                    expect(result.status).toMatch(/^error_(loading|running)_script$/);
-                                else
-                                    expect(result.status).toEqual("running");
-                                done();
-                            } else {
-                                print('!result.success', JSON.stringify(result));
-                            }
-                        });
-                    }, 100);
-                    Script.setTimeout(function() {
-                        Script.clearInterval(ii);
-                    }, 4900);
-                }, 5000 /* timeout */);
-            })(i);
+        function cleanup() {
+            uuids.splice(0,uuids.length).forEach(function(uuid) {
+                Entities.deleteEntity(uuid);
+            });
         }
-        Script.scriptEnding.connect(function() {
-            uuids.forEach(function(uuid) { Entities.deleteEntity(uuid); });
-        });
+        afterAll(cleanup);
+        // extra sanity check to avoid lingering entities
+        Script.scriptEnding.connect(cleanup);
+
+        for (var i=0; i < sampleScripts.length; i++) {
+            maketest(i);
+        }
+
+        function maketest(i) {
+            var script = sampleScripts[ i % sampleScripts.length ];
+            var shortname = '['+i+'] ' + script.split('/').pop();
+            var position = MyAvatar.position;
+            position.y -= i/2;
+            // define a unique jasmine test for the current entity script
+            it(shortname, function(done) {
+                var uuid = Entities.addEntity({
+                    text: shortname,
+                    description: Script.resolvePath('').split('/').pop(),
+                    type: 'Text',
+                    position: position,
+                    rotation: MyAvatar.orientation,
+                    script: script,
+                    scriptTimestamp: +new Date,
+                    lifetime: 20,
+                    lineHeight: 1/8,
+                    dimensions: { x: 2, y: 0.5, z: 0.01 },
+                    backgroundColor: { red: 0, green: 0, blue: 0 },
+                    color: { red: 0xff, green: 0xff, blue: 0xff },
+                }, !Entities.serversExist() || !Entities.canRezTmp());
+                uuids.push(uuid);
+                function stopChecking() {
+                    if (ii) {
+                        Script.clearInterval(ii);
+                        ii = 0;
+                    }
+                }
+                var ii = Script.setInterval(function() {
+                    Entities.queryPropertyMetadata(uuid, "script", function(err, result) {
+                        if (err) {
+                            stopChecking();
+                            throw new Error(err);
+                        }
+                        if (result.success) {
+                            stopChecking();
+                            if (/Exception/.test(script)) {
+                                expect(result.status).toMatch(/^error_(loading|running)_script$/);
+                            } else {
+                                expect(result.status).toEqual("running");
+                            }
+                            Entities.deleteEntity(uuid);
+                            done();
+                        } else {
+                            print('!result.success', JSON.stringify(result));
+                        }
+                    });
+                }, 100);
+                Script.setTimeout(stopChecking, 4900);
+            }, 5000 /* jasmine async timeout */);
+        }
     });
 });
 
+// support for isomorphic Node.js / Interface unit testing
+// note: run `npm install` from unit_tests/ and then `node moduleUnitTests.js`
 function run() {}
-function instrument_testrunner() {
+function instrumentTestrunner() {
     var isNode = typeof process === 'object' && process.title === 'node';
+    if (typeof describe === 'function') {
+        // already running within a test runner; assume jasmine is ready-to-go
+        return isNode;
+    }
     if (isNode) {
-        // for consistency this still uses the same local jasmine.js library
+        /* eslint-disable no-console */
+        // Node.js test mode
+        // to keep things consistent Node.js uses the local jasmine.js library (instead of an npm version)
         var jasmineRequire = require('../../libraries/jasmine/jasmine.js');
         var jasmine = jasmineRequire.core(jasmineRequire);
         var env = jasmine.getEnv();
         var jasmineInterface = jasmineRequire.interface(jasmine, env);
-        for (var p in jasmineInterface)
+        for (var p in jasmineInterface) {
             global[p] = jasmineInterface[p];
+        }
         env.addReporter(new (require('jasmine-console-reporter')));
         // testing mocks
         Script = {
@@ -270,39 +310,45 @@ function instrument_testrunner() {
                 // this attempts to accurately emulate how Script.resolvePath works
                 var trace = {}; Error.captureStackTrace(trace);
                 var base = trace.stack.split('\n')[2].replace(/^.*[(]|[)].*$/g,'').replace(/:[0-9]+:[0-9]+.*$/,'');
-                if (!id)
+                if (!id) {
                     return base;
+                }
                 var rel = base.replace(/[^\/]+$/, id);
                 console.info('rel', rel);
                 return require.resolve(rel);
             },
             require: function(mod) {
                 return require(Script.require.resolve(mod));
-            }
+            },
         };
         Script.require.cache = require.cache;
         Script.require.resolve = function(mod) {
-            if (mod === '.' || /^\.\.($|\/)/.test(mod))
+            if (mod === '.' || /^\.\.($|\/)/.test(mod)) {
                 throw new Error("Cannot find module '"+mod+"' (is dir)");
+            }
             var path = require.resolve(mod);
-            //console.info('node-require-reoslved', mod, path);
+            // console.info('node-require-reoslved', mod, path);
             try {
                 if (require('fs').lstatSync(path).isDirectory()) {
                     throw new Error("Cannot find module '"+path+"' (is directory)");
                 }
-                //console.info('!path', path);
-            } catch(e) { console.info(e) }
+                // console.info('!path', path);
+            } catch (e) {
+                console.error(e);
+            }
             return path;
         };
         print = console.info.bind(console, '[print]');
+        /* eslint-enable no-console */
     } else {
+        // Interface test mode
         global = this;
-        // Interface Test mode
         Script.require('../../../system/libraries/utils.js');
         this.jasmineRequire = Script.require('../../libraries/jasmine/jasmine.js');
-        Script.require('../../libraries/jasmine/hifi-boot.js')
+        Script.require('../../libraries/jasmine/hifi-boot.js');
         require = Script.require;
         // polyfill console
+        /* global console:true */
         console = {
             log: print,
             info: print.bind(this, '[info]'),
@@ -311,6 +357,7 @@ function instrument_testrunner() {
             debug: print.bind(this, '[debug]'),
         };
     }
+    // eslint-disable-next-line
     run = function() { global.jasmine.getEnv().execute(); };
     return isNode;
 }

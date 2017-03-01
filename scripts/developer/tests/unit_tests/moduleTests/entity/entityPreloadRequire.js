@@ -1,3 +1,4 @@
+/* eslint-disable comma-dangle */
 // test requiring a module from within preload
 (function constructor() {
     return {
@@ -7,4 +8,4 @@
             print("entityPreloadRequire::example::name", example.name);
         },
     };
-})
+});

@@ -1,9 +1,10 @@
+/* global module */
 // test Entity constructor based on nested, inherited module constructors
 function constructor() {
     print("entityConstructorNested2::constructor");
 
     // inherit from entityConstructorNested
-    var Entity = Script.require('./entityConstructorNested.js');
+    var MyEntity = Script.require('./entityConstructorNested.js');
     function SubEntity() {}
     SubEntity.prototype = new MyEntity('-- created from entityConstructorNested2 --');
 
@@ -19,6 +20,6 @@ function constructor() {
 
 try {
     module.exports = constructor;
-} catch(e) {
+} catch (e) {
     constructor;
 }

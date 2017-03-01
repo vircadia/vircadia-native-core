@@ -1,3 +1,5 @@
+/* global module */
+/* eslint-disable comma-dangle */
 // test dual-purpose module and standalone Entity script
 function MyEntity(filename) {
     return {
@@ -16,6 +18,6 @@ function MyEntity(filename) {
 
 try {
     module.exports = MyEntity;
-} catch(e) {}
+} catch (e) {} // eslint-disable-line no-empty
 print('entityConstructorModule::MyEntity', typeof MyEntity);
-(MyEntity)
+(MyEntity);

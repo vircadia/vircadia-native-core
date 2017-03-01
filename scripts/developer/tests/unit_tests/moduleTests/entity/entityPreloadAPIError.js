@@ -1,3 +1,4 @@
+/* eslint-disable comma-dangle */
 // test module method exception being thrown within preload
 (function() {
     var apiMethod = Script.require('../exceptions/exceptionInFunction.js');
@@ -9,4 +10,4 @@
             print("entityPreloadAPIException::preload -- never seen --", uuid, Script.resolvePath(''));
         },
     };
-})
+});

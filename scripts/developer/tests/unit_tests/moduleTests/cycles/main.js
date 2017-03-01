@@ -1,3 +1,7 @@
+/* eslint-env node */
+/* global print */
+/* eslint-disable comma-dangle */
+
 print('main.js');
 var a = require('./a.js'),
     b = require('./b.js');
