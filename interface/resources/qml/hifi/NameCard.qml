@@ -56,7 +56,7 @@ Item {
         id: textContainer
         // Size
         width: parent.width - /*avatarImage.width - parent.spacing - */parent.anchors.leftMargin - parent.anchors.rightMargin
-        height: childrenRect.height
+        height: selected || isMyCard ? childrenRect.height : childrenRect.height - 20
         anchors.verticalCenter: parent.verticalCenter
 
         // DisplayName field for my card
@@ -274,6 +274,7 @@ Item {
             // Style
             radius: 4
             color: "#c5c5c5"
+            visible: isMyCard || selected
             // Rectangle for the zero-gain point on the VU meter
             Rectangle {
                 id: vuMeterZeroGain
@@ -304,6 +305,7 @@ Item {
                 id: vuMeterBase
                 // Anchors
                 anchors.fill: parent
+                visible: isMyCard || selected
                 // Style
                 color: parent.color
                 radius: parent.radius
@@ -311,6 +313,7 @@ Item {
             // Rectangle for the VU meter audio level
             Rectangle {
                 id: vuMeterLevel
+                visible: isMyCard || selected
                 // Size
                 width: (thisNameCard.audioLevel) * parent.width
                 // Style
