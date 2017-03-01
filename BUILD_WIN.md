@@ -33,8 +33,8 @@ You can use the online installer or the offline installer. If you use the offlin
         * Qt > Qt 5.6.1 > **msvc2013 64-bit**
 
 * Download the offline installer, 32- or 64-bit to match your build preference:
-    * [32-bit](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013-5.6.1-1.exe)
-    * [64-bit](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013_64-5.6.1-1.exe)
+    * [32-bit](https://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013-5.6.1-1.exe)
+    * [64-bit](https://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013_64-5.6.1-1.exe)
 
 Once Qt is installed, you need to manually configure the following:
 * Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.6.1\msvc2013\lib\cmake` or `Qt\5.6.1\msvc2013_64\lib\cmake` directory.
@@ -72,7 +72,7 @@ Your system may already have several versions of the OpenSSL DLL's (ssleay32.dll
     QSslSocket: cannot resolve SSL_CTX_set_next_proto_select_cb
     QSslSocket: cannot resolve SSL_get0_next_proto_negotiated
 
-To prevent these problems, install OpenSSL yourself. Download one of the following binary packages [from this website](http://slproweb.com/products/Win32OpenSSL.html):
+To prevent these problems, install OpenSSL yourself. Download one of the following binary packages [from this website](https://slproweb.com/products/Win32OpenSSL.html):
 * Win32 OpenSSL v1.0.1q
 * Win64 OpenSSL v1.0.1q
 

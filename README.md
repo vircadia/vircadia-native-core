@@ -11,11 +11,11 @@ We're hiring! We're looking for skilled developers;
 send your resume to hiring@highfidelity.com
 
 ##### Chat with us
-Come chat with us in [our Gitter](http://gitter.im/highfidelity/hifi) if you have any questions or just want to say hi!
+Come chat with us in [our Gitter](https://gitter.im/highfidelity/hifi) if you have any questions or just want to say hi!
 
 Documentation
 =========
-Documentation is available at [docs.highfidelity.com](http://docs.highfidelity.com), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
+Documentation is available at [docs.highfidelity.com](https://docs.highfidelity.com), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
 
 Build Instructions 
 =========
