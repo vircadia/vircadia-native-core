@@ -94,6 +94,8 @@ public:
 
     // coords are in world-space
     virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue) override;
+    virtual bool setCapsule(glm::vec3 startWorldCoords, glm::vec3 endWorldCoords,
+                            float radiusWorldCoords, uint8_t toValue) override;
     virtual bool setAll(uint8_t toValue) override;
     virtual bool setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int toValue) override;
 
@@ -128,12 +130,13 @@ public:
     void setVoxelsFromData(QByteArray uncompressedData, quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize);
     void forEachVoxelValue(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize,
                            std::function<void(int, int, int, uint8_t)> thunk);
+    QByteArray volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const;
 
     void setMesh(model::MeshPointer mesh);
     void setCollisionPoints(ShapeInfo::PointCollection points, AABox box);
     PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData; }
 
-    uint8_t getVoxelInternal(int x, int y, int z);
+    uint8_t getVoxelInternal(int x, int y, int z) const;
     bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; }); }
