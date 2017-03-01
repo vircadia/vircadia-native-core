@@ -6,7 +6,7 @@
     var lastSpecStartTime;
     function ConsoleReporter(options) {
         var startTime = new Date().getTime();
-        var errorCount = 0;
+        var errorCount = 0, pending = [];
         this.jasmineStarted = function (obj) {
             print('Jasmine started with ' + obj.totalSpecsDefined + ' tests.');
         };
@@ -15,11 +15,14 @@
             var endTime = new Date().getTime();
             print('<hr />');
             if (errorCount === 0) {
-                print ('<span style="color:green">All tests passed!</span>');
+                print ('<span style="color:green">All enabled tests passed!</span>');
             } else {
                 print('<span style="color:red">Tests completed with ' +
                     errorCount + ' ' + ERROR + '.<span>');
             }
+            if (pending.length)
+                print ('<span style="color:darkorange">disabled: <br />&nbsp;&nbsp;&nbsp;'+
+                       pending.join('<br />&nbsp;&nbsp;&nbsp;')+'</span>');
             print('Tests completed in ' + (endTime - startTime) + 'ms.');
         };
         this.suiteStarted = function(obj) {
@@ -32,6 +35,10 @@
             lastSpecStartTime = new Date().getTime();
         };
         this.specDone = function(obj) {
+            if (obj.status === 'pending') {
+                pending.push(obj.fullName);
+                return print('...(pending ' + obj.fullName +')');
+            }
             var specEndTime = new Date().getTime();
             var symbol = obj.status === PASSED ?
                 '<span style="color:green">' + CHECKMARK + '</span>' :
