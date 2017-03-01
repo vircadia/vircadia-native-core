@@ -79,7 +79,7 @@ public:
     QUrl definingSandboxURL { QUrl("about:EntityScript") };
 };
 
-class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider, public QEnableSharedFromThis<ScriptEngine> {
+class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
     Q_OBJECT
     Q_PROPERTY(QString context READ getContext)
 public:
@@ -138,6 +138,8 @@ public:
     /// evaluate some code in the context of the ScriptEngine and return the result
     Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName, int lineNumber = 1); // this is also used by the script tool widget
 
+    Q_INVOKABLE QScriptValue evaluateInClosure(const QScriptValue& locals, const QScriptProgram& program);
+
     /// if the script engine is not already running, this will download the URL and start the process of seting it up
     /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed
     /// to scripts. we may not need this to be invokable
@@ -181,6 +183,8 @@ public:
     Q_INVOKABLE bool isEntityScriptRunning(const EntityItemID& entityID) {
         return _entityScripts.contains(entityID) && _entityScripts[entityID].status == EntityScriptStatus::RUNNING;
     }
+    QVariant cloneEntityScriptDetails(const EntityItemID& entityID);
+    QFuture<QVariant> getLocalEntityScriptDetails(const EntityItemID& entityID) override;
     Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
@@ -286,7 +290,6 @@ protected:
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
     QHash<QString, EntityItemID> _occupiedScriptURLs;
     QList<DeferredLoadEntity> _deferredEntityLoads;
-    QMutex _requireLock { QMutex::Recursive };
 
     bool _isThreaded { false };
     QScriptEngineDebugger* _debugger { nullptr };
@@ -312,8 +315,12 @@ protected:
     std::chrono::microseconds _totalTimerExecution { 0 };
 
     static const QString _SETTINGS_ENABLE_EXTENDED_MODULE_COMPAT;
+    static const QString _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS;
+
     Setting::Handle<bool> _enableExtendedModuleCompatbility { _SETTINGS_ENABLE_EXTENDED_MODULE_COMPAT, false };
-    void _applyUserOptions(QScriptValue& module, QScriptValue& options);
+    Setting::Handle<bool> _enableExtendedJSExceptions { _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS, true };
+
+    void applyUserOptions(QScriptValue& module, QScriptValue& options);
 };
 
 #endif // hifi_ScriptEngine_h

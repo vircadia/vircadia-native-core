@@ -211,6 +211,26 @@ public slots:
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
 
     Q_INVOKABLE bool reloadServerScripts(QUuid entityID);
+
+    /**jsdoc
+     * Query for the available metadata behind one of an Entity's "magic" properties (eg: `script` and `serverScripts`).
+     *
+     * @function Entities.queryPropertyMetadata
+     * @param {EntityID} entityID The ID of the entity.
+     * @param {string} property The name of the property extended metadata is wanted for.
+     * @param {ResultCallback} callback Executes callback(err, result) with the query results.
+     */
+    /**jsdoc
+     * Query for the available metadata behind one of an Entity's "magic" properties (eg: `script` and `serverScripts`).
+     *
+     * @function Entities.queryPropertyMetadata
+     * @param {EntityID} entityID The ID of the entity.
+     * @param {string} property The name of the property extended metadata is wanted for.
+     * @param {Object} thisObject The scoping "this" context that callback will be executed within.
+     * @param {ResultCallback} callbackOrMethodName Executes thisObject[callbackOrMethodName](err, result) with the query results.
+     */
+    Q_INVOKABLE bool queryPropertyMetadata(QUuid entityID, QScriptValue property, QScriptValue scopeOrCallback, QScriptValue methodOrName = QScriptValue());
+
     Q_INVOKABLE bool getServerScriptStatus(QUuid entityID, QScriptValue callback);
 
     Q_INVOKABLE void setLightsArePickable(bool value);

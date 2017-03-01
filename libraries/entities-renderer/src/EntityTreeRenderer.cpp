@@ -146,6 +146,7 @@ void EntityTreeRenderer::clear() {
 
 void EntityTreeRenderer::reloadEntityScripts() {
     _entitiesScriptEngine->unloadAllEntityScripts();
+    _entitiesScriptEngine->resetModuleCache();
     foreach(auto entity, _entitiesInScene) {
         if (!entity->getScript().isEmpty()) {
             _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
