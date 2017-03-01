@@ -2,7 +2,7 @@
 //  Pal.qml
 //  qml/hifi
 //
-//  People Action List 
+//  People Action List
 //
 //  Created by Howard Stearns on 12/12/2016
 //  Copyright 2016 High Fidelity, Inc.
@@ -13,6 +13,7 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import Qt.labs.settings 1.0
 import "../styles-uit"
 import "../controls-uit" as HifiControls
 
@@ -29,14 +30,13 @@ Rectangle {
     property int myCardHeight: 90
     property int rowHeight: 70
     property int actionButtonWidth: 55
-    property int nameCardWidth: palContainer.width - actionButtonWidth*(iAmAdmin ? 4 : 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
+    property int actionButtonAllowance: actionButtonWidth * 2
+    property int minNameCardWidth: palContainer.width - (actionButtonAllowance * 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
+    property int nameCardWidth: minNameCardWidth + (iAmAdmin ? 0 : actionButtonAllowance)
     property var myData: ({displayName: "", userName: "", audioLevel: 0.0, admin: true}) // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
     property bool iAmAdmin: false
-    // Keep a local list of per-avatar gainSliderValueDBs. Far faster than fetching this data from the server.
-    // NOTE: if another script modifies the per-avatar gain, this value won't be accurate!
-    property var gainSliderValueDB: ({});
 
     HifiConstants { id: hifi }
 
@@ -51,6 +51,16 @@ Rectangle {
         letterboxMessage.text = message
         letterboxMessage.visible = true
         letterboxMessage.popupRadius = 0
+    }
+    Settings {
+        id: settings
+        category: "pal"
+        property bool filtered: false
+        property int nearDistance: 30
+    }
+    function refreshWithFilter() {
+        // We should just be able to set settings.filtered to filter.checked, but see #3249, so send to .js for saving.
+        pal.sendToScript({method: 'refresh', params: {filter: filter.checked && {distance: settings.nearDistance}}});
     }
 
     // This is the container for the PAL
@@ -88,10 +98,31 @@ Rectangle {
             audioLevel: myData.audioLevel
             isMyCard: true
             // Size
-            width: nameCardWidth
+            width: minNameCardWidth
             height: parent.height
             // Anchors
             anchors.left: parent.left
+        }
+        Row {
+            HifiControls.CheckBox {
+                id: filter
+                checked: settings.filtered
+                text: "in view"
+                boxSize: reload.height * 0.70
+                onCheckedChanged: refreshWithFilter()
+            }
+            HifiControls.GlyphButton {
+                id: reload
+                glyph: hifi.glyphs.reload
+                width: reload.height
+                onClicked: refreshWithFilter()
+            }
+            spacing: 50
+            anchors {
+                right: parent.right
+                top: parent.top
+                topMargin: 10
+            }
         }
     }
     // Rectangles used to cover up rounded edges on bottom of MyInfo Rectangle
@@ -236,7 +267,7 @@ Rectangle {
                 // Anchors
                 anchors.left: parent.left
             }
-            
+
             // This CheckBox belongs in the columns that contain the stateful action buttons ("Mute" & "Ignore" for now)
             // KNOWN BUG with the Checkboxes: When clicking in the center of the sorting header, the checkbox
             // will appear in the "hovered" state. Hovering over the checkbox will fix it.
@@ -272,7 +303,7 @@ Rectangle {
                     checked = Qt.binding(function() { return (model[styleData.role])})
                 }
             }
-            
+
             // This Button belongs in the columns that contain the stateless action buttons ("Silence" & "Ban" for now)
             HifiControls.Button {
                 id: actionButton
@@ -306,45 +337,7 @@ Rectangle {
             }
         }
     }
-    // Refresh button
-    Rectangle {
-        // Size
-        width: hifi.dimensions.tableHeaderHeight-1
-        height: hifi.dimensions.tableHeaderHeight-1
-        // Anchors
-        anchors.left: table.left
-        anchors.leftMargin: 4
-        anchors.top: table.top
-        // Style
-        color: hifi.colors.tableBackgroundLight
-        // Actual refresh icon
-        HiFiGlyphs {
-            id: reloadButton
-            text: hifi.glyphs.reloadSmall
-            // Size
-            size: parent.width*1.5
-            // Anchors
-            anchors.fill: parent
-            // Style
-            horizontalAlignment: Text.AlignHCenter
-            color: hifi.colors.darkGray
-        }
-        MouseArea {
-            id: reloadButtonArea
-            // Anchors
-            anchors.fill: parent
-            hoverEnabled: true
-            // Everyone likes a responsive refresh button!
-            // So use onPressed instead of onClicked
-            onPressed: {
-                reloadButton.color = hifi.colors.lightGrayText
-                pal.sendToScript({method: 'refresh'})
-            }
-            onReleased: reloadButton.color = (containsMouse ? hifi.colors.baseGrayHighlight : hifi.colors.darkGray)
-            onEntered: reloadButton.color = hifi.colors.baseGrayHighlight
-            onExited: reloadButton.color = (pressed ?  hifi.colors.lightGrayText: hifi.colors.darkGray)
-        }
-    }
+
     // Separator between user and admin functions
     Rectangle {
         // Size
@@ -501,7 +494,7 @@ Rectangle {
                 if (alreadyRefreshed === true) {
                     letterbox('', '', 'The last editor of this object is either you or not among this list of users.');
                 } else {
-                    pal.sendToScript({method: 'refresh', params: message.params});
+                    pal.sendToScript({method: 'refresh', params: {selected: message.params}});
                 }
             } else {
                 // If we've already refreshed the PAL and found the avatar in the model
@@ -542,7 +535,7 @@ Rectangle {
                 }
             }
             break;
-        case 'updateAudioLevel': 
+        case 'updateAudioLevel':
             for (var userId in message.params) {
                 var audioLevel = message.params[userId];
                 // If the userId is 0, we're updating "myData".
@@ -558,9 +551,8 @@ Rectangle {
                 }
             }
             break;
-        case 'clearLocalQMLData': 
+        case 'clearLocalQMLData':
             ignored = {};
-            gainSliderValueDB = {};
             break;
         case 'avatarDisconnected':
             var sessionID = message.params[0];

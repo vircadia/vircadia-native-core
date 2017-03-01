@@ -545,7 +545,7 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     // HACK: when interface is launched and steam vr is NOT running, openvr will return bad HMD poses for a few frames
     // To workaround this, filter out any hmd poses that are obviously bad, i.e. beneath the floor.
     if (isBadPose(&nextSimPoseData.vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking)) {
-        qDebug() << "WARNING: ignoring bad hmd pose from openvr";
+        // qDebug() << "WARNING: ignoring bad hmd pose from openvr";
 
         // use the last known good HMD pose
         nextSimPoseData.vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking = _lastGoodHMDPose;

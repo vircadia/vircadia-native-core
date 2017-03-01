@@ -319,6 +319,39 @@ void Rig::clearIKJointLimitHistory() {
     }
 }
 
+void Rig::setMaxHipsOffsetLength(float maxLength) {
+    _maxHipsOffsetLength = maxLength;
+
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
+            if (ikNode) {
+                ikNode->setMaxHipsOffsetLength(_maxHipsOffsetLength);
+            }
+            return true;
+        });
+    }
+}
+
+float Rig::getMaxHipsOffsetLength() const {
+    return _maxHipsOffsetLength;
+}
+
+float Rig::getIKErrorOnLastSolve() const {
+    float result = 0.0f;
+
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
+            if (ikNode) {
+                result = ikNode->getMaxErrorOnLastSolve();
+            }
+            return true;
+        });
+    }
+    return result;
+}
+
 int Rig::getJointParentIndex(int childIndex) const {
     if (_animSkeleton && isIndexValid(childIndex)) {
         return _animSkeleton->getParentIndex(childIndex);
@@ -1274,39 +1307,50 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     PerformanceTimer perfTimer("copyJoints");
     PROFILE_RANGE(simulation_animation_detail, "copyJoints");
-    if (_animSkeleton && jointDataVec.size() == (int)_internalPoseSet._relativePoses.size()) {
-        // make a vector of rotations in absolute-geometry-frame
-        const AnimPoseVec& absoluteDefaultPoses = _animSkeleton->getAbsoluteDefaultPoses();
-        std::vector<glm::quat> rotations;
-        rotations.reserve(absoluteDefaultPoses.size());
-        const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
-        for (int i = 0; i < jointDataVec.size(); i++) {
-            const JointData& data = jointDataVec.at(i);
-            if (data.rotationSet) {
-                // JointData rotations are in absolute rig-frame so we rotate them to absolute geometry-frame
-                rotations.push_back(rigToGeometryRot * data.rotation);
-            } else {
-                rotations.push_back(absoluteDefaultPoses[i].rot());
-            }
-        }
+    if (!_animSkeleton) {
+        return;
+    }
+    if (jointDataVec.size() != (int)_internalPoseSet._relativePoses.size()) {
+        // animations haven't fully loaded yet.
+        _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
+    }
 
-        // convert rotations from absolute to parent relative.
-        _animSkeleton->convertAbsoluteRotationsToRelative(rotations);
-
-        // store new relative poses
-        const AnimPoseVec& relativeDefaultPoses = _animSkeleton->getRelativeDefaultPoses();
-        for (int i = 0; i < jointDataVec.size(); i++) {
-            const JointData& data = jointDataVec.at(i);
-            _internalPoseSet._relativePoses[i].scale() = Vectors::ONE;
-            _internalPoseSet._relativePoses[i].rot() = rotations[i];
-            if (data.translationSet) {
-                // JointData translations are in scaled relative-frame so we scale back to regular relative-frame
-                _internalPoseSet._relativePoses[i].trans() = _invGeometryOffset.scale() * data.translation;
-            } else {
-                _internalPoseSet._relativePoses[i].trans() = relativeDefaultPoses[i].trans();
-            }
+    // make a vector of rotations in absolute-geometry-frame
+    const AnimPoseVec& absoluteDefaultPoses = _animSkeleton->getAbsoluteDefaultPoses();
+    std::vector<glm::quat> rotations;
+    rotations.reserve(absoluteDefaultPoses.size());
+    const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
+    for (int i = 0; i < jointDataVec.size(); i++) {
+        const JointData& data = jointDataVec.at(i);
+        if (data.rotationSet) {
+            // JointData rotations are in absolute rig-frame so we rotate them to absolute geometry-frame
+            rotations.push_back(rigToGeometryRot * data.rotation);
+        } else {
+            rotations.push_back(absoluteDefaultPoses[i].rot());
         }
     }
+
+    // convert rotations from absolute to parent relative.
+    _animSkeleton->convertAbsoluteRotationsToRelative(rotations);
+
+    // store new relative poses
+    const AnimPoseVec& relativeDefaultPoses = _animSkeleton->getRelativeDefaultPoses();
+    for (int i = 0; i < jointDataVec.size(); i++) {
+        const JointData& data = jointDataVec.at(i);
+        _internalPoseSet._relativePoses[i].scale() = Vectors::ONE;
+        _internalPoseSet._relativePoses[i].rot() = rotations[i];
+        if (data.translationSet) {
+            // JointData translations are in scaled relative-frame so we scale back to regular relative-frame
+            _internalPoseSet._relativePoses[i].trans() = _invGeometryOffset.scale() * data.translation;
+        } else {
+            _internalPoseSet._relativePoses[i].trans() = relativeDefaultPoses[i].trans();
+        }
+    }
+
+    // build absolute poses and copy to externalPoseSet
+    buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
+    QWriteLocker writeLock(&_externalPoseSetLock);
+    _externalPoseSet = _internalPoseSet;
 }
 
 void Rig::computeAvatarBoundingCapsule(
