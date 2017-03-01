@@ -16,6 +16,10 @@
 
 #include <FileCache.h>
 
+namespace ktx {
+    class KTX;
+}
+
 class KTXFile;
 using KTXFilePointer = std::shared_ptr<KTXFile>;
 
@@ -55,6 +59,7 @@ class KTXFile : public File {
 
 public:
     QUrl getUrl() const { return _url; }
+    std::unique_ptr<ktx::KTX> getKTX() const;
 
 protected:
     KTXFile(const Key& key, const std::string& filepath, size_t length, const QUrl& url) :

@@ -451,12 +451,32 @@ void ImageReader::listSupportedImageFormats() {
 }
 
 void FileReader::read() {
-    PROFILE_RANGE_EX(resource_parse_ktx, __FUNCTION__, 0xffff0000, 0);
+    gpu::TexturePointer texture;
+    {
+        auto resource = _resource.lock(); // to ensure the resource is still needed
+        if (!resource) {
+            qCDebug(modelnetworking) << _url << "loading stopped; resource out of scope";
+            return;
+        }
 
-    // TODO:
-    // auto ktx = ktx::KTX::create();
-    // auto texture = gpu::Texture::unserialize(getUsage(), getUsageType(), ktx, getSampler());
-    // FIXME: do I need to set the file as a backing file here?
+        PROFILE_RANGE_EX(resource_parse_ktx, __FUNCTION__, 0xffff0000, 0);
+        auto ktx = resource.staticCast<NetworkTexture>()->_file->getKTX();
+        gpu::Texture::Usage usage;
+        gpu::TextureUsageType usageType(gpu::TextureUsageType::RESOURCE);
+        gpu::Sampler sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR);
+        texture.reset(gpu::Texture::unserialize(usage, usageType, ktx, sampler));
+        texture->setKtxBacking(ktx);
+    }
+
+    auto resource = _resource.lock(); // to ensure the resource is still needed
+    if (resource) {
+        QMetaObject::invokeMethod(resource.data(), "setImage",
+            Q_ARG(gpu::TexturePointer, texture),
+            Q_ARG(int, texture->getWidth()), Q_ARG(int, texture->getHeight()));
+    } else {
+        qCDebug(modelnetworking) << _url << "loading stopped; resource out of scope";
+    }
+
 }
 
 void ImageReader::read() {
@@ -503,7 +523,7 @@ void ImageReader::read() {
         auto url = _url.toString().toStdString();
 
         PROFILE_RANGE_EX(resource_parse_image, __FUNCTION__, 0xffff0000, 0);
-        texture.reset(resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url));
+        texture.reset(resource.staticCast<NetworkTexture>()->getTextureLoader()(image, url));
         texture->setSource(url);
     }
 
@@ -531,12 +551,13 @@ void ImageReader::read() {
         if (!ktx || !(file = ktxCache.writeFile({ _url, hash, data, length }))) {
             qCWarning(modelnetworking) << _url << "file cache failed";
         } else {
-            resource.dynamicCast<NetworkTexture>()->_file = file;
-            // FIXME: do I need to set the file as a backing file here?
+            resource.staticCast<NetworkTexture>()->_file = file;
+            auto ktx = file->getKTX();
+            texture->setKtxBacking(ktx);
         }
     }
 
-    auto resource = _resource.toStrongRef(); // to ensure the resource is still needed
+    auto resource = _resource.lock(); // to ensure the resource is still needed
     if (resource) {
         QMetaObject::invokeMethod(resource.data(), "setImage",
             Q_ARG(gpu::TexturePointer, texture),

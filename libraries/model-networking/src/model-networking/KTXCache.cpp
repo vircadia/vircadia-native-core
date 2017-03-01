@@ -11,7 +11,7 @@
 
 #include "KTXCache.h"
 
-#include <memory>
+#include <ktx/KTX.h>
 
 KTXFilePointer KTXCache::writeFile(Data data) {
     return std::static_pointer_cast<KTXFile>(FileCache::writeFile(data.key, data.data, data.length, (void*)&data));
@@ -47,4 +47,9 @@ void KTXCache::evictedFile(const FilePointer& file) {
     const QUrl url = std::static_pointer_cast<KTXFile>(file)->getUrl();
     Lock lock(_urlMutex);
     _urlMap.erase(url);
+}
+
+std::unique_ptr<ktx::KTX> KTXFile::getKTX() const {
+    ktx::StoragePointer storage = std::make_shared<storage::FileStorage>(getFilepath().c_str());
+    return ktx::KTX::create(storage);
 }

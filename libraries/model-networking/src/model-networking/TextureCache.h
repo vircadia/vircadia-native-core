@@ -92,6 +92,7 @@ protected:
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
 private:
+    friend class FileReader;
     friend class ImageReader;
 
     Type _type;
