@@ -10,7 +10,6 @@
 
 * [boostconfig](https://github.com/boostorg/config) ~> 1.58
 * [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
-* [Faceshift](http://www.faceshift.com/) ~> 4.3
 * [GLEW](http://glew.sourceforge.net/)
 * [glm](https://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
 * [gverb](https://github.com/highfidelity/gverb)
@@ -20,7 +19,7 @@
 * [Polyvox](http://www.volumesoffun.com/) ~> 0.2.1
 * [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/) ~> 0.7.1
 * [SDL2](https://www.libsdl.org/download-2.0.php) ~> 2.0.3
-* [soxr](http://soxr.sourceforge.net) ~> 0.1.1
+* [soxr](https://sourceforge.net/p/soxr/wiki/Home/) ~> 0.1.1
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
 * [Sixense](http://sixense.com/) ~> 071615
 * [zlib](http://www.zlib.net/) ~> 1.28 (Win32 only)
