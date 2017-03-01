@@ -344,9 +344,8 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     QList<QTouchEvent::TouchPoint> touchPoints;
     touchPoints.push_back(point);
 
-    QTouchEvent* touchEvent = new QTouchEvent(type);
+    QTouchEvent* touchEvent = new QTouchEvent(type, &_touchDevice, event.getKeyboardModifiers());
     touchEvent->setWindow(_webSurface->getWindow());
-    touchEvent->setDevice(&_touchDevice);
     touchEvent->setTarget(_webSurface->getRootItem());
     touchEvent->setTouchPoints(touchPoints);
     touchEvent->setTouchPointStates(touchPointState);

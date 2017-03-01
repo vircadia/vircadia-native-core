@@ -106,6 +106,8 @@ public:
     Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl);
 
     Q_INVOKABLE void loadQMLSource(const QVariant& path);
+    Q_INVOKABLE void pushOntoStack(const QVariant& path);
+    Q_INVOKABLE void popFromStack();
 
     /**jsdoc
      * Creates a new button, adds it to this and returns it.

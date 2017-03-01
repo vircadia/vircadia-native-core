@@ -12,6 +12,8 @@
 #ifndef hifi_PointerEvent_h
 #define hifi_PointerEvent_h
 
+#include <Qt>
+
 #include <stdint.h>
 #include <glm/glm.hpp>
 #include <QScriptValue>
@@ -35,7 +37,7 @@ public:
     PointerEvent(EventType type, uint32_t id,
                  const glm::vec2& pos2D, const glm::vec3& pos3D,
                  const glm::vec3& normal, const glm::vec3& direction,
-                 Button button, uint32_t buttons);
+                 Button button, uint32_t buttons, Qt::KeyboardModifiers keyboardModifiers);
 
     static QScriptValue toScriptValue(QScriptEngine* engine, const PointerEvent& event);
     static void fromScriptValue(const QScriptValue& object, PointerEvent& event);
@@ -50,6 +52,7 @@ public:
     const glm::vec3& getDirection() const { return _direction; }
     Button getButton() const { return _button; }
     uint32_t getButtons() const { return _buttons; }
+    Qt::KeyboardModifiers getKeyboardModifiers() const { return _keyboardModifiers; }
 
 private:
     EventType _type;
@@ -61,6 +64,7 @@ private:
 
     Button _button { NoButtons };  // button assosiated with this event, (if type is Press, this will be the button that is pressed)
     uint32_t _buttons { NoButtons }; // the current state of all the buttons.
+    Qt::KeyboardModifiers _keyboardModifiers; // set of keys held when event was generated
 };
 
 Q_DECLARE_METATYPE(PointerEvent)

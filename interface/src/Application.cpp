@@ -6897,6 +6897,7 @@ void Application::updateThreadPoolCount() const {
 }
 
 void Application::updateSystemTabletMode() {
+    qApp->setProperty(hifi::properties::HMD, isHMDMode());
     if (isHMDMode()) {
         DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
     } else {

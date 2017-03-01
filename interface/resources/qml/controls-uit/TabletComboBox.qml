@@ -14,7 +14,6 @@ import QtQuick.Controls.Styles 1.4
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
-import "." as VrControls
 
 FocusScope {
     id: root
@@ -119,14 +118,14 @@ FocusScope {
     }
 
     function showList() {
-        var r = 20//desktop.mapFromItem(root, 0, 0, root.width, root.height);
-        var y = 200;
-        var bottom = 0 + scrollView.height;
+        var r = mapFromItem(root, 0, 0, root.width, root.height);
+        var y = r.y + r.height;
+        var bottom = y + scrollView.height;
         if (bottom > 720) {
-           y -= bottom - 720 + 8;
+           y -= bottom - tabletRoot.height + 8;
         }
-        scrollView.x = 0;
-        scrollView.y = 0;
+        scrollView.x = r.x;
+        scrollView.y = y;
         popup.visible = true;
         popup.forceActiveFocus();
         listView.currentIndex = root.currentIndex;
@@ -141,6 +140,7 @@ FocusScope {
 
     FocusScope {
         id: popup
+        z: 12
         parent: parent
         anchors.fill: parent
         visible: false
