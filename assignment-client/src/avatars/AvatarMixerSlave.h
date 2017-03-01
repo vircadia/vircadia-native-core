@@ -101,18 +101,6 @@ private:
     float _maxKbpsPerNode { 0.0f };
     float _throttlingRatio { 0.0f };
 
-
-    // FIXME - There is some old logic (unchanged as of 2/17/17) that randomly decides to send an identity
-    // packet. That logic had the following comment about the constants it uses...
-    //
-    //         An 80% chance of sending a identity packet within a 5 second interval.
-    //         assuming 60 htz update rate.
-    //
-    // Assuming the calculation of the constant is in fact correct for 80% and 60hz and 5 seconds (an assumption
-    // that I have not verified) then the constant is definitely wrong now, since we send at 45hz.
-    const float DEFAULT_IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
-    float _identitySendProbability = DEFAULT_IDENTITY_SEND_PROBABILITY;
-
     AvatarMixerSlaveStats _stats;
 };
 

@@ -65,15 +65,6 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     // compute the offset to the data payload
     return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }
-
-bool AvatarMixerClientData::checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid) {
-    if (_hasReceivedFirstPacketsFrom.find(uuid) == _hasReceivedFirstPacketsFrom.end()) {
-        _hasReceivedFirstPacketsFrom.insert(uuid);
-        return false;
-    }
-    return true;
-}
-
 uint64_t AvatarMixerClientData::getLastBroadcastTime(const QUuid& nodeUUID) const {
     // return the matching PacketSequenceNumber, or the default if we don't have it
     auto nodeMatch = _lastBroadcastTimes.find(nodeUUID);
@@ -103,7 +94,6 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
             killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
         }
         DependencyManager::get<NodeList>()->sendUnreliablePacket(*killPacket, *self);
-        _hasReceivedFirstPacketsFrom.erase(other->getUUID());
     }
 }
 

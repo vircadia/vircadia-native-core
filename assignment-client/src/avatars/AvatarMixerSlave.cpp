@@ -138,19 +138,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             // Increase minimumBytesPerAvatar if the PAL is open
             minimumBytesPerAvatar += sizeof(AvatarDataPacket::AvatarGlobalPosition) +
                 sizeof(AvatarDataPacket::AudioLoudness);
-            if (_identitySendProbability == DEFAULT_IDENTITY_SEND_PROBABILITY) {
-                // The client has just opened the PAL. Force all identity packets to be sent to
-                // this client.
-                _identitySendProbability = 1.0f;
-            } else {
-                // The user recently opened the PAL, but we've already gone through the above conditional.
-                // We want to receive identity updates more often than default when the PAL is open
-                // to be more confident that the user will see the most up-to-date information in the PAL.
-                _identitySendProbability = DEFAULT_IDENTITY_SEND_PROBABILITY * 2;
-            }
-        } else {
-            // If the PAL is closed, reset the identitySendProbability to the default.
-            _identitySendProbability = DEFAULT_IDENTITY_SEND_PROBABILITY;
         }
 
         // setup a PacketList for the avatarPackets
@@ -313,18 +300,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
             const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
 
-            // make sure we send out identity packets to and from new arrivals.
-            bool forceSend = !nodeData->checkAndSetHasReceivedFirstPacketsFrom(otherNode->getUUID());
-
-            // FIXME - this clause seems suspicious "... || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp ..."
-            if ((!overBudget
-                && otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
-                && (forceSend
-                || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
-                || distribution(generator) < _identitySendProbability)) ||
-                // Also make sure we send identity packets if the PAL is open.
-                (PALIsOpen && distribution(generator) < _identitySendProbability)) {
-
+            // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
+            // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
+            if (nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
                 identityBytesSent += sendIdentityPacket(otherNodeData, node);
             }
 
