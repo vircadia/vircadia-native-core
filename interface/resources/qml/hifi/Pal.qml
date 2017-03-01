@@ -2,7 +2,7 @@
 //  Pal.qml
 //  qml/hifi
 //
-//  People Action List 
+//  People Action List
 //
 //  Created by Howard Stearns on 12/12/2016
 //  Copyright 2016 High Fidelity, Inc.
@@ -37,9 +37,6 @@ Rectangle {
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
     property bool iAmAdmin: false
-    // Keep a local list of per-avatar gainSliderValueDBs. Far faster than fetching this data from the server.
-    // NOTE: if another script modifies the per-avatar gain, this value won't be accurate!
-    property var gainSliderValueDB: ({});
 
     HifiConstants { id: hifi }
 
@@ -270,7 +267,7 @@ Rectangle {
                 // Anchors
                 anchors.left: parent.left
             }
-            
+
             // This CheckBox belongs in the columns that contain the stateful action buttons ("Mute" & "Ignore" for now)
             // KNOWN BUG with the Checkboxes: When clicking in the center of the sorting header, the checkbox
             // will appear in the "hovered" state. Hovering over the checkbox will fix it.
@@ -306,7 +303,7 @@ Rectangle {
                     checked = Qt.binding(function() { return (model[styleData.role])})
                 }
             }
-            
+
             // This Button belongs in the columns that contain the stateless action buttons ("Silence" & "Ban" for now)
             HifiControls.Button {
                 id: actionButton
@@ -538,7 +535,7 @@ Rectangle {
                 }
             }
             break;
-        case 'updateAudioLevel': 
+        case 'updateAudioLevel':
             for (var userId in message.params) {
                 var audioLevel = message.params[userId];
                 // If the userId is 0, we're updating "myData".
@@ -554,9 +551,8 @@ Rectangle {
                 }
             }
             break;
-        case 'clearLocalQMLData': 
+        case 'clearLocalQMLData':
             ignored = {};
-            gainSliderValueDB = {};
             break;
         case 'avatarDisconnected':
             var sessionID = message.params[0];

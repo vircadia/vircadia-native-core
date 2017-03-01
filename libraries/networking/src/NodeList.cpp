@@ -49,7 +49,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     setCustomDeleter([](Dependency* dependency){
         static_cast<NodeList*>(dependency)->deleteLater();
     });
-    
+
     auto addressManager = DependencyManager::get<AddressManager>();
 
     // handle domain change signals from AddressManager
@@ -85,8 +85,8 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(&_domainHandler, &DomainHandler::icePeerSocketsReceived, this, &NodeList::pingPunchForDomainServer);
 
     auto accountManager = DependencyManager::get<AccountManager>();
-    
-    // assume that we may need to send a new DS check in anytime a new keypair is generated 
+
+    // assume that we may need to send a new DS check in anytime a new keypair is generated
     connect(accountManager.data(), &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
 
     // clear out NodeList when login is finished
@@ -101,7 +101,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     // anytime we get a new node we may need to re-send our set of ignored node IDs to it
     connect(this, &LimitedNodeList::nodeActivated, this, &NodeList::maybeSendIgnoreSetToNode);
-    
+
     // setup our timer to send keepalive pings (it's started and stopped on domain connect/disconnect)
     _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS); // 1s, Qt::CoarseTimer acceptable
     connect(&_keepAlivePingTimer, &QTimer::timeout, this, &NodeList::sendKeepAlivePings);
@@ -161,11 +161,11 @@ qint64 NodeList::sendStatsToDomainServer(QJsonObject statsObject) {
 
 void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& sendingNode) {
     PingType_t pingType;
-    
+
     quint64 ourOriginalTime, othersReplyTime;
-    
+
     message.seek(0);
-    
+
     message.readPrimitive(&pingType);
     message.readPrimitive(&ourOriginalTime);
     message.readPrimitive(&othersReplyTime);
@@ -199,7 +199,7 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
 }
 
 void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    
+
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*message);
     const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
@@ -251,6 +251,11 @@ void NodeList::reset() {
     _personalMutedSetLock.lockForWrite();
     _personalMutedNodeIDs.clear();
     _personalMutedSetLock.unlock();
+
+    // lock and clear out set of avatarGains
+    _avatarGainMapLock.lockForWrite();
+    _avatarGainMap.clear();
+    _avatarGainMapLock.unlock();
 
     // refresh the owner UUID to the NULL UUID
     setSessionUUID(QUuid());
@@ -329,7 +334,7 @@ void NodeList::sendDomainServerCheckIn() {
         }
 
         auto domainPacket = NLPacket::create(domainPacketType);
-        
+
         QDataStream packetStream(domainPacket.get());
 
         if (domainPacketType == PacketType::DomainConnectRequest) {
@@ -488,7 +493,7 @@ void NodeList::processDomainServerPathResponse(QSharedPointer<ReceivedMessage> m
         qCDebug(networking) << "Could not read query path from DomainServerPathQueryResponse. Bailing.";
         return;
     }
-    
+
     QString pathQuery = QString::fromUtf8(message->getRawMessage() + message->getPosition(), numPathBytes);
     message->seek(message->getPosition() + numPathBytes);
 
@@ -500,10 +505,10 @@ void NodeList::processDomainServerPathResponse(QSharedPointer<ReceivedMessage> m
         qCDebug(networking) << "Could not read resulting viewpoint from DomainServerPathQueryReponse. Bailing";
         return;
     }
-    
+
     // pull the viewpoint from the packet
     QString viewpoint = QString::fromUtf8(message->getRawMessage() + message->getPosition(), numViewpointBytes);
-    
+
     // Hand it off to the AddressManager so it can handle it as a relative viewpoint
     if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
         qCDebug(networking) << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
@@ -664,16 +669,16 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
- 
+
     PacketType assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
         ? PacketType::CreateAssignment
         : PacketType::RequestAssignment;
 
     auto assignmentPacket = NLPacket::create(assignmentPacketType);
-    
+
     QDataStream packetStream(assignmentPacket.get());
     packetStream << assignment;
-    
+
     sendPacket(std::move(assignmentPacket), _assignmentServerSocket);
 }
 
@@ -833,7 +838,7 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
                 _ignoredNodeIDs.insert(nodeID);
             }
             {
-                QReadLocker personalMutedSetLocker{ &_personalMutedSetLock }; // read lock for insert 
+                QReadLocker personalMutedSetLocker{ &_personalMutedSetLock }; // read lock for insert
                 // add this nodeID to our set of personal muted IDs
                 _personalMutedNodeIDs.insert(nodeID);
             }
@@ -896,7 +901,7 @@ void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled
 
 
                 if (muteEnabled) {
-                    QReadLocker personalMutedSetLocker{ &_personalMutedSetLock }; // read lock for insert 
+                    QReadLocker personalMutedSetLocker{ &_personalMutedSetLock }; // read lock for insert
                     // add this nodeID to our set of personal muted IDs
                     _personalMutedNodeIDs.insert(nodeID);
                 } else {
@@ -981,7 +986,7 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
         if (audioMixer) {
             // setup the packet
             auto setAvatarGainPacket = NLPacket::create(PacketType::PerAvatarGainSet, NUM_BYTES_RFC4122_UUID + sizeof(float), true);
-            
+
             // write the node ID to the packet
             setAvatarGainPacket->write(nodeID.toRfc4122());
             // We need to convert the gain in dB (from the script) to an amplitude before packing it.
@@ -990,12 +995,24 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
             qCDebug(networking) << "Sending Set Avatar Gain packet UUID: " << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
 
             sendPacket(std::move(setAvatarGainPacket), *audioMixer);
+            QWriteLocker{ &_avatarGainMapLock };
+            _avatarGainMap[nodeID] = gain;
+
         } else {
             qWarning() << "Couldn't find audio mixer to send set gain request";
         }
     } else {
         qWarning() << "NodeList::setAvatarGain called with an invalid ID or an ID which matches the current session ID:" << nodeID;
     }
+}
+
+float NodeList::getAvatarGain(const QUuid& nodeID) {
+    QReadLocker{ &_avatarGainMapLock };
+    auto it = _avatarGainMap.find(nodeID);
+    if (it != _avatarGainMap.cend()) {
+        return it->second;
+    }
+    return 0.0f;
 }
 
 void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
@@ -1036,7 +1053,7 @@ void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
                 mutePacket->write(nodeID.toRfc4122());
 
                 qCDebug(networking) << "Sending packet to mute node" << uuidStringWithoutCurlyBraces(nodeID);
-            
+
                 sendPacket(std::move(mutePacket), *audioMixer);
             } else {
                 qWarning() << "Couldn't find audio mixer to send node mute request";
