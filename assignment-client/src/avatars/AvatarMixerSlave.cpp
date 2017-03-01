@@ -134,13 +134,10 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
         bool getsAnyIgnored = PALIsOpen && node->getCanKick();
 
-        // Increase minimumBytesPerAvatar if the PAL is open
         if (PALIsOpen) {
+            // Increase minimumBytesPerAvatar if the PAL is open
             minimumBytesPerAvatar += sizeof(AvatarDataPacket::AvatarGlobalPosition) +
                 sizeof(AvatarDataPacket::AudioLoudness);
-        }
-
-        if (PALIsOpen) {
             if (_identitySendProbability == DEFAULT_IDENTITY_SEND_PROBABILITY) {
                 // The client has just opened the PAL. Force all identity packets to be sent to
                 // this client.
