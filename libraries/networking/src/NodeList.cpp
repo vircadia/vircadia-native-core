@@ -252,6 +252,11 @@ void NodeList::reset() {
     _personalMutedNodeIDs.clear();
     _personalMutedSetLock.unlock();
 
+    // lock and clear out set of avatarGains
+    _avatarGainMapLock.lockForWrite();
+    _avatarGainMap.clear();
+    _avatarGainMapLock.unlock();
+
     // refresh the owner UUID to the NULL UUID
     setSessionUUID(QUuid());
 
