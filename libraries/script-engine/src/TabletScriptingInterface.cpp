@@ -356,8 +356,15 @@ void TabletProxy::pushOntoStack(const QVariant& path) {
         } else {
             qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot doesn't have child stack";
         }
+    } else if (_desktopWindow) {
+        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
+        if (stack) {
+            QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
+        } else {
+            qCDebug(scriptengine) << "tablet cannot push QML because _desktopWindow doesn't have child stack";
+        }
     } else {
-        qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot is null";
+        qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
     }
 }
 
@@ -367,10 +374,17 @@ void TabletProxy::popFromStack() {
         if (stack) {
             QMetaObject::invokeMethod(stack, "popSource");
         } else {
-            qCDebug(scriptengine) << "tablet cannot pop QML because _qmlTabletRoot doesn't have child stack";
+            qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot doesn't have child stack";
+        }
+    } else if (_desktopWindow) {
+        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
+        if (stack) {
+            QMetaObject::invokeMethod(stack, "popSource");
+        } else { 
+            qCDebug(scriptengine) << "tablet cannot pop QML because _desktopWindow doesn't have child stack";
         }
     } else {
-        qCDebug(scriptengine) << "tablet cannot pop QML because _qmlTabletRoot is null";
+        qCDebug(scriptengine) << "tablet cannot pop QML because _qmlTabletRoot or _desktopWindow is null";
     }
 }
 
