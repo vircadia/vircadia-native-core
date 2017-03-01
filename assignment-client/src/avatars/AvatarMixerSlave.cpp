@@ -134,15 +134,14 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
         bool getsAnyIgnored = PALIsOpen && node->getCanKick();
 
-        // Increase minimumBytesPerAvatar if the PAL is open or we're gettingAnyIgnored
-        if (PALIsOpen || getsAnyIgnored) {
+        // Increase minimumBytesPerAvatar if the PAL is open
+        if (PALIsOpen) {
             minimumBytesPerAvatar += sizeof(AvatarDataPacket::AvatarGlobalPosition) +
                 sizeof(AvatarDataPacket::AudioLoudness);
         }
 
         if (PALIsOpen) {
-            if (_identitySendProbability == DEFAULT_IDENTITY_SEND_PROBABILITY)
-            {
+            if (_identitySendProbability == DEFAULT_IDENTITY_SEND_PROBABILITY) {
                 // The client has just opened the PAL. Force all identity packets to be sent to
                 // this client.
                 _identitySendProbability = 1.0f;
@@ -327,7 +326,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                 || distribution(generator) < _identitySendProbability)) ||
                 // Also make sure we send identity packets if the PAL is open.
-                ((PALIsOpen || getsAnyIgnored) && distribution(generator) < _identitySendProbability)) {
+                (PALIsOpen && distribution(generator) < _identitySendProbability)) {
 
                 identityBytesSent += sendIdentityPacket(otherNodeData, node);
             }
@@ -348,9 +347,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             if (overBudget) {
                 overBudgetAvatars++;
                 _stats.overBudgetAvatars++;
-                detail = (PALIsOpen || getsAnyIgnored) ? AvatarData::PALMinimum : AvatarData::NoData;
+                detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::NoData;
             } else if (!isInView) {
-                detail = (PALIsOpen || getsAnyIgnored) ? AvatarData::PALMinimum : AvatarData::NoData;
+                detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::NoData;
                 nodeData->incrementAvatarOutOfView();
             } else {
                 detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
