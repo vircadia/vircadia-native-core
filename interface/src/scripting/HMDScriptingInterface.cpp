@@ -131,7 +131,7 @@ glm::quat HMDScriptingInterface::getOrientation() const {
     return glm::quat();
 }
 
-bool HMDScriptingInterface::isMounted() const{
+bool HMDScriptingInterface::isMounted() const {
     auto displayPlugin = qApp->getActiveDisplayPlugin();
     return (displayPlugin->isHmd() && displayPlugin->isDisplayVisible());
 }

@@ -106,6 +106,14 @@ public:
     Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl);
 
     Q_INVOKABLE void loadQMLSource(const QVariant& path);
+    Q_INVOKABLE void pushOntoStack(const QVariant& path);
+    Q_INVOKABLE void popFromStack();
+
+    /** jsdoc
+     * Check if the tablet has a message dialog open
+     * @function TabletProxy#isMessageDialogOpen
+     */
+    Q_INVOKABLE bool isMessageDialogOpen();
 
     /**jsdoc
      * Creates a new button, adds it to this and returns it.
@@ -150,7 +158,13 @@ public:
      */
     Q_INVOKABLE void sendToQml(QVariant msg);
 
+    /**jsdoc
+     * Check if the tablet is on the homescreen
+     * @function TabletProxy#onHomeScreen()
+     */
     Q_INVOKABLE bool onHomeScreen();
+
+    QQuickItem* getTabletRoot() const { return _qmlTabletRoot; }
 
     QObject* getTabletSurface();
 

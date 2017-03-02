@@ -13,8 +13,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
-   Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset, setGrabCommunications,
-   Menu, HMD, isInEditMode */
+    Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset,
+   setGrabCommunications, Menu, HMD, isInEditMode */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -739,6 +739,7 @@ function MyController(hand) {
     this.grabPointIntersectsEntity = false;
     this.stylus = null;
     this.homeButtonTouched = false;
+    this.editTriggered = false;
 
     // Until there is some reliable way to keep track of a "stack" of parentIDs, we'll have problems
     // when more than one avatar does parenting grabs on things.  This script tries to work
@@ -1048,7 +1049,7 @@ function MyController(hand) {
         }
 
         var searchSphereLocation = Vec3.sum(distantPickRay.origin,
-            Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
+                                            Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
         this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance,
                             (this.triggerSmoothedGrab() || this.secondarySqueezed()) ?
                             COLORS_GRAB_SEARCHING_FULL_SQUEEZE :
@@ -1216,6 +1217,10 @@ function MyController(hand) {
     this.off = function(deltaTime, timestamp) {
 
         this.checkForUnexpectedChildren();
+
+        if (this.editTriggered) {
+            this.editTriggered = false;
+        }
 
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.waitForTriggerRelease = false;
@@ -1683,23 +1688,21 @@ function MyController(hand) {
                 return aDistance - bDistance;
             });
             entity = grabbableEntities[0];
-            name = entityPropertiesCache.getProps(entity).name;
-            this.grabbedThingID = entity;
-            this.grabbedIsOverlay = false;
-            if (this.entityWantsTrigger(entity)) {
-                if (this.triggerSmoothedGrab()) {
-                    this.setState(STATE_NEAR_TRIGGER, "near trigger '" + name + "'");
-                    return;
+            if (!isInEditMode() || entity == HMD.tabletID) { // tablet is grabbable, even when editing
+                name = entityPropertiesCache.getProps(entity).name;
+                this.grabbedThingID = entity;
+                this.grabbedIsOverlay = false;
+                if (this.entityWantsTrigger(entity)) {
+                    if (this.triggerSmoothedGrab()) {
+                        this.setState(STATE_NEAR_TRIGGER, "near trigger '" + name + "'");
+                        return;
+                    }
                 } else {
-                    // potentialNearTriggerEntity = entity;
-                }
-            } else {
-                //  If near something grabbable, grab it!
-                if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && nearGrabEnabled) {
-                    this.setState(STATE_NEAR_GRABBING, "near grab entity '" + name + "'");
-                    return;
-                } else {
-                    // potentialNearGrabEntity = entity;
+                    //  If near something grabbable, grab it!
+                    if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && nearGrabEnabled) {
+                        this.setState(STATE_NEAR_GRABBING, "near grab entity '" + name + "'");
+                        return;
+                    }
                 }
             }
         }
@@ -1712,6 +1715,21 @@ function MyController(hand) {
             if (this.handleLaserOnWebOverlay(rayPickInfo)) {
                 return;
             }
+        }
+
+        if (isInEditMode()) {
+            this.searchIndicatorOn(rayPickInfo.searchRay);
+            if (this.triggerSmoothedGrab()) {
+                if (!this.editTriggered && rayPickInfo.entityID) {
+                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                        method: "selectEntity",
+                        entityID: rayPickInfo.entityID
+                    }));
+                }
+                this.editTriggered = true;
+            }
+            Reticle.setVisible(false);
+            return;
         }
 
         if (rayPickInfo.entityID) {

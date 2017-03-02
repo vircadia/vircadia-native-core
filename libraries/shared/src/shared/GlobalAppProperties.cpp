@@ -16,6 +16,7 @@ namespace hifi { namespace properties {
     const char* OCULUS_STORE = "com.highfidelity.oculusStore";
     const char* TEST = "com.highfidelity.test";
     const char* TRACING = "com.highfidelity.tracing";
+    const char* HMD = "com.highfidelity.hmd";
 
     namespace gl {
         const char* BACKEND = "com.highfidelity.gl.backend";
