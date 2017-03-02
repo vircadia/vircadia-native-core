@@ -12,6 +12,7 @@
 #include "FileCache.h"
 
 #include <cstdio>
+#include <cassert>
 #include <fstream>
 #include <unordered_set>
 
@@ -37,7 +38,7 @@ FileCache::FileCache(const std::string& dirname, const std::string& ext, QObject
     QObject(parent),
     _ext(ext),
     _dirname(dirname),
-    _dir(createDir(_dirname)) {}
+    _dirpath(ServerPathUtils::getDataFilePath(dirname.c_str()).toStdString()) {}
 
 FileCache::~FileCache() {
     clear();
@@ -47,7 +48,63 @@ void fileDeleter(File* file) {
     file->deleter();
 }
 
+void FileCache::initialize() {
+    QDir dir(_dirpath.c_str());
+
+    if (dir.exists()) {
+        std::unordered_map<std::string, std::pair<Key, std::string>> persistedEntries;
+        if (dir.exists(MANIFEST_NAME.c_str())) {
+            std::ifstream manifest;
+            manifest.open(dir.absoluteFilePath(MANIFEST_NAME.c_str()).toStdString());
+            while (manifest.good()) {
+                std::string key, metadata;
+                std::getline(manifest, key, '\t');
+                std::getline(manifest, metadata, '\n');
+                if (!key.empty()) {
+                    qCInfo(file_cache, "[%s] Manifest contains %s (%s)", _dirname.c_str(), key.c_str(), metadata.c_str());
+                    auto filename = key + '.' + _ext;
+                    persistedEntries[filename] = { key, metadata };
+                }
+            }
+        } else {
+            qCWarning(file_cache, "[%s] Missing manifest", _dirname.c_str());
+        }
+
+        std::unordered_map<Key, std::string> entries;
+
+        foreach(QString filename, dir.entryList(QDir::Filters(QDir::NoDotAndDotDot | QDir::Files))) {
+            const auto& it = persistedEntries.find(filename.toStdString());
+            if (it == persistedEntries.cend()) {
+                // unlink extra files
+                dir.remove(filename);
+                qCInfo(file_cache, "[%s] Cleaned %s", _dirname.c_str(), filename.toStdString().c_str());
+            } else {
+                // load existing files
+                const Key& key = it->second.first;
+                const std::string& metadata = it->second.second;
+                const std::string filepath = dir.filePath(filename).toStdString();
+                const size_t length = std::ifstream(filepath, std::ios::binary | std::ios::ate).tellg();
+
+                FilePointer file(loadFile(key, filepath, length, metadata), &fileDeleter);
+                file->_cache = this;
+                _files[key] = file;
+                _numTotalFiles += 1;
+                _totalFilesSize += length;
+            }
+        }
+
+        qCDebug(file_cache, "[%s] Initialized %s", _dirname.c_str(), _dirpath.c_str());
+    } else {
+        dir.mkpath(_dirpath.c_str());
+        qCDebug(file_cache, "[%s] Created %s", _dirname.c_str(), _dirpath.c_str());
+    }
+
+    _initialized = true;
+}
+
 FilePointer FileCache::writeFile(const Key& key, const char* data, size_t length, void* extra) {
+    assert(_initialized);
+
     std::string filepath = getFilepath(key);
 
     Lock lock(_filesMutex);
@@ -78,6 +135,8 @@ FilePointer FileCache::writeFile(const Key& key, const char* data, size_t length
 }
 
 FilePointer FileCache::getFile(const Key& key) {
+    assert(_initialized);
+
     FilePointer file;
 
     Lock lock(_filesMutex);
@@ -100,50 +159,8 @@ FilePointer FileCache::getFile(const Key& key) {
     return file;
 }
 
-File* FileCache::createFile(const Key& key, const std::string& filepath, size_t length, void* extra) {
-    qCInfo(file_cache, "Wrote %s", key.c_str());
-    return new File(key, filepath, length);
-}
-
-std::string FileCache::createDir(const std::string& dirname) {
-    QString dirpath = ServerPathUtils::getDataFilePath(dirname.c_str());
-    QDir dir(dirpath);
-
-    if (dir.exists()) {
-        std::unordered_set<std::string> persistedEntries;
-        if (dir.exists(MANIFEST_NAME.c_str())) {
-            std::ifstream manifest;
-            manifest.open(dir.absoluteFilePath(MANIFEST_NAME.c_str()).toStdString());
-            while (manifest.good()) {
-                std::string entry;
-                manifest >> entry;
-                if (!entry.empty()) {
-                    qCInfo(file_cache, "[%s] Manifest contains %s", _dirname.c_str(), entry.c_str());
-                    persistedEntries.insert(entry + '.' + _ext);
-                }
-            }
-        } else {
-            qCWarning(file_cache, "[%s] Missing manifest", _dirname.c_str());
-        }
-        
-
-        foreach(QString filename, dir.entryList(QDir::Filters(QDir::NoDotAndDotDot | QDir::Files))) {
-            if (persistedEntries.find(filename.toStdString()) == persistedEntries.cend()) {
-                dir.remove(filename);
-                qCInfo(file_cache, "[%s] Cleaned %s", _dirname.c_str(), filename.toStdString().c_str());
-            }
-        }
-        qCDebug(file_cache) << "Initiated" << dirpath;
-    } else {
-        dir.mkpath(dirpath);
-        qCDebug(file_cache) << "Created" << dirpath;
-    }
-
-    return dirpath.toStdString();
-}
-
 std::string FileCache::getFilepath(const Key& key) {
-    return _dir + '/' + key + '.' + _ext;
+    return _dirpath + '/' + key + '.' + _ext;
 }
 
 void FileCache::addUnusedFile(const FilePointer file) {
@@ -223,7 +240,7 @@ void FileCache::clear() {
     };
 
     try {
-        std::string manifestPath= _dir + '/' + MANIFEST_NAME;
+        std::string manifestPath= _dirpath + '/' + MANIFEST_NAME;
         std::ofstream manifest(manifestPath);
 
         forAllFiles([&](const FilePointer& file) {
@@ -232,9 +249,10 @@ void FileCache::clear() {
             if (_totalFilesSize > _offlineFilesMaxSize) {
                 _totalFilesSize -= file->getLength();
             } else {
-                manifest << file->getKey() << '\n';
+                manifest << file->getKey() << '\t' << file->getMetadata() << '\n';
                 file->_shouldPersist = true;
-                qCInfo(file_cache, "[%s] Persisting %s", _dirname.c_str(), file->getKey().c_str());
+                qCInfo(file_cache, "[%s] Persisting %s (%s)",
+                        _dirname.c_str(), file->getKey().c_str(), file->getMetadata().c_str());
             }
         });
     } catch (std::exception& e) {

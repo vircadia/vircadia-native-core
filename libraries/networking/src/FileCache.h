@@ -73,10 +73,17 @@ signals:
     void dirty();
 
 protected:
+    /// must be called after construction to create the cache on the fs and restore persisted files
+    void initialize();
+
     FilePointer writeFile(const Key& key, const char* data, size_t length, void* extra);
     FilePointer getFile(const Key& key);
 
-    virtual File* createFile(const Key& key, const std::string& filepath, size_t length, void* extra);
+    /// create a file (ex.: create a class derived from File and store it in a secondary map with extra->url)
+    virtual File* createFile(const Key& key, const std::string& filepath, size_t length, void* extra) = 0;
+    /// load a file
+    virtual File* loadFile(const Key& key, const std::string& filepath, size_t length, const std::string& metadata) = 0;
+    /// take action when a file is evicted from the cache (ex.: evict it from a secondary map)
     virtual void evictedFile(const FilePointer& file) = 0;
 
 private:
@@ -85,7 +92,6 @@ private:
 
     friend class File;
 
-    std::string createDir(const std::string& dirname);
     std::string getFilepath(const Key& key);
 
     void addUnusedFile(const FilePointer file);
@@ -100,7 +106,8 @@ private:
 
     std::string _ext;
     std::string _dirname;
-    std::string _dir;
+    std::string _dirpath;
+    bool _initialized { false };
 
     std::unordered_map<Key, std::weak_ptr<File>> _files;
     Mutex _filesMutex;
@@ -132,6 +139,9 @@ protected:
         _filepath(filepath), _key(key), _length(length) {}
     // the destructor should handle unlinking of the actual filepath
     virtual ~File();
+
+    /// get metadata to store with a file between instances (ex.: return the url of a hash)
+    virtual std::string getMetadata() const = 0;
 
     const std::string _filepath;
 

@@ -451,6 +451,8 @@ void ImageReader::listSupportedImageFormats() {
 }
 
 void FileReader::read() {
+    PROFILE_RANGE_EX(resource_parse_ktx, __FUNCTION__, 0xffff0000, 0, { { "url", _url.toString() } });
+
     gpu::TexturePointer texture;
     {
         auto resource = _resource.lock(); // to ensure the resource is still needed
@@ -459,7 +461,6 @@ void FileReader::read() {
             return;
         }
 
-        PROFILE_RANGE_EX(resource_parse_ktx, __FUNCTION__, 0xffff0000, 0);
         auto ktx = resource.staticCast<NetworkTexture>()->_file->getKTX();
         gpu::Texture::Usage usage;
         gpu::TextureUsageType usageType(gpu::TextureUsageType::RESOURCE);

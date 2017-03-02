@@ -27,7 +27,7 @@ class KTXCache : public FileCache {
     Q_OBJECT
 
 public:
-    KTXCache(const std::string& dir, const std::string& ext) : FileCache(dir, ext) {}
+    KTXCache(const std::string& dir, const std::string& ext) : FileCache(dir, ext) { initialize(); }
 
     struct Data {
         Data(const QUrl& url, const Key& key, const char* data, size_t length) :
@@ -43,6 +43,7 @@ public:
 
 protected:
     File* createFile(const Key& key, const std::string& filepath, size_t length, void* extra) override final;
+    File* loadFile(const Key& key, const std::string& filepath, size_t length, const std::string& metadata) override final;
     void evictedFile(const FilePointer& file) override final;
 
 private:
@@ -64,6 +65,8 @@ public:
 protected:
     KTXFile(const Key& key, const std::string& filepath, size_t length, const QUrl& url) :
         File(key, filepath, length), _url(url) {}
+
+    std::string getMetadata() const override final;
 
 private:
     friend class KTXCache;

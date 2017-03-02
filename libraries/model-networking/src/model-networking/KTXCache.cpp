@@ -43,10 +43,21 @@ File* KTXCache::createFile(const Key& key, const std::string& filepath, size_t l
     return new KTXFile(key, filepath, length, url);
 }
 
+File* KTXCache::loadFile(const Key& key, const std::string& filepath, size_t length, const std::string& metadata) {
+    const QUrl url = QString(metadata.c_str());
+    _urlMap[url] = key;
+    qCInfo(file_cache) << "Loaded KTX" << key.c_str() << url;
+    return new KTXFile(key, filepath, length, url);
+}
+
 void KTXCache::evictedFile(const FilePointer& file) {
     const QUrl url = std::static_pointer_cast<KTXFile>(file)->getUrl();
     Lock lock(_urlMutex);
     _urlMap.erase(url);
+}
+
+std::string KTXFile::getMetadata() const {
+    return _url.toString().toStdString();
 }
 
 std::unique_ptr<ktx::KTX> KTXFile::getKTX() const {
