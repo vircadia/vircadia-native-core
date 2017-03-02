@@ -30,6 +30,8 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
     setLocalTransform(line3DOverlay->getLocalTransform());
     _direction = line3DOverlay->getDirection();
     _length = line3DOverlay->getLength();
+    _endParentID = line3DOverlay->getEndParentID();
+    _endParentJointIndex = line3DOverlay->getEndJointIndex();
 }
 
 Line3DOverlay::~Line3DOverlay() {
@@ -45,9 +47,18 @@ glm::vec3 Line3DOverlay::getStart() const {
 
 glm::vec3 Line3DOverlay::getEnd() const {
     bool success;
+    glm::vec3 localEnd;
+    glm::vec3 worldEnd;
 
-    glm::vec3 localEnd = getLocalEnd();
-    glm::vec3 worldEnd = localToWorld(localEnd, getParentID(), getParentJointIndex(), success);
+    if (_endParentID != QUuid()) {
+        glm::vec3 localOffset = _direction * _length;
+        bool success;
+        worldEnd = localToWorld(localOffset, _endParentID, _endParentJointIndex, success);
+        return worldEnd;
+    }
+
+    localEnd = getLocalEnd();
+    worldEnd = localToWorld(localEnd, getParentID(), getParentJointIndex(), success);
     if (!success) {
         qDebug() << "Line3DOverlay::getEnd failed";
     }
@@ -60,15 +71,33 @@ void Line3DOverlay::setStart(const glm::vec3& start) {
 
 void Line3DOverlay::setEnd(const glm::vec3& end) {
     bool success;
+    glm::vec3 localStart;
+    glm::vec3 localEnd;
+    glm::vec3 offset;
 
-    glm::vec3 localStart = getLocalStart();
-    glm::vec3 localEnd = worldToLocal(end, getParentID(), getParentJointIndex(), success);
+    if (_endParentID != QUuid()) {
+        offset = worldToLocal(end, _endParentID, _endParentJointIndex, success);
+    } else {
+        localStart = getLocalStart();
+        localEnd = worldToLocal(end, getParentID(), getParentJointIndex(), success);
+        offset = localEnd - localStart;
+    }
     if (!success) {
         qDebug() << "Line3DOverlay::setEnd failed";
         return;
     }
+    _direction = glm::normalize(offset);
+    _length = glm::length(offset);
+}
 
-    glm::vec3 offset = localEnd - localStart;
+void Line3DOverlay::setLocalEnd(const glm::vec3& localEnd) {
+    glm::vec3 offset;
+    if (_endParentID != QUuid()) {
+        offset = localEnd;
+    } else {
+        glm::vec3 localStart = getLocalStart();
+        offset = localEnd - localStart;
+    }
     _direction = glm::normalize(offset);
     _length = glm::length(offset);
 }
@@ -136,16 +165,6 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
     }
     properties.remove("start"); // so that Base3DOverlay doesn't respond to it
 
-    auto localStart = properties["localStart"];
-    if (localStart.isValid()) {
-        setLocalPosition(vec3FromVariant(localStart));
-        // in case "end" isn't updated...
-        glm::vec3 offset = getLocalEnd() - getLocalStart();
-        _direction = glm::normalize(offset);
-        _length = glm::length(offset);
-    }
-    properties.remove("localStart"); // so that Base3DOverlay doesn't respond to it
-
     auto end = properties["end"];
     // if "end" property was not there, check to see if they included aliases: endPoint
     if (!end.isValid()) {
@@ -157,20 +176,33 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
     }
     properties.remove("end"); // so that Base3DOverlay doesn't respond to it
 
-    auto localEnd = properties["localEnd"];
-    if (localEnd.isValid()) {
-        glm::vec3 offset = vec3FromVariant(localEnd) - getLocalStart();
-        _direction = glm::normalize(offset);
-        _length = glm::length(offset);
-    }
-    properties.remove("localEnd"); // so that Base3DOverlay doesn't respond to it
-
     auto length = properties["length"];
     if (length.isValid()) {
         _length = length.toFloat();
     }
 
     Base3DOverlay::setProperties(properties);
+
+    auto endParentIDProp = properties["endParentID"];
+    if (endParentIDProp.isValid()) {
+        _endParentID = QUuid(endParentIDProp.toString());
+    }
+    auto endParentJointIndexProp = properties["endParentJointIndex"];
+    if (endParentJointIndexProp.isValid()) {
+        _endParentJointIndex = endParentJointIndexProp.toInt();
+    }
+
+    auto localStart = properties["localStart"];
+    if (localStart.isValid()) {
+        glm::vec3 tmpLocalEnd = getLocalEnd();
+        setLocalStart(vec3FromVariant(localStart));
+        setLocalEnd(tmpLocalEnd);
+    }
+
+    auto localEnd = properties["localEnd"];
+    if (localEnd.isValid()) {
+        setLocalEnd(vec3FromVariant(localEnd));
+    }
 
     // these are saved until after Base3DOverlay::setProperties so parenting infomation can be set, first
     if (newStartSet) {

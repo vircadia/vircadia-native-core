@@ -999,7 +999,7 @@ function MyController(hand) {
         }
     };
 
-    this.overlayLineOn = function(closePoint, farPoint, color) {
+    this.overlayLineOn = function(closePoint, farPoint, color, farParentID) {
         if (this.overlayLine === null) {
             var lineProperties;
             if (this.hand === RIGHT_HAND) {
@@ -1014,7 +1014,8 @@ function MyController(hand) {
                     visible: true,
                     alpha: 1,
                     parentID: AVATAR_SELF_ID,
-                    parentJointIndex: this.controllerJointIndex
+                    parentJointIndex: this.controllerJointIndex,
+                    endParentID: farParentID
                 };
             } else {
                 lineProperties = {
@@ -1033,12 +1034,16 @@ function MyController(hand) {
 
         } else {
             if (this.hand === RIGHT_HAND) {
-                Overlays.editOverlay(this.overlayLine, {
-                    // start: closePoint,
-                    // end: farPoint,
-                    length: Vec3.distance(farPoint, closePoint),
-                    color: color,
-                });
+                if (farParentID && farParentID != NULL_UUID) {
+                    Overlays.editOverlay(this.overlayLine, {
+                        color: color,
+                    });
+                } else {
+                    Overlays.editOverlay(this.overlayLine, {
+                        length: Vec3.distance(farPoint, closePoint),
+                        color: color,
+                    });
+                }
             } else {
                 Overlays.editOverlay(this.overlayLine, {
                     start: closePoint,
@@ -2191,7 +2196,10 @@ function MyController(hand) {
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
-        this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition), COLORS_GRAB_DISTANCE_HOLD);
+        this.overlayLineOn(rayPickInfo.searchRay.origin,
+                           Vec3.subtract(grabbedProperties.position, this.offsetPosition),
+                           COLORS_GRAB_DISTANCE_HOLD,
+                           this.grabbedEntity);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
