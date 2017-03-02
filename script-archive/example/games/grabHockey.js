@@ -142,7 +142,7 @@ function mousePressEvent(event) {
   if (!pickResults.intersects) {
     return;
   }
-  var isDynamic = Entites.getEntityProperties(pickResults.entityID,"dynamic").dynamic;
+  var isDynamic = Entites.getEntityProperties(pickResults.entityID, "dynamic").dynamic;
   if (isDynamic) {
     grabbedEntity = pickResults.entityID;
     var props = Entities.getEntityProperties(grabbedEntity)

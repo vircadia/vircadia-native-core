@@ -151,7 +151,7 @@
                         });
                     }, randFloat(10, 200));
                 }
-                var isDynamic = Entites.getEntityProperties(intersection.entityID,"dynamic").dynamic;
+                var isDynamic = Entites.getEntityProperties(intersection.entityID, "dynamic").dynamic;
 
                 if (isDynamic === 1) {
                     // Any dynamic entity can be shot

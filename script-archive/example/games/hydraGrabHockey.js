@@ -191,7 +191,7 @@ function controller(side) {
     };
     var intersection = getRayIntersection(pickRay, true);
 
-    var isDynamic = Entites.getEntityProperties(intersection.entityID,"dynamic").dynamic;
+    var isDynamic = Entites.getEntityProperties(intersection.entityID, "dynamic").dynamic;
 
     if (intersection.intersects && isDynamic) {
       this.laserWasHovered = true;

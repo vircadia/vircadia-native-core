@@ -382,7 +382,7 @@ function MyController(hand) {
 
                 var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, DEFAULT_GRABBABLE_DATA);
 
-                var properties = Entites.getEntityProperties(intersection.entityID,["locked","name"]);
+                var properties = Entites.getEntityProperties(intersection.entityID, ["locked", "name"]);
 
 
                 if (properties.name == "Grab Debug Entity") {
