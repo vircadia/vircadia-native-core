@@ -3308,6 +3308,7 @@ Messages.subscribe('Hifi-Hand-Disabler');
 Messages.subscribe('Hifi-Hand-Grab');
 Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
 Messages.subscribe('Hifi-Object-Manipulation');
+Messages.subscribe('Hifi-Hand-Drop');
 
 var handleHandMessages = function(channel, message, sender) {
     var data;
@@ -3392,6 +3393,15 @@ var handleHandMessages = function(channel, message, sender) {
 
             } catch (e) {
                 print("WARNING: handControllerGrab.js -- error parsing Hifi-Hand-RayPick-Blacklist message: " + message);
+            }
+        } else if (channel === 'Hifi-Hand-Drop') {
+            if (message === 'left') {
+                leftController.release();
+            } else if (message === 'right') {
+                rightController.release();
+            } else if (message === 'both') {
+                leftController.release();
+                rightController.release();
             }
         }
     }
