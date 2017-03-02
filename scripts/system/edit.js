@@ -1619,7 +1619,6 @@ var PropertiesTool = function (opts) {
             print('Edit.js received web event that was not valid json.')
             return;
         }
-        print(JSON.stringify(data))
         var i, properties, dY, diff, newPosition;
         if (data.type === "print") {
             if (data.message) {
