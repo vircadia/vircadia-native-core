@@ -20,7 +20,7 @@
 
 #include <ServerPathUtils.h>
 
-Q_LOGGING_CATEGORY(file_cache, "hifi.file_cache")
+Q_LOGGING_CATEGORY(file_cache, "hifi.file_cache", QtWarningMsg)
 
 using namespace cache;
 
@@ -63,7 +63,7 @@ void FileCache::initialize() {
                 std::getline(manifest, key, '\t');
                 std::getline(manifest, metadata, '\n');
                 if (!key.empty()) {
-                    qCInfo(file_cache, "[%s] Manifest contains %s (%s)", _dirname.c_str(), key.c_str(), metadata.c_str());
+                    qCDebug(file_cache, "[%s] Manifest contains %s (%s)", _dirname.c_str(), key.c_str(), metadata.c_str());
                     auto filename = key + '.' + _ext;
                     persistedEntries[filename] = { key, metadata };
                 }
@@ -79,7 +79,7 @@ void FileCache::initialize() {
             if (it == persistedEntries.cend()) {
                 // unlink extra files
                 dir.remove(filename);
-                qCInfo(file_cache, "[%s] Cleaned %s", _dirname.c_str(), filename.toStdString().c_str());
+                qCDebug(file_cache, "[%s] Cleaned %s", _dirname.c_str(), filename.toStdString().c_str());
             } else {
                 // load existing files
                 const Key& key = it->second.first;
@@ -150,7 +150,7 @@ FilePointer FileCache::getFile(const Key& key) {
         if (file) {
             // if it exists, it is active - remove it from the cache
             removeUnusedFile(file);
-            qCInfo(file_cache, "[%s] Found %s", _dirname.c_str(), key.c_str());
+            qCDebug(file_cache, "[%s] Found %s", _dirname.c_str(), key.c_str());
             emit dirty();
         } else {
             // if not, remove the weak_ptr
@@ -253,7 +253,7 @@ void FileCache::clear() {
             } else {
                 manifest << file->getKey() << '\t' << file->getMetadata() << '\n';
                 file->_shouldPersist = true;
-                qCInfo(file_cache, "[%s] Persisting %s (%s)",
+                qCDebug(file_cache, "[%s] Persisting %s (%s)",
                         _dirname.c_str(), file->getKey().c_str(), file->getMetadata().c_str());
             }
         });
