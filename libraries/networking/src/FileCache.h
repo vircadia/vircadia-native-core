@@ -10,6 +10,7 @@
 #ifndef hifi_FileCache_h
 #define hifi_FileCache_h
 
+#include <atomic>
 #include <memory>
 #include <cstddef>
 #include <map>
