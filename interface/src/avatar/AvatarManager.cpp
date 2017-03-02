@@ -157,15 +157,14 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     lock.unlock();
 
     PerformanceTimer perfTimer("otherAvatars");
-    uint64_t startTime = usecTimestampNow();
 
     auto avatarMap = getHashCopy();
     QList<AvatarSharedPointer> avatarList = avatarMap.values();
     ViewFrustum cameraView;
     qApp->copyDisplayViewFrustum(cameraView);
 
-    std::priority_queue<AvatarPriority> sortedAvatars = AvatarData::sortAvatars(
-        avatarList, cameraView,
+    std::priority_queue<AvatarPriority> sortedAvatars;
+    AvatarData::sortAvatars(avatarList, cameraView, sortedAvatars,
 
         [](AvatarSharedPointer avatar)->uint64_t{
             return std::static_pointer_cast<Avatar>(avatar)->getLastRenderUpdateTime();
@@ -194,10 +193,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         });
 
     render::PendingChanges pendingChanges;
-    const uint64_t RENDER_UPDATE_BUDGET = 1500; // usec
-    const uint64_t MAX_UPDATE_BUDGET = 2000; // usec
-    uint64_t renderExpiry = startTime + RENDER_UPDATE_BUDGET;
-    uint64_t maxExpiry = startTime + MAX_UPDATE_BUDGET;
+    uint64_t startTime = usecTimestampNow();
+    const uint64_t UPDATE_BUDGET = 2000; // usec
+    uint64_t updateExpiry = startTime + UPDATE_BUDGET;
 
     int numAvatarsUpdated = 0;
     int numAVatarsNotUpdated = 0;
@@ -223,7 +221,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
         const float OUT_OF_VIEW_THRESHOLD = 0.5f * AvatarData::OUT_OF_VIEW_PENALTY;
         uint64_t now = usecTimestampNow();
-        if (now < renderExpiry) {
+        if (now < updateExpiry) {
             // we're within budget
             bool inView = sortData.priority > OUT_OF_VIEW_THRESHOLD;
             if (inView && avatar->hasNewJointData()) {
@@ -232,21 +230,13 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(pendingChanges);
             avatar->setLastRenderUpdateTime(startTime);
-        } else if (now < maxExpiry) {
-            // we've spent most of our time budget, but we still simulate() the avatar as it if were out of view
-            // --> some avatars may freeze until their priority trickles up
-            bool inView = sortData.priority > OUT_OF_VIEW_THRESHOLD;
-            if (inView && avatar->hasNewJointData()) {
-                numAVatarsNotUpdated++;
-            }
-            avatar->simulate(deltaTime, false);
         } else {
-            // we've spent ALL of our time budget --> bail on the rest of the avatar updates
+            // we've spent our full time budget --> bail on the rest of the avatar updates
             // --> more avatars may freeze until their priority trickles up
             // --> some scale or fade animations may glitch
             // --> some avatar velocity measurements may be a little off
 
-            // HACK: no time simulate, but we will take the time to count how many were tragically missed
+            // no time simulate, but we take the time to count how many were tragically missed
             bool inView = sortData.priority > OUT_OF_VIEW_THRESHOLD;
             if (!inView) {
                 break;
