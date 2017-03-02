@@ -23,7 +23,7 @@ namespace ktx {
 class KTXFile;
 using KTXFilePointer = std::shared_ptr<KTXFile>;
 
-class KTXCache : public FileCache {
+class KTXCache : public cache::FileCache {
     Q_OBJECT
 
 public:
@@ -42,11 +42,13 @@ public:
     KTXFilePointer getFile(const QUrl& url);
 
 protected:
-    File* createFile(const Key& key, const std::string& filepath, size_t length, void* extra) override final;
-    File* loadFile(const Key& key, const std::string& filepath, size_t length, const std::string& metadata) override final;
-    void evictedFile(const FilePointer& file) override final;
+    std::unique_ptr<cache::File> createFile(const Key& key, const std::string& filepath, size_t length, void* extra) override final;
+    std::unique_ptr<cache::File> loadFile(const Key& key, const std::string& filepath, size_t length, const std::string& metadata) override final;
+    void evictedFile(const cache::FilePointer& file) override final;
 
 private:
+    std::unique_ptr<cache::File> createKTXFile(const Key& key, const std::string& filepath, size_t length, const QUrl& url);
+
     using Mutex = std::mutex;
     using Lock = std::lock_guard<Mutex>;
     struct QUrlHasher { std::size_t operator()(QUrl const& url) const { return qHash(url); } };
@@ -55,7 +57,7 @@ private:
     Mutex _urlMutex;
 };
 
-class KTXFile : public File {
+class KTXFile : public cache::File {
     Q_OBJECT
 
 public:

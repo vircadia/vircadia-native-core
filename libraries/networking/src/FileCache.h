@@ -22,6 +22,8 @@
 
 Q_DECLARE_LOGGING_CATEGORY(file_cache)
 
+namespace cache {
+
 class File;
 using FilePointer = std::shared_ptr<File>;
 
@@ -80,9 +82,9 @@ protected:
     FilePointer getFile(const Key& key);
 
     /// create a file (ex.: create a class derived from File and store it in a secondary map with extra->url)
-    virtual File* createFile(const Key& key, const std::string& filepath, size_t length, void* extra) = 0;
+    virtual std::unique_ptr<File> createFile(const Key& key, const std::string& filepath, size_t length, void* extra) = 0;
     /// load a file
-    virtual File* loadFile(const Key& key, const std::string& filepath, size_t length, const std::string& metadata) = 0;
+    virtual std::unique_ptr<File> loadFile(const Key& key, const std::string& filepath, size_t length, const std::string& metadata) = 0;
     /// take action when a file is evicted from the cache (ex.: evict it from a secondary map)
     virtual void evictedFile(const FilePointer& file) = 0;
 
@@ -130,6 +132,8 @@ public:
     Key getKey() const { return _key; }
     size_t getLength() const { return _length; }
 
+    // the destructor should handle unlinking of the actual filepath
+    virtual ~File();
     // overrides should call File::deleter to maintain caching behavior
     virtual void deleter();
 
@@ -137,8 +141,6 @@ protected:
     // when constructed, the file has already been created/written
     File(const Key& key, const std::string& filepath, size_t length) :
         _filepath(filepath), _key(key), _length(length) {}
-    // the destructor should handle unlinking of the actual filepath
-    virtual ~File();
 
     /// get metadata to store with a file between instances (ex.: return the url of a hash)
     virtual std::string getMetadata() const = 0;
@@ -156,5 +158,7 @@ private:
 
     bool _shouldPersist { false };
 };
+
+}
 
 #endif // hifi_FileCache_h

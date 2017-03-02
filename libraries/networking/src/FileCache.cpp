@@ -22,6 +22,8 @@
 
 Q_LOGGING_CATEGORY(file_cache, "hifi.file_cache")
 
+using namespace cache;
+
 static const std::string MANIFEST_NAME = "manifest";
 
 void FileCache::setUnusedFileCacheSize(size_t unusedFilesMaxSize) {
@@ -85,7 +87,7 @@ void FileCache::initialize() {
                 const std::string filepath = dir.filePath(filename).toStdString();
                 const size_t length = std::ifstream(filepath, std::ios::binary | std::ios::ate).tellg();
 
-                FilePointer file(loadFile(key, filepath, length, metadata), &fileDeleter);
+                FilePointer file(loadFile(key, filepath, length, metadata).release(), &fileDeleter);
                 file->_cache = this;
                 _files[key] = file;
                 _numTotalFiles += 1;
@@ -119,7 +121,7 @@ FilePointer FileCache::writeFile(const Key& key, const char* data, size_t length
     // write the new file
     FILE* saveFile = fopen(filepath.c_str(), "wb");
     if (saveFile != nullptr && fwrite(data, length, 1, saveFile) && fclose(saveFile) == 0) {
-        file.reset(createFile(key, filepath, length, extra), &fileDeleter);
+        file.reset(createFile(key, filepath, length, extra).release(), &fileDeleter);
         file->_cache = this;
         _files[key] = file;
         _numTotalFiles += 1;
