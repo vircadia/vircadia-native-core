@@ -796,9 +796,6 @@ function MyController(hand) {
 
     // for visualizations
     this.overlayLine = null;
-
-    // for lights
-    this.overlayLine = null;
     this.searchSphere = null;
 
     this.waitForTriggerRelease = false;
@@ -1033,11 +1030,13 @@ function MyController(hand) {
             if (farParentID && farParentID != NULL_UUID) {
                 Overlays.editOverlay(this.overlayLine, {
                     color: color,
+                    endParentID: farParentID
                 });
             } else {
                 Overlays.editOverlay(this.overlayLine, {
                     length: Vec3.distance(farPoint, closePoint),
                     color: color,
+                    endParentID: farParentID
                 });
             }
         }
@@ -2240,7 +2239,7 @@ function MyController(hand) {
         this.overlayLineOn(rayPickInfo.searchRay.origin,
                            Vec3.subtract(grabbedProperties.position, this.offsetPosition),
                            COLORS_GRAB_DISTANCE_HOLD,
-                           this.grabbedEntity);
+                           this.grabbedThingID);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
@@ -3212,7 +3211,8 @@ function MyController(hand) {
         children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, controllerCRJointIndex));
 
         children.forEach(function(childID) {
-            if (childID !== _this.stylus) {
+            if (childID !== _this.stylus &&
+                childID !== _this.overlayLine) {
                 // we appear to be holding something and this script isn't in a state that would be holding something.
                 // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
                 // works around some problems that happen when more than one hand or avatar is passing something around.
