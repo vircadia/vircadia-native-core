@@ -637,8 +637,6 @@ void Agent::processAgentAvatarAudio() {
         audioPacket->seek(sizeof(quint16));
 
         if (silentFrame) {
-            // no matter what, the loudness should be set to 0
-            computeLoudness(nullptr, scriptedAvatar);
 
             if (!_isListeningToAudioStream) {
                 // if we have a silent frame and we're not listening then just send nothing and break out of here
@@ -658,6 +656,8 @@ void Agent::processAgentAvatarAudio() {
             audioPacket->writePrimitive(scriptedAvatar->getPosition());
             audioPacket->writePrimitive(glm::vec3(0));
 
+            // no matter what, the loudness should be set to 0
+            computeLoudness(nullptr, scriptedAvatar);
         } else if (nextSoundOutput) {
 
             // write the codec
