@@ -34,7 +34,24 @@
 #include "EntitiesScriptEngineProvider.h"
 #include "EntityItemProperties.h"
 
+#include "BaseScriptEngine.h"
+
 class EntityTree;
+
+// helper factory to compose standardized, async metadata queries for "magic" Entity properties
+// like .script and .serverScripts.  This is used for automated testing of core scripting features
+// as well as to provide early adopters a self-discoverable, consistent way to diagnose common
+// problems with their own Entity scripts.
+class EntityPropertyMetadataRequest {
+public:
+    EntityPropertyMetadataRequest(BaseScriptEngine* engine) : _engine(engine) {};
+    bool script(EntityItemID entityID, QScriptValue handler);
+    bool serverScripts(EntityItemID entityID, QScriptValue handler);
+    // this is used for internal testing and only available when DEBUG_ENTITY_METADATA is defined in the .cpp file
+    bool userData(EntityItemID entityID, QScriptValue handler);
+private:
+    QPointer<BaseScriptEngine> _engine;
+};
 
 class RayToEntityIntersectionResult {
 public:
@@ -67,6 +84,7 @@ class EntityScriptingInterface : public OctreeScriptingInterface, public Depende
     Q_PROPERTY(float costMultiplier READ getCostMultiplier WRITE setCostMultiplier)
     Q_PROPERTY(QUuid keyboardFocusEntity READ getKeyboardFocusEntity WRITE setKeyboardFocusEntity)
 
+    friend EntityPropertyMetadataRequest;
 public:
     EntityScriptingInterface(bool bidOnSimulationOwnership);
 
@@ -213,7 +231,7 @@ public slots:
     Q_INVOKABLE bool reloadServerScripts(QUuid entityID);
 
     /**jsdoc
-     * Query for the available metadata behind one of an Entity's "magic" properties (eg: `script` and `serverScripts`).
+     * Query additional metadata for "magic" Entity properties like `script` and `serverScripts`.
      *
      * @function Entities.queryPropertyMetadata
      * @param {EntityID} entityID The ID of the entity.
@@ -221,7 +239,7 @@ public slots:
      * @param {ResultCallback} callback Executes callback(err, result) with the query results.
      */
     /**jsdoc
-     * Query for the available metadata behind one of an Entity's "magic" properties (eg: `script` and `serverScripts`).
+     * Query additional metadata for "magic" Entity properties like `script` and `serverScripts`.
      *
      * @function Entities.queryPropertyMetadata
      * @param {EntityID} entityID The ID of the entity.
@@ -343,6 +361,11 @@ signals:
 
     void webEventReceived(const EntityItemID& entityItemID, const QVariant& message);
 
+protected:
+    void withEntitiesScriptEngine(std::function<void(EntitiesScriptEngineProvider*)> function) {
+        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+        function(_entitiesScriptEngine);
+    };
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor);
     bool setVoxels(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);

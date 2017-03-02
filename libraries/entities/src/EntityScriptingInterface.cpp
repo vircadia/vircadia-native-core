@@ -27,7 +27,6 @@
 #include "ModelEntityItem.h"
 #include "QVariantGLM.h"
 #include "SimulationOwner.h"
-#include "BaseScriptEngine.h"
 #include "ZoneEntityItem.h"
 #include "WebEntityItem.h"
 #include <EntityScriptClient.h>
@@ -684,26 +683,24 @@ bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
     return client->reloadServerScript(entityID);
 }
 
-bool EntityScriptingInterface::queryPropertyMetadata(QUuid entityID, QScriptValue property, QScriptValue scopeOrCallback, QScriptValue methodOrName) {
-    auto name = property.toString();
-    auto handler = makeScopedHandlerObject(scopeOrCallback, methodOrName);
-    QPointer<BaseScriptEngine> engine = dynamic_cast<BaseScriptEngine*>(handler.engine());
+#ifdef DEBUG_ENTITY_METADATA
+// baseline example -- return parsed userData as a standard CPS callback
+bool EntityPropertyMetadataRequest::_userData(EntityItemID entityID, QScriptValue handler) {
+    QScriptValue err, result;
+    auto engine = _engine;
     if (!engine) {
-        qCDebug(entities) << "queryPropertyMetadata without detectable engine" << entityID << name;
+        qCDebug(entities) << __FUNCTION__ << " -- engine destroyed while inflight" << entityID;
         return false;
     }
-    connect(engine, &QObject::destroyed, this, [=]() {
-        qDebug() << "queryPropertyMetadata -- engine destroyed!" << (!engine ? "nullptr" : "engine");
-    });
-    if (!handler.property("callback").isFunction()) {
-        qDebug() << "!handler.callback.isFunction" << engine;
-        engine->raiseException(engine->makeError("callback is not a function", "TypeError"));
-        return false;
-    }
-    if (name == "userData") {
-        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-        QScriptValue err, result;
-        if (entity) {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    auto entityTree = entityScriptingInterface ? entityScriptingInterface->getEntityTree() : nullptr;
+    if (!entityTree) {
+        err = engine->makeError("Entities Tree unavailable", "InternalError");
+    } else {
+        EntityItemPointer entity = entityTree->findEntityByID(entityID);
+        if (!entity) {
+            err = engine->makeError("entity not found");
+        } else {
             auto JSON = engine->globalObject().property("JSON");
             auto parsed = JSON.property("parse").call(JSON, QScriptValueList({ entity->getUserData() }));
             if (engine->hasUncaughtException()) {
@@ -712,81 +709,148 @@ bool EntityScriptingInterface::queryPropertyMetadata(QUuid entityID, QScriptValu
             } else {
                 result = parsed;
             }
-        } else {
-            err = engine->makeError("entity not found");
         }
-        QFutureWatcher<QVariant> *request = new QFutureWatcher<QVariant>;
-        connect(request, &QFutureWatcher<QVariant>::finished, engine, [=]() mutable {
-            if (!engine) {
-                qCDebug(entities) << "queryPropertyMetadata -- engine destroyed while inflight" << entityID << name;
-                return;
-            }
-            callScopedHandlerObject(handler, err, result);
-            request->deleteLater();
-        });
-        request->setFuture(QtConcurrent::run([]() -> QVariant {
-            QThread::sleep(1);
-            return 1;
-        }));
-        return true;
-    } else if (name == "script") {
-        using LocalScriptStatusRequest = QFutureWatcher<QVariant>;
-        LocalScriptStatusRequest *request = new LocalScriptStatusRequest;
-        connect(request, &LocalScriptStatusRequest::finished, engine, [=]() mutable {
-            if (!engine) {
-                qCDebug(entities) << "queryPropertyMetadata -- engine destroyed while inflight" << entityID << name;
-                return;
-            }
-            auto details = request->result().toMap();
-            QScriptValue err, result;
-            if (details.contains("isError")) {
-                if (!details.contains("message")) {
-                    details["message"] = details["errorInfo"];
-                }
-                err = engine->makeError(engine->toScriptValue(details));
-            } else {
-                details["success"] = true;
-                result = engine->toScriptValue(details);
-            }
-            callScopedHandlerObject(handler, err, result);
-            request->deleteLater();
-        });
-        request->setFuture(_entitiesScriptEngine->getLocalEntityScriptDetails(entityID));
-        return true;
-    } else if (name == "serverScripts") {
-        auto client = DependencyManager::get<EntityScriptClient>();
-        auto request = client->createScriptStatusRequest(entityID);
-        connect(request, &GetScriptStatusRequest::finished, engine, [=](GetScriptStatusRequest* request) mutable {
-            if (!engine) {
-                qCDebug(entities) << "queryPropertyMetadata -- engine destroyed while inflight" << entityID << name;
-                return;
-            }
-            QVariantMap details;
-            details["success"] = request->getResponseReceived();
-            details["isRunning"] = request->getIsRunning();
-            details["status"] = EntityScriptStatus_::valueToKey(request->getStatus()).toLower();
-            details["errorInfo"] = request->getErrorInfo();
-
-            QScriptValue err, result;
-            if (!details["success"].toBool()) {
-                if (!details.contains("message") && details.contains("errorInfo")) {
-                    details["message"] = details["errorInfo"];
-                }
-                if (details["message"].toString().isEmpty()) {
-                    details["message"] = "entity server script details not found";
-                }
-                err = engine->makeError(engine->toScriptValue(details));
-            } else {
-                result = engine->toScriptValue(details);
-            }
-            callScopedHandlerObject(handler, err, result);
-            request->deleteLater();
-        });
-        request->start();
-        return true;
     }
-    engine->raiseException(engine->makeError("property has no mapped metadata: " + name));
-    return false;
+    // this one second delay can be used with a Client script to query metadata and immediately Script.stop()
+    // (testing that the signal handler never gets called once the engine is destroyed)
+    // note: we still might want to check engine->isStopping() as an optimization in some places
+    QFutureWatcher<QVariant> *request = new QFutureWatcher<QVariant>;
+    QObject::connect(request, &QFutureWatcher<QVariant>::finished, engine, [=]() mutable {
+        if (!engine) {
+            qCDebug(entities) << "queryPropertyMetadata -- engine destroyed while inflight" << entityID;
+            return;
+        }
+        callScopedHandlerObject(handler, err, result);
+        request->deleteLater();
+    });
+    request->setFuture(QtConcurrent::run([]() -> QVariant {
+        QThread::sleep(1);
+        return QVariant();
+    }));
+    return true;
+}
+#endif
+
+bool EntityPropertyMetadataRequest::script(EntityItemID entityID, QScriptValue handler) {
+    using LocalScriptStatusRequest = QFutureWatcher<QVariant>;
+
+    LocalScriptStatusRequest *request = new LocalScriptStatusRequest;
+    QObject::connect(request, &LocalScriptStatusRequest::finished, _engine, [=]() mutable {
+        auto engine = _engine;
+        if (!engine) {
+            // this is just to address any lingering doubts -- when _engine is destroyed, this connect gets broken automatically
+            qCDebug(entities) << __FUNCTION__ << " -- engine destroyed while inflight" << entityID;
+            return;
+        }
+        auto details = request->result().toMap();
+        QScriptValue err, result;
+        if (details.contains("isError")) {
+            if (!details.contains("message")) {
+                details["message"] = details["errorInfo"];
+            }
+            err = engine->makeError(engine->toScriptValue(details));
+        } else {
+            details["success"] = true;
+            result = engine->toScriptValue(details);
+        }
+        callScopedHandlerObject(handler, err, result);
+        request->deleteLater();
+    });
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    entityScriptingInterface->withEntitiesScriptEngine([&](EntitiesScriptEngineProvider* entitiesScriptEngine) {
+        if (entitiesScriptEngine) {
+            request->setFuture(entitiesScriptEngine->getLocalEntityScriptDetails(entityID));
+        }
+    });
+    if (!request->isStarted()) {
+        request->deleteLater();
+        callScopedHandlerObject(handler, _engine->makeError("Entities Scripting Provider unavailable", "InternalError"), QScriptValue());
+        return false;
+    }
+    return true;
+}
+
+bool EntityPropertyMetadataRequest::serverScripts(EntityItemID entityID, QScriptValue handler) {
+    auto client = DependencyManager::get<EntityScriptClient>();
+    auto request = client->createScriptStatusRequest(entityID);
+    QPointer<BaseScriptEngine> engine = _engine;
+    QObject::connect(request, &GetScriptStatusRequest::finished, _engine, [=](GetScriptStatusRequest* request) mutable {
+        auto engine = _engine;
+        if (!engine) {
+            qCDebug(entities) << __FUNCTION__ << " -- engine destroyed while inflight" << entityID;
+            return;
+        }
+        QVariantMap details;
+        details["success"] = request->getResponseReceived();
+        details["isRunning"] = request->getIsRunning();
+        details["status"] = EntityScriptStatus_::valueToKey(request->getStatus()).toLower();
+        details["errorInfo"] = request->getErrorInfo();
+
+        QScriptValue err, result;
+        if (!details["success"].toBool()) {
+            if (!details.contains("message") && details.contains("errorInfo")) {
+                details["message"] = details["errorInfo"];
+            }
+            if (details["message"].toString().isEmpty()) {
+                details["message"] = "entity server script details not found";
+            }
+            err = engine->makeError(engine->toScriptValue(details));
+        } else {
+            result = engine->toScriptValue(details);
+        }
+        callScopedHandlerObject(handler, err, result);
+        request->deleteLater();
+    });
+    request->start();
+    return true;
+}
+
+bool EntityScriptingInterface::queryPropertyMetadata(QUuid entityID, QScriptValue property, QScriptValue scopeOrCallback, QScriptValue methodOrName) {
+    auto name = property.toString();
+    auto handler = makeScopedHandlerObject(scopeOrCallback, methodOrName);
+    QPointer<BaseScriptEngine> engine = dynamic_cast<BaseScriptEngine*>(handler.engine());
+    if (!engine) {
+        qCDebug(entities) << "queryPropertyMetadata without detectable engine" << entityID << name;
+        return false;
+    }
+#ifdef DEBUG_ENGINE_STATE
+    connect(engine, &QObject::destroyed, this, [=]() {
+        qDebug() << "queryPropertyMetadata -- engine destroyed!" << (!engine ? "nullptr" : "engine");
+    });
+#endif
+    if (!handler.property("callback").isFunction()) {
+        qDebug() << "!handler.callback.isFunction" << engine;
+        engine->raiseException(engine->makeError("callback is not a function", "TypeError"));
+        return false;
+    }
+
+    // NOTE: this approach is a work-in-progress and for now just meant to work 100% correctly and provide
+    // some initial structure for organizing metadata adapters around.
+
+    // The extra layer of indirection is *essential* because in real world conditions errors are often introduced
+    // by accident and sometimes without exact memory of "what just changed."
+
+    // Here the scripter only needs to know an entityID and a property name -- which means all scripters can
+    // level this method when stuck in dead-end scenarios or to learn more about "magic" Entity properties
+    // like .script that work in terms of side-effects.
+
+    // This is an async callback pattern -- so if needed C++ can easily throttle or restrict queries later.
+
+    EntityPropertyMetadataRequest request(engine);
+
+    if (name == "script") {
+        return request.script(entityID, handler);
+    } else if (name == "serverScripts") {
+        return request.serverScripts(entityID, handler);
+#ifdef DEBUG_ENTITY_METADATA
+    } else if (name == "userData") {
+        return request.userData(entityID, handler);
+#endif
+    } else {
+        engine->raiseException(engine->makeError("metadata for property " + name + " is not yet queryable"));
+        engine->maybeEmitUncaughtException(__FUNCTION__);
+        return false;
+    }
 }
 
 bool EntityScriptingInterface::getServerScriptStatus(QUuid entityID, QScriptValue callback) {
