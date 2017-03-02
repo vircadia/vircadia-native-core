@@ -19,6 +19,7 @@ const VISIBLE_GLYPH = "&#xe007;";
 const TRANSPARENCY_GLYPH = "&#xe00b;";
 const SCRIPT_GLYPH = "k";
 const DELETE = 46; // Key code for the delete key.
+const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
 
 debugPrint = function (message) {
@@ -292,7 +293,7 @@ function loaded() {
               EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
               refreshEntities();
           }
-          if (keyDownEvent.keyCode === 80 && keyDownEvent.ctrlKey) {
+          if (keyDownEvent.keyCode === KEY_P && keyDownEvent.ctrlKey) {
               if (keyDownEvent.shiftKey) {
                   EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
               } else {

@@ -56,6 +56,7 @@ selectionManager.addEventListener(function () {
     lightOverlayManager.updatePositions();
 });
 
+const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
 var epsilon = 0.001;
@@ -1406,7 +1407,7 @@ var keyReleaseEvent = function (event) {
             });
             grid.setPosition(newPosition);
         }
-    } else if (event.key === 80 && event.isControl && !event.isAutoRepeat ) {
+    } else if (event.key === KEY_P && event.isControl && !event.isAutoRepeat ) {
         if (event.isShifted) {
             unparentSelectedEntities();
         } else {

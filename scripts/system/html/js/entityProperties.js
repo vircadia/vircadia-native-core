@@ -24,7 +24,7 @@ var ICON_FOR_TYPE = {
 }
 
 var EDITOR_TIMEOUT_DURATION = 1500;
-
+const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var colorPickers = [];
 var lastEntityID = null;
 debugPrint = function(message) {
@@ -1442,7 +1442,7 @@ function loaded() {
         });
 
         document.addEventListener("keydown", function (keyDown) {
-          if (keyDown.keyCode === 80 && keyDown.ctrlKey) {
+          if (keyDown.keyCode === KEY_P && keyDown.ctrlKey) {
               if (keyDown.shiftKey) {
                   EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
               } else {
