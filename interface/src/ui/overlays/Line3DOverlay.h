@@ -47,13 +47,17 @@ public:
 
     virtual void locationChanged(bool tellPhysics = true) override;
 
-protected:
-    glm::vec3 _start;
-    glm::vec3 _end;
+    glm::vec3 getDirection() const { return _direction; }
+    float getLength() const { return _length; }
+    glm::vec3 getLocalStart() const { return getLocalPosition(); }
+    glm::vec3 getLocalEnd() const { return getLocalStart() + _direction * _length; }
+
+private:
+    glm::vec3 _direction; // in parent frame
+    float _length { 1.0 }; // in parent frame
     float _glow { 0.0 };
     float _glowWidth { 0.0 };
     int _geometryCacheID;
 };
 
- 
 #endif // hifi_Line3DOverlay_h
