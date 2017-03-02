@@ -26,7 +26,7 @@ Item {
     Component { id: messageBoxBuilder; TabletMessageBox { } }
     function messageBox(properties) {
         openMessage  = messageBoxBuilder.createObject(tabletRoot, properties);
-        return openModal;
+        return openMessage;
     }
 
     function customInputDialog(properties) {
