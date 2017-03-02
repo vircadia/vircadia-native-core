@@ -47,6 +47,10 @@ void UsersScriptingInterface::setAvatarGain(const QUuid& nodeID, float gain) {
     DependencyManager::get<NodeList>()->setAvatarGain(nodeID, gain);
 }
 
+float UsersScriptingInterface::getAvatarGain(const QUuid& nodeID) {
+    return DependencyManager::get<NodeList>()->getAvatarGain(nodeID);
+}
+
 void UsersScriptingInterface::kick(const QUuid& nodeID) {
     // ask the NodeList to kick the user with the given session ID
     DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);

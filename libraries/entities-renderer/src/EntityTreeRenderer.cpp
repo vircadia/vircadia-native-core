@@ -951,7 +951,10 @@ void EntityTreeRenderer::entityScriptChanging(const EntityItemID& entityID, cons
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload, const bool unloadFirst) {
     if (_tree && !_shuttingDown) {
         EntityItemPointer entity = getTree()->findEntityByEntityItemID(entityID);
-        bool shouldLoad = entity && entity->shouldPreloadScript() && _entitiesScriptEngine;
+        if (!entity) {
+            return;
+        }
+        bool shouldLoad = entity->shouldPreloadScript() && _entitiesScriptEngine;
         QString scriptUrl = entity->getScript();
         if ((unloadFirst && shouldLoad) || scriptUrl.isEmpty()) {
             _entitiesScriptEngine->unloadEntityScript(entityID);

@@ -37,6 +37,8 @@ static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 
 static int MAX_WINDOW_SIZE = 4096;
 static float OPAQUE_ALPHA_THRESHOLD = 0.99f;
+static int DEFAULT_MAX_FPS = 10;
+static int YOUTUBE_MAX_FPS = 30;
 
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableWebEntityItem(entityID) };
@@ -113,7 +115,7 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
 
     // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
     // and the current rendering load)
-    _webSurface->setMaxFps(10);
+    _webSurface->setMaxFps(DEFAULT_MAX_FPS);
 
     // The lifetime of the QML surface MUST be managed by the main thread
     // Additionally, we MUST use local variables copied by value, rather than
@@ -256,9 +258,18 @@ void RenderableWebEntityItem::loadSourceURL() {
         _sourceUrl.toLower().endsWith(".htm") || _sourceUrl.toLower().endsWith(".html")) {
         _contentType = htmlContent;
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "qml/controls/"));
+
+        // We special case YouTube URLs since we know they are videos that we should play with at least 30 FPS.
+        if (sourceUrl.host().endsWith("youtube.com", Qt::CaseInsensitive)) {
+            _webSurface->setMaxFps(YOUTUBE_MAX_FPS);
+        } else {
+            _webSurface->setMaxFps(DEFAULT_MAX_FPS);
+        }
+
         _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
             context->setContextProperty("eventBridgeJavaScriptToInject", QVariant(_javaScriptToInject));
         });
+
         _webSurface->getRootItem()->setProperty("url", _sourceUrl);
         _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
 
