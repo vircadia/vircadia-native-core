@@ -43,19 +43,50 @@ Item {
     }
     
     Rectangle {
-        id: main
-        height: parent.height - 40
+        id: header
+        height: 90
         anchors {
             top: parent.top
-            bottom: footer.top
             left: parent.left
             right: parent.right
         }
+        z: 100
+
         gradient: Gradient {
             GradientStop {
                 position: 0
                 color: "#2b2b2b"
-                
+            }
+
+            GradientStop {
+                position: 1
+                color: "#1e1e1e"
+            }
+        }
+
+        RalewayBold {
+            text: title
+            size: 26
+            color: "#34a2c7"
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: hifi.dimensions.contentMargin.x
+        }
+    }
+
+    Rectangle {
+        id: main
+        anchors {
+            top: header.bottom
+            bottom: footer.top
+            left: parent.left
+            right: parent.right
+        }
+
+        gradient: Gradient {
+            GradientStop {
+                position: 0
+                color: "#2b2b2b"
             }
             
             GradientStop {
@@ -110,9 +141,7 @@ Item {
                     }
 
                     scrollView.contentHeight = scrollView.getSectionsHeight();
-
                 }
-               
 
                 Column {
                     id: prefControls
@@ -136,7 +165,6 @@ Item {
         height: 40
 
         anchors {
-            top: main.bottom
             bottom: parent.bottom
             left: parent.left
             right: parent.right
@@ -145,7 +173,6 @@ Item {
             GradientStop {
                 position: 0
                 color: "#2b2b2b"
-                
             }
             
             GradientStop {
@@ -156,7 +183,7 @@ Item {
 
         Row {
             anchors {
-                top: parent,top
+                verticalCenter: parent.verticalCenter
                 right: parent.right
                 rightMargin: hifi.dimensions.contentMargin.x
             }
@@ -175,5 +202,4 @@ Item {
             }
         }
     }
-    
 }

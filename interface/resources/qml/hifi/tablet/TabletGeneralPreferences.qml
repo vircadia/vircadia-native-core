@@ -33,6 +33,7 @@ StackView {
     
     TabletPreferencesDialog {
         id: root
+        property string title: "General Preferences"
         objectName: "TabletGeneralPreferences"
         width: parent.width
         height: parent.height

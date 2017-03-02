@@ -33,6 +33,7 @@ StackView {
 
     TabletPreferencesDialog {
         id: root
+        property string title: "Avatar Preferences"
         objectName: "TabletAvatarPreferences"
         width: parent.width
         height: parent.height
