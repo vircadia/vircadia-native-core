@@ -30,6 +30,7 @@
 #include <plugins/CodecPlugin.h>
 
 #include "MixedAudioStream.h"
+#include "avatars/ScriptableAvatar.h"
 
 class Agent : public ThreadedAssignment {
     Q_OBJECT
@@ -82,7 +83,7 @@ private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
     void encodeFrameOfZeros(QByteArray& encodedZeros);
-    void computeLoudness(const QByteArray* decodedBuffer);
+    void computeLoudness(const QByteArray* decodedBuffer, QSharedPointer<ScriptableAvatar>);
 
     std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;

@@ -43,7 +43,6 @@
 #include <WebSocketServerClass.h>
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
-#include "avatars/ScriptableAvatar.h"
 #include "entities/AssignmentParentFinder.h"
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
@@ -380,7 +379,7 @@ void Agent::executeScript() {
         audioTransform.setTranslation(scriptedAvatar->getPosition());
         audioTransform.setRotation(headOrientation);
 
-        computeLoudness(&audio);
+        computeLoudness(&audio, scriptedAvatar);
 
         QByteArray encodedBuffer;
         if (_encoder) {
@@ -573,9 +572,8 @@ void Agent::encodeFrameOfZeros(QByteArray& encodedZeros) {
     }
 }
 
-void Agent::computeLoudness(const QByteArray* decodedBuffer) {
+void Agent::computeLoudness(const QByteArray* decodedBuffer, QSharedPointer<ScriptableAvatar> scriptableAvatar) {
     float loudness = 0.0f;
-    auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
     if (decodedBuffer) {
         auto soundData = reinterpret_cast<const int16_t*>(decodedBuffer->constData());
         int numFrames = decodedBuffer->size() / sizeof(int16_t);
@@ -587,7 +585,7 @@ void Agent::computeLoudness(const QByteArray* decodedBuffer) {
             loudness /= numFrames;
         }
     }
-    scriptedAvatar->setAudioLoudness(loudness);
+    scriptableAvatar->setAudioLoudness(loudness);
 }
 
 void Agent::processAgentAvatarAudio() {
@@ -640,7 +638,7 @@ void Agent::processAgentAvatarAudio() {
 
         if (silentFrame) {
             // no matter what, the loudness should be set to 0
-            computeLoudness(nullptr);
+            computeLoudness(nullptr, scriptedAvatar);
 
             if (!_isListeningToAudioStream) {
                 // if we have a silent frame and we're not listening then just send nothing and break out of here
@@ -679,7 +677,7 @@ void Agent::processAgentAvatarAudio() {
             if (_flushEncoder) {
                 encodeFrameOfZeros(encodedBuffer);
                 // loudness is 0
-                computeLoudness(nullptr);
+                computeLoudness(nullptr, scriptedAvatar);
             } else {
                 QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
                 if (_encoder) {
@@ -688,7 +686,7 @@ void Agent::processAgentAvatarAudio() {
                 } else {
                     encodedBuffer = decodedBuffer;
                 }
-                computeLoudness(&decodedBuffer);
+                computeLoudness(&decodedBuffer, scriptedAvatar);
             }
             audioPacket->write(encodedBuffer.constData(), encodedBuffer.size());
         }
