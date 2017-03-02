@@ -351,7 +351,6 @@ void Avatar::simulate(float deltaTime, bool inView) {
             _jointDataSimulationRate.increment();
 
             _skeletonModel->simulate(deltaTime, true);
-            _skeletonModelSimulationRate.increment();
 
             locationChanged(); // joints changed, so if there are any children, update them.
             _hasNewJointData = false;
@@ -367,8 +366,8 @@ void Avatar::simulate(float deltaTime, bool inView) {
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
-            _skeletonModelSimulationRate.increment();
         }
+        _skeletonModelSimulationRate.increment();
     }
 
     // update animation for display name fade in/out
@@ -933,6 +932,10 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
+    if (index < 0) {
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
+    }
+
     switch(index) {
         case SENSOR_TO_WORLD_MATRIX_INDEX: {
             glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
@@ -969,6 +972,10 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
 }
 
 glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    if (index < 0) {
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
+    }
+
     switch(index) {
         case SENSOR_TO_WORLD_MATRIX_INDEX: {
             glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
