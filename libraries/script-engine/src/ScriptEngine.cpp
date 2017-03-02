@@ -580,7 +580,7 @@ void ScriptEngine::resetModuleCache(bool deleteScriptCache) {
 #if DEBUG_JS_MODULES
     cache.setProperty("__meta__", cacheMeta, READONLY_HIDDEN_PROP_FLAGS);
 #endif
-    jsRequire.setProperty("cache", cache, QScriptValue::ReadOnly | QScriptValue::Undeletable);
+    jsRequire.setProperty("cache", cache, READONLY_PROP_FLAGS);
 }
 
 void ScriptEngine::init() {
@@ -651,7 +651,7 @@ void ScriptEngine::init() {
         auto Script = globalObject().property("Script");
         auto require = Script.property("require");
         auto resolve = Script.property("_requireResolve");
-        require.setProperty("resolve", resolve, QScriptValue::ReadOnly | QScriptValue::Undeletable);
+        require.setProperty("resolve", resolve, READONLY_PROP_FLAGS);
         resetModuleCache();
     }
 
