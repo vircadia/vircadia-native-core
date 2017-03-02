@@ -94,6 +94,7 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
             killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
         }
         DependencyManager::get<NodeList>()->sendUnreliablePacket(*killPacket, *self);
+        setLastBroadcastTime(other->getUUID(), 0);
     }
 }
 
