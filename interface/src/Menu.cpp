@@ -300,7 +300,8 @@ Menu::Menu() {
     // Settings > Avatar...
     action = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), "AvatarPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), 
+            QString("../../hifi/tablet/TabletAvatarPreferences.qml"), "AvatarPreferencesDialog");
     });
 
     // Settings > LOD...

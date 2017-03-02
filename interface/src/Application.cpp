@@ -5853,6 +5853,16 @@ void Application::addAssetToWorldFromURL(QString url) {
     request->send();
 }
 
+void Application::showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const {
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    if (tablet->getToolbarMode() && tablet->getTabletRoot() && !isHMDMode()) {
+        DependencyManager::get<OffscreenUi>()->show(desktopURL, name);
+    } else {
+        tablet->loadQMLSource(tabletURL);
+    }
+}
+
 void Application::addAssetToWorldFromURLRequestFinished() {
     auto request = qobject_cast<ResourceRequest*>(sender());
     auto url = request->getUrl().toString();
