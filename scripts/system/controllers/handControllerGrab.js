@@ -46,8 +46,6 @@ var BUMPER_ON_VALUE = 0.5;
 
 var THUMB_ON_VALUE = 0.5;
 
-var USE_FINGER_AS_STYLUS = true;
-
 var HAPTIC_PULSE_STRENGTH = 1.0;
 var HAPTIC_PULSE_DURATION = 13.0;
 var HAPTIC_TEXTURE_STRENGTH = 0.1;
@@ -869,6 +867,11 @@ function MyController(hand) {
         this.updateSmoothedTrigger();
         this.maybeScaleMyAvatar();
 
+        var DEFAULT_USE_FINGER_AS_STYLUS = true;
+        var USE_FINGER_AS_STYLUS = Settings.getValue("preferAvatarFingerOverStylus");
+        if (USE_FINGER_AS_STYLUS === "") {
+            USE_FINGER_AS_STYLUS = DEFAULT_USE_FINGER_AS_STYLUS;
+        }
         if (USE_FINGER_AS_STYLUS && MyAvatar.getJointIndex("LeftHandIndex4") !== -1) {
             this.useFingerInsteadOfStylus = true;
         } else {
