@@ -77,7 +77,7 @@
             //Comment out above line and uncomment below line to see difference in performance between using a whitelist, and not using one
             // this.intersection = Entities.findRayIntersection(pickRay, true);
 
-            var type = Entites.getEntityProperties(this.intersection.entityID,"type").type;
+            var type = Entites.getEntityProperties(this.intersection.entityID, "type").type;
 
             if (this.intersection.intersects) {
                 var distance = Vec3.distance(handPosition, this.intersection.intersection);
