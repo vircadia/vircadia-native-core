@@ -9,7 +9,7 @@
 ####CMake External Project Dependencies
 
 * [boostconfig](https://github.com/boostorg/config) ~> 1.58
-* [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
+* [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases) ~> 2.83
 * [GLEW](http://glew.sourceforge.net/)
 * [glm](https://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
 * [gverb](https://github.com/highfidelity/gverb)
