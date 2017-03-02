@@ -170,8 +170,6 @@ var toolBar = (function () {
         tablet = null;
 
     function createNewEntity(properties) {
-        Settings.setValue(EDIT_SETTING, false);
-
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
