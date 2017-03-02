@@ -1001,53 +1001,30 @@ function MyController(hand) {
 
     this.overlayLineOn = function(closePoint, farPoint, color, farParentID) {
         if (this.overlayLine === null) {
-            var lineProperties;
-            if (this.hand === RIGHT_HAND) {
-                lineProperties = {
-                    glow: 1.0,
-                    lineWidth: 5,
-                    start: closePoint,
-                    end: farPoint,
-                    color: color,
-                    ignoreRayIntersection: true, // always ignore this
-                    drawInFront: true, // Even when burried inside of something, show it.
-                    visible: true,
-                    alpha: 1,
-                    parentID: AVATAR_SELF_ID,
-                    parentJointIndex: this.controllerJointIndex,
-                    endParentID: farParentID
-                };
-            } else {
-                lineProperties = {
-                    glow: 1.0,
-                    lineWidth: 5,
-                    start: closePoint,
-                    end: farPoint,
-                    color: color,
-                    ignoreRayIntersection: true, // always ignore this
-                    drawInFront: true, // Even when burried inside of something, show it.
-                    visible: true,
-                    alpha: 1,
-                };
-            }
+            var lineProperties = {
+                glow: 1.0,
+                lineWidth: 5,
+                start: closePoint,
+                end: farPoint,
+                color: color,
+                ignoreRayIntersection: true, // always ignore this
+                drawInFront: true, // Even when burried inside of something, show it.
+                visible: true,
+                alpha: 1,
+                parentID: AVATAR_SELF_ID,
+                parentJointIndex: this.controllerJointIndex,
+                endParentID: farParentID
+            };
             this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
 
         } else {
-            if (this.hand === RIGHT_HAND) {
-                if (farParentID && farParentID != NULL_UUID) {
-                    Overlays.editOverlay(this.overlayLine, {
-                        color: color,
-                    });
-                } else {
-                    Overlays.editOverlay(this.overlayLine, {
-                        length: Vec3.distance(farPoint, closePoint),
-                        color: color,
-                    });
-                }
+            if (farParentID && farParentID != NULL_UUID) {
+                Overlays.editOverlay(this.overlayLine, {
+                    color: color,
+                });
             } else {
                 Overlays.editOverlay(this.overlayLine, {
-                    start: closePoint,
-                    end: farPoint,
+                    length: Vec3.distance(farPoint, closePoint),
                     color: color,
                 });
             }
