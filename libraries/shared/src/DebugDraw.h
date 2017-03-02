@@ -10,6 +10,7 @@
 #ifndef hifi_DebugDraw_h
 #define hifi_DebugDraw_h
 
+#include <mutex>
 #include <unordered_map>
 #include <tuple>
 #include <string>
@@ -87,16 +88,17 @@ public:
     // accessors used by renderer
     //
 
-    const MarkerMap& getMarkerMap() const { return _markers; }
-    const MarkerMap& getMyAvatarMarkerMap() const { return _myAvatarMarkers; }
+    MarkerMap getMarkerMap() const;
+    MarkerMap getMyAvatarMarkerMap() const;
     void updateMyAvatarPos(const glm::vec3& pos) { _myAvatarPos = pos; }
     const glm::vec3& getMyAvatarPos() const { return _myAvatarPos; }
     void updateMyAvatarRot(const glm::quat& rot) { _myAvatarRot = rot; }
     const glm::quat& getMyAvatarRot() const { return _myAvatarRot; }
-    const Rays getRays() const { return _rays; }
-    void clearRays() { _rays.clear(); }
+    Rays getRays() const;
+    void clearRays();
 
 protected:
+    mutable std::mutex _mapMutex;
     MarkerMap _markers;
     MarkerMap _myAvatarMarkers;
     glm::quat _myAvatarRot;
