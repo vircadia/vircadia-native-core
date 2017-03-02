@@ -42,7 +42,6 @@ public:
     bool intersects;
     bool accurate;
     QUuid entityID;
-    EntityItemProperties properties;
     float distance;
     BoxFace face;
     glm::vec3 intersection;

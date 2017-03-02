@@ -151,8 +151,10 @@
                         });
                     }, randFloat(10, 200));
                 }
-                if (intersection.properties.dynamic === 1) {
-                    // Any dynaic entity can be shot
+                var isDynamic = Entites.getEntityProperties(intersection.entityID,"dynamic").dynamic;
+
+                if (isDynamic === 1) {
+                    // Any dynamic entity can be shot
                     Entities.editEntity(intersection.entityID, {
                         velocity: Vec3.multiply(this.firingDirection, this.bulletForce)
                     });

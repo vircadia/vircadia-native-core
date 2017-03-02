@@ -668,7 +668,6 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
             (void**)&intersectedEntity, lockType, &result.accurate);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
-            result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);
         }
     }
@@ -721,7 +720,6 @@ RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
     intersects(false),
     accurate(true), // assume it's accurate
     entityID(),
-    properties(),
     distance(0),
     face(),
     entity(NULL)
@@ -736,9 +734,6 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
     obj.setProperty("accurate", value.accurate);
     QScriptValue entityItemValue = EntityItemIDtoScriptValue(engine, value.entityID);
     obj.setProperty("entityID", entityItemValue);
-
-    QScriptValue propertiesValue = EntityItemPropertiesToScriptValue(engine, value.properties);
-    obj.setProperty("properties", propertiesValue);
 
     obj.setProperty("distance", value.distance);
 
@@ -785,10 +780,6 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     QScriptValue entityIDValue = object.property("entityID");
     // EntityItemIDfromScriptValue(entityIDValue, value.entityID);
     quuidFromScriptValue(entityIDValue, value.entityID);
-    QScriptValue entityPropertiesValue = object.property("properties");
-    if (entityPropertiesValue.isValid()) {
-        EntityItemPropertiesFromScriptValueHonorReadOnly(entityPropertiesValue, value.properties);
-    }
     value.distance = object.property("distance").toVariant().toFloat();
 
     QString faceName = object.property("face").toVariant().toString();

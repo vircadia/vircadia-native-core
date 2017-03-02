@@ -607,7 +607,6 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
             (void**)&intersectedEntity, lockType, &result.accurate);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
-            result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);
             result.entity = intersectedEntity;
         }
@@ -703,7 +702,9 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
 
-        QString urlString = rayPickResult.properties.getHref();
+        auto entity = getTree()->findEntityByEntityItemID(rayPickResult.entityID);
+        auto properties = entity->getProperties();
+        QString urlString = properties.getHref();
         QUrl url = QUrl(urlString, QUrl::StrictMode);
         if (url.isValid() && !url.isEmpty()){
             DependencyManager::get<AddressManager>()->handleLookupString(urlString);
