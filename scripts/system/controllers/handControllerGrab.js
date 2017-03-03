@@ -1055,17 +1055,17 @@ function MyController(hand) {
 
         } else {
             if (farParentID && farParentID != NULL_UUID) {
-            Overlays.editOverlay(this.overlayLine, {
-                color: color,
-                    endParentID: farParentID
-            });
+                Overlays.editOverlay(this.overlayLine, {
+                    color: color,
+                        endParentID: farParentID
+                });
             } else {
                 Overlays.editOverlay(this.overlayLine, {
                     length: Vec3.distance(farPoint, closePoint),
                     color: color,
                     endParentID: farParentID
                 });
-        }
+            }
         }
     };
 
@@ -2624,9 +2624,9 @@ function MyController(hand) {
         var grabEquipCheck = function () {
           if (_this.state == STATE_NEAR_GRABBING) {
               _this.callEntityMethodOnGrabbed("startNearGrab");
-        } else { // this.state == STATE_HOLD
-              _this.callEntityMethodOnGrabbed("startEquip");
-        }
+            } else { // this.state == STATE_HOLD
+                  _this.callEntityMethodOnGrabbed("startEquip");
+            }
 
           _this.currentHandControllerTipPosition =
               (_this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
