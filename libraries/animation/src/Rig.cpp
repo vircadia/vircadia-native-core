@@ -1346,8 +1346,13 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
             _internalPoseSet._relativePoses[i].trans() = relativeDefaultPoses[i].trans();
         }
     }
+}
 
-    // build absolute poses and copy to externalPoseSet
+void Rig::computeExternalPoses(const glm::mat4& modelOffsetMat) {
+    _modelOffset = AnimPose(modelOffsetMat);
+    _geometryToRigTransform = _modelOffset * _geometryOffset;
+    _rigToGeometryTransform = glm::inverse(_geometryToRigTransform);
+
     buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
     QWriteLocker writeLock(&_externalPoseSetLock);
     _externalPoseSet = _internalPoseSet;

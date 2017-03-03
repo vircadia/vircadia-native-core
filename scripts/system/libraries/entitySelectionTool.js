@@ -1170,14 +1170,14 @@ SelectionDisplay = (function() {
         // determine which bottom corner we are closest to
         /*------------------------------
           example:
-          
+
             BRF +--------+ BLF
                 |        |
                 |        |
             BRN +--------+ BLN
-                   
+
                    *
-                
+
         ------------------------------*/
 
         var cameraPosition = Camera.getPosition();
@@ -2189,8 +2189,12 @@ SelectionDisplay = (function() {
                 offset = Vec3.multiplyQbyV(properties.rotation, offset);
                 var boxPosition = Vec3.sum(properties.position, offset);
 
+                var color = {red: 255, green: 128, blue: 0};
+                if (i >= selectionManager.selections.length - 1) color = {red: 255, green: 255, blue: 64};
+
                 Overlays.editOverlay(selectionBoxes[i], {
                     position: boxPosition,
+                    color: color,
                     rotation: properties.rotation,
                     dimensions: properties.dimensions,
                     visible: true,
@@ -2395,7 +2399,7 @@ SelectionDisplay = (function() {
             if (wantDebug) {
                     print("Start Elevation: " + translateXZTool.startingElevation + ", elevation: " + elevation);
             }
-            if ((translateXZTool.startingElevation > 0.0 && elevation < MIN_ELEVATION) || 
+            if ((translateXZTool.startingElevation > 0.0 && elevation < MIN_ELEVATION) ||
                 (translateXZTool.startingElevation < 0.0 && elevation > -MIN_ELEVATION)) {
                 if (wantDebug) {
                     print("too close to horizon!");
@@ -3857,7 +3861,7 @@ SelectionDisplay = (function() {
     };
 
     that.mousePressEvent = function(event) {
-        var wantDebug = false; 
+        var wantDebug = false;
         if (!event.isLeftButton && !that.triggered) {
             // if another mouse button than left is pressed ignore it
             return false;
@@ -3889,7 +3893,7 @@ SelectionDisplay = (function() {
 
         if (result.intersects) {
 
-            
+
             if (wantDebug) {
                 print("something intersects... ");
                 print("   result.overlayID:" + result.overlayID + "[" + overlayNames[result.overlayID] + "]");
@@ -3989,7 +3993,7 @@ SelectionDisplay = (function() {
             if (wantDebug) {
                 print("rotate handle case...");
             }
-            
+
 
             // After testing our stretch handles, then check out rotate handles
             Overlays.editOverlay(yawHandle, {
@@ -4211,7 +4215,7 @@ SelectionDisplay = (function() {
                     case selectionBox:
                         activeTool = translateXZTool;
                         translateXZTool.pickPlanePosition = result.intersection;
-                        translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y), 
+                        translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y),
                             SelectionManager.worldDimensions.z);
                         if (wantDebug) {
                             print("longest dimension: " + translateXZTool.greatestDimension);
@@ -4220,7 +4224,7 @@ SelectionDisplay = (function() {
                             translateXZTool.startingElevation = translateXZTool.elevation(pickRay.origin, translateXZTool.pickPlanePosition);
                             print(" starting elevation: " + translateXZTool.startingElevation);
                         }
-                        
+
                         mode = translateXZTool.mode;
                         activeTool.onBegin(event);
                         somethingClicked = 'selectionBox';

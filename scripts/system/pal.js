@@ -206,6 +206,17 @@ HighlightedEntity.updateOverlays = function updateHighlightedEntities() {
     });
 };
 
+/* this contains current gain for a given node (by session id).  More efficient than
+ * querying it, plus there isn't a getGain function so why write one */
+var sessionGains = {};
+function convertDbToLinear(decibels) {
+    // +20db = 10x, 0dB = 1x, -10dB = 0.1x, etc...
+    // but, your perception is that something 2x as loud is +10db
+    // so we go from -60 to +20 or 1/64x to 4x.  For now, we can
+    // maybe scale the signal this way??
+    return Math.pow(2, decibels/10.0);
+}
+
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
     var data;
     switch (message.method) {
@@ -244,18 +255,6 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         }
         populateUserList(message.params.selected);
         UserActivityLogger.palAction("refresh", "");
-        break;
-    case 'updateGain':
-        data = message.params;
-        if (data['isReleased']) {
-            // isReleased=true happens once at the end of a cycle of dragging
-            // the slider about, but with same gain as last isReleased=false so
-            // we don't set the gain in that case, and only here do we want to
-            // send an analytic event.
-            UserActivityLogger.palAction("avatar_gain_changed", data['sessionId']);
-        } else {
-            Users.setAvatarGain(data['sessionId'], data['gain']);
-        }
         break;
     case 'displayNameUpdate':
         if (MyAvatar.displayName !== message.params) {
@@ -323,6 +322,7 @@ function populateUserList(selectData) {
             userName: '',
             sessionId: id || '',
             audioLevel: 0.0,
+            avgAudioLevel: 0.0,
             admin: false,
             personalMute: !!id && Users.getPersonalMuteStatus(id), // expects proper boolean, not null
             ignore: !!id && Users.getIgnoreStatus(id) // ditto
@@ -616,12 +616,25 @@ function receiveMessage(channel, messageString, senderID) {
     }
 }
 
-
 var AVERAGING_RATIO = 0.05;
 var LOUDNESS_FLOOR = 11.0;
 var LOUDNESS_SCALE = 2.8 / 5.0;
 var LOG2 = Math.log(2.0);
+var AUDIO_PEAK_DECAY = 0.02;
 var myData = {}; // we're not includied in ExtendedOverlay.get.
+
+function scaleAudio(val) {
+    var audioLevel = 0.0;
+    if (val <= LOUDNESS_FLOOR) {
+        audioLevel = val / LOUDNESS_FLOOR * LOUDNESS_SCALE;
+    } else {
+        audioLevel = (val -(LOUDNESS_FLOOR -1 )) * LOUDNESS_SCALE;
+    }
+    if (audioLevel > 1.0) {
+        audioLevel = 1;
+    }
+    return audioLevel;
+}
 
 function getAudioLevel(id) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
@@ -629,28 +642,28 @@ function getAudioLevel(id) {
     // of updating (the latter for efficiency too).
     var avatar = AvatarList.getAvatar(id);
     var audioLevel = 0.0;
+    var avgAudioLevel = 0.0;
     var data = id ? ExtendedOverlay.get(id) : myData;
-    if (!data) {
-        return audioLevel;
-    }
+    if (data) {
 
-    // we will do exponential moving average by taking some the last loudness and averaging
-    data.accumulatedLevel = AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
+        // we will do exponential moving average by taking some the last loudness and averaging
+        data.accumulatedLevel = AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
 
-    // add 1 to insure we don't go log() and hit -infinity.  Math.log is
-    // natural log, so to get log base 2, just divide by ln(2).
-    var logLevel = Math.log(data.accumulatedLevel + 1) / LOG2;
+        // add 1 to insure we don't go log() and hit -infinity.  Math.log is
+        // natural log, so to get log base 2, just divide by ln(2).
+        audioLevel = scaleAudio(Math.log(data.accumulatedLevel + 1) / LOG2);
 
-    if (logLevel <= LOUDNESS_FLOOR) {
-        audioLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
-    } else {
-        audioLevel = (logLevel - (LOUDNESS_FLOOR - 1.0)) * LOUDNESS_SCALE;
+        // decay avgAudioLevel
+        avgAudioLevel = Math.max((1-AUDIO_PEAK_DECAY) * (data.avgAudioLevel || 0), audioLevel);
+
+        data.avgAudioLevel = avgAudioLevel;
+        data.audioLevel = audioLevel;
+
+        // now scale for the gain.  Also, asked to boost the low end, so one simple way is
+        // to take sqrt of the value.  Lets try that, see how it feels.
+        avgAudioLevel = Math.min(1.0, Math.sqrt(avgAudioLevel *(sessionGains[id] || 0.75)));
     }
-    if (audioLevel > 1.0) {
-        audioLevel = 1;
-    }
-    data.audioLevel = audioLevel;
-    return audioLevel;
+    return [audioLevel, avgAudioLevel];
 }
 
 function createAudioInterval(interval) {

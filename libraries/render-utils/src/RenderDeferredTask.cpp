@@ -160,13 +160,14 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaquesInputs, true);
     addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparentsInputs, false);
 
-    
     // Debugging stages
     {
 
 
         // Bounds do not draw on stencil buffer, so they must come last
         addJob<DrawBounds>("DrawMetaBounds", metas);
+        addJob<DrawBounds>("DrawOverlayOpaqueBounds", overlayOpaques);
+        addJob<DrawBounds>("DrawOverlayTransparentBounds", overlayTransparents);
 
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
