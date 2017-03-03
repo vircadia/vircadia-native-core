@@ -761,6 +761,10 @@ function MyController(hand) {
     this.stylus = null;
     this.homeButtonTouched = false;
 
+    this.controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                       "_CONTROLLER_RIGHTHAND" :
+                                                       "_CONTROLLER_LEFTHAND");
+
     // Until there is some reliable way to keep track of a "stack" of parentIDs, we'll have problems
     // when more than one avatar does parenting grabs on things.  This script tries to work
     // around this with two associative arrays: previousParentID and previousParentJointIndex.  If
@@ -811,9 +815,6 @@ function MyController(hand) {
     this.rawThumbValue = 0;
 
     // for visualizations
-    this.overlayLine = null;
-
-    // for lights
     this.overlayLine = null;
     this.searchSphere = null;
 
@@ -941,9 +942,7 @@ function MyController(hand) {
                 ignoreRayIntersection: true,
                 drawInFront: false,
                 parentID: AVATAR_SELF_ID,
-                parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                         "_CONTROLLER_RIGHTHAND" :
-                                                         "_CONTROLLER_LEFTHAND")
+                parentJointIndex: this.controllerJointIndex
             });
         }
     };
@@ -1028,32 +1027,38 @@ function MyController(hand) {
         }
     };
 
-    this.overlayLineOn = function(closePoint, farPoint, color) {
+    this.overlayLineOn = function(closePoint, farPoint, color, farParentID) {
         if (this.overlayLine === null) {
             var lineProperties = {
                 name: "line",
                 glow: 1.0,
-                start: closePoint,
-                end: farPoint,
-                color: color,
-                ignoreRayIntersection: true, // always ignore this
-                drawInFront: true, // Even when burried inside of something, show it.
-                visible: true,
-                alpha: 1
-            };
-            this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
-
-        } else {
-            Overlays.editOverlay(this.overlayLine, {
                 lineWidth: 5,
                 start: closePoint,
                 end: farPoint,
                 color: color,
-                visible: true,
                 ignoreRayIntersection: true, // always ignore this
                 drawInFront: true, // Even when burried inside of something, show it.
-                alpha: 1
-            });
+                visible: true,
+                alpha: 1,
+                parentID: AVATAR_SELF_ID,
+                parentJointIndex: this.controllerJointIndex,
+                endParentID: farParentID
+            };
+            this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
+
+        } else {
+            if (farParentID && farParentID != NULL_UUID) {
+                Overlays.editOverlay(this.overlayLine, {
+                    color: color,
+                    endParentID: farParentID
+                });
+            } else {
+                Overlays.editOverlay(this.overlayLine, {
+                    length: Vec3.distance(farPoint, closePoint),
+                    color: color,
+                    endParentID: farParentID
+                });
+            }
         }
     };
 
@@ -2245,7 +2250,10 @@ function MyController(hand) {
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
 
-        this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition), COLORS_GRAB_DISTANCE_HOLD);
+        this.overlayLineOn(rayPickInfo.searchRay.origin,
+                           Vec3.subtract(grabbedProperties.position, this.offsetPosition),
+                           COLORS_GRAB_DISTANCE_HOLD,
+                           this.grabbedThingID);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
@@ -2437,9 +2445,7 @@ function MyController(hand) {
             this.actionID = null;
             var handJointIndex;
             if (this.ignoreIK) {
-                handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                        "_CONTROLLER_RIGHTHAND" :
-                                                        "_CONTROLLER_LEFTHAND");
+                handJointIndex = this.controllerJointIndex;
             } else {
                 handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
             }
@@ -3246,9 +3252,7 @@ function MyController(hand) {
             return true;
         }
 
-        var controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                          "_CONTROLLER_RIGHTHAND" :
-                                                          "_CONTROLLER_LEFTHAND");
+        var controllerJointIndex = this.controllerJointIndex;
         if (props.parentJointIndex == controllerJointIndex) {
             return true;
         }
@@ -3274,9 +3278,7 @@ function MyController(hand) {
         children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, handJointIndex));
 
         // find children of faux controller joint
-        var controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                          "_CONTROLLER_RIGHTHAND" :
-                                                          "_CONTROLLER_LEFTHAND");
+        var controllerJointIndex = this.controllerJointIndex;
         children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
         children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, controllerJointIndex));
 
@@ -3288,7 +3290,8 @@ function MyController(hand) {
         children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, controllerCRJointIndex));
 
         children.forEach(function(childID) {
-            if (childID !== _this.stylus) {
+            if (childID !== _this.stylus &&
+                childID !== _this.overlayLine) {
                 // we appear to be holding something and this script isn't in a state that would be holding something.
                 // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
                 // works around some problems that happen when more than one hand or avatar is passing something around.
