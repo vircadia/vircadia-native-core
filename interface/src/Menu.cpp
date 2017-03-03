@@ -577,7 +577,7 @@ Menu::Menu() {
                                            nodeList.data(), SLOT(toggleSendNewerDSConnectVersion(bool)));
     #endif
 
-    
+
     // Developer >> Tests >>>
     MenuWrapper* testMenu = developerMenu->addMenu("Tests");
     addActionToQMenuAndActionHash(testMenu, MenuOption::RunClientScriptTests, 0, dialogsManager.data(), SLOT(showTestingResults()));
@@ -628,9 +628,9 @@ Menu::Menu() {
 
     auto scope = DependencyManager::get<AudioScope>();
     MenuWrapper* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
-    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_P, false,
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_F2, false,
         scope.data(), SLOT(toggle()));
-    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause, Qt::CTRL | Qt::SHIFT | Qt::Key_P, false,
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause, Qt::CTRL | Qt::SHIFT | Qt::Key_F2, false,
         scope.data(), SLOT(togglePause()));
 
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");

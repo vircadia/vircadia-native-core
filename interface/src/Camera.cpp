@@ -192,6 +192,8 @@ QVariantMap Camera::getViewFrustum() {
     result["orientation"].setValue(frustum.getOrientation());
     result["projection"].setValue(frustum.getProjection());
     result["centerRadius"].setValue(frustum.getCenterRadius());
+    result["fieldOfView"].setValue(frustum.getFieldOfView());
+    result["aspectRatio"].setValue(frustum.getAspectRatio());
 
     return result;
 }

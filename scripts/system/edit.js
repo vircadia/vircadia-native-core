@@ -56,6 +56,7 @@ selectionManager.addEventListener(function () {
     lightOverlayManager.updatePositions();
 });
 
+const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
 var epsilon = 0.001;
@@ -564,6 +565,11 @@ function findClickedEntity(event) {
 
     var pickRay = Camera.computePickRay(event.x, event.y);
 
+    var overlayResult = Overlays.findRayIntersection(pickRay, true, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    if (overlayResult.intersects) {
+        return null;
+    }
+
     var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
     var lightResult = lightOverlayManager.findRayIntersection(pickRay);
     lightResult.accurate = true;
@@ -838,7 +844,6 @@ function setupModelMenus() {
         });
         modelMenuAddedDelete = true;
     }
-
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Entity List...",
@@ -846,11 +851,25 @@ function setupModelMenus() {
         afterItem: "Entities",
         grouping: "Advanced"
     });
+
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Parent Entity to Last",
+        afterItem: "Entity List...",
+        grouping: "Advanced"
+    });
+
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Unparent Entity",
+        afterItem: "Parent Entity to Last",
+        grouping: "Advanced"
+    });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Allow Selecting of Large Models",
         shortcutKey: "CTRL+META+L",
-        afterItem: "Entity List...",
+        afterItem: "Unparent Entity",
         isCheckable: true,
         isChecked: true,
         grouping: "Advanced"
@@ -953,6 +972,8 @@ function cleanupModelMenus() {
         Menu.removeMenuItem("Edit", "Delete");
     }
 
+    Menu.removeMenuItem("Edit", "Parent Entity to Last");
+    Menu.removeMenuItem("Edit", "Unparent Entity");
     Menu.removeMenuItem("Edit", "Entity List...");
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
@@ -985,6 +1006,9 @@ Script.scriptEnding.connect(function () {
 
     Overlays.deleteOverlay(importingSVOImageOverlay);
     Overlays.deleteOverlay(importingSVOTextOverlay);
+
+    Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
+    Controller.keyPressEvent.disconnect(keyPressEvent);
 });
 
 var lastOrientation = null;
@@ -1096,7 +1120,68 @@ function recursiveDelete(entities, childrenList) {
         Entities.deleteEntity(entityID);
     }
 }
+function unparentSelectedEntities() {
+    if (SelectionManager.hasSelection()) {
+        var selectedEntities = selectionManager.selections;
+        var parentCheck = false;
 
+        if (selectedEntities.length < 1) {
+            Window.notifyEditError("You must have an entity selected inorder to unparent it.");
+            return;
+        }
+        selectedEntities.forEach(function (id, index) {
+            var parentId = Entities.getEntityProperties(id, ["parentID"]).parentID;
+            if (parentId !== null && parentId.length > 0 && parentId !== "{00000000-0000-0000-0000-000000000000}") {
+                parentCheck = true;
+            }
+            Entities.editEntity(id, {parentID: null})
+            return true;
+        });
+        if (parentCheck) {
+            if (selectedEntities.length > 1) {
+                Window.notify("Entities unparented");
+            } else {
+                Window.notify("Entity unparented");
+            }
+        } else {
+            if (selectedEntities.length > 1) {
+                Window.notify("Selected Entities have no parents");
+            } else {
+                Window.notify("Selected Entity does not have a parent");
+            }
+        }
+    } else {
+        Window.notifyEditError("You have nothing selected to unparent");
+    }
+}
+function parentSelectedEntities() {
+    if (SelectionManager.hasSelection()) {
+        var selectedEntities = selectionManager.selections;
+        if (selectedEntities.length <= 1) {
+            Window.notifyEditError("You must have multiple entities selected in order to parent them");
+            return;
+        }
+        var parentCheck = false;
+        var lastEntityId = selectedEntities[selectedEntities.length-1];
+        selectedEntities.forEach(function (id, index) {
+            if (lastEntityId !== id) {
+                var parentId = Entities.getEntityProperties(id, ["parentID"]).parentID;
+                if (parentId !== lastEntityId) {
+                    parentCheck = true;
+                }
+                Entities.editEntity(id, {parentID: lastEntityId})
+            }
+        });
+
+        if(parentCheck) {
+            Window.notify("Entities parented");
+        }else {
+            Window.notify("Entities are already parented to last");
+        }
+    } else {
+        Window.notifyEditError("You have nothing selected to parent");
+    }
+}
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         selectedParticleEntity = 0;
@@ -1159,6 +1244,10 @@ function handeMenuEvent(menuItem) {
         Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem === "Delete") {
         deleteSelectedEntities();
+    } else if (menuItem === "Parent Entity to Last") {
+        parentSelectedEntities();
+    } else if (menuItem === "Unparent Entity") {
+        unparentSelectedEntities();
     } else if (menuItem === "Export Entities") {
         if (!selectionManager.hasSelection()) {
             Window.notifyEditError("No entities have been selected.");
@@ -1284,13 +1373,12 @@ Window.svoImportRequested.connect(importSVO);
 
 Menu.menuItemEvent.connect(handeMenuEvent);
 
-Controller.keyPressEvent.connect(function (event) {
+var keyPressEvent = function (event) {
     if (isActive) {
         cameraManager.keyPressEvent(event);
     }
-});
-
-Controller.keyReleaseEvent.connect(function (event) {
+};
+var keyReleaseEvent = function (event) {
     if (isActive) {
         cameraManager.keyReleaseEvent(event);
     }
@@ -1324,8 +1412,16 @@ Controller.keyReleaseEvent.connect(function (event) {
             });
             grid.setPosition(newPosition);
         }
+    } else if (event.key === KEY_P && event.isControl && !event.isAutoRepeat ) {
+        if (event.isShifted) {
+            unparentSelectedEntities();
+        } else {
+            parentSelectedEntities();
+        }
     }
-});
+};
+Controller.keyReleaseEvent.connect(keyReleaseEvent);
+Controller.keyPressEvent.connect(keyPressEvent);
 
 function recursiveAdd(newParentID, parentData) {
     var children = parentData.children;
@@ -1575,6 +1671,10 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
+        } else if(data.type === 'parent') {
+            parentSelectedEntities();
+        } else if(data.type === 'unparent') {
+            unparentSelectedEntities();
         } else if(data.type === 'saveUserData'){
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
@@ -1832,6 +1932,9 @@ var PopupMenu = function () {
         for (var i = 0; i < overlays.length; i++) {
             Overlays.deleteOverlay(overlays[i]);
         }
+        Controller.mousePressEvent.disconnect(self.mousePressEvent);
+        Controller.mouseMoveEvent.disconnect(self.mouseMoveEvent);
+        Controller.mouseReleaseEvent.disconnect(self.mouseReleaseEvent);
     }
 
     Controller.mousePressEvent.connect(self.mousePressEvent);
@@ -1859,7 +1962,11 @@ var particleExplorerTool = new ParticleExplorerTool();
 var selectedParticleEntity = 0;
 entityListTool.webView.webEventReceived.connect(function (data) {
     data = JSON.parse(data);
-    if (data.type === "selectionUpdate") {
+    if(data.type === 'parent') {
+        parentSelectedEntities();
+    } else if(data.type === 'unparent') {
+        unparentSelectedEntities();
+    } else if (data.type === "selectionUpdate") {
         var ids = data.entityIds;
         if (ids.length === 1) {
             if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {

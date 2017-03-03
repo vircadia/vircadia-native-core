@@ -168,7 +168,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         QList<AvatarSharedPointer> avatarList;
         std::unordered_map<AvatarSharedPointer, SharedNodePointer> avatarDataToNodes;
 
-        int listItem = 0;
         std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
             const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
 
@@ -176,7 +175,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             // but not have yet sent data that's linked to the node. Check for that case and don't
             // consider those nodes.
             if (otherNodeData) {
-                listItem++;
                 AvatarSharedPointer otherAvatar = otherNodeData->getAvatarSharedPointer();
                 avatarList << otherAvatar;
                 avatarDataToNodes[otherAvatar] = otherNode;
@@ -185,8 +183,8 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
         AvatarSharedPointer thisAvatar = nodeData->getAvatarSharedPointer();
         ViewFrustum cameraView = nodeData->getViewFrustom();
-        std::priority_queue<AvatarPriority> sortedAvatars = AvatarData::sortAvatars(
-                avatarList, cameraView,
+        std::priority_queue<AvatarPriority> sortedAvatars;
+        AvatarData::sortAvatars(avatarList, cameraView, sortedAvatars,
 
                 [&](AvatarSharedPointer avatar)->uint64_t{
                     auto avatarNode = avatarDataToNodes[avatar];
@@ -384,18 +382,20 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             if (includeThisAvatar) {
                 numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                 numAvatarDataBytes += avatarPacketList->write(bytes);
-                _stats.numOthersIncluded++;
 
-                // increment the number of avatars sent to this reciever
-                nodeData->incrementNumAvatarsSentLastFrame();
+                if (detail != AvatarData::NoData) {
+                    _stats.numOthersIncluded++;
 
-                // set the last sent sequence number for this sender on the receiver
-                nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                    otherNodeData->getLastReceivedSequenceNumber());
+                    // increment the number of avatars sent to this reciever
+                    nodeData->incrementNumAvatarsSentLastFrame();
 
-                // remember the last time we sent details about this other node to the receiver
-                nodeData->setLastBroadcastTime(otherNode->getUUID(), start);
+                    // set the last sent sequence number for this sender on the receiver
+                    nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(), 
+                                    otherNodeData->getLastReceivedSequenceNumber());
 
+                    // remember the last time we sent details about this other node to the receiver
+                    nodeData->setLastBroadcastTime(otherNode->getUUID(), start);
+                }
             }
 
             avatarPacketList->endSegment();
