@@ -53,7 +53,7 @@ glm::vec3 Line3DOverlay::getEnd() const {
     if (_endParentID != QUuid()) {
         glm::vec3 localOffset = _direction * _length;
         bool success;
-        worldEnd = localToWorld(getLocalStart() + localOffset, _endParentID, _endParentJointIndex, success);
+        worldEnd = localToWorld(localOffset, _endParentID, _endParentJointIndex, success);
         return worldEnd;
     }
 
