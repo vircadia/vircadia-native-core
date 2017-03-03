@@ -405,7 +405,10 @@ void GL45VariableAllocationTexture::manageMemory() {
     processWorkQueues();
 }
 
+size_t GL45VariableAllocationTexture::_frameTexturesCreated { 0 };
+
 GL45VariableAllocationTexture::GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45Texture(backend, texture) {
+    ++_frameTexturesCreated;
 }
 
 GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
