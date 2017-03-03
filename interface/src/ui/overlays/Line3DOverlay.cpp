@@ -86,8 +86,13 @@ void Line3DOverlay::setEnd(const glm::vec3& end) {
         qDebug() << "Line3DOverlay::setEnd failed";
         return;
     }
-    _direction = glm::normalize(offset);
+
     _length = glm::length(offset);
+    if (_length > 0.0f) {
+        _direction = glm::normalize(offset);
+    } else {
+        _direction = glm::vec3(0.0f);
+    }
 }
 
 void Line3DOverlay::setLocalEnd(const glm::vec3& localEnd) {
@@ -98,16 +103,18 @@ void Line3DOverlay::setLocalEnd(const glm::vec3& localEnd) {
         glm::vec3 localStart = getLocalStart();
         offset = localEnd - localStart;
     }
-    _direction = glm::normalize(offset);
     _length = glm::length(offset);
+    if (_length > 0.0f) {
+        _direction = glm::normalize(offset);
+    } else {
+        _direction = glm::vec3(0.0f);
+    }
 }
 
 AABox Line3DOverlay::getBounds() const {
     auto extents = Extents{};
     extents.addPoint(getStart());
     extents.addPoint(getEnd());
-    extents.transform(getTransform());
-
     return AABox(extents);
 }
 
@@ -122,19 +129,20 @@ void Line3DOverlay::render(RenderArgs* args) {
     glm::vec4 colorv4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
     auto batch = args->_batch;
     if (batch) {
-        // batch->setModelTransform(getTransform());
+        batch->setModelTransform(Transform());
+        glm::vec3 start = getStart();
+        glm::vec3 end = getEnd();
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
         if (getIsDashedLine()) {
             // TODO: add support for color to renderDashedLine()
             geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
-            geometryCache->renderDashedLine(*batch, getStart(), getEnd(), colorv4, _geometryCacheID);
+            geometryCache->renderDashedLine(*batch, start, end, colorv4, _geometryCacheID);
         } else if (_glow > 0.0f) {
-            geometryCache->renderGlowLine(*batch, getStart(), getEnd(),
-                                          colorv4, _glow, _glowWidth, _geometryCacheID);
+            geometryCache->renderGlowLine(*batch, start, end, colorv4, _glow, _glowWidth, _geometryCacheID);
         } else {
             geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
-            geometryCache->renderLine(*batch, getStart(), getEnd(), colorv4, _geometryCacheID);
+            geometryCache->renderLine(*batch, start, end, colorv4, _geometryCacheID);
         }
     }
 }
