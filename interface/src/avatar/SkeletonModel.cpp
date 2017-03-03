@@ -166,7 +166,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         _rig->computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
 
         // evaluate AnimGraph animation and update jointStates.
-        CauterizedModel::updateRig(deltaTime, parentTransform);
+        Model::updateRig(deltaTime, parentTransform);
 
         Rig::EyeParameters eyeParams;
         eyeParams.worldHeadOrientation = headParams.worldHeadOrientation;
@@ -179,7 +179,9 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromEyeParameters(eyeParams);
     } else {
-        CauterizedModel::updateRig(deltaTime, parentTransform);
+        // no need to call Model::updateRig() because otherAvatars get their joint state
+        // copied directly from AvtarData::_jointData (there are no Rig animations to blend)
+        _needsUpdateClusterMatrices = true;
 
         // This is a little more work than we really want.
         //

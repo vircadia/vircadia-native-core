@@ -272,6 +272,27 @@ CONTROLLER_STATE_MACHINE[STATE_OVERLAY_STYLUS_TOUCHING] = {
 };
 CONTROLLER_STATE_MACHINE[STATE_OVERLAY_LASER_TOUCHING] = CONTROLLER_STATE_MACHINE[STATE_OVERLAY_STYLUS_TOUCHING];
 
+// Object assign  polyfill
+if (typeof Object.assign != 'function') {
+  Object.assign = function(target, varArgs) {
+    'use strict';
+    if (target == null) {
+      throw new TypeError('Cannot convert undefined or null to object');
+    }
+    var to = Object(target);
+    for (var index = 1; index < arguments.length; index++) {
+      var nextSource = arguments[index];
+      if (nextSource != null) {
+        for (var nextKey in nextSource) {
+          if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+            to[nextKey] = nextSource[nextKey];
+          }
+        }
+      }
+    }
+    return to;
+  };
+}
 
 function distanceBetweenPointAndEntityBoundingBox(point, entityProps) {
     var entityXform = new Xform(entityProps.rotation, entityProps.position);
@@ -746,6 +767,10 @@ function MyController(hand) {
     this.stylus = null;
     this.homeButtonTouched = false;
 
+    this.controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                       "_CONTROLLER_RIGHTHAND" :
+                                                       "_CONTROLLER_LEFTHAND");
+
     // Until there is some reliable way to keep track of a "stack" of parentIDs, we'll have problems
     // when more than one avatar does parenting grabs on things.  This script tries to work
     // around this with two associative arrays: previousParentID and previousParentJointIndex.  If
@@ -796,9 +821,6 @@ function MyController(hand) {
     this.rawThumbValue = 0;
 
     // for visualizations
-    this.overlayLine = null;
-
-    // for lights
     this.overlayLine = null;
     this.searchSphere = null;
 
@@ -927,9 +949,7 @@ function MyController(hand) {
                 ignoreRayIntersection: true,
                 drawInFront: false,
                 parentID: AVATAR_SELF_ID,
-                parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                         "_CONTROLLER_RIGHTHAND" :
-                                                         "_CONTROLLER_LEFTHAND")
+                parentJointIndex: this.controllerJointIndex
             });
         }
     };
@@ -1014,32 +1034,38 @@ function MyController(hand) {
         }
     };
 
-    this.overlayLineOn = function(closePoint, farPoint, color) {
+    this.overlayLineOn = function(closePoint, farPoint, color, farParentID) {
         if (this.overlayLine === null) {
             var lineProperties = {
                 name: "line",
                 glow: 1.0,
-                start: closePoint,
-                end: farPoint,
-                color: color,
-                ignoreRayIntersection: true, // always ignore this
-                drawInFront: true, // Even when burried inside of something, show it.
-                visible: true,
-                alpha: 1
-            };
-            this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
-
-        } else {
-            Overlays.editOverlay(this.overlayLine, {
                 lineWidth: 5,
                 start: closePoint,
                 end: farPoint,
                 color: color,
-                visible: true,
                 ignoreRayIntersection: true, // always ignore this
                 drawInFront: true, // Even when burried inside of something, show it.
-                alpha: 1
+                visible: true,
+                alpha: 1,
+                parentID: AVATAR_SELF_ID,
+                parentJointIndex: this.controllerJointIndex,
+                endParentID: farParentID
+            };
+            this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
+
+        } else {
+            if (farParentID && farParentID != NULL_UUID) {
+            Overlays.editOverlay(this.overlayLine, {
+                color: color,
+                    endParentID: farParentID
             });
+            } else {
+                Overlays.editOverlay(this.overlayLine, {
+                    length: Vec3.distance(farPoint, closePoint),
+                    color: color,
+                    endParentID: farParentID
+                });
+        }
         }
     };
 
@@ -1463,7 +1489,18 @@ function MyController(hand) {
 
         return true;
     };
+    this.entityIsCloneable = function(entityID) {
+      var entityProps = entityPropertiesCache.getGrabbableProps(entityID);
+      var props = entityPropertiesCache.getProps(entityID);
+      if (!props) {
+          return false;
+      }
 
+      if (entityProps.hasOwnProperty("cloneable")) {
+          return entityProps.cloneable;
+      }
+      return false;
+    }
     this.entityIsGrabbable = function(entityID) {
         var grabbableProps = entityPropertiesCache.getGrabbableProps(entityID);
         var props = entityPropertiesCache.getProps(entityID);
@@ -1543,7 +1580,7 @@ function MyController(hand) {
 
     this.entityIsNearGrabbable = function(entityID, handPosition, maxDistance) {
 
-        if (!this.entityIsGrabbable(entityID)) {
+        if (!this.entityIsCloneable(entityID) && !this.entityIsGrabbable(entityID)) {
             return false;
         }
 
@@ -1742,7 +1779,7 @@ function MyController(hand) {
                     if (this.getOtherHandController().state === STATE_DISTANCE_HOLDING) {
                         this.setState(STATE_DISTANCE_ROTATING, "distance rotate '" + name + "'");
                     } else {
-                        this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
+                    this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     }
                     return;
                 } else {
@@ -2232,8 +2269,10 @@ function MyController(hand) {
 
         // visualizations
         var rayPickInfo = this.calcRayPickInfo(this.hand);
-        this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition),
-            COLORS_GRAB_DISTANCE_HOLD);
+        this.overlayLineOn(rayPickInfo.searchRay.origin,
+                           Vec3.subtract(grabbedProperties.position, this.offsetPosition),
+                           COLORS_GRAB_DISTANCE_HOLD,
+                           this.grabbedThingID);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
@@ -2305,7 +2344,7 @@ function MyController(hand) {
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
         this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition),
-            COLORS_GRAB_DISTANCE_HOLD);
+            COLORS_GRAB_DISTANCE_HOLD, this.grabbedThingID);
 
         this.previousWorldControllerRotation = worldControllerRotation;
     }
@@ -2463,6 +2502,9 @@ function MyController(hand) {
             this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
         }
 
+        // This boolean is used to check if the object that is grabbed has just been cloned
+        // It is only set true, if the object that is grabbed creates a new clone.
+        var isClone = false;
         var isPhysical = propsArePhysical(grabbedProperties) ||
             (!this.grabbedIsOverlay && entityHasActions(this.grabbedThingID));
         if (isPhysical && this.state == STATE_NEAR_GRABBING && grabbedProperties.parentID === NULL_UUID) {
@@ -2480,9 +2522,7 @@ function MyController(hand) {
             this.actionID = null;
             var handJointIndex;
             if (this.ignoreIK) {
-                handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                        "_CONTROLLER_RIGHTHAND" :
-                                                        "_CONTROLLER_LEFTHAND");
+                handJointIndex = this.controllerJointIndex;
             } else {
                 handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
             }
@@ -2501,6 +2541,54 @@ function MyController(hand) {
             if (this.grabbedIsOverlay) {
                 Overlays.editOverlay(this.grabbedThingID, reparentProps);
             } else {
+                if (grabbedProperties.userData.length > 0) {
+                    try{
+                        var userData = JSON.parse(grabbedProperties.userData);
+                        var grabInfo = userData.grabbableKey;
+                        if (grabInfo && grabInfo.cloneable) {
+                            // Check if
+                            var worldEntities = Entities.findEntitiesInBox(Vec3.subtract(MyAvatar.position, {x:25,y:25, z:25}), {x:50, y: 50, z: 50})
+                            var count = 0;
+                            worldEntities.forEach(function(item) {
+                                var item = Entities.getEntityProperties(item, ["name"]);
+                                if (item.name === grabbedProperties.name) {
+                                    count++;
+                                }
+                            })
+                            var cloneableProps = Entities.getEntityProperties(grabbedProperties.id);
+                            var lifetime = grabInfo.cloneLifetime ? grabInfo.cloneLifetime : 300;
+                            var limit = grabInfo.cloneLimit ? grabInfo.cloneLimit : 10;
+                            var dynamic = grabInfo.cloneDynamic ? grabInfo.cloneDynamic : false;
+                            var cUserData = Object.assign({}, userData);
+                            var cProperties = Object.assign({}, cloneableProps);
+                            isClone = true;
+
+                            if (count > limit) {
+                                delete cloneableProps;
+                                delete lifetime;
+                                delete cUserData;
+                                delete cProperties;
+                                return;
+                            }
+
+                            delete cUserData.grabbableKey.cloneLifetime;
+                            delete cUserData.grabbableKey.cloneable;
+                            delete cUserData.grabbableKey.cloneDynamic;
+                            delete cUserData.grabbableKey.cloneLimit;
+                            delete cProperties.id
+
+                            cProperties.dynamic = dynamic;
+                            cProperties.locked = false;
+                            cUserData.grabbableKey.triggerable = true;
+                            cUserData.grabbableKey.grabbable = true;
+                            cProperties.lifetime = lifetime;
+                            cProperties.userData = JSON.stringify(cUserData);
+                            var cloneID = Entities.addEntity(cProperties);
+                            this.grabbedThingID = cloneID;
+                            grabbedProperties = Entities.getEntityProperties(cloneID);
+                        }
+                    }catch(e) {}
+                }
                 Entities.editEntity(this.grabbedThingID, reparentProps);
             }
 
@@ -2512,7 +2600,6 @@ function MyController(hand) {
                 this.previousParentID[this.grabbedThingID] = grabbedProperties.parentID;
                 this.previousParentJointIndex[this.grabbedThingID] = grabbedProperties.parentJointIndex;
             }
-
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'equip',
                 grabbedEntity: this.grabbedThingID,
@@ -2528,22 +2615,37 @@ function MyController(hand) {
             });
         }
 
-        if (this.state == STATE_NEAR_GRABBING) {
-            this.callEntityMethodOnGrabbed("startNearGrab");
+        var _this = this;
+        /*
+         * Setting context for function that is either called via timer or directly, depending if
+         * if the object in question is a clone. If it is a clone, we need to make sure that the intial equipment event
+         * is called correctly, as these just freshly created entity may not have completely initialized.
+        */
+        var grabEquipCheck = function () {
+          if (_this.state == STATE_NEAR_GRABBING) {
+              _this.callEntityMethodOnGrabbed("startNearGrab");
         } else { // this.state == STATE_HOLD
-            this.callEntityMethodOnGrabbed("startEquip");
+              _this.callEntityMethodOnGrabbed("startEquip");
         }
 
-        this.currentHandControllerTipPosition =
-            (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
-        this.currentObjectTime = Date.now();
+          _this.currentHandControllerTipPosition =
+              (_this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
+          _this.currentObjectTime = Date.now();
 
-        this.currentObjectPosition = grabbedProperties.position;
-        this.currentObjectRotation = grabbedProperties.rotation;
-        this.currentVelocity = ZERO_VEC;
-        this.currentAngularVelocity = ZERO_VEC;
+          _this.currentObjectPosition = grabbedProperties.position;
+          _this.currentObjectRotation = grabbedProperties.rotation;
+          _this.currentVelocity = ZERO_VEC;
+          _this.currentAngularVelocity = ZERO_VEC;
 
-        this.prevDropDetected = false;
+          _this.prevDropDetected = false;
+        }
+
+        if (isClone) {
+            // 100 ms seems to be sufficient time to force the check even occur after the object has been initialized.
+            Script.setTimeout(grabEquipCheck, 100);
+        } else {
+            grabEquipCheck();
+        }
     };
 
     this.nearGrabbing = function(deltaTime, timestamp) {
@@ -3227,9 +3329,7 @@ function MyController(hand) {
             return true;
         }
 
-        var controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                          "_CONTROLLER_RIGHTHAND" :
-                                                          "_CONTROLLER_LEFTHAND");
+        var controllerJointIndex = this.controllerJointIndex;
         if (props.parentJointIndex == controllerJointIndex) {
             return true;
         }
@@ -3255,9 +3355,7 @@ function MyController(hand) {
         children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, handJointIndex));
 
         // find children of faux controller joint
-        var controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                          "_CONTROLLER_RIGHTHAND" :
-                                                          "_CONTROLLER_LEFTHAND");
+        var controllerJointIndex = this.controllerJointIndex;
         children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
         children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, controllerJointIndex));
 
@@ -3269,7 +3367,8 @@ function MyController(hand) {
         children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, controllerCRJointIndex));
 
         children.forEach(function(childID) {
-            if (childID !== _this.stylus) {
+            if (childID !== _this.stylus &&
+                childID !== _this.overlayLine) {
                 // we appear to be holding something and this script isn't in a state that would be holding something.
                 // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
                 // works around some problems that happen when more than one hand or avatar is passing something around.
@@ -3365,6 +3464,7 @@ Messages.subscribe('Hifi-Hand-Disabler');
 Messages.subscribe('Hifi-Hand-Grab');
 Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
 Messages.subscribe('Hifi-Object-Manipulation');
+Messages.subscribe('Hifi-Hand-Drop');
 
 var handleHandMessages = function(channel, message, sender) {
     var data;
@@ -3449,6 +3549,15 @@ var handleHandMessages = function(channel, message, sender) {
 
             } catch (e) {
                 print("WARNING: handControllerGrab.js -- error parsing Hifi-Hand-RayPick-Blacklist message: " + message);
+            }
+        } else if (channel === 'Hifi-Hand-Drop') {
+            if (message === 'left') {
+                leftController.release();
+            } else if (message === 'right') {
+                rightController.release();
+            } else if (message === 'both') {
+                leftController.release();
+                rightController.release();
             }
         }
     }
