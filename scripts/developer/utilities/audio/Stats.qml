@@ -12,21 +12,21 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
+import "../../../../resources/qml/controls-uit" as HifiControls
+
 Column {
     id: stats
     width: parent.width
     property bool showGraphs: toggleGraphs.checked
 
-    RowLayout {
+    Item {
         width: parent.width
         height: 30
 
-        Button {
+        HifiControls.Button {
             id: toggleGraphs
             property bool checked: false
-
-            Layout.alignment: Qt.AlignCenter
-
+            anchors.horizontalCenter: parent.horizontalCenter
             text: checked ? "Hide graphs" : "Show graphs"
             onClicked: function() { checked = !checked; }
         }
