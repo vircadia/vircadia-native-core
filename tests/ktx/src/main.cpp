@@ -38,7 +38,7 @@
 #include <StatTracker.h>
 #include <LogHandler.h>
 
-#include <Windows.h>
+
 #include <gpu/Texture.h>
 #include <gl/Config.h>
 #include <model/TextureMap.h>
