@@ -175,7 +175,7 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
             _webSurface->getRootContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
             _webSurface->getRootContext()->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
-            _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../../");
+            _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
 
             // Override min fps for tablet UI, for silky smooth scrolling
