@@ -151,11 +151,12 @@ TabletModalWindow {
             }
         }
 
-        /*TabletComboBox {
+        TabletComboBox {
             id: pathSelector
-           anchors {
+            z: 10
+            anchors {
                 top: parent.top
-                topMargin: hifi.dimensions.contentMargin.y
+                topMargin: (fileDialogItem.hasTitle ? (fileDialogItem.frameMarginTop + hifi.dimensions.modalDialogMargin.y) : hifi.dimension.modalDialogMargin.y) 
                 left: navControls.right
                 leftMargin: hifi.dimensions.contentSpacing.x
                 right: parent.right
@@ -219,7 +220,7 @@ TabletModalWindow {
                     fileTableView.forceActiveFocus();
                 }
             }
-        }*/
+        }
 
         QtObject {
             id: d
