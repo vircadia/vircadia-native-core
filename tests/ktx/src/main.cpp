@@ -99,12 +99,10 @@ int main(int argc, char** argv) {
     auto ktxMemory = gpu::Texture::serialize(*testTexture);
     {
         const auto& ktxStorage = ktxMemory->getStorage();
-        auto header = ktxMemory->getHeader();
         QFile outFile(TEST_IMAGE_KTX);
         if (!outFile.open(QFile::Truncate | QFile::ReadWrite)) {
             throw std::runtime_error("Unable to open file");
         }
-        //auto ktxSize = sizeof(ktx::Header); // ktxStorage->size()
         auto ktxSize = ktxStorage->size();
         outFile.resize(ktxSize);
         auto dest = outFile.map(0, ktxSize);

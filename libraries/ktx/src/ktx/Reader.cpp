@@ -12,6 +12,7 @@
 
 #include <list>
 #include <QtGlobal>
+#include <QtCore/QDebug>
 
 #ifndef _MSC_VER
 #define NOEXCEPT noexcept
@@ -68,7 +69,7 @@ namespace ktx {
             }
 
             // find the first null character \0
-            int keyLength = 0;
+            uint32_t keyLength = 0;
             while (reinterpret_cast<const char*>(src[++keyLength]) != '\0') {
                 if (keyLength == keyValueByteSize) {
                     // key must be null-terminated, and there must be space for the value
@@ -119,8 +120,8 @@ namespace ktx {
 
             return true;
         }
-        catch (ReaderException& e) {
-            qWarning(e.what());
+        catch (const ReaderException& e) {
+            qWarning() << e.what();
             return false;
         }
     }
@@ -128,7 +129,6 @@ namespace ktx {
     Images KTX::parseImages(const Header& header, size_t srcSize, const Byte* srcBytes) {
         Images images;
         auto currentPtr = srcBytes;
-        auto numMips = header.getNumberOfLevels();
         auto numFaces = header.numberOfFaces;
 
         // Keep identifying new mip as long as we can at list query the next imageSize

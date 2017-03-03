@@ -117,6 +117,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     }
 
     auto ktxBuffer = ktx::KTX::create(header, images);
+#if 0
     auto expectedMipCount = texture.evalNumMips();
     assert(expectedMipCount == ktxBuffer->_images.size());
     assert(expectedMipCount == header.numberOfMipmapLevels);
@@ -141,6 +142,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
             assert(0 == memcmp(expectedFace, actualFace, expected._faceSize));
         }
     }
+#endif
     return ktxBuffer;
 }
 

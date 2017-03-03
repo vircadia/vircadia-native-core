@@ -402,15 +402,15 @@ namespace ktx {
         Image(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
             _numFaces(1),
             _imageSize(imageSize),
-            _padding(padding),
             _faceSize(imageSize),
+            _padding(padding),
             _faceBytes(1, bytes) {}
 
         Image(uint32_t pageSize, uint32_t padding, const FaceBytes& cubeFaceBytes) :
             _numFaces(NUM_CUBEMAPFACES),
             _imageSize(pageSize * NUM_CUBEMAPFACES),
-            _padding(padding),
-            _faceSize(pageSize)
+            _faceSize(pageSize),
+            _padding(padding)
             {
                 if (cubeFaceBytes.size() == NUM_CUBEMAPFACES) {
                     _faceBytes = cubeFaceBytes;

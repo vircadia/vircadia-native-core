@@ -72,7 +72,6 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
     incrementTextureGPUCount();
     withPreservedTexture([&] {
         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        const Sampler& sampler = _gpuObject.getSampler();
         auto numMips = _gpuObject.evalNumMips();
         for (uint16_t mipLevel = 0; mipLevel < numMips; ++mipLevel) {
             // Get the mip level dimensions, accounting for the downgrade level
