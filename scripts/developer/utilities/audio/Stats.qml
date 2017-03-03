@@ -1,5 +1,5 @@
 //
-//  stats.qml
+//  Stats.qml
 //  scripts/developer/utilities/audio
 //
 //  Created by Zach Pomerantz on 9/22/2016
@@ -15,7 +15,6 @@ import QtQuick.Layouts 1.3
 Column {
     id: stats
     width: parent.width
-    height: parent.height
     property bool showGraphs: toggleGraphs.checked
 
     RowLayout {
@@ -35,11 +34,9 @@ Column {
 
     Grid {
         width: parent.width
-        height: parent.height - 30
 
         Column {
             width: parent.width / 2
-            height: parent.height
 
             Section {
                 label: "Latency"
@@ -76,7 +73,6 @@ Column {
 
         Column {
             width: parent.width / 2
-            height: parent.height
 
             Section {
                 label: "Mixer (upstream)"
@@ -92,4 +88,3 @@ Column {
         }
     }
 }
-

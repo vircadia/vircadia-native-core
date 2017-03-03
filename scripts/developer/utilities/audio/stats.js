@@ -11,7 +11,7 @@
 
 if (HMD.active && !Settings.getValue("HUDUIEnabled")) {
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    var qml = Script.resolvePath("stats.qml");
+    var qml = Script.resolvePath("TabletStats.qml");
     tablet.loadQMLSource(qml);
     Script.stop();
 
@@ -19,7 +19,7 @@ if (HMD.active && !Settings.getValue("HUDUIEnabled")) {
     var INITIAL_WIDTH = 400;
     var INITIAL_OFFSET = 50;
 
-    var qml = Script.resolvePath("stats.qml");
+    var qml = Script.resolvePath("Stats.qml");
     var window = new OverlayWindow({
         title: "Audio Interface Statistics",
         source: qml,
