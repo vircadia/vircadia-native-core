@@ -19,6 +19,7 @@ const VISIBLE_GLYPH = "&#xe007;";
 const TRANSPARENCY_GLYPH = "&#xe00b;";
 const SCRIPT_GLYPH = "k";
 const DELETE = 46; // Key code for the delete key.
+const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
 
 debugPrint = function (message) {
@@ -26,7 +27,7 @@ debugPrint = function (message) {
 };
 
 function loaded() {
-  openEventBridge(function() { 
+  openEventBridge(function() {
       entityList = new List('entity-list', { valueNames: ['name', 'type', 'url', 'locked', 'visible'], page: MAX_ITEMS});
       entityList.clear();
       elEntityTable = document.getElementById("entity-table");
@@ -48,7 +49,7 @@ function loaded() {
       elNoEntitiesInView = document.getElementById("no-entities-in-view");
       elNoEntitiesRadius = document.getElementById("no-entities-radius");
       elEntityTableScroll = document.getElementById("entity-table-scroll");
-      
+
       document.getElementById("entity-name").onclick = function() {
           setSortColumn('name');
       };
@@ -90,7 +91,7 @@ function loaded() {
               selection = selection.concat(selectedEntities);
           } else if (clickEvent.shiftKey && selectedEntities.length > 0) {
               var previousItemFound = -1;
-              var clickedItemFound = -1; 
+              var clickedItemFound = -1;
               for (var entity in entityList.visibleItems) {
                   if (clickedItemFound === -1 && this.dataset.entityId == entityList.visibleItems[entity].values().id) {
                       clickedItemFound = entity;
@@ -113,11 +114,11 @@ function loaded() {
                   selection = selection.concat(betweenItems, selectedEntities);
               }
           }
-      
+
           selectedEntities = selection;
-      
+
           this.className = 'selected';
-      
+
           EventBridge.emitWebEvent(JSON.stringify({
               type: "selectionUpdate",
               focus: false,
@@ -126,7 +127,7 @@ function loaded() {
 
           refreshFooter();
       }
-      
+
       function onRowDoubleClicked() {
           EventBridge.emitWebEvent(JSON.stringify({
               type: "selectionUpdate",
@@ -134,7 +135,7 @@ function loaded() {
               entityIds: [this.dataset.entityId],
           }));
       }
-      
+
       const BYTES_PER_MEGABYTE = 1024 * 1024;
 
       function decimalMegabytes(number) {
@@ -173,7 +174,7 @@ function loaded() {
                       currentElement.onclick = onRowClicked;
                       currentElement.ondblclick = onRowDoubleClicked;
               });
-      
+
               if (refreshEntityListTimer) {
                   clearTimeout(refreshEntityListTimer);
               }
@@ -183,13 +184,13 @@ function loaded() {
               item.values({ name: name, url: filename, locked: locked, visible: visible });
           }
       }
-      
+
       function clearEntities() {
           entities = {};
           entityList.clear();
           refreshFooter();
       }
-      
+
       var elSortOrder = {
           name: document.querySelector('#entity-name .sort-order'),
           type: document.querySelector('#entity-type .sort-order'),
@@ -215,12 +216,12 @@ function loaded() {
           entityList.sort(currentSortColumn, { order: currentSortOrder });
       }
       setSortColumn('type');
-      
+
       function refreshEntities() {
           clearEntities();
           EventBridge.emitWebEvent(JSON.stringify({ type: 'refresh' }));
       }
-      
+
       function refreshFooter() {
           if (selectedEntities.length > 1) {
               elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
@@ -239,7 +240,7 @@ function loaded() {
           entityList.search(elFilter.value);
           refreshFooter();
       }
-      
+
       function updateSelectedEntities(selectedIDs) {
           var notFound = false;
           for (var id in entities) {
@@ -262,7 +263,7 @@ function loaded() {
 
           return notFound;
       }
-      
+
       elRefresh.onclick = function() {
           refreshEntities();
       }
@@ -282,7 +283,7 @@ function loaded() {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
           refreshEntities();
       }
-      
+
       document.addEventListener("keydown", function (keyDownEvent) {
           if (keyDownEvent.target.nodeName === "INPUT") {
               return;
@@ -292,8 +293,15 @@ function loaded() {
               EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
               refreshEntities();
           }
+          if (keyDownEvent.keyCode === KEY_P && keyDownEvent.ctrlKey) {
+              if (keyDownEvent.shiftKey) {
+                  EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+              } else {
+                  EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+              }
+          }
       }, false);
-      
+
       var isFilterInView = false;
       var FILTER_IN_VIEW_ATTRIBUTE = "pressed";
       elNoEntitiesInView.style.display = "none";
@@ -320,7 +328,7 @@ function loaded() {
       if (window.EventBridge !== undefined) {
           EventBridge.scriptEventReceived.connect(function(data) {
               data = JSON.parse(data);
-      
+
               if (data.type === "clearEntityList") {
                   clearEntities();
               } else if (data.type == "selectionUpdate") {
@@ -426,4 +434,3 @@ function loaded() {
       event.preventDefault();
   }, false);
 }
-

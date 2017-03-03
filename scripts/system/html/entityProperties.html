@@ -61,7 +61,7 @@
                 <label for="property-description">Description</label>
                 <input type="text" id="property-description">
             </div>
-            
+
             <div class="property textarea">
                 <label for="property-user-data">User data</label>
                 <br>
@@ -296,8 +296,25 @@
                             <label for="property-wants-trigger">Triggerable</label>
                         </div>
                         <div class="property checkbox">
+                            <input type="checkbox" id="property-cloneable">
+                            <label for="property-cloneable">Cloneable</label>
+                        </div>
+                        <div class="property checkbox">
                             <input type="checkbox" id="property-ignore-ik">
                             <label for="property-ignore-ik">Ignore inverse kinematics</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="column" id="group-cloneable-group" style="display:none;">
+                    <div class="sub-section-header">
+                        <span>Cloneable Settings</span>
+                    </div>
+                    <div class="cloneable-group property gen">
+                        <div><label>Clone Lifetime</label><input type="number" data-user-data-type="cloneLifetime" id="property-cloneable-lifetime"></div>
+                        <div><label>Clone Limit</label><input type="number" data-user-data-type="cloneLimit" id="property-cloneable-limit"></div>
+                        <div class="property checkbox">
+                            <input type="checkbox" id="property-cloneable-dynamic">
+                            <label for="property-cloneable-dynamic">Clone Dynamic</label>
                         </div>
                     </div>
                 </div>

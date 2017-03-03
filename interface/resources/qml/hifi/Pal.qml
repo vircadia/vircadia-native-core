@@ -300,11 +300,14 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: {
-                    var newValue = !model["personalMute"];
-                    userModel.setProperty(model.userIndex, "personalMute", newValue)
-                    userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
-                    Users["personalMute"](model.sessionId, newValue)
-                    UserActivityLogger["palAction"](newValue ? "personalMute" : "un-personalMute", model.sessionId)
+                    // cannot change mute status when ignoring
+                    if (!model["ignore"]) {
+                        var newValue = !model["personalMute"];
+                        userModel.setProperty(model.userIndex, "personalMute", newValue)
+                        userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
+                        Users["personalMute"](model.sessionId, newValue)
+                        UserActivityLogger["palAction"](newValue ? "personalMute" : "un-personalMute", model.sessionId)
+                    }
                 }
             }
 
@@ -336,6 +339,7 @@ Rectangle {
                         } else {
                             delete ignored[model.sessionId]
                         }
+                        avgAudioVolume.glyph = avgAudioVolume.getGlyph()
                     }
                     // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
                     // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
