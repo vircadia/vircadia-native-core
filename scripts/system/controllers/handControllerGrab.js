@@ -440,16 +440,18 @@ function entityIsGrabbedByOther(entityID) {
         var actionID = actionIDs[actionIndex];
         var actionArguments = Entities.getActionArguments(entityID, actionID);
         var tag = actionArguments.tag;
-        if (tag == getTag()) {
+        if (tag === getTag()) {
             // we see a grab-*uuid* shaped tag, but it's our tag, so that's okay.
             continue;
         }
-        if (tag.slice(0, 5) == "grab-") {
+        var GRAB_PREFIX_LENGTH = 5;
+        var UUID_LENGTH = 38;
+        if (tag && tag.slice(0, GRAB_PREFIX_LENGTH) == "grab-") {
             // we see a grab-*uuid* shaped tag and it's not ours, so someone else is grabbing it.
-            return true;
+            return tag.slice(GRAB_PREFIX_LENGTH, GRAB_PREFIX_LENGTH + UUID_LENGTH - 1);
         }
     }
-    return false;
+    return null;
 }
 
 function propsArePhysical(props) {
@@ -823,6 +825,9 @@ function MyController(hand) {
     // for visualizations
     this.overlayLine = null;
     this.searchSphere = null;
+    this.otherGrabbingLine = null;
+
+    this.otherGrabbingUUID = null;
 
     this.waitForTriggerRelease = false;
 
@@ -1094,6 +1099,29 @@ function MyController(hand) {
         }
     };
 
+    this.otherGrabbingLineOn = function(avatarPosition, entityPosition, color) {
+        if (this.otherGrabbingLine === null) {
+            var lineProperties = {
+                lineWidth: 5,
+                start: avatarPosition,
+                end: entityPosition,
+                color: color,
+                glow: 1.0,
+                ignoreRayIntersection: true,
+                drawInFront: true,
+                visible: true,
+                alpha: 1
+            };
+            this.otherGrabbingLine = Overlays.addOverlay("line3d", lineProperties);
+        } else {
+            Overlays.editOverlay(this.otherGrabbingLine, {
+                start: avatarPosition,
+                end: entityPosition,
+                color: color
+            });
+        }
+    };
+
     this.evalLightWorldTransform = function(modelPos, modelRot) {
 
         var MODEL_LIGHT_POSITION = {
@@ -1137,14 +1165,20 @@ function MyController(hand) {
         }
     };
 
-    this.turnOffVisualizations = function() {
+    this.otherGrabbingLineOff = function() {
+        if (this.otherGrabbingLine !== null) {
+            Overlays.deleteOverlay(this.otherGrabbingLine);
+        }
+        this.otherGrabbingLine = null;
+    };
 
+    this.turnOffVisualizations = function() {
         this.overlayLineOff();
         this.grabPointSphereOff();
         this.lineOff();
         this.searchSphereOff();
+        this.otherGrabbingLineOff();
         restore2DMode();
-
     };
 
     this.triggerPress = function(value) {
@@ -1567,7 +1601,8 @@ function MyController(hand) {
             return false;
         }
 
-        if (entityIsGrabbedByOther(entityID)) {
+        this.otherGrabbingUUID = entityIsGrabbedByOther(entityID);
+        if (this.otherGrabbingUUID !== null) {
             // don't distance grab something that is already grabbed.
             if (debug) {
                 print("distance grab is skipping '" + props.name + "': already grabbed by another.");
@@ -1771,6 +1806,7 @@ function MyController(hand) {
                 } else {
                     // potentialFarTriggerEntity = entity;
                 }
+                this.otherGrabbingLineOff();
             } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
                 if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled && farSearching) {
                     this.grabbedThingID = entity;
@@ -1785,7 +1821,25 @@ function MyController(hand) {
                 } else {
                     // potentialFarGrabEntity = entity;
                 }
+                this.otherGrabbingLineOff();
+            } else if (this.otherGrabbingUUID !== null) {
+                if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled && farSearching) {
+                    var avatar = AvatarList.getAvatar(this.otherGrabbingUUID);
+                    var IN_FRONT_OF_AVATAR = { x: 0, y: 0.2, z: 0.4 };  // Up from hips and in front of avatar.
+                    var startPosition = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.rotation, IN_FRONT_OF_AVATAR));
+                    var finishPisition = Vec3.sum(rayPickInfo.properties.position,  // Entity's centroid.
+                        Vec3.multiplyQbyV(rayPickInfo.properties.rotation ,
+                        Vec3.multiplyVbyV(rayPickInfo.properties.dimensions,
+                        Vec3.subtract(DEFAULT_REGISTRATION_POINT, rayPickInfo.properties.registrationPoint))));
+                    this.otherGrabbingLineOn(startPosition, finishPisition, COLORS_GRAB_DISTANCE_HOLD);
+                } else {
+                    this.otherGrabbingLineOff();
+                }
+            } else {
+                this.otherGrabbingLineOff();
             }
+        } else {
+            this.otherGrabbingLineOff();
         }
 
         this.updateEquipHaptics(potentialEquipHotspot, handPosition);
@@ -2431,6 +2485,7 @@ function MyController(hand) {
         this.lineOff();
         this.overlayLineOff();
         this.searchSphereOff();
+        this.otherGrabbingLineOff();
 
         this.dropGestureReset();
         this.clearEquipHaptics();
