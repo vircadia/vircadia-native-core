@@ -210,6 +210,7 @@ public:
 
     void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
+    void computeExternalPoses(const glm::mat4& modelOffsetMat);
 
     void computeAvatarBoundingCapsule(const FBXGeometry& geometry, float& radiusOut, float& heightOut, glm::vec3& offsetOut) const;
 
