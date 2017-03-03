@@ -420,7 +420,7 @@ namespace ktx {
     using Images = std::vector<Image>;
 
     class KTX {
-        void resetStorage(StoragePointer& src);
+        void resetStorage(const StoragePointer& src);
 
         KTX();
     public:
@@ -448,7 +448,7 @@ namespace ktx {
         static Images writeImages(Byte* destBytes, size_t destByteSize, const Images& images);
 
         // Parse a block of memory and create a KTX object from it
-        static std::unique_ptr<KTX> create(StoragePointer& src);
+        static std::unique_ptr<KTX> create(const StoragePointer& src);
 
         static bool checkHeaderFromStorage(size_t srcSize, const Byte* srcBytes);
         static Images parseImages(const Header& header, size_t srcSize, const Byte* srcBytes);

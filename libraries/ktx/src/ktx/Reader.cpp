@@ -163,7 +163,7 @@ namespace ktx {
         return images;
     }
 
-    std::unique_ptr<KTX> KTX::create(StoragePointer& src) {
+    std::unique_ptr<KTX> KTX::create(const StoragePointer& src) {
         if (!src) {
             return nullptr;
         }
