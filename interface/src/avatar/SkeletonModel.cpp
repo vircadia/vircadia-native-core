@@ -179,9 +179,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromEyeParameters(eyeParams);
     } else {
-        // no need to call Model::updateRig() because otherAvatars get their joint state
-        // copied directly from AvtarData::_jointData (there are no Rig animations to blend)
-        _needsUpdateClusterMatrices = true;
+        Model::updateRig(deltaTime, parentTransform);
 
         // This is a little more work than we really want.
         //

@@ -1,7 +1,7 @@
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only OS X specific instructions are found in this file.
 
 ###Homebrew
-[Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of some High Fidelity dependencies very simple.
+[Homebrew](https://brew.sh/) is an excellent package manager for OS X. It makes install of some High Fidelity dependencies very simple.
 
     brew tap homebrew/versions
     brew install cmake openssl
@@ -18,11 +18,11 @@ Note that this uses the version from the homebrew formula at the time of this wr
 ###Qt
 You can use the online installer or the offline installer.
 
-* [Download the online installer](http://www.qt.io/download-open-source/#section-2)
+* [Download the online installer](https://www.qt.io/download-open-source/#section-2)
     * When it asks you to select components, select the following:
         * Qt > Qt 5.6
 
-* [Download the offline installer](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-mac-x64-clang-5.6.1-1.dmg)
+* [Download the offline installer](https://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-mac-x64-clang-5.6.1-1.dmg)
 
 Once Qt is installed, you need to manually configure the following:
 * Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt5.6.1/5.6/clang_64/lib/cmake/` directory.

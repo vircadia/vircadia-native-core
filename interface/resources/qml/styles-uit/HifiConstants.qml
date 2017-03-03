@@ -318,5 +318,15 @@ Item {
         readonly property string deg: "\\"
         readonly property string px: "|"
         readonly property string editPencil: "\ue00d"
+        readonly property string vol_0: "\ue00e"
+        readonly property string vol_1: "\ue00f"
+        readonly property string vol_2: "\ue010"
+        readonly property string vol_3: "\ue011"
+        readonly property string vol_4: "\ue012"
+        readonly property string vol_x_0: "\ue013"
+        readonly property string vol_x_1: "\ue014"
+        readonly property string vol_x_2: "\ue015"
+        readonly property string vol_x_3: "\ue016"
+        readonly property string vol_x_4: "\ue017"
     }
 }

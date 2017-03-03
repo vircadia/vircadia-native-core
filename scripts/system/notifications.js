@@ -521,6 +521,9 @@ function onEditError(msg) {
     createNotification(wordWrap(msg), NotificationType.EDIT_ERROR);
 }
 
+function onNotify(msg) {
+    createNotification(wordWrap(msg), NotificationType.UNKNOWN); // Needs a generic notification system for user feedback, thus using this
+}
 
 function onSnapshotTaken(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     if (notify) {
@@ -637,6 +640,7 @@ Window.domainConnectionRefused.connect(onDomainConnectionRefused);
 Window.snapshotTaken.connect(onSnapshotTaken);
 Window.processingGif.connect(processingGif);
 Window.notifyEditError = onEditError;
+Window.notify = onNotify;
 
 setup();
 
