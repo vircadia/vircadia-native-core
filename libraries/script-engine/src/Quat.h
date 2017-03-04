@@ -19,6 +19,16 @@
 #include <QObject>
 #include <QString>
 
+/**jsdoc
+ * A Quaternion
+ *
+ * @typedef Quat
+ * @property {float} x imaginary component i.
+ * @property {float} y imaginary component j.
+ * @property {float} z imaginary component k.
+ * @property {float} w real component.
+ */
+
 /// Scriptable interface a Quaternion helper class object. Used exclusively in the JavaScript API
 class Quat : public QObject {
     Q_OBJECT
