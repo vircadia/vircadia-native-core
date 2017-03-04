@@ -31,12 +31,18 @@ Item {
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
+
+    property var tablet;
   
     function saveAll() {
+        dialog.forceActiveFocus();  // Accept any text box edits in progress.
+
         for (var i = 0; i < sections.length; ++i) {
             var section = sections[i];
             section.saveAll();
         }
+
+        closeDialog();
     }
 
     function restoreAll() {
@@ -44,6 +50,12 @@ Item {
             var section = sections[i];
             section.restoreAll();
         }
+
+        closeDialog();
+    }
+
+    function closeDialog() {
+        Tablet.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
     }
 
     Rectangle {
@@ -164,6 +176,24 @@ Item {
         }
     }
 
+    MouseArea {
+        // Defocuses the current control so that the HMD keyboard gets hidden.
+        // Created under the footer so that the non-button part of the footer can defocus a control.
+        id: mouseArea
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            bottom: keyboard.top
+        }
+        propagateComposedEvents: true
+        acceptedButtons: Qt.AllButtons
+        onPressed: {
+            parent.forceActiveFocus();
+            mouse.accepted = false;
+        }
+    }
+
     Rectangle {
         id: footer
         height: 40
@@ -196,13 +226,13 @@ Item {
             HifiControls.Button {
                 text: "Save changes"
                 color: hifi.buttons.blue
-                onClicked: root.saveAll()
+                onClicked: dialog.saveAll()
             }
 
             HifiControls.Button {
                 text: "Cancel"
                 color: hifi.buttons.white
-                onClicked: root.restoreAll()
+                onClicked: dialog.restoreAll()
             }
         }
     }
@@ -219,6 +249,7 @@ Item {
     }
 
     Component.onCompleted: {
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         keyboardEnabled = HMD.active;
     }
 
@@ -228,24 +259,6 @@ Item {
             if (delta > 0) {
                 scrollView.contentY += delta;
             }
-        }
-    }
-
-    MouseArea {
-        // Defocuses the current control so that the HMD keyboard gets hidden.
-        id: mouseArea
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-            bottom: keyboard.top
-        }
-        propagateComposedEvents: true
-        acceptedButtons: Qt.AllButtons
-        enabled: window.visible
-        onPressed: {
-            parent.forceActiveFocus();
-            mouse.accepted = false;
         }
     }
 }
