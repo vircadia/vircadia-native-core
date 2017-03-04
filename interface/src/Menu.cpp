@@ -294,7 +294,8 @@ Menu::Menu() {
     // Settings > General...
     action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_Comma, nullptr, nullptr, QAction::PreferencesRole);
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GeneralPreferencesDialog.qml"), "GeneralPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
+            QString("../../hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
     });
 
     // Settings > Avatar...
