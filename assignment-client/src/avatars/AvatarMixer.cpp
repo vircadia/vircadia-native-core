@@ -365,6 +365,28 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
             message->readPrimitive(&isRequesting);
             nodeData->setRequestsDomainListData(isRequesting);
             qCDebug(avatars) << "node" << nodeData->getNodeID() << "requestsDomainListData" << isRequesting;
+
+            // If we just opened the PAL...
+            if (isRequesting) {
+                // For each node in the NodeList...
+                auto nodeList = DependencyManager::get<NodeList>();
+                nodeList->eachMatchingNode(
+                    // Discover the valid nodes we're ignoring...
+                    [&](const SharedNodePointer& node)->bool {
+                    if (node->getUUID() != senderNode->getUUID() &&
+                        (nodeData->isRadiusIgnoring(node->getUUID()) ||
+                        senderNode->isIgnoringNodeWithID(node->getUUID()))) {
+                        return true;
+                    }
+                    return false;
+                },
+                    // ...For those nodes, reset the lastBroadcastTime to 0
+                    // so that the AvatarMixer will send Identity data to us
+                    [&](const SharedNodePointer& node) {
+                    nodeData->setLastBroadcastTime(node->getUUID(), 0);
+                }
+                );
+            }
         }
     }
     auto end = usecTimestampNow();
