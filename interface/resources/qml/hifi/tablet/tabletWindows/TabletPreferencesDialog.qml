@@ -27,6 +27,10 @@ Item {
     HifiConstants { id: hifi }
     property var sections: []
     property var showCategories: []
+
+    property bool keyboardEnabled: false
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
   
     function saveAll() {
         for (var i = 0; i < sections.length; ++i) {
@@ -41,7 +45,7 @@ Item {
             section.restoreAll();
         }
     }
-    
+
     Rectangle {
         id: header
         height: 90
@@ -165,7 +169,7 @@ Item {
         height: 40
 
         anchors {
-            bottom: parent.bottom
+            bottom: keyboard.top
             left: parent.left
             right: parent.right
         }
@@ -200,6 +204,48 @@ Item {
                 color: hifi.buttons.white
                 onClicked: root.restoreAll()
             }
+        }
+    }
+
+    HifiControls.Keyboard {
+        id: keyboard
+        raised: parent.keyboardEnabled && parent.keyboardRaised
+        numeric: parent.punctuationMode
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+        }
+    }
+
+    Component.onCompleted: {
+        keyboardEnabled = HMD.active;
+    }
+
+    onKeyboardRaisedChanged: {
+        if (keyboardEnabled && keyboardRaised) {
+            var delta = mouseArea.mouseY - (dialog.height - footer.height - keyboard.raisedHeight -hifi.dimensions.controlLineHeight);
+            if (delta > 0) {
+                scrollView.contentY += delta;
+            }
+        }
+    }
+
+    MouseArea {
+        // Defocuses the current control so that the HMD keyboard gets hidden.
+        id: mouseArea
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            bottom: keyboard.top
+        }
+        propagateComposedEvents: true
+        acceptedButtons: Qt.AllButtons
+        enabled: window.visible
+        onPressed: {
+            parent.forceActiveFocus();
+            mouse.accepted = false;
         }
     }
 }
