@@ -286,7 +286,7 @@ Rectangle {
             HifiControls.GlyphButton {
                 function getGlyph() {
                     var fileName = "vol_";
-                    if (model["personalMute"]) {
+                    if (model && model.personalMute) {
                         fileName += "x_";
                     }
                     fileName += (4.0*(model ? model.avgAudioLevel : 0.0)).toFixed(0);
@@ -360,10 +360,8 @@ Rectangle {
                     Users[styleData.role](model.sessionId)
                     UserActivityLogger["palAction"](styleData.role, model.sessionId)
                     if (styleData.role === "kick") {
-                        // Just for now, while we cannot undo "Ban":
-                        userModel.remove(model.userIndex)
-                        delete userModelData[model.userIndex] // Defensive programming
-                        sortModel()
+                        userModelData.splice(model.userIndex, 1)
+                        userModel.remove(model.userIndex) // after changing userModelData, b/c ListModel can frob the data
                     }
                 }
                 // muted/error glyphs
