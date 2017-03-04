@@ -376,24 +376,26 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         }
 
         for (const auto& subMeshBox : _calculatedMeshBoxes) {
+            bool intersectedSubMesh = false;
+            float subMeshDistance = std::numeric_limits<float>::max();
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
                 if (distanceToSubMesh < bestDistance) {
                     if (pickAgainstTriangles) {
-                        // check our triangles here....
-                        const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
-                        for(const auto& triangle : meshTriangles) {
-                            float thisTriangleDistance;
-                            if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance)) {
-                                if (thisTriangleDistance < bestDistance) {
-                                    bestDistance = thisTriangleDistance;
-                                    intersectedSomething = true;
-                                    face = subMeshFace;
-                                    surfaceNormal = triangle.getNormal();
-                                    extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
-                                }
-                            }
+
+                        float subMeshDistance;
+                        glm::vec3 subMeshNormal;
+                        const auto& meshTriangleSet = _meshTriangleSets[subMeshIndex];
+                        bool intersectedMesh = meshTriangleSet.findRayIntersection(origin, direction, subMeshDistance, subMeshNormal);
+
+                        if (intersectedMesh && subMeshDistance < bestDistance) {
+                            bestDistance = subMeshDistance;
+                            intersectedSomething = true;
+                            face = subMeshFace;
+                            surfaceNormal = subMeshNormal;
+                            extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                         }
+
                     } else {
                         // this is the non-triangle picking case...
                         bestDistance = distanceToSubMesh;
@@ -401,9 +403,13 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         face = subMeshFace;
                         surfaceNormal = subMeshSurfaceNormal;
                         extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
+
+                        intersectedSubMesh = true;
                     }
                 }
             }
+
+
             subMeshIndex++;
         }
         _mutex.unlock();
@@ -451,18 +457,8 @@ bool Model::convexHullContains(glm::vec3 point) {
         int subMeshIndex = 0;
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
             if (subMeshBox.contains(point)) {
-                bool insideMesh = true;
-                // To be inside the sub mesh, we need to be behind every triangles' planes
-                const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
-                foreach (const Triangle& triangle, meshTriangles) {
-                    if (!isPointBehindTrianglesPlane(point, triangle.v0, triangle.v1, triangle.v2)) {
-                        // it's not behind at least one so we bail
-                        insideMesh = false;
-                        break;
-                    }
 
-                }
-                if (insideMesh) {
+                if (_meshTriangleSets[subMeshIndex].convexHullContains(point)) {
                     // It's inside this mesh, return true.
                     _mutex.unlock();
                     return true;
@@ -486,12 +482,20 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
     if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
+
+        if (pickAgainstTriangles) {
+            qDebug() << "RECALCULATING triangles!";
+        } else {
+            qDebug() << "RECALCULATING boxes!";
+        }
+
         const FBXGeometry& geometry = getFBXGeometry();
         int numberOfMeshes = geometry.meshes.size();
         _calculatedMeshBoxes.resize(numberOfMeshes);
-        _calculatedMeshTriangles.clear();
-        _calculatedMeshTriangles.resize(numberOfMeshes);
         _calculatedMeshPartBoxes.clear();
+        _meshTriangleSets.clear();
+        _meshTriangleSets.resize(numberOfMeshes);
+
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents, _translation, _rotation);
@@ -499,6 +503,8 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
             _calculatedMeshBoxes[i] = AABox(scaledMeshExtents);
 
             if (pickAgainstTriangles) {
+                auto& thisMeshTriangleSet = _meshTriangleSets[i];
+
                 QVector<Triangle> thisMeshTriangles;
                 for (int j = 0; j < mesh.parts.size(); j++) {
                     const FBXMeshPart& part = mesh.parts.at(j);
@@ -550,6 +556,9 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             thisMeshTriangles.push_back(tri1);
                             thisMeshTriangles.push_back(tri2);
 
+                            thisMeshTriangleSet.insertTriangle(tri1);
+                            thisMeshTriangleSet.insertTriangle(tri2);
+
                         }
                     }
 
@@ -582,11 +591,13 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             Triangle tri = { v0, v1, v2 };
 
                             thisMeshTriangles.push_back(tri);
+
+                            thisMeshTriangleSet.insertTriangle(tri);
+
                         }
                     }
                     _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
                 }
-                _calculatedMeshTriangles[i] = thisMeshTriangles;
                 _calculatedMeshPartBoxesValid = true;
             }
         }

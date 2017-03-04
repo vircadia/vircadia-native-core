@@ -28,6 +28,7 @@
 #include <render/Scene.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
+#include <TriangleSet.h>
 
 #include "GeometryCache.h"
 #include "TextureCache.h"
@@ -362,8 +363,8 @@ protected:
     bool _calculatedMeshPartBoxesValid;
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
+    QVector< TriangleSet > _meshTriangleSets; // world coordinate triangles for all sub meshes
 
-    QVector< QVector<Triangle> > _calculatedMeshTriangles; // world coordinate triangles for all sub meshes
     bool _calculatedMeshTrianglesValid;
     QMutex _mutex;
 
