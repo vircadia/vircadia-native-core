@@ -294,10 +294,10 @@ protected:
 
     SpatiallyNestable* _spatiallyNestableOverride;
 
-    glm::vec3 _translation;
+    glm::vec3 _translation; // this is the translation in world coordinates to the model's registration point
     glm::quat _rotation;
     glm::vec3 _scale;
-    glm::vec3 _offset;
+    glm::vec3 _offset; // this is the translation for the minimum extent of the model (in original mesh coordinate space) to the model's registration point
 
     static float FAKE_DIMENSION_PLACEHOLDER;
 
@@ -363,7 +363,7 @@ protected:
     bool _calculatedMeshPartBoxesValid;
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
-    QVector< TriangleSet > _meshTriangleSets; // world coordinate triangles for all sub meshes
+    QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
 
     bool _calculatedMeshTrianglesValid;
     QMutex _mutex;
