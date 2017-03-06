@@ -414,8 +414,6 @@ _nextID(0) {
                 // Set the defaults needed for a simple program
                 batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
                     DependencyManager::get<TextureCache>()->getWhiteTexture());
-                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
             }
         );
     GeometryCache::_simpleTransparentPipeline =
@@ -424,8 +422,6 @@ _nextID(0) {
                 // Set the defaults needed for a simple program
                 batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
                     DependencyManager::get<TextureCache>()->getWhiteTexture());
-                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
             }
         );
     GeometryCache::_simpleWirePipeline =
@@ -1770,7 +1766,6 @@ static void buildWebShader(const std::string& vertShaderText, const std::string&
     shaderPointerOut = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
     gpu::Shader::makeProgram(*shaderPointerOut, slotBindings);
     auto state = std::make_shared<gpu::State>();
     state->setCullMode(gpu::State::CULL_NONE);
@@ -1784,9 +1779,6 @@ static void buildWebShader(const std::string& vertShaderText, const std::string&
 
 void GeometryCache::bindOpaqueWebBrowserProgram(gpu::Batch& batch, bool isAA) {
     batch.setPipeline(getOpaqueWebBrowserProgram(isAA));
-    // Set a default normal map
-    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-                             DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
 gpu::PipelinePointer GeometryCache::getOpaqueWebBrowserProgram(bool isAA) {
@@ -1802,9 +1794,6 @@ gpu::PipelinePointer GeometryCache::getOpaqueWebBrowserProgram(bool isAA) {
 
 void GeometryCache::bindTransparentWebBrowserProgram(gpu::Batch& batch, bool isAA) {
     batch.setPipeline(getTransparentWebBrowserProgram(isAA));
-    // Set a default normal map
-    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-                             DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
 gpu::PipelinePointer GeometryCache::getTransparentWebBrowserProgram(bool isAA) {
@@ -1827,9 +1816,6 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool tra
         batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
             DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
-    // Set a default normal map
-    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
-        DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
 gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased) {
@@ -1846,7 +1832,6 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
         _unlitShader = gpu::Shader::createProgram(VS, PSUnlit);
 
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
         gpu::Shader::makeProgram(*_simpleShader, slotBindings);
         gpu::Shader::makeProgram(*_unlitShader, slotBindings);
     });

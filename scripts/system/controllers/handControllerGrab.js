@@ -3552,7 +3552,6 @@ function MyController(hand) {
                 // we appear to be holding something and this script isn't in a state that would be holding something.
                 // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
                 // works around some problems that happen when more than one hand or avatar is passing something around.
-                print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
                 if (_this.previousParentID[childID]) {
                     var previousParentID = _this.previousParentID[childID];
                     var previousParentJointIndex = _this.previousParentJointIndex[childID];
@@ -3570,13 +3569,21 @@ function MyController(hand) {
                     }
                     _this.previouslyUnhooked[childID] = now;
 
-                    // we don't know if it's an entity or an overlay
+                    if (Overlays.getProperty(childID, "grabbable")) {
+                        // only auto-unhook overlays that were flagged as grabbable.  this avoids unhooking overlays
+                        // used in tutorial.
+                        Overlays.editOverlay(childID, {
+                            parentID: previousParentID,
+                            parentJointIndex: previousParentJointIndex
+                        });
+                    }
                     Entities.editEntity(childID, { parentID: previousParentID, parentJointIndex: previousParentJointIndex });
-                    Overlays.editOverlay(childID, { parentID: previousParentID, parentJointIndex: previousParentJointIndex });
 
                 } else {
                     Entities.editEntity(childID, { parentID: NULL_UUID });
-                    Overlays.editOverlay(childID, { parentID: NULL_UUID });
+                    if (Overlays.getProperty(childID, "grabbable")) {
+                        Overlays.editOverlay(childID, { parentID: NULL_UUID });
+                    }
                 }
             }
         });
