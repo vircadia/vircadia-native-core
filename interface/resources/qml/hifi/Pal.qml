@@ -61,13 +61,16 @@ Rectangle {
         property int sortIndicatorColumn: 1
         property int sortIndicatorOrder: Qt.AscendingOrder
     }
+    function getSelectedSessionIDs() {
+        var sessionIDs = [];
+        table.selection.forEach(function (userIndex) {
+            sessionIDs.push(userModelData[userIndex].sessionId);
+        });
+        return sessionIDs;
+    }
     function refreshWithFilter() {
         // We should just be able to set settings.filtered to filter.checked, but see #3249, so send to .js for saving.
-        var userIds = [];
-        table.selection.forEach(function (userIndex) {
-            userIds.push(userModelData[userIndex].sessionId);
-        });
-        table.selection.clear();
+        var userIds = getSelectedSessionIDs();
         var params = {filter: filter.checked && {distance: settings.nearDistance}};
         if (userIds.length > 0) {
             params.selected = [[userIds[0]], true, true];
@@ -619,13 +622,6 @@ Rectangle {
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
         }
-    }
-    function getSelectedSessionIDs() {
-        var sessionIDs = [];
-        table.selection.forEach(function (userIndex) {
-            sessionIDs.push(userModelData[userIndex].sessionId);
-        });
-        return sessionIDs;
     }
     function sortModel() {
         var sortProperty = table.getColumn(table.sortIndicatorColumn).role;
