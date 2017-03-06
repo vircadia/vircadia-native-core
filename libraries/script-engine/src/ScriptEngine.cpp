@@ -34,6 +34,7 @@
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
+#include <DebugDraw.h>
 #include <EntityScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
@@ -630,6 +631,8 @@ void ScriptEngine::init() {
     registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
     registerGlobalObject("Assets", &_assetScriptingInterface);
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
+
+    registerGlobalObject("DebugDraw", &DebugDraw::getInstance());
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
