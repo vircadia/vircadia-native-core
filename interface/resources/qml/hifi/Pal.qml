@@ -63,7 +63,16 @@ Rectangle {
     }
     function refreshWithFilter() {
         // We should just be able to set settings.filtered to filter.checked, but see #3249, so send to .js for saving.
-        pal.sendToScript({method: 'refresh', params: {filter: filter.checked && {distance: settings.nearDistance}}});
+        var userIds = [];
+        table.selection.forEach(function (userIndex) {
+            userIds.push(userModelData[userIndex].sessionId);
+        });
+        table.selection.clear();
+        var params = {filter: filter.checked && {distance: settings.nearDistance}};
+        if (userIds.length > 0) {
+            params.selected = [[userIds[0]], true, true];
+        }
+        pal.sendToScript({method: 'refresh', params: params});
     }
 
     // This is the container for the PAL
@@ -286,7 +295,7 @@ Rectangle {
             HifiControls.GlyphButton {
                 function getGlyph() {
                     var fileName = "vol_";
-                    if (model["personalMute"]) {
+                    if (model && model["personalMute"]) {
                         fileName += "x_";
                     }
                     fileName += (4.0*(model ? model.avgAudioLevel : 0.0)).toFixed(0);
@@ -611,10 +620,20 @@ Rectangle {
             console.log('Unrecognized message:', JSON.stringify(message));
         }
     }
+    function getSelectedSessionIDs() {
+        var sessionIDs = [];
+        table.selection.forEach(function (userIndex) {
+            sessionIDs.push(userModelData[userIndex].sessionId);
+        });
+        return sessionIDs;
+    }
     function sortModel() {
         var sortProperty = table.getColumn(table.sortIndicatorColumn).role;
         var before = (table.sortIndicatorOrder === Qt.AscendingOrder) ? -1 : 1;
         var after = -1 * before;
+
+        // get selection(s) before sorting
+        var selectedIDs = getSelectedSessionIDs();
         userModelData.sort(function (a, b) {
             var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
             switch (true) {
@@ -627,6 +646,7 @@ Rectangle {
 
         userModel.clear();
         var userIndex = 0;
+        var newSelectedIndexes=[];
         userModelData.forEach(function (datum) {
             function init(property) {
                 if (datum[property] === undefined) {
@@ -636,7 +656,13 @@ Rectangle {
             ['personalMute', 'ignore', 'mute', 'kick'].forEach(init);
             datum.userIndex = userIndex++;
             userModel.append(datum);
+            if (selectedIDs.indexOf(datum.sessionId) != -1) {
+                newSelectedIndexes.push(datum.userIndex);
+            }
         });
+        if (newSelectedIndexes.length > 0) {
+            table.selection.select(newSelectedIndexes);
+        }
     }
     signal sendToScript(var message);
     function noticeSelection() {
