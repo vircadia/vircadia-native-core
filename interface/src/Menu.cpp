@@ -616,7 +616,8 @@ Menu::Menu() {
 
     action = addActionToQMenuAndActionHash(audioDebugMenu, "Buffers...");
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AudioPreferencesDialog.qml"), "AudioPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/AudioPreferencesDialog.qml"),
+            QString("../../hifi/tablet/TabletAudioPreferences.qml"), "AudioPreferencesDialog");
     });
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction, 0, true,
