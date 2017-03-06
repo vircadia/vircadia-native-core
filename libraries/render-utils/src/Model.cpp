@@ -1015,15 +1015,6 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 
     if (isActive() && fullUpdate) {
-        // NOTE: This is overly aggressive and we are invalidating the MeshBoxes when in fact they may not be invalid
-        //       they really only become invalid if something about the transform to world space has changed. This is
-        //       not too bad at this point, because it doesn't impact rendering. However it does slow down ray picking
-        //       because ray picking needs valid boxes to work
-        //_calculatedMeshBoxesValid = false;
-        //_calculatedMeshTrianglesValid = false;
-
-        // FIXME -- if the model URL changes, then we need to recalculate the triangle sets??!!!!
-
         onInvalidate();
 
         // check for scale to fit

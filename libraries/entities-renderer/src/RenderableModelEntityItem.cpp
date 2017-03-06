@@ -418,7 +418,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         // Enqueue updates for the next frame
         if (_model) {
 
-#if 1 //def WANT_EXTRA_RENDER_DEBUGGING
+#ifdef WANT_EXTRA_RENDER_DEBUGGING
             // debugging...
             gpu::Batch& batch = *args->_batch;
             _model->renderDebugMeshBoxes(batch);
