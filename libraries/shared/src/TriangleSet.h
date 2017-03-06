@@ -9,14 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QVector>
+#include <vector>
 
 #include "AABox.h"
 #include "GeometryUtil.h"
 
 class TriangleSet {
 public:
-    void reserve(size_t size) { _triangles.reserve((int)size);  } // reserve space in the datastructure for size number of triangles
+    void reserve(size_t size) { _triangles.reserve(size);  } // reserve space in the datastructure for size number of triangles
 
     void insert(const Triangle& t);
     void clear();
@@ -33,6 +33,6 @@ public:
     const AABox& getBounds() const { return _bounds; }
 
 private:
-    QVector<Triangle> _triangles;
+    std::vector<Triangle> _triangles;
     AABox _bounds;
 };
