@@ -96,9 +96,6 @@ Model::Model(RigPointer rig, QObject* parent, SpatiallyNestable* spatiallyNestab
     _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
-    _calculatedMeshPartBoxesValid(false),
-    _calculatedMeshBoxesValid(false),
-    _calculatedMeshTrianglesValid(false),
     _isWireframe(false),
     _rig(rig)
 {
@@ -360,19 +357,14 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
     if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
+        QMutexLocker locker(&_mutex);
+
         float bestDistance = std::numeric_limits<float>::max();
-
-        float distanceToSubMesh;
-        BoxFace subMeshFace;
-        glm::vec3 subMeshSurfaceNormal;
         int subMeshIndex = 0;
-
         const FBXGeometry& geometry = getFBXGeometry();
 
-        // If we hit the models box, then consider the submeshes...
-        _mutex.lock();
-        if (!_calculatedMeshBoxesValid || (pickAgainstTriangles && !_calculatedMeshTrianglesValid)) {
-            recalculateMeshBoxes(pickAgainstTriangles);
+        if (!_triangleSetsValid) {
+            calculateTriangleSets();
         }
 
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
@@ -382,50 +374,26 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
         glm::vec3 meshFrameDirection = glm::vec3(worldToMeshMatrix * glm::vec4(direction, 0.0f));
 
+        for (const auto& triangleSet : _modelSpaceMeshTriangleSets) {
+            float triangleSetDistance = 0.0f;
+            BoxFace triangleSetFace;
+            glm::vec3 triangleSetNormal;
+            if (triangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetNormal, pickAgainstTriangles)) {
 
-        for (const auto& subMeshBox : _calculatedMeshBoxes) {
-            bool intersectedSubMesh = false;
-            float subMeshDistance = std::numeric_limits<float>::max();
+                glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
+                glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
+                float worldDistance = glm::distance(origin, worldIntersectionPoint);
 
-            if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
-                if (distanceToSubMesh < bestDistance) {
-                    if (pickAgainstTriangles) {
-
-                        float subMeshDistance = 0.0f;
-                        glm::vec3 subMeshNormal;
-                        const auto& meshTriangleSet = _modelSpaceMeshTriangleSets[subMeshIndex];
-                        bool intersectedMesh = meshTriangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, subMeshDistance, subMeshNormal);
-
-                        if (intersectedMesh) {
-                            glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * subMeshDistance);
-                            glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
-                            float worldDistance = glm::distance(origin, worldIntersectionPoint);
-
-                            if (worldDistance < bestDistance) {
-                                bestDistance = subMeshDistance;
-                                intersectedSomething = true;
-                                face = subMeshFace;
-                                surfaceNormal = glm::vec3(meshToWorldMatrix * glm::vec4(subMeshNormal, 0.0f));
-                                extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
-                            }
-                        }
-                    } else {
-                        // this is the non-triangle picking case...
-                        bestDistance = distanceToSubMesh;
-                        intersectedSomething = true;
-                        face = subMeshFace;
-                        surfaceNormal = subMeshSurfaceNormal;
-                        extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
-
-                        intersectedSubMesh = true;
-                    }
+                if (worldDistance < bestDistance) {
+                    bestDistance = worldDistance;
+                    intersectedSomething = true;
+                    face = triangleSetFace;
+                    surfaceNormal = glm::vec3(meshToWorldMatrix * glm::vec4(triangleSetNormal, 0.0f));
+                    extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                 }
             }
-
-
             subMeshIndex++;
         }
-        _mutex.unlock();
 
         if (intersectedSomething) {
             distance = bestDistance;
@@ -461,182 +429,97 @@ bool Model::convexHullContains(glm::vec3 point) {
     // we can use the AABox's contains() by mapping our point into the model frame
     // and testing there.
     if (modelFrameBox.contains(modelFramePoint)){
-        _mutex.lock();
-        if (!_calculatedMeshTrianglesValid) {
-            recalculateMeshBoxes(true);
+        QMutexLocker locker(&_mutex);
+
+        if (!_triangleSetsValid) {
+            calculateTriangleSets();
         }
 
         // If we are inside the models box, then consider the submeshes...
-        int subMeshIndex = 0;
-        foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
-            if (subMeshBox.contains(point)) {
+        glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
+        glm::mat4 meshToWorldMatrix = meshToModelMatrix * glm::translate(_translation) * glm::mat4_cast(_rotation);
+        glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
+        glm::vec3 meshFramePoint = glm::vec3(worldToMeshMatrix * glm::vec4(point, 1.0f));
 
-                glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-                glm::mat4 meshToWorldMatrix = meshToModelMatrix * glm::translate(_translation) * glm::mat4_cast(_rotation);
-                glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
-
-                glm::vec3 meshFramePoint = glm::vec3(worldToMeshMatrix * glm::vec4(point, 1.0f));
-
-                if (_modelSpaceMeshTriangleSets[subMeshIndex].convexHullContains(meshFramePoint)) {
+        for (const auto& triangleSet : _modelSpaceMeshTriangleSets) {
+            const AABox& box = triangleSet.getBounds();
+            if (box.contains(meshFramePoint)) {
+                if (triangleSet.convexHullContains(meshFramePoint)) {
                     // It's inside this mesh, return true.
-                    _mutex.unlock();
                     return true;
                 }
             }
-            subMeshIndex++;
         }
-        _mutex.unlock();
+
+
     }
     // It wasn't in any mesh, return false.
     return false;
 }
 
-// TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
-// Any script might trigger findRayIntersectionAgainstSubMeshes (and maybe convexHullContains), so these
-// can occur multiple times. In addition, rendering does it's own ray picking in order to decide which
-// entity-scripts to call.  I think it would be best to do the picking once-per-frame (in cpu, or gpu if possible)
-// and then the calls use the most recent such result.
-void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
+void Model::calculateTriangleSets() {
     PROFILE_RANGE(render, __FUNCTION__);
-    bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
-    if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
+    const FBXGeometry& geometry = getFBXGeometry();
+    int numberOfMeshes = geometry.meshes.size();
 
-        if (pickAgainstTriangles) {
-            qDebug() << "RECALCULATING triangles!";
-        } else {
-            qDebug() << "RECALCULATING boxes!";
-        }
+    _triangleSetsValid = true;
+    _modelSpaceMeshTriangleSets.clear();
+    _modelSpaceMeshTriangleSets.resize(numberOfMeshes);
 
-        const FBXGeometry& geometry = getFBXGeometry();
-        int numberOfMeshes = geometry.meshes.size();
-        _calculatedMeshBoxes.resize(numberOfMeshes);
-        _calculatedMeshPartBoxes.clear();
+    for (int i = 0; i < numberOfMeshes; i++) {
+        const FBXMesh& mesh = geometry.meshes.at(i);
 
-        _modelSpaceMeshTriangleSets.clear();
-        _modelSpaceMeshTriangleSets.resize(numberOfMeshes);
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            const FBXMeshPart& part = mesh.parts.at(j);
 
-        for (int i = 0; i < numberOfMeshes; i++) {
-            const FBXMesh& mesh = geometry.meshes.at(i);
-            Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents, _translation, _rotation);
+            const int INDICES_PER_TRIANGLE = 3;
+            const int INDICES_PER_QUAD = 4;
 
-            _calculatedMeshBoxes[i] = AABox(scaledMeshExtents);
+            if (part.quadIndices.size() > 0) {
+                int numberOfQuads = part.quadIndices.size() / INDICES_PER_QUAD;
+                int vIndex = 0;
+                for (int q = 0; q < numberOfQuads; q++) {
+                    int i0 = part.quadIndices[vIndex++];
+                    int i1 = part.quadIndices[vIndex++];
+                    int i2 = part.quadIndices[vIndex++];
+                    int i3 = part.quadIndices[vIndex++];
 
-            if (pickAgainstTriangles) {
+                    // track the model space version... these points will be transformed by the FST's offset, 
+                    // which includes the scaling, rotation, and translation specified by the FST/FBX, 
+                    // this can't change at runtime, so we can safely store these in our TriangleSet
+                    glm::vec3 v0 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i0], 1.0f));
+                    glm::vec3 v1 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i1], 1.0f));
+                    glm::vec3 v2 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i2], 1.0f));
+                    glm::vec3 v3 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i3], 1.0f));
 
-                for (int j = 0; j < mesh.parts.size(); j++) {
-                    const FBXMeshPart& part = mesh.parts.at(j);
-
-                    bool atLeastOnePointInBounds = false;
-                    AABox thisPartBounds;
-
-                    const int INDICES_PER_TRIANGLE = 3;
-                    const int INDICES_PER_QUAD = 4;
-
-                    if (part.quadIndices.size() > 0) {
-                        int numberOfQuads = part.quadIndices.size() / INDICES_PER_QUAD;
-                        int vIndex = 0;
-                        for (int q = 0; q < numberOfQuads; q++) {
-                            int i0 = part.quadIndices[vIndex++];
-                            int i1 = part.quadIndices[vIndex++];
-                            int i2 = part.quadIndices[vIndex++];
-                            int i3 = part.quadIndices[vIndex++];
-
-                            glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
-                            glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
-                            glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
-                            glm::vec3 mv3 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f));
-
-                            // track the mesh parts in model space
-                            if (!atLeastOnePointInBounds) {
-                                thisPartBounds.setBox(mv0, 0.0f);
-                                atLeastOnePointInBounds = true;
-                            } else {
-                                thisPartBounds += mv0;
-                            }
-                            thisPartBounds += mv1;
-                            thisPartBounds += mv2;
-                            thisPartBounds += mv3;
-
-                            // let's also track the model space version... (eventually using only this!)
-                            // these points will be transformed by the FST's offset, which includes the
-                            // scaling, rotation, and translation specified by the FST/FBX, this can't change
-                            // at runtime, so we can safely store these in our TriangleSet
-                            {
-                                glm::vec3 v0 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i0], 1.0f));
-                                glm::vec3 v1 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i1], 1.0f));
-                                glm::vec3 v2 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i2], 1.0f));
-                                glm::vec3 v3 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i3], 1.0f));
-
-                                Triangle tri1 = { v0, v1, v3 };
-                                Triangle tri2 = { v1, v2, v3 };
-                                _modelSpaceMeshTriangleSets[i].insertTriangle(tri1);
-                                _modelSpaceMeshTriangleSets[i].insertTriangle(tri2);
-                            }
-
-                        }
-                    }
-
-                    if (part.triangleIndices.size() > 0) {
-                        int numberOfTris = part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-                        int vIndex = 0;
-                        for (int t = 0; t < numberOfTris; t++) {
-                            int i0 = part.triangleIndices[vIndex++];
-                            int i1 = part.triangleIndices[vIndex++];
-                            int i2 = part.triangleIndices[vIndex++];
-
-                            glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
-                            glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
-                            glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
-
-                            // track the mesh parts in model space
-                            if (!atLeastOnePointInBounds) {
-                                thisPartBounds.setBox(mv0, 0.0f);
-                                atLeastOnePointInBounds = true;
-                            } else {
-                                thisPartBounds += mv0;
-                            }
-                            thisPartBounds += mv1;
-                            thisPartBounds += mv2;
-
-                            // let's also track the model space version... (eventually using only this!)
-                            // these points will be transformed by the FST's offset, which includes the
-                            // scaling, rotation, and translation specified by the FST/FBX, this can't change
-                            // at runtime, so we can safely store these in our TriangleSet
-                            {
-                                glm::vec3 v0 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i0], 1.0f));
-                                glm::vec3 v1 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i1], 1.0f));
-                                glm::vec3 v2 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i2], 1.0f));
-
-                                Triangle tri = { v0, v1, v2 };
-                                _modelSpaceMeshTriangleSets[i].insertTriangle(tri);
-                            }
-
-                        }
-                    }
-                    _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
+                    Triangle tri1 = { v0, v1, v3 };
+                    Triangle tri2 = { v1, v2, v3 };
+                    _modelSpaceMeshTriangleSets[i].insertTriangle(tri1);
+                    _modelSpaceMeshTriangleSets[i].insertTriangle(tri2);
                 }
-                _calculatedMeshPartBoxesValid = true;
+            }
+
+            if (part.triangleIndices.size() > 0) {
+                int numberOfTris = part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+                int vIndex = 0;
+                for (int t = 0; t < numberOfTris; t++) {
+                    int i0 = part.triangleIndices[vIndex++];
+                    int i1 = part.triangleIndices[vIndex++];
+                    int i2 = part.triangleIndices[vIndex++];
+
+                    // track the model space version... these points will be transformed by the FST's offset, 
+                    // which includes the scaling, rotation, and translation specified by the FST/FBX, 
+                    // this can't change at runtime, so we can safely store these in our TriangleSet
+                    glm::vec3 v0 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i0], 1.0f));
+                    glm::vec3 v1 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i1], 1.0f));
+                    glm::vec3 v2 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i2], 1.0f));
+
+                    Triangle tri = { v0, v1, v2 };
+                    _modelSpaceMeshTriangleSets[i].insertTriangle(tri);
+                }
             }
         }
-        _calculatedMeshBoxesValid = true;
-        _calculatedMeshTrianglesValid = pickAgainstTriangles;
-    }
-}
-
-void Model::renderSetup(RenderArgs* args) {
-    // set up dilated textures on first render after load/simulate
-    const FBXGeometry& geometry = getFBXGeometry();
-    if (_dilatedTextures.isEmpty()) {
-        foreach (const FBXMesh& mesh, geometry.meshes) {
-            QVector<QSharedPointer<Texture> > dilated;
-            dilated.resize(mesh.parts.size());
-            _dilatedTextures.append(dilated);
-        }
-    }
-
-    if (!_addedToScene && isLoaded()) {
-        createRenderItemSet();
     }
 }
 
@@ -752,7 +635,15 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
 void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
     int colorNdx = 0;
     _mutex.lock();
-    foreach(AABox box, _calculatedMeshBoxes) {
+
+    glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
+    glm::mat4 meshToWorldMatrix = meshToModelMatrix * glm::translate(_translation) * glm::mat4_cast(_rotation);
+    Transform meshToWorld(meshToWorldMatrix);
+    batch.setModelTransform(meshToWorld);
+
+    for(const auto& triangleSet : _modelSpaceMeshTriangleSets) {
+        auto box = triangleSet.getBounds();
+
         if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
             _debugMeshBoxesID = DependencyManager::get<GeometryCache>()->allocateID();
         }
@@ -784,8 +675,8 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
         points << blf << tlf;
 
         glm::vec4 color[] = {
-            { 1.0f, 0.0f, 0.0f, 1.0f }, // red
             { 0.0f, 1.0f, 0.0f, 1.0f }, // green
+            { 1.0f, 0.0f, 0.0f, 1.0f }, // red
             { 0.0f, 0.0f, 1.0f, 1.0f }, // blue
             { 1.0f, 0.0f, 1.0f, 1.0f }, // purple
             { 1.0f, 1.0f, 0.0f, 1.0f }, // yellow
@@ -841,37 +732,6 @@ Extents Model::getUnscaledMeshExtents() const {
     Extents scaledExtents = { minimum, maximum };
 
     return scaledExtents;
-}
-
-Extents Model::calculateScaledOffsetExtents(const Extents& extents,
-                                            glm::vec3 modelPosition, glm::quat modelOrientation) const {
-    // we need to include any fst scaling, translation, and rotation, which is captured in the offset matrix
-    glm::vec3 minimum = glm::vec3(getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
-    glm::vec3 maximum = glm::vec3(getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
-
-    Extents scaledOffsetExtents = { ((minimum + _offset) * _scale),
-                                    ((maximum + _offset) * _scale) };
-
-    Extents rotatedExtents = scaledOffsetExtents.getRotated(modelOrientation);
-
-    Extents translatedExtents = { rotatedExtents.minimum + modelPosition,
-                                  rotatedExtents.maximum + modelPosition };
-
-    return translatedExtents;
-}
-
-/// Returns the world space equivalent of some box in model space.
-AABox Model::calculateScaledOffsetAABox(const AABox& box, glm::vec3 modelPosition, glm::quat modelOrientation) const {
-    return AABox(calculateScaledOffsetExtents(Extents(box), modelPosition, modelOrientation));
-}
-
-glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
-    // we need to include any fst scaling, translation, and rotation, which is captured in the offset matrix
-    glm::vec3 offsetPoint = glm::vec3(getFBXGeometry().offset * glm::vec4(point, 1.0f));
-    glm::vec3 scaledPoint = ((offsetPoint + _offset) * _scale);
-    glm::vec3 rotatedPoint = _rotation * scaledPoint;
-    glm::vec3 translatedPoint = rotatedPoint + _translation;
-    return translatedPoint;
 }
 
 void Model::clearJointState(int index) {
@@ -1159,8 +1019,11 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         //       they really only become invalid if something about the transform to world space has changed. This is
         //       not too bad at this point, because it doesn't impact rendering. However it does slow down ray picking
         //       because ray picking needs valid boxes to work
-        _calculatedMeshBoxesValid = false;
-        _calculatedMeshTrianglesValid = false;
+        //_calculatedMeshBoxesValid = false;
+        //_calculatedMeshTrianglesValid = false;
+
+        // FIXME -- if the model URL changes, then we need to recalculate the triangle sets??!!!!
+
         onInvalidate();
 
         // check for scale to fit

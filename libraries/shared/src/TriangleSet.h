@@ -22,10 +22,10 @@ public:
     // Determine of the given ray (origin/direction) in model space intersects with any triangles
     // in the set. If an intersection occurs, the distance and surface normal will be provided.
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, 
-            float& distance, glm::vec3& surfaceNormal) const;
+        float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision) const;
 
     bool convexHullContains(const glm::vec3& point) const; // this point is "inside" all triangles
-    const AABox& getBounds() const;
+    const AABox& getBounds() const { return _bounds; }
 
 private:
     QVector<Triangle> _triangles;

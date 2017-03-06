@@ -28,24 +28,31 @@ void TriangleSet::clear() {
 // Determine of the given ray (origin/direction) in model space intersects with any triangles
 // in the set. If an intersection occurs, the distance and surface normal will be provided.
 bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                            float& distance, glm::vec3& surfaceNormal) const {
+                    float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision) const {
 
-    float bestDistance = std::numeric_limits<float>::max();
-    float thisTriangleDistance;
     bool intersectedSomething = false;
+    float boxDistance = std::numeric_limits<float>::max();
+    float bestDistance = std::numeric_limits<float>::max();
 
-    for (const auto& triangle : _triangles) {
-        if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance)) {
-            if (thisTriangleDistance < bestDistance) {
-                bestDistance = thisTriangleDistance;
-                intersectedSomething = true;
-                surfaceNormal = triangle.getNormal();
-                distance = bestDistance;
-                //face = subMeshFace;
-                //extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
+    if (_bounds.findRayIntersection(origin, direction, boxDistance, face, surfaceNormal)) {
+        if (precision) {
+            for (const auto& triangle : _triangles) {
+                float thisTriangleDistance;
+                if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance)) {
+                    if (thisTriangleDistance < bestDistance) {
+                        bestDistance = thisTriangleDistance;
+                        intersectedSomething = true;
+                        surfaceNormal = triangle.getNormal();
+                        distance = bestDistance;
+                    }
+                }
             }
+        } else {
+            intersectedSomething = true;
+            distance = boxDistance;
         }
     }
+
     return intersectedSomething;
 }
 
