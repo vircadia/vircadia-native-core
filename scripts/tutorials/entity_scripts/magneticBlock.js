@@ -11,21 +11,23 @@
 //  Makes the entity the script is bound to connect to nearby, similarly sized entities, like a magnet.
 
 (function() {
-    const SNAPSOUND_SOURCE = SoundCache.getSound(Script.resolvePath("../../system/assets/sounds/entitySnap.wav?xrs"));
-    const RANGE_MULTIPLER = 1.5;
-    const MAX_SCALE = 2;
-    const MIN_SCALE = 0.5;
+    var SNAPSOUND_SOURCE = SoundCache.getSound(Script.resolvePath("../../system/assets/sounds/entitySnap.wav?xrs"));
+    var RANGE_MULTIPLER = 1.5;
+    var MAX_SCALE = 2;
+    var MIN_SCALE = 0.5;
 
     // Helper for detecting nearby objects near entityProperties, with the scale calculated by the dimensions of the object.
     function findEntitiesInRange(entityProperties) {
         var dimensions = entityProperties.dimensions;
-        return Entities.findEntities(entityProperties.position, ((dimensions.x + dimensions.y + dimensions.z) / 3) * RANGE_MULTIPLER);
+        // Average of the dimensions instead of full value.
+        return Entities.findEntities(entityProperties.position,
+            ((dimensions.x + dimensions.y + dimensions.z) / 3) * RANGE_MULTIPLER);
     }
 
     function getNearestValidEntityProperties(releasedProperties) {
         var entities = findEntitiesInRange(releasedProperties);
         var nearestEntity = null;
-        var nearest = 9999999999999;
+        var nearest = Number.MAX_SAFE_INTEGER;
         var releaseSize = Vec3.length(releasedProperties.dimensions);
         entities.forEach(function(entityId) {
             if (entityId !== releasedProperties.id) {
@@ -38,27 +40,30 @@
                     nearest = distance;
                 }
             }
-        })
+        });
         return nearestEntity;
     }
     // Create the 'class'
     function MagneticBlock() {}
     // Bind pre-emptive events
     MagneticBlock.prototype = {
-        // When script is bound to an entity, preload is the first callback called with the entityID. It will behave as the constructor
+        /*
+          When script is bound to an entity, preload is the first callback called with the entityID.
+          It will behave as the constructor
+        */
         preload: function(id) {
             /*
               We will now override any existing userdata with the grabbable property.
               Only retrieving userData
             */
-            var val = Entities.getEntityProperties(id, ['userData'])
+            var entity = Entities.getEntityProperties(id, ['userData']);
             var userData = {
                 grabbableKey: {}
             };
             // Check if existing userData field exists.
-            if (val.userData && val.userData.length > 0) {
+            if (entity.userData && entity.userData.length > 0) {
                 try {
-                    userData = JSON.parse(val.userData);
+                    userData = JSON.parse(entity.userData);
                     if (!userData.grabbableKey) {
                         userData.grabbableKey = {}; // If by random change there is no grabbableKey in the userData.
                     }
@@ -75,7 +80,7 @@
             });
             Script.scriptEnding.connect(function() {
                 Script.removeEventHandler(id, "releaseGrab", this.releaseGrab);
-            })
+            });
         },
         releaseGrab: function(entityId) {
             // Release grab is called with entityId,
@@ -102,7 +107,7 @@
                     x: 0,
                     y: 0,
                     z: 0
-                }
+                };
                 if (abs.x >= abs.y && abs.x >= abs.z) {
                     newRelative.x = target.dimensions.x / 2 + released.dimensions.x / 2;
                     if (relativeDifference.x < 0) {
@@ -138,9 +143,9 @@
                         y: 0.5,
                         z: 0.5
                     }
-                })
+                });
             }
         }
-    }
+    };
     return new MagneticBlock();
-})
+});

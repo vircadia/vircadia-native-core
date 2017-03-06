@@ -12,19 +12,20 @@
 
 
 (function() {
-    const MAX_RGB_COMPONENT_VALUE = 256 / 2; // Limit the values to half the maximum.
-    const MIN_COLOR_VALUE = 127;
-    const SIZE = 0.3;
-    const LIFETIME = 600;
-
+    var MAX_RGB_COMPONENT_VALUE = 256 / 2; // Limit the values to half the maximum.
+    var MIN_COLOR_VALUE = 127;
+    var SIZE = 0.3;
+    var LIFETIME = 600;
+    var VERTICAL_OFFSET = -0.25;
+    var ROWS = 3;
+    var COLUMNS = 3;
     // Random Pastel Generator based on Piper's script
     function newColor() {
-        color = {
+        return {
             red: randomPastelRGBComponent(),
             green: randomPastelRGBComponent(),
             blue: randomPastelRGBComponent()
         };
-        return color;
     }
     // Helper functions.
     function randomPastelRGBComponent() {
@@ -34,9 +35,9 @@
     var SCRIPT_URL = Script.resolvePath("./entity_scripts/magneticBlock.js");
 
     var frontVector = Quat.getFront(MyAvatar.orientation);
-    frontVector.y -=.25;
-    for(var x =0; x < 3; x++) {
-        for (var y = 0; y < 3; y++) {
+    frontVector.y += VERTICAL_OFFSET;
+    for (var x = 0; x < COLUMNS; x++) {
+        for (var y = 0; y < ROWS; y++) {
 
             var frontOffset = {
                 x: 0,
@@ -46,13 +47,20 @@
 
             Entities.addEntity({
                 type: "Box",
-                name: "MagneticBlock-" + y +'-' + x,
+                name: "MagneticBlock-" + y + '-' + x,
                 dimensions: {
                     x: SIZE,
                     y: SIZE,
                     z: SIZE
                 },
-                userData: JSON.stringify({grabbableKey: { cloneable: true, grabbable: true, cloneLifetime : LIFETIME, cloneLimit: 9999}}),
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        cloneable: true,
+                        grabbable: true,
+                        cloneLifetime: LIFETIME,
+                        cloneLimit: 9999
+                    }
+                }),
                 position: Vec3.sum(MyAvatar.position, Vec3.sum(frontOffset, frontVector)),
                 color: newColor(),
                 script: SCRIPT_URL
