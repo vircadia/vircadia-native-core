@@ -250,6 +250,18 @@ static QString getUsername() {
     }
 }
 
+bool TabletProxy::isMessageDialogOpen() {
+    if (_qmlTabletRoot) {
+        QVariant result;
+        QMetaObject::invokeMethod(_qmlTabletRoot, "isDialogOpen",Qt::DirectConnection,
+                                  Q_RETURN_ARG(QVariant, result));
+
+        return result.toBool();
+    }
+
+    return false;
+}
+
 void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     std::lock_guard<std::mutex> guard(_mutex);
     _qmlOffscreenSurface = qmlOffscreenSurface;
