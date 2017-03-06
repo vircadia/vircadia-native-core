@@ -12,13 +12,14 @@
 
 (function() {
     const SNAPSOUND_SOURCE = SoundCache.getSound(Script.resolvePath("../../system/assets/sounds/entitySnap.wav?xrs"));
-    // Preload trick for faster playback
     const RANGE_MULTIPLER = 1.5;
+    const MAX_SCALE = 2;
+    const MIN_SCALE = 0.5;
 
-    // Helper for detecting nearby objects
-    function findEntitiesInRange(releasedProperties) {
-        var dimensions = releasedProperties.dimensions;
-        return Entities.findEntities(releasedProperties.position, ((dimensions.x + dimensions.y + dimensions.z) / 3) * RANGE_MULTIPLER);
+    // Helper for detecting nearby objects near entityProperties, with the scale calculated by the dimensions of the object.
+    function findEntitiesInRange(entityProperties) {
+        var dimensions = entityProperties.dimensions;
+        return Entities.findEntities(entityProperties.position, ((dimensions.x + dimensions.y + dimensions.z) / 3) * RANGE_MULTIPLER);
     }
 
     function getNearestValidEntityProperties(releasedProperties) {
@@ -32,7 +33,7 @@
                 var distance = Vec3.distance(releasedProperties.position, entity.position);
                 var scale = releaseSize / Vec3.length(entity.dimensions);
 
-                if (distance < nearest && (scale >= 0.5 && scale <= 2)) {
+                if (distance < nearest && (scale >= MIN_SCALE && scale <= MAX_SCALE)) {
                     nearestEntity = entity;
                     nearest = distance;
                 }
@@ -51,82 +52,94 @@
               Only retrieving userData
             */
             var val = Entities.getEntityProperties(id, ['userData'])
-            var userData = {grabbableKey: {}};
-
+            var userData = {
+                grabbableKey: {}
+            };
+            // Check if existing userData field exists.
             if (val.userData && val.userData.length > 0) {
                 try {
                     userData = JSON.parse(val.userData);
+                    if (!userData.grabbableKey) {
+                        userData.grabbableKey = {}; // If by random change there is no grabbableKey in the userData.
+                    }
                 } catch (e) {
+                    // if user data is not valid json, we will simply overwrite it.
                 }
             }
-            // Object must be triggerable inorder to bind events.
+            // Object must be triggerable inorder to bind releaseGrabEvent
             userData.grabbableKey.grabbable = true;
 
             // Apply the new properties to entity of id
             Entities.editEntity(id, {
                 userData: JSON.stringify(userData)
             });
-            this.held = false;
-            // We will now create a custom binding, to keep the 'current' context as these are callbacks called without context
-            var t = this;
-            this.callbacks = {};
-            this.releaseGrab = function() {
-                var released = Entities.getEntityProperties(id, ["position", "rotation", "dimensions"]);
-                var target = getNearestValidEntityProperties(released);
-                if (target !== null) {
-                    // We found nearest, now lets do the snap calculations
-                    // Plays the snap sound between the two objects.
-                    Audio.playSound(SNAPSOUND_SOURCE, {
-                        volume: 1,
-                        position: Vec3.mix(target.position, released.position, 0.5)
-                    });
-                    // Check Nearest Axis
-                    var difference = Vec3.subtract(released.position, target.position);
-                    var relativeDifference = Vec3.multiplyQbyV(Quat.inverse(target.rotation), difference);
-
-                    var abs = {
-                        x: Math.abs(relativeDifference.x),
-                        y: Math.abs(relativeDifference.y),
-                        z: Math.abs(relativeDifference.z)
-                    };
-                    // Check what value is greater. Simplified.
-                    if (abs.x >= abs.y && abs.x >= abs.z) {
-                        relativeDifference.y = 0;
-                        relativeDifference.z = 0;
-                        if (relativeDifference.x > 0) {
-                            relativeDifference.x = target.dimensions.x / 2 + released.dimensions.x / 2;
-                        } else {
-                            relativeDifference.x = -target.dimensions.x / 2 - released.dimensions.x / 2;
-                        }
-                    } else if (abs.y >= abs.x && abs.y >= abs.z) {
-                        relativeDifference.x = 0;
-                        relativeDifference.z = 0;
-                        if (relativeDifference.y > 0) {
-                            relativeDifference.y = target.dimensions.y / 2 + released.dimensions.y / 2;
-                        } else {
-                            relativeDifference.y = -target.dimensions.y / 2 - released.dimensions.y / 2;
-                        }
-                    } else if (abs.z >= abs.x && abs.z >= abs.y) {
-                        relativeDifference.x = 0;
-                        relativeDifference.y = 0;
-                        if (relativeDifference.z > 0) {
-                            relativeDifference.z = target.dimensions.z / 2 + released.dimensions.z / 2;
-                        } else {
-                            relativeDifference.z = -target.dimensions.z / 2 - released.dimensions.z / 2;
-                        }
-                    }
-                    // Can be expanded upon to work in nearest rotation as well, but was not in spec.
-                    var newPosition = Vec3.multiplyQbyV(target.rotation, relativeDifference);
-                    Entities.editEntity(id, {
-                        rotation: target.rotation,
-                        position: Vec3.sum(target.position, newPosition)
-                    })
-                }
-            }
-
             Script.scriptEnding.connect(function() {
                 Script.removeEventHandler(id, "releaseGrab", this.releaseGrab);
             })
+        },
+        releaseGrab: function(entityId) {
+            // Release grab is called with entityId,
+            var released = Entities.getEntityProperties(entityId, ["position", "rotation", "dimensions"]);
+            var target = getNearestValidEntityProperties(released);
+            if (target !== null) {
+                // We found nearest, now lets do the snap calculations
+                // Plays the snap sound between the two objects.
+                Audio.playSound(SNAPSOUND_SOURCE, {
+                    volume: 1,
+                    position: Vec3.mix(target.position, released.position, 0.5)
+                });
+                // Check Nearest Axis
+                var difference = Vec3.subtract(released.position, target.position);
+                var relativeDifference = Vec3.multiplyQbyV(Quat.inverse(target.rotation), difference);
+
+                var abs = {
+                    x: Math.abs(relativeDifference.x),
+                    y: Math.abs(relativeDifference.y),
+                    z: Math.abs(relativeDifference.z)
+                };
+                // Check what value is greater. and lock down to that axis.
+                var newRelative = {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                }
+                if (abs.x >= abs.y && abs.x >= abs.z) {
+                    newRelative.x = target.dimensions.x / 2 + released.dimensions.x / 2;
+                    if (relativeDifference.x < 0) {
+                        newRelative.x = -newRelative.x;
+                    }
+                } else if (abs.y >= abs.x && abs.y >= abs.z) {
+                    newRelative.y = target.dimensions.y / 2 + released.dimensions.y / 2;
+                    if (relativeDifference.y < 0) {
+                        newRelative.y = -newRelative.y;
+                    }
+                } else if (abs.z >= abs.x && abs.z >= abs.y) {
+                    newRelative.z = target.dimensions.z / 2 + released.dimensions.z / 2;
+                    if (relativeDifference.z < 0) {
+                        newRelative.z = -newRelative.z;
+                    }
+                }
+                // Can be expanded upon to work in nearest 90 degree rotation as well, but was not in spec.
+                var newPosition = Vec3.multiplyQbyV(target.rotation, newRelative);
+                Entities.editEntity(entityId, {
+                    // Script relies on the registrationPoint being at the very center of the object. Thus override.
+                    registrationPoint: {
+                        x: 0.5,
+                        y: 0.5,
+                        z: 0.5
+                    },
+                    rotation: target.rotation,
+                    position: Vec3.sum(target.position, newPosition)
+                });
+                // Script relies on the registrationPoint being at the very center of the object. Thus override.
+                Entities.editEntity(target.id, {
+                    registrationPoint: {
+                        x: 0.5,
+                        y: 0.5,
+                        z: 0.5
+                    }
+                })
+            }
         }
     }
     return new MagneticBlock();
