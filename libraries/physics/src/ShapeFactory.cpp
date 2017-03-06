@@ -267,8 +267,8 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             const float MIN_RADIUS = 0.001f;
             const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
             if (radius > MIN_RADIUS
-                    && fabs(radius - halfExtents.y) / radius < MIN_RELATIVE_SPHERICAL_ERROR
-                    && fabs(radius - halfExtents.z) / radius < MIN_RELATIVE_SPHERICAL_ERROR) {
+                    && fabsf(radius - halfExtents.y) / radius < MIN_RELATIVE_SPHERICAL_ERROR
+                    && fabsf(radius - halfExtents.z) / radius < MIN_RELATIVE_SPHERICAL_ERROR) {
                 // close enough to true sphere
                 shape = new btSphereShape(radius);
             } else {
