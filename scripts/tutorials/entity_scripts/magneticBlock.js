@@ -27,7 +27,7 @@
     function getNearestValidEntityProperties(releasedProperties) {
         var entities = findEntitiesInRange(releasedProperties);
         var nearestEntity = null;
-        var nearest = Number.MAX_SAFE_INTEGER;
+        var nearest = Number.MAX_VALUE - 1;
         var releaseSize = Vec3.length(releasedProperties.dimensions);
         entities.forEach(function(entityId) {
             if (entityId !== releasedProperties.id) {
@@ -56,14 +56,14 @@
               We will now override any existing userdata with the grabbable property.
               Only retrieving userData
             */
-            var entity = Entities.getEntityProperties(id, ['userData']);
+            var entityProperties = Entities.getEntityProperties(id, ['userData']);
             var userData = {
                 grabbableKey: {}
             };
             // Check if existing userData field exists.
-            if (entity.userData && entity.userData.length > 0) {
+            if (entityProperties.userData && entityProperties.userData.length > 0) {
                 try {
-                    userData = JSON.parse(entity.userData);
+                    userData = JSON.parse(entityProperties.userData);
                     if (!userData.grabbableKey) {
                         userData.grabbableKey = {}; // If by random change there is no grabbableKey in the userData.
                     }
