@@ -2031,6 +2031,9 @@ function MyController(hand) {
         var pointerEvent;
         if (rayPickInfo.overlayID) {
             var overlay = rayPickInfo.overlayID;
+            if (Overlays.getProperty(overlay, "type") != "web3d") {
+                return false;
+            }
             if (Overlays.keyboardFocusOverlay != overlay) {
                 Entities.keyboardFocusEntity = null;
                 Overlays.keyboardFocusOverlay = overlay;
@@ -3388,7 +3391,7 @@ function MyController(hand) {
 
             if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && intersectInfo.distance > max) {
                 this.grabbedThingID = null;
-                this.setState(STATE_OFF, "pulled away from overlay");
+                this.setState(STATE_OFF, "pulled away from overlay -- " + intersectInfo.distance + " max = " + max);
                 return;
             }
 
