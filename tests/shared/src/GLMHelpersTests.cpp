@@ -115,8 +115,8 @@ void GLMHelpersTests::testSimd() {
 
     a1 = a * b;
     b1 = b * a;
-    glm_mat4_mul((glm_vec4*)&a, (glm_vec4*)&b, (glm_vec4*)&a2);
-    glm_mat4_mul((glm_vec4*)&b, (glm_vec4*)&a, (glm_vec4*)&b2);
+    glm_mat4u_mul(a, b, a2);
+    glm_mat4u_mul(b, a, b2);
 
 
     {
@@ -133,8 +133,8 @@ void GLMHelpersTests::testSimd() {
         QElapsedTimer timer;
         timer.start();
         for (size_t i = 0; i < LOOPS; ++i) {
-            glm_mat4_mul((glm_vec4*)&a, (glm_vec4*)&b, (glm_vec4*)&a2);
-            glm_mat4_mul((glm_vec4*)&b, (glm_vec4*)&a, (glm_vec4*)&b2);
+            glm_mat4u_mul(a, b, a2);
+            glm_mat4u_mul(b, a, b2);
         }
         qDebug() << "SIMD " << timer.elapsed();
     }

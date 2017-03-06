@@ -47,10 +47,10 @@ TabletModalWindow {
     property int icon: OriginalDialogs.StandardIcon.NoIcon
     property string iconText: ""
     property int iconSize: 50
-   // onIconChanged: updateIcon();
+    onIconChanged: updateIcon();
     property int defaultButton: OriginalDialogs.StandardButton.NoButton;
     property int clickedButton: OriginalDialogs.StandardButton.NoButton;
-    //focus: defaultButton === OriginalDialogs.StandardButton.NoButton
+    focus: defaultButton === OriginalDialogs.StandardButton.NoButton
 
     property int titleWidth: 0
     onTitleWidthChanged: d.resize();

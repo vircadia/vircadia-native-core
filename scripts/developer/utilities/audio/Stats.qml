@@ -1,5 +1,5 @@
 //
-//  stats.qml
+//  Stats.qml
 //  scripts/developer/utilities/audio
 //
 //  Created by Zach Pomerantz on 9/22/2016
@@ -12,22 +12,21 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
+import "../../../../resources/qml/controls-uit" as HifiControls
+
 Column {
     id: stats
     width: parent.width
-    height: parent.height
     property bool showGraphs: toggleGraphs.checked
 
-    RowLayout {
+    Item {
         width: parent.width
         height: 30
 
-        Button {
+        HifiControls.Button {
             id: toggleGraphs
             property bool checked: false
-
-            Layout.alignment: Qt.AlignCenter
-
+            anchors.horizontalCenter: parent.horizontalCenter
             text: checked ? "Hide graphs" : "Show graphs"
             onClicked: function() { checked = !checked; }
         }
@@ -35,11 +34,9 @@ Column {
 
     Grid {
         width: parent.width
-        height: parent.height - 30
 
         Column {
             width: parent.width / 2
-            height: parent.height
 
             Section {
                 label: "Latency"
@@ -76,7 +73,6 @@ Column {
 
         Column {
             width: parent.width / 2
-            height: parent.height
 
             Section {
                 label: "Mixer (upstream)"
@@ -92,4 +88,3 @@ Column {
         }
     }
 }
-
