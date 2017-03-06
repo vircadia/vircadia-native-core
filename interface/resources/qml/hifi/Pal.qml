@@ -658,6 +658,7 @@ Rectangle {
         });
         if (newSelectedIndexes.length > 0) {
             table.selection.select(newSelectedIndexes);
+            table.positionViewAtRow(userIndex, ListView.Beginning);
         }
     }
     signal sendToScript(var message);
