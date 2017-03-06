@@ -259,13 +259,14 @@ void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) 
     _pendingChanges.clear();
 }
 
-void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates& motionStates) {
+void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionStates& motionStates) {
     QMutexLocker lock(&_mutex);
 
     // walk the motionStates looking for those that correspond to entities
     for (auto stateItr : motionStates) {
         ObjectMotionState* state = &(*stateItr);
-        if (state && state->getType() == MOTIONSTATE_TYPE_ENTITY) {
+        assert(state);
+        if (state->getType() == MOTIONSTATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
             EntityItemPointer entity = entityState->getEntity();
             assert(entity.get());

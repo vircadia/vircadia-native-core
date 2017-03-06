@@ -655,13 +655,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
 
     // pack SimulationOwner and terse update properties near each other
-
     // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
     // even when we would otherwise ignore the rest of the packet.
 
     bool filterRejection = false;
     if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
-
         QByteArray simOwnerData;
         int bytes = OctreePacketData::unpackDataFromBytes(dataAt, simOwnerData);
         SimulationOwner newSimOwner;
@@ -676,6 +674,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // or rejects a set of properties, it clears this. In such cases, we don't want those custom
         // setters to ignore what the server says.
         filterRejection = newSimOwner.getID().isNull();
+        bool verbose = getName() == "fubar"; // adebug
+        if (verbose && _simulationOwner != newSimOwner) {
+            std::cout << (void*)(this) << "  adebug ownership changed "
+                << _simulationOwner.getID().toString().toStdString() << "." << (int)_simulationOwner.getPriority() << "-->"
+                << newSimOwner.getID().toString().toStdString() << "." << (int)newSimOwner.getPriority()
+                << std::endl;  // adebug
+        }
         if (weOwnSimulation) {
             if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
                 // entity-server is trying to clear our ownership (probably at our own request)
@@ -1879,12 +1884,16 @@ void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
 }
 
 void EntityItem::updateSimulationOwner(const SimulationOwner& owner) {
+    // NOTE: this method only used by EntityServer.  The Interface uses special code in readEntityDataFromBuffer().
     if (wantTerseEditLogging() && _simulationOwner != owner) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
     }
 
     if (_simulationOwner.set(owner)) {
         _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+        if (getName() == "fubar") {
+            std::cout << "debug updateSimulationOwner() " << _simulationOwner.getID().toString().toStdString() << "." << (int)(_simulationOwner.getPriority()) << std::endl;  // adebug
+        }
     }
 }
 
@@ -1892,10 +1901,14 @@ void EntityItem::clearSimulationOwnership() {
     if (wantTerseEditLogging() && !_simulationOwner.isNull()) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now null";
     }
+    if (getName() == "fubar") {
+        std::cout << "debug clearSimulationOwnership()" << std::endl;  // adebug
+    }
 
     _simulationOwner.clear();
-    // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership()
-    // is only ever called on the entity-server and the flags are only used client-side
+    // don't bother setting the DIRTY_SIMULATOR_ID flag because:
+    // (a) when entity-server calls clearSimulationOwnership() the dirty-flags are meaningless (only used by interface)
+    // (b) the interface only calls clearSimulationOwnership() in a context that already knows best about dirty flags
     //_dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
 
 }

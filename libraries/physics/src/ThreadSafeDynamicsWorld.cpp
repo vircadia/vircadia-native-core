@@ -120,6 +120,9 @@ void ThreadSafeDynamicsWorld::synchronizeMotionState(btRigidBody* body) {
 void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
     BT_PROFILE("synchronizeMotionStates");
     _changedMotionStates.clear();
+
+    // NOTE: m_synchronizeAllMotionStates is 'false' by default for optimization.
+    // See PhysicsEngine::init() where we call _dynamicsWorld->setForceUpdateAllAabbs(false)
     if (m_synchronizeAllMotionStates) {
         //iterate  over all collision objects
         for (int i=0;i<m_collisionObjects.size();i++) {
