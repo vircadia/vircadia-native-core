@@ -201,17 +201,6 @@ set(HF_CMAKE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(MACRO_DIR "${HF_CMAKE_DIR}/macros")
 set(EXTERNAL_PROJECT_DIR "${HF_CMAKE_DIR}/externals")
 
-file(GLOB_RECURSE JS_SRC scripts/*.js)
-add_custom_target(js SOURCES ${JS_SRC})
-
-if (UNIX)
-   install(
-   DIRECTORY "${CMAKE_SOURCE_DIR}/scripts"
-   DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/interface
-   COMPONENT ${CLIENT_COMPONENT}
-   )
-endif()
-
 file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
   include(${CUSTOM_MACRO})
