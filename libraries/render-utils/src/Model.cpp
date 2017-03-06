@@ -368,7 +368,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         }
 
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-        glm::mat4 meshToWorldMatrix = meshToModelMatrix * glm::translate(_translation) * glm::mat4_cast(_rotation);
+        glm::mat4 meshToWorldMatrix = meshToModelMatrix * createMatFromQuatAndPos(_rotation, _translation);
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
 
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
@@ -437,7 +437,7 @@ bool Model::convexHullContains(glm::vec3 point) {
 
         // If we are inside the models box, then consider the submeshes...
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-        glm::mat4 meshToWorldMatrix = meshToModelMatrix * glm::translate(_translation) * glm::mat4_cast(_rotation);
+        glm::mat4 meshToWorldMatrix = meshToModelMatrix * createMatFromQuatAndPos(_rotation, _translation);
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
         glm::vec3 meshFramePoint = glm::vec3(worldToMeshMatrix * glm::vec4(point, 1.0f));
 
@@ -475,9 +475,15 @@ void Model::calculateTriangleSets() {
 
             const int INDICES_PER_TRIANGLE = 3;
             const int INDICES_PER_QUAD = 4;
+            const int TRIANGLES_PER_QUAD = 2;
+
+            // tell our triangleSet how many triangles to expect.
+            int numberOfQuads = part.quadIndices.size() / INDICES_PER_QUAD;
+            int numberOfTris = part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+            int totalTriangles = (numberOfQuads * TRIANGLES_PER_QUAD) + numberOfTris;
+            _modelSpaceMeshTriangleSets[i].reserve(totalTriangles);
 
             if (part.quadIndices.size() > 0) {
-                int numberOfQuads = part.quadIndices.size() / INDICES_PER_QUAD;
                 int vIndex = 0;
                 for (int q = 0; q < numberOfQuads; q++) {
                     int i0 = part.quadIndices[vIndex++];
@@ -495,13 +501,12 @@ void Model::calculateTriangleSets() {
 
                     Triangle tri1 = { v0, v1, v3 };
                     Triangle tri2 = { v1, v2, v3 };
-                    _modelSpaceMeshTriangleSets[i].insertTriangle(tri1);
-                    _modelSpaceMeshTriangleSets[i].insertTriangle(tri2);
+                    _modelSpaceMeshTriangleSets[i].insert(tri1);
+                    _modelSpaceMeshTriangleSets[i].insert(tri2);
                 }
             }
 
             if (part.triangleIndices.size() > 0) {
-                int numberOfTris = part.triangleIndices.size() / INDICES_PER_TRIANGLE;
                 int vIndex = 0;
                 for (int t = 0; t < numberOfTris; t++) {
                     int i0 = part.triangleIndices[vIndex++];
@@ -516,7 +521,7 @@ void Model::calculateTriangleSets() {
                     glm::vec3 v2 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i2], 1.0f));
 
                     Triangle tri = { v0, v1, v2 };
-                    _modelSpaceMeshTriangleSets[i].insertTriangle(tri);
+                    _modelSpaceMeshTriangleSets[i].insert(tri);
                 }
             }
         }
@@ -637,7 +642,7 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
     _mutex.lock();
 
     glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-    glm::mat4 meshToWorldMatrix = meshToModelMatrix * glm::translate(_translation) * glm::mat4_cast(_rotation);
+    glm::mat4 meshToWorldMatrix = meshToModelMatrix * createMatFromQuatAndPos(_rotation, _translation);
     Transform meshToWorld(meshToWorldMatrix);
     batch.setModelTransform(meshToWorld);
 

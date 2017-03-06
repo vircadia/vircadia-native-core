@@ -16,15 +16,20 @@
 
 class TriangleSet {
 public:
-    void insertTriangle(const Triangle& t);
+    void reserve(size_t size) { _triangles.reserve((int)size);  } // reserve space in the datastructure for size number of triangles
+
+    void insert(const Triangle& t);
     void clear();
 
-    // Determine of the given ray (origin/direction) in model space intersects with any triangles
-    // in the set. If an intersection occurs, the distance and surface normal will be provided.
+    // Determine if the given ray (origin/direction) in model space intersects with any triangles in the set. If an 
+    // intersection occurs, the distance and surface normal will be provided.
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, 
         float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision) const;
 
-    bool convexHullContains(const glm::vec3& point) const; // this point is "inside" all triangles
+    // Determine if a point is "inside" all the triangles of a convex hull. It is the responsibility of the caller to
+    // determine that the triangle set is indeed a convex hull. If the triangles added to this set are not in fact a 
+    // convex hull, the result of this method is meaningless and undetermined.
+    bool convexHullContains(const glm::vec3& point) const;
     const AABox& getBounds() const { return _bounds; }
 
 private:

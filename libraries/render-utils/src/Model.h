@@ -290,7 +290,11 @@ protected:
     glm::vec3 _translation; // this is the translation in world coordinates to the model's registration point
     glm::quat _rotation;
     glm::vec3 _scale;
-    glm::vec3 _offset; // this is the translation for the minimum extent of the model (in original mesh coordinate space) to the model's registration point
+
+    // For entity models this is the translation for the minimum extent of the model (in original mesh coordinate space)
+    // to the model's registration point. For avatar models this is the translation from the avatar's hips, as determined
+    // by the default pose, to the origin.
+    glm::vec3 _offset;
 
     static float FAKE_DIMENSION_PLACEHOLDER;
 

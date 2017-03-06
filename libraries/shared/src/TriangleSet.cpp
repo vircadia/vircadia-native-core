@@ -12,7 +12,7 @@
 #include "GLMHelpers.h"
 #include "TriangleSet.h"
 
-void TriangleSet::insertTriangle(const Triangle& t) {
+void TriangleSet::insert(const Triangle& t) {
     _triangles.push_back(t);
 
     _bounds += t.v0;
