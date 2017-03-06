@@ -3213,13 +3213,21 @@ function MyController(hand) {
                     }
                     _this.previouslyUnhooked[childID] = now;
 
-                    // we don't know if it's an entity or an overlay
+                    if (Overlays.getProperty(childID, "grabbable")) {
+                        // only auto-unhook overlays that were flagged as grabbable.  this avoids unhooking overlays
+                        // used in tutorial.
+                        Overlays.editOverlay(childID, {
+                            parentID: previousParentID,
+                            parentJointIndex: previousParentJointIndex
+                        });
+                    }
                     Entities.editEntity(childID, { parentID: previousParentID, parentJointIndex: previousParentJointIndex });
-                    Overlays.editOverlay(childID, { parentID: previousParentID, parentJointIndex: previousParentJointIndex });
 
                 } else {
                     Entities.editEntity(childID, { parentID: NULL_UUID });
-                    Overlays.editOverlay(childID, { parentID: NULL_UUID });
+                    if (Overlays.getProperty(childID, "grabbable")) {
+                        Overlays.editOverlay(childID, { parentID: NULL_UUID });
+                    }
                 }
             }
         });
