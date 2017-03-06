@@ -54,6 +54,17 @@ find_package(
   WebChannel WebSockets
 )
 
+file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
+add_custom_target(qml SOURCES ${QML_SRC})
+
+if (UNIX)
+  install(
+  DIRECTORY "${CMAKE_SOURCE_DIR}/interface/resources/qml"
+  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/resources
+  COMPONENT ${CLIENT_COMPONENT}
+  )
+endif()
+
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 source_group("UI Files" FILES ${QT_UI_FILES})

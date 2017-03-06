@@ -29,6 +29,7 @@
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
 #include <QtCore/QProcess>
+#include <QNetworkProxyFactory>
 
 #ifdef HAS_BUGSPLAT
 #include <BugSplat.h>
@@ -194,6 +195,7 @@ int main(int argc, const char* argv[]) {
     {
         Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
 
+        QNetworkProxyFactory::setUseSystemConfiguration(true);
         // If we failed the OpenGLVersion check, log it.
         if (override) {
             auto accountManager = DependencyManager::get<AccountManager>();
