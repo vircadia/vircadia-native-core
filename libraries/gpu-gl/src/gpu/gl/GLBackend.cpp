@@ -207,7 +207,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
         }
     }
 
-    { // Sync all the buffers
+    { // Sync all the transform states
         PROFILE_RANGE(render_gpu_gl_detail, "syncCPUTransform");
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
@@ -275,7 +275,7 @@ void GLBackend::renderPassDraw(const Batch& batch) {
                 updateInput();
                 updateTransform(batch);
                 updatePipeline();
-                
+
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
                 break;

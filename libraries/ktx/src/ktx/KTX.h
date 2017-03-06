@@ -402,15 +402,15 @@ namespace ktx {
         Image(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
             _numFaces(1),
             _imageSize(imageSize),
-            _padding(padding),
             _faceSize(imageSize),
+            _padding(padding),
             _faceBytes(1, bytes) {}
 
         Image(uint32_t pageSize, uint32_t padding, const FaceBytes& cubeFaceBytes) :
             _numFaces(NUM_CUBEMAPFACES),
             _imageSize(pageSize * NUM_CUBEMAPFACES),
-            _padding(padding),
-            _faceSize(pageSize)
+            _faceSize(pageSize),
+            _padding(padding)
             {
                 if (cubeFaceBytes.size() == NUM_CUBEMAPFACES) {
                     _faceBytes = cubeFaceBytes;
@@ -420,7 +420,7 @@ namespace ktx {
     using Images = std::vector<Image>;
 
     class KTX {
-        void resetStorage(StoragePointer& src);
+        void resetStorage(const StoragePointer& src);
 
         KTX();
     public:
@@ -448,7 +448,7 @@ namespace ktx {
         static Images writeImages(Byte* destBytes, size_t destByteSize, const Images& images);
 
         // Parse a block of memory and create a KTX object from it
-        static std::unique_ptr<KTX> create(StoragePointer& src);
+        static std::unique_ptr<KTX> create(const StoragePointer& src);
 
         static bool checkHeaderFromStorage(size_t srcSize, const Byte* srcBytes);
         static Images parseImages(const Header& header, size_t srcSize, const Byte* srcBytes);

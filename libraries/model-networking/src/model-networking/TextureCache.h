@@ -75,6 +75,7 @@ public:
     Type getTextureType() const { return _type;  }
 
     TextureLoaderFunc getTextureLoader() const;
+    gpu::TexturePointer getFallbackTexture() const;
 
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);

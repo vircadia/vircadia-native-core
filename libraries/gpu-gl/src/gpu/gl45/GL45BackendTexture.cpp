@@ -28,6 +28,7 @@ using namespace gpu::gl;
 using namespace gpu::gl45;
 
 #define SPARSE_PAGE_SIZE_OVERHEAD_ESTIMATE 1.3f
+#define MAX_RESOURCE_TEXTURES_PER_FRAME 2
 
 GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
     if (!texturePointer) {
@@ -57,19 +58,23 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
                 break;
 
             case TextureUsageType::RESOURCE: {
-
-                GL45VariableAllocationTexture* varObject { nullptr };
+                if (GL45VariableAllocationTexture::_frameTexturesCreated < MAX_RESOURCE_TEXTURES_PER_FRAME) {
 #if 0
-                if (isTextureManagementSparseEnabled() && GL45Texture::isSparseEligible(texture)) {
-                    varObject = new GL45SparseResourceTexture(shared_from_this(), texture);
-                } else {
-                    varObject = new GL45ResourceTexture(shared_from_this(), texture);
-                }
+                    if (isTextureManagementSparseEnabled() && GL45Texture::isSparseEligible(texture)) {
+                        object = new GL45SparseResourceTexture(shared_from_this(), texture);
+                    } else {
+                        object = new GL45ResourceTexture(shared_from_this(), texture);
+                    }
 #else 
-                varObject = new GL45ResourceTexture(shared_from_this(), texture);
+                    object = new GL45ResourceTexture(shared_from_this(), texture);
 #endif
-                GL45VariableAllocationTexture::addMemoryManagedTexture(texturePointer);
-                object = varObject;
+                    GL45VariableAllocationTexture::addMemoryManagedTexture(texturePointer);
+                } else {
+                    auto fallback = texturePointer->getFallbackTexture();
+                    if (fallback) {
+                        object = static_cast<GL45Texture*>(syncGPUObject(fallback));
+                    }
+                }
                 break;
             }
 
@@ -79,11 +84,6 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
     }
 
     return object;
-}
-
-void GL45Backend::recycle() const {
-    Parent::recycle();
-    GL45VariableAllocationTexture::manageMemory();
 }
 
 void GL45Backend::initTextureManagementStage() {

@@ -77,7 +77,7 @@ KTX::KTX() {
 KTX::~KTX() {
 }
 
-void KTX::resetStorage(StoragePointer& storage) {
+void KTX::resetStorage(const StoragePointer& storage) {
     _storage = storage;
 }
 
