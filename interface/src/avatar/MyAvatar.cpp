@@ -1617,8 +1617,8 @@ void MyAvatar::postUpdate(float deltaTime) {
         }
     }
 
-//    DebugDraw::getInstance().updateMyAvatarPos(getPosition());
- //   DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
+    DebugDraw::getInstance().updateMyAvatarPos(getPosition());
+    DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
 
     AnimPose postUpdateRoomPose(_sensorToWorldMatrix);
 
