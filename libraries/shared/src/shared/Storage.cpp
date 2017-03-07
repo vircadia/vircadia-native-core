@@ -12,7 +12,10 @@
 
 using namespace storage;
 
-ViewStoragePointer Storage::createView(size_t viewSize, size_t offset) const {
+ViewStorage::ViewStorage(const storage::StoragePointer& owner, size_t size, const uint8_t* data)
+    : _owner(owner), _size(size), _data(data) {}
+
+StoragePointer Storage::createView(size_t viewSize, size_t offset) const {
     auto selfSize = size();
     if (0 == viewSize) {
         viewSize = selfSize;
@@ -20,14 +23,16 @@ ViewStoragePointer Storage::createView(size_t viewSize, size_t offset) const {
     if ((viewSize + offset) > selfSize) {
         throw std::runtime_error("Invalid mapping range");
     }
-    return ViewStoragePointer(new ViewStorage(shared_from_this(), viewSize, data() + offset));
+    auto viewPointer = new ViewStorage(shared_from_this(), viewSize, data() + offset);
+    return viewPointer->shared_from_this();
 }
 
-MemoryStoragePointer Storage::toMemoryStorage() const {
-    return MemoryStoragePointer(new MemoryStorage(size(), data()));
+StoragePointer Storage::toMemoryStorage() const {
+    auto rawPointer = new MemoryStorage(size(), data());
+    return rawPointer->shared_from_this();
 }
 
-FileStoragePointer Storage::toFileStorage(const QString& filename) const {
+StoragePointer Storage::toFileStorage(const QString& filename) const {
     return FileStorage::create(filename, size(), data());
 }
 
@@ -38,7 +43,7 @@ MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) {
     }
 }
 
-FileStoragePointer FileStorage::create(const QString& filename, size_t size, const uint8_t* data) {
+StoragePointer FileStorage::create(const QString& filename, size_t size, const uint8_t* data) {
     QFile file(filename);
     if (!file.open(QFile::ReadWrite | QIODevice::Truncate)) {
         throw std::runtime_error("Unable to open file for writing");
