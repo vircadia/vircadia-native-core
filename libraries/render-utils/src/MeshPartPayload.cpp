@@ -97,6 +97,8 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
+    builder.withMaterial();
+
     if (drawMaterialKey.isTranslucent()) {
         builder.withTranslucent();
     }
@@ -478,6 +480,8 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
+    builder.withMaterial();
+
     if (isTranslucent || _fadeState != FADE_COMPLETE) {
         builder.withTranslucent();
     }
