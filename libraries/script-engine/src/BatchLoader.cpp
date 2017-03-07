@@ -66,7 +66,7 @@ void BatchLoader::start(int maxRetries) {
                 qCDebug(scriptengine) << "Loaded: " << url;
             } else {
                 _data.insert(url, QString());
-                qCDebug(scriptengine) << "Could not load: " << url;
+                qCDebug(scriptengine) << "Could not load: " << url << status;
             }
 
             if (!_finished && _urls.size() == _data.size()) {

@@ -18,7 +18,7 @@
 #include <QUrl>
 #include "PathUtils.h"
 #include <QtCore/QStandardPaths>
-
+#include <mutex> // std::once
 
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
@@ -81,4 +81,29 @@ QUrl defaultScriptsLocation() {
 
     QFileInfo fileInfo(path);
     return QUrl::fromLocalFile(fileInfo.canonicalFilePath());
+}
+
+
+QString PathUtils::stripFilename(const QUrl& url) {
+    // Guard against meaningless query and fragment parts.
+    // Do NOT use PreferLocalFile as its behavior is unpredictable (e.g., on defaultScriptsLocation())
+    return url.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
+}
+
+Qt::CaseSensitivity PathUtils::getFSCaseSensitivity() {
+    static Qt::CaseSensitivity sensitivity { Qt::CaseSensitive };
+    static std::once_flag once;
+    std::call_once(once, [&] {
+            QString path = defaultScriptsLocation().toLocalFile();
+            QFileInfo upperFI(path.toUpper());
+            QFileInfo lowerFI(path.toLower());
+            sensitivity = (upperFI == lowerFI) ? Qt::CaseInsensitive : Qt::CaseSensitive;
+        });
+    return sensitivity;
+}
+
+bool PathUtils::isDescendantOf(const QUrl& childURL, const QUrl& parentURL) {
+    QString child = stripFilename(childURL);
+    QString parent = stripFilename(parentURL);
+    return child.startsWith(parent, PathUtils::getFSCaseSensitivity());
 }
