@@ -335,7 +335,7 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
 }
 
 void TabletProxy::gotoHomeScreen() {
-    if (_state != State::Home) {
+    if (_state != State::Home || _state != State::Uninitialized) {
         if (!_toolbarMode && _qmlTabletRoot) {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
             QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()), Qt::DirectConnection);
