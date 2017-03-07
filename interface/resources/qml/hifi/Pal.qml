@@ -627,6 +627,8 @@ Rectangle {
         var sortProperty = column ? column.role : "displayName";
         var before = (table.sortIndicatorOrder === Qt.AscendingOrder) ? -1 : 1;
         var after = -1 * before;
+        // get selection(s) before sorting
+        var selectedIDs = getSelectedSessionIDs();
         userModelData.sort(function (a, b) {
             var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
             switch (true) {
@@ -639,7 +641,6 @@ Rectangle {
 
         userModel.clear();
         var userIndex = 0;
-        // get selection(s) before sorting
         var newSelectedIndexes = [];
         userModelData.forEach(function (datum) {
             function init(property) {
