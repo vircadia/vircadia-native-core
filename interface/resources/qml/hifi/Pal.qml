@@ -642,7 +642,7 @@ Rectangle {
 
         userModel.clear();
         var userIndex = 0;
-        var newSelectedIndexes=[];
+        var newSelectedIndexes = [];
         userModelData.forEach(function (datum) {
             function init(property) {
                 if (datum[property] === undefined) {
