@@ -1840,7 +1840,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
 
                     doWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, operation);
                     if (hasUncaughtException()) {
-                        emit unhandledException(cloneUncaughtException(__FUNCTION__));
+                        emit unhandledException(cloneUncaughtException("evaluateInclude"));
                         clearExceptions();
                     }
                 } else {
