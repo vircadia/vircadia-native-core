@@ -608,6 +608,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     }
 
+    // make sure the debug draw singleton is initialized on the main thread.
+    DebugDraw::getInstance().removeMarker("");
 
     _runningMarker.startRunningMarker();
 
