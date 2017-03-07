@@ -154,8 +154,8 @@ void Deck::processFrames() {
             // if doing relative movement
             emit looped();
         } else {
-            // otherwise pause playback
-            pause();
+            // otherwise stop playback
+            stop();
         }
         return;
     } 
