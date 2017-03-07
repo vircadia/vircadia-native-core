@@ -552,8 +552,8 @@ Menu::Menu() {
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
     action = addActionToQMenuAndActionHash(networkMenu, MenuOption::Networking);
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QUrl("hifi/dialogs/NetworkingPreferencesDialog.qml"),
-                                                      "NetworkingPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/NetworkingPreferencesDialog.qml"),
+            QString("../../hifi/tablet/TabletNetworkingPreferences.qml"), "NetworkingPreferencesDialog");
     });
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
