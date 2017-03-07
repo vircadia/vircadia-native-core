@@ -250,11 +250,11 @@
         this.cleanupOverlay();
     }
 
-    this.clickDownOnEntity = function () {
+    this.clickDownOnEntity = function (id, event) {
         if (isInEditMode() || (MyAvatar.sessionUUID === this.getSeatUser())) {
             return;
         }
-        if (this.canSitDesktop()) {
+        if (event.isPrimaryButton && this.canSitDesktop()) {
             this.sitDown();
         }
     }
