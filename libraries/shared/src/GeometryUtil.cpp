@@ -205,6 +205,33 @@ bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& directi
     return true;
 }
 
+bool pointInSphere(const glm::vec3& origin, const glm::vec3& center, float radius) {
+    glm::vec3 relativeOrigin = origin - center;
+    float c = glm::dot(relativeOrigin, relativeOrigin) - radius * radius;
+    return c <= 0.0f;
+}
+
+
+bool pointInCapsule(const glm::vec3& origin, const glm::vec3& start, const glm::vec3& end, float radius) {
+    glm::vec3 relativeOrigin = origin - start;
+    glm::vec3 relativeEnd = end - start;
+    float capsuleLength = glm::length(relativeEnd);
+    relativeEnd /= capsuleLength;
+    float originProjection = glm::dot(relativeEnd, relativeOrigin);
+    glm::vec3 constant = relativeOrigin - relativeEnd * originProjection;
+    float c = glm::dot(constant, constant) - radius * radius;
+    if (c < 0.0f) { // starts inside cylinder
+        if (originProjection < 0.0f) { // below start
+            return pointInSphere(origin, start, radius);
+        } else if (originProjection > capsuleLength) { // above end
+            return pointInSphere(origin, end, radius);
+        } else { // between start and end
+            return true;
+        }
+    }
+    return false;
+}
+
 bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& start, const glm::vec3& end, float radius, float& distance) {
     if (start == end) {

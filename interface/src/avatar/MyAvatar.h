@@ -99,6 +99,7 @@ public:
 
     void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
 
+    Q_INVOKABLE void resetSensorsAndBody();
     Q_INVOKABLE void centerBody(); // thread-safe
     Q_INVOKABLE void clearIKJointLimitHistory(); // thread-safe
 
@@ -215,6 +216,11 @@ public:
     virtual void setJointTranslation(int index, const glm::vec3& translation) override;
     virtual void clearJointData(int index) override;
     virtual void clearJointsData() override;
+
+    Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
+    Q_INVOKABLE bool clearPinOnJoint(int index);
+
+    Q_INVOKABLE float getIKErrorOnLastSolve() const;
 
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
     Q_INVOKABLE QUrl getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
@@ -527,6 +533,8 @@ private:
     bool didTeleport();
     bool getIsAway() const { return _isAway; }
     void setAway(bool value);
+
+    std::vector<int> _pinnedJoints;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

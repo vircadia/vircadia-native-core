@@ -102,7 +102,11 @@ void setupPreferences() {
         auto setter = [](bool value) { qApp->setHmdTabletBecomesToolbarSetting(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "HMD Tablet Becomes Toolbar", getter, setter));
     }
-
+    {
+        auto getter = []()->bool { return qApp->getTabletVisibleToOthersSetting(); };
+        auto setter = [](bool value) { qApp->setTabletVisibleToOthersSetting(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Tablet Is Visible To Others", getter, setter));
+    }
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
     {

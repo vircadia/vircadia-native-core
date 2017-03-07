@@ -44,6 +44,8 @@ public:
     // Mutable, but must retain structure of vector
     using NetworkMaterials = std::vector<std::shared_ptr<NetworkMaterial>>;
 
+    bool isGeometryLoaded() const { return (bool)_fbxGeometry; }
+
     const FBXGeometry& getFBXGeometry() const { return *_fbxGeometry; }
     const GeometryMeshes& getMeshes() const { return *_meshes; }
     const std::shared_ptr<const NetworkMaterial> getShapeMaterial(int shapeID) const;

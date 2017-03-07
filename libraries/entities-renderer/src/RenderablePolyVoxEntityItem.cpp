@@ -266,6 +266,35 @@ void RenderablePolyVoxEntityItem::forEachVoxelValue(quint16 voxelXSize, quint16 
     });
 }
 
+QByteArray RenderablePolyVoxEntityItem::volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const {
+    int totalSize = voxelXSize * voxelYSize * voxelZSize;
+    QByteArray result = QByteArray(totalSize, '\0');
+    int index = 0;
+    int lowX = 0;
+    int lowY = 0;
+    int lowZ = 0;
+
+    withReadLock([&] {
+        if (isEdged(_voxelSurfaceStyle)) {
+            lowX++;
+            lowY++;
+            lowZ++;
+            voxelXSize++;
+            voxelYSize++;
+            voxelZSize++;
+        }
+
+        for (int z = lowZ; z < voxelZSize; z++) {
+            for (int y = lowY; y < voxelYSize; y++) {
+                for (int x = lowX; x < voxelXSize; x++) {
+                    result[index++] = _volData->getVoxelAt(x, y, z);
+                }
+            }
+        }
+    });
+
+    return result;
+}
 
 bool RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
     bool result = false;
@@ -365,12 +394,28 @@ bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
     }
 
     glm::mat4 vtwMatrix = voxelToWorldMatrix();
+    glm::mat4 wtvMatrix = glm::inverse(vtwMatrix);
 
-    // This three-level for loop iterates over every voxel in the volume
+    glm::vec3 dimensions = getDimensions();
+    glm::vec3 voxelSize = dimensions / _voxelVolumeSize;
+    float smallestDimensionSize = voxelSize.x;
+    smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
+    smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.z);
+
+    glm::vec3 maxRadiusInVoxelCoords = glm::vec3(radiusWorldCoords / smallestDimensionSize);
+    glm::vec3 centerInVoxelCoords = wtvMatrix * glm::vec4(centerWorldCoords, 1.0f);
+
+    glm::vec3 low = glm::floor(centerInVoxelCoords - maxRadiusInVoxelCoords);
+    glm::vec3 high = glm::ceil(centerInVoxelCoords + maxRadiusInVoxelCoords);
+
+    glm::ivec3 lowI = glm::clamp(low, glm::vec3(0.0f), _voxelVolumeSize);
+    glm::ivec3 highI = glm::clamp(high, glm::vec3(0.0f), _voxelVolumeSize);
+
+    // This three-level for loop iterates over every voxel in the volume that might be in the sphere
     withWriteLock([&] {
-        for (int z = 0; z < _voxelVolumeSize.z; z++) {
-            for (int y = 0; y < _voxelVolumeSize.y; y++) {
-                for (int x = 0; x < _voxelVolumeSize.x; x++) {
+        for (int z = lowI.z; z < highI.z; z++) {
+            for (int y = lowI.y; y < highI.y; y++) {
+                for (int x = lowI.x; x < highI.x; x++) {
                     // Store our current position as a vector...
                     glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
                     // convert to world coordinates
@@ -391,6 +436,59 @@ bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
     }
     return result;
 }
+
+bool RenderablePolyVoxEntityItem::setCapsule(glm::vec3 startWorldCoords, glm::vec3 endWorldCoords,
+                                             float radiusWorldCoords, uint8_t toValue) {
+    bool result = false;
+    if (_locked) {
+        return result;
+    }
+
+    glm::mat4 vtwMatrix = voxelToWorldMatrix();
+    glm::mat4 wtvMatrix = glm::inverse(vtwMatrix);
+
+    glm::vec3 dimensions = getDimensions();
+    glm::vec3 voxelSize = dimensions / _voxelVolumeSize;
+    float smallestDimensionSize = voxelSize.x;
+    smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
+    smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.z);
+
+    glm::vec3 maxRadiusInVoxelCoords = glm::vec3(radiusWorldCoords / smallestDimensionSize);
+
+    glm::vec3 startInVoxelCoords = wtvMatrix * glm::vec4(startWorldCoords, 1.0f);
+    glm::vec3 endInVoxelCoords = wtvMatrix * glm::vec4(endWorldCoords, 1.0f);
+
+    glm::vec3 low = glm::min(glm::floor(startInVoxelCoords - maxRadiusInVoxelCoords),
+                             glm::floor(endInVoxelCoords - maxRadiusInVoxelCoords));
+    glm::vec3 high = glm::max(glm::ceil(startInVoxelCoords + maxRadiusInVoxelCoords),
+                              glm::ceil(endInVoxelCoords + maxRadiusInVoxelCoords));
+
+    glm::ivec3 lowI = glm::clamp(low, glm::vec3(0.0f), _voxelVolumeSize);
+    glm::ivec3 highI = glm::clamp(high, glm::vec3(0.0f), _voxelVolumeSize);
+
+    // This three-level for loop iterates over every voxel in the volume that might be in the capsule
+    withWriteLock([&] {
+        for (int z = lowI.z; z < highI.z; z++) {
+            for (int y = lowI.y; y < highI.y; y++) {
+                for (int x = lowI.x; x < highI.x; x++) {
+                    // Store our current position as a vector...
+                    glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
+                    // convert to world coordinates
+                    glm::vec3 worldPos = glm::vec3(vtwMatrix * pos);
+                    if (pointInCapsule(worldPos, startWorldCoords, endWorldCoords, radiusWorldCoords)) {
+                        result |= setVoxelInternal(x, y, z, toValue);
+                    }
+                }
+            }
+        }
+    });
+
+    if (result) {
+        compressVolumeDataAndSendEditPacket();
+    }
+    return result;
+}
+
 
 class RaycastFunctor
 {
@@ -501,6 +599,9 @@ PolyVox::RaycastResult RenderablePolyVoxEntityItem::doRayCast(glm::vec4 originIn
 
 // virtual
 ShapeType RenderablePolyVoxEntityItem::getShapeType() const {
+    if (_collisionless) {
+        return SHAPE_TYPE_NONE;
+    }
     return SHAPE_TYPE_COMPOUND;
 }
 
@@ -512,6 +613,11 @@ void RenderablePolyVoxEntityItem::updateRegistrationPoint(const glm::vec3& value
 }
 
 bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
+    ShapeType shapeType = getShapeType();
+    if (shapeType == SHAPE_TYPE_NONE) {
+        return true;
+    }
+
     // we determine if we are ready to compute the physics shape by actually doing so.
     // if _voxelDataDirty or _volDataDirty is set, don't do this yet -- wait for their
     // threads to finish before creating the collision shape.
@@ -524,6 +630,12 @@ bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
 }
 
 void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
+    ShapeType shapeType = getShapeType();
+    if (shapeType == SHAPE_TYPE_NONE) {
+        info.setParams(getShapeType(), 0.5f * getDimensions());
+        return;
+    }
+
     // the shape was actually computed in isReadyToComputeShape.  Just hand it off, here.
     withWriteLock([&] {
         info = _shapeInfo;
@@ -736,7 +848,7 @@ glm::vec3 RenderablePolyVoxEntityItem::localCoordsToVoxelCoords(glm::vec3& local
 
 void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
     // This controls how many individual voxels are in the entity.  This is unrelated to
-    // the dimentions of the entity -- it defines the size of the arrays that hold voxel values.
+    // the dimentions of the entity -- it defines the sizes of the arrays that hold voxel values.
     // In addition to setting the number of voxels, this is used in a few places for its
     // side-effect of allocating _volData to be the correct size.
     withWriteLock([&] {
@@ -807,7 +919,7 @@ uint8_t RenderablePolyVoxEntityItem::getVoxel(int x, int y, int z) {
 }
 
 
-uint8_t RenderablePolyVoxEntityItem::getVoxelInternal(int x, int y, int z) {
+uint8_t RenderablePolyVoxEntityItem::getVoxelInternal(int x, int y, int z) const {
     if (!inUserBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
         return 0;
     }
@@ -949,17 +1061,8 @@ void RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacket() {
     EntityTreePointer tree = element ? element->getTree() : nullptr;
 
     QtConcurrent::run([voxelXSize, voxelYSize, voxelZSize, entity, tree] {
-        int rawSize = voxelXSize * voxelYSize * voxelZSize;
-        QByteArray uncompressedData = QByteArray(rawSize, '\0');
-
         auto polyVoxEntity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity);
-        polyVoxEntity->forEachVoxelValue(voxelXSize, voxelYSize, voxelZSize, [&] (int x, int y, int z, uint8_t uVoxelValue) {
-            int uncompressedIndex =
-                z * voxelYSize * voxelXSize +
-                y * voxelXSize +
-                x;
-            uncompressedData[uncompressedIndex] = uVoxelValue;
-        });
+        QByteArray uncompressedData = polyVoxEntity->volDataToArray(voxelXSize, voxelYSize, voxelZSize);
 
         QByteArray newVoxelData;
         QDataStream writer(&newVoxelData, QIODevice::WriteOnly | QIODevice::Truncate);
@@ -1174,7 +1277,9 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
     // this catches the payload from getMesh
     bool neighborsNeedUpdate;
     withWriteLock([&] {
-        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        if (!_collisionless) {
+            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        }
         _mesh = mesh;
         _meshDirty = true;
         _meshInitialized = true;

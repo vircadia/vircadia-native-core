@@ -71,6 +71,14 @@ public slots:
     void setAvatarGain(const QUuid& nodeID, float gain);
 
     /**jsdoc
+    * Gets an avatar's gain for you and you only.
+    * @function Users.getAvatarGain
+    * @param {nodeID} nodeID The node or session ID of the user whose gain you want to get.
+    * @return {float} gain (in dB)
+    */
+    float getAvatarGain(const QUuid& nodeID);
+
+    /**jsdoc
     * Kick another user.
     * @function Users.kick
     * @param {nodeID} nodeID The node or session ID of the user you want to kick.
@@ -150,7 +158,6 @@ signals:
 private:
     bool getRequestsDomainListData();
     void setRequestsDomainListData(bool requests);
-    bool _requestsDomainListData;
 };
 
 
