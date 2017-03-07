@@ -10,6 +10,9 @@
 //
 #include "KTX.h"
 
+
+#include <QtGlobal>
+#include <QtCore/QDebug>
 #ifndef _MSC_VER
 #define NOEXCEPT noexcept
 #else
@@ -70,7 +73,7 @@ namespace ktx {
 
         // KeyValues
         if (!keyValues.empty()) {
-            destHeader->bytesOfKeyValueData = writeKeyValues(currentDestPtr, destByteSize - sizeof(Header), keyValues);
+            destHeader->bytesOfKeyValueData = (uint32_t) writeKeyValues(currentDestPtr, destByteSize - sizeof(Header), keyValues);
         } else {
             // Make sure the header contains the right bytesOfKeyValueData size
             destHeader->bytesOfKeyValueData = 0;
@@ -84,9 +87,39 @@ namespace ktx {
         return destByteSize;
     }
 
-    static size_t writeKeyValues(Byte* destBytes, size_t destByteSize, const KeyValues& keyValues) {
-        
+    uint32_t KeyValue::writeSerializedKeyAndValue(Byte* destBytes, uint32_t destByteSize, const KeyValue& keyval) {
+        uint32_t keyvalSize = keyval.serializedByteSize();
+        if (keyvalSize > destByteSize) {
+            throw WriterException("invalid key-value size");
+        }
 
+        *((uint32_t*) destBytes) = keyval._byteSize;
+
+        auto dest = destBytes + sizeof(uint32_t);
+
+        auto keySize = keyval._key.size() + 1; // Add 1 for the '\0' character at the end of the string
+        memcpy(dest, keyval._key.data(), keySize);
+        dest += keySize;
+
+        memcpy(dest, keyval._value.data(), keyval._value.size());
+
+        return keyvalSize;
+    }
+
+    size_t KTX::writeKeyValues(Byte* destBytes, size_t destByteSize, const KeyValues& keyValues) {
+        size_t writtenByteSize = 0;
+        try {
+            auto dest = destBytes;
+            for (auto& keyval : keyValues) {
+                size_t keyvalSize = KeyValue::writeSerializedKeyAndValue(dest, (uint32_t) (destByteSize - writtenByteSize), keyval);
+                writtenByteSize += keyvalSize;
+                dest += keyvalSize;
+            }
+        }
+        catch (const WriterException& e) {
+            qWarning() << e.what();
+        }
+        return writtenByteSize;
     }
 
     Images KTX::writeImages(Byte* destBytes, size_t destByteSize, const Images& srcImages) {

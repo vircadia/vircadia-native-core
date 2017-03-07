@@ -398,8 +398,8 @@ namespace ktx {
 
         uint32_t serializedByteSize() const;
 
-        static KeyValue parseKeyAndValue(uint32_t keyAndValueByteSize, const Byte* bytes);
-        static KeyValue parseSerializedKeyAndValue(uint32_t byteSizeAhead, const Byte* bytes);
+        static KeyValue parseSerializedKeyAndValue(uint32_t srcSize, const Byte* srcBytes);
+        static uint32_t writeSerializedKeyAndValue(Byte* destBytes, uint32_t destByteSize, const KeyValue& keyval);
 
         using KeyValues = std::list<KeyValue>;
         static uint32_t serializedKeyValuesByteSize(const KeyValues& keyValues);

@@ -143,6 +143,7 @@ public:
     uint8 getMinMip() const { return _desc._minMip; }
     uint8 getMaxMip() const { return _desc._maxMip; }
 
+    const Desc& getDesc() const { return _desc; }
 protected:
     Desc _desc;
 };
@@ -516,7 +517,7 @@ public:
 
     // Textures can be serialized directly to  ktx data file, here is how
     static ktx::KTXUniquePointer serialize(const Texture& texture);
-    static Texture* unserialize(Usage usage, TextureUsageType usageType, const ktx::KTXUniquePointer& srcData, const Sampler& sampler = Sampler());
+    static Texture* unserialize(const ktx::KTXUniquePointer& srcData, TextureUsageType usageType = TextureUsageType::RESOURCE, Usage usage = Usage(), const Sampler::Desc& sampler = Sampler::Desc());
     static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
     static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);
 

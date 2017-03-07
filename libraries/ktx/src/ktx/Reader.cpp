@@ -56,55 +56,6 @@ namespace ktx {
         return true;
     }
 
-
-    KeyValue KeyValue::parseKeyAndValue(uint32_t keyAndValueByteSize, const Byte* bytes) {
-        // find the first null character \0
-        uint32_t keyLength = 0;
-        while (reinterpret_cast<const char*>(bytes[++keyLength]) != '\0') {
-            if (keyLength == keyAndValueByteSize) {
-                // key must be null-terminated, and there must be space for the value
-                throw ReaderException("invalid key-value " + std::string(reinterpret_cast<const char*>(bytes), keyLength));
-            }
-        }
-
-        return KeyValue(std::string(reinterpret_cast<const char*>(bytes), keyLength), keyAndValueByteSize - keyLength, bytes + keyLength);
-    }
-
-    static KeyValue parseSerializedKeyAndValue(uint32_t byteSizeAhead, const Byte* bytes) {
-        uint32_t keyValueByteSize;
-        memcpy(&keyValueByteSize, bytes, sizeof(uint32_t));
-        if (keyValueByteSize > byteSizeAhead) {
-            throw ReaderException("invalid key-value size");
-        }
-
-        auto keyValueBytes = bytes + sizeof(uint32_t);
-
-        // parse the key-value
-        return KeyValue::parseKeyAndValue(keyValueByteSize, keyValueBytes);
-    }
-
-    static KeyValues parseKeyValues(size_t srcSize, const Byte* srcBytes);
-
-    KeyValues KTX::parseKeyValues(size_t srcSize, const Byte* src) {
-        KeyValues keyValues;
-        try {
-            uint32_t length = (uint32_t) srcSize;
-            uint32_t offset = 0;
-            while (offset < length) {
-                auto keyValue = parseSerializedKeyAndValue(length - offset, src);
-                keyValues.emplace_back(keyValue);
-
-                // advance offset/src
-                offset += keyValue.serializedByteSize();
-                src += keyValue.serializedByteSize();
-            }
-        }
-        catch (const ReaderException& e) {
-            qWarning() << e.what();
-        }
-        return keyValues;
-    }
-
     bool KTX::checkHeaderFromStorage(size_t srcSize, const Byte* srcBytes) {
         try {
             // validation
@@ -138,6 +89,50 @@ namespace ktx {
             qWarning() << e.what();
             return false;
         }
+    }
+
+    KeyValue KeyValue::parseSerializedKeyAndValue(uint32_t srcSize, const Byte* srcBytes) {
+        uint32_t keyAndValueByteSize;
+        memcpy(&keyAndValueByteSize, srcBytes, sizeof(uint32_t));
+        if (keyAndValueByteSize + sizeof(uint32_t) > srcSize) {
+            throw ReaderException("invalid key-value size");
+        }
+        auto keyValueBytes = srcBytes + sizeof(uint32_t);
+
+        // find the first null character \0 and extract the key
+        uint32_t keyLength = 0;
+        while (reinterpret_cast<const char*>(keyValueBytes[++keyLength]) != '\0') {
+            if (keyLength == keyAndValueByteSize) {
+                // key must be null-terminated, and there must be space for the value
+                throw ReaderException("invalid key-value " + std::string(reinterpret_cast<const char*>(keyValueBytes), keyLength));
+            }
+        }
+        uint32_t valueStartOffset = keyLength + 1;
+
+        // parse the key-value
+        return KeyValue(std::string(reinterpret_cast<const char*>(keyValueBytes), keyLength),
+                        keyAndValueByteSize - valueStartOffset, keyValueBytes + valueStartOffset);
+    }
+
+    KeyValues KTX::parseKeyValues(size_t srcSize, const Byte* srcBytes) {
+        KeyValues keyValues;
+        try {
+            auto src = srcBytes;
+            uint32_t length = (uint32_t) srcSize;
+            uint32_t offset = 0;
+            while (offset < length) {
+                auto keyValue = KeyValue::parseSerializedKeyAndValue(length - offset, src);
+                keyValues.emplace_back(keyValue);
+
+                // advance offset/src
+                offset += keyValue.serializedByteSize();
+                src += keyValue.serializedByteSize();
+            }
+        }
+        catch (const ReaderException& e) {
+            qWarning() << e.what();
+        }
+        return keyValues;
     }
 
     Images KTX::parseImages(const Header& header, size_t srcSize, const Byte* srcBytes) {

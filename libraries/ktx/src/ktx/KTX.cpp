@@ -72,7 +72,7 @@ size_t Header::evalImageSize(uint32_t level) const {
 
 
 KeyValue::KeyValue(const std::string& key, uint32_t valueByteSize, const Byte* value) :
-    _byteSize((uint32_t) key.size() + valueByteSize),
+    _byteSize((uint32_t) key.size() + 1 + valueByteSize), // keyString size + '\0' ending char + the value size
     _key(key),
     _value(valueByteSize)
 {
@@ -92,7 +92,7 @@ uint32_t KeyValue::serializedByteSize() const {
 }
 
 uint32_t KeyValue::serializedKeyValuesByteSize(const KeyValues& keyValues) {
-    size_t keyValuesSize = 0;
+    uint32_t keyValuesSize = 0;
     for (auto& keyval : keyValues) {
         keyValuesSize += keyval.serializedByteSize();
     }
