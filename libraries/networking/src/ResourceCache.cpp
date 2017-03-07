@@ -221,7 +221,7 @@ ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
 }
 
 ResourceCache::~ResourceCache() {
-    clearUnusedResource();
+    clearUnusedResources();
 }
 
 void ResourceCache::clearATPAssets() {
@@ -265,7 +265,7 @@ void ResourceCache::clearATPAssets() {
 
 void ResourceCache::refreshAll() {
     // Clear all unused resources so we don't have to reload them
-    clearUnusedResource();
+    clearUnusedResources();
     resetResourceCounters();
 
     QHash<QUrl, QWeakPointer<Resource>> resources;
@@ -418,7 +418,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
     }
 }
 
-void ResourceCache::clearUnusedResource() {
+void ResourceCache::clearUnusedResources() {
     // the unused resources may themselves reference resources that will be added to the unused
     // list on destruction, so keep clearing until there are no references left
     QWriteLocker locker(&_unusedResourcesLock);

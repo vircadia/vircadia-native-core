@@ -9,17 +9,23 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var INITIAL_WIDTH = 400;
-var INITIAL_OFFSET = 50;
+if (HMD.active && !Settings.getValue("HUDUIEnabled")) {
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var qml = Script.resolvePath("TabletStats.qml");
+    tablet.loadQMLSource(qml);
+    Script.stop();
 
-// Set up the qml ui
-var qml = Script.resolvePath('stats.qml');
-var window = new OverlayWindow({
-    title: 'Audio Interface Statistics',
-    source: qml,
-    width: 500, height: 520 // stats.qml may be too large for some screens
-});
-window.setPosition(INITIAL_OFFSET, INITIAL_OFFSET);
+} else {
+    var INITIAL_WIDTH = 400;
+    var INITIAL_OFFSET = 50;
 
-window.closed.connect(function() { Script.stop(); });
+    var qml = Script.resolvePath("Stats.qml");
+    var window = new OverlayWindow({
+        title: "Audio Interface Statistics",
+        source: qml,
+        width: 500, height: 520 // stats.qml may be too large for some screens
+    });
+    window.setPosition(INITIAL_OFFSET, INITIAL_OFFSET);
 
+    window.closed.connect(function () { Script.stop(); });
+}

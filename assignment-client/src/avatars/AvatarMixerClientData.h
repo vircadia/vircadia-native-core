@@ -45,8 +45,6 @@ public:
     const AvatarData* getConstAvatarData() const { return _avatar.get(); }
     AvatarSharedPointer getAvatarSharedPointer() const { return _avatar; }
 
-    bool checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid);
-
     uint16_t getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const;
     void setLastBroadcastSequenceNumber(const QUuid& nodeUUID, uint16_t sequenceNumber)
         { _lastBroadcastSequenceNumbers[nodeUUID] = sequenceNumber; }
@@ -63,8 +61,8 @@ public:
 
     uint16_t getLastReceivedSequenceNumber() const { return _lastReceivedSequenceNumber; }
 
-    HRCTime getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
-    void flagIdentityChange() { _identityChangeTimestamp = p_high_resolution_clock::now(); }
+    uint64_t getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
+    void flagIdentityChange() { _identityChangeTimestamp = usecTimestampNow(); }
     bool getAvatarSessionDisplayNameMustChange() const { return _avatarSessionDisplayNameMustChange; }
     void setAvatarSessionDisplayNameMustChange(bool set = true) { _avatarSessionDisplayNameMustChange = set; }
 
@@ -139,7 +137,6 @@ private:
 
     uint16_t _lastReceivedSequenceNumber { 0 };
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
-    std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
     std::unordered_map<QUuid, uint64_t> _lastBroadcastTimes;
 
     // this is a map of the last time we encoded an "other" avatar for
@@ -147,7 +144,7 @@ private:
     std::unordered_map<QUuid, quint64> _lastOtherAvatarEncodeTime;
     std::unordered_map<QUuid, QVector<JointData>> _lastOtherAvatarSentJoints;
 
-    HRCTime _identityChangeTimestamp;
+    uint64_t _identityChangeTimestamp;
     bool _avatarSessionDisplayNameMustChange{ false };
 
     int _numAvatarsSentLastFrame = 0;
