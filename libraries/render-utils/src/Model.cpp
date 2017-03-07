@@ -368,7 +368,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         }
 
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-        glm::mat4 meshToWorldMatrix = meshToModelMatrix * createMatFromQuatAndPos(_rotation, _translation);
+        glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * meshToModelMatrix;
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
 
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
@@ -437,7 +437,7 @@ bool Model::convexHullContains(glm::vec3 point) {
 
         // If we are inside the models box, then consider the submeshes...
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-        glm::mat4 meshToWorldMatrix = meshToModelMatrix * createMatFromQuatAndPos(_rotation, _translation);
+        glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * meshToModelMatrix;
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
         glm::vec3 meshFramePoint = glm::vec3(worldToMeshMatrix * glm::vec4(point, 1.0f));
 
@@ -483,6 +483,8 @@ void Model::calculateTriangleSets() {
             int totalTriangles = (numberOfQuads * TRIANGLES_PER_QUAD) + numberOfTris;
             _modelSpaceMeshTriangleSets[i].reserve(totalTriangles);
 
+            auto meshTransform = getFBXGeometry().offset * mesh.modelTransform;
+
             if (part.quadIndices.size() > 0) {
                 int vIndex = 0;
                 for (int q = 0; q < numberOfQuads; q++) {
@@ -494,10 +496,10 @@ void Model::calculateTriangleSets() {
                     // track the model space version... these points will be transformed by the FST's offset, 
                     // which includes the scaling, rotation, and translation specified by the FST/FBX, 
                     // this can't change at runtime, so we can safely store these in our TriangleSet
-                    glm::vec3 v0 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i0], 1.0f));
-                    glm::vec3 v1 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i1], 1.0f));
-                    glm::vec3 v2 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i2], 1.0f));
-                    glm::vec3 v3 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i3], 1.0f));
+                    glm::vec3 v0 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                    glm::vec3 v1 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                    glm::vec3 v2 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+                    glm::vec3 v3 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i3], 1.0f));
 
                     Triangle tri1 = { v0, v1, v3 };
                     Triangle tri2 = { v1, v2, v3 };
@@ -516,9 +518,9 @@ void Model::calculateTriangleSets() {
                     // track the model space version... these points will be transformed by the FST's offset, 
                     // which includes the scaling, rotation, and translation specified by the FST/FBX, 
                     // this can't change at runtime, so we can safely store these in our TriangleSet
-                    glm::vec3 v0 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i0], 1.0f));
-                    glm::vec3 v1 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i1], 1.0f));
-                    glm::vec3 v2 = glm::vec3(getFBXGeometry().offset * glm::vec4(mesh.vertices[i2], 1.0f));
+                    glm::vec3 v0 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                    glm::vec3 v1 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                    glm::vec3 v2 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i2], 1.0f));
 
                     Triangle tri = { v0, v1, v2 };
                     _modelSpaceMeshTriangleSets[i].insert(tri);
@@ -642,9 +644,11 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
     _mutex.lock();
 
     glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-    glm::mat4 meshToWorldMatrix = meshToModelMatrix * createMatFromQuatAndPos(_rotation, _translation);
+    glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * meshToModelMatrix;
     Transform meshToWorld(meshToWorldMatrix);
     batch.setModelTransform(meshToWorld);
+
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true, true);
 
     for(const auto& triangleSet : _modelSpaceMeshTriangleSets) {
         auto box = triangleSet.getBounds();

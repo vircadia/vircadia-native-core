@@ -16,7 +16,10 @@
 
 class TriangleSet {
 public:
-    void reserve(size_t size) { _triangles.reserve(size);  } // reserve space in the datastructure for size number of triangles
+    void reserve(size_t size) { _triangles.reserve(size); } // reserve space in the datastructure for size number of triangles
+    size_t size() const { return _triangles.size(); } 
+
+    const Triangle& getTriangle(size_t t) const { return _triangles[t]; }
 
     void insert(const Triangle& t);
     void clear();
