@@ -51,7 +51,9 @@ const OUTPUT_DEVICE_SETTING = "audio_output_device";
 var selectedInputMenu = "";
 var selectedOutputMenu = "";
 
+    var audioDevicesList = [];
 function setupAudioMenus() {
+    removeAudioMenus();
     Menu.addSeparator("Audio", "Input Audio Device");
 
     var inputDeviceSetting = Settings.getValue(INPUT_DEVICE_SETTING);
@@ -67,11 +69,12 @@ function setupAudioMenus() {
         var thisDeviceSelected = (inputDevices[i] == selectedInputDevice);
         var menuItem = "Use " + inputDevices[i] + " for Input";
         Menu.addMenuItem({
-                            menuName: "Audio",
-                            menuItemName: menuItem,
-                            isCheckable: true,
-                            isChecked: thisDeviceSelected
-                        });
+            menuName: "Audio",
+            menuItemName: menuItem,
+            isCheckable: true,
+            isChecked: thisDeviceSelected
+        });
+        audioDevicesList.push(menuItem);
         if (thisDeviceSelected) {
             selectedInputMenu = menuItem;
         }
@@ -97,10 +100,22 @@ function setupAudioMenus() {
             isCheckable: true,
             isChecked: thisDeviceSelected
         });
+        audioDevicesList.push(menuItem);
         if (thisDeviceSelected) {
             selectedOutputMenu = menuItem;
         }
     }
+}
+
+function removeAudioMenus() {
+    Menu.removeSeparator("Audio", "Input Audio Device");
+    Menu.removeSeparator("Audio", "Output Audio Device");
+
+    for (var index = 0; index < audioDevicesList.length; index++) {
+        Menu.removeMenuItem("Audio", audioDevicesList[index]);
+    }
+
+    audioDevicesList = [];
 }
 
 function onDevicechanged() {
@@ -218,6 +233,7 @@ Script.update.connect(checkHMDAudio);
 
 Script.scriptEnding.connect(function () {
     restoreAudio();
+    removeAudioMenus();
     Menu.menuItemEvent.disconnect(menuItemEvent);
     Script.update.disconnect(checkHMDAudio);
 });

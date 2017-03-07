@@ -62,9 +62,21 @@ Rectangle {
         property int sortIndicatorColumn: 1;
         property int sortIndicatorOrder: Qt.AscendingOrder;
     }
+    function getSelectedSessionIDs() {
+        var sessionIDs = [];
+        table.selection.forEach(function (userIndex) {
+            sessionIDs.push(userModelData[userIndex].sessionId);
+        });
+        return sessionIDs;
+    }
     function refreshWithFilter() {
         // We should just be able to set settings.filtered to filter.checked, but see #3249, so send to .js for saving.
-        pal.sendToScript({method: 'refresh', params: {filter: filter.checked && {distance: settings.nearDistance}}});
+        var userIds = getSelectedSessionIDs();
+        var params = {filter: filter.checked && {distance: settings.nearDistance}};
+        if (userIds.length > 0) {
+            params.selected = [[userIds[0]], true, true];
+        }
+        pal.sendToScript({method: 'refresh', params: params});
     }
 
     // This is the container for the PAL
@@ -627,6 +639,8 @@ Rectangle {
 
         userModel.clear();
         var userIndex = 0;
+        // get selection(s) before sorting
+        var newSelectedIndexes = [];
         userModelData.forEach(function (datum) {
             function init(property) {
                 if (datum[property] === undefined) {
@@ -636,7 +650,14 @@ Rectangle {
             ['personalMute', 'ignore', 'mute', 'kick'].forEach(init);
             datum.userIndex = userIndex++;
             userModel.append(datum);
+            if (selectedIDs.indexOf(datum.sessionId) != -1) {
+                 newSelectedIndexes.push(datum.userIndex);
+            }
         });
+        if (newSelectedIndexes.length > 0) {
+            table.selection.select(newSelectedIndexes);
+            table.positionViewAtRow(newSelectedIndexes[0], ListView.Beginning);
+        }
     }
     signal sendToScript(var message);
     function noticeSelection() {

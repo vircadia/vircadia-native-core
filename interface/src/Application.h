@@ -51,6 +51,7 @@
 #include <RunningMarker.h>
 
 #include "avatar/MyAvatar.h"
+#include "BandwidthRecorder.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "ConnectionMonitor.h"
@@ -61,7 +62,6 @@
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
 #include "ui/ApplicationOverlay.h"
-#include "ui/BandwidthDialog.h"
 #include "ui/EntityScriptServerLogDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
@@ -220,6 +220,8 @@ public:
     void setHmdTabletBecomesToolbarSetting(bool value);
     bool getTabletVisibleToOthersSetting() { return _tabletVisibleToOthersSetting.get(); }
     void setTabletVisibleToOthersSetting(bool value);
+    bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
+    void setPreferAvatarFingerOverStylus(bool value);
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
@@ -565,6 +567,7 @@ private:
     Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
     Setting::Handle<bool> _tabletVisibleToOthersSetting;
+    Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
 
     float _scaleMirror;
