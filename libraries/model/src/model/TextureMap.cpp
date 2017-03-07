@@ -154,7 +154,7 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
     return image;
 }
 
-void TextureUsage::defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element& formatMip, 
+void TextureUsage::defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element& formatMip,
 const QImage& image, bool isLinear, bool doCompress) {
 
 #ifdef COMPRESS_TEXTURES
@@ -308,7 +308,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
-    
+
 
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
@@ -354,15 +354,15 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     int width = image.width();
     int height = image.height();
     QImage result(width, height, QImage::Format_RGB888);
-    
+
     for (int i = 0; i < width; i++) {
         const int iNextClamped = clampPixelCoordinate(i + 1, width - 1);
         const int iPrevClamped = clampPixelCoordinate(i - 1, width - 1);
-    
+
         for (int j = 0; j < height; j++) {
             const int jNextClamped = clampPixelCoordinate(j + 1, height - 1);
             const int jPrevClamped = clampPixelCoordinate(j - 1, height - 1);
-    
+
             // surrounding pixels
             const QRgb topLeft = image.pixel(iPrevClamped, jPrevClamped);
             const QRgb top = image.pixel(iPrevClamped, j);
@@ -372,7 +372,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
             const QRgb bottom = image.pixel(iNextClamped, j);
             const QRgb bottomLeft = image.pixel(iNextClamped, jPrevClamped);
             const QRgb left = image.pixel(i, jPrevClamped);
-    
+
             // take their gray intensities
             // since it's a grayscale image, the value of each component RGB is the same
             const double tl = qRed(topLeft);
@@ -383,15 +383,15 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
             const double b = qRed(bottom);
             const double bl = qRed(bottomLeft);
             const double l = qRed(left);
-    
+
             // apply the sobel filter
             const double dX = (tr + pStrength * r + br) - (tl + pStrength * l + bl);
             const double dY = (bl + pStrength * b + br) - (tl + pStrength * t + tr);
             const double dZ = RGBA_MAX / pStrength;
-    
+
             glm::vec3 v(dX, dY, dZ);
             glm::normalize(v);
-    
+
             // convert to rgb from the value obtained computing the filter
             QRgb qRgbValue = qRgba(mapComponent(v.x), mapComponent(v.y), mapComponent(v.z), 1.0);
             result.setPixel(i, j, qRgbValue);
@@ -444,7 +444,7 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
         theTexture->setStoredMipFormat(formatMip);
         theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture, image, true);
-        
+
         theTexture->setSource(srcImageName);
     }
 
@@ -466,12 +466,12 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
 
     // Gloss turned into Rough
     image.invertPixels(QImage::InvertRgba);
-    
+
     image = image.convertToFormat(QImage::Format_Grayscale8);
-    
+
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-        
+
 #ifdef COMPRESS_TEXTURES
         gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::COMPRESSED_R);
 #else
@@ -487,7 +487,7 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
 
         theTexture->setSource(srcImageName);
     }
-    
+
     return theTexture;
 }
 
@@ -545,18 +545,18 @@ public:
         int _y = 0;
         bool _horizontalMirror = false;
         bool _verticalMirror = false;
-        
+
         Face() {}
         Face(int x, int y, bool horizontalMirror, bool verticalMirror) : _x(x), _y(y), _horizontalMirror(horizontalMirror), _verticalMirror(verticalMirror) {}
     };
-    
+
     Face _faceXPos;
     Face _faceXNeg;
     Face _faceYPos;
     Face _faceYNeg;
     Face _faceZPos;
     Face _faceZNeg;
-    
+
     CubeLayout(int wr, int hr, Face fXP, Face fXN, Face fYP, Face fYN, Face fZP, Face fZN) :
     _type(FLAT),
     _widthRatio(wr),
@@ -799,7 +799,7 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
         defineColorTexelFormats(formatGPU, formatMip, image, isLinear, doCompress);
 
         // Find the layout of the cubemap in the 2D image
-        // Use the original image size since processSourceImage may have altered the size / aspect ratio 
+        // Use the original image size since processSourceImage may have altered the size / aspect ratio
         int foundLayout = CubeLayout::findLayout(srcImage.width(), srcImage.height());
 
         std::vector<QImage> faces;

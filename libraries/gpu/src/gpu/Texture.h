@@ -503,6 +503,9 @@ public:
     const Sampler& getSampler() const { return _sampler; }
     Stamp getSamplerStamp() const { return _samplerStamp; }
 
+    void setFallbackTexture(const TexturePointer& fallback) { _fallback = fallback; }
+    TexturePointer getFallbackTexture() const { return _fallback.lock(); }
+
     void setExternalTexture(uint32 externalId, void* externalFence);
     void setExternalRecycler(const ExternalRecycler& recycler);
     ExternalRecycler getExternalRecycler() const;
@@ -526,6 +529,7 @@ protected:
     ExternalRecycler _externalRecycler;
 
 
+    std::weak_ptr<Texture> _fallback;
     // Not strictly necessary, but incredibly useful for debugging
     std::string _source;
     std::unique_ptr< Storage > _storage;

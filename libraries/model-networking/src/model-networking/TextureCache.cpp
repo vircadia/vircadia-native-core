@@ -171,14 +171,6 @@ const gpu::TexturePointer& TextureCache::getBlackTexture() {
     return _blackTexture;
 }
 
-
-const gpu::TexturePointer& TextureCache::getNormalFittingTexture() {
-    if (!_normalFittingTexture) {
-        _normalFittingTexture = getImageTexture(PathUtils::resourcesPath() + "images/normalFittingScale.dds", NetworkTexture::STRICT_TEXTURE);
-    }
-    return _normalFittingTexture;
-}
-
 /// Extra data for creating textures.
 class TextureExtra {
 public:
@@ -196,6 +188,39 @@ ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNum
 NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels) {
     TextureExtra extra = { type, content, maxNumPixels };
     return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
+}
+
+gpu::TexturePointer getFallbackTextureForType(NetworkTexture::Type type) {
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    gpu::TexturePointer result;
+    switch (type) {
+        case NetworkTexture::DEFAULT_TEXTURE:
+        case NetworkTexture::ALBEDO_TEXTURE:
+        case NetworkTexture::ROUGHNESS_TEXTURE:
+        case NetworkTexture::OCCLUSION_TEXTURE:
+            result = textureCache->getWhiteTexture();
+            break;
+
+        case NetworkTexture::NORMAL_TEXTURE:
+            result = textureCache->getBlueTexture();
+            break;
+
+        case NetworkTexture::EMISSIVE_TEXTURE:
+        case NetworkTexture::LIGHTMAP_TEXTURE:
+            result = textureCache->getBlackTexture();
+            break;
+
+        case NetworkTexture::BUMP_TEXTURE:
+        case NetworkTexture::SPECULAR_TEXTURE:
+        case NetworkTexture::GLOSS_TEXTURE:
+        case NetworkTexture::CUBE_TEXTURE:
+        case NetworkTexture::CUSTOM_TEXTURE:
+        case NetworkTexture::STRICT_TEXTURE:
+        default:
+            break;
+    }
+    return result;
 }
 
 
@@ -351,6 +376,13 @@ void NetworkTexture::setImage(gpu::TexturePointer texture, int originalWidth,
     finishedLoading(true);
 
     emit networkTextureCreated(qWeakPointerCast<NetworkTexture, Resource> (_self));
+}
+
+gpu::TexturePointer NetworkTexture::getFallbackTexture() const {
+    if (_type == CUSTOM_TEXTURE) {
+        return gpu::TexturePointer();
+    }
+    return getFallbackTextureForType(_type);
 }
 
 class Reader : public QRunnable {
@@ -526,6 +558,9 @@ void ImageReader::read() {
         PROFILE_RANGE_EX(resource_parse_image, __FUNCTION__, 0xffff0000, 0);
         texture.reset(resource.staticCast<NetworkTexture>()->getTextureLoader()(image, url));
         texture->setSource(url);
+        if (texture) {
+            texture->setFallbackTexture(networkTexture->getFallbackTexture());
+        }
     }
 
     // Hash the source image to use as a filename for on-disk caching

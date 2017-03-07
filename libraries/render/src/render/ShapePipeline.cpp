@@ -39,6 +39,10 @@ void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit
         }
     } else {
         // Add the brand new pipeline and cache its location in the lib
+        auto precedent = _pipelineMap.find(key);
+        if (precedent != _pipelineMap.end()) {
+            qCDebug(renderlogging) << "Key already assigned: " << key;
+        }
         _pipelineMap.insert(PipelineMap::value_type(key, pipeline));
     }
 }
@@ -65,16 +69,11 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), Slot::BUFFER::LIGHT_AMBIENT_BUFFER));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Slot::NORMAL_FITTING));
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
     auto locations = std::make_shared<Locations>();
-    locations->normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
-    if (program->getTextures().findLocation("normalFittingMap") > -1) {
-        locations->normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
 
-    }
     locations->albedoTextureUnit = program->getTextures().findLocation("albedoMap");
     locations->roughnessTextureUnit = program->getTextures().findLocation("roughnessMap");
     locations->normalTextureUnit = program->getTextures().findLocation("normalMap");
