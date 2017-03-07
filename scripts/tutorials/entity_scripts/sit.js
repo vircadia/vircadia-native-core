@@ -14,6 +14,7 @@
     var DESKTOP_UI_CHECK_INTERVAL = 250;
     var DESKTOP_MAX_DISTANCE = 5;
     var SIT_DELAY = 25
+    var MAX_RESET_DISTANCE = 0.5
 
     this.entityID = null;
     this.timers = {};
@@ -24,7 +25,7 @@
     }
     this.unload = function() {
         if (MyAvatar.sessionUUID === this.getSeatUser()) {
-            this.sitUp(this.entityID);
+            this.sitUp();
         }
         if (this.interval) {
             Script.clearInterval(this.interval);
@@ -110,9 +111,13 @@
     }
 
     this.sitUp = function() {
+        if (MyAvatar.sessionUUID !== this.getSeatUser()) {
+            // Duplicate call, bail
+            return;
+        }
         this.setSeatUser(null);
 
-            if (Settings.getValue(SETTING_KEY) === this.entityID) {
+        if (Settings.getValue(SETTING_KEY) === this.entityID) {
             for (i in ROLES) {
                 MyAvatar.restoreRoleAnimation(ROLES[i]);
             }
@@ -187,15 +192,26 @@
         }
     }
 
-
     this.update = function(dt) {
         if (MyAvatar.sessionUUID === this.getSeatUser()) {
-            var properties = Entities.getEntityProperties(this.entityID, ["position"]);
+            var properties = Entities.getEntityProperties(this.entityID);
             var avatarDistance = Vec3.distance(MyAvatar.position, properties.position);
             var ikError = MyAvatar.getIKErrorOnLastSolve();
             if (avatarDistance > RELEASE_DISTANCE || ikError > MAX_IK_ERROR) {
                 print("IK error: " + ikError + ", distance from chair: " + avatarDistance);
-                this.sitUp(this.entityID);
+
+                // Move avatar in front of the chair to avoid getting stuck in collision hulls
+                if (avatarDistance < MAX_RESET_DISTANCE) {
+                    var offset = { x: 0, y: 1.0, z: -0.5 - properties.dimensions.z * properties.registrationPoint.z };
+                    Vec3.print("offset:", Vec3.multiplyQbyV(properties.rotation, offset));
+                    var position = Vec3.sum(properties.position, Vec3.multiplyQbyV(properties.rotation, offset));
+                    MyAvatar.position = position;
+                }
+
+                var that = this;
+                Script.setTimeout(function() {
+                    that.sitUp();
+                }, SIT_DELAY);
             }
         }
     }
@@ -207,7 +223,20 @@
         if (RELEASE_KEYS.indexOf(event.text) !== -1) {
             var that = this;
             this.timers[event.text] = Script.setTimeout(function() {
-                that.sitUp();
+                var properties = Entities.getEntityProperties(that.entityID);
+                var avatarDistance = Vec3.distance(MyAvatar.position, properties.position);
+
+                // Move avatar in front of the chair to avoid getting stuck in collision hulls
+                if (avatarDistance < MAX_RESET_DISTANCE) {
+                    var offset = { x: 0, y: 1.0, z: -0.5 - properties.dimensions.z * properties.registrationPoint.z };
+                    Vec3.print("offset1:", Vec3.multiplyQbyV(properties.rotation, offset));
+                    var position = Vec3.sum(properties.position, Vec3.multiplyQbyV(properties.rotation, offset));
+                    MyAvatar.position = position;
+                }
+
+                Script.setTimeout(function() {
+                    that.sitUp();
+                }, SIT_DELAY);
             }, RELEASE_TIME);
         }
     }
