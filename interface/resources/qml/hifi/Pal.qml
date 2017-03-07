@@ -21,467 +21,478 @@ import "../controls-uit" as HifiControls
 // references HMD, Users, UserActivityLogger from root context
 
 Rectangle {
-    id: pal
+    id: pal;
     // Size
-    width: parent.width
-    height: parent.height
+    width: parent.width;
+    height: parent.height;
     // Style
-    color: "#E3E3E3"
+    color: "#E3E3E3";
     // Properties
-    property int myCardHeight: 90
-    property int rowHeight: 70
-    property int actionButtonWidth: 55
-    property int actionButtonAllowance: actionButtonWidth * 2
-    property int minNameCardWidth: palContainer.width - (actionButtonAllowance * 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth
-    property int nameCardWidth: minNameCardWidth + (iAmAdmin ? 0 : actionButtonAllowance)
-    property var myData: ({displayName: "", userName: "", audioLevel: 0.0, avgAudioLevel: 0.0, admin: true}) // valid dummy until set
+    property int myCardHeight: 90;
+    property int rowHeight: 70;
+    property int actionButtonWidth: 55;
+    property int actionButtonAllowance: actionButtonWidth * 2;
+    property int minNameCardWidth: palContainer.width - (actionButtonAllowance * 2) - 4 - hifi.dimensions.scrollbarBackgroundWidth;
+    property int nameCardWidth: minNameCardWidth + (iAmAdmin ? 0 : actionButtonAllowance);
+    property var myData: ({displayName: "", userName: "", audioLevel: 0.0, avgAudioLevel: 0.0, admin: true}); // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
-    property var userModelData: [] // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
-    property bool iAmAdmin: false
+    property var userModelData: []; // This simple list is essentially a mirror of the userModel listModel without all the extra complexities.
+    property bool iAmAdmin: false;
 
-    HifiConstants { id: hifi }
+    HifiConstants { id: hifi; }
 
     // The letterbox used for popup messages
     LetterboxMessage {
-        id: letterboxMessage
-        z: 999 // Force the popup on top of everything else
+
+        id: letterboxMessage;
+        z: 999; // Force the popup on top of everything else
     }
     function letterbox(headerGlyph, headerText, message) {
-        letterboxMessage.headerGlyph = headerGlyph
-        letterboxMessage.headerText = headerText
-        letterboxMessage.text = message
-        letterboxMessage.visible = true
-        letterboxMessage.popupRadius = 0
+        letterboxMessage.headerGlyph = headerGlyph;
+        letterboxMessage.headerText = headerText;
+        letterboxMessage.text = message;
+        letterboxMessage.visible = true;
+        letterboxMessage.popupRadius = 0;
     }
     Settings {
-        id: settings
-        category: "pal"
-        property bool filtered: false
-        property int nearDistance: 30
-        property int sortIndicatorColumn: 1
-        property int sortIndicatorOrder: Qt.AscendingOrder
+        id: settings;
+        category: "pal";
+        property bool filtered: false;
+        property int nearDistance: 30;
+        property int sortIndicatorColumn: 1;
+        property int sortIndicatorOrder: Qt.AscendingOrder;
+    }
+    function getSelectedSessionIDs() {
+        var sessionIDs = [];
+        table.selection.forEach(function (userIndex) {
+            sessionIDs.push(userModelData[userIndex].sessionId);
+        });
+        return sessionIDs;
     }
     function refreshWithFilter() {
         // We should just be able to set settings.filtered to filter.checked, but see #3249, so send to .js for saving.
-        pal.sendToScript({method: 'refresh', params: {filter: filter.checked && {distance: settings.nearDistance}}});
+        var userIds = getSelectedSessionIDs();
+        var params = {filter: filter.checked && {distance: settings.nearDistance}};
+        if (userIds.length > 0) {
+            params.selected = [[userIds[0]], true, true];
+        }
+        pal.sendToScript({method: 'refresh', params: params});
     }
 
     // This is the container for the PAL
     Rectangle {
-        property bool punctuationMode: false
-        id: palContainer
+        property bool punctuationMode: false;
+        id: palContainer;
         // Size
-        width: pal.width - 10
-        height: pal.height - 10
+        width: pal.width - 10;
+        height: pal.height - 10;
         // Style
-        color: pal.color
+        color: pal.color;
         // Anchors
-        anchors.centerIn: pal
+        anchors.centerIn: pal;
         // Properties
-        radius: hifi.dimensions.borderRadius
+        radius: hifi.dimensions.borderRadius;
 
-    // This contains the current user's NameCard and will contain other information in the future
-    Rectangle {
-        id: myInfo
-        // Size
-        width: palContainer.width
-        height: myCardHeight
-        // Style
-        color: pal.color
-        // Anchors
-        anchors.top: palContainer.top
-        // Properties
-        radius: hifi.dimensions.borderRadius
-        // This NameCard refers to the current user's NameCard (the one above the table)
-        NameCard {
-            id: myCard
-            // Properties
-            displayName: myData.displayName
-            userName: myData.userName
-            audioLevel: myData.audioLevel
-            avgAudioLevel: myData.avgAudioLevel
-            isMyCard: true
+        // This contains the current user's NameCard and will contain other information in the future
+        Rectangle {
+            id: myInfo;
             // Size
-            width: minNameCardWidth
-            height: parent.height
-            // Anchors
-            anchors.left: parent.left
-        }
-        Row {
-            HifiControls.CheckBox {
-                id: filter
-                checked: settings.filtered
-                text: "in view"
-                boxSize: reload.height * 0.70
-                onCheckedChanged: refreshWithFilter()
-            }
-            HifiControls.GlyphButton {
-                id: reload
-                glyph: hifi.glyphs.reload
-                width: reload.height
-                onClicked: refreshWithFilter()
-            }
-            spacing: 50
-            anchors {
-                right: parent.right
-                top: parent.top
-                topMargin: 10
-            }
-        }
-    }
-    // Rectangles used to cover up rounded edges on bottom of MyInfo Rectangle
-    Rectangle {
-        color: pal.color
-        width: palContainer.width
-        height: 10
-        anchors.top: myInfo.bottom
-        anchors.left: parent.left
-    }
-    Rectangle {
-        color: pal.color
-        width: palContainer.width
-        height: 10
-        anchors.bottom: table.top
-        anchors.left: parent.left
-    }
-    // Rectangle that houses "ADMIN" string
-    Rectangle {
-        id: adminTab
-        // Size
-        width: 2*actionButtonWidth + hifi.dimensions.scrollbarBackgroundWidth + 2
-        height: 40
-        // Anchors
-        anchors.bottom: myInfo.bottom
-        anchors.bottomMargin: -10
-        anchors.right: myInfo.right
-        // Properties
-        visible: iAmAdmin
-        // Style
-        color: hifi.colors.tableRowLightEven
-        radius: hifi.dimensions.borderRadius
-        border.color: hifi.colors.lightGrayText
-        border.width: 2
-        // "ADMIN" text
-        RalewaySemiBold {
-            id: adminTabText
-            text: "ADMIN"
-            // Text size
-            size: hifi.fontSizes.tableHeading + 2
-            // Anchors
-            anchors.top: parent.top
-            anchors.topMargin: 8
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.rightMargin: hifi.dimensions.scrollbarBackgroundWidth
+            width: palContainer.width;
+            height: myCardHeight;
             // Style
-            font.capitalization: Font.AllUppercase
-            color: hifi.colors.redHighlight
-            // Alignment
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignTop
-        }
-    }
-    // This TableView refers to the table (below the current user's NameCard)
-    HifiControls.Table {
-        id: table
-        // Size
-        height: palContainer.height - myInfo.height - 4
-        width: palContainer.width - 4
-        // Anchors
-        anchors.left: parent.left
-        anchors.top: myInfo.bottom
-        // Properties
-        centerHeaderText: true
-        sortIndicatorVisible: true
-        headerVisible: true
-        sortIndicatorColumn: settings.sortIndicatorColumn
-        sortIndicatorOrder: settings.sortIndicatorOrder
-        onSortIndicatorColumnChanged: {
-            settings.sortIndicatorColumn = sortIndicatorColumn
-            sortModel()
-        }
-        onSortIndicatorOrderChanged: {
-            settings.sortIndicatorOrder = sortIndicatorOrder
-            sortModel()
-        }
-
-        TableViewColumn {
-            role: "avgAudioLevel"
-            title: "LOUD"
-            width: actionButtonWidth
-            movable: false
-            resizable: false
-        }
-
-        TableViewColumn {
-            id: displayNameHeader
-            role: "displayName"
-            title: table.rowCount + (table.rowCount === 1 ? " NAME" : " NAMES")
-            width: nameCardWidth
-            movable: false
-            resizable: false
-        }
-        TableViewColumn {
-            role: "ignore"
-            title: "IGNORE"
-            width: actionButtonWidth
-            movable: false
-            resizable: false
-        }
-        TableViewColumn {
-            visible: iAmAdmin
-            role: "mute"
-            title: "SILENCE"
-            width: actionButtonWidth
-            movable: false
-            resizable: false
-        }
-        TableViewColumn {
-            visible: iAmAdmin
-            role: "kick"
-            title: "BAN"
-            width: actionButtonWidth
-            movable: false
-            resizable: false
-        }
-        model: ListModel {
-            id: userModel
-        }
-
-        // This Rectangle refers to each Row in the table.
-        rowDelegate: Rectangle { // The only way I know to specify a row height.
-            // Size
-            height: styleData.selected ? rowHeight : rowHeight - 15
-            color: styleData.selected
-                   ? hifi.colors.orangeHighlight
-                   : styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd
-        }
-
-        // This Item refers to the contents of each Cell
-        itemDelegate: Item {
-            id: itemCell
-            property bool isCheckBox: styleData.role === "personalMute" || styleData.role === "ignore"
-            property bool isButton: styleData.role === "mute" || styleData.role === "kick"
-            property bool isAvgAudio: styleData.role === "avgAudioLevel"
-
-            // This NameCard refers to the cell that contains an avatar's
-            // DisplayName and UserName
+            color: pal.color;
+            // Anchors
+            anchors.top: palContainer.top;
+            // Properties
+            radius: hifi.dimensions.borderRadius;
+            // This NameCard refers to the current user's NameCard (the one above the table)
             NameCard {
-                id: nameCard
+                id: myCard;
                 // Properties
-                displayName: styleData.value
-                userName: model ? model.userName : ""
-                audioLevel: model ? model.audioLevel : 0.0
-                avgAudioLevel: model ? model.avgAudioLevel : 0.0
-                visible: !isCheckBox && !isButton && !isAvgAudio
-                uuid: model ? model.sessionId : ""
-                selected: styleData.selected
-                isAdmin: model && model.admin
+                displayName: myData.displayName;
+                userName: myData.userName;
+                audioLevel: myData.audioLevel;
+                avgAudioLevel: myData.avgAudioLevel;
+                isMyCard: true;
                 // Size
-                width: nameCardWidth
-                height: parent.height
+                width: minNameCardWidth;
+                height: parent.height;
                 // Anchors
-                anchors.left: parent.left
+                anchors.left: parent.left;
             }
-            HifiControls.GlyphButton {
-                function getGlyph() {
-                    var fileName = "vol_";
-                    if (model["personalMute"]) {
-                        fileName += "x_";
-                    }
-                    fileName += (4.0*(model ? model.avgAudioLevel : 0.0)).toFixed(0);
-                    return hifi.glyphs[fileName];
+            Row {
+                HifiControls.CheckBox {
+                    id: filter;
+                    checked: settings.filtered;
+                    text: "in view";
+                    boxSize: reload.height * 0.70;
+                    onCheckedChanged: refreshWithFilter();
                 }
-                id: avgAudioVolume
-                visible: isAvgAudio
-                glyph: getGlyph()
-                width: 32
-                size: height
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.horizontalCenter: parent.horizontalCenter
-                onClicked: {
-                    // cannot change mute status when ignoring
-                    if (!model["ignore"]) {
-                        var newValue = !model["personalMute"];
-                        userModel.setProperty(model.userIndex, "personalMute", newValue)
-                        userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
-                        Users["personalMute"](model.sessionId, newValue)
-                        UserActivityLogger["palAction"](newValue ? "personalMute" : "un-personalMute", model.sessionId)
-                    }
+                HifiControls.GlyphButton {
+                    id: reload;
+                    glyph: hifi.glyphs.reload;
+                    width: reload.height;
+                    onClicked: refreshWithFilter();
                 }
+                spacing: 50;
+                anchors {
+                    right: parent.right;
+                    top: parent.top;
+                    topMargin: 10;
+                }
+            }
+        }
+        // Rectangles used to cover up rounded edges on bottom of MyInfo Rectangle
+        Rectangle {
+            color: pal.color;
+            width: palContainer.width;
+            height: 10;
+            anchors.top: myInfo.bottom;
+            anchors.left: parent.left;
+        }
+        Rectangle {
+            color: pal.color;
+            width: palContainer.width;
+            height: 10;
+            anchors.bottom: table.top;
+            anchors.left: parent.left;
+        }
+        // Rectangle that houses "ADMIN" string
+        Rectangle {
+            id: adminTab;
+            // Size
+            width: 2*actionButtonWidth + hifi.dimensions.scrollbarBackgroundWidth + 2;
+            height: 40;
+            // Anchors
+            anchors.bottom: myInfo.bottom;
+            anchors.bottomMargin: -10;
+            anchors.right: myInfo.right;
+            // Properties
+            visible: iAmAdmin;
+            // Style
+            color: hifi.colors.tableRowLightEven;
+            radius: hifi.dimensions.borderRadius;
+            border.color: hifi.colors.lightGrayText;
+            border.width: 2;
+            // "ADMIN" text
+            RalewaySemiBold {
+                id: adminTabText;
+                text: "ADMIN";
+                // Text size
+                size: hifi.fontSizes.tableHeading + 2;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 8;
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                anchors.rightMargin: hifi.dimensions.scrollbarBackgroundWidth;
+                // Style
+                font.capitalization: Font.AllUppercase;
+                color: hifi.colors.redHighlight;
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignTop;
+            }
+        }
+        // This TableView refers to the table (below the current user's NameCard)
+        HifiControls.Table {
+            id: table;
+            // Size
+            height: palContainer.height - myInfo.height - 4;
+            width: palContainer.width - 4;
+            // Anchors
+            anchors.left: parent.left;
+            anchors.top: myInfo.bottom;
+            // Properties
+            centerHeaderText: true;
+            sortIndicatorVisible: true;
+            headerVisible: true;
+            sortIndicatorColumn: settings.sortIndicatorColumn;
+            sortIndicatorOrder: settings.sortIndicatorOrder;
+            onSortIndicatorColumnChanged: {
+                settings.sortIndicatorColumn = sortIndicatorColumn;
+                sortModel();
+            }
+            onSortIndicatorOrderChanged: {
+                settings.sortIndicatorOrder = sortIndicatorOrder;
+                sortModel();
             }
 
-            // This CheckBox belongs in the columns that contain the stateful action buttons ("Mute" & "Ignore" for now)
-            // KNOWN BUG with the Checkboxes: When clicking in the center of the sorting header, the checkbox
-            // will appear in the "hovered" state. Hovering over the checkbox will fix it.
-            // Clicking on the sides of the sorting header doesn't cause this problem.
-            // I'm guessing this is a QT bug and not anything I can fix. I spent too long trying to work around it...
-            // I'm just going to leave the minor visual bug in.
-            HifiControls.CheckBox {
-                id: actionCheckBox
-                visible: isCheckBox
-                anchors.centerIn: parent
-                checked: model ? model[styleData.role] : false
-                // If this is a "Personal Mute" checkbox, disable the checkbox if the "Ignore" checkbox is checked.
-                enabled: !(styleData.role === "personalMute" && (model ? model["ignore"] : true))
-                boxSize: 24
-                onClicked: {
-                    var newValue = !model[styleData.role]
-                    userModel.setProperty(model.userIndex, styleData.role, newValue)
-                    userModelData[model.userIndex][styleData.role] = newValue // Defensive programming
-                    Users[styleData.role](model.sessionId, newValue)
-                    UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId)
-                    if (styleData.role === "ignore") {
-                        userModel.setProperty(model.userIndex, "personalMute", newValue)
-                        userModelData[model.userIndex]["personalMute"] = newValue // Defensive programming
-                        if (newValue) {
-                            ignored[model.sessionId] = userModelData[model.userIndex]
-                        } else {
-                            delete ignored[model.sessionId]
-                        }
-                        avgAudioVolume.glyph = avgAudioVolume.getGlyph()
-                    }
-                    // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
-                    // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
-                    // "checked:" statement above.
-                    checked = Qt.binding(function() { return (model[styleData.role])})
-                }
+            TableViewColumn {
+                role: "avgAudioLevel";
+                title: "LOUD";
+                width: actionButtonWidth;
+                movable: false;
+                resizable: false;
             }
 
-            // This Button belongs in the columns that contain the stateless action buttons ("Silence" & "Ban" for now)
-            HifiControls.Button {
-                id: actionButton
-                color: 2 // Red
-                visible: isButton
-                anchors.centerIn: parent
-                width: 32
-                height: 32
-                onClicked: {
-                    Users[styleData.role](model.sessionId)
-                    UserActivityLogger["palAction"](styleData.role, model.sessionId)
-                    if (styleData.role === "kick") {
-                        // Just for now, while we cannot undo "Ban":
-                        userModel.remove(model.userIndex)
-                        delete userModelData[model.userIndex] // Defensive programming
-                        sortModel()
-                    }
-                }
-                // muted/error glyphs
-                HiFiGlyphs {
-                    text: (styleData.role === "kick") ? hifi.glyphs.error : hifi.glyphs.muted
+            TableViewColumn {
+                id: displayNameHeader;
+                role: "displayName";
+                title: table.rowCount + (table.rowCount === 1 ? " NAME" : " NAMES");
+                width: nameCardWidth;
+                movable: false;
+                resizable: false;
+            }
+            TableViewColumn {
+                role: "ignore";
+                title: "IGNORE";
+                width: actionButtonWidth;
+                movable: false;
+                resizable: false;
+            }
+            TableViewColumn {
+                visible: iAmAdmin;
+                role: "mute";
+                title: "SILENCE";
+                width: actionButtonWidth;
+                movable: false;
+                resizable: false;
+            }
+            TableViewColumn {
+                visible: iAmAdmin;
+                role: "kick";
+                title: "BAN";
+                width: actionButtonWidth;
+                movable: false;
+                resizable: false;
+            }
+            model: ListModel {
+                id: userModel;
+            }
+
+            // This Rectangle refers to each Row in the table.
+            rowDelegate: Rectangle { // The only way I know to specify a row height.
+                // Size
+                height: styleData.selected ? rowHeight : rowHeight - 15;
+                color: styleData.selected
+                    ? hifi.colors.orangeHighlight
+                    : styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd;
+            }
+
+            // This Item refers to the contents of each Cell
+            itemDelegate: Item {
+                id: itemCell;
+                property bool isCheckBox: styleData.role === "personalMute" || styleData.role === "ignore";
+                property bool isButton: styleData.role === "mute" || styleData.role === "kick";
+                property bool isAvgAudio: styleData.role === "avgAudioLevel";
+
+                // This NameCard refers to the cell that contains an avatar's
+                // DisplayName and UserName
+                NameCard {
+                    id: nameCard;
+                    // Properties
+                    displayName: styleData.value;
+                    userName: model ? model.userName : "";
+                    audioLevel: model ? model.audioLevel : 0.0;
+                    avgAudioLevel: model ? model.avgAudioLevel : 0.0;
+                    visible: !isCheckBox && !isButton && !isAvgAudio;
+                    uuid: model ? model.sessionId : "";
+                    selected: styleData.selected;
+                    isAdmin: model && model.admin;
                     // Size
-                    size: parent.height*1.3
+                    width: nameCardWidth;
+                    height: parent.height;
                     // Anchors
-                    anchors.fill: parent
-                    // Style
-                    horizontalAlignment: Text.AlignHCenter
-                    color: enabled ? hifi.buttons.textColor[actionButton.color]
-                                   : hifi.buttons.disabledTextColor[actionButton.colorScheme]
+                    anchors.left: parent.left;
+                }
+                HifiControls.GlyphButton {
+                    function getGlyph() {
+                        var fileName = "vol_";
+                        if (model && model.personalMute) {
+                            fileName += "x_";
+                        }
+                        fileName += (4.0*(model ? model.avgAudioLevel : 0.0)).toFixed(0);
+                        return hifi.glyphs[fileName];
+                    }
+                    id: avgAudioVolume;
+                    visible: isAvgAudio;
+                    glyph: getGlyph();
+                    width: 32;
+                    size: height;
+                    anchors.verticalCenter: parent.verticalCenter;
+                    anchors.horizontalCenter: parent.horizontalCenter;
+                    onClicked: {
+                        // cannot change mute status when ignoring
+                        if (!model["ignore"]) {
+                            var newValue = !model["personalMute"];
+                            userModel.setProperty(model.userIndex, "personalMute", newValue);
+                            userModelData[model.userIndex]["personalMute"] = newValue; // Defensive programming
+                            Users["personalMute"](model.sessionId, newValue);
+                            UserActivityLogger["palAction"](newValue ? "personalMute" : "un-personalMute", model.sessionId);
+                        }
+                    }
+                }
+
+                // This CheckBox belongs in the columns that contain the stateful action buttons ("Mute" & "Ignore" for now)
+                // KNOWN BUG with the Checkboxes: When clicking in the center of the sorting header, the checkbox
+                // will appear in the "hovered" state. Hovering over the checkbox will fix it.
+                // Clicking on the sides of the sorting header doesn't cause this problem.
+                // I'm guessing this is a QT bug and not anything I can fix. I spent too long trying to work around it...
+                // I'm just going to leave the minor visual bug in.
+                HifiControls.CheckBox {
+                    id: actionCheckBox;
+                    visible: isCheckBox;
+                    anchors.centerIn: parent;
+                    checked: model ? model[styleData.role] : false;
+                    // If this is a "Personal Mute" checkbox, disable the checkbox if the "Ignore" checkbox is checked.
+                    enabled: !(styleData.role === "personalMute" && (model ? model["ignore"] : true));
+                    boxSize: 24;
+                    onClicked: {
+                        var newValue = !model[styleData.role];
+                        userModel.setProperty(model.userIndex, styleData.role, newValue);
+                        userModelData[model.userIndex][styleData.role] = newValue; // Defensive programming
+                        Users[styleData.role](model.sessionId, newValue);
+                        UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId);
+                        if (styleData.role === "ignore") {
+                            userModel.setProperty(model.userIndex, "personalMute", newValue);
+                            userModelData[model.userIndex]["personalMute"] = newValue; // Defensive programming
+                            if (newValue) {
+                                ignored[model.sessionId] = userModelData[model.userIndex];
+                            } else {
+                                delete ignored[model.sessionId];
+                            }
+                            avgAudioVolume.glyph = avgAudioVolume.getGlyph();
+                        }
+                        // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
+                        // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
+                        // "checked:" statement above.
+                        checked = Qt.binding(function() { return (model[styleData.role])});
+                    }
+                }
+
+                // This Button belongs in the columns that contain the stateless action buttons ("Silence" & "Ban" for now)
+                HifiControls.Button {
+                    id: actionButton;
+                    color: 2; // Red
+                    visible: isButton;
+                    anchors.centerIn: parent;
+                    width: 32;
+                    height: 32;
+                    onClicked: {
+                        Users[styleData.role](model.sessionId);
+                        UserActivityLogger["palAction"](styleData.role, model.sessionId);
+                        if (styleData.role === "kick") {
+                            userModelData.splice(model.userIndex, 1);
+                            userModel.remove(model.userIndex); // after changing userModelData, b/c ListModel can frob the data
+                        }
+                    }
+                    // muted/error glyphs
+                    HiFiGlyphs {
+                        text: (styleData.role === "kick") ? hifi.glyphs.error : hifi.glyphs.muted;
+                        // Size
+                        size: parent.height*1.3;
+                        // Anchors
+                        anchors.fill: parent;
+                        // Style
+                        horizontalAlignment: Text.AlignHCenter;
+                        color: enabled ? hifi.buttons.textColor[actionButton.color]
+                            : hifi.buttons.disabledTextColor[actionButton.colorScheme];
+                    }
                 }
             }
         }
-    }
 
-    // Separator between user and admin functions
-    Rectangle {
-        // Size
-        width: 2
-        height: table.height
-        // Anchors
-        anchors.left: adminTab.left
-        anchors.top: table.top
-        // Properties
-        visible: iAmAdmin
-        color: hifi.colors.lightGrayText
-    }
-    TextMetrics {
-        id: displayNameHeaderMetrics
-        text: displayNameHeader.title
-        // font: displayNameHeader.font // was this always undefined? giving error now...
-    }
-    // This Rectangle refers to the [?] popup button next to "NAMES"
-    Rectangle {
-        color: hifi.colors.tableBackgroundLight
-        width: 20
-        height: hifi.dimensions.tableHeaderHeight - 2
-        anchors.left: table.left
-        anchors.top: table.top
-        anchors.topMargin: 1
-        anchors.leftMargin: actionButtonWidth + nameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6
-        RalewayRegular {
-            id: helpText
-            text: "[?]"
-            size: hifi.fontSizes.tableHeading + 2
-            font.capitalization: Font.AllUppercase
-            color: hifi.colors.darkGray
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            anchors.fill: parent
+        // Separator between user and admin functions
+        Rectangle {
+            // Size
+            width: 2;
+            height: table.height;
+            // Anchors
+            anchors.left: adminTab.left;
+            anchors.top: table.top;
+            // Properties
+            visible: iAmAdmin;
+            color: hifi.colors.lightGrayText;
         }
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton
-            hoverEnabled: true
-            onClicked: letterbox(hifi.glyphs.question,
-                                 "Display Names",
-                                 "Bold names in the list are <b>avatar display names</b>.<br>" +
-                                 "If a display name isn't set, a unique <b>session display name</b> is assigned." +
-                                 "<br><br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.")
-            onEntered: helpText.color = hifi.colors.baseGrayHighlight
-            onExited: helpText.color = hifi.colors.darkGray
+        TextMetrics {
+            id: displayNameHeaderMetrics;
+            text: displayNameHeader.title;
+            // font: displayNameHeader.font // was this always undefined? giving error now...
         }
-    }
-    // This Rectangle refers to the [?] popup button next to "ADMIN"
-    Rectangle {
-        visible: iAmAdmin
-        color: adminTab.color
-        width: 20
-        height: 28
-        anchors.right: adminTab.right
-        anchors.rightMargin: 10 + hifi.dimensions.scrollbarBackgroundWidth
-        anchors.top: adminTab.top
-        anchors.topMargin: 2
-        RalewayRegular {
-            id: adminHelpText
-            text: "[?]"
-            size: hifi.fontSizes.tableHeading + 2
-            font.capitalization: Font.AllUppercase
-            color: hifi.colors.redHighlight
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            anchors.fill: parent
+        // This Rectangle refers to the [?] popup button next to "NAMES"
+        Rectangle {
+            color: hifi.colors.tableBackgroundLight;
+            width: 20;
+            height: hifi.dimensions.tableHeaderHeight - 2;
+            anchors.left: table.left;
+            anchors.top: table.top;
+            anchors.topMargin: 1;
+            anchors.leftMargin: actionButtonWidth + nameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6;
+            RalewayRegular {
+                id: helpText;
+                text: "[?]";
+                size: hifi.fontSizes.tableHeading + 2;
+                font.capitalization: Font.AllUppercase;
+                color: hifi.colors.darkGray;
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+                anchors.fill: parent;
+            }
+            MouseArea {
+                anchors.fill: parent;
+                acceptedButtons: Qt.LeftButton;
+                hoverEnabled: true;
+                onClicked: letterbox(hifi.glyphs.question,
+                                     "Display Names",
+                                     "Bold names in the list are <b>avatar display names</b>.<br>" +
+                                     "If a display name isn't set, a unique <b>session display name</b> is assigned." +
+                                     "<br><br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.");
+                onEntered: helpText.color = hifi.colors.baseGrayHighlight;
+                onExited: helpText.color = hifi.colors.darkGray;
+            }
         }
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton
-            hoverEnabled: true
-            onClicked: letterbox(hifi.glyphs.question,
-                                 "Admin Actions",
-                                 "<b>Silence</b> mutes a user's microphone. Silenced users can unmute themselves by clicking &quot;UNMUTE&quot; on their toolbar.<br><br>" +
-                                 "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.")
-            onEntered: adminHelpText.color = "#94132e"
-            onExited: adminHelpText.color = hifi.colors.redHighlight
+        // This Rectangle refers to the [?] popup button next to "ADMIN"
+        Rectangle {
+            visible: iAmAdmin;
+            color: adminTab.color;
+            width: 20;
+            height: 28;
+            anchors.right: adminTab.right;
+            anchors.rightMargin: 10 + hifi.dimensions.scrollbarBackgroundWidth;
+            anchors.top: adminTab.top;
+            anchors.topMargin: 2;
+            RalewayRegular {
+                id: adminHelpText;
+                text: "[?]";
+                size: hifi.fontSizes.tableHeading + 2;
+                font.capitalization: Font.AllUppercase;
+                color: hifi.colors.redHighlight;
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+                anchors.fill: parent;
+            }
+            MouseArea {
+                anchors.fill: parent;
+                acceptedButtons: Qt.LeftButton;
+                hoverEnabled: true;
+                onClicked: letterbox(hifi.glyphs.question,
+                                     "Admin Actions",
+                                     "<b>Silence</b> mutes a user's microphone. Silenced users can unmute themselves by clicking &quot;UNMUTE&quot; on their toolbar.<br><br>" +
+                                     "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.");
+                onEntered: adminHelpText.color = "#94132e";
+                onExited: adminHelpText.color = hifi.colors.redHighlight;
+            }
         }
-    }
 
-    HifiControls.Keyboard {
-        id: keyboard
-        raised: myCard.currentlyEditingDisplayName && HMD.active
-        numeric: parent.punctuationMode
-        anchors {
-            bottom: parent.bottom
-            left: parent.left
-            right: parent.right
+        HifiControls.Keyboard {
+            id: keyboard;
+            raised: myCard.currentlyEditingDisplayName && HMD.active;
+            numeric: parent.punctuationMode;
+            anchors {
+                bottom: parent.bottom;
+                left: parent.left;
+                right: parent.right;
+            }
         }
-    }
     }
 
     // Timer used when selecting table rows that aren't yet present in the model
     // (i.e. when selecting avatars using edit.js or sphere overlays)
     Timer {
-        property bool selected // Selected or deselected?
-        property int userIndex // The userIndex of the avatar we want to select
-        id: selectionTimer
+        property bool selected; // Selected or deselected?
+        property int userIndex; // The userIndex of the avatar we want to select
+        id: selectionTimer;
         onTriggered: {
             if (selected) {
                 table.selection.clear(); // for now, no multi-select
@@ -612,9 +623,12 @@ Rectangle {
         }
     }
     function sortModel() {
-        var sortProperty = table.getColumn(table.sortIndicatorColumn).role;
+        var column = table.getColumn(table.sortIndicatorColumn);
+        var sortProperty = column ? column.role : "displayName";
         var before = (table.sortIndicatorOrder === Qt.AscendingOrder) ? -1 : 1;
         var after = -1 * before;
+        // get selection(s) before sorting
+        var selectedIDs = getSelectedSessionIDs();
         userModelData.sort(function (a, b) {
             var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
             switch (true) {
@@ -627,6 +641,7 @@ Rectangle {
 
         userModel.clear();
         var userIndex = 0;
+        var newSelectedIndexes = [];
         userModelData.forEach(function (datum) {
             function init(property) {
                 if (datum[property] === undefined) {
@@ -636,7 +651,14 @@ Rectangle {
             ['personalMute', 'ignore', 'mute', 'kick'].forEach(init);
             datum.userIndex = userIndex++;
             userModel.append(datum);
+            if (selectedIDs.indexOf(datum.sessionId) != -1) {
+                 newSelectedIndexes.push(datum.userIndex);
+            }
         });
+        if (newSelectedIndexes.length > 0) {
+            table.selection.select(newSelectedIndexes);
+            table.positionViewAtRow(newSelectedIndexes[0], ListView.Beginning);
+        }
     }
     signal sendToScript(var message);
     function noticeSelection() {
@@ -647,7 +669,7 @@ Rectangle {
         pal.sendToScript({method: 'selected', params: userIds});
     }
     Connections {
-        target: table.selection
-        onSelectionChanged: pal.noticeSelection()
+        target: table.selection;
+        onSelectionChanged: pal.noticeSelection();
     }
 }
