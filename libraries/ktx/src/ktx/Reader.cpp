@@ -56,38 +56,52 @@ namespace ktx {
         return true;
     }
 
-    KeyValues getKeyValues(size_t length, const Byte* src) {
-        KeyValues keyValues;
-        size_t offset = 0;
 
-        while (offset < length) {
-            // determine byte size
-            uint32_t keyValueByteSize;
-            memcpy(&keyValueByteSize, src, sizeof(uint32_t));
-            if (keyValueByteSize > length - offset) {
-                throw ReaderException("invalid key-value size");
+    KeyValue KeyValue::parseKeyAndValue(uint32_t keyAndValueByteSize, const Byte* bytes) {
+        // find the first null character \0
+        uint32_t keyLength = 0;
+        while (reinterpret_cast<const char*>(bytes[++keyLength]) != '\0') {
+            if (keyLength == keyAndValueByteSize) {
+                // key must be null-terminated, and there must be space for the value
+                throw ReaderException("invalid key-value " + std::string(reinterpret_cast<const char*>(bytes), keyLength));
             }
-
-            // find the first null character \0
-            uint32_t keyLength = 0;
-            while (reinterpret_cast<const char*>(src[++keyLength]) != '\0') {
-                if (keyLength == keyValueByteSize) {
-                    // key must be null-terminated, and there must be space for the value
-                    throw ReaderException("invalid key-value " + std::string(reinterpret_cast<const char*>(src), keyLength));
-                }
-            }
-
-            // populate the key-value
-            keyValues.emplace_back(
-                std::move(std::string(reinterpret_cast<const char*>(src), keyLength)),
-                std::move(std::string(reinterpret_cast<const char*>(src + keyLength), keyValueByteSize - keyLength)));
-
-            // advance offset/src
-            uint32_t keyValuePadding = 3 - ((keyValueByteSize + 3) % PACKING_SIZE);
-            offset += keyValueByteSize + keyValuePadding;
-            src += keyValueByteSize + keyValuePadding;
         }
 
+        return KeyValue(std::string(reinterpret_cast<const char*>(bytes), keyLength), keyAndValueByteSize - keyLength, bytes + keyLength);
+    }
+
+    static KeyValue parseSerializedKeyAndValue(uint32_t byteSizeAhead, const Byte* bytes) {
+        uint32_t keyValueByteSize;
+        memcpy(&keyValueByteSize, bytes, sizeof(uint32_t));
+        if (keyValueByteSize > byteSizeAhead) {
+            throw ReaderException("invalid key-value size");
+        }
+
+        auto keyValueBytes = bytes + sizeof(uint32_t);
+
+        // parse the key-value
+        return KeyValue::parseKeyAndValue(keyValueByteSize, keyValueBytes);
+    }
+
+    static KeyValues parseKeyValues(size_t srcSize, const Byte* srcBytes);
+
+    KeyValues KTX::parseKeyValues(size_t srcSize, const Byte* src) {
+        KeyValues keyValues;
+        try {
+            uint32_t length = (uint32_t) srcSize;
+            uint32_t offset = 0;
+            while (offset < length) {
+                auto keyValue = parseSerializedKeyAndValue(length - offset, src);
+                keyValues.emplace_back(keyValue);
+
+                // advance offset/src
+                offset += keyValue.serializedByteSize();
+                src += keyValue.serializedByteSize();
+            }
+        }
+        catch (const ReaderException& e) {
+            qWarning() << e.what();
+        }
         return keyValues;
     }
 
@@ -176,7 +190,7 @@ namespace ktx {
         result->resetStorage(src);
 
         // read metadata
-       // result->_keyValues = getKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());
+        result->_keyValues = parseKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());
 
         // populate image table
         result->_images = parseImages(*result->getHeader(), result->getTexelsDataSize(), result->getTexelsData());

@@ -29,9 +29,9 @@ namespace ktx {
     std::unique_ptr<KTX> KTX::create(const Header& header, const Images& images, const KeyValues& keyValues) {
         StoragePointer storagePointer;
         {
-            auto storageSize = ktx::KTX::evalStorageSize(header, images);
+            auto storageSize = ktx::KTX::evalStorageSize(header, images, keyValues);
             auto memoryStorage = new storage::MemoryStorage(storageSize);
-            ktx::KTX::write(memoryStorage->data(), memoryStorage->size(), header, images);
+            ktx::KTX::write(memoryStorage->data(), memoryStorage->size(), header, images, keyValues);
             storagePointer.reset(memoryStorage);
         }
         return create(storagePointer);
@@ -40,8 +40,9 @@ namespace ktx {
     size_t KTX::evalStorageSize(const Header& header, const Images& images, const KeyValues& keyValues) {
         size_t storageSize = sizeof(Header);
 
-        if (header.bytesOfKeyValueData && !keyValues.empty()) {
-
+        if (!keyValues.empty()) {
+            size_t keyValuesSize = KeyValue::serializedKeyValuesByteSize(keyValues);
+            storageSize += keyValuesSize;
         }
 
         auto numMips = header.getNumberOfLevels();
@@ -68,11 +69,12 @@ namespace ktx {
         currentDestPtr += sizeof(Header);
 
         // KeyValues
-        // Skip for now
-        if (header.bytesOfKeyValueData && !keyValues.empty()) {
-
+        if (!keyValues.empty()) {
+            destHeader->bytesOfKeyValueData = writeKeyValues(currentDestPtr, destByteSize - sizeof(Header), keyValues);
+        } else {
+            // Make sure the header contains the right bytesOfKeyValueData size
+            destHeader->bytesOfKeyValueData = 0;
         }
-        destHeader->bytesOfKeyValueData = 0;
         currentDestPtr += destHeader->bytesOfKeyValueData;
 
         // Images
@@ -80,6 +82,11 @@ namespace ktx {
         // We chould check here that the amoutn of dest IMages generated is the same as the source
 
         return destByteSize;
+    }
+
+    static size_t writeKeyValues(Byte* destBytes, size_t destByteSize, const KeyValues& keyValues) {
+        
+
     }
 
     Images KTX::writeImages(Byte* destBytes, size_t destByteSize, const Images& srcImages) {
