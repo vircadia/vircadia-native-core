@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* globals HIFI_PUBLIC_BUCKET:true, Tool, ToolBar */
+
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 Script.include("/~/system/libraries/toolBars.js");
 
@@ -47,7 +49,7 @@ setupTimer();
 var watchStop = false;
 
 function setupToolBar() {
-    if (toolBar != null) {
+    if (toolBar !== null) {
         print("Multiple calls to Recorder.js:setupToolBar()");
         return;
     }
@@ -112,15 +114,15 @@ function setupTimer() {
         text: (0.00).toFixed(3),
         backgroundColor: COLOR_OFF,
         x: 0, y: 0,
-        width: 0, height: 0,
-        leftMargin: 10, topMargin: 10,
+        width: 200, height: 37,
+        leftMargin: 5, topMargin: 10,
         alpha: 1.0, backgroundAlpha: 1.0,
         visible: true
     });
 
     slider = { x: 0, y: 0,
         w: 200, h: 20,
-        pos: 0.0, // 0.0 <= pos <= 1.0
+        pos: 0.0 // 0.0 <= pos <= 1.0
     };
     slider.background = Overlays.addOverlay("text", {
         text: "",
@@ -148,16 +150,17 @@ function updateTimer() {
     var text = "";
     if (Recording.isRecording()) {
         text = formatTime(Recording.recorderElapsed());
-        
     } else {
-        text = formatTime(Recording.playerElapsed()) + " / " +
-        formatTime(Recording.playerLength());
+        text = formatTime(Recording.playerElapsed()) + " / " + formatTime(Recording.playerLength());
     }
 
+    var timerWidth = text.length * 8 + ((Recording.isRecording()) ? 15 : 0);
+
     Overlays.editOverlay(timer, {
-        text: text
-    })
-    toolBar.changeSpacing(text.length * 8 + ((Recording.isRecording()) ? 15 : 0), spacing);
+        text: text,
+        width: timerWidth
+    });
+    toolBar.changeSpacing(timerWidth, spacing);
     
     if (Recording.isRecording()) {
         slider.pos = 1.0;
@@ -173,7 +176,7 @@ function updateTimer() {
 function formatTime(time) {
     var MIN_PER_HOUR = 60;
     var SEC_PER_MIN = 60;
-    var MSEC_PER_SEC = 1000;
+    var MSEC_DIGITS = 3;
 
     var hours = Math.floor(time / (SEC_PER_MIN * MIN_PER_HOUR));
     time -= hours * (SEC_PER_MIN * MIN_PER_HOUR);
@@ -184,11 +187,9 @@ function formatTime(time) {
     var seconds = time;
 
     var text = "";
-    text += (hours > 0) ? hours + ":" :
-    "";
-    text += (minutes > 0) ? ((minutes < 10 && text != "") ? "0" : "") + minutes + ":" :
-    "";
-    text += ((seconds < 10 && text != "") ? "0" : "") + seconds.toFixed(3);
+    text += (hours > 0) ? hours + ":" : "";
+    text += (minutes > 0) ? ((minutes < 10 && text !== "") ? "0" : "") + minutes + ":" : "";
+    text += ((seconds < 10 && text !== "") ? "0" : "") + seconds.toFixed(MSEC_DIGITS);
     return text;
 }
 
@@ -205,16 +206,16 @@ function moveUI() {
     
     Overlays.editOverlay(slider.background, {
         x: slider.x,
-        y: slider.y,
+        y: slider.y
     });
     Overlays.editOverlay(slider.foreground, {
         x: slider.x,
-        y: slider.y,
+        y: slider.y
     });
 }
 
 function mousePressEvent(event) {
-    clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+    var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
     
     if (recordIcon === toolBar.clicked(clickedOverlay, false) && !Recording.isPlaying()) {
         if (!Recording.isRecording()) {
@@ -226,7 +227,8 @@ function mousePressEvent(event) {
             toolBar.setAlpha(ALPHA_OFF, loadIcon);
         } else {
             Recording.stopRecording();
-            toolBar.selectTool(recordIcon, true );
+            toolBar.selectTool(recordIcon, true);
+            Recording.setPlayerTime(0);
             Recording.loadLastRecording();
             toolBar.setAlpha(ALPHA_ON, playIcon);
             toolBar.setAlpha(ALPHA_ON, playLoopIcon);
@@ -263,7 +265,7 @@ function mousePressEvent(event) {
             toolBar.setAlpha(ALPHA_OFF, loadIcon);
         }
     } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
-        if (!Recording.isRecording() && !Recording.isPlaying() && Recording.playerLength() != 0) {
+        if (!Recording.isRecording() && !Recording.isPlaying() && Recording.playerLength() !== 0) {
             recordingFile = Window.save("Save recording to file", ".", "Recordings (*.hfr)");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
                 Recording.saveRecording(recordingFile);
@@ -282,8 +284,8 @@ function mousePressEvent(event) {
             }
         }
     } else if (Recording.playerLength() > 0 &&
-    slider.x < event.x && event.x < slider.x + slider.w &&
-    slider.y < event.y && event.y < slider.y + slider.h) {
+               slider.x < event.x && event.x < slider.x + slider.w &&
+               slider.y < event.y && event.y < slider.y + slider.h) {
         isSliding = true;
         slider.pos = (event.x - slider.x) / slider.w;
         Recording.setPlayerTime(slider.pos * Recording.playerLength());
@@ -308,7 +310,7 @@ function mouseReleaseEvent(event) {
 
 function update() {
     var newDimensions = Controller.getViewportDimensions();
-    if (windowDimensions.x != newDimensions.x || windowDimensions.y != newDimensions.y) {
+    if (windowDimensions.x !== newDimensions.x || windowDimensions.y !== newDimensions.y) {
         windowDimensions = newDimensions;
         moveUI();
     }
