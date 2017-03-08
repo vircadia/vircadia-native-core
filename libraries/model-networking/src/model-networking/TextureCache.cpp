@@ -494,10 +494,7 @@ void FileReader::read() {
         }
 
         auto ktx = resource.staticCast<NetworkTexture>()->_file->getKTX();
-        gpu::Texture::Usage usage;
-        gpu::TextureUsageType usageType(gpu::TextureUsageType::RESOURCE);
-        gpu::Sampler sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR);
-        texture.reset(gpu::Texture::unserialize(ktx, usageType, usage, sampler.getDesc()));
+        texture.reset(gpu::Texture::unserialize(ktx));
         texture->setKtxBacking(ktx);
     }
 
