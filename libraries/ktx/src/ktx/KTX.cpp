@@ -71,6 +71,35 @@ size_t Header::evalImageSize(uint32_t level) const {
 }
 
 
+KeyValue::KeyValue(const std::string& key, uint32_t valueByteSize, const Byte* value) :
+    _byteSize((uint32_t) key.size() + 1 + valueByteSize), // keyString size + '\0' ending char + the value size
+    _key(key),
+    _value(valueByteSize)
+{
+    if (_value.size() && value) {
+        memcpy(_value.data(), value, valueByteSize);
+    }
+}
+
+KeyValue::KeyValue(const std::string& key, const std::string& value) :
+    KeyValue(key, (uint32_t) value.size(), (const Byte*) value.data())
+{
+
+}
+
+uint32_t KeyValue::serializedByteSize() const {
+    return (uint32_t) (sizeof(uint32_t) + _byteSize + Header::evalPadding(_byteSize));
+}
+
+uint32_t KeyValue::serializedKeyValuesByteSize(const KeyValues& keyValues) {
+    uint32_t keyValuesSize = 0;
+    for (auto& keyval : keyValues) {
+        keyValuesSize += keyval.serializedByteSize();
+    }
+    return (keyValuesSize + Header::evalPadding(keyValuesSize));
+}
+
+
 KTX::KTX() {
 }
 

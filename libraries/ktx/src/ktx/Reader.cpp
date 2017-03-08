@@ -56,41 +56,6 @@ namespace ktx {
         return true;
     }
 
-    KeyValues getKeyValues(size_t length, const Byte* src) {
-        KeyValues keyValues;
-        size_t offset = 0;
-
-        while (offset < length) {
-            // determine byte size
-            uint32_t keyValueByteSize;
-            memcpy(&keyValueByteSize, src, sizeof(uint32_t));
-            if (keyValueByteSize > length - offset) {
-                throw ReaderException("invalid key-value size");
-            }
-
-            // find the first null character \0
-            uint32_t keyLength = 0;
-            while (reinterpret_cast<const char*>(src[++keyLength]) != '\0') {
-                if (keyLength == keyValueByteSize) {
-                    // key must be null-terminated, and there must be space for the value
-                    throw ReaderException("invalid key-value " + std::string(reinterpret_cast<const char*>(src), keyLength));
-                }
-            }
-
-            // populate the key-value
-            keyValues.emplace_back(
-                std::move(std::string(reinterpret_cast<const char*>(src), keyLength)),
-                std::move(std::string(reinterpret_cast<const char*>(src + keyLength), keyValueByteSize - keyLength)));
-
-            // advance offset/src
-            uint32_t keyValuePadding = 3 - ((keyValueByteSize + 3) % PACKING_SIZE);
-            offset += keyValueByteSize + keyValuePadding;
-            src += keyValueByteSize + keyValuePadding;
-        }
-
-        return keyValues;
-    }
-
     bool KTX::checkHeaderFromStorage(size_t srcSize, const Byte* srcBytes) {
         try {
             // validation
@@ -124,6 +89,50 @@ namespace ktx {
             qWarning() << e.what();
             return false;
         }
+    }
+
+    KeyValue KeyValue::parseSerializedKeyAndValue(uint32_t srcSize, const Byte* srcBytes) {
+        uint32_t keyAndValueByteSize;
+        memcpy(&keyAndValueByteSize, srcBytes, sizeof(uint32_t));
+        if (keyAndValueByteSize + sizeof(uint32_t) > srcSize) {
+            throw ReaderException("invalid key-value size");
+        }
+        auto keyValueBytes = srcBytes + sizeof(uint32_t);
+
+        // find the first null character \0 and extract the key
+        uint32_t keyLength = 0;
+        while (reinterpret_cast<const char*>(keyValueBytes[++keyLength]) != '\0') {
+            if (keyLength == keyAndValueByteSize) {
+                // key must be null-terminated, and there must be space for the value
+                throw ReaderException("invalid key-value " + std::string(reinterpret_cast<const char*>(keyValueBytes), keyLength));
+            }
+        }
+        uint32_t valueStartOffset = keyLength + 1;
+
+        // parse the key-value
+        return KeyValue(std::string(reinterpret_cast<const char*>(keyValueBytes), keyLength),
+                        keyAndValueByteSize - valueStartOffset, keyValueBytes + valueStartOffset);
+    }
+
+    KeyValues KTX::parseKeyValues(size_t srcSize, const Byte* srcBytes) {
+        KeyValues keyValues;
+        try {
+            auto src = srcBytes;
+            uint32_t length = (uint32_t) srcSize;
+            uint32_t offset = 0;
+            while (offset < length) {
+                auto keyValue = KeyValue::parseSerializedKeyAndValue(length - offset, src);
+                keyValues.emplace_back(keyValue);
+
+                // advance offset/src
+                offset += keyValue.serializedByteSize();
+                src += keyValue.serializedByteSize();
+            }
+        }
+        catch (const ReaderException& e) {
+            qWarning() << e.what();
+        }
+        return keyValues;
     }
 
     Images KTX::parseImages(const Header& header, size_t srcSize, const Byte* srcBytes) {
@@ -176,7 +185,7 @@ namespace ktx {
         result->resetStorage(src);
 
         // read metadata
-       // result->_keyValues = getKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());
+        result->_keyValues = parseKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());
 
         // populate image table
         result->_images = parseImages(*result->getHeader(), result->getTexelsDataSize(), result->getTexelsData());
