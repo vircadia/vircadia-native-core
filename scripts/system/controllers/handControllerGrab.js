@@ -2031,6 +2031,9 @@ function MyController(hand) {
         var pointerEvent;
         if (rayPickInfo.overlayID) {
             var overlay = rayPickInfo.overlayID;
+            if (Overlays.getProperty(overlay, "type") != "web3d") {
+                return false;
+            }
             if (Overlays.keyboardFocusOverlay != overlay) {
                 Entities.keyboardFocusEntity = null;
                 Overlays.keyboardFocusOverlay = overlay;
@@ -3388,7 +3391,7 @@ function MyController(hand) {
 
             if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && intersectInfo.distance > max) {
                 this.grabbedThingID = null;
-                this.setState(STATE_OFF, "pulled away from overlay");
+                this.setState(STATE_OFF, "pulled away from overlay -- " + intersectInfo.distance + " max = " + max);
                 return;
             }
 
@@ -3570,7 +3573,6 @@ function MyController(hand) {
                 // we appear to be holding something and this script isn't in a state that would be holding something.
                 // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
                 // works around some problems that happen when more than one hand or avatar is passing something around.
-                print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
                 if (_this.previousParentID[childID]) {
                     var previousParentID = _this.previousParentID[childID];
                     var previousParentJointIndex = _this.previousParentJointIndex[childID];

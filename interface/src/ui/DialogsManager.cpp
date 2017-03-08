@@ -19,7 +19,6 @@
 #include <PathUtils.h>
 
 #include "AddressBarDialog.h"
-#include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
 #include "ConnectionFailureDialog.h"
 #include "DiskCacheEditor.h"
@@ -106,20 +105,6 @@ void DialogsManager::cachesSizeDialog() {
         _cachesSizeDialog->show();
     }
     _cachesSizeDialog->raise();
-}
-
-void DialogsManager::bandwidthDetails() {
-    if (! _bandwidthDialog) {
-        _bandwidthDialog = new BandwidthDialog(qApp->getWindow());
-        connect(_bandwidthDialog, SIGNAL(closed()), _bandwidthDialog, SLOT(deleteLater()));
-
-        if (_hmdToolsDialog) {
-            _hmdToolsDialog->watchWindow(_bandwidthDialog->windowHandle());
-        }
-
-        _bandwidthDialog->show();
-    }
-    _bandwidthDialog->raise();
 }
 
 void DialogsManager::lodTools() {

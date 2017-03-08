@@ -22,13 +22,13 @@ namespace render {
 class ShapeKey {
 public:
     enum FlagBit {
-        TRANSLUCENT = 0,
+        MATERIAL = 0,
+        TRANSLUCENT,
         LIGHTMAP,
         TANGENTS,
         SPECULAR,
         UNLIT,
         SKINNED,
-        STEREO,
         DEPTH_ONLY,
         DEPTH_BIAS,
         WIREFRAME,
@@ -53,13 +53,13 @@ public:
 
         ShapeKey build() const { return ShapeKey{_flags}; }
 
+        Builder& withMaterial() { _flags.set(MATERIAL); return (*this); }
         Builder& withTranslucent() { _flags.set(TRANSLUCENT); return (*this); }
         Builder& withLightmap() { _flags.set(LIGHTMAP); return (*this); }
         Builder& withTangents() { _flags.set(TANGENTS); return (*this); }
         Builder& withSpecular() { _flags.set(SPECULAR); return (*this); }
         Builder& withUnlit() { _flags.set(UNLIT); return (*this); }
         Builder& withSkinned() { _flags.set(SKINNED); return (*this); }
-        Builder& withStereo() { _flags.set(STEREO); return (*this); }
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
         Builder& withDepthBias() { _flags.set(DEPTH_BIAS); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
@@ -89,6 +89,9 @@ public:
 
             Filter build() const { return Filter(_flags, _mask); }
 
+            Builder& withMaterial() { _flags.set(MATERIAL); _mask.set(MATERIAL); return (*this); }
+            Builder& withoutMaterial() { _flags.reset(MATERIAL); _mask.set(MATERIAL); return (*this); }
+
             Builder& withTranslucent() { _flags.set(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
             Builder& withOpaque() { _flags.reset(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
 
@@ -106,9 +109,6 @@ public:
 
             Builder& withSkinned() { _flags.set(SKINNED); _mask.set(SKINNED); return (*this); }
             Builder& withoutSkinned() { _flags.reset(SKINNED); _mask.set(SKINNED); return (*this); }
-
-            Builder& withStereo() { _flags.set(STEREO); _mask.set(STEREO); return (*this); }
-            Builder& withoutStereo() { _flags.reset(STEREO); _mask.set(STEREO); return (*this); }
 
             Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
             Builder& withoutDepthOnly() { _flags.reset(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
@@ -128,19 +128,20 @@ public:
             Flags _mask{0};
         };
         Filter(const Filter::Builder& builder) : Filter(builder._flags, builder._mask) {}
+        ShapeKey key() const { return ShapeKey(_flags); }
     protected:
         friend class ShapePlumber;
         Flags _flags{0};
         Flags _mask{0};
     };
 
+    bool useMaterial() const { return _flags[MATERIAL]; }
     bool hasLightmap() const { return _flags[LIGHTMAP]; }
     bool hasTangents() const { return _flags[TANGENTS]; }
     bool hasSpecular() const { return _flags[SPECULAR]; }
     bool isUnlit() const { return _flags[UNLIT]; }
     bool isTranslucent() const { return _flags[TRANSLUCENT]; }
     bool isSkinned() const { return _flags[SKINNED]; }
-    bool isStereo() const { return _flags[STEREO]; }
     bool isDepthOnly() const { return _flags[DEPTH_ONLY]; }
     bool isDepthBiased() const { return _flags[DEPTH_BIAS]; }
     bool isWireFrame() const { return _flags[WIREFRAME]; }
@@ -170,13 +171,13 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
             debug << "[ShapeKey: OWN_PIPELINE]";
         } else {
             debug << "[ShapeKey:"
+                << "useMaterial:" << key.useMaterial()
                 << "hasLightmap:" << key.hasLightmap()
                 << "hasTangents:" << key.hasTangents()
                 << "hasSpecular:" << key.hasSpecular()
                 << "isUnlit:" << key.isUnlit()
                 << "isTranslucent:" << key.isTranslucent()
                 << "isSkinned:" << key.isSkinned()
-                << "isStereo:" << key.isStereo()
                 << "isDepthOnly:" << key.isDepthOnly()
                 << "isDepthBiased:" << key.isDepthBiased()
                 << "isWireFrame:" << key.isWireFrame()
@@ -213,8 +214,6 @@ public:
             OCCLUSION,
             SCATTERING,
             LIGHT_AMBIENT,
-
-            NORMAL_FITTING = 10,
         };
     };
 
@@ -226,7 +225,6 @@ public:
         int metallicTextureUnit;
         int emissiveTextureUnit;
         int occlusionTextureUnit;
-        int normalFittingMapUnit;
         int lightingModelBufferUnit;
         int skinClusterBufferUnit;
         int materialBufferUnit;

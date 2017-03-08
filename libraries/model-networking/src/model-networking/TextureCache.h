@@ -124,9 +124,6 @@ public:
     /// Returns the a black texture (useful for a default).
     const gpu::TexturePointer& getBlackTexture();
 
-    // Returns a map used to compress the normals through a fitting scale algorithm
-    const gpu::TexturePointer& getNormalFittingTexture();
-
     /// Returns a texture version of an image file
     static gpu::TexturePointer getImageTexture(const QString& path, Type type = Type::DEFAULT_TEXTURE, QVariantMap options = QVariantMap());
 
@@ -151,7 +148,6 @@ private:
     gpu::TexturePointer _grayTexture;
     gpu::TexturePointer _blueTexture;
     gpu::TexturePointer _blackTexture;
-    gpu::TexturePointer _normalFittingTexture;
 };
 
 #endif // hifi_TextureCache_h

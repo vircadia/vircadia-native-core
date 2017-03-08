@@ -28,6 +28,11 @@ class PathUtils : public QObject, public Dependency {
 public:
     static const QString& resourcesPath();
     static QString getRootDataDirectory();
+
+    static Qt::CaseSensitivity getFSCaseSensitivity();
+    static QString stripFilename(const QUrl& url);
+    // note: this is FS-case-sensitive version of parentURL.isParentOf(childURL)
+    static bool isDescendantOf(const QUrl& childURL, const QUrl& parentURL);
 };
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions);

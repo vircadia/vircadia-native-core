@@ -300,7 +300,7 @@ public:
 
     QHash<QString, FBXMaterial> materials;
 
-    glm::mat4 offset;
+    glm::mat4 offset; // This includes offset, rotation, and scale as specified by the FST file
     
     int leftEyeJointIndex = -1;
     int rightEyeJointIndex = -1;

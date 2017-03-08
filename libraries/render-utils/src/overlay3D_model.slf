@@ -1,0 +1,88 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  overlay3D.slf
+//  fragment shader
+//
+//  Created by Sam Gateau on 6/16/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredGlobalLight.slh@>
+<$declareEvalSkyboxGlobalColor()$>
+
+<@include model/Material.slh@>
+
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
+
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
+
+in vec2 _texCoord0;
+in vec2 _texCoord1;
+in vec4 _position;
+in vec3 _normal;
+in vec3 _color;
+in float _alpha;
+
+out vec4 _fragColor;
+
+void main(void) {
+    Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
+
+    float opacity = 1.0;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+    <$discardTransparent(opacity)$>;
+
+    vec3 albedo = getMaterialAlbedo(mat);
+    <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+    albedo *= _color;
+
+    float metallic = getMaterialMetallic(mat);
+    vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
+    if (metallic <= 0.5) {
+        metallic = 0.0;
+    } else {
+        fresnel = albedo;
+        metallic = 1.0;
+    }
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
+
+    vec3 emissive = getMaterialEmissive(mat);
+    <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
+
+
+    vec3 fragPosition = _position.xyz;
+    //vec3 fragNormal = normalize(_normal);
+
+    TransformCamera cam = getTransformCamera();
+    vec3 fragNormal;
+    <$transformEyeToWorldDir(cam, _normal, fragNormal)$>;
+
+    vec4 color = vec4(evalSkyboxGlobalColor(
+        cam._viewInverse,
+        1.0,
+        occlusionTex,
+        fragPosition,
+        fragNormal,
+        albedo,
+        fresnel,
+        metallic,
+        roughness),
+        opacity);
+
+    // And emissive
+    color.rgb += emissive * isEmissiveEnabled();
+
+    // Apply standard tone mapping
+    _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);
+}

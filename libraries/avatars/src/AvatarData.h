@@ -376,6 +376,7 @@ public:
 
     typedef enum { 
         NoData,
+        PALMinimum,
         MinimumData, 
         CullSmallData,
         IncludeSmallData,
