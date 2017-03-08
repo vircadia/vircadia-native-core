@@ -2,6 +2,7 @@ import QtQuick 2.0
 import Hifi 1.0
 import QtQuick.Controls 1.4
 import "../../dialogs"
+
 Item {
     id: tabletRoot
     objectName: "tabletRoot"
@@ -29,7 +30,9 @@ Item {
         return openMessage;
     }
 
+    Component { id: customInputDialogBuilder; TabletCustomQueryDialog { } }
     function customInputDialog(properties) {
+        return customInputDialogBuilder.createObject(tabletRoot, properties);
     }
 
     Component { id: fileDialogBuilder; TabletFileDialog { } }
