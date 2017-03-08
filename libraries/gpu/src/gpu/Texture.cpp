@@ -389,12 +389,12 @@ const Element& Texture::getStoredMipFormat() const {
 }
 
 void Texture::assignStoredMip(uint16 level, Size size, const Byte* bytes) {
-    storage::StoragePointer storage { new storage::MemoryStorage(size, bytes) };
+    storage::StoragePointer storage = std::make_shared<storage::MemoryStorage>(size, bytes);
     assignStoredMip(level, storage);
 }
 
 void Texture::assignStoredMipFace(uint16 level, uint8 face, Size size, const Byte* bytes) {
-    storage::StoragePointer storage { new storage::MemoryStorage(size, bytes) };
+    storage::StoragePointer storage = std::make_shared<storage::MemoryStorage>(size, bytes);
     assignStoredMipFace(level, face, storage);
 }
 
@@ -973,4 +973,3 @@ Texture::ExternalUpdates Texture::getUpdates() const {
 void Texture::setStorage(std::unique_ptr<Storage>& newStorage) {
     _storage.swap(newStorage);
 }
-
