@@ -497,7 +497,7 @@ void FileReader::read() {
         gpu::Texture::Usage usage;
         gpu::TextureUsageType usageType(gpu::TextureUsageType::RESOURCE);
         gpu::Sampler sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR);
-        texture.reset(gpu::Texture::unserialize(usage, usageType, ktx, sampler));
+        texture.reset(gpu::Texture::unserialize(ktx, usageType, usage, sampler.getDesc()));
         texture->setKtxBacking(ktx);
     }
 
@@ -556,7 +556,8 @@ void ImageReader::read() {
         auto url = _url.toString().toStdString();
 
         PROFILE_RANGE_EX(resource_parse_image, __FUNCTION__, 0xffff0000, 0);
-        texture.reset(resource.staticCast<NetworkTexture>()->getTextureLoader()(image, url));
+        auto networkTexture = resource.staticCast<NetworkTexture>();
+        texture.reset(networkTexture->getTextureLoader()(image, url));
         texture->setSource(url);
         if (texture) {
             texture->setFallbackTexture(networkTexture->getFallbackTexture());
