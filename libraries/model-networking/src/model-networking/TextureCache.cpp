@@ -159,14 +159,6 @@ const gpu::TexturePointer& TextureCache::getBlackTexture() {
     return _blackTexture;
 }
 
-
-const gpu::TexturePointer& TextureCache::getNormalFittingTexture() {
-    if (!_normalFittingTexture) {
-        _normalFittingTexture = getImageTexture(PathUtils::resourcesPath() + "images/normalFittingScale.dds", NetworkTexture::STRICT_TEXTURE);
-    }
-    return _normalFittingTexture;
-}
-
 /// Extra data for creating textures.
 class TextureExtra {
 public:
@@ -184,6 +176,39 @@ ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNum
 NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels) {
     TextureExtra extra = { type, content, maxNumPixels };
     return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
+}
+
+gpu::TexturePointer getFallbackTextureForType(NetworkTexture::Type type) {
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    gpu::TexturePointer result;
+    switch (type) {
+        case NetworkTexture::DEFAULT_TEXTURE:
+        case NetworkTexture::ALBEDO_TEXTURE:
+        case NetworkTexture::ROUGHNESS_TEXTURE:
+        case NetworkTexture::OCCLUSION_TEXTURE:
+            result = textureCache->getWhiteTexture();
+            break;
+
+        case NetworkTexture::NORMAL_TEXTURE:
+            result = textureCache->getBlueTexture();
+            break;
+
+        case NetworkTexture::EMISSIVE_TEXTURE:
+        case NetworkTexture::LIGHTMAP_TEXTURE:
+            result = textureCache->getBlackTexture();
+            break;
+
+        case NetworkTexture::BUMP_TEXTURE:
+        case NetworkTexture::SPECULAR_TEXTURE:
+        case NetworkTexture::GLOSS_TEXTURE:
+        case NetworkTexture::CUBE_TEXTURE:
+        case NetworkTexture::CUSTOM_TEXTURE:
+        case NetworkTexture::STRICT_TEXTURE:
+        default:
+            break;
+    }
+    return result;
 }
 
 
@@ -297,6 +322,13 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
         return _textureLoader;
     }
     return getTextureLoaderForType(_type);
+}
+
+gpu::TexturePointer NetworkTexture::getFallbackTexture() const {
+    if (_type == CUSTOM_TEXTURE) {
+        return gpu::TexturePointer();
+    }
+    return getFallbackTextureForType(_type);
 }
 
 
@@ -428,7 +460,11 @@ void ImageReader::run() {
         auto url = _url.toString().toStdString();
 
         PROFILE_RANGE_EX(resource_parse_image, __FUNCTION__, 0xffffff00, 0);
-        texture.reset(resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url));
+        auto networkTexture = resource.dynamicCast<NetworkTexture>();
+        texture.reset(networkTexture->getTextureLoader()(image, url));
+        if (texture) {
+            texture->setFallbackTexture(networkTexture->getFallbackTexture());
+        }
     }
 
     // Ensure the resource has not been deleted

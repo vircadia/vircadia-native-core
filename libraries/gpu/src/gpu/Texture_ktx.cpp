@@ -18,6 +18,30 @@ using namespace gpu;
 using PixelsPointer = Texture::PixelsPointer;
 using KtxStorage = Texture::KtxStorage;
 
+struct GPUKTXPayload {
+    Sampler::Desc _samplerDesc;
+    Texture::Usage _usage;
+    TextureUsageType _usageType;
+
+    static std::string KEY;
+    static bool isGPUKTX(const ktx::KeyValue& val) {
+        return (val._key.compare(KEY) == 0);
+    }
+
+    static bool findInKeyValues(const ktx::KeyValues& keyValues, GPUKTXPayload& payload) {
+        auto found = std::find_if(keyValues.begin(), keyValues.end(), isGPUKTX); 
+        if (found != keyValues.end()) {
+            if ((*found)._value.size() == sizeof(GPUKTXPayload)) {
+                memcpy(&payload, (*found)._value.data(), sizeof(GPUKTXPayload));
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
+std::string GPUKTXPayload::KEY { "hifi.gpu" };
+
 KtxStorage::KtxStorage(ktx::KTXUniquePointer& ktxData) {
 
     // if the source ktx is valid let's config this KtxStorage correctly
@@ -116,7 +140,15 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
         }
     }
 
-    auto ktxBuffer = ktx::KTX::create(header, images);
+    GPUKTXPayload keyval;
+    keyval._samplerDesc = texture.getSampler().getDesc();
+    keyval._usage = texture.getUsage();
+    keyval._usageType = texture.getUsageType();
+    ktx::KeyValues keyValues;
+    keyValues.emplace_back(ktx::KeyValue(GPUKTXPayload::KEY, sizeof(GPUKTXPayload), (ktx::Byte*) &keyval)); 
+
+    auto ktxBuffer = ktx::KTX::create(header, images, keyValues);
+#if 0
     auto expectedMipCount = texture.evalNumMips();
     assert(expectedMipCount == ktxBuffer->_images.size());
     assert(expectedMipCount == header.numberOfMipmapLevels);
@@ -141,10 +173,11 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
             assert(0 == memcmp(expectedFace, actualFace, expected._faceSize));
         }
     }
+#endif
     return ktxBuffer;
 }
 
-Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx::KTXUniquePointer& srcData, const Sampler& sampler) {
+Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
     if (!srcData) {
         return nullptr;
     }
@@ -173,7 +206,12 @@ Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx
         type = TEX_3D;
     }
 
-    auto tex = Texture::create( usageType,
+    
+    // If found, use the 
+    GPUKTXPayload gpuktxKeyValue;
+    bool isGPUKTXPayload = GPUKTXPayload::findInKeyValues(srcData->_keyValues, gpuktxKeyValue);
+
+    auto tex = Texture::create( (isGPUKTXPayload ? gpuktxKeyValue._usageType : usageType),
                                 type,
                                 texelFormat,
                                 header.getPixelWidth(),
@@ -181,9 +219,9 @@ Texture* Texture::unserialize(Usage usage, TextureUsageType usageType, const ktx
                                 header.getPixelDepth(),
                                 1, // num Samples
                                 header.getNumberOfSlices(),
-                                sampler);
+                                (isGPUKTXPayload ? gpuktxKeyValue._samplerDesc : sampler));
 
-    tex->setUsage(usage);
+    tex->setUsage((isGPUKTXPayload ? gpuktxKeyValue._usage : usage));
 
     // Assing the mips availables
     tex->setStoredMipFormat(mipFormat);

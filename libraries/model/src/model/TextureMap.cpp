@@ -116,12 +116,10 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
             auto ktxMemory = gpu::Texture::serialize(*srcTexture);
             if (ktxMemory) {
                 const auto& ktxStorage = ktxMemory->getStorage();
-                auto header = ktxMemory->getHeader();
                 QFile outFile(cacheFilename.c_str());
                 if (!outFile.open(QFile::Truncate | QFile::ReadWrite)) {
                     throw std::runtime_error("Unable to open file");
                 }
-                //auto ktxSize = sizeof(ktx::Header); // ktxStorage->size()
                 auto ktxSize = ktxStorage->size();
                 outFile.resize(ktxSize);
                 auto dest = outFile.map(0, ktxSize);
@@ -147,8 +145,8 @@ gpu::Texture* cacheTexture(const std::string& name, gpu::Texture* srcTexture, bo
                     fclose (file);
 
                     //then create a new texture out of the ktx
-                    auto theNewTexure = Texture::unserialize(srcTexture->getUsage(), srcTexture->getUsageType(),
-                            ktx::KTX::create(std::static_pointer_cast<storage::Storage>(storage)), srcTexture->getSampler());
+                    auto theNewTexure = Texture::unserialize(ktx::KTX::create(std::static_pointer_cast<storage::Storage>(storage)),
+                        srcTexture->getUsageType(), srcTexture->getUsage(), srcTexture->getSampler().getDesc());
 
                     if (theNewTexure) {
                         returnedTexture = theNewTexure;

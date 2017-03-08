@@ -549,6 +549,7 @@ const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_TABLET_VISIBLE_TO_OTHERS = false;
+const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
     QApplication(argc, argv),
@@ -572,6 +573,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _desktopTabletBecomesToolbarSetting("desktopTabletBecomesToolbar", DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR),
     _hmdTabletBecomesToolbarSetting("hmdTabletBecomesToolbar", DEFAULT_HMD_TABLET_BECOMES_TOOLBAR),
     _tabletVisibleToOthersSetting("tabletVisibleToOthers", DEFAULT_TABLET_VISIBLE_TO_OTHERS),
+    _preferAvatarFingerOverStylusSetting("preferAvatarFingerOverStylus", DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _scaleMirror(1.0f),
     _rotateMirror(0.0f),
@@ -2360,6 +2362,10 @@ void Application::setHmdTabletBecomesToolbarSetting(bool value) {
 void Application::setTabletVisibleToOthersSetting(bool value) {
     _tabletVisibleToOthersSetting.set(value);
     updateSystemTabletMode();
+}
+
+void Application::setPreferAvatarFingerOverStylus(bool value) {
+    _preferAvatarFingerOverStylusSetting.set(value);
 }
 
 void Application::setSettingConstrainToolbarPosition(bool setting) {
@@ -4230,12 +4236,6 @@ void Application::updateDialogs(float deltaTime) const {
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 
-    // Update bandwidth dialog, if any
-    BandwidthDialog* bandwidthDialog = dialogsManager->getBandwidthDialog();
-    if (bandwidthDialog) {
-        bandwidthDialog->update();
-    }
-
     QPointer<OctreeStatsDialog> octreeStatsDialog = dialogsManager->getOctreeStatsDialog();
     if (octreeStatsDialog) {
         octreeStatsDialog->update();
@@ -5186,6 +5186,7 @@ void Application::updateWindowTitle() const {
 #endif
     _window->setWindowTitle(title);
 }
+
 void Application::clearDomainOctreeDetails() {
 
     // if we're about to quit, we really don't need to do any of these things...
@@ -5215,6 +5216,12 @@ void Application::clearDomainOctreeDetails() {
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
     _recentlyClearedDomain = true;
+
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    DependencyManager::get<AnimationCache>()->clearUnusedResources();
+    DependencyManager::get<ModelCache>()->clearUnusedResources();
+    DependencyManager::get<SoundCache>()->clearUnusedResources();
+    DependencyManager::get<TextureCache>()->clearUnusedResources();
 }
 
 void Application::domainChanged(const QString& domainHostname) {

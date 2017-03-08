@@ -17,6 +17,7 @@
 #include <vector>
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include <memory>
 
 #include <shared/Storage.h>
@@ -385,9 +386,27 @@ namespace ktx {
     };
 
     // Key Values
-    using KeyValue = std::pair<std::string, std::string>;
-    using KeyValues = std::list<KeyValue>;
-     
+    struct KeyValue {
+        uint32_t _byteSize { 0 };
+        std::string _key;
+        std::vector<Byte> _value;
+
+
+        KeyValue(const std::string& key, uint32_t valueByteSize, const Byte* value);
+
+        KeyValue(const std::string& key, const std::string& value);
+
+        uint32_t serializedByteSize() const;
+
+        static KeyValue parseSerializedKeyAndValue(uint32_t srcSize, const Byte* srcBytes);
+        static uint32_t writeSerializedKeyAndValue(Byte* destBytes, uint32_t destByteSize, const KeyValue& keyval);
+
+        using KeyValues = std::list<KeyValue>;
+        static uint32_t serializedKeyValuesByteSize(const KeyValues& keyValues);
+
+    };
+    using KeyValues = KeyValue::KeyValues;
+
 
     struct Image {
         using FaceBytes = std::vector<const Byte*>;
@@ -402,15 +421,15 @@ namespace ktx {
         Image(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
             _numFaces(1),
             _imageSize(imageSize),
-            _padding(padding),
             _faceSize(imageSize),
+            _padding(padding),
             _faceBytes(1, bytes) {}
 
         Image(uint32_t pageSize, uint32_t padding, const FaceBytes& cubeFaceBytes) :
             _numFaces(NUM_CUBEMAPFACES),
             _imageSize(pageSize * NUM_CUBEMAPFACES),
-            _padding(padding),
-            _faceSize(pageSize)
+            _faceSize(pageSize),
+            _padding(padding)
             {
                 if (cubeFaceBytes.size() == NUM_CUBEMAPFACES) {
                     _faceBytes = cubeFaceBytes;
@@ -420,7 +439,7 @@ namespace ktx {
     using Images = std::vector<Image>;
 
     class KTX {
-        void resetStorage(StoragePointer& src);
+        void resetStorage(const StoragePointer& src);
 
         KTX();
     public:
@@ -445,12 +464,14 @@ namespace ktx {
         // This is exactly what is done in the create function
         static size_t evalStorageSize(const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
         static size_t write(Byte* destBytes, size_t destByteSize, const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
+        static size_t writeKeyValues(Byte* destBytes, size_t destByteSize, const KeyValues& keyValues);
         static Images writeImages(Byte* destBytes, size_t destByteSize, const Images& images);
 
         // Parse a block of memory and create a KTX object from it
-        static std::unique_ptr<KTX> create(StoragePointer& src);
+        static std::unique_ptr<KTX> create(const StoragePointer& src);
 
         static bool checkHeaderFromStorage(size_t srcSize, const Byte* srcBytes);
+        static KeyValues parseKeyValues(size_t srcSize, const Byte* srcBytes);
         static Images parseImages(const Header& header, size_t srcSize, const Byte* srcBytes);
 
         // Access raw pointers to the main sections of the KTX

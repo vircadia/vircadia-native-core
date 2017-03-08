@@ -389,12 +389,12 @@ const Element& Texture::getStoredMipFormat() const {
 }
 
 void Texture::assignStoredMip(uint16 level, Size size, const Byte* bytes) {
-    storage::StoragePointer storage { new storage::MemoryStorage(size, bytes) };
+    storage::StoragePointer storage = std::make_shared<storage::MemoryStorage>(size, bytes);
     assignStoredMip(level, storage);
 }
 
 void Texture::assignStoredMipFace(uint16 level, uint8 face, Size size, const Byte* bytes) {
-    storage::StoragePointer storage { new storage::MemoryStorage(size, bytes) };
+    storage::StoragePointer storage = std::make_shared<storage::MemoryStorage>(size, bytes);
     assignStoredMipFace(level, face, storage);
 }
 
@@ -412,7 +412,6 @@ void Texture::assignStoredMip(uint16 level, storage::StoragePointer& storage) {
     // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipSize(level, getStoredMipFormat());
     auto size = storage->size();
-    auto bytes = storage->data();
     if (storage->size() == expectedSize) {
         _storage->assignMipData(level, storage);
         _maxMip = std::max(_maxMip, level);
@@ -442,7 +441,6 @@ void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePoin
     // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipFaceSize(level, getStoredMipFormat());
     auto size = storage->size();
-    auto bytes = storage->data();
     if (size == expectedSize) {
         _storage->assignMipFaceData(level, face, storage);
         _maxMip = std::max(_maxMip, level);
@@ -975,4 +973,3 @@ Texture::ExternalUpdates Texture::getUpdates() const {
 void Texture::setStorage(std::unique_ptr<Storage>& newStorage) {
     _storage.swap(newStorage);
 }
-

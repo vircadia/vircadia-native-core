@@ -147,6 +147,7 @@ public:
         using TransferQueue = std::queue<std::unique_ptr<TransferJob>>;
         static MemoryPressureState _memoryPressureState;
     protected:
+        static size_t _frameTexturesCreated;
         static std::atomic<bool> _memoryPressureStateStale;
         static std::list<TextureWeakPointer> _memoryManagedTextures;
         static WorkQueue _transferQueue;

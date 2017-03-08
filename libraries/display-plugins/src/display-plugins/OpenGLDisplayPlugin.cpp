@@ -656,6 +656,11 @@ float OpenGLDisplayPlugin::presentRate() const {
     return _presentRate.rate();
 }
 
+void OpenGLDisplayPlugin::resetPresentRate() {
+    // FIXME
+    // _presentRate = RateCounter<100>();
+}
+
 float OpenGLDisplayPlugin::renderRate() const { 
     return _renderRate.rate();
 }
