@@ -17,6 +17,7 @@ module.exports = {
         "Clipboard": false,
         "Controller": false,
         "DialogsManager": false,
+        "DebugDraw": false,
         "Entities": false,
         "FaceTracker": false,
         "GlobalServices": false,
