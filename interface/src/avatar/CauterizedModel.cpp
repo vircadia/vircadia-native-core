@@ -95,6 +95,12 @@ void CauterizedModel::createCollisionRenderItemSet() {
 	Model::createCollisionRenderItemSet();
 }
 
+// Called within Model::simulate call, below.
+void CauterizedModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
+    Model::updateRig(deltaTime, parentTransform);
+    _needsUpdateClusterMatrices = true;
+}
+
 void CauterizedModel::updateClusterMatrices() {
     PerformanceTimer perfTimer("CauterizedModel::updateClusterMatrices");
 
