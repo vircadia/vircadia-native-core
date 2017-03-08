@@ -166,6 +166,9 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         Key::Builder().withMaterial(),
         modelVertex, modelPixel);
     addPipeline(
+        Key::Builder(),
+        modelVertex, modelPixel);
+    addPipeline(
         Key::Builder().withMaterial().withUnlit(),
         modelVertex, modelUnlitPixel);
     addPipeline(

@@ -257,8 +257,19 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
         break;
         case SHAPE_TYPE_SPHERE: {
             glm::vec3 halfExtents = info.getHalfExtents();
+            float radius = glm::max(halfExtents.x, glm::max(halfExtents.y, halfExtents.z));
+            shape = new btSphereShape(radius);
+        }
+        break;
+        case SHAPE_TYPE_ELLIPSOID: {
+            glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.x;
-            if (radius == halfExtents.y && radius == halfExtents.z) {
+            const float MIN_RADIUS = 0.001f;
+            const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
+            if (radius > MIN_RADIUS
+                    && fabsf(radius - halfExtents.y) / radius < MIN_RELATIVE_SPHERICAL_ERROR
+                    && fabsf(radius - halfExtents.z) / radius < MIN_RELATIVE_SPHERICAL_ERROR) {
+                // close enough to true sphere
                 shape = new btSphereShape(radius);
             } else {
                 ShapeInfo::PointList points;

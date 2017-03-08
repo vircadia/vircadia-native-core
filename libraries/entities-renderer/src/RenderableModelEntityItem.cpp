@@ -418,6 +418,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         // Enqueue updates for the next frame
         if (_model) {
 
+#ifdef WANT_EXTRA_RENDER_DEBUGGING
+            // debugging...
+            gpu::Batch& batch = *args->_batch;
+            _model->renderDebugMeshBoxes(batch);
+#endif
+
             render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
             // FIXME: this seems like it could be optimized if we tracked our last known visible state in
