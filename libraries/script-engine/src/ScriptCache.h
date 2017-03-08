@@ -43,6 +43,9 @@ class ScriptCache : public QObject, public Dependency {
 public:
     static const QString STATUS_INLINE;
     static const QString STATUS_CACHED;
+    static bool isSuccessStatus(const QString& status) {
+        return status == "Success" || status == STATUS_INLINE || status == STATUS_CACHED;
+    }
 
     void clearCache();
     Q_INVOKABLE void clearATPScriptsFromCache();
