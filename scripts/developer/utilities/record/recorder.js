@@ -90,7 +90,7 @@ function setupToolBar() {
         visible: true
     }, false);
     
-    timerOffset = toolBar.width;
+    timerOffset = toolBar.width + ToolBar.SPACING;
     spacing = toolBar.addSpacing(0);
     
     saveIcon = toolBar.addTool({
@@ -116,8 +116,8 @@ function setupTimer() {
         text: (0.00).toFixed(3),
         backgroundColor: COLOR_OFF,
         x: 0, y: 0,
-        width: 200, height: 37,
-        leftMargin: 5, topMargin: 10,
+        width: 200, height: 25,
+        leftMargin: 5, topMargin: 3,
         alpha: 1.0, backgroundAlpha: 1.0,
         visible: true
     });
@@ -149,10 +149,9 @@ function setupTimer() {
 }
 
 function onToolbarMove(newX, newY, deltaX, deltaY) {
-    print(newX);
     Overlays.editOverlay(timer, {
         x: newX + timerOffset - ToolBar.SPACING,
-        y: newY - ToolBar.SPACING
+        y: newY
     });
     
     slider.x = newX - ToolBar.SPACING;
@@ -182,7 +181,7 @@ function updateTimer() {
         text: text,
         width: timerWidth
     });
-    toolBar.changeSpacing(timerWidth, spacing);
+    toolBar.changeSpacing(timerWidth + ToolBar.SPACING, spacing);
     
     if (Recording.isRecording()) {
         slider.pos = 1.0;
