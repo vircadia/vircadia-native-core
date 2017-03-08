@@ -23,13 +23,11 @@ StoragePointer Storage::createView(size_t viewSize, size_t offset) const {
     if ((viewSize + offset) > selfSize) {
         throw std::runtime_error("Invalid mapping range");
     }
-    auto viewPointer = new ViewStorage(shared_from_this(), viewSize, data() + offset);
-    return viewPointer->shared_from_this();
+    return std::make_shared<ViewStorage>(shared_from_this(), viewSize, data() + offset);
 }
 
 StoragePointer Storage::toMemoryStorage() const {
-    auto rawPointer = new MemoryStorage(size(), data());
-    return rawPointer->shared_from_this();
+    return std::make_shared<MemoryStorage>(size(), data());
 }
 
 StoragePointer Storage::toFileStorage(const QString& filename) const {
@@ -62,7 +60,6 @@ StoragePointer FileStorage::create(const QString& filename, size_t size, const u
         }
     }
     file.close();
-    //return FileStoragePointer(new FileStorage(filename));
     return std::make_shared<FileStorage>(filename);
 }
 
