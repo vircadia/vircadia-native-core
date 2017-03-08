@@ -48,6 +48,9 @@ var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-
     tablet.screenChanged.connect(onScreenChanged);
 
     Script.scriptEnding.connect(function () {
+        if (onMenuScreen) {
+            tablet.gotoHomeScreen();
+        }
         button.clicked.disconnect(onClicked);
         tablet.removeButton(button);
         tablet.screenChanged.disconnect(onScreenChanged);
