@@ -879,7 +879,7 @@ function loaded() {
                         elCloneable.checked = false;
                         elCloneableDynamic.checked = false;
                         elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
-                        elCloneableLimit.value = 10;
+                        elCloneableLimit.value = 0;
                         elCloneableLifetime.value = 300;
 
                         var parsedUserData = {}
@@ -899,8 +899,6 @@ function loaded() {
                                 if ("cloneable" in parsedUserData["grabbableKey"]) {
                                     elCloneable.checked = parsedUserData["grabbableKey"].cloneable;
                                     elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
-                                    elCloneableLimit.value = elCloneable.checked ? 10: 0;
-                                    elCloneableLifetime.value = elCloneable.checked ? 300: 0;
                                     elCloneableDynamic.checked = parsedUserData["grabbableKey"].cloneDynamic ? parsedUserData["grabbableKey"].cloneDynamic : properties.dynamic;
                                     elDynamic.checked = elCloneable.checked ? false: properties.dynamic;
                                     if (elCloneable.checked) {
@@ -908,7 +906,7 @@ function loaded() {
                                           elCloneableLifetime.value = parsedUserData["grabbableKey"].cloneLifetime ? parsedUserData["grabbableKey"].cloneLifetime : 300;
                                       }
                                       if ("cloneLimit" in parsedUserData["grabbableKey"]) {
-                                          elCloneableLimit.value = parsedUserData["grabbableKey"].cloneLimit ? parsedUserData["grabbableKey"].cloneLimit : 10;
+                                          elCloneableLimit.value = parsedUserData["grabbableKey"].cloneLimit ? parsedUserData["grabbableKey"].cloneLimit : 0;
                                       }
                                     }
                                 }
