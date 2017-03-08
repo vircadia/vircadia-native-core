@@ -276,7 +276,7 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
         }
 
         // force to the tablet to go to the homescreen
-        gotoHomeScreen(true);
+        loadHomeScreen(true);
 
         QMetaObject::invokeMethod(_qmlTabletRoot, "setUsername", Q_ARG(const QVariant&, QVariant(getUsername())));
 
@@ -295,7 +295,7 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
 }
 
 void TabletProxy::gotoHomeScreen() {
-    gotoHomeScreen(false);
+    loadHomeScreen(false);
 }
 void TabletProxy::gotoMenuScreen(const QString& submenu) {
 
@@ -338,7 +338,7 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
     }
 }
 
-void TabletProxy::gotoHomeScreen(bool forceOntoHomeScreen) {
+void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
     if (_state != State::Home && ( _state != State::Uninitialized || forceOntoHomeScreen)) {
         if (!_toolbarMode && _qmlTabletRoot) {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");

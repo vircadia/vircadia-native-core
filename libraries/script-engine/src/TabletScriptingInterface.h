@@ -188,7 +188,7 @@ protected slots:
     void desktopWindowClosed();
 protected:
     void removeButtonsFromHomeScreen();
-    void gotoHomeScreen(bool forceOntoHomeScreen);
+    void loadHomeScreen(bool forceOntoHomeScreen);
     void addButtonsToToolbar();
     void removeButtonsFromToolbar();
 
