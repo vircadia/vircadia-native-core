@@ -3174,7 +3174,23 @@ void Application::mousePressEvent(QMouseEvent* event) {
     }
 }
 
-void Application::mouseDoublePressEvent(QMouseEvent* event) const {
+void Application::mouseDoublePressEvent(QMouseEvent* event) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QMouseEvent mappedEvent(event->type(),
+        transformedPos,
+        event->screenPos(), event->button(),
+        event->buttons(), event->modifiers());
+
+    if (!_aboutToQuit) {
+        getOverlays().mouseDoublePressEvent(&mappedEvent);
+        if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
+            getEntities()->mouseDoublePressEvent(&mappedEvent);
+        }
+    }
+
+
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
