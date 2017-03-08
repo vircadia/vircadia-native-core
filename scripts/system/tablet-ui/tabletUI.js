@@ -13,21 +13,46 @@
 //
 
 /* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
-   MyAvatar, Menu, Vec3 */
+   MyAvatar, Menu */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletShown = false;
     var tabletRezzed = false;
-    var tabletLocation = null;
     var activeHand = null;
     var DEFAULT_WIDTH = 0.4375;
     var DEFAULT_TABLET_SCALE = 100;
+    var preMakeTime = Date.now();
+    var validCheckTime = Date.now();
+    var debugTablet = false;
     UIWebTablet = null;
 
     Script.include("../libraries/WebTablet.js");
 
-    function rezTablet(invisible) {
-        print("XXX show tablet-ui, not rezzed.  position is " +  JSON.stringify(tabletLocation));
+    function tabletIsValid() {
+        if (!UIWebTablet) {
+            return false;
+        }
+        if (UIWebTablet.tabletIsOverlay && Overlays.getProperty(HMD.tabletID, "type") != "model") {
+            if (debugTablet) {
+                print("TABLET is invalid due to frame: " + JSON.stringify(Overlays.getProperty(HMD.tabletID, "type")));
+            }
+            return false;
+        }
+        if (Overlays.getProperty(HMD.homeButtonID, "type") != "sphere" ||
+            Overlays.getProperty(HMD.tabletScreenID, "type") != "web3d") {
+            if (debugTablet) {
+                print("TABLET is invalid due to other");
+            }
+            return false;
+        }
+        return true;
+    }
+
+
+    function rezTablet() {
+        if (debugTablet) {
+            print("TABLET rezzing");
+        }
         var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
         var TABLET_SCALE = DEFAULT_TABLET_SCALE;
         if (toolbarMode) {
@@ -38,11 +63,12 @@
 
         UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml",
                                     DEFAULT_WIDTH * (TABLET_SCALE / 100),
-                                    null, activeHand, true, tabletLocation, invisible);
+                                    null, activeHand, true);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;
         HMD.tabletScreenID = UIWebTablet.webOverlayID;
+
         tabletRezzed = true;
     }
 
@@ -54,36 +80,42 @@
         }
 
         if (UIWebTablet && tabletRezzed) {
-            if (tabletLocation) {
-                print("XXX show tablet-ui, already rezzed, already position: " + JSON.stringify(tabletLocation));
-                Overlays.editOverlay(HMD.tabletID, {
-                    localPosition: tabletLocation.localPosition,
-                    localRotation: tabletLocation.localRotation,
-                    visible: true
-                });
-            } else {
-                print("XXX show tablet-ui, already rezzed, no position");
-                var tabletProperties = {};
-                UIWebTablet.calculateTabletAttachmentProperties(activeHand, true, tabletProperties);
-                tabletProperties.visible = true;
+            if (debugTablet) {
+                print("TABLET in showTabletUI, already rezzed");
+            }
+            var tabletProperties = {};
+            UIWebTablet.calculateTabletAttachmentProperties(activeHand, true, tabletProperties);
+            tabletProperties.visible = true;
+            if (UIWebTablet.tabletIsOverlay) {
                 Overlays.editOverlay(HMD.tabletID, tabletProperties);
             }
             Overlays.editOverlay(HMD.homeButtonID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { visible: true });
+            Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 90 });
         }
     }
 
     function hideTabletUI() {
         tabletShown = false;
-        if (UIWebTablet) {
-            tabletLocation = UIWebTablet.getLocation();
-            print("XXX hide tablet-ui, position was " +  JSON.stringify(tabletLocation));
-            // Overlays.editOverlay(HMD.tabletID, { localPosition: { x: -1000, y: 0, z:0 } });
-            Overlays.editOverlay(HMD.tabletID, { visible: false });
-            Overlays.editOverlay(HMD.homeButtonID, { visible: false });
-            Overlays.editOverlay(HMD.tabletScreenID, { visible: false });
+        if (!UIWebTablet) {
+            return;
+        }
+
+        if (UIWebTablet.tabletIsOverlay) {
+            if (debugTablet) {
+                print("TABLET hide");
+            }
+            if (Settings.getValue("tabletVisibleToOthers")) {
+                closeTabletUI();
+            } else {
+                // Overlays.editOverlay(HMD.tabletID, { localPosition: { x: -1000, y: 0, z:0 } });
+                Overlays.editOverlay(HMD.tabletID, { visible: false });
+                Overlays.editOverlay(HMD.homeButtonID, { visible: false });
+                Overlays.editOverlay(HMD.tabletScreenID, { visible: false });
+                Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 1 });
+            }
         } else {
-            print("XXX hide tablet-ui, UIWebTablet is null");
+            closeTabletUI();
         }
     }
 
@@ -94,22 +126,25 @@
                 UIWebTablet.onClose();
             }
 
-            tabletLocation = UIWebTablet.getLocation();
-            print("XXX close tablet-ui, position was " +  JSON.stringify(tabletLocation));
+            if (debugTablet) {
+                print("TABLET close");
+            }
             UIWebTablet.unregister();
             UIWebTablet.destroy();
             UIWebTablet = null;
             HMD.tabletID = null;
             HMD.homeButtonID = null;
             HMD.tabletScreenID = null;
-        } else {
-            print("XXX close tablet-ui, UIWebTablet is null");
+        } else if (debugTablet) {
+            print("TABLET closeTabletUI, UIWebTablet is null");
         }
         tabletRezzed = false;
     }
 
 
     function updateShowTablet() {
+        var MSECS_PER_SEC = 1000.0;
+        var now = Date.now();
 
         // close the WebTablet if it we go into toolbar mode.
         var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
@@ -130,14 +165,18 @@
             tablet.updateAudioBar(currentMicLevel);
         }
 
-        // XXX don't do this check every time?
-        if (tabletRezzed && UIWebTablet && Overlays.getOverlayType(UIWebTablet.webOverlayID) != "web3d") {
-            // when we switch domains, the tablet entity gets destroyed and recreated.  this causes
-            // the overlay to be deleted, but not recreated.  If the overlay is deleted for this or any
-            // other reason, close the tablet.
-            closeTabletUI();
-            HMD.closeTablet();
-            print("XXX autodestroying tablet");
+        if (validCheckTime - now > MSECS_PER_SEC) {
+            validCheckTime = now;
+            if (tabletRezzed && UIWebTablet && !tabletIsValid()) {
+                // when we switch domains, the tablet entity gets destroyed and recreated.  this causes
+                // the overlay to be deleted, but not recreated.  If the overlay is deleted for this or any
+                // other reason, close the tablet.
+                closeTabletUI();
+                HMD.closeTablet();
+                if (debugTablet) {
+                    print("TABLET autodestroying");
+                }
+            }
         }
 
 
@@ -151,17 +190,23 @@
             } else {
                 hideTabletUI();
             }
-        } else if (!toolbarMode && !visibleToOthers && !tabletRezzed) {
-            // pre-make the tablet so it will appear quickly
-            tabletLocation = {
-                localPosition: Vec3.sum(MyAvatar.position, { x: -1000, y: 0, z: 0 }),
-                localRotation: { x: 0, y: 0, z: 0, w: 1 }
-            };
-            print("XXX pre-creating tablet at " + JSON.stringify(tabletLocation));
-            rezTablet(true);
-            tabletLocation = null;
-            tabletShown = false;
         }
+
+        // if the tablet is an overlay, attempt to pre-create it and then hide it so that when it's
+        // summoned, it will appear quickly.
+        if (!toolbarMode && !visibleToOthers) {
+            if (now - preMakeTime > MSECS_PER_SEC) {
+                preMakeTime = now;
+                if (!tabletIsValid()) {
+                    closeTabletUI();
+                    rezTablet(false);
+                    tabletShown = false;
+                } else if (!tabletShown) {
+                    hideTabletUI();
+                }
+            }
+        }
+
     }
 
     function toggleHand(channel, hand, senderUUID, localOnly) {
