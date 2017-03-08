@@ -1,0 +1,14 @@
+cmake_minimum_required(VERSION 3.2)
+project(LibOVR)
+
+include_directories(LibOVR/Include LibOVR/Src)
+file(GLOB HEADER_FILES LibOVR/Include/*.h)
+file(GLOB EXTRA_HEADER_FILES LibOVR/Include/Extras/*.h)  
+file(GLOB_RECURSE SOURCE_FILES LibOVR/Src/*.c LibOVR/Src/*.cpp)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DOVR_BUILD_DEBUG")
+add_library(LibOVR STATIC ${SOURCE_FILES} ${HEADER_FILES} ${EXTRA_HEADER_FILES})
+set_target_properties(LibOVR PROPERTIES DEBUG_POSTFIX "d")
+
+install(TARGETS LibOVR DESTINATION Lib)
+install(FILES ${HEADER_FILES} DESTINATION Include)
+install(FILES ${EXTRA_HEADER_FILES} DESTINATION Include/Extras)
