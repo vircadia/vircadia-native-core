@@ -45,6 +45,10 @@ function calcSpawnInfo(hand, height) {
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
     var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
 
+    if (!hand) {
+        hand = NO_HANDS;
+    }
+
     if (HMD.active && hand !== NO_HANDS) {
         var handController = getControllerWorldLocation(hand, true);
         var controllerPosition = handController.position;
@@ -96,7 +100,7 @@ function calcSpawnInfo(hand, height) {
  * @param hand [number] -1 indicates no hand, Controller.Standard.RightHand or Controller.Standard.LeftHand
  * @param clientOnly [bool] true indicates tablet model is only visible to client.
  */
-WebTablet = function (url, width, dpi, hand, clientOnly) {
+WebTablet = function (url, width, dpi, hand, clientOnly, location, invisisble) {
 
     var _this = this;
 
@@ -129,11 +133,16 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
             "grabbableKey": {"grabbable": true}
         }),
         dimensions: {x: this.width, y: this.height, z: this.depth},
-        parentID: AVATAR_SELF_ID
+        parentID: AVATAR_SELF_ID,
+        visible: !invisisble
     };
 
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(hand, true, tabletProperties);
+    if (location) {
+        tabletProperties.localPosition = location.localPosition;
+        tabletProperties.localRotation = location.localRotation;
+    }
 
     this.cleanUpOldTablets();
 
@@ -164,7 +173,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         parentID: this.tabletEntityID,
         parentJointIndex: -1,
         showKeyboardFocusHighlight: false,
-        isAA: HMD.active
+        isAA: HMD.active,
+        visible: !invisisble
     });
 
     var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.009;
@@ -177,7 +187,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         visible: true,
         drawInFront: false,
         parentID: this.tabletEntityID,
-        parentJointIndex: -1
+        parentJointIndex: -1,
+        visible: !invisisble
     });
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
