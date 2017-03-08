@@ -100,7 +100,7 @@ function calcSpawnInfo(hand, height) {
  * @param hand [number] -1 indicates no hand, Controller.Standard.RightHand or Controller.Standard.LeftHand
  * @param clientOnly [bool] true indicates tablet model is only visible to client.
  */
-WebTablet = function (url, width, dpi, hand, clientOnly, location, invisisble) {
+WebTablet = function (url, width, dpi, hand, clientOnly, location) {
 
     var _this = this;
 
@@ -133,8 +133,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, invisisble) {
             "grabbableKey": {"grabbable": true}
         }),
         dimensions: {x: this.width, y: this.height, z: this.depth},
-        parentID: AVATAR_SELF_ID,
-        visible: !invisisble
+        parentID: AVATAR_SELF_ID
     };
 
     // compute position, rotation & parentJointIndex of the tablet
@@ -173,8 +172,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, invisisble) {
         parentID: this.tabletEntityID,
         parentJointIndex: -1,
         showKeyboardFocusHighlight: false,
-        isAA: HMD.active,
-        visible: !invisisble
+        isAA: HMD.active
     });
 
     var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.009;
@@ -187,8 +185,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, invisisble) {
         visible: true,
         drawInFront: false,
         parentID: this.tabletEntityID,
-        parentJointIndex: -1,
-        visible: !invisisble
+        parentJointIndex: -1
     });
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
