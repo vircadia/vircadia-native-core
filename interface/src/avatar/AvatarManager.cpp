@@ -164,8 +164,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     ViewFrustum cameraView;
     qApp->copyDisplayViewFrustum(cameraView);
 
-    std::priority_queue<AvatarPriority> sortedAvatars;
-    AvatarData::sortAvatars(avatarList, cameraView, sortedAvatars,
+    std::priority_queue<AvatarPriority> sortedAvatars = AvatarData::sortAvatars(
+        avatarList, cameraView,
 
         [](AvatarSharedPointer avatar)->uint64_t{
             return std::static_pointer_cast<Avatar>(avatar)->getLastRenderUpdateTime();

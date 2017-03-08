@@ -2324,20 +2324,20 @@ float AvatarData::_avatarSortCoefficientSize { 0.5f };
 float AvatarData::_avatarSortCoefficientCenter { 0.25 };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
 
-void AvatarData::sortAvatars(
-        QList<AvatarSharedPointer> avatarList,
-        const ViewFrustum& cameraView,
-        std::priority_queue<AvatarPriority>& sortedAvatarsOut,
-        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
-        std::function<float(AvatarSharedPointer)> getBoundingRadius,
-        std::function<bool(AvatarSharedPointer)> shouldIgnore) {
+std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
+    QList<AvatarSharedPointer> avatarList,
+    const ViewFrustum& cameraView,
+    std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
+    std::function<float(AvatarSharedPointer)> getBoundingRadius,
+    std::function<bool(AvatarSharedPointer)> shouldIgnore) {
 
+    uint64_t startTime = usecTimestampNow();
+
+    glm::vec3 frustumCenter = cameraView.getPosition();
+
+    std::priority_queue<AvatarPriority> sortedAvatars;
     {
         PROFILE_RANGE(simulation, "sort");
-        uint64_t now = usecTimestampNow();
-
-        glm::vec3 frustumCenter = cameraView.getPosition();
-        const glm::vec3& forward = cameraView.getDirection();
         for (int32_t i = 0; i < avatarList.size(); ++i) {
             const auto& avatar = avatarList.at(i);
 
@@ -2356,9 +2356,10 @@ void AvatarData::sortAvatars(
             // FIXME - AvatarData has something equivolent to this
             float radius = getBoundingRadius(avatar);
 
+            const glm::vec3& forward = cameraView.getDirection();
             float apparentSize = 2.0f * radius / distance;
             float cosineAngle = glm::dot(offset, forward) / distance;
-            float age = (float)(now - getLastUpdated(avatar)) / (float)(USECS_PER_SECOND);
+            float age = (float)(startTime - getLastUpdated(avatar)) / (float)(USECS_PER_SECOND);
 
             // NOTE: we are adding values of different units to get a single measure of "priority".
             // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
@@ -2374,9 +2375,10 @@ void AvatarData::sortAvatars(
                     priority += OUT_OF_VIEW_PENALTY;
                 }
             }
-            sortedAvatarsOut.push(AvatarPriority(avatar, priority));
+            sortedAvatars.push(AvatarPriority(avatar, priority));
         }
     }
+    return sortedAvatars;
 }
 
 QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value) {
