@@ -12,35 +12,29 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 # 0.5 public
 #    URL http://static.oculus.com/sdk-downloads/ovr_sdk_win_0.5.0.1.zip
 #    URL_MD5 d3fc4c02db9be5ff08af4ef4c97b32f9
-# 1.3 public 
-#    URL http://hifi-public.s3.amazonaws.com/dependencies/ovr_sdk_win_1.3.0_public.zip
-#    URL_MD5 4d26faba0c1f35ff80bf674c96ed9259
 
 if (WIN32)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL https://hifi-public.s3.amazonaws.com/dependencies/ovr_sdk_win_1.8.0_public.zip
-    URL_MD5 bea17e04acc1dd8cf7cabefa1b28cc3c
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
+    URL https://static.oculus.com/sdk-downloads/1.11.0/Public/1486063832/ovr_sdk_win_1.11.0_public.zip
+    URL_MD5 ea484403757cbfdfa743b6577fb1f9d2
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+    PATCH_COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/LibOVRCMakeLists.txt" <SOURCE_DIR>/CMakeLists.txt
     LOG_DOWNLOAD 1
   )
 
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
-  message("LIBOVR dir ${SOURCE_DIR}")
-  set(LIBOVR_DIR ${SOURCE_DIR}/LibOVR)
-  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
-    set(LIBOVR_LIB_DIR ${LIBOVR_DIR}/Lib/Windows/x64/Release/VS2013 CACHE TYPE INTERNAL)
-  else()
-    set(LIBOVR_LIB_DIR ${LIBOVR_DIR}/Lib/Windows/Win32/Release/VS2013 CACHE TYPE INTERNAL)
-  endif()
-
+  ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
+  set(LIBOVR_DIR ${INSTALL_DIR})
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${LIBOVR_DIR}/Include CACHE TYPE INTERNAL)
-  message("LIBOVR include dir ${${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS}")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${LIBOVR_LIB_DIR}/LibOVR.lib CACHE TYPE INTERNAL)
-  
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${LIBOVR_DIR}/Lib/LibOVRd.lib CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${LIBOVR_DIR}/Lib/LibOVR.lib CACHE TYPE INTERNAL)
+  include(SelectLibraryConfigurations)
+  select_library_configurations(LIBOVR)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARIES} CACHE TYPE INTERNAL)
+  message("Libs ${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARIES}")
+
 elseif(APPLE)
   
   ExternalProject_Add(

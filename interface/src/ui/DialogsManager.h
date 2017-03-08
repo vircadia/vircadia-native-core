@@ -21,7 +21,6 @@
 
 class AnimationsDialog;
 class AttachmentsDialog;
-class BandwidthDialog;
 class CachesSizeDialog;
 class DiskCacheEditor;
 class LodToolsDialog;
@@ -36,7 +35,6 @@ class DialogsManager : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    QPointer<BandwidthDialog> getBandwidthDialog() const { return _bandwidthDialog; }
     QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
@@ -53,7 +51,6 @@ public slots:
     void showLoginDialog();
     void octreeStatsDetails();
     void cachesSizeDialog();
-    void bandwidthDetails();
     void lodTools();
     void hmdTools(bool showTools);
     void showScriptEditor();
@@ -79,7 +76,6 @@ private:
 
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
-    QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
     QPointer<DiskCacheEditor> _diskCacheEditor;
     QPointer<QMessageBox> _ircInfoBox;

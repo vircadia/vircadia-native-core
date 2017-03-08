@@ -59,6 +59,8 @@ public:
 
     float presentRate() const override;
 
+    void resetPresentRate() override;
+
     float newFramePresentRate() const override;
 
     float droppedFrameRate() const override;
