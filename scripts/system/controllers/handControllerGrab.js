@@ -71,12 +71,6 @@ var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
 var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
 var WEB_STYLUS_LENGTH = 0.2;
 var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative number) to slide stylus in hand
-var WEB_TOUCH_TOO_CLOSE = 0.03; // if the stylus is pushed far though the web surface, don't consider it touching
-var WEB_TOUCH_Y_TOUCH_DEADZONE_SIZE = 0.01;
-
-var FINGER_TOUCH_Y_OFFSET = -0.02;
-var FINGER_TOUCH_MIN = -0.01 - FINGER_TOUCH_Y_OFFSET;
-var FINGER_TOUCH_MAX = 0.01 - FINGER_TOUCH_Y_OFFSET;
 
 //
 // distant manipulation
@@ -137,7 +131,6 @@ var GRAB_POINT_SPHERE_ALPHA = 0.85;
 //
 // other constants
 //
-
 var RIGHT_HAND = 1;
 var LEFT_HAND = 0;
 
@@ -214,10 +207,9 @@ var STATE_NEAR_GRABBING = 4;
 var STATE_NEAR_TRIGGER = 5;
 var STATE_FAR_TRIGGER = 6;
 var STATE_HOLD = 7;
-var STATE_ENTITY_STYLUS_TOUCHING = 8;
-var STATE_ENTITY_LASER_TOUCHING = 9;
-var STATE_OVERLAY_STYLUS_TOUCHING = 10;
-var STATE_OVERLAY_LASER_TOUCHING = 11;
+var STATE_ENTITY_LASER_TOUCHING = 8;
+var STATE_OVERLAY_LASER_TOUCHING = 9;
+var STATE_STYLUS_TOUCHING = 10;
 
 var CONTROLLER_STATE_MACHINE = {};
 
@@ -261,29 +253,23 @@ CONTROLLER_STATE_MACHINE[STATE_FAR_TRIGGER] = {
     enterMethod: "farTriggerEnter",
     updateMethod: "farTrigger"
 };
-CONTROLLER_STATE_MACHINE[STATE_ENTITY_STYLUS_TOUCHING] = {
-    name: "entityStylusTouching",
-    enterMethod: "entityTouchingEnter",
-    exitMethod: "entityTouchingExit",
-    updateMethod: "entityTouching"
-};
 CONTROLLER_STATE_MACHINE[STATE_ENTITY_LASER_TOUCHING] = {
     name: "entityLaserTouching",
-    enterMethod: "entityTouchingEnter",
-    exitMethod: "entityTouchingExit",
-    updateMethod: "entityTouching"
-};
-CONTROLLER_STATE_MACHINE[STATE_OVERLAY_STYLUS_TOUCHING] = {
-    name: "overlayStylusTouching",
-    enterMethod: "overlayTouchingEnter",
-    exitMethod: "overlayTouchingExit",
-    updateMethod: "overlayTouching"
+    enterMethod: "entityLaserTouchingEnter",
+    exitMethod: "entityLaserTouchingExit",
+    updateMethod: "entityLaserTouching"
 };
 CONTROLLER_STATE_MACHINE[STATE_OVERLAY_LASER_TOUCHING] = {
     name: "overlayLaserTouching",
-    enterMethod: "overlayTouchingEnter",
-    exitMethod: "overlayTouchingExit",
-    updateMethod: "overlayTouching"
+    enterMethod: "overlayLaserTouchingEnter",
+    exitMethod: "overlayLaserTouchingExit",
+    updateMethod: "overlayLaserTouching"
+};
+CONTROLLER_STATE_MACHINE[STATE_STYLUS_TOUCHING] = {
+    name: "stylusTouching",
+    enterMethod: "stylusTouchingEnter",
+    exitMethod: "stylusTouchingExit",
+    updateMethod: "stylusTouching"
 };
 
 function getFingerWorldLocation(hand) {
@@ -295,13 +281,8 @@ function getFingerWorldLocation(hand) {
     var worldFingerRotation = Quat.multiply(MyAvatar.orientation, fingerRotation);
     var worldFingerPosition = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, fingerPosition));
 
-    // local y offset.
-    var localYOffset = Vec3.multiplyQbyV(worldFingerRotation, {x: 0, y: FINGER_TOUCH_Y_OFFSET, z: 0});
-
-    var offsetWorldFingerPosition = Vec3.sum(worldFingerPosition, localYOffset);
-
     return {
-        position: offsetWorldFingerPosition,
+        position: worldFingerPosition,
         orientation: worldFingerRotation,
         rotation: worldFingerRotation,
         valid: true
@@ -564,6 +545,122 @@ function isIn2DMode() {
 function restore2DMode() {
     if (!EXTERNALLY_MANAGED_2D_MINOR_MODE) {
         Reticle.setVisible(true);
+    }
+}
+
+function stylusTargetHasKeyboardFocus(stylusTarget) {
+    if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
+        return Entities.keyboardFocusEntity === stylusTarget.entityID;
+    } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
+        return Overlays.keyboardFocusOverlay === stylusTarget.overlayID;
+    }
+}
+
+function setKeyboardFocusOnStylusTarget(stylusTarget) {
+    if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID && Entities.wantsHandControllerPointerEvents(stylusTarget.entityID)) {
+        Overlays.keyboardFocusOverlay = NULL_UUID;
+        Entities.keyboardFocusEntity = stylusTarget.entityID;
+    } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
+        Overlays.keyboardFocusOverlay = stylusTarget.overlayID;
+        Entities.keyboardFocusEntity = NULL_UUID;
+    }
+}
+
+function sendHoverEnterEventToStylusTarget(hand, stylusTarget) {
+    var pointerEvent = {
+        type: "Move",
+        id: hand + 1, // 0 is reserved for hardware mouse
+        pos2D: stylusTarget.position2D,
+        pos3D: stylusTarget.position,
+        normal: stylusTarget.normal,
+        direction: Vec3.subtract(ZERO_VEC, stylusTarget.normal),
+        button: "None"
+    };
+
+    if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
+        Entities.sendHoverEnterEntity(stylusTarget.entityID, pointerEvent);
+    } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
+        Overlays.sendHoverEnterOverlay(stylusTarget.overlayID, pointerEvent);
+    }
+}
+
+function sendHoverOverEventToStylusTarget(hand, stylusTarget) {
+    var pointerEvent = {
+        type: "Move",
+        id: hand + 1, // 0 is reserved for hardware mouse
+        pos2D: stylusTarget.position2D,
+        pos3D: stylusTarget.position,
+        normal: stylusTarget.normal,
+        direction: Vec3.subtract(ZERO_VEC, stylusTarget.normal),
+        button: "None"
+    };
+
+    if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
+        Entities.sendMouseMoveOnEntity(stylusTarget.entityID, pointerEvent);
+        Entities.sendHoverOverEntity(stylusTarget.entityID, pointerEvent);
+    } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
+        Overlays.sendMouseMoveOnOverlay(stylusTarget.overlayID, pointerEvent);
+        Overlays.sendHoverOverOverlay(stylusTarget.overlayID, pointerEvent);
+    }
+}
+
+function sendTouchStartEventToStylusTarget(hand, stylusTarget) {
+    var pointerEvent = {
+        type: "Press",
+        id: hand + 1, // 0 is reserved for hardware mouse
+        pos2D: stylusTarget.position2D,
+        pos3D: stylusTarget.position,
+        normal: stylusTarget.normal,
+        direction: Vec3.subtract(ZERO_VEC, stylusTarget.normal),
+        button: "Primary",
+        isPrimaryHeld: true
+    };
+
+    if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
+        Entities.sendMousePressOnEntity(stylusTarget.entityID, pointerEvent);
+        Entities.sendClickDownOnEntity(stylusTarget.entityID, pointerEvent);
+    } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
+        Overlays.sendMousePressOnOverlay(stylusTarget.overlayID, pointerEvent);
+    }
+}
+
+function sendTouchEndEventToStylusTarget(hand, stylusTarget) {
+    var pointerEvent = {
+        type: "Release",
+        id: hand + 1, // 0 is reserved for hardware mouse
+        pos2D: stylusTarget.position2D,
+        pos3D: stylusTarget.position,
+        normal: stylusTarget.normal,
+        direction: Vec3.subtract(ZERO_VEC, stylusTarget.normal),
+        button: "Primary"
+    };
+
+    if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
+        Entities.sendMouseReleaseOnEntity(stylusTarget.entityID, pointerEvent);
+        Entities.sendClickReleaseOnEntity(stylusTarget.entityID, pointerEvent);
+        Entities.sendHoverLeaveEntity(stylusTarget.entityID, pointerEvent);
+    } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
+        Overlays.sendMouseReleaseOnOverlay(stylusTarget.overlayID, pointerEvent);
+    }
+}
+
+function sendTouchMoveEventToStylusTarget(hand, stylusTarget) {
+    var pointerEvent = {
+        type: "Move",
+        id: hand + 1, // 0 is reserved for hardware mouse
+        pos2D: stylusTarget.position2D,
+        pos3D: stylusTarget.position,
+        normal: stylusTarget.normal,
+        direction: Vec3.subtract(ZERO_VEC, stylusTarget.normal),
+        button: "Primary",
+        isPrimaryHeld: true
+    };
+
+    if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
+        Entities.sendMouseMoveOnEntity(stylusTarget.entityID, pointerEvent);
+        Entities.sendHoldingClickOnEntity(stylusTarget.entityID, pointerEvent);
+    } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
+        Overlays.sendMouseMoveOnOverlay(stylusTarget.overlayID, pointerEvent);
     }
 }
 
@@ -888,6 +985,16 @@ function MyController(hand) {
 
     this.useFingerInsteadOfStylus = false;
 
+    // initialize stylus tip
+    var DEFAULT_STYLUS_TIP = {
+        position: {x: 0, y: 0, z: 0},
+        orientation: {x: 0, y: 0, z: 0, w: 0},
+        rotation: {x: 0, y: 0, z: 0, w: 0},
+        velocity: {x: 0, y: 0, z: 0},
+        valid: false
+    };
+    this.stylusTip = DEFAULT_STYLUS_TIP;
+
     var _this = this;
 
     var suppressedIn2D = [STATE_OFF, STATE_SEARCHING];
@@ -897,9 +1004,35 @@ function MyController(hand) {
         return (-1 !== suppressedIn2D.indexOf(this.state)) && isIn2DMode();
     };
 
+    this.updateStylusTip = function() {
+        if (this.useFingerInsteadOfStylus) {
+            this.stylusTip = getFingerWorldLocation(this.hand);
+        } else {
+            this.stylusTip = getControllerWorldLocation(this.handToController(), true);
+
+            // translate tip forward according to constant.
+            var TIP_OFFSET = {x: 0, y: WEB_STYLUS_LENGTH - WEB_TOUCH_Y_OFFSET, z: 0};
+            this.stylusTip.position = Vec3.sum(this.stylusTip.position, Vec3.multiplyQbyV(this.stylusTip.orientation, TIP_OFFSET));
+        }
+
+        // compute tip velocity from hand controller motion, it is more accurate then computing it from previous positions.
+        var pose = Controller.getPoseValue(this.handToController());
+        if (pose.valid) {
+            var worldControllerPos = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation));
+            var worldControllerLinearVel = Vec3.multiplyQbyV(MyAvatar.orientation, pose.velocity);
+            var worldControllerAngularVel = Vec3.multiplyQbyV(MyAvatar.orientation, pose.angularVelocity);
+            var tipVelocity = Vec3.sum(worldControllerLinearVel, Vec3.cross(worldControllerAngularVel, Vec3.subtract(this.stylusTip.position, worldControllerPos)));
+            this.stylusTip.velocity = tipVelocity;
+        } else {
+            this.stylusTip.velocity = {x: 0, y: 0, z: 0};
+        }
+    };
+
     this.update = function(deltaTime, timestamp) {
         this.updateSmoothedTrigger();
         this.maybeScaleMyAvatar();
+
+        this.updateStylusTip();
 
         var DEFAULT_USE_FINGER_AS_STYLUS = false;
         var USE_FINGER_AS_STYLUS = Settings.getValue("preferAvatarFingerOverStylus");
@@ -916,10 +1049,7 @@ function MyController(hand) {
 
             // Most hand input is disabled, because we are interacting with the 2d hud.
             // However, we still should check for collisions of the stylus with the web overlay.
-
-            var controllerLocation = getControllerWorldLocation(this.handToController(), true);
-            this.processStylus(controllerLocation.position);
-
+            this.processStylus();
             this.turnOffVisualizations();
             return;
         }
@@ -949,7 +1079,7 @@ function MyController(hand) {
         if ((isInEditMode() && this.grabbedThingID !== HMD.tabletID) &&
             (newState !== STATE_OFF &&
              newState !== STATE_SEARCHING &&
-             newState !== STATE_OVERLAY_STYLUS_TOUCHING &&
+             newState !== STATE_STYLUS_TOUCHING &&
              newState !== STATE_OVERLAY_LASER_TOUCHING)) {
             return;
         }
@@ -1084,10 +1214,6 @@ function MyController(hand) {
         }
         Overlays.deleteOverlay(this.stylus);
         this.stylus = null;
-        if (this.stylusTip) {
-            Overlays.deleteOverlay(this.stylusTip);
-            this.stylusTip = null;
-        }
     };
 
     this.overlayLineOn = function(closePoint, farPoint, color, farParentID) {
@@ -1291,66 +1417,250 @@ function MyController(hand) {
         return _this.rawThumbValue < THUMB_ON_VALUE;
     };
 
-    this.processStylus = function(worldHandPosition) {
+    // returns object with the following fields
+    // * entityID - if non null, this entityID is the closest to the stylusTip.
+    // * overlayID - if non null, this overlayID is the closest to the stylusTip.
+    // * distance - distance in meters from the stylus to the surface of the stylusTarget.
+    // * position - position on the surface of the stylusTarget that is nearest to the stylusTip. (world space)
+    // * position2D - postion on surface of the stylusTarget ready for use for pointerEvent.pos2D
+    // * normal - normal vector of the surface. (world space)
+    // * valid - if false, all other fields are invalid.
+    this.calculateNearestStylusTargetFromCandidates = function (candidates, cullSide) {
 
-        var performRayTest = false;
-        if (this.useFingerInsteadOfStylus) {
-            this.hideStylus();
-            performRayTest = true;
-        } else {
-            var i;
+        // now attempt to find the nearest stylusTarget.
 
-            // see if the hand is near a tablet or web-entity
-            var candidateEntities = Entities.findEntities(worldHandPosition, WEB_DISPLAY_STYLUS_DISTANCE);
-            entityPropertiesCache.addEntities(candidateEntities);
-            for (i = 0; i < candidateEntities.length; i++) {
-                var props = entityPropertiesCache.getProps(candidateEntities[i]);
-                if (props && (props.type == "Web" || this.isTablet(candidateEntities[i]))) {
-                    performRayTest = true;
-                    break;
+        var nearestStylusTarget = {
+            entityID: null,
+            overlayID: null,
+            distance: WEB_DISPLAY_STYLUS_DISTANCE,
+            position: {x: 0, y: 0, z: 0},
+            normalizedPosition: {x: 0, y: 0, z: 0},
+            normal: {x: 0, y: 0, z: 1},
+            valid: false
+        };
+
+        if (candidates.entities.length > 0 || candidates.overlays.length > 0) {
+            var i, props, entityID, normal, distance, position, invRot, localPos, invDimensions, normalizedPos, position2D;
+            for (i = 0; i < candidates.entities.length; i++) {
+                entityID = candidates.entities[i];
+                props = entityPropertiesCache.getProps(entityID);
+
+                // entity could have been deleted.
+                if (props === undefined) {
+                    continue;
                 }
-            }
 
-            if (!performRayTest) {
-                var candidateOverlays = Overlays.findOverlays(worldHandPosition, WEB_DISPLAY_STYLUS_DISTANCE);
-                for (i = 0; i < candidateOverlays.length; i++) {
-                    if (this.isTablet(candidateOverlays[i])) {
-                        performRayTest = true;
-                        break;
+                normal = Vec3.multiplyQbyV(props.rotation, {x: 0, y: 0, z: 1});
+                Vec3.multiplyQbyV(props.rotation, {x: 0, y: 1, z: 0});
+                distance = Vec3.dot(Vec3.subtract(this.stylusTip.position, props.position), normal);
+                position = Vec3.subtract(this.stylusTip.position, Vec3.multiply(normal, distance));
+
+                if (distance < nearestStylusTarget.distance) {
+
+                    invRot = Quat.inverse(props.rotation);
+                    localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, props.position));
+                    invDimensions = { x: 1 / props.dimensions.x, y: 1 / props.dimensions.y, z: 1 / props.dimensions.z };
+                    normalizedPos = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), props.registrationPoint);
+
+                    if (normalizedPos.x >= 0 && normalizedPos.y >= 0 && normalizedPos.x <= 1 && normalizedPos.y <= 1) {
+                        position2D = { x: normalizedPos.x * props.dimensions.x, y: (1 - normalizedPos.y) * props.dimensions.y }; // flip y-axis
+                        nearestStylusTarget = {
+                            entityID: entityID,
+                            overlayID: null,
+                            distance: distance,
+                            position: position,
+                            position2D: position2D,
+                            normal: normal,
+                            valid: true
+                        };
                     }
                 }
             }
 
-            if (performRayTest) {
-                this.showStylus();
-            } else {
-                this.hideStylus();
+            for (i = 0; i < candidates.overlays.length; i++) {
+                var overlayID = candidates.overlays[i];
+                var overlayPosition = Overlays.getProperty(overlayID, "position");
+
+                // overlay could have been deleted.
+                if (overlayPosition === undefined) {
+                    continue;
+                }
+
+                var overlayRotation = Overlays.getProperty(overlayID, "rotation");
+                normal = Vec3.multiplyQbyV(overlayRotation, {x: 0, y: 0, z: 1});
+                distance = Vec3.dot(Vec3.subtract(this.stylusTip.position, overlayPosition), normal);
+                position = Vec3.subtract(this.stylusTip.position, Vec3.multiply(normal, distance));
+
+                if (distance < nearestStylusTarget.distance) {
+
+                    invRot = Quat.inverse(overlayRotation);
+                    localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, overlayPosition));
+
+                    var dpi = Overlays.getProperty(overlayID, "dpi");
+                    var dimensions;
+                    if (dpi) {
+                        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
+                        var resolution = Overlays.getProperty(overlayID, "resolution");
+                        resolution.z = 1;  // Circumvent divide-by-zero.
+                        var scale = Overlays.getProperty(overlayID, "dimensions");
+                        scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
+                        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
+                    } else {
+                        dimensions = Overlays.getProperty(overlayID, "dimensions");
+                        if (!dimensions.z) {
+                            dimensions.z = 0.01;    // sometimes overlay dimensions are 2D, not 3D.
+                        }
+                    }
+
+                    invDimensions = { x: 1 / dimensions.x, y: 1 / dimensions.y, z: 1 / dimensions.z };
+                    normalizedPos = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), DEFAULT_REGISTRATION_POINT);
+
+                    if (!cullSide || (normalizedPos.x >= 0 && normalizedPos.y >= 0 && normalizedPos.x <= 1 && normalizedPos.y <= 1)) {
+                        position2D = { x: normalizedPos.x * dimensions.x, y: (1 - normalizedPos.y) * dimensions.y }; // flip y-axis
+                        nearestStylusTarget = {
+                            entityID: null,
+                            overlayID: overlayID,
+                            distance: distance,
+                            position: position,
+                            position2D: position2D,
+                            normal: normal,
+                            valid: true
+                        };
+                    }
+                }
             }
         }
 
-        if (performRayTest) {
-            var rayPickInfo = this.calcRayPickInfo(this.hand, this.useFingerInsteadOfStylus);
-            var max, min;
-            if (this.useFingerInsteadOfStylus) {
-                max = FINGER_TOUCH_MAX;
-                min = FINGER_TOUCH_MIN;
-            } else {
-                max = WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET;
-                min = WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_TOO_CLOSE;
-            }
+        return nearestStylusTarget;
+    };
 
-            if (rayPickInfo.distance < max && rayPickInfo.distance > min) {
-                this.handleStylusOnHomeButton(rayPickInfo);
-                if (this.handleStylusOnWebEntity(rayPickInfo)) {
-                    return;
-                }
-                if (this.handleStylusOnWebOverlay(rayPickInfo)) {
-                    return;
-                }
-            } else {
-                this.homeButtonTouched = false;
+    this.stealTouchFocus = function(stylusTarget) {
+        // send hover events to target
+        // record the entity or overlay we are hovering over.
+        if ((stylusTarget.entityID === this.getOtherHandController().hoverEntity) ||
+            (stylusTarget.overlayID === this.getOtherHandController().hoverOverlay)) {
+            this.getOtherHandController().relinquishTouchFocus();
+        }
+        this.requestTouchFocus(stylusTarget);
+    };
+
+    this.requestTouchFocus = function(stylusTarget) {
+
+        // send hover events to target if we can.
+        // record the entity or overlay we are hovering over.
+        if (stylusTarget.entityID && stylusTarget.entityID !== this.hoverEntity && stylusTarget.entityID !== this.getOtherHandController().hoverEntity) {
+            this.hoverEntity = stylusTarget.entityID;
+            sendHoverEnterEventToStylusTarget(this.hand, stylusTarget);
+        } else if (stylusTarget.overlayID && stylusTarget.overlayID !== this.hoverOverlay && stylusTarget.overlayID !== this.getOtherHandController().hoverOverlay) {
+            this.hoverOverlay = stylusTarget.overlayID;
+            sendHoverEnterEventToStylusTarget(this.hand, stylusTarget);
+        }
+    };
+
+    this.hasTouchFocus = function(stylusTarget) {
+        return ((stylusTarget.entityID && stylusTarget.entityID === this.hoverEntity) ||
+                (stylusTarget.overlayID && stylusTarget.overlayID === this.hoverOverlay));
+    };
+
+    this.relinquishTouchFocus = function() {
+
+        // send hover leave event.
+        var pointerEvent = { type: "Move", id: this.hand + 1 };
+        if (this.hoverEntity) {
+            Entities.sendHoverLeaveEntity(this.hoverEntity, pointerEvent);
+            this.hoverEntity = null;
+        } else if (this.hoverOverlay) {
+            Overlays.sendMouseMoveOnOverlay(this.hoverOverlay, pointerEvent);
+            Overlays.sendHoverOverOverlay(this.hoverOverlay, pointerEvent);
+            Overlays.sendHoverLeaveOverlay(this.hoverOverlay, pointerEvent);
+            this.hoverOverlay = null;
+        }
+    };
+
+    this.processStylus = function() {
+        if (!this.stylusTip.valid) {
+            this.hideStylus();
+            return;
+        }
+
+        if (this.useFingerInsteadOfStylus) {
+            this.hideStylus();
+        }
+
+        var tipPosition = this.stylusTip.position;
+
+        var candidates = {
+            entities: [],
+            overlays: []
+        };
+
+        // find web-entites near the stylusTip.
+        var candidateEntities = Entities.findEntities(tipPosition, WEB_DISPLAY_STYLUS_DISTANCE);
+        entityPropertiesCache.addEntities(candidateEntities);
+        var i, props;
+        for (i = 0; i < candidateEntities.length; i++) {
+            props = entityPropertiesCache.getProps(candidateEntities[i]);
+            if (props && (props.type === "Web" || this.isTablet(candidateEntities[i]))) {
+                candidates.entities.push(candidateEntities[i]);
             }
         }
+
+        // add the tabletScreen, if it is valid
+        if (HMD.tabletScreenID && HMD.tabletScreenID !== NULL_UUID) {
+            candidates.overlays.push(HMD.tabletScreenID);
+        }
+
+        // add the tablet home button.
+        if (HMD.homeButtonID && HMD.homeButtonID !== NULL_UUID) {
+            candidates.overlays.push(HMD.homeButtonID);
+        }
+
+        var nearestStylusTarget = this.calculateNearestStylusTargetFromCandidates(candidates, true);
+
+        if (!this.useFingerInsteadOfStylus && nearestStylusTarget.valid) {
+            this.showStylus();
+        } else {
+            this.hideStylus();
+        }
+
+        var TABLET_MIN_HOVER_DISTANCE = 0.01;
+        var TABLET_MAX_HOVER_DISTANCE = 0.1;
+        var TABLET_MIN_TOUCH_DISTANCE = -0.05;
+        var TABLET_MAX_TOUCH_DISTANCE = TABLET_MIN_HOVER_DISTANCE;
+
+        if (nearestStylusTarget.valid && nearestStylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
+            nearestStylusTarget.distance < TABLET_MAX_HOVER_DISTANCE) {
+
+            this.requestTouchFocus(nearestStylusTarget);
+
+            if (!stylusTargetHasKeyboardFocus(nearestStylusTarget)) {
+                setKeyboardFocusOnStylusTarget(nearestStylusTarget);
+            }
+
+            if (this.hasTouchFocus(nearestStylusTarget)) {
+                sendHoverOverEventToStylusTarget(this.hand, nearestStylusTarget);
+            }
+
+            // filter out presses when tip is moving away from tablet.
+            if (nearestStylusTarget.valid && nearestStylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
+                nearestStylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE && Vec3.dot(this.stylusTip.velocity, nearestStylusTarget.normal) < 0) {
+
+                var name;
+                if (nearestStylusTarget.entityID) {
+                    name = entityPropertiesCache.getProps(nearestStylusTarget.entityID).name;
+                    this.stylusTarget = nearestStylusTarget;
+                    this.setState(STATE_STYLUS_TOUCHING, "begin touching entity '" + name + "'");
+                } else if (nearestStylusTarget.overlayID) {
+                    name = Overlays.getProperty(nearestStylusTarget.overlayID, "name");
+                    this.stylusTarget = nearestStylusTarget;
+                    this.setState(STATE_STYLUS_TOUCHING, "begin touching overlay '" + name + "'");
+                }
+            }
+        } else {
+            this.relinquishTouchFocus();
+        }
+
+        this.homeButtonTouched = false;
     };
 
     this.off = function(deltaTime, timestamp) {
@@ -1406,25 +1716,7 @@ function MyController(hand) {
             this.grabPointSphereOff();
         }
 
-        this.processStylus(worldHandPosition);
-    };
-
-   this.handleStylusOnHomeButton = function(rayPickInfo) {
-        if (rayPickInfo.overlayID) {
-            var homeButton = rayPickInfo.overlayID;
-            var hmdHomeButton = HMD.homeButtonID;
-            if (homeButton === hmdHomeButton) {
-                if (this.homeButtonTouched === false) {
-                    this.homeButtonTouched = true;
-                    Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, this.hand);
-                    Messages.sendLocalMessage("home", homeButton);
-                }
-            } else {
-                this.homeButtonTouched = false;
-            }
-        } else {
-            this.homeButtonTouched = false;
-        }
+        this.processStylus();
     };
 
     this.handleLaserOnHomeButton = function(rayPickInfo) {
@@ -1464,27 +1756,27 @@ function MyController(hand) {
 
     // Performs ray pick test from the hand controller into the world
     // @param {number} which hand to use, RIGHT_HAND or LEFT_HAND
-    // @param {bool} if true use the world position/orientation of the index finger to cast the ray from.
+    // @param {object} if set, use this as as the pick ray, expects origin, direction, and length fields.
     // @returns {object} returns object with two keys entityID and distance
     //
-    this.calcRayPickInfo = function(hand, useFingerInsteadOfController) {
+    this.calcRayPickInfo = function(hand, pickRayOverride) {
 
-        var controllerLocation;
-        if (useFingerInsteadOfController) {
-            controllerLocation = getFingerWorldLocation(hand);
+        var pickRay;
+        if (pickRayOverride) {
+            pickRay = pickRayOverride;
         } else {
-            controllerLocation = getControllerWorldLocation(this.handToController(), true);
-        }
-        var worldHandPosition = controllerLocation.position;
-        var worldHandRotation = controllerLocation.orientation;
+            var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+            var worldHandPosition = controllerLocation.position;
+            var worldHandRotation = controllerLocation.orientation;
 
-        var pickRay = {
-            origin: PICK_WITH_HAND_RAY ? worldHandPosition : Camera.position,
-            direction: PICK_WITH_HAND_RAY ? Quat.getUp(worldHandRotation) : Vec3.mix(Quat.getUp(worldHandRotation),
-                Quat.getFront(Camera.orientation),
-                HAND_HEAD_MIX_RATIO),
-            length: PICK_MAX_DISTANCE
-        };
+            pickRay = {
+                origin: PICK_WITH_HAND_RAY ? worldHandPosition : Camera.position,
+                direction: PICK_WITH_HAND_RAY ? Quat.getUp(worldHandRotation) : Vec3.mix(Quat.getUp(worldHandRotation),
+                                                                                         Quat.getFront(Camera.orientation),
+                                                                                         HAND_HEAD_MIX_RATIO),
+                length: PICK_MAX_DISTANCE
+            };
+        }
 
         var result = {
             entityID: null,
@@ -1943,134 +2235,6 @@ function MyController(hand) {
         return false;
     };
 
-    this.handleStylusOnWebEntity = function (rayPickInfo) {
-        var pointerEvent;
-
-        if (rayPickInfo.entityID && Entities.wantsHandControllerPointerEvents(rayPickInfo.entityID)) {
-            var entity = rayPickInfo.entityID;
-            var name = entityPropertiesCache.getProps(entity).name;
-
-            if (Entities.keyboardFocusEntity != entity) {
-                Overlays.keyboardFocusOverlay = 0;
-                Entities.keyboardFocusEntity = entity;
-
-                pointerEvent = {
-                    type: "Move",
-                    id: this.hand + 1, // 0 is reserved for hardware mouse
-                    pos2D: projectOntoEntityXYPlane(entity, rayPickInfo.intersection),
-                    pos3D: rayPickInfo.intersection,
-                     normal: rayPickInfo.normal,
-                    direction: rayPickInfo.searchRay.direction,
-                    button: "None"
-                };
-
-                this.hoverEntity = entity;
-                Entities.sendHoverEnterEntity(entity, pointerEvent);
-            }
-
-            // send mouse events for button highlights and tooltips.
-            if (this.hand == mostRecentSearchingHand ||
-                (this.hand !== mostRecentSearchingHand &&
-                 this.getOtherHandController().state !== STATE_SEARCHING &&
-                 this.getOtherHandController().state !== STATE_ENTITY_STYLUS_TOUCHING &&
-                 this.getOtherHandController().state !== STATE_ENTITY_LASER_TOUCHING &&
-                 this.getOtherHandController().state !== STATE_OVERLAY_STYLUS_TOUCHING &&
-                 this.getOtherHandController().state !== STATE_OVERLAY_LASER_TOUCHING)) {
-
-                // most recently searching hand has priority over other hand, for the purposes of button highlighting.
-                pointerEvent = {
-                    type: "Move",
-                    id: this.hand + 1, // 0 is reserved for hardware mouse
-                    pos2D: projectOntoEntityXYPlane(entity, rayPickInfo.intersection),
-                    pos3D: rayPickInfo.intersection,
-                    normal: rayPickInfo.normal,
-                    direction: rayPickInfo.searchRay.direction,
-                    button: "None"
-                };
-
-                Entities.sendMouseMoveOnEntity(entity, pointerEvent);
-                Entities.sendHoverOverEntity(entity, pointerEvent);
-            }
-
-            this.grabbedThingID = entity;
-            this.grabbedIsOverlay = false;
-            this.setState(STATE_ENTITY_STYLUS_TOUCHING, "begin touching entity '" + name + "'");
-            return true;
-
-        } else if (this.hoverEntity) {
-            pointerEvent = {
-                type: "Move",
-                id: this.hand + 1
-            };
-            Entities.sendHoverLeaveEntity(this.hoverEntity, pointerEvent);
-            this.hoverEntity = null;
-        }
-
-        return false;
-    };
-
-    this.handleStylusOnWebOverlay = function (rayPickInfo) {
-        var pointerEvent;
-        if (rayPickInfo.overlayID) {
-            var overlay = rayPickInfo.overlayID;
-            if (Overlays.keyboardFocusOverlay != overlay) {
-                Entities.keyboardFocusEntity = null;
-                Overlays.keyboardFocusOverlay = overlay;
-
-                pointerEvent = {
-                    type: "Move",
-                    id: HARDWARE_MOUSE_ID,
-                    pos2D: projectOntoOverlayXYPlane(overlay, rayPickInfo.intersection),
-                    pos3D: rayPickInfo.intersection,
-                    normal: rayPickInfo.normal,
-                    direction: rayPickInfo.searchRay.direction,
-                    button: "None"
-                };
-
-                this.hoverOverlay = overlay;
-                Overlays.sendHoverEnterOverlay(overlay, pointerEvent);
-            }
-
-            // Send mouse events for button highlights and tooltips.
-            if (this.hand == mostRecentSearchingHand ||
-                (this.hand !== mostRecentSearchingHand &&
-                 this.getOtherHandController().state !== STATE_SEARCHING &&
-                 this.getOtherHandController().state !== STATE_ENTITY_STYLUS_TOUCHING &&
-                 this.getOtherHandController().state !== STATE_ENTITY_LASER_TOUCHING &&
-                 this.getOtherHandController().state !== STATE_OVERLAY_STYLUS_TOUCHING &&
-                 this.getOtherHandController().state !== STATE_OVERLAY_LASER_TOUCHING)) {
-
-                // most recently searching hand has priority over other hand, for the purposes of button highlighting.
-                pointerEvent = {
-                    type: "Move",
-                    id: HARDWARE_MOUSE_ID,
-                    pos2D: projectOntoOverlayXYPlane(overlay, rayPickInfo.intersection),
-                    pos3D: rayPickInfo.intersection,
-                    normal: rayPickInfo.normal,
-                    direction: rayPickInfo.searchRay.direction,
-                    button: "None"
-                };
-
-                Overlays.sendMouseMoveOnOverlay(overlay, pointerEvent);
-                Overlays.sendHoverOverOverlay(overlay, pointerEvent);
-            }
-
-            this.grabbedOverlay = overlay;
-            this.setState(STATE_OVERLAY_STYLUS_TOUCHING, "begin touching overlay '" + overlay + "'");
-            return true;
-
-        } else if (this.hoverOverlay) {
-            pointerEvent = {
-                type: "Move",
-                id: HARDWARE_MOUSE_ID
-            };
-            Overlays.sendHoverLeaveOverlay(this.hoverOverlay, pointerEvent);
-            this.hoverOverlay = null;
-        }
-
-        return false;
-    };
-
     this.handleLaserOnWebEntity = function(rayPickInfo) {
         var pointerEvent;
         if (rayPickInfo.entityID && Entities.wantsHandControllerPointerEvents(rayPickInfo.entityID)) {
@@ -2100,9 +2264,8 @@ function MyController(hand) {
             if (this.hand == mostRecentSearchingHand ||
                 (this.hand !== mostRecentSearchingHand &&
                  this.getOtherHandController().state !== STATE_SEARCHING &&
-                 this.getOtherHandController().state !== STATE_ENTITY_STYLUS_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_STYLUS_TOUCHING &&
                  this.getOtherHandController().state !== STATE_ENTITY_LASER_TOUCHING &&
-                 this.getOtherHandController().state !== STATE_OVERLAY_STYLUS_TOUCHING &&
                  this.getOtherHandController().state !== STATE_OVERLAY_LASER_TOUCHING)) {
 
                 // most recently searching hand has priority over other hand, for the purposes of button highlighting.
@@ -2167,9 +2330,8 @@ function MyController(hand) {
             if (this.hand == mostRecentSearchingHand ||
                 (this.hand !== mostRecentSearchingHand &&
                  this.getOtherHandController().state !== STATE_SEARCHING &&
-                 this.getOtherHandController().state !== STATE_ENTITY_STYLUS_TOUCHING &&
+                 this.getOtherHandController().state !== STATE_STYLUS_TOUCHING &&
                  this.getOtherHandController().state !== STATE_ENTITY_LASER_TOUCHING &&
-                 this.getOtherHandController().state !== STATE_OVERLAY_STYLUS_TOUCHING &&
                  this.getOtherHandController().state !== STATE_OVERLAY_LASER_TOUCHING)) {
 
                 // most recently searching hand has priority over other hand, for the purposes of button highlighting.
@@ -2699,10 +2861,6 @@ function MyController(hand) {
                             isClone = true;
 
                             if (count > limit) {
-                                delete cloneableProps;
-                                delete lifetime;
-                                delete cUserData;
-                                delete cProperties;
                                 return;
                             }
 
@@ -3096,14 +3254,9 @@ function MyController(hand) {
         this.release();
     };
 
-    this.entityTouchingEnter = function() {
+    this.entityLaserTouchingEnter = function() {
         // test for intersection between controller laser and web entity plane.
-        var controllerLocation;
-        if (this.useFingerInsteadOfStylus && this.state === STATE_ENTITY_STYLUS_TOUCHING) {
-            controllerLocation = getFingerWorldLocation(this.hand);
-        } else {
-            controllerLocation = getControllerWorldLocation(this.handToController(), true);
-        }
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var intersectInfo = handLaserIntersectEntity(this.grabbedThingID, controllerLocation);
         if (intersectInfo) {
             var pointerEvent = {
@@ -3126,26 +3279,15 @@ function MyController(hand) {
             this.deadspotExpired = false;
 
             var LASER_PRESS_TO_MOVE_DEADSPOT_ANGLE = 0.026; // radians ~ 1.2 degrees
-            var STYLUS_PRESS_TO_MOVE_DEADSPOT_ANGLE = 0.314; // radians ~ 18 degrees
-            var theta = this.state === STATE_ENTITY_STYLUS_TOUCHING ? STYLUS_PRESS_TO_MOVE_DEADSPOT_ANGLE : LASER_PRESS_TO_MOVE_DEADSPOT_ANGLE;
-            this.deadspotRadius = Math.tan(theta) * intersectInfo.distance;  // dead spot radius in meters
+            this.deadspotRadius = Math.tan(LASER_PRESS_TO_MOVE_DEADSPOT_ANGLE) * intersectInfo.distance;  // dead spot radius in meters
         }
 
-        if (this.state == STATE_ENTITY_STYLUS_TOUCHING) {
-            Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, this.hand);
-        } else if (this.state == STATE_ENTITY_LASER_TOUCHING) {
-            Controller.triggerHapticPulse(HAPTIC_LASER_UI_STRENGTH, HAPTIC_LASER_UI_DURATION, this.hand);
-        }
+        Controller.triggerHapticPulse(HAPTIC_LASER_UI_STRENGTH, HAPTIC_LASER_UI_DURATION, this.hand);
     };
 
-    this.entityTouchingExit = function() {
+    this.entityLaserTouchingExit = function() {
         // test for intersection between controller laser and web entity plane.
-        var controllerLocation;
-        if (this.useFingerInsteadOfStylus && this.state === STATE_ENTITY_STYLUS_TOUCHING) {
-            controllerLocation = getFingerWorldLocation(this.hand);
-        } else {
-            controllerLocation = getControllerWorldLocation(this.handToController(), true);
-        }
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var intersectInfo = handLaserIntersectEntity(this.grabbedThingID, controllerLocation);
         if (intersectInfo) {
             var pointerEvent;
@@ -3174,7 +3316,7 @@ function MyController(hand) {
         this.grabbedOverlay = null;
     };
 
-    this.entityTouching = function(dt) {
+    this.entityLaserTouching = function(dt) {
 
         this.touchingEnterTimer += dt;
 
@@ -3186,27 +3328,9 @@ function MyController(hand) {
         }
 
         // test for intersection between controller laser and web entity plane.
-        var controllerLocation;
-        if (this.useFingerInsteadOfStylus && this.state === STATE_ENTITY_STYLUS_TOUCHING) {
-            controllerLocation = getFingerWorldLocation(this.hand);
-        } else {
-            controllerLocation = getControllerWorldLocation(this.handToController(), true);
-        }
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var intersectInfo = handLaserIntersectEntity(this.grabbedThingID, controllerLocation);
         if (intersectInfo) {
-
-            var max;
-            if (this.useFingerInsteadOfStylus && this.state === STATE_ENTITY_STYLUS_TOUCHING) {
-                max = FINGER_TOUCH_MAX;
-            } else {
-                max = WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET;
-            }
-
-            if (this.state == STATE_ENTITY_STYLUS_TOUCHING &&
-                intersectInfo.distance > max) {
-                this.setState(STATE_OFF, "pulled away from web entity");
-                return;
-            }
 
             if (Entities.keyboardFocusEntity != this.grabbedThingID) {
                 Overlays.keyboardFocusOverlay = 0;
@@ -3244,14 +3368,9 @@ function MyController(hand) {
         }
     };
 
-    this.overlayTouchingEnter = function () {
+    this.overlayLaserTouchingEnter = function () {
         // Test for intersection between controller laser and Web overlay plane.
-        var controllerLocation;
-        if (this.useFingerInsteadOfStylus && this.state === STATE_OVERLAY_STYLUS_TOUCHING) {
-            controllerLocation = getFingerWorldLocation(this.hand);
-        } else {
-            controllerLocation = getControllerWorldLocation(this.handToController(), true);
-        }
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var intersectInfo = handLaserIntersectOverlay(this.grabbedOverlay, controllerLocation);
         if (intersectInfo) {
             var pointerEvent = {
@@ -3273,26 +3392,15 @@ function MyController(hand) {
             this.deadspotExpired = false;
 
             var LASER_PRESS_TO_MOVE_DEADSPOT_ANGLE = 0.026; // radians ~ 1.2 degrees
-            var STYLUS_PRESS_TO_MOVE_DEADSPOT_ANGLE = 0.314; // radians ~ 18 degrees
-            var theta = this.state === STATE_OVERLAY_STYLUS_TOUCHING ? STYLUS_PRESS_TO_MOVE_DEADSPOT_ANGLE : LASER_PRESS_TO_MOVE_DEADSPOT_ANGLE;
-            this.deadspotRadius = Math.tan(theta) * intersectInfo.distance;  // dead spot radius in meters
+            this.deadspotRadius = Math.tan(LASER_PRESS_TO_MOVE_DEADSPOT_ANGLE) * intersectInfo.distance;  // dead spot radius in meters
         }
 
-        if (this.state == STATE_OVERLAY_STYLUS_TOUCHING) {
-            Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, this.hand);
-        } else if (this.state == STATE_OVERLAY_LASER_TOUCHING) {
-            Controller.triggerHapticPulse(HAPTIC_LASER_UI_STRENGTH, HAPTIC_LASER_UI_DURATION, this.hand);
-        }
+        Controller.triggerHapticPulse(HAPTIC_LASER_UI_STRENGTH, HAPTIC_LASER_UI_DURATION, this.hand);
     };
 
-    this.overlayTouchingExit = function () {
+    this.overlayLaserTouchingExit = function () {
         // Test for intersection between controller laser and Web overlay plane.
-        var controllerLocation;
-        if (this.useFingerInsteadOfStylus && this.state === STATE_OVERLAY_STYLUS_TOUCHING) {
-            controllerLocation = getFingerWorldLocation(this.hand);
-        } else {
-            controllerLocation = getControllerWorldLocation(this.handToController(), true);
-        }
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var intersectInfo = handLaserIntersectOverlay(this.grabbedOverlay, controllerLocation);
         if (intersectInfo) {
             var pointerEvent;
@@ -3337,12 +3445,8 @@ function MyController(hand) {
         this.grabbedOverlay = null;
     };
 
-    this.overlayTouching = function (dt) {
+    this.overlayLaserTouching = function (dt) {
         this.touchingEnterTimer += dt;
-
-        if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && this.triggerSmoothedSqueezed()) {
-            return;
-        }
 
         if (this.state == STATE_OVERLAY_LASER_TOUCHING && !this.triggerSmoothedGrab()) {
             this.setState(STATE_OFF, "released trigger");
@@ -3350,52 +3454,12 @@ function MyController(hand) {
         }
 
         // Test for intersection between controller laser and Web overlay plane.
-        var controllerLocation;
-        if (this.useFingerInsteadOfStylus && this.state === STATE_OVERLAY_STYLUS_TOUCHING) {
-            controllerLocation = getFingerWorldLocation(this.hand);
-        } else {
-            controllerLocation = getControllerWorldLocation(this.handToController(), true);
-        }
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var intersectInfo = handLaserIntersectOverlay(this.grabbedOverlay, controllerLocation);
         if (intersectInfo) {
 
-            var max, min;
-            if (this.useFingerInsteadOfStylus && this.state === STATE_OVERLAY_STYLUS_TOUCHING) {
-                max = FINGER_TOUCH_MAX;
-                min = FINGER_TOUCH_MIN;
-            } else {
-                max = WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_Y_OFFSET + WEB_TOUCH_Y_TOUCH_DEADZONE_SIZE;
-                min = WEB_STYLUS_LENGTH / 2.0 + WEB_TOUCH_TOO_CLOSE;
-            }
-
-            if (this.state == STATE_OVERLAY_STYLUS_TOUCHING && intersectInfo.distance > max) {
-                this.grabbedThingID = null;
-                this.setState(STATE_OFF, "pulled away from overlay");
-                return;
-            }
-
             var pos2D = projectOntoOverlayXYPlane(this.grabbedOverlay, intersectInfo.point);
             var pos3D = intersectInfo.point;
-
-            if (this.state == STATE_OVERLAY_STYLUS_TOUCHING &&
-                !this.tabletStabbed &&
-                intersectInfo.distance < min) {
-                // they've stabbed the tablet, don't send events until they pull back
-                this.tabletStabbed = true;
-                this.tabletStabbedPos2D = pos2D;
-                this.tabletStabbedPos3D = pos3D;
-                return;
-            }
-
-            if (this.tabletStabbed) {
-                var origin = {x: this.tabletStabbedPos2D.x, y: this.tabletStabbedPos2D.y, z: 0};
-                var point = {x: pos2D.x, y: pos2D.y, z: 0};
-                var offset = Vec3.distance(origin, point);
-                var radius = 0.05;
-                if (offset < radius) {
-                    return;
-                }
-            }
 
             if (Overlays.keyboardFocusOverlay != this.grabbedOverlay) {
                 Entities.keyboardFocusEntity = null;
@@ -3429,6 +3493,61 @@ function MyController(hand) {
             this.grabbedThingID = null;
             this.setState(STATE_OFF, "grabbed overlay was destroyed");
             return;
+        }
+    };
+
+    this.stylusTouchingEnter = function () {
+        this.stealTouchFocus(this.stylusTarget);
+        sendTouchStartEventToStylusTarget(this.hand, this.stylusTarget);
+        Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, this.hand);
+
+        this.touchingEnterTimer = 0;
+        this.touchingEnterStylusTarget = this.stylusTarget;
+        this.deadspotExpired = false;
+
+        var TOUCH_PRESS_TO_MOVE_DEADSPOT = 0.025;
+        this.deadspotRadius = TOUCH_PRESS_TO_MOVE_DEADSPOT; // meters
+    };
+
+    this.stylusTouchingExit = function () {
+
+        // special case to handle home button.
+        if (this.stylusTarget.overlayID === HMD.homeButtonID) {
+            Messages.sendLocalMessage("home", this.stylusTarget.overlayID);
+        }
+
+        // send press event
+        if (this.deadspotExpired) {
+            sendTouchEndEventToStylusTarget(this.hand, this.stylusTarget);
+        } else {
+            sendTouchEndEventToStylusTarget(this.hand, this.touchingEnterStylusTarget);
+        }
+    };
+
+    this.stylusTouching = function (dt) {
+
+        this.touchingEnterTimer += dt;
+
+        var candidates = { entities: [], overlays: [] };
+        if (this.stylusTarget.entityID && this.stylusTarget.entityID !== NULL_UUID) {
+            candidates.entities.push(this.stylusTarget.entityID);
+        } else if (this.stylusTarget.overlayID && this.stylusTarget.overlayID !== NULL_UUID) {
+            candidates.overlays.push(this.stylusTarget.overlayID);
+        }
+        this.stylusTarget = this.calculateNearestStylusTargetFromCandidates(candidates, false);
+
+        var TABLET_MIN_TOUCH_DISTANCE = -0.1;
+        var TABLET_MAX_TOUCH_DISTANCE = 0.01;
+
+        if (this.stylusTarget.valid && this.stylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE && this.stylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE) {
+
+            var POINTER_PRESS_TO_MOVE_DELAY = 0.25; // seconds
+            if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
+                Vec3.distance(this.stylusTarget.position, this.touchingEnterPointerEvent.pos3D) > this.deadspotRadius) {
+                sendTouchMoveEventToStylusTarget(this.hand, this.stylusTarget);
+            }
+        } else {
+            this.setState(STATE_OFF, "hand moved away from tablet");
         }
     };
 
