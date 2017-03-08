@@ -1620,14 +1620,7 @@ QString Application::getUserAgent() {
     return userAgent;
 }
 
-uint64_t lastTabletUIToggle { 0 };
-const uint64_t toggleTabletUILockout { 500000 };
 void Application::toggleTabletUI() const {
-    uint64_t now = usecTimestampNow();
-    if (now - lastTabletUIToggle < toggleTabletUILockout) {
-        return;
-    }
-    lastTabletUIToggle = now;
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     bool messageOpen = tablet->isMessageDialogOpen();
