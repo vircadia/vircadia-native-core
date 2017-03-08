@@ -101,7 +101,7 @@ namespace ktx {
 
         // find the first null character \0 and extract the key
         uint32_t keyLength = 0;
-        while (reinterpret_cast<const char*>(keyValueBytes[++keyLength]) != '\0') {
+        while (reinterpret_cast<const char*>(keyValueBytes)[++keyLength] != '\0') {
             if (keyLength == keyAndValueByteSize) {
                 // key must be null-terminated, and there must be space for the value
                 throw ReaderException("invalid key-value " + std::string(reinterpret_cast<const char*>(keyValueBytes), keyLength));
