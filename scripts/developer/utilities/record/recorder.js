@@ -16,7 +16,7 @@ Script.include("/~/system/libraries/toolBars.js");
 
 var recordingFile = "recording.hfr";
 
-function setPlayerOptions() {
+function setDefaultPlayerOptions() {
     Recording.setPlayFromCurrentLocation(true);
     Recording.setPlayerUseDisplayName(false);
     Recording.setPlayerUseAttachments(false);
@@ -40,10 +40,10 @@ var saveIcon;
 var loadIcon;
 var spacing;
 var timerOffset;
-setupToolBar();
-
 var timer = null;
 var slider = null;
+
+setupToolBar();
 setupTimer();
 
 var watchStop = false;
@@ -58,6 +58,8 @@ function setupToolBar() {
     
     toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL);
     
+    toolBar.onMove = onToolbarMove;
+
     toolBar.setBack(COLOR_TOOL_BAR, ALPHA_OFF);
     
     recordIcon = toolBar.addTool({
@@ -146,6 +148,26 @@ function setupTimer() {
     });
 }
 
+function onToolbarMove(newX, newY, deltaX, deltaY) {
+    print(newX);
+    Overlays.editOverlay(timer, {
+        x: newX + timerOffset - ToolBar.SPACING,
+        y: newY - ToolBar.SPACING
+    });
+    
+    slider.x = newX - ToolBar.SPACING;
+    slider.y = newY - slider.h - ToolBar.SPACING;
+    
+    Overlays.editOverlay(slider.background, {
+        x: slider.x,
+        y: slider.y
+    });
+    Overlays.editOverlay(slider.foreground, {
+        x: slider.x,
+        y: slider.y
+    });
+}
+
 function updateTimer() {
     var text = "";
     if (Recording.isRecording()) {
@@ -196,22 +218,6 @@ function formatTime(time) {
 function moveUI() {
     var relative = { x: 70, y: 40 };
     toolBar.move(relative.x, windowDimensions.y - relative.y);
-    Overlays.editOverlay(timer, {
-        x: relative.x + timerOffset - ToolBar.SPACING,
-        y: windowDimensions.y - relative.y - ToolBar.SPACING
-    });
-    
-    slider.x = relative.x - ToolBar.SPACING;
-    slider.y = windowDimensions.y - relative.y - slider.h - ToolBar.SPACING;
-    
-    Overlays.editOverlay(slider.background, {
-        x: slider.x,
-        y: slider.y
-    });
-    Overlays.editOverlay(slider.foreground, {
-        x: slider.x,
-        y: slider.y
-    });
 }
 
 function mousePressEvent(event) {
@@ -228,6 +234,9 @@ function mousePressEvent(event) {
         } else {
             Recording.stopRecording();
             toolBar.selectTool(recordIcon, true);
+            setDefaultPlayerOptions();
+            // Plays the recording at the same spot as you recorded it
+            Recording.setPlayFromCurrentLocation(false);
             Recording.setPlayerTime(0);
             Recording.loadLastRecording();
             toolBar.setAlpha(ALPHA_ON, playIcon);
@@ -242,7 +251,6 @@ function mousePressEvent(event) {
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
         } else if (Recording.playerLength() > 0) {
-            setPlayerOptions();
             Recording.setPlayerLoop(false);
             Recording.startPlaying();
             toolBar.setAlpha(ALPHA_OFF, recordIcon);
@@ -257,7 +265,6 @@ function mousePressEvent(event) {
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
         } else if (Recording.playerLength() > 0) {
-            setPlayerOptions();
             Recording.setPlayerLoop(true);
             Recording.startPlaying();
             toolBar.setAlpha(ALPHA_OFF, recordIcon);
@@ -276,6 +283,7 @@ function mousePressEvent(event) {
             recordingFile = Window.browse("Load recording from file", ".", "Recordings (*.hfr *.rec *.HFR *.REC)");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
                 Recording.loadRecording(recordingFile);
+                setDefaultPlayerOptions();
             }
             if (Recording.playerLength() > 0) {
                 toolBar.setAlpha(ALPHA_ON, playIcon);
