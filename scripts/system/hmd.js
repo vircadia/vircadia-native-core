@@ -21,10 +21,12 @@ var desktopMenuItemName = "Desktop";
 ['OpenVR (Vive)', 'Oculus Rift'].forEach(function (name) {
     if (!headset && Menu.menuItemExists(displayMenuName, name)) {
         headset = name;
+
     }
 });
 
-var controllerDisplay = false;
+
+    var controllerDisplay = false;
 function updateControllerDisplay() {
     if (HMD.active && Menu.isOptionChecked("Third Person")) {
         if (!controllerDisplay) {
@@ -37,7 +39,9 @@ function updateControllerDisplay() {
     }
 }
 
-var button;
+
+    var button;
+    
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
 // Independent and Entity mode make people sick. Third Person and Mirror have traps that we need to work through.
@@ -45,6 +49,7 @@ var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 
 function onHmdChanged(isHmd) {
+    HMD.closeTablet();
     if (isHmd) {
         button.editProperties({
             icon: "icons/tablet-icons/switch-desk-i.svg",
