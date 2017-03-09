@@ -25,7 +25,7 @@ var desktopMenuItemName = "Desktop";
 });
 
 
-    var controllerDisplay = false;
+var controllerDisplay = false;
 function updateControllerDisplay() {
     if (HMD.active && Menu.isOptionChecked("Third Person")) {
         if (!controllerDisplay) {
