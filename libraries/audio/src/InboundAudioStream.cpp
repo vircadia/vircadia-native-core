@@ -137,7 +137,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
         }
         case SequenceNumberStats::Early: {
             // Packet is early. Treat the packets as if all the packets between the last
-            // OnTime packet and this packet was lost. If we're using a codec this will 
+            // OnTime packet and this packet were lost. If we're using a codec this will 
             // also result in allowing the codec to interpolate lost data. Then
             // fall through to the "on time" logic to actually handle this packet
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
@@ -161,9 +161,9 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                 } else {
                     qDebug(audio) << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
 
-                    // Since the data in the stream is using a codec that we're not prepared for,
+                    // Since the data in the stream is using a codec that we aren't prepared for,
                     // we need to let the codec know that we don't have data for it, this will
-                    // flush any internal codec state and produce fade to silence.
+                    // allowe the codec to interpolate missing data and produce a fade to silence.
                     lostAudioData(1);
 
                     // inform others of the mismatch
@@ -248,12 +248,12 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
 int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
 
     // We can't guarentee that all clients have faded the stream down
-    // to silence and encode that silence before sending us a 
-    // SilentAudioFrame. The encoder may have truncated the stream and 
-    // left the decoder holding some loud state. To handle this case
-    // we will call the decoder's lostFrame() method, which indicates
-    // that it should interpolate from it's last known state (which may
-    // be some unknown loud state) down toward silence.
+    // to silence and encoding that silence before sending us a 
+    // SilentAudioFrame. If the encoder has truncated the stream it will
+    // leave the decoder holding some unknown loud state. To handle this 
+    // case we will call the decoder's lostFrame() method, which indicates
+    // that it should interpolate from its last known state down toward 
+    // silence.
     if (_decoder) {
         // FIXME - We could potentially use the output from the codec, in which 
         // case we might get a cleaner fade toward silence. NOTE: The below logic 
