@@ -154,14 +154,6 @@ const gpu::TexturePointer& TextureCache::getBlackTexture() {
     return _blackTexture;
 }
 
-
-const gpu::TexturePointer& TextureCache::getNormalFittingTexture() {
-    if (!_normalFittingTexture) {
-        _normalFittingTexture = getImageTexture(PathUtils::resourcesPath() + "images/normalFittingScale.dds");
-    }
-    return _normalFittingTexture;
-}
-
 /// Extra data for creating textures.
 class TextureExtra {
 public:

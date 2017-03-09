@@ -88,7 +88,11 @@ ovrSession acquireOculusSession() {
     }
 
     if (!session) {
-        if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
+    	ovrInitParams initParams {
+            ovrInit_RequestVersion | ovrInit_MixedRendering, OVR_MINOR_VERSION, nullptr, 0, 0
+        };
+
+        if (!OVR_SUCCESS(ovr_Initialize(&initParams))) {
             logWarning("Failed to initialize Oculus SDK");
             return session;
         }

@@ -109,6 +109,8 @@ public:
 
     bool isInvalid() const { return _corner == INFINITY_VECTOR; }
 
+    void clear() { _corner = INFINITY_VECTOR; _scale = glm::vec3(0.0f); }
+
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
     glm::vec3 getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const;
