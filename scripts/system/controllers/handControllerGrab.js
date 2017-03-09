@@ -1618,44 +1618,26 @@ function MyController(hand) {
             overlays: []
         };
 
-        // find web-entites near the stylusTip.
+        // build list of stylus targets, near the stylusTip
+        var stylusTargets = [];
         var candidateEntities = Entities.findEntities(tipPosition, WEB_DISPLAY_STYLUS_DISTANCE);
         entityPropertiesCache.addEntities(candidateEntities);
         var i, props;
         for (i = 0; i < candidateEntities.length; i++) {
             props = entityPropertiesCache.getProps(candidateEntities[i]);
             if (props && (props.type === "Web" || this.isTablet(candidateEntities[i]))) {
-                candidates.entities.push(candidateEntities[i]);
+                stylusTargets.push(calculateStylusTargetFromEntity(this.stylusTip, candidateEntities[i]));
             }
         }
 
         // add the tabletScreen, if it is valid
         if (HMD.tabletScreenID && HMD.tabletScreenID !== NULL_UUID) {
-            candidates.overlays.push(HMD.tabletScreenID);
+            stylusTargets.push(calculateStylusTargetFromOverlay(this.stylusTip, HMD.tabletScreenID));
         }
 
         // add the tablet home button.
         if (HMD.homeButtonID && HMD.homeButtonID !== NULL_UUID) {
-            candidates.overlays.push(HMD.homeButtonID);
-        }
-
-        // build list of stylus targets
-        var stylusTargets = [];
-        if (candidates.entities.length > 0 || candidates.overlays.length > 0) {
-            var stylusTarget;
-            for (i = 0; i < candidates.entities.length; i++) {
-                stylusTarget = calculateStylusTargetFromEntity(this.stylusTip, candidates.entities[i]);
-                if (stylusTarget) {
-                    stylusTargets.push(stylusTarget);
-                }
-            }
-
-            for (i = 0; i < candidates.overlays.length; i++) {
-                stylusTarget = calculateStylusTargetFromOverlay(this.stylusTip, candidates.overlays[i]);
-                if (stylusTarget) {
-                    stylusTargets.push(stylusTarget);
-                }
-            }
+            stylusTargets.push(calculateStylusTargetFromOverlay(this.stylusTip, HMD.homeButtonID));
         }
 
         var TABLET_MIN_HOVER_DISTANCE = 0.01;
