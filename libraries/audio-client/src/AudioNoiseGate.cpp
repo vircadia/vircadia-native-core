@@ -142,7 +142,11 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         _sampleCounter = 0;
         
     }
+
+    bool isOpeningGate = false;
+
     if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
+        isOpeningGate = !_isOpen;
         _isOpen = true;
         _framesToClose = NOISE_GATE_CLOSE_FRAME_DELAY;
     } else {
@@ -154,7 +158,23 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         }
     }
     if (!_isOpen) {
-        memset(samples, 0, numSamples * sizeof(int16_t));
+        if (_closedInLastFrame) {
+            // would be nice to do a little crossfade from silence
+            for (int i = 0; i < numSamples; i++) {
+                float fadedSample = (1.0f - (float)i / (float)numSamples) * (float)samples[i];
+                samples[i] = (int16_t)fadedSample;
+            }
+        } else {
+            memset(samples, 0, numSamples * sizeof(int16_t));
+        }
         _lastLoudness = 0;
+    }
+
+    if (isOpeningGate) {
+        // would be nice to do a little crossfade from silence
+        for (int i = 0; i < numSamples; i++) {
+            float fadedSample = ((float)i / (float)numSamples) * (float)samples[i];
+            samples[i] = (int16_t)fadedSample;
+        }
     }
 }
