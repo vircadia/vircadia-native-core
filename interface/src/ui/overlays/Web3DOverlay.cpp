@@ -37,11 +37,12 @@
 #include <AddressManager.h>
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
+#include "scripting/AssetMappingsScriptingInterface.h"
 #include <Preferences.h>
 #include <ScriptEngines.h>
 #include "FileDialogHelper.h"
+#include "avatar/AvatarManager.h"
 #include "AudioClient.h"
-
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -164,6 +165,10 @@ void Web3DOverlay::loadSourceURL() {
         _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
         _webSurface->getRootContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
         _webSurface->getRootContext()->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
+        _webSurface->getRootContext()->setContextProperty("Vec3", new Vec3());
+        _webSurface->getRootContext()->setContextProperty("Quat", new Quat());
+        _webSurface->getRootContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
+        _webSurface->getRootContext()->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
 
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
@@ -176,14 +181,23 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getRootContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
             _webSurface->getRootContext()->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
             _webSurface->getRootContext()->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+            _webSurface->getRootContext()->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
             _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
 
             // Override min fps for tablet UI, for silky smooth scrolling
-            _webSurface->setMaxFps(90);
+            setMaxFPS(90);
         }
     }
     _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+}
+
+void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {
+    _desiredMaxFPS = maxFPS;
+    if (_webSurface) {
+        _webSurface->setMaxFps(_desiredMaxFPS);
+        _currentMaxFPS = _desiredMaxFPS;
+    }
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
@@ -195,9 +209,11 @@ void Web3DOverlay::render(RenderArgs* args) {
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
         _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(pickURL());
-        _webSurface->setMaxFps(10);
         // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
         // and the current rendering load)
+        if (_currentMaxFPS != _desiredMaxFPS) {
+            setMaxFPS(_desiredMaxFPS);
+        }
         loadSourceURL();
         _webSurface->resume();
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
@@ -247,6 +263,10 @@ void Web3DOverlay::render(RenderArgs* args) {
 
         _emitScriptEventConnection = connect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
         _webEventReceivedConnection = connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
+    } else {
+        if (_currentMaxFPS != _desiredMaxFPS) {
+            setMaxFPS(_desiredMaxFPS);
+        }
     }
 
     vec2 halfSize = getSize() / 2.0f;
@@ -402,6 +422,11 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
         _dpi = dpi.toFloat();
     }
 
+    auto maxFPS = properties["maxFPS"];
+    if (maxFPS.isValid()) {
+        _desiredMaxFPS = maxFPS.toInt();
+    }
+
     auto showKeyboardFocusHighlight = properties["showKeyboardFocusHighlight"];
     if (showKeyboardFocusHighlight.isValid()) {
         _showKeyboardFocusHighlight = showKeyboardFocusHighlight.toBool();
@@ -420,6 +445,9 @@ QVariant Web3DOverlay::getProperty(const QString& property) {
     }
     if (property == "dpi") {
         return _dpi;
+    }
+    if (property == "maxFPS") {
+        return _desiredMaxFPS;
     }
     if (property == "showKeyboardFocusHighlight") {
         return _showKeyboardFocusHighlight;

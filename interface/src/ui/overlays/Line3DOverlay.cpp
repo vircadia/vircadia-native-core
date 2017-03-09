@@ -258,8 +258,3 @@ QVariant Line3DOverlay::getProperty(const QString& property) {
 Line3DOverlay* Line3DOverlay::createClone() const {
     return new Line3DOverlay(this);
 }
-
-
-void Line3DOverlay::locationChanged(bool tellPhysics) {
-    // do nothing
-}
