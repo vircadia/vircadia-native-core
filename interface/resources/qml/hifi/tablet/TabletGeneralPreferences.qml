@@ -1,9 +1,8 @@
 //
-//  TabletGeneralSettings.qml
-//  scripts/system/
+//  TabletGeneralPreferences.qml
 //
 //  Created by Dante Ruiz on 9 Feb 2017
-//  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -34,11 +33,10 @@ StackView {
     
     TabletPreferencesDialog {
         id: root
-        objectName: "GeneralPreferencesDialog"
+        property string title: "General Preferences"
+        objectName: "TabletGeneralPreferences"
         width: parent.width
         height: parent.height
         showCategories: ["UI", "Snapshots", "Scripts", "Privacy", "Octree", "HMD", "Sixense Controllers", "Perception Neuron", "Kinect"]
-        
     }
-
 }
