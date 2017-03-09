@@ -2000,6 +2000,11 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         }
     }
 
+    auto currentBasis = getRecordingBasis();
+    if (!currentBasis) {
+        currentBasis = std::make_shared<Transform>(Transform::fromJson(json[JSON_AVATAR_BASIS]));
+    }
+
     if (json.contains(JSON_AVATAR_RELATIVE)) {
         // During playback you can either have the recording basis set to the avatar current state
         // meaning that all playback is relative to this avatars starting position, or
@@ -2008,15 +2013,14 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         // The first is more useful for playing back recordings on your own avatar, while
         // the latter is more useful for playing back other avatars within your scene.
 
-        auto currentBasis = getRecordingBasis();
-        if (!currentBasis) {
-            currentBasis = std::make_shared<Transform>(Transform::fromJson(json[JSON_AVATAR_BASIS]));
-        }
-
         auto relativeTransform = Transform::fromJson(json[JSON_AVATAR_RELATIVE]);
         auto worldTransform = currentBasis->worldTransform(relativeTransform);
         setPosition(worldTransform.getTranslation());
         setOrientation(worldTransform.getRotation());
+    } else {
+        // We still set the position in the case that there is no movement.
+        setPosition(currentBasis->getTranslation());
+        setOrientation(currentBasis->getRotation());
     }
 
     if (json.contains(JSON_AVATAR_SCALE)) {

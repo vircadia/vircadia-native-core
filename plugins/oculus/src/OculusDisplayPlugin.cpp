@@ -28,6 +28,12 @@ OculusDisplayPlugin::OculusDisplayPlugin() {
     _compositorDroppedFrames.store(0);
 }
 
+float OculusDisplayPlugin::getTargetFrameRate() const {
+    if (_aswActive) {
+        return _hmdDesc.DisplayRefreshRate / 2.0f;
+    }
+    return _hmdDesc.DisplayRefreshRate;
+}
 
 bool OculusDisplayPlugin::internalActivate() {
     bool result = Parent::internalActivate();
@@ -185,8 +191,6 @@ void OculusDisplayPlugin::hmdPresent() {
             }
         }
 
-
-
         if (!OVR_SUCCESS(result)) {
             logWarning("Failed to present");
         }
@@ -195,12 +199,20 @@ void OculusDisplayPlugin::hmdPresent() {
         static int appDroppedFrames = 0;
         ovrPerfStats perfStats;
         ovr_GetPerfStats(_session, &perfStats);
+        bool shouldResetPresentRate = false;
         for (int i = 0; i < perfStats.FrameStatsCount; ++i) {
             const auto& frameStats = perfStats.FrameStats[i];
             int delta = frameStats.CompositorDroppedFrameCount - compositorDroppedFrames;
             _stutterRate.increment(delta);
             compositorDroppedFrames = frameStats.CompositorDroppedFrameCount;
             appDroppedFrames = frameStats.AppDroppedFrameCount;
+            bool newAswState = ovrTrue == frameStats.AswIsActive;
+            if (_aswActive.exchange(newAswState) != newAswState) {
+                shouldResetPresentRate = true;
+            }
+        }
+        if (shouldResetPresentRate) {
+            resetPresentRate();
         }
         _appDroppedFrames.store(appDroppedFrames);
         _compositorDroppedFrames.store(compositorDroppedFrames);
@@ -212,6 +224,7 @@ void OculusDisplayPlugin::hmdPresent() {
 
 QJsonObject OculusDisplayPlugin::getHardwareStats() const {
     QJsonObject hardwareStats;
+    hardwareStats["asw_active"] = _aswActive.load();
     hardwareStats["app_dropped_frame_count"] = _appDroppedFrames.load();
     hardwareStats["compositor_dropped_frame_count"] = _compositorDroppedFrames.load();
     hardwareStats["long_render_count"] = _longRenders.load();
