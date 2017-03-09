@@ -30,7 +30,6 @@ Item {
     Rectangle {
         id: pane  // Surrogate for ScrollingWindow's pane.
         anchors.fill: parent
-        color: hifi.colors.baseGray  // Match that of dialog so that dialog's rounded corners don't show.
     }
 
     function closeDialog() {

@@ -28,7 +28,6 @@ Item {
         Rectangle {
             width: parent.width
             height: root.height - (keyboardEnabled && keyboardRaised ? 200 : 0)
-            radius: 4
             color: hifi.colors.baseGray
 
             Rectangle {
