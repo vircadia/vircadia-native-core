@@ -171,9 +171,9 @@ Menu::Menu() {
     // Avatar > Attachments...
     auto action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->show(QString("hifi/dialogs/AttachmentsDialog.qml"), "AttachmentsDialog");
+        qApp->showDialog(QString("hifi/dialogs/AttachmentsDialog.qml"),
+            QString("../../hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
     });
-
 
     // Avatar > Size
     MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");

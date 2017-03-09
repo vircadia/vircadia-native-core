@@ -41,6 +41,7 @@
 #include <ScriptEngines.h>
 #include "FileDialogHelper.h"
 #include "AudioClient.h"
+#include <avatar/AvatarManager.h>
 
 
 static const float DPI = 30.47f;
@@ -174,7 +175,9 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getRootContext()->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
             _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
             _webSurface->getRootContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
+            _webSurface->getRootContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
             _webSurface->getRootContext()->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
+            _webSurface->getRootContext()->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
             _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
 

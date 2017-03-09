@@ -1,47 +1,29 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
-import Qt.labs.settings 1.0
 import QtQuick.Controls.Styles 1.4
 
-import "../../styles-uit"
-import "../../controls-uit" as HifiControls
-import "../../windows"
-import "attachments"
+import "../../../styles-uit"
+import "../../../controls-uit" as HifiControls
+import "../../../windows"
+import "../attachments"
 
-ScrollingWindow {
-    id: root
-    title: "Attachments"
-    objectName: "AttachmentsDialog"
-    width: 600
-    height: 600
-    resizable: true
-    destroyOnHidden: true
-    minSize: Qt.vector2d(400, 500)
-
-    HifiConstants { id: hifi }
+Item {
+    id: content
 
     readonly property var originalAttachments: MyAvatar.getAttachmentsVariant();
     property var attachments: [];
 
-    property var settings: Settings {
-        category: "AttachmentsDialog"
-        property alias x: root.x
-        property alias y: root.y
-        property alias width: root.width
-        property alias height: root.height
-    }
-
     Component.onCompleted: {
         for (var i = 0; i < originalAttachments.length; ++i) {
             var attachment = originalAttachments[i];
-            root.attachments.push(attachment);
+            content.attachments.push(attachment);
             listView.model.append({});
         }
     }
 
     Column {
-        width: pane.contentWidth
+        width: pane.width
 
         Rectangle {
             width: parent.width
@@ -118,7 +100,7 @@ ScrollingWindow {
                             Attachment {
                                 id: attachmentView
                                 width: scrollView.width
-                                attachment: root.attachments[index]
+                                attachment: content.attachments[index]
                                 onDeleteAttachment: {
                                     attachments.splice(index, 1);
                                     listView.model.remove(index, 1);
@@ -190,7 +172,7 @@ ScrollingWindow {
                 text: "Cancel"
                 onTriggered: {
                     MyAvatar.setAttachmentsVariant(originalAttachments);
-                    root.destroy()
+                    closeDialog();
                 }
             }
 
@@ -203,12 +185,14 @@ ScrollingWindow {
                     }
 
                     MyAvatar.setAttachmentsVariant(attachments);
-                    root.destroy()
+                    closeDialog();
                 }
             }
         }
     }
 
+    // FIXME
+    /*
     onKeyboardRaisedChanged: {
         if (keyboardEnabled && keyboardRaised) {
             // Scroll to item with focus if necessary.
@@ -225,5 +209,6 @@ ScrollingWindow {
             }
         }
     }
+    */
 }
 
