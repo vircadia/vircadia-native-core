@@ -19,12 +19,19 @@
 #include <QDir>
 
 #include <ServerPathUtils.h>
+#include <NumericalConstants.h>
 
 Q_LOGGING_CATEGORY(file_cache, "hifi.file_cache", QtWarningMsg)
 
 using namespace cache;
 
 static const std::string MANIFEST_NAME = "manifest";
+
+static const size_t BYTES_PER_MEGABYTES = 1024 * 1024;
+static const size_t BYTES_PER_GIGABYTES = 1024 * BYTES_PER_MEGABYTES;
+const size_t FileCache::DEFAULT_UNUSED_MAX_SIZE = 5 * BYTES_PER_GIGABYTES; // 5GB
+const size_t FileCache::MAX_UNUSED_MAX_SIZE = 100 * BYTES_PER_GIGABYTES; // 100GB
+const size_t FileCache::DEFAULT_OFFLINE_MAX_SIZE = 2 * BYTES_PER_GIGABYTES; // 2GB
 
 void FileCache::setUnusedFileCacheSize(size_t unusedFilesMaxSize) {
     _unusedFilesMaxSize = std::min(unusedFilesMaxSize, MAX_UNUSED_MAX_SIZE);

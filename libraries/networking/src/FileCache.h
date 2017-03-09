@@ -35,11 +35,9 @@ class FileCache : public QObject {
     Q_PROPERTY(size_t sizeTotal READ getSizeTotalFiles NOTIFY dirty)
     Q_PROPERTY(size_t sizeCached READ getSizeCachedFiles NOTIFY dirty)
 
-    static const size_t BYTES_PER_MEGABYTES = 1024 * 1024;
-    static const size_t BYTES_PER_GIGABYTES = 1024 * BYTES_PER_MEGABYTES;
-    static const size_t DEFAULT_UNUSED_MAX_SIZE = 5 * BYTES_PER_GIGABYTES; // 5GB
-    static const size_t MAX_UNUSED_MAX_SIZE = 100 * BYTES_PER_GIGABYTES; // 100GB
-    static const size_t DEFAULT_OFFLINE_MAX_SIZE = 2 * BYTES_PER_GIGABYTES; // 2GB
+    static const size_t DEFAULT_UNUSED_MAX_SIZE;
+    static const size_t MAX_UNUSED_MAX_SIZE;
+    static const size_t DEFAULT_OFFLINE_MAX_SIZE;
 
 public:
     size_t getNumTotalFiles() const { return _numTotalFiles; }
