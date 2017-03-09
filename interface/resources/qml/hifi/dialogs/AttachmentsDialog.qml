@@ -42,4 +42,14 @@ ScrollingWindow {
 
     AttachmentsContent { }
 
+    onKeyboardRaisedChanged: {
+        if (keyboardEnabled && keyboardRaised) {
+            var buttonHeight = 40;  // Allow for New Attachment button.
+            var keyboardRaisedHeight = 200;
+            var delta = activator.mouseY - (root.height - keyboardRaisedHeight - buttonHeight);
+            if (delta > 0) {
+                content.scrollBy(delta);
+            }
+        }
+    }
 }

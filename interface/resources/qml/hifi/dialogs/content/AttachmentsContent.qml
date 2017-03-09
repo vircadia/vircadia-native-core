@@ -191,24 +191,8 @@ Item {
         }
     }
 
-    // FIXME
-    /*
-    onKeyboardRaisedChanged: {
-        if (keyboardEnabled && keyboardRaised) {
-            // Scroll to item with focus if necessary.
-            var footerHeight = newAttachmentButton.height + buttonRow.height + 3 * hifi.dimensions.contentSpacing.y;
-            var delta = activator.mouseY
-                    - (activator.height + activator.y - 200 - footerHeight - hifi.dimensions.controlLineHeight);
-
-            if (delta > 0) {
-                scrollView.scrollBy(delta);
-            } else {
-                // HACK: Work around for case where are 100% scrolled; stops window from erroneously scrolling to 100% when show keyboard.
-                scrollView.scrollBy(-1);
-                scrollView.scrollBy(1);
-            }
-        }
+    function scrollBy(delta) {
+        scrollView.scrollBy(delta);
     }
-    */
 }
 

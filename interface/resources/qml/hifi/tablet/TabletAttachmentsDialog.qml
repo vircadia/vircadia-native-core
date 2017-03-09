@@ -49,7 +49,7 @@ Item {
 
         MouseArea {
             // Defocuses any current control so that the keyboard gets hidden.
-            id: mouseArea
+            id: defocuser
             anchors.fill: parent
             propagateComposedEvents: true
             acceptedButtons: Qt.AllButtons
@@ -68,6 +68,27 @@ Item {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
+        }
+    }
+
+    onKeyboardRaisedChanged: {
+        if (keyboardEnabled && keyboardRaised) {
+            var buttonsHeight = 120;  // Allow for New Attachment plus Cancel & OK buttons.
+            var delta = activator.mouseY - (root.height - keyboard.raisedHeight - buttonsHeight);
+            if (delta > 0) {
+                attachments.scrollBy(delta);
+            }
+        }
+    }
+
+    MouseArea {
+        id: activator
+        anchors.fill: parent
+        propagateComposedEvents: true
+        enabled: true
+        acceptedButtons: Qt.AllButtons
+        onPressed: {
+            mouse.accepted = false;
         }
     }
 
