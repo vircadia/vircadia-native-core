@@ -40,78 +40,34 @@ Item {
                 color: hifi.colors.baseGrayShadow
                 radius: 4
 
-                ScrollView {
-                    id: scrollView
+                ListView {
+                    id: listView
                     anchors.fill: parent
                     anchors.margins: 4
+                    clip: true
+                    focus: true
 
-                    style: ScrollViewStyle {
-
-                        padding {
-                            top: 0
-                            right: 0
-                            bottom: 0
-                        }
-
-                        decrementControl: Item {
-                            visible: false
-                        }
-                        incrementControl: Item {
-                            visible: false
-                        }
-                        scrollBarBackground: Rectangle{
-                            implicitWidth: 14
-                            color: hifi.colors.baseGray
-                            radius: 4
-                            Rectangle {
-                                // Make top left corner of scrollbar appear square
-                                width: 8
-                                height: 4
-                                color: hifi.colors.baseGray
-                                anchors.top: parent.top
-                                anchors.horizontalCenter: parent.left
+                    model: ListModel {}
+                    delegate: Item {
+                        id: attachmentDelegate
+                        implicitHeight: attachmentView.height + 8;
+                        implicitWidth: attachmentView.width
+                        Attachment {
+                            id: attachmentView
+                            width: listView.width
+                            attachment: content.attachments[index]
+                            onDeleteAttachment: {
+                                attachments.splice(index, 1);
+                                listView.model.remove(index, 1);
                             }
-
-                        }
-                        handle:
-                            Rectangle {
-                            implicitWidth: 8
-                            anchors {
-                                left: parent.left
-                                leftMargin: 3
-                                top: parent.top
-                                topMargin: 3
-                                bottom: parent.bottom
-                                bottomMargin: 4
-                            }
-                            radius: 4
-                            color: hifi.colors.lightGrayText
+                            onUpdateAttachment: MyAvatar.setAttachmentsVariant(attachments);
                         }
                     }
-
-                    ListView {
-                        id: listView
-                        model: ListModel {}
-                        delegate: Item {
-                            id: attachmentDelegate
-                            implicitHeight: attachmentView.height + 8;
-                            implicitWidth: attachmentView.width
-                            Attachment {
-                                id: attachmentView
-                                width: scrollView.width
-                                attachment: content.attachments[index]
-                                onDeleteAttachment: {
-                                    attachments.splice(index, 1);
-                                    listView.model.remove(index, 1);
-                                }
-                                onUpdateAttachment: MyAvatar.setAttachmentsVariant(attachments);
-                            }
-                        }
-                        onCountChanged: MyAvatar.setAttachmentsVariant(attachments);
-                    }
+                    onCountChanged: MyAvatar.setAttachmentsVariant(attachments);
 
                     function scrollBy(delta) {
-                        flickableItem.contentY += delta;
+                        // @@@@@@@
+                        //flickableItem.contentY += delta;
                     }
                 }
             }
@@ -191,7 +147,7 @@ Item {
     }
 
     function scrollBy(delta) {
-        scrollView.scrollBy(delta);
+        listView.scrollBy(delta);
     }
 }
 
