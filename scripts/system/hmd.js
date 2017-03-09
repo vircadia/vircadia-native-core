@@ -24,7 +24,6 @@ var desktopMenuItemName = "Desktop";
     }
 });
 
-
 var controllerDisplay = false;
 function updateControllerDisplay() {
     if (HMD.active && Menu.isOptionChecked("Third Person")) {
@@ -38,9 +37,7 @@ function updateControllerDisplay() {
     }
 }
 
-
-var button;
-    
+var button;    
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
 // Independent and Entity mode make people sick. Third Person and Mirror have traps that we need to work through.
