@@ -58,6 +58,7 @@ void AudioNoiseGate::removeDCOffset(int16_t* samples, int numSamples) {
     }
 }
 
+#include <QDebug>
 
 void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     //
@@ -77,7 +78,8 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     //  NOISE_GATE_FRAMES_TO_AVERAGE:  How many audio frames should we average together to compute noise floor.
     //                      More means better rejection but also can reject continuous things like singing.
     // NUMBER_OF_NOISE_SAMPLE_FRAMES:  How often should we re-evaluate the noise floor?
-    
+
+    _closedInLastFrame = false;
     
     float loudness = 0;
     int thisSample = 0;
@@ -147,6 +149,9 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         _framesToClose = NOISE_GATE_CLOSE_FRAME_DELAY;
     } else {
         if (--_framesToClose == 0) {
+            if (_isOpen) {
+                _closedInLastFrame = true;
+            }
             _isOpen = false;
         }
     }

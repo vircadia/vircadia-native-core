@@ -136,9 +136,10 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             break;
         }
         case SequenceNumberStats::Early: {
-            // Packet is early; write droppable silent samples for each of the skipped packets.
-            // NOTE: we assume that each dropped packet contains the same number of samples
-            // as the packet we just received.
+            // Packet is early treat the packets as if all the packets between the last
+            // OnTime packet and this packet was lost. If we're using a codec this will 
+            // also result in allowing the codec to flush its internal state. Then
+            // fall through to the "on time" logic to actually handle this packet
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
             lostAudioData(packetsDropped);
 
@@ -147,7 +148,10 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
             if (message.getType() == PacketType::SilentAudioFrame) {
-                // FIXME - Some codecs need to know about these silent frames... and can produce better output
+                // If we recieved a SilentAudioFrame from our sender, we might want to drop
+                // some of the samples in order to catch up to our desired jitter buffer size.
+                // NOTE: If we're using a codec we will be calling the codec's lostFrame()
+                // method to allow the codec to flush its internal state.
                 writeDroppableSilentFrames(networkFrames);
             } else {
                 // note: PCM and no codec are identical
@@ -158,7 +162,12 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                     parseAudioData(message.getType(), afterProperties);
                 } else {
                     qDebug(audio) << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
-                    writeDroppableSilentFrames(networkFrames);
+
+                    // Since the data in the stream is using a codec that we're not prepared for,
+                    // we need to let the codec know that we don't have data for it, this will
+                    // flush any internal codec state and produce fade to silence.
+                    lostAudioData(1);
+
                     // inform others of the mismatch
                     auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
                     emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
@@ -239,6 +248,21 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
 }
 
 int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
+
+    // if we have a decoder, we still want to tell the decoder about our
+    // lost frame. this will flush the internal state of the decoder
+    // we can safely ignore the output of the codec in this case, because
+    // we've enforced that on the sending side, the encoder ran at least
+    // one frame of truly silent audio before we sent the "droppable" silent
+    // frame. Technically we could leave this out, if we know for certain
+    // that the sender has really sent us an encoded packet of zeros, but
+    // since we can trust all encoders to always encode at least one silent
+    // frame (open source, someone code modify it), we will go ahead and
+    // tell our decoder about the lost frame.
+    if (_decoder) {
+        QByteArray decodedBuffer;
+        _decoder->lostFrame(decodedBuffer);
+    }
 
     // calculate how many silent frames we should drop.
     int silentSamples = silentFrames * _numChannels;
