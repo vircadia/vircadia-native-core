@@ -1335,7 +1335,7 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     _animSkeleton->convertAbsoluteRotationsToRelative(rotations);
 
     // store new relative poses
-    if (numJoints != _internalPoseSet._relativePoses.size()) {
+    if (numJoints != (int)_internalPoseSet._relativePoses.size()) {
         _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
     }
     const AnimPoseVec& relativeDefaultPoses = _animSkeleton->getRelativeDefaultPoses();
