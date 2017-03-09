@@ -478,6 +478,9 @@ bool SendQueue::maybeResendPacket() {
 
                 Packet::ObfuscationLevel level = (Packet::ObfuscationLevel)(entry.first < 2 ? 0 : (entry.first - 2) % 4);
 
+                auto wireSize = resendPacket.getWireSize();
+                auto sequenceNumber = it->first;
+
                 if (level != Packet::NoObfuscation) {
 #ifdef UDT_CONNECTION_DEBUG
                     QString debugString = "Obfuscating packet %1 with level %2";
@@ -512,7 +515,7 @@ bool SendQueue::maybeResendPacket() {
                     sentLocker.unlock();
                 }
                 
-                emit packetRetransmitted(resendPacket.getWireSize(), it->first, p_high_resolution_clock::now());
+                emit packetRetransmitted(wireSize, sequenceNumber, p_high_resolution_clock::now());
                 
                 // Signal that we did resend a packet
                 return true;

@@ -85,6 +85,10 @@ Fadable {
 
     function setDefaultFocus() {}  // Default function; can be overridden by dialogs.
 
+    function setShown(value) {
+        window.shown = value;
+    }
+
     property var rectifier: Timer {
         property bool executing: false;
         interval: 100
@@ -296,6 +300,10 @@ Fadable {
                 // fall through
 
             default:
+                if (MyAvatar.isAway) {
+                    // If stuck in a window and a key is pressed this should exit paused mode
+                    MyAvatar.isAway = false;
+                }
                 // Consume unmodified keyboard entries while the window is focused, to prevent them
                 // from propagating to the application
                 if (event.modifiers === Qt.NoModifier) {
@@ -305,6 +313,6 @@ Fadable {
         }
     }
 
-    onMouseEntered: console.log("Mouse entered " + window)
-    onMouseExited: console.log("Mouse exited " + window)
+    // onMouseEntered: console.log("Mouse entered " + window)
+    // onMouseExited: console.log("Mouse exited " + window)
 }

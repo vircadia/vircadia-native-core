@@ -26,6 +26,7 @@
 
 class TabletProxy;
 class TabletButtonProxy;
+class QmlWindowClass;
 
 /**jsdoc
  * @namespace Tablet
@@ -35,6 +36,9 @@ class TabletScriptingInterface : public QObject, public Dependency {
 public:
     TabletScriptingInterface();
 
+    void setToolbarScriptingInterface(QObject* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
+    QObject* getSystemToolbarProxy();
+
     /**jsdoc
      * Creates or retruns a new TabletProxy and returns it.
      * @function Tablet.getTablet
@@ -42,6 +46,8 @@ public:
      * @return {TabletProxy} tablet instance
      */
     Q_INVOKABLE QObject* getTablet(const QString& tabletId);
+
+    void setToolbarMode(bool toolbarMode);
 
     void setQmlTabletRoot(QString tabletId, QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
@@ -58,21 +64,31 @@ private:
 protected:
     std::mutex _mutex;
     std::map<QString, QSharedPointer<TabletProxy>> _tabletProxies;
+    QObject* _toolbarScriptingInterface { nullptr };
+    bool _toolbarMode { false };
 };
 
 /**jsdoc
  * @class TabletProxy
  * @property name {string} READ_ONLY: name of this tablet
+ * @property toolbarMode {bool} - used to transition this tablet into and out of toolbar mode.
+ *     When tablet is in toolbar mode, all its buttons will appear in a floating toolbar.
  */
 class TabletProxy : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
+    Q_PROPERTY(bool toolbarMode READ getToolbarMode WRITE setToolbarMode)
 public:
     TabletProxy(QString name);
 
     void setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
-    Q_INVOKABLE void gotoMenuScreen();
+    Q_INVOKABLE void gotoMenuScreen(const QString& submenu = "");
+
+    QString getName() const { return _name; }
+
+    bool getToolbarMode() const { return _toolbarMode; }
+    void setToolbarMode(bool toolbarMode);
 
     /**jsdoc
      * transition to the home screen
@@ -88,6 +104,16 @@ public:
      */
     Q_INVOKABLE void gotoWebScreen(const QString& url);
     Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl);
+
+    Q_INVOKABLE void loadQMLSource(const QVariant& path);
+    Q_INVOKABLE void pushOntoStack(const QVariant& path);
+    Q_INVOKABLE void popFromStack();
+
+    /** jsdoc
+     * Check if the tablet has a message dialog open
+     * @function TabletProxy#isMessageDialogOpen
+     */
+    Q_INVOKABLE bool isMessageDialogOpen();
 
     /**jsdoc
      * Creates a new button, adds it to this and returns it.
@@ -105,13 +131,18 @@ public:
     Q_INVOKABLE void removeButton(QObject* tabletButtonProxy);
 
     /**jsdoc
+     * Updates the tablet's mic enabled state
+     * @function TabletProxy#updateMicEnabled
+     * @param micEnabled {bool} mic enabled state
+     */
+    Q_INVOKABLE void updateMicEnabled(const bool micEnabled);
+
+    /**jsdoc
      * Updates the audio bar in tablet to reflect latest mic level
      * @function TabletProxy#updateAudioBar
      * @param micLevel {double} mic level value between 0 and 1
      */
     Q_INVOKABLE void updateAudioBar(const double micLevel);
-
-    QString getName() const { return _name; }
 
     /**jsdoc
      * Used to send an event to the html/js embedded in the tablet
@@ -119,8 +150,21 @@ public:
      * @param msg {object|string}
      */
     Q_INVOKABLE void emitScriptEvent(QVariant msg);
-    
+
+    /**jsdoc
+     * Used to send an event to the qml embedded in the tablet
+     * @function TabletProxy#sendToQml
+     * @param msg {object|string}
+     */
+    Q_INVOKABLE void sendToQml(QVariant msg);
+
+    /**jsdoc
+     * Check if the tablet is on the homescreen
+     * @function TabletProxy#onHomeScreen()
+     */
     Q_INVOKABLE bool onHomeScreen();
+
+    QQuickItem* getTabletRoot() const { return _qmlTabletRoot; }
 
     QObject* getTabletSurface();
 
@@ -137,19 +181,39 @@ signals:
      */
     void webEventReceived(QVariant msg);
 
-private slots:
+    /**jsdoc
+     * Signaled when this tablet receives an event from the qml embedded in the tablet
+     * @function TabletProxy#fromQml
+     * @param msg {object|string}
+     * @returns {Signal}
+     */
+    void fromQml(QVariant msg);
+
+    /**jsdoc
+     * Signaled when this tablet screen changes.
+     * @function TabletProxy#screenChanged
+     * @param type {string} - "Home", "Web", "Menu", "QML", "Closed"
+     * @param url {string} - only valid for Web and QML.
+     */
+    void screenChanged(QVariant type, QVariant url);
+
+protected slots:
     void addButtonsToHomeScreen();
-    void addButtonsToMenuScreen();
+    void desktopWindowClosed();
 protected:
     void removeButtonsFromHomeScreen();
+    void addButtonsToToolbar();
+    void removeButtonsFromToolbar();
 
     QString _name;
     std::mutex _mutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTabletRoot { nullptr };
     QObject* _qmlOffscreenSurface { nullptr };
+    QmlWindowClass* _desktopWindow { nullptr };
+    bool _toolbarMode { false };
 
-    enum class State { Uninitialized, Home, Web, Menu };
+    enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
 };
 
@@ -164,20 +228,21 @@ public:
     TabletButtonProxy(const QVariantMap& properties);
 
     void setQmlButton(QQuickItem* qmlButton);
+    void setToolbarButtonProxy(QObject* toolbarButtonProxy);
 
     QUuid getUuid() const { return _uuid; }
 
     /**jsdoc
      * Returns the current value of this button's properties
      * @function TabletButtonProxy#getProperties
-     * @returns {object}
+     * @returns {ButtonProperties}
      */
     Q_INVOKABLE QVariantMap getProperties() const;
 
     /**jsdoc
      * Replace the values of some of this button's properties
      * @function TabletButtonProxy#editProperties
-     * @param properties {object} set of properties to change
+     * @param {ButtonProperties} properties - set of properties to change
      */
     Q_INVOKABLE void editProperties(QVariantMap properties);
 
@@ -194,9 +259,25 @@ signals:
 
 protected:
     QUuid _uuid;
+    int _stableOrder;
     mutable std::mutex _mutex;
     QQuickItem* _qmlButton { nullptr };
+    QObject* _toolbarButtonProxy { nullptr };
     QVariantMap _properties;
 };
+
+/**jsdoc
+ * @typedef TabletButtonProxy.ButtonProperties
+ * @property {string} icon - url to button icon. (50 x 50)
+ * @property {string} hoverIcon - url to button icon, displayed during mouse hover. (50 x 50)
+ * @property {string} activeHoverIcon - url to button icon used when button is active, and during mouse hover. (50 x 50)
+ * @property {string} activeIcon - url to button icon used when button is active. (50 x 50)
+ * @property {string} text - button caption
+ * @property {string} hoverText - button caption when button is not-active but during mouse hover.
+ * @property {string} activeText - button caption when button is active
+ * @property {string} activeHoverText - button caption when button is active and during mouse hover.
+ * @property {string} isActive - true when button is active.
+ * @property {number} sortOrder - determines sort order on tablet.  lower numbers will appear before larger numbers.  default is 100
+ */
 
 #endif // hifi_TabletScriptingInterface_h

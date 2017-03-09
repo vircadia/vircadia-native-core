@@ -2,8 +2,14 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import QtQuick.Controls 1.4
 import QtQml 2.2
+import QtWebChannel 1.0
+import QtWebEngine  1.1
+import HFWebEngineProfile 1.0
+
+
 import "."
 import "../../styles-uit"
+import "../../controls"
 
 FocusScope {
     id: tabletMenu
@@ -13,9 +19,11 @@ FocusScope {
     height: 720
 
     property var rootMenu: Menu { objectName:"rootMenu" }
-    property var point: Qt.point(50, 50)
-
-    TabletMouseHandler { id: menuPopperUpper }
+    property var point: Qt.point(50, 50);
+    TabletMenuStack { id: menuPopperUpper }
+    property string subMenu: ""
+    property var eventBridge;
+    signal sendToScript(var message);
 
     Rectangle {
         id: bgNavBar
@@ -54,7 +62,11 @@ FocusScope {
                 onEntered: iconColorOverlay.color = "#1fc6a6";
                 onExited: iconColorOverlay.color = "#ffffff";
                 // navigate back to root level menu
-                onClicked: buildMenu();
+                onClicked: {
+                    buildMenu();
+                    breadcrumbText.text = "Menu";
+                    tabletRoot.playButtonClickSound();
+                }
             }
         }
 
@@ -79,10 +91,12 @@ FocusScope {
                 onEntered: breadcrumbText.color = "#1fc6a6";
                 onExited: breadcrumbText.color = "#34a2c7";
                 // navigate back to parent level menu if there is one
-                onClicked: 
+                onClicked: { 
                     if (breadcrumbText.text !== "Menu") {
                         menuPopperUpper.closeLastMenu();
                     }
+                    tabletRoot.playButtonClickSound();
+                }
             }
         }
     }
@@ -91,11 +105,32 @@ FocusScope {
         menuPopperUpper.closeLastMenu();
     }
 
-    function setRootMenu(menu) {
-        tabletMenu.rootMenu = menu
+
+    function setRootMenu(rootMenu, subMenu) {
+        tabletMenu.subMenu = subMenu;
+        tabletMenu.rootMenu = rootMenu;
         buildMenu()
     }
+
     function buildMenu() {
-        menuPopperUpper.popup(tabletMenu, rootMenu.items)
+        // Build submenu if specified.
+        if (subMenu !== "") {
+            var index = 0;
+            var found = false;
+            while (!found && index < rootMenu.items.length) {
+                found = rootMenu.items[index].title === subMenu;
+                if (!found) {
+                    index += 1;
+                }
+            }
+            subMenu = "";  // Continue with full menu after initially displaying submenu.
+            if (found) {
+                menuPopperUpper.popup(rootMenu.items[index].items);
+                return;
+            }
+        }
+
+        // Otherwise build whole menu.
+        menuPopperUpper.popup(rootMenu.items);
     }
 }

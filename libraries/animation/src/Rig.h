@@ -104,6 +104,10 @@ public:
     void clearJointAnimationPriority(int index);
 
     void clearIKJointLimitHistory();
+    void setMaxHipsOffsetLength(float maxLength);
+    float getMaxHipsOffsetLength() const;
+
+    float getIKErrorOnLastSolve() const;
 
     int getJointParentIndex(int childIndex) const;
 
@@ -206,10 +210,12 @@ public:
 
     void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
+    void computeExternalPoses(const glm::mat4& modelOffsetMat);
 
     void computeAvatarBoundingCapsule(const FBXGeometry& geometry, float& radiusOut, float& heightOut, glm::vec3& offsetOut) const;
 
     void setEnableInverseKinematics(bool enable);
+    void setEnableAnimations(bool enable);
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
@@ -314,8 +320,11 @@ protected:
     int32_t _numOverrides { 0 };
     bool _lastEnableInverseKinematics { true };
     bool _enableInverseKinematics { true };
+    bool _enabledAnimations { true };
 
     mutable uint32_t _jointNameWarningCount { 0 };
+    float _maxHipsOffsetLength { 1.0f };
+    float _maxErrorOnLastSolve { 0.0f };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

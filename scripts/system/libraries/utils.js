@@ -9,7 +9,7 @@
 // note: this constant is currently duplicated in edit.js
 EDIT_SETTING = "io.highfidelity.isEditting";
 isInEditMode = function isInEditMode() {
-    return Settings.getValue(EDIT_SETTING) === "false" ? false : !!Settings.getValue(EDIT_SETTING);
+    return Settings.getValue(EDIT_SETTING);
 };
 
 if (!Function.prototype.bind) {

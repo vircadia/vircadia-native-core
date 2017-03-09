@@ -25,6 +25,14 @@ var OVERLAY_RAMP_RATE = 8.0;
 
 var animStateHandlerID;
 
+var isBothIndexesPointing = false;
+var HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index";
+
+var isLeftIndexPointing = false;
+var isRightIndexPointing = false;
+var isLeftThumbRaised = false;
+var isRightThumbRaised = false;
+
 function clamp(val, min, max) {
     return Math.min(Math.max(val, min), max);
 }
@@ -41,15 +49,32 @@ function init() {
     Script.update.connect(update);
     animStateHandlerID = MyAvatar.addAnimationStateHandler(
         animStateHandler,
-        ["leftHandOverlayAlpha", "rightHandOverlayAlpha", "leftHandGraspAlpha", "rightHandGraspAlpha"]
+        [
+            "leftHandOverlayAlpha", "leftHandGraspAlpha",
+            "rightHandOverlayAlpha", "rightHandGraspAlpha",
+            "isLeftHandGrasp", "isLeftIndexPoint", "isLeftThumbRaise", "isLeftIndexPointAndThumbRaise",
+            "isRightHandGrasp", "isRightIndexPoint", "isRightThumbRaise", "isRightIndexPointAndThumbRaise",
+        ]
     );
+    Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+    Messages.messageReceived.connect(handleMessages);
 }
 
 function animStateHandler(props) {
-    return { leftHandOverlayAlpha: leftHandOverlayAlpha,
-             leftHandGraspAlpha: lastLeftTrigger,
-             rightHandOverlayAlpha: rightHandOverlayAlpha,
-             rightHandGraspAlpha: lastRightTrigger };
+    return {
+        leftHandOverlayAlpha: leftHandOverlayAlpha,
+        leftHandGraspAlpha: lastLeftTrigger,
+        rightHandOverlayAlpha: rightHandOverlayAlpha,
+        rightHandGraspAlpha: lastRightTrigger,
+        isLeftHandGrasp: !isBothIndexesPointing && !isLeftIndexPointing && !isLeftThumbRaised,
+        isLeftIndexPoint: (isBothIndexesPointing || isLeftIndexPointing) && !isLeftThumbRaised,
+        isLeftThumbRaise: !isBothIndexesPointing && !isLeftIndexPointing && isLeftThumbRaised,
+        isLeftIndexPointAndThumbRaise: (isBothIndexesPointing || isLeftIndexPointing) && isLeftThumbRaised,
+        isRightHandGrasp: !isBothIndexesPointing && !isRightIndexPointing && !isRightThumbRaised,
+        isRightIndexPoint: (isBothIndexesPointing || isRightIndexPointing) && !isRightThumbRaised,
+        isRightThumbRaise: !isBothIndexesPointing && !isRightIndexPointing && isRightThumbRaised,
+        isRightIndexPointAndThumbRaise: (isBothIndexesPointing || isRightIndexPointing) && isRightThumbRaised
+    };
 }
 
 function update(dt) {
@@ -76,11 +101,29 @@ function update(dt) {
     } else {
         rightHandOverlayAlpha = clamp(rightHandOverlayAlpha - OVERLAY_RAMP_RATE * dt, 0, 1);
     }
+
+    // Pointing index fingers and raising thumbs
+    isLeftIndexPointing = leftHandPose.valid && Controller.getValue(Controller.Standard.LeftIndexPoint) === 1;
+    isRightIndexPointing = rightHandPose.valid && Controller.getValue(Controller.Standard.RightIndexPoint) === 1;
+    isLeftThumbRaised = leftHandPose.valid && Controller.getValue(Controller.Standard.LeftThumbUp) === 1;
+    isRightThumbRaised = rightHandPose.valid && Controller.getValue(Controller.Standard.RightThumbUp) === 1;
+}
+
+function handleMessages(channel, message, sender) {
+    if (sender === MyAvatar.sessionUUID && channel === HIFI_POINT_INDEX_MESSAGE_CHANNEL) {
+        var data = JSON.parse(message);
+        if (data.pointIndex !== undefined) {
+            print("pointIndex: " + data.pointIndex);
+            isBothIndexesPointing = data.pointIndex;
+        }
+    }
 }
 
 function shutdown() {
     Script.update.disconnect(update);
     MyAvatar.removeAnimationStateHandler(animStateHandlerID);
+    Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+    Messages.messageReceived.disconnect(handleMessages);
 }
 
 Script.scriptEnding.connect(shutdown);

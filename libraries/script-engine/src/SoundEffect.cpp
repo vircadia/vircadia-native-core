@@ -5,9 +5,6 @@
 #include <AudioInjector.h>
 
 SoundEffect::~SoundEffect() {
-    if (_sound) {
-        _sound->deleteLater();
-    }
     if (_injector) {
          // stop will cause the AudioInjector to delete itself.
         _injector->stop();
@@ -23,10 +20,19 @@ void SoundEffect::setSource(QUrl url) {
     _sound = DependencyManager::get<SoundCache>()->getSound(_url);
 }
 
+float SoundEffect::getVolume() const {
+    return _volume;
+}
+
+void SoundEffect::setVolume(float volume) {
+    _volume = volume;
+}
+
 void SoundEffect::play(QVariant position) {
     AudioInjectorOptions options;
     options.position = vec3FromVariant(position);
     options.localOnly = true;
+    options.volume = _volume;
     if (_injector) {
         _injector->setOptions(options);
         _injector->restart();

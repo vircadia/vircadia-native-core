@@ -86,7 +86,7 @@ private:
 /// Wrapper to expose resources to JS/QML
 class ScriptableResource : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QUrl url READ getUrl)
+    Q_PROPERTY(QUrl url READ getURL)
     Q_PROPERTY(int state READ getState NOTIFY stateChanged)
 
     /**jsdoc
@@ -125,7 +125,7 @@ public:
      */
     Q_INVOKABLE void release();
 
-    const QUrl& getUrl() const { return _url; }
+    const QUrl& getURL() const { return _url; }
     int getState() const { return (int)_state; }
     const QSharedPointer<Resource>& getResource() const { return _resource; }
 
@@ -249,6 +249,7 @@ public:
     
     void refreshAll();
     void refresh(const QUrl& url);
+    void clearUnusedResources();
 
 signals:
     void dirty();
@@ -298,7 +299,7 @@ protected:
     
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
-    
+
     /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
     /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
     static bool attemptRequest(QSharedPointer<Resource> resource);
@@ -309,7 +310,6 @@ private:
     friend class Resource;
 
     void reserveUnusedResource(qint64 resourceSize);
-    void clearUnusedResource();
     void resetResourceCounters();
     void removeResource(const QUrl& url, qint64 size = 0);
 

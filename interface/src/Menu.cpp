@@ -566,8 +566,6 @@ Menu::Menu() {
         dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         dialogsManager.data(), SLOT(showDomainConnectionDialog()));
-    addActionToQMenuAndActionHash(networkMenu, MenuOption::BandwidthDetails, 0,
-        dialogsManager.data(), SLOT(bandwidthDetails()));
 
     #if (PR_BUILD || DEV_BUILD)
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongProtocolVersion, 0, false,
@@ -577,7 +575,7 @@ Menu::Menu() {
                                            nodeList.data(), SLOT(toggleSendNewerDSConnectVersion(bool)));
     #endif
 
-    
+
     // Developer >> Tests >>>
     MenuWrapper* testMenu = developerMenu->addMenu("Tests");
     addActionToQMenuAndActionHash(testMenu, MenuOption::RunClientScriptTests, 0, dialogsManager.data(), SLOT(showTestingResults()));
@@ -628,9 +626,9 @@ Menu::Menu() {
 
     auto scope = DependencyManager::get<AudioScope>();
     MenuWrapper* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
-    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_P, false,
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_F2, false,
         scope.data(), SLOT(toggle()));
-    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause, Qt::CTRL | Qt::SHIFT | Qt::Key_P, false,
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause, Qt::CTRL | Qt::SHIFT | Qt::Key_F2, false,
         scope.data(), SLOT(togglePause()));
 
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
@@ -702,7 +700,14 @@ Menu::Menu() {
 
     // Developer > Log...
     addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
-         qApp, SLOT(toggleLogDialog()));
+                                  qApp, SLOT(toggleLogDialog()));
+    auto essLogAction = addActionToQMenuAndActionHash(developerMenu, MenuOption::EntityScriptServerLog, 0,
+                                                      qApp, SLOT(toggleEntityScriptServerLogDialog()));
+    QObject::connect(nodeList.data(), &NodeList::canRezChanged, essLogAction, [essLogAction] {
+        auto nodeList = DependencyManager::get<NodeList>();
+        essLogAction->setEnabled(nodeList->getThisNodeCanRez());
+    });
+    essLogAction->setEnabled(nodeList->getThisNodeCanRez());
 
     action = addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...");
     connect(action, &QAction::triggered, [] {

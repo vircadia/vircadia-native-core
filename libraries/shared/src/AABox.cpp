@@ -360,7 +360,7 @@ glm::vec3 AABox::getClosestPointOnFace(const glm::vec3& point, BoxFace face) con
 
         case MIN_Z_FACE:
             return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
-                glm::vec3(_corner.x + _scale.z, _corner.y + _scale.y, _corner.z));
+                glm::vec3(_corner.x + _scale.x, _corner.y + _scale.y, _corner.z));
 
         default: //quiet windows warnings
         case MAX_Z_FACE:

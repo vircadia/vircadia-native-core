@@ -31,9 +31,11 @@ Item {
     property real displayNameTextPixelSize: 18
     property int usernameTextHeight: 12
     property real audioLevel: 0.0
+    property real avgAudioLevel: 0.0
     property bool isMyCard: false
     property bool selected: false
     property bool isAdmin: false
+    property bool currentlyEditingDisplayName: false
 
     /* User image commented out for now - will probably be re-introduced later.
     Column {
@@ -54,7 +56,7 @@ Item {
         id: textContainer
         // Size
         width: parent.width - /*avatarImage.width - parent.spacing - */parent.anchors.leftMargin - parent.anchors.rightMargin
-        height: childrenRect.height
+        height: selected || isMyCard ? childrenRect.height : childrenRect.height - 15
         anchors.verticalCenter: parent.verticalCenter
 
         // DisplayName field for my card
@@ -104,6 +106,7 @@ Item {
                     focus = false
                     myDisplayName.border.width = 0
                     color = hifi.colors.darkGray
+                    currentlyEditingDisplayName = false
                 }
             }
             MouseArea {
@@ -115,10 +118,12 @@ Item {
                     myDisplayNameText.focus ? myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX, mouseY, TextInput.CursorOnCharacter) : myDisplayNameText.selectAll();
                     myDisplayNameText.focus = true
                     myDisplayNameText.color = "black"
+                    currentlyEditingDisplayName = true
                 }
                 onDoubleClicked: {
                     myDisplayNameText.selectAll();
                     myDisplayNameText.focus = true;
+                    currentlyEditingDisplayName = true
                 }
                 onEntered: myDisplayName.color = hifi.colors.lightGrayText
                 onExited: myDisplayName.color = hifi.colors.textFieldLightBackground
@@ -269,6 +274,7 @@ Item {
             // Style
             radius: 4
             color: "#c5c5c5"
+            visible: isMyCard || selected
             // Rectangle for the zero-gain point on the VU meter
             Rectangle {
                 id: vuMeterZeroGain
@@ -299,6 +305,7 @@ Item {
                 id: vuMeterBase
                 // Anchors
                 anchors.fill: parent
+                visible: isMyCard || selected
                 // Style
                 color: parent.color
                 radius: parent.radius
@@ -306,6 +313,7 @@ Item {
             // Rectangle for the VU meter audio level
             Rectangle {
                 id: vuMeterLevel
+                visible: isMyCard || selected
                 // Size
                 width: (thisNameCard.audioLevel) * parent.width
                 // Style
@@ -331,7 +339,7 @@ Item {
             }
         }
 
-        // Per-Avatar Gain Slider 
+        // Per-Avatar Gain Slider
         Slider {
             id: gainSlider
             // Size
@@ -341,7 +349,7 @@ Item {
             anchors.verticalCenter: nameCardVUMeter.verticalCenter
             // Properties
             visible: !isMyCard && selected
-            value: pal.gainSliderValueDB[uuid] ? pal.gainSliderValueDB[uuid] : 0.0
+            value: Users.getAvatarGain(uuid)
             minimumValue: -60.0
             maximumValue: 20.0
             stepSize: 5
@@ -365,7 +373,7 @@ Item {
                     mouse.accepted = false
                 }
                 onReleased: {
-                    // the above mouse.accepted seems to make this 
+                    // the above mouse.accepted seems to make this
                     // never get called, nonetheless...
                     mouse.accepted = false
                 }
@@ -389,14 +397,9 @@ Item {
     }
 
     function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
-        if (isReleased || pal.gainSliderValueDB[avatarUuid] !== sliderValue) {
-            pal.gainSliderValueDB[avatarUuid] = sliderValue;
-            var data = {
-                sessionId: avatarUuid,
-                gain: sliderValue,
-                isReleased: isReleased
-            };
-            pal.sendToScript({method: 'updateGain', params: data});
+        Users.setAvatarGain(avatarUuid, sliderValue);
+        if (isReleased) {
+           UserActivityLogger.palAction("avatar_gain_changed", avatarUuid);
         }
     }
 }

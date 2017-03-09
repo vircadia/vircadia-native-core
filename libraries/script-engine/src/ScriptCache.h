@@ -15,7 +15,7 @@
 #include <mutex>
 #include <ResourceCache.h>
 
-using contentAvailableCallback = std::function<void(const QString& scriptOrURL, const QString& contents, bool isURL, bool contentAvailable)>;
+using contentAvailableCallback = std::function<void(const QString& scriptOrURL, const QString& contents, bool isURL, bool contentAvailable, const QString& status)>;
 
 class ScriptUser {
 public:
@@ -25,8 +25,11 @@ public:
 
 class ScriptRequest {
 public:
+    static const int MAX_RETRIES { 5 };
+    static const int START_DELAY_BETWEEN_RETRIES { 200 };
     std::vector<contentAvailableCallback> scriptUsers { };
     int numRetries { 0 };
+    int maxRetries { MAX_RETRIES };
 };
 
 /// Interface for loading scripts
@@ -38,23 +41,20 @@ class ScriptCache : public QObject, public Dependency {
     using Lock = std::unique_lock<Mutex>;
 
 public:
+    static const QString STATUS_INLINE;
+    static const QString STATUS_CACHED;
+    static bool isSuccessStatus(const QString& status) {
+        return status == "Success" || status == STATUS_INLINE || status == STATUS_CACHED;
+    }
+
     void clearCache();
     Q_INVOKABLE void clearATPScriptsFromCache();
-    void getScriptContents(const QString& scriptOrURL, contentAvailableCallback contentAvailable, bool forceDownload = false);
+    void getScriptContents(const QString& scriptOrURL, contentAvailableCallback contentAvailable, bool forceDownload = false, int maxRetries = ScriptRequest::MAX_RETRIES);
 
-
-    QString getScript(const QUrl& unnormalizedURL, ScriptUser* scriptUser, bool& isPending, bool redownload = false);
     void deleteScript(const QUrl& unnormalizedURL);
 
-    // FIXME - how do we remove a script from the bad script list in the case of a redownload?
-    void addScriptToBadScriptList(const QUrl& url) { _badScripts.insert(url); }
-    bool isInBadScriptList(const QUrl& url) { return _badScripts.contains(url); }
-    
-private slots:
-    void scriptDownloaded(); // old version
-    void scriptContentAvailable(); // new version
-
 private:
+    void scriptContentAvailable(int maxRetries); // new version
     ScriptCache(QObject* parent = NULL);
     
     Mutex _containerLock;
@@ -62,7 +62,6 @@ private:
     
     QHash<QUrl, QString> _scriptCache;
     QMultiMap<QUrl, ScriptUser*> _scriptUsers;
-    QSet<QUrl> _badScripts;
 };
 
 #endif // hifi_ScriptCache_h

@@ -4,13 +4,19 @@ import QtGraphicalEffects 1.0
 Item {
     id: tabletButton
     property var uuid;
-    property string text: "EDIT"
-    property string icon: "icons/edit-icon.svg"
-    property string activeText: tabletButton.text
+    property string icon: "icons/tablet-icons/edit-i.svg"
+    property string hoverIcon: tabletButton.icon
     property string activeIcon: tabletButton.icon
+    property string activeHoverIcon: tabletButton.activeIcon
+    property string text: "EDIT"
+    property string hoverText: tabletButton.text
+    property string activeText: tabletButton.text
+    property string activeHoverText: tabletButton.activeText
     property bool isActive: false
     property bool inDebugMode: false
     property bool isEntered: false
+    property double sortOrder: 100
+    property int stableOrder: 0
     property var tabletRoot;
     width: 129
     height: 129
@@ -23,9 +29,9 @@ Item {
 
     onIsActiveChanged: {
         if (tabletButton.isEntered) {
-            tabletButton.state = (tabletButton.isActive) ? "hover active state" : "hover sate";
+            tabletButton.state = (tabletButton.isActive) ? "hover active state" : "hover state";
         } else {
-            tabletButton.state = (tabletButton.isActive) ? "active state" : "base sate";
+            tabletButton.state = (tabletButton.isActive) ? "active state" : "base state";
         }
     }
 
@@ -75,23 +81,23 @@ Item {
         source: buttonOutline
     }
 
+    function urlHelper(src) {
+        if (src.match(/\bhttp/)) {
+            return src;
+        } else {
+            return "../../../" + src;
+        }
+    }
+
     Image {
         id: icon
         width: 50
         height: 50
-        visible: false
         anchors.bottom: text.top
         anchors.bottomMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         fillMode: Image.Stretch
-        source: "../../../" + tabletButton.icon
-    }
-
-    ColorOverlay {
-        id: iconColorOverlay
-        anchors.fill: icon
-        source: icon
-        color: "#ffffff"
+        source: tabletButton.urlHelper(tabletButton.icon)
     }
 
     Text {
@@ -156,6 +162,17 @@ Item {
                 target: glow
                 visible: true
             }
+
+            PropertyChanges {
+                target: text
+                color: "#ffffff"
+                text: tabletButton.hoverText
+            }
+
+            PropertyChanges {
+                target: icon
+                source: tabletButton.urlHelper(tabletButton.hoverIcon)
+            }
         },
         State {
             name: "active state"
@@ -179,13 +196,8 @@ Item {
             }
 
             PropertyChanges {
-                target: iconColorOverlay
-                color: "#333333"
-            }
-
-            PropertyChanges {
                 target: icon
-                source: "../../../" + tabletButton.activeIcon
+                source: tabletButton.urlHelper(tabletButton.activeIcon)
             }
         },
         State {
@@ -211,13 +223,13 @@ Item {
             PropertyChanges {
                 target: text
                 color: "#333333"
+                text: tabletButton.activeHoverText
             }
 
             PropertyChanges {
-                target: iconColorOverlay
-                color: "#333333"
+                target: icon
+                source: tabletButton.urlHelper(tabletButton.activeHoverIcon)
             }
-
         }
     ]
 }

@@ -16,6 +16,14 @@ void UserActivityLoggerScriptingInterface::enabledEdit() {
     logAction("enabled_edit");
 }
 
+void UserActivityLoggerScriptingInterface::openedTablet(bool visibleToOthers) {
+    logAction("opened_tablet", { { "visible_to_others", visibleToOthers } });
+}
+
+void UserActivityLoggerScriptingInterface::closedTablet() {
+    logAction("closed_tablet");
+}
+
 void UserActivityLoggerScriptingInterface::openedMarketplace() {
     logAction("opened_marketplace");
 }

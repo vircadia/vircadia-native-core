@@ -28,8 +28,7 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetails();
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
-    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-                        bool distanceAdjust = false, glm::vec3 viewerPosition = glm::vec3(0), QVector<JointData>* sentJointDataOut = nullptr) override;
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
 
     
 private slots:

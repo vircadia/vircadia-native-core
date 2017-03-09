@@ -125,6 +125,10 @@ tr.new-row {
   background-color: #dff0d8;
 }
 
+tr.invalid-input {
+  background-color: #f2dede;
+}
+
 .graphable-stat {
   text-align: center;
   color: #5286BC;

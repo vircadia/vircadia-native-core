@@ -32,6 +32,7 @@
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
 #include <GLMHelpers.h>
+#include <shared/GlobalAppProperties.h>
 
 #include "OffscreenGLCanvas.h"
 #include "GLHelpers.h"
@@ -604,6 +605,9 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         qFatal("Could not load object as root item");
         return nullptr;
     }
+
+    connect(newItem, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(QVariant)));
+
     // The root item is ready. Associate it with the window.
     _rootItem = newItem;
     _rootItem->setParentItem(_quickWindow->contentItem());
@@ -908,20 +912,23 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
         return;
     }
 
-    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
-    while (item) {
-        // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
-        numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
+    // if HMD is being worn, allow keyboard to open.  allow it to close, HMD or not.
+    if (!raised || qApp->property(hifi::properties::HMD).toBool()) {
+        QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+        while (item) {
+            // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
+            numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
 
-        if (item->property("keyboardRaised").isValid()) {
-            // FIXME - HMD only: Possibly set value of "keyboardEnabled" per isHMDMode() for use in WebView.qml.
-            if (item->property("punctuationMode").isValid()) {
-                item->setProperty("punctuationMode", QVariant(numeric));
+            if (item->property("keyboardRaised").isValid()) {
+                // FIXME - HMD only: Possibly set value of "keyboardEnabled" per isHMDMode() for use in WebView.qml.
+                if (item->property("punctuationMode").isValid()) {
+                    item->setProperty("punctuationMode", QVariant(numeric));
+                }
+                item->setProperty("keyboardRaised", QVariant(raised));
+                return;
             }
-            item->setProperty("keyboardRaised", QVariant(raised));
-            return;
+            item = dynamic_cast<QQuickItem*>(item->parentItem());
         }
-        item = dynamic_cast<QQuickItem*>(item->parentItem());
     }
 }
 
@@ -949,6 +956,15 @@ void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
         } else {
             emit webEventReceived(message);
         }
+    }
+}
+
+void OffscreenQmlSurface::sendToQml(const QVariant& message) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitQmlEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    } else if (_rootItem) {
+        // call fromScript method on qml root
+        QMetaObject::invokeMethod(_rootItem, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
     }
 }
 

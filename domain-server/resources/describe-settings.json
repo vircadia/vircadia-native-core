@@ -141,218 +141,6 @@
               "can_set": true
             }
           ]
-        },
-        {
-          "label": "Operating Hours",
-          "help": "\"Open\" domains can be searched using their operating hours. Hours are entered in the local timezone, selected below.",
-
-          "name": "weekday_hours",
-          "caption": "Weekday Hours (Monday-Friday)",
-          "type": "table",
-          "can_add_new_rows": false,
-          "columns": [
-            {
-              "name": "open",
-              "label": "Opening Time",
-              "type": "time",
-              "default": "00:00",
-              "editable": true
-            },
-            {
-              "name": "close",
-              "label": "Closing Time",
-              "type": "time",
-              "default": "23:59",
-              "editable": true
-            }
-          ]
-        },
-        {
-          "name": "weekend_hours",
-          "label": "Weekend Hours (Saturday/Sunday)",
-          "type": "table",
-          "can_add_new_rows": false,
-          "columns": [
-            {
-              "name": "open",
-              "label": "Opening Time",
-              "type": "time",
-              "default": "00:00",
-              "editable": true
-            },
-            {
-              "name": "close",
-              "label": "Closing Time",
-              "type": "time",
-              "default": "23:59",
-              "editable": true
-            }
-          ]
-        },
-        {
-          "label": "Time Zone",
-          "name": "utc_offset",
-          "caption": "Time Zone",
-          "help": "This server's time zone. Used to define your server's operating hours.",
-          "type": "select",
-          "options": [
-            {
-              "value": "-12",
-              "label": "UTC-12:00"
-            },
-            {
-              "value": "-11",
-              "label": "UTC-11:00"
-            },
-            {
-              "value": "-10",
-              "label": "UTC-10:00"
-            },
-            {
-              "value": "-9.5",
-              "label": "UTC-09:30"
-            },
-            {
-              "value": "-9",
-              "label": "UTC-09:00"
-            },
-            {
-              "value": "-8",
-              "label": "UTC-08:00"
-            },
-            {
-              "value": "-7",
-              "label": "UTC-07:00"
-            },
-            {
-              "value": "-6",
-              "label": "UTC-06:00"
-            },
-            {
-              "value": "-5",
-              "label": "UTC-05:00"
-            },
-            {
-              "value": "-4",
-              "label": "UTC-04:00"
-            },
-            {
-              "value": "-3.5",
-              "label": "UTC-03:30"
-            },
-            {
-              "value": "-3",
-              "label": "UTC-03:00"
-            },
-            {
-              "value": "-2",
-              "label": "UTC-02:00"
-            },
-            {
-              "value": "-1",
-              "label": "UTC-01:00"
-            },
-            {
-              "value": "",
-              "label": "UTC±00:00"
-            },
-            {
-              "value": "1",
-              "label": "UTC+01:00"
-            },
-            {
-              "value": "2",
-              "label": "UTC+02:00"
-            },
-            {
-              "value": "3",
-              "label": "UTC+03:00"
-            },
-            {
-              "value": "3.5",
-              "label": "UTC+03:30"
-            },
-            {
-              "value": "4",
-              "label": "UTC+04:00"
-            },
-            {
-              "value": "4.5",
-              "label": "UTC+04:30"
-            },
-            {
-              "value": "5",
-              "label": "UTC+05:00"
-            },
-            {
-              "value": "5.5",
-              "label": "UTC+05:30"
-            },
-            {
-              "value": "5.75",
-              "label": "UTC+05:45"
-            },
-            {
-              "value": "6",
-              "label": "UTC+06:00"
-            },
-            {
-              "value": "6.5",
-              "label": "UTC+06:30"
-            },
-            {
-              "value": "7",
-              "label": "UTC+07:00"
-            },
-            {
-              "value": "8",
-              "label": "UTC+08:00"
-            },
-            {
-              "value": "8.5",
-              "label": "UTC+08:30"
-            },
-            {
-              "value": "8.75",
-              "label": "UTC+08:45"
-            },
-            {
-              "value": "9",
-              "label": "UTC+09:00"
-            },
-            {
-              "value": "9.5",
-              "label": "UTC+09:30"
-            },
-            {
-              "value": "10",
-              "label": "UTC+10:00"
-            },
-            {
-              "value": "10.5",
-              "label": "UTC+10:30"
-            },
-            {
-              "value": "11",
-              "label": "UTC+11:00"
-            },
-            {
-              "value": "12",
-              "label": "UTC+12:00"
-            },
-            {
-              "value": "12.75",
-              "label": "UTC+12:45"
-            },
-            {
-              "value": "13",
-              "label": "UTC+13:00"
-            },
-            {
-              "value": "14",
-              "label": "UTC+14:00"
-            }
-          ]
         }
       ]
     },
@@ -390,7 +178,7 @@
         {
           "name": "maximum_user_capacity_redirect_location",
           "label": "Redirect to Location on Maximum Capacity",
-          "help": "Is there another domain, you'd like to redirect clients to when the maximum number of avatars are connected.",
+          "help": "The location to redirect users to when the maximum number of avatars are connected.",
           "placeholder": "",
           "default": "",
           "advanced": false
@@ -1035,6 +823,29 @@
       ]
     },
     {
+      "name": "entity_script_server",
+      "label": "Entity Script Server (ESS)",
+      "assignment-types": [5],
+      "settings": [
+        {
+          "name": "entity_pps_per_script",
+          "label": "Entity PPS per script",
+          "help": "The number of packets per second (PPS) that can be sent to the entity server for each server entity script. This contributes to a total overall amount.<br/>Example: 1000 PPS with 5 entites gives a total PPS of 5000 that is shared among the entity scripts. A single could use 4000 PPS, leaving 1000 for the rest, for example.",
+          "default": 900,
+          "type": "int",
+          "advanced": true
+        },
+        {
+          "name": "max_total_entity_pps",
+          "label": "Maximum Total Entity PPS",
+          "help": "The maximum total packets per seconds (PPS) that can be sent to the entity server.<br/>Example: 5 scripts @ 1000 PPS per script = 5000 total PPS. A maximum total PPS of 4000 would cap this 5000 total PPS to 4000.",
+          "default": 9000,
+          "type": "int",
+          "advanced": true
+        }
+      ]
+    },
+    {
       "name": "avatars",
       "label": "Avatars",
       "assignment-types": [1, 2],
@@ -1487,6 +1298,22 @@
           "help": "Desired maximum send bandwidth (in Megabits per second) to each node",
           "placeholder": 5.0,
           "default": 5.0,
+          "advanced": true
+        },
+        {
+          "name": "auto_threads",
+          "label": "Automatically determine thread count",
+          "type": "checkbox",
+          "help": "Allow system to determine number of threads (recommended)",
+          "default": false,
+          "advanced": true
+        },
+        {
+          "name": "num_threads",
+          "label": "Number of Threads",
+          "help": "Threads to spin up for avatar mixing (if not automatically set)",
+          "placeholder": "1",
+          "default": "1",
           "advanced": true
         }
       ]

@@ -11,11 +11,11 @@ We're hiring! We're looking for skilled developers;
 send your resume to hiring@highfidelity.com
 
 ##### Chat with us
-Come chat with us in [our Gitter](http://gitter.im/highfidelity/hifi) if you have any questions or just want to say hi!
+Come chat with us in [our Gitter](https://gitter.im/highfidelity/hifi) if you have any questions or just want to say hi!
 
 Documentation
 =========
-Documentation is available at [docs.highfidelity.com](http://docs.highfidelity.com), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
+Documentation is available at [docs.highfidelity.com](https://docs.highfidelity.com), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
 
 Build Instructions 
 =========
@@ -58,9 +58,9 @@ In a new Terminal window, run:
 
 Any target can be terminated with Ctrl-C (SIGINT) in the associated Terminal window.
 
-This assignment-client will grab one assignment from the domain-server. You can tell the assignment-client what type you want it to be with the `-t` option. You can also run an assignment-client that forks off *n* assignment-clients with the `-n` option.
+This assignment-client will grab one assignment from the domain-server. You can tell the assignment-client what type you want it to be with the `-t` option. You can also run an assignment-client that forks off *n* assignment-clients with the `-n` option. The `-min` and `-max` options allow you to set a range of required assignment-clients, this allows you to have flexibility in the number of assignment-clients that are running. See `--help` for more options.
 
-    ./assignment-client -n 4
+    ./assignment-client --min 6 --max 20
 
 To test things out you'll want to run the Interface client.
 

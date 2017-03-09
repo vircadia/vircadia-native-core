@@ -199,11 +199,12 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
         return;
     }
     assert(entityTreeIsLocked());
-    if (_motionType == MOTION_TYPE_KINEMATIC) {
+    if (_motionType == MOTION_TYPE_KINEMATIC && !_entity->hasAncestorOfType(NestableType::Avatar)) {
         BT_PROFILE("kinematicIntegration");
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation and uses full gravity for acceleration.
         _entity->setAcceleration(_entity->getGravity());
+
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
         _entity->stepKinematicMotion(dt);
@@ -582,6 +583,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
         // copy _outgoingPriority into pendingPriority...
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
+        // don't forget to remember that we have made a bid
+        _entity->rememberHasSimulationOwnershipBid();
         // ...then reset _outgoingPriority in preparation for the next frame
         _outgoingPriority = 0;
     } else if (_outgoingPriority != _entity->getSimulationPriority()) {
@@ -608,7 +611,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     properties.setClientOnly(_entity->getClientOnly());
     properties.setOwningAvatarID(_entity->getOwningAvatarID());
 
-    entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, tree, id, properties);
+    entityPacketSender->queueEditEntityMessage(PacketType::EntityPhysics, tree, id, properties);
     _entity->setLastBroadcast(now);
 
     // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
@@ -624,7 +627,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 newQueryCubeProperties.setClientOnly(entityDescendant->getClientOnly());
                 newQueryCubeProperties.setOwningAvatarID(entityDescendant->getOwningAvatarID());
 
-                entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, tree,
+                entityPacketSender->queueEditEntityMessage(PacketType::EntityPhysics, tree,
                                                            descendant->getID(), newQueryCubeProperties);
                 entityDescendant->setLastBroadcast(now);
             }

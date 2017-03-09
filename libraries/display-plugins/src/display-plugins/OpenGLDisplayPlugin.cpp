@@ -118,6 +118,8 @@ public:
 
 
     virtual void run() override {
+        PROFILE_SET_THREAD_NAME("Present Thread");
+
         // FIXME determine the best priority balance between this and the main thread...
         // It may be dependent on the display plugin being used, since VR plugins should 
         // have higher priority on rendering (although we could say that the Oculus plugin
@@ -650,6 +652,11 @@ float OpenGLDisplayPlugin::droppedFrameRate() const {
 
 float OpenGLDisplayPlugin::presentRate() const {
     return _presentRate.rate();
+}
+
+void OpenGLDisplayPlugin::resetPresentRate() {
+    // FIXME
+    // _presentRate = RateCounter<100>();
 }
 
 float OpenGLDisplayPlugin::renderRate() const { 
