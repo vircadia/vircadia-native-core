@@ -58,8 +58,6 @@ void AudioNoiseGate::removeDCOffset(int16_t* samples, int numSamples) {
     }
 }
 
-#include <QDebug>
-
 void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     //
     //  Impose Noise Gate
