@@ -163,7 +163,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
                     // Since the data in the stream is using a codec that we aren't prepared for,
                     // we need to let the codec know that we don't have data for it, this will
-                    // allowe the codec to interpolate missing data and produce a fade to silence.
+                    // allow the codec to interpolate missing data and produce a fade to silence.
                     lostAudioData(1);
 
                     // inform others of the mismatch
@@ -248,7 +248,7 @@ int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packet
 int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
 
     // We can't guarentee that all clients have faded the stream down
-    // to silence and encoding that silence before sending us a 
+    // to silence and encoded that silence before sending us a 
     // SilentAudioFrame. If the encoder has truncated the stream it will
     // leave the decoder holding some unknown loud state. To handle this 
     // case we will call the decoder's lostFrame() method, which indicates
