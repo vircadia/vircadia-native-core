@@ -106,6 +106,7 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
 
             sendMixPacket(node, *data, encodedBuffer);
         } else {
+            ++stats.sumListenersSilent;
             sendSilentPacket(node, *data);
         }
 
