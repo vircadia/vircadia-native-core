@@ -24,6 +24,7 @@ public:
     void removeDCOffset(int16_t* samples, int numSamples);
     
     bool clippedInLastFrame() const { return _didClipInLastFrame; }
+    bool closedInLastFrame() const { return _closedInLastFrame; }
     float getMeasuredFloor() const { return _measuredFloor; }
     float getLastLoudness() const { return _lastLoudness; }
     
@@ -40,6 +41,7 @@ private:
     float _sampleFrames[NUMBER_OF_NOISE_SAMPLE_FRAMES];
     int _sampleCounter;
     bool _isOpen;
+    bool _closedInLastFrame { false };
     int _framesToClose;
 };
 
