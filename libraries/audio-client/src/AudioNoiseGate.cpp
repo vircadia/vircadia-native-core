@@ -77,8 +77,6 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     //                      More means better rejection but also can reject continuous things like singing.
     // NUMBER_OF_NOISE_SAMPLE_FRAMES:  How often should we re-evaluate the noise floor?
 
-    _closedInLastFrame = false;
-    
     float loudness = 0;
     int thisSample = 0;
     int samplesOverNoiseGate = 0;
@@ -142,14 +140,13 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         _sampleCounter = 0;
         
     }
+
     if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
         _isOpen = true;
         _framesToClose = NOISE_GATE_CLOSE_FRAME_DELAY;
     } else {
         if (--_framesToClose == 0) {
-            if (_isOpen) {
-                _closedInLastFrame = true;
-            }
+            _closedInLastFrame = !_isOpen;
             _isOpen = false;
         }
     }
