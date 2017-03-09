@@ -21,7 +21,6 @@ var desktopMenuItemName = "Desktop";
 ['OpenVR (Vive)', 'Oculus Rift'].forEach(function (name) {
     if (!headset && Menu.menuItemExists(displayMenuName, name)) {
         headset = name;
-
     }
 });
 
@@ -40,7 +39,7 @@ function updateControllerDisplay() {
 }
 
 
-    var button;
+var button;
     
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
