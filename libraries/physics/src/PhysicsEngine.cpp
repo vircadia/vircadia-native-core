@@ -143,12 +143,35 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
 }
 
 void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
-    // first bump and prune contacts for all objects in the list
+    // bump and prune contacts for all objects in the list
     for (auto object : objects) {
         bumpAndPruneContacts(object);
     }
 
-    // then remove them
+    if (_activeStaticBodies.size() > 0) {
+        // very unlikely to get here but its theoretically possible:
+        // immediately after a static entity was moved we skipped a simulation step and never got around to
+        // updating the static entity's RigidBody AABB.  Now we're deleting bodies ==> we must scan
+        // _activeStaticBodies for bodies being removed and clear any that we find.
+        for (auto object : objects) {
+            btRigidBody* body = object->getRigidBody();
+
+            std::vector<btRigidBody*>::reverse_iterator itr = _activeStaticBodies.rbegin();
+            while (itr != _activeStaticBodies.rend()) {
+                if (body == *itr) {
+                    if (*itr != *(_activeStaticBodies.rbegin())) {
+                        // swap with rbegin
+                        *itr = *(_activeStaticBodies.rbegin());
+                    }
+                    _activeStaticBodies.pop_back();
+                    break;
+                }
+                ++itr;
+            }
+        }
+    }
+
+    // remove bodies
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
         if (body) {
