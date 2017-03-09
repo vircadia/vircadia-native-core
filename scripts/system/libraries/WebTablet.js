@@ -171,6 +171,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     this.homeButtonID = Overlays.addOverlay("sphere", {
         name: "homeButton",
         localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
+        localRotation: {x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor},
         alpha: 0.0,
         visible: true,

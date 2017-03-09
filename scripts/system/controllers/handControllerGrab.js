@@ -272,6 +272,12 @@ CONTROLLER_STATE_MACHINE[STATE_STYLUS_TOUCHING] = {
     updateMethod: "stylusTouching"
 };
 
+function distance2D(a, b) {
+    var dx = (a.x - b.x);
+    var dy = (a.y - b.y);
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
 function getFingerWorldLocation(hand) {
     var fingerJointName = (hand === RIGHT_HAND) ? "RightHandIndex4" : "LeftHandIndex4";
 
@@ -664,6 +670,125 @@ function sendTouchMoveEventToStylusTarget(hand, stylusTarget) {
     }
 }
 
+function calculateStylusTargetFromEntity(stylusTip, entityID) {
+    var props = entityPropertiesCache.getProps(entityID);
+
+    // entity could have been deleted.
+    if (props === undefined) {
+        return undefined;
+    }
+
+    // project stylus tip onto entity plane.
+    var normal = Vec3.multiplyQbyV(props.rotation, {x: 0, y: 0, z: 1});
+    Vec3.multiplyQbyV(props.rotation, {x: 0, y: 1, z: 0});
+    var distance = Vec3.dot(Vec3.subtract(stylusTip.position, props.position), normal);
+    var position = Vec3.subtract(stylusTip.position, Vec3.multiply(normal, distance));
+
+    // generate normalized coordinates
+    var invRot = Quat.inverse(props.rotation);
+    var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, props.position));
+    var invDimensions = { x: 1 / props.dimensions.x, y: 1 / props.dimensions.y, z: 1 / props.dimensions.z };
+    var normalizedPosition = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), props.registrationPoint);
+
+    // 2D position on entity plane in meters, relative to the bounding box upper-left hand corner.
+    var position2D = { x: normalizedPosition.x * props.dimensions.x, y: (1 - normalizedPosition.y) * props.dimensions.y }; // flip y-axis
+
+    return {
+        entityID: entityID,
+        overlayID: null,
+        distance: distance,
+        position: position,
+        position2D: position2D,
+        normal: normal,
+        normalizedPosition: normalizedPosition,
+        dimensions: props.dimensions,
+        valid: true
+    };
+}
+
+function calculateStylusTargetFromOverlay(stylusTip, overlayID) {
+    var overlayPosition = Overlays.getProperty(overlayID, "position");
+
+    // overlay could have been deleted.
+    if (overlayPosition === undefined) {
+        return undefined;
+    }
+
+    // project stylusTip onto overlay plane.
+    var overlayRotation = Overlays.getProperty(overlayID, "rotation");
+    var normal = Vec3.multiplyQbyV(overlayRotation, {x: 0, y: 0, z: 1});
+    var distance = Vec3.dot(Vec3.subtract(stylusTip.position, overlayPosition), normal);
+    var position = Vec3.subtract(stylusTip.position, Vec3.multiply(normal, distance));
+
+    // calclulate normalized position
+    var invRot = Quat.inverse(overlayRotation);
+    var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, overlayPosition));
+    var dpi = Overlays.getProperty(overlayID, "dpi");
+    var dimensions;
+    if (dpi) {
+        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
+        var resolution = Overlays.getProperty(overlayID, "resolution");
+        resolution.z = 1;  // Circumvent divide-by-zero.
+        var scale = Overlays.getProperty(overlayID, "dimensions");
+        scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
+    } else {
+        dimensions = Overlays.getProperty(overlayID, "dimensions");
+        if (!dimensions.z) {
+            dimensions.z = 0.01;    // sometimes overlay dimensions are 2D, not 3D.
+        }
+    }
+    var invDimensions = { x: 1 / dimensions.x, y: 1 / dimensions.y, z: 1 / dimensions.z };
+    var normalizedPosition = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), DEFAULT_REGISTRATION_POINT);
+
+    // 2D position on overlay plane in meters, relative to the bounding box upper-left hand corner.
+    var position2D = { x: normalizedPosition.x * dimensions.x, y: (1 - normalizedPosition.y) * dimensions.y }; // flip y-axis
+
+    return {
+        entityID: null,
+        overlayID: overlayID,
+        distance: distance,
+        position: position,
+        position2D: position2D,
+        normal: normal,
+        normalizedPosition: normalizedPosition,
+        dimensions: dimensions,
+        valid: true
+    };
+}
+
+function isNearStylusTarget(stylusTargets, edgeBorder, minNormalDistance, maxNormalDistance) {
+    for (var i = 0; i < stylusTargets.length; i++) {
+        var stylusTarget = stylusTargets[i];
+
+        // check to see if the projected stylusTip is within within the 2d border
+        var borderMin = {x: -edgeBorder, y: -edgeBorder};
+        var borderMax = {x: stylusTarget.dimensions.x + edgeBorder, y: stylusTarget.dimensions.y + edgeBorder};
+        if (stylusTarget.distance >= minNormalDistance && stylusTarget.distance <= maxNormalDistance &&
+            stylusTarget.position2D.x >= borderMin.x && stylusTarget.position2D.y >= borderMin.y &&
+            stylusTarget.position2D.x <= borderMax.x && stylusTarget.position2D.y <= borderMax.y) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function calculateNearestStylusTarget(stylusTargets) {
+    var nearestStylusTarget;
+
+    for (var i = 0; i < stylusTargets.length; i++) {
+        var stylusTarget = stylusTargets[i];
+
+        if ((!nearestStylusTarget || stylusTarget.distance < nearestStylusTarget.distance) &&
+            stylusTarget.normalizedPosition.x >= 0 && stylusTarget.normalizedPosition.y >= 0 &&
+            stylusTarget.normalizedPosition.x <= 1 && stylusTarget.normalizedPosition.y <= 1) {
+            nearestStylusTarget = stylusTarget;
+        }
+    }
+
+    return nearestStylusTarget;
+};
+
 // EntityPropertiesCache is a helper class that contains a cache of entity properties.
 // the hope is to prevent excess calls to Entity.getEntityProperties()
 //
@@ -984,6 +1109,7 @@ function MyController(hand) {
     this.tabletStabbedPos3D = null;
 
     this.useFingerInsteadOfStylus = false;
+    this.fingerPointing = false;
 
     // initialize stylus tip
     var DEFAULT_STYLUS_TIP = {
@@ -1417,123 +1543,6 @@ function MyController(hand) {
         return _this.rawThumbValue < THUMB_ON_VALUE;
     };
 
-    // returns object with the following fields
-    // * entityID - if non null, this entityID is the closest to the stylusTip.
-    // * overlayID - if non null, this overlayID is the closest to the stylusTip.
-    // * distance - distance in meters from the stylus to the surface of the stylusTarget.
-    // * position - position on the surface of the stylusTarget that is nearest to the stylusTip. (world space)
-    // * position2D - postion on surface of the stylusTarget ready for use for pointerEvent.pos2D
-    // * normal - normal vector of the surface. (world space)
-    // * valid - if false, all other fields are invalid.
-    this.calculateNearestStylusTargetFromCandidates = function (candidates, cullSide) {
-
-        // now attempt to find the nearest stylusTarget.
-
-        var nearestStylusTarget = {
-            entityID: null,
-            overlayID: null,
-            distance: WEB_DISPLAY_STYLUS_DISTANCE,
-            position: {x: 0, y: 0, z: 0},
-            normalizedPosition: {x: 0, y: 0, z: 0},
-            normal: {x: 0, y: 0, z: 1},
-            valid: false
-        };
-
-        if (candidates.entities.length > 0 || candidates.overlays.length > 0) {
-            var i, props, entityID, normal, distance, position, invRot, localPos, invDimensions, normalizedPos, position2D;
-            for (i = 0; i < candidates.entities.length; i++) {
-                entityID = candidates.entities[i];
-                props = entityPropertiesCache.getProps(entityID);
-
-                // entity could have been deleted.
-                if (props === undefined) {
-                    continue;
-                }
-
-                normal = Vec3.multiplyQbyV(props.rotation, {x: 0, y: 0, z: 1});
-                Vec3.multiplyQbyV(props.rotation, {x: 0, y: 1, z: 0});
-                distance = Vec3.dot(Vec3.subtract(this.stylusTip.position, props.position), normal);
-                position = Vec3.subtract(this.stylusTip.position, Vec3.multiply(normal, distance));
-
-                if (distance < nearestStylusTarget.distance) {
-
-                    invRot = Quat.inverse(props.rotation);
-                    localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, props.position));
-                    invDimensions = { x: 1 / props.dimensions.x, y: 1 / props.dimensions.y, z: 1 / props.dimensions.z };
-                    normalizedPos = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), props.registrationPoint);
-
-                    if (normalizedPos.x >= 0 && normalizedPos.y >= 0 && normalizedPos.x <= 1 && normalizedPos.y <= 1) {
-                        position2D = { x: normalizedPos.x * props.dimensions.x, y: (1 - normalizedPos.y) * props.dimensions.y }; // flip y-axis
-                        nearestStylusTarget = {
-                            entityID: entityID,
-                            overlayID: null,
-                            distance: distance,
-                            position: position,
-                            position2D: position2D,
-                            normal: normal,
-                            valid: true
-                        };
-                    }
-                }
-            }
-
-            for (i = 0; i < candidates.overlays.length; i++) {
-                var overlayID = candidates.overlays[i];
-                var overlayPosition = Overlays.getProperty(overlayID, "position");
-
-                // overlay could have been deleted.
-                if (overlayPosition === undefined) {
-                    continue;
-                }
-
-                var overlayRotation = Overlays.getProperty(overlayID, "rotation");
-                normal = Vec3.multiplyQbyV(overlayRotation, {x: 0, y: 0, z: 1});
-                distance = Vec3.dot(Vec3.subtract(this.stylusTip.position, overlayPosition), normal);
-                position = Vec3.subtract(this.stylusTip.position, Vec3.multiply(normal, distance));
-
-                if (distance < nearestStylusTarget.distance) {
-
-                    invRot = Quat.inverse(overlayRotation);
-                    localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, overlayPosition));
-
-                    var dpi = Overlays.getProperty(overlayID, "dpi");
-                    var dimensions;
-                    if (dpi) {
-                        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
-                        var resolution = Overlays.getProperty(overlayID, "resolution");
-                        resolution.z = 1;  // Circumvent divide-by-zero.
-                        var scale = Overlays.getProperty(overlayID, "dimensions");
-                        scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
-                        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
-                    } else {
-                        dimensions = Overlays.getProperty(overlayID, "dimensions");
-                        if (!dimensions.z) {
-                            dimensions.z = 0.01;    // sometimes overlay dimensions are 2D, not 3D.
-                        }
-                    }
-
-                    invDimensions = { x: 1 / dimensions.x, y: 1 / dimensions.y, z: 1 / dimensions.z };
-                    normalizedPos = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), DEFAULT_REGISTRATION_POINT);
-
-                    if (!cullSide || (normalizedPos.x >= 0 && normalizedPos.y >= 0 && normalizedPos.x <= 1 && normalizedPos.y <= 1)) {
-                        position2D = { x: normalizedPos.x * dimensions.x, y: (1 - normalizedPos.y) * dimensions.y }; // flip y-axis
-                        nearestStylusTarget = {
-                            entityID: null,
-                            overlayID: overlayID,
-                            distance: distance,
-                            position: position,
-                            position2D: position2D,
-                            normal: normal,
-                            valid: true
-                        };
-                    }
-                }
-            }
-        }
-
-        return nearestStylusTarget;
-    };
-
     this.stealTouchFocus = function(stylusTarget) {
         // send hover events to target
         // record the entity or overlay we are hovering over.
@@ -1577,8 +1586,23 @@ function MyController(hand) {
         }
     };
 
+    this.pointFinger = function(value) {
+        var HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index";
+        if (this.fingerPointing !== value) {
+            var message;
+            if (this.hand === RIGHT_HAND) {
+                message = { pointRightIndex: value };
+            } else {
+                message = { pointLeftIndex: value };
+            }
+            Messages.sendMessage(HIFI_POINT_INDEX_MESSAGE_CHANNEL, JSON.stringify(message), true);
+            this.fingerPointing = value;
+        }
+    };
+
     this.processStylus = function() {
         if (!this.stylusTip.valid) {
+            this.pointFinger(false);
             this.hideStylus();
             return;
         }
@@ -1615,20 +1639,53 @@ function MyController(hand) {
             candidates.overlays.push(HMD.homeButtonID);
         }
 
-        var nearestStylusTarget = this.calculateNearestStylusTargetFromCandidates(candidates, true);
+        // build list of stylus targets
+        var stylusTargets = [];
+        if (candidates.entities.length > 0 || candidates.overlays.length > 0) {
+            var stylusTarget;
+            for (i = 0; i < candidates.entities.length; i++) {
+                stylusTarget = calculateStylusTargetFromEntity(this.stylusTip, candidates.entities[i]);
+                if (stylusTarget) {
+                    stylusTargets.push(stylusTarget);
+                }
+            }
 
-        if (!this.useFingerInsteadOfStylus && nearestStylusTarget.valid) {
-            this.showStylus();
-        } else {
-            this.hideStylus();
+            for (i = 0; i < candidates.overlays.length; i++) {
+                stylusTarget = calculateStylusTargetFromOverlay(this.stylusTip, candidates.overlays[i]);
+                if (stylusTarget) {
+                    stylusTargets.push(stylusTarget);
+                }
+            }
         }
 
         var TABLET_MIN_HOVER_DISTANCE = 0.01;
         var TABLET_MAX_HOVER_DISTANCE = 0.1;
         var TABLET_MIN_TOUCH_DISTANCE = -0.05;
         var TABLET_MAX_TOUCH_DISTANCE = TABLET_MIN_HOVER_DISTANCE;
+        var EDGE_BORDER = 0.075;
 
-        if (nearestStylusTarget.valid && nearestStylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
+        var hysteresisOffset = 0.0;
+        if (this.isNearStylusTarget) {
+            hysteresisOffset = 0.05;
+        }
+
+        this.isNearStylusTarget = isNearStylusTarget(stylusTargets, EDGE_BORDER + hysteresisOffset,
+                                                     TABLET_MIN_TOUCH_DISTANCE - hysteresisOffset, WEB_DISPLAY_STYLUS_DISTANCE + hysteresisOffset);
+
+        if (this.isNearStylusTarget) {
+            if (!this.useFingerInsteadOfStylus) {
+                this.showStylus();
+            } else {
+                this.pointFinger(true);
+            }
+        } else {
+            this.hideStylus();
+            this.pointFinger(false);
+        }
+
+        var nearestStylusTarget = calculateNearestStylusTarget(stylusTargets);
+
+        if (nearestStylusTarget && nearestStylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
             nearestStylusTarget.distance < TABLET_MAX_HOVER_DISTANCE) {
 
             this.requestTouchFocus(nearestStylusTarget);
@@ -1642,8 +1699,11 @@ function MyController(hand) {
             }
 
             // filter out presses when tip is moving away from tablet.
+            // ensure that stylus is within bounding box by checking normalizedPosition
             if (nearestStylusTarget.valid && nearestStylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
-                nearestStylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE && Vec3.dot(this.stylusTip.velocity, nearestStylusTarget.normal) < 0) {
+                nearestStylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE && Vec3.dot(this.stylusTip.velocity, nearestStylusTarget.normal) < 0 &&
+                nearestStylusTarget.normalizedPosition.x >= 0 && nearestStylusTarget.normalizedPosition.x <= 1 &&
+                nearestStylusTarget.normalizedPosition.y >= 0 && nearestStylusTarget.normalizedPosition.y <= 1) {
 
                 var name;
                 if (nearestStylusTarget.entityID) {
@@ -3505,8 +3565,8 @@ function MyController(hand) {
         this.touchingEnterStylusTarget = this.stylusTarget;
         this.deadspotExpired = false;
 
-        var TOUCH_PRESS_TO_MOVE_DEADSPOT = 0.025;
-        this.deadspotRadius = TOUCH_PRESS_TO_MOVE_DEADSPOT; // meters
+        var TOUCH_PRESS_TO_MOVE_DEADSPOT = 0.0381;
+        this.deadspotRadius = TOUCH_PRESS_TO_MOVE_DEADSPOT;
     };
 
     this.stylusTouchingExit = function () {
@@ -3528,26 +3588,29 @@ function MyController(hand) {
 
         this.touchingEnterTimer += dt;
 
-        var candidates = { entities: [], overlays: [] };
-        if (this.stylusTarget.entityID && this.stylusTarget.entityID !== NULL_UUID) {
-            candidates.entities.push(this.stylusTarget.entityID);
-        } else if (this.stylusTarget.overlayID && this.stylusTarget.overlayID !== NULL_UUID) {
-            candidates.overlays.push(this.stylusTarget.overlayID);
+        if (this.stylusTarget.entityID) {
+            entityPropertiesCache.addEntity(this.stylusTarget.entityID);
+            this.stylusTarget = calcualteStylusTargetFromEntity(this.stylusTip, this.stylusTarget.entityID);
+        } else if (this.stylusTarget.overlayID) {
+            this.stylusTarget = calculateStylusTargetFromOverlay(this.stylusTip, this.stylusTarget.overlayID);
         }
-        this.stylusTarget = this.calculateNearestStylusTargetFromCandidates(candidates, false);
 
         var TABLET_MIN_TOUCH_DISTANCE = -0.1;
         var TABLET_MAX_TOUCH_DISTANCE = 0.01;
 
-        if (this.stylusTarget.valid && this.stylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE && this.stylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE) {
-
-            var POINTER_PRESS_TO_MOVE_DELAY = 0.25; // seconds
-            if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
-                Vec3.distance(this.stylusTarget.position, this.touchingEnterPointerEvent.pos3D) > this.deadspotRadius) {
-                sendTouchMoveEventToStylusTarget(this.hand, this.stylusTarget);
+        if (this.stylusTarget) {
+            if (this.stylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE && this.stylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE) {
+                var POINTER_PRESS_TO_MOVE_DELAY = 0.33; // seconds
+                if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
+                    distance2D(this.stylusTarget.position2D, this.touchingEnterStylusTarget.position2D) > this.deadspotRadius) {
+                    sendTouchMoveEventToStylusTarget(this.hand, this.stylusTarget);
+                    this.deadspotExpired = true;
+                }
+            } else {
+                this.setState(STATE_OFF, "hand moved away from touch surface");
             }
         } else {
-            this.setState(STATE_OFF, "hand moved away from tablet");
+            this.setState(STATE_OFF, "touch surface was destroyed");
         }
     };
 
