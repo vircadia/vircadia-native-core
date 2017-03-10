@@ -52,21 +52,24 @@ public:
 
     // initialize FileCache with a directory name (not a path, ex.: "temp_jpgs") and an ext (ex.: "jpg")
     FileCache(const std::string& dirname, const std::string& ext, QObject* parent = nullptr);
-    // precondition: there should be no references to Files when FileCache is destroyed
     virtual ~FileCache();
 
-    // derived classes are left to implement hashing of the files on their own
     using Key = std::string;
+    struct Metadata {
+        Metadata(const Key& key, size_t length) :
+            key(key), length(length) {}
+        Key key;
+        size_t length;
+    };
 
     // derived classes should implement a setter/getter, for example, for a FileCache backing a network cache:
     //
-    // DerivedFilePointer writeFile(const DerivedData& data) {
-    //  return writeFile(data->key, data->data, data->length, &data);
+    // DerivedFilePointer writeFile(const char* data, DerivedMetadata&& metadata) {
+    //  return writeFile(data, std::forward(metadata));
     // }
     //
     // DerivedFilePointer getFile(const QUrl& url) {
-    //  // assuming storage/removal of url->hash in createFile/evictedFile overrides
-    //  auto key = lookup_hash_for(url);
+    //  auto key = lookup_hash_for(url); // assuming hashing url in create/evictedFile overrides
     //  return getFile(key);
     // }
 
@@ -77,15 +80,11 @@ protected:
     /// must be called after construction to create the cache on the fs and restore persisted files
     void initialize();
 
-    FilePointer writeFile(const Key& key, const char* data, size_t length, void* extra);
+    FilePointer writeFile(const char* data, Metadata&& metadata);
     FilePointer getFile(const Key& key);
 
-    /// create a file (ex.: create a class derived from File and store it in a secondary map with extra->url)
-    virtual std::unique_ptr<File> createFile(const Key& key, const std::string& filepath, size_t length, void* extra) = 0;
-    /// load a file
-    virtual std::unique_ptr<File> loadFile(const Key& key, const std::string& filepath, size_t length, const std::string& metadata) = 0;
-    /// take action when a file is evicted from the cache (ex.: evict it from a secondary map)
-    virtual void evictedFile(const FilePointer& file) = 0;
+    /// create a file
+    virtual std::unique_ptr<File> createFile(Metadata&& metadata, const std::string& filepath) = 0;
 
 private:
     using Mutex = std::recursive_mutex;
@@ -95,6 +94,7 @@ private:
 
     std::string getFilepath(const Key& key);
 
+    FilePointer addFile(Metadata&& metadata, const std::string& filepath);
     void addUnusedFile(const FilePointer file);
     void removeUnusedFile(const FilePointer file);
     void reserve(size_t length);
@@ -126,31 +126,26 @@ class File : public QObject {
 
 public:
     using Key = FileCache::Key;
+    using Metadata = FileCache::Metadata;
 
-    std::string getFilepath() const { return _filepath; }
     Key getKey() const { return _key; }
     size_t getLength() const { return _length; }
+    std::string getFilepath() const { return _filepath; }
 
-    // the destructor should handle unlinking of the actual filepath
     virtual ~File();
-    // overrides should call File::deleter to maintain caching behavior
+    /// overrides should call File::deleter to maintain caching behavior
     virtual void deleter();
 
 protected:
-    // when constructed, the file has already been created/written
-    File(const Key& key, const std::string& filepath, size_t length) :
-        _filepath(filepath), _key(key), _length(length) {}
-
-    /// get metadata to store with a file between instances (ex.: return the url of a hash)
-    virtual std::string getMetadata() const = 0;
-
-    const std::string _filepath;
+    /// when constructed, the file has already been created/written
+    File(Metadata&& metadata, const std::string& filepath);
 
 private:
     friend class FileCache;
 
     const Key _key;
     const size_t _length;
+    const std::string _filepath;
 
     FileCache* _cache;
     int _LRUKey { 0 };
