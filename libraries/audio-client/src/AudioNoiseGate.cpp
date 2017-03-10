@@ -155,7 +155,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     }
     if (!_isOpen) {
         if (_closedInLastFrame) {
-            // would be nice to do a little crossfade from silence
+            // would be nice to do a little crossfade to silence
             for (int i = 0; i < numSamples; i++) {
                 float fadedSample = (1.0f - (float)i / (float)numSamples) * (float)samples[i];
                 samples[i] = (int16_t)fadedSample;
