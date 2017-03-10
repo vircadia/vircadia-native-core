@@ -143,6 +143,8 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
                 flags &= ~Simulation::DIRTY_PHYSICS_ACTIVATION;
                 _body->setActivationState(WANTS_DEACTIVATION);
                 _outgoingPriority = 0;
+                const float ACTIVATION_EXPIRY = 3.0f; // something larger than the 2.0 hard coded in Bullet
+                _body->setDeactivationTime(ACTIVATION_EXPIRY);
                 bool verbose = _entity->getName() == "fubar"; // adebug
                 if (verbose) {
                     std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug flag for deactivation" << std::endl;  // adebug
