@@ -191,12 +191,12 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
+    HMD.openTablet();
 }
 
 function processingGif() {
     // show hud
     Reticle.visible = reticleVisible;
-
     button.clicked.disconnect(onClicked);
     buttonConnected = false;
     // show overlays if they were on

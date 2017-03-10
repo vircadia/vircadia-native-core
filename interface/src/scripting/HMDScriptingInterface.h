@@ -76,6 +76,8 @@ public:
 
     Q_INVOKABLE void closeTablet();
 
+    Q_INVOKABLE void openTablet();
+
 signals:
     bool shouldShowHandControllersChanged();
 
