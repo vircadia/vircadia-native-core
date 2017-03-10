@@ -107,7 +107,7 @@ Rectangle {
                     font.pixelSize: 12
                 }
 
-                TabletComboBox {
+                ComboBox {
                     id: collisionType
                     width: 200
                     z: 100

@@ -14,7 +14,6 @@ import QtQuick.Controls.Styles 1.4
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
-import "." as VrControls
 
 FocusScope {
     id: root
@@ -31,6 +30,8 @@ FocusScope {
     property real controlHeight: height + (comboBoxLabel.visible ? comboBoxLabel.height + comboBoxLabel.anchors.bottomMargin : 0)
 
     readonly property ComboBox control: comboBox
+
+    property bool isDesktop: true
 
     signal accepted();
 
@@ -119,11 +120,17 @@ FocusScope {
     }
 
     function showList() {
-        var r = desktop.mapFromItem(root, 0, 0, root.width, root.height);
+        var r;
+        if (isDesktop) {
+            r = desktop.mapFromItem(root, 0, 0, root.width, root.height);
+        } else {
+            r = mapFromItem(root, 0, 0, root.width, root.height);
+        }
         var y = r.y + r.height;
         var bottom = y + scrollView.height;
-        if (bottom > desktop.height) {
-            y -= bottom - desktop.height + 8;
+        var height = isDesktop ? desktop.height : tabletRoot.height;
+        if (bottom > height) {
+            y -= bottom - height + 8;
         }
         scrollView.x = r.x;
         scrollView.y = y;
@@ -141,9 +148,9 @@ FocusScope {
 
     FocusScope {
         id: popup
-        parent: desktop
+        parent: isDesktop ? desktop : parent
         anchors.fill: parent
-        z: desktop.zLevels.menu
+        z: isDesktop ? desktop.zLevels.menu : 12
         visible: false
         focus: true
 
@@ -232,5 +239,9 @@ FocusScope {
         anchors.bottom: parent.top
         anchors.bottomMargin: 4
         visible: label != ""
+    }
+
+    Component.onCompleted: {
+        isDesktop = (typeof desktop !== "undefined");
     }
 }
