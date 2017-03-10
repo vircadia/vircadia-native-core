@@ -19,7 +19,6 @@
 #include <QDir>
 
 #include <ServerPathUtils.h>
-#include <NumericalConstants.h>
 
 Q_LOGGING_CATEGORY(file_cache, "hifi.file_cache", QtWarningMsg)
 
