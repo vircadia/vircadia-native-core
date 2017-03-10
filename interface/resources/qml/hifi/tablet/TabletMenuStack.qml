@@ -51,7 +51,7 @@ Item {
             d.push(Qt.resolvedUrl(path));
             d.currentItem.eventBridge = tabletMenu.eventBridge
             d.currentItem.sendToScript.connect(tabletMenu.sendToScript);
-            breadcrumbText.text = d.currentItem.objectName;
+            breadcrumbText.text = d.currentItem.title;
         }
 
         function popSource() {

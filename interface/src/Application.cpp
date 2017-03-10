@@ -5876,7 +5876,7 @@ void Application::showDialog(const QString& desktopURL, const QString& tabletURL
     if (tablet->getToolbarMode() || (!hmd->getShouldShowTablet() && !isHMDMode())) {
         DependencyManager::get<OffscreenUi>()->show(desktopURL, name);
     } else {
-        tablet->loadQMLSource(tabletURL);
+        tablet->pushOntoStack(tabletURL);
     }
 }
 
