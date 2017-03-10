@@ -21,8 +21,8 @@ import "../../../controls-uit" as HifiControls
 
 Item {
     id: dialog
-    width: 480
-    height: 720
+    width: parent.width
+    height: parent.height
 
     HifiConstants { id: hifi }
     property var sections: []
@@ -31,6 +31,7 @@ Item {
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
+   
 
     property var tablet;
   
@@ -68,22 +69,11 @@ Item {
         }
         z: 100
 
-        gradient: Gradient {
-            GradientStop {
-                position: 0
-                color: "#2b2b2b"
-            }
-
-            GradientStop {
-                position: 1
-                color: "#1e1e1e"
-            }
-        }
-
+        color: hifi.colors.darkGray
         RalewayBold {
             text: title
             size: 26
-            color: "#34a2c7"
+            color: hifi.colors.white
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
             anchors.leftMargin: hifi.dimensions.contentMargin.x
@@ -99,17 +89,8 @@ Item {
             right: parent.right
         }
 
-        gradient: Gradient {
-            GradientStop {
-                position: 0
-                color: "#2b2b2b"
-            }
-            
-            GradientStop {
-                position: 1
-                color: "#0f212e"
-            }
-        }
+        color: hifi.colors.baseGray
+        
         Flickable {
             id: scrollView
             width: parent.width
@@ -203,17 +184,8 @@ Item {
             left: parent.left
             right: parent.right
         }
-        gradient: Gradient {
-            GradientStop {
-                position: 0
-                color: "#2b2b2b"
-            }
-            
-            GradientStop {
-                position: 1
-                color: "#0f212e"
-            }
-        }
+
+        color: hifi.colors.baseGray
 
         Row {
             anchors {
