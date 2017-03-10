@@ -674,13 +674,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // or rejects a set of properties, it clears this. In such cases, we don't want those custom
         // setters to ignore what the server says.
         filterRejection = newSimOwner.getID().isNull();
-        bool verbose = getName() == "fubar"; // adebug
-        if (verbose && _simulationOwner != newSimOwner) {
-            std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug ownership changed "
-                << _simulationOwner.getID().toString().toStdString() << "." << (int)_simulationOwner.getPriority() << "-->"
-                << newSimOwner.getID().toString().toStdString() << "." << (int)newSimOwner.getPriority()
-                << std::endl;  // adebug
-        }
         if (weOwnSimulation) {
             if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
                 // entity-server is trying to clear our ownership (probably at our own request)
@@ -1891,18 +1884,12 @@ void EntityItem::updateSimulationOwner(const SimulationOwner& owner) {
 
     if (_simulationOwner.set(owner)) {
         _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
-        if (getName() == "fubar") {
-            std::cout << "debug updateSimulationOwner() " << _simulationOwner.getID().toString().toStdString() << "." << (int)(_simulationOwner.getPriority()) << std::endl;  // adebug
-        }
     }
 }
 
 void EntityItem::clearSimulationOwnership() {
     if (wantTerseEditLogging() && !_simulationOwner.isNull()) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now null";
-    }
-    if (getName() == "fubar") {
-        std::cout << "debug clearSimulationOwnership()" << std::endl;  // adebug
     }
 
     _simulationOwner.clear();

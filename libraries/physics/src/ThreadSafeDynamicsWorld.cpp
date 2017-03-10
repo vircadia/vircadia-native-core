@@ -136,7 +136,7 @@ void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
     } else  {
         //iterate over all active rigid bodies
         // TODO? if this becomes a performance bottleneck we could derive our own SimulationIslandManager
-        // that remembers a list of objects it recently deactivated
+        // that remembers a list of objects deactivated last step
         _activeStates.clear();
         _deactivatedStates.clear();
         for (int i=0;i<m_nonStaticRigidBodies.size();i++) {
@@ -153,9 +153,6 @@ void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
                 }
             }
         }
-    }
-    if (_deactivatedStates.size() > 0) {
-        std::cout << secTimestampNow() << "  adebug num deactivated = " << _deactivatedStates.size() << std::endl;  // adebug
     }
     _activeStates.swap(_lastActiveStates);
 }

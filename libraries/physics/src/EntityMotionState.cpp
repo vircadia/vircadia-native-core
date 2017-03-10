@@ -10,7 +10,6 @@
 //
 
 #include <glm/gtx/norm.hpp>
-#include <iostream> // adebug
 
 #include <EntityItem.h>
 #include <EntityItemProperties.h>
@@ -27,19 +26,6 @@
 #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
 #include "EntityTree.h"
 #endif
-
-// adebug TODO BOOKMARK:
-// Consider an object near deactivation owned by userB and in view of userA...
-// The problem is that userB may deactivate and disown the object before userA deactivates
-// userA will sometimes insert non-zero velocities (and position errors) into the Entity before it is deactivated locally
-//
-// It would be nice to prevent data export from Bullet to Entity for unowned objects except in cases where it is really needed (?)
-// Maybe can recycle _serverPosition and friends to store the "before simulationStep" data to more efficiently figure out
-// if data should be used for non-owned objects.
-//
-// If we do that, we should convert _serverPosition and friends to use Bullet data types for efficiency.
-//
-// adebug
 
 const uint8_t LOOPS_FOR_SIMULATION_ORPHAN = 50;
 const quint64 USECS_BETWEEN_OWNERSHIP_BIDS = USECS_PER_SECOND / 5;
@@ -112,15 +98,6 @@ void EntityMotionState::updateServerPhysicsVariables() {
 }
 
 void EntityMotionState::handleDeactivation() {
-    // adebug
-    glm::vec3 pos = _entity->getPosition();
-    float dx = glm::distance(pos, _serverPosition);
-    glm::vec3 v = _entity->getVelocity();
-    float dv = glm::distance(v, _serverVelocity);
-    std::cout << "adebug deactivate '" << _entity->getName().toStdString()
-        << "' dx = " << dx << "  dv = " << dv << std::endl;  // adebug
-    // adebug
-
     // copy _server data to entity
     bool success;
     _entity->setPosition(_serverPosition, success, false);
@@ -145,10 +122,6 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
                 _outgoingPriority = 0;
                 const float ACTIVATION_EXPIRY = 3.0f; // something larger than the 2.0 hard coded in Bullet
                 _body->setDeactivationTime(ACTIVATION_EXPIRY);
-                bool verbose = _entity->getName() == "fubar"; // adebug
-                if (verbose) {
-                    std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug flag for deactivation" << std::endl;  // adebug
-                }
             } else {
                 // disowned object is still moving --> start timer for ownership bid
                 // TODO? put a delay in here proportional to distance from object?
@@ -156,13 +129,6 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
                 _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
             }
             _loopsWithoutOwner = 0;
-
-            // adebug BOOKMARK: the problem is that userB may deactivate and disown the Object
-            // but it may still be active for userA... who will store slightly non-zero velocities into EntityItem in the meantime
-            //
-            // It would be nice if we could ignore slight outgoing changes for unowned objects that WANT_DEACTIVATION until...
-            // (a) the changes exceed some threshold (--> bid for ownership) or...
-            // (b) they actually get deactivated (--> slam RigidBody positions to agree with EntityItem)
         } else if (_entity->getSimulatorID() == Physics::getSessionUUID()) {
             // we just inherited ownership, make sure our desired priority matches what we have
             upgradeOutgoingPriority(_entity->getSimulationPriority());
@@ -270,20 +236,6 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     assert(_entity);
     assert(entityTreeIsLocked());
-    bool verbose = _entity->getName() == "fubar"; // adebug
-    // adebug BOOKMARK: the problem is that userB may deactivate and disown the Object
-    // but it may still be active for userA... who will store slightly non-zero velocities into EntityItem in the meantime
-    // so what we need to do is ignore setWorldTransform() events for unowned objects when the bullet data is not helpful
-    // until either the data passes some threshold (bid for it) or
-    // it goes inactive (at which point we should slam bullet to agree with entity)
-    if (_body->getActivationState() == WANTS_DEACTIVATION && !_entity->isMoving()) {
-        if (verbose) {
-            std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug  entity at rest but physics is not?"
-                << "  v = " << _body->getLinearVelocity().length()
-                << "  w = " << _body->getAngularVelocity().length()
-                << std::endl;  // adebug
-        }
-    }
     measureBodyAcceleration();
     bool positionSuccess;
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
@@ -300,12 +252,6 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
             LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
                                                               "setOrientation failed.*");
         qCDebug(physics) << "EntityMotionState::setWorldTransform setOrientation failed" << _entity->getID();
-    }
-    if (verbose
-            && (glm::length(getBodyLinearVelocity()) > 0.0f || glm::length(getBodyAngularVelocity()) > 0.0f)
-            && _entity->getSimulationOwner().getID().isNull()) {
-        std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug set non-zero v on unowned object AS = " << _body->getActivationState() << std::endl;  // adebug
-
     }
     _entity->setVelocity(getBodyLinearVelocity());
     _entity->setAngularVelocity(getBodyAngularVelocity());
@@ -355,18 +301,6 @@ bool EntityMotionState::isCandidateForOwnership() const {
     assert(_body);
     assert(_entity);
     assert(entityTreeIsLocked());
-
-    /* adebug
-    bool verbose = _entity->getName() == "fubar"; // adebug
-    if (verbose) {
-        bool isCandidate = _outgoingPriority != 0
-            || Physics::getSessionUUID() == _entity->getSimulatorID()
-            || _entity->actionDataNeedsTransmit();
-        if (!isCandidate) {
-            std::cout << (void*)(this) << "  adebug  not candidate --> erase" << std::endl;  // adebug
-        }
-    }
-    */
     return _outgoingPriority != 0
         || Physics::getSessionUUID() == _entity->getSimulatorID()
         || _entity->actionDataNeedsTransmit();
@@ -565,7 +499,6 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
     assert(_entity);
     assert(entityTreeIsLocked());
-    bool verbose = _entity->getName() == "fubar"; // adebug
 
     if (!_body->isActive()) {
         // make sure all derivatives are zero
@@ -651,9 +584,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         properties.clearSimulationOwner();
         _outgoingPriority = 0;
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
-        if (verbose) {
-            std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug sendUpdate() clearOwnership numInactiveUpdates = " << (int)_numInactiveUpdates << std::endl;  // adebug
-        }
     } else if (Physics::getSessionUUID() != _entity->getSimulatorID()) {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
         quint8 bidPriority = glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY);
@@ -664,9 +594,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         // don't forget to remember that we have made a bid
         _entity->rememberHasSimulationOwnershipBid();
         // ...then reset _outgoingPriority in preparation for the next frame
-        if (verbose) {
-            std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug sendUpdate() bidOwnership at " << (int)_outgoingPriority << std::endl;  // adebug
-        }
         _outgoingPriority = 0;
     } else if (_outgoingPriority != _entity->getSimulationPriority()) {
         // we own the simulation but our desired priority has changed
@@ -678,9 +605,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setSimulationOwner(Physics::getSessionUUID(), _outgoingPriority);
         }
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
-        if (verbose) {
-            std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug sendUpdate() changePriority to " << (int)_outgoingPriority << std::endl;  // adebug
-        }
     }
 
     EntityItemID id(_entity->getID());
