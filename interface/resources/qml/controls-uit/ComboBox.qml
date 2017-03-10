@@ -186,18 +186,18 @@ FocusScope {
                     visible: false
                 }
                 scrollBarBackground: Rectangle{
-                    implicitWidth: 14
+                    implicitWidth: 20
                     color: hifi.colors.baseGray
                 }
 
                 handle:
                     Rectangle {
-                    implicitWidth: 8
+                    implicitWidth: 16
                     anchors.left: parent.left
                     anchors.leftMargin: 3
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
-                    radius: 3
+                    radius: 6
                     color: hifi.colors.lightGrayText
                 }
             }
