@@ -107,16 +107,6 @@ Item {
         }
     }
 
-    onKeyboardRaisedChanged: {
-        if (keyboardEnabled && keyboardRaised) {
-            var buttonsHeight = 120;  // Allow for New Attachment plus Cancel & OK buttons.
-            var delta = activator.mouseY - (root.height - keyboard.raisedHeight - buttonsHeight);
-            if (delta > 0) {
-                attachments.scrollBy(delta);
-            }
-        }
-    }
-
     MouseArea {
         id: activator
         anchors.fill: parent

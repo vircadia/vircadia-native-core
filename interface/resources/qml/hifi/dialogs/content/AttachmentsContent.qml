@@ -45,17 +45,32 @@ Item {
                     anchors.fill: parent
                     anchors.margins: 4
                     clip: true
-                    focus: true
+                    snapMode: ListView.SnapToItem
 
                     model: ListModel {}
                     delegate: Item {
                         id: attachmentDelegate
                         implicitHeight: attachmentView.height + 8;
                         implicitWidth: attachmentView.width
+
+                        MouseArea {
+                            // User can click on whitespace to select item.
+                            anchors.fill: parent
+                            propagateComposedEvents: true
+                            onClicked: {
+                                listView.currentIndex = index;
+                                attachmentsBackground.forceActiveFocus();  // Unfocus from any control.
+                                mouse.accepted = false;
+                            }
+                        }
+
                         Attachment {
                             id: attachmentView
                             width: listView.width
                             attachment: content.attachments[index]
+                            onSelectAttachment: {
+                                listView.currentIndex = index;
+                            }
                             onDeleteAttachment: {
                                 attachments.splice(index, 1);
                                 listView.model.remove(index, 1);
@@ -63,11 +78,18 @@ Item {
                             onUpdateAttachment: MyAvatar.setAttachmentsVariant(attachments);
                         }
                     }
+
                     onCountChanged: MyAvatar.setAttachmentsVariant(attachments);
 
-                    function scrollBy(delta) {
-                        // @@@@@@@
-                        //flickableItem.contentY += delta;
+                    /* */
+                    // DEBUG
+                    highlight: Rectangle { color: "#40ffff00" }
+                    highlightFollowsCurrentItem: true
+                    /* */
+
+                    onHeightChanged: {
+                        // Keyboard has been raised / lowered.
+                        positionViewAtIndex(currentIndex, ListView.SnapPosition);
                     }
                 }
             }
@@ -145,9 +167,4 @@ Item {
             }
         }
     }
-
-    function scrollBy(delta) {
-        listView.scrollBy(delta);
-    }
 }
-

@@ -17,9 +17,23 @@ Item {
 
     HifiConstants { id: hifi }
 
+    signal selectAttachment();
     signal deleteAttachment(var attachment);
     signal updateAttachment();
     property bool completed: false;
+
+    function doSelectAttachment(control, focus) {
+        if (focus) {
+            selectAttachment();
+
+            // Refocus control after possibly changing focus to attachment.
+            if (control.setControlFocus !== undefined) {
+                control.setControlFocus();
+            } else {
+                control.focus = true;
+            }
+        }
+    }
 
     Rectangle { color: hifi.colors.baseGray; anchors.fill: parent; radius: 4 }
 
@@ -50,6 +64,7 @@ Item {
                         updateAttachment();
                     }
                 }
+                onFocusChanged: doSelectAttachment(this, focus);
             }
             HifiControls.Button {
                 id: modelChooserButton;
@@ -91,6 +106,7 @@ Item {
                         updateAttachment();
                     }
                 }
+                onFocusChanged: doSelectAttachment(this, focus);
             }
         }
 
@@ -108,6 +124,7 @@ Item {
                         updateAttachment();
                     }
                 }
+                onControlFocusChanged: doSelectAttachment(this, controlFocus);
             }
         }
 
@@ -125,6 +142,7 @@ Item {
                         updateAttachment();
                     }
                 }
+                onControlFocusChanged: doSelectAttachment(this, controlFocus);
             }
         }
 
@@ -153,6 +171,7 @@ Item {
                             updateAttachment();
                         }
                     }
+                    onFocusChanged: doSelectAttachment(this, focus);
                 }
             }
 
@@ -178,6 +197,7 @@ Item {
                             updateAttachment();
                         }
                     }
+                    onFocusChanged: doSelectAttachment(this, focus);
                 }
             }
         }
