@@ -211,8 +211,10 @@ Window.snapshotShared.connect(snapshotShared);
 Window.processingGif.connect(processingGif);
 
 Script.scriptEnding.connect(function () {
-    button.clicked.disconnect(onClicked);
-    buttonConnected = false;
+    if (buttonConnected) {
+        button.clicked.disconnect(onClicked);
+        buttonConnected = false;
+    }
     if (tablet) {
         tablet.removeButton(button);
     }
