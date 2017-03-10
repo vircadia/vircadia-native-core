@@ -45,6 +45,10 @@ function calcSpawnInfo(hand, height) {
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
     var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
 
+    if (!hand) {
+        hand = NO_HANDS;
+    }
+
     if (HMD.active && hand !== NO_HANDS) {
         var handController = getControllerWorldLocation(hand, true);
         var controllerPosition = handController.position;
@@ -96,7 +100,7 @@ function calcSpawnInfo(hand, height) {
  * @param hand [number] -1 indicates no hand, Controller.Standard.RightHand or Controller.Standard.LeftHand
  * @param clientOnly [bool] true indicates tablet model is only visible to client.
  */
-WebTablet = function (url, width, dpi, hand, clientOnly) {
+WebTablet = function (url, width, dpi, hand, clientOnly, location) {
 
     var _this = this;
 
@@ -134,6 +138,10 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
 
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(hand, true, tabletProperties);
+    if (location) {
+        tabletProperties.localPosition = location.localPosition;
+        tabletProperties.localRotation = location.localRotation;
+    }
 
     this.cleanUpOldTablets();
 

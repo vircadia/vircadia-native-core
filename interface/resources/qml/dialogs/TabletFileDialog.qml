@@ -66,8 +66,6 @@ TabletModalWindow {
     signal canceled();
 
     Component.onCompleted: {
-        console.log("Helper " + helper + " drives " + drives);
-
         fileDialogItem.keyboardEnabled = HMD.active;
 
         // HACK: The following lines force the model to initialize properly such that the go-up button
@@ -151,11 +149,12 @@ TabletModalWindow {
             }
         }
 
-        /*TabletComboBox {
+        TabletComboBox {
             id: pathSelector
-           anchors {
+            z: 10
+            anchors {
                 top: parent.top
-                topMargin: hifi.dimensions.contentMargin.y
+                topMargin: (fileDialogItem.hasTitle ? (fileDialogItem.frameMarginTop + hifi.dimensions.modalDialogMargin.y) : hifi.dimension.modalDialogMargin.y) 
                 left: navControls.right
                 leftMargin: hifi.dimensions.contentSpacing.x
                 right: parent.right
@@ -219,7 +218,7 @@ TabletModalWindow {
                     fileTableView.forceActiveFocus();
                 }
             }
-        }*/
+        }
 
         QtObject {
             id: d
@@ -458,6 +457,7 @@ TabletModalWindow {
                 bottomMargin: hifi.dimensions.contentSpacing.y + currentSelection.controlHeight - currentSelection.height
             }
             headerVisible: !selectDirectory
+            onClicked: navigateToRow(row);
             onDoubleClicked: navigateToRow(row);
             focus: true
             Keys.onReturnPressed: navigateToCurrentRow();

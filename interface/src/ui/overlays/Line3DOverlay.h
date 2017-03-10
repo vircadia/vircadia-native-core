@@ -48,8 +48,6 @@ public:
 
     virtual Line3DOverlay* createClone() const override;
 
-    virtual void locationChanged(bool tellPhysics = true) override;
-
     glm::vec3 getDirection() const { return _direction; }
     float getLength() const { return _length; }
     glm::vec3 getLocalStart() const { return getLocalPosition(); }
