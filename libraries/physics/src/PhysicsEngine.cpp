@@ -149,10 +149,10 @@ void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
     }
 
     if (_activeStaticBodies.size() > 0) {
-        // very unlikely to get here but its theoretically possible:
-        // immediately after a static entity was moved we skipped a simulation step and never got around to
-        // updating the static entity's RigidBody AABB.  Now we're deleting bodies ==> we must scan
-        // _activeStaticBodies for bodies being removed and clear any that we find.
+        // _activeStaticBodies was not cleared last frame.
+        // The only way to get here is if a static object were moved but we did not actually step the simulation last
+        // frame (because the framerate is faster than our physics simulation rate).  When this happens we must scan
+        // _activeStaticBodies for objects that were recently deleted so we don't try to access a dangling pointer.
         for (auto object : objects) {
             btRigidBody* body = object->getRigidBody();
 
