@@ -104,6 +104,11 @@ void EntityMotionState::handleDeactivation() {
     _entity->setOrientation(_serverRotation, success, false);
     _entity->setVelocity(ENTITY_ITEM_ZERO_VEC3);
     _entity->setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
+    // and also to RigidBody
+    btTransform worldTrans;
+    worldTrans.setOrigin(glmToBullet(_serverPosition));
+    worldTrans.setRotation(glmToBullet(_serverRotation));
+    // no need to update velocities... should already be zero
 }
 
 // virtual
