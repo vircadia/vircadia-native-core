@@ -14,6 +14,7 @@
 void AudioMixerStats::reset() {
     sumStreams = 0;
     sumListeners = 0;
+    sumListenersSilent = 0;
     totalMixes = 0;
     hrtfRenders = 0;
     hrtfSilentRenders = 0;
@@ -28,6 +29,7 @@ void AudioMixerStats::reset() {
 void AudioMixerStats::accumulate(const AudioMixerStats& otherStats) {
     sumStreams += otherStats.sumStreams;
     sumListeners += otherStats.sumListeners;
+    sumListenersSilent += otherStats.sumListenersSilent;
     totalMixes += otherStats.totalMixes;
     hrtfRenders += otherStats.hrtfRenders;
     hrtfSilentRenders += otherStats.hrtfSilentRenders;

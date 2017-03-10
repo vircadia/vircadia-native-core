@@ -66,8 +66,6 @@ TabletModalWindow {
     signal canceled();
 
     Component.onCompleted: {
-        console.log("Helper " + helper + " drives " + drives);
-
         fileDialogItem.keyboardEnabled = HMD.active;
 
         // HACK: The following lines force the model to initialize properly such that the go-up button
@@ -459,6 +457,7 @@ TabletModalWindow {
                 bottomMargin: hifi.dimensions.contentSpacing.y + currentSelection.controlHeight - currentSelection.height
             }
             headerVisible: !selectDirectory
+            onClicked: navigateToRow(row);
             onDoubleClicked: navigateToRow(row);
             focus: true
             Keys.onReturnPressed: navigateToCurrentRow();
