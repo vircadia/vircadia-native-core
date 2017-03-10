@@ -1052,7 +1052,12 @@ void AudioClient::handleAudioInput() {
         auto packetType = _shouldEchoToServer ?
             PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
 
-        if (_lastInputLoudness == 0) {
+        // if the _inputGate closed in this last frame, then we don't actually want
+        // to send a silent packet, instead, we want to go ahead and encode and send
+        // the output from the input gate (eventually, this could be crossfaded)
+        // and allow the codec to properly encode down to silent/zero. If we still
+        // have _lastInputLoudness of 0 in our NEXT frame, we will send a silent packet
+        if (_lastInputLoudness == 0 && !_inputGate.closedInLastFrame()) {
             packetType = PacketType::SilentAudioFrame;
         }
         Transform audioTransform;

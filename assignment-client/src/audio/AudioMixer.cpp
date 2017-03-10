@@ -241,6 +241,7 @@ void AudioMixer::sendStatsPacket() {
 
     statsObject["avg_streams_per_frame"] = (float)_stats.sumStreams / (float)_numStatFrames;
     statsObject["avg_listeners_per_frame"] = (float)_stats.sumListeners / (float)_numStatFrames;
+    statsObject["avg_listeners_(silent)_per_frame"] = (float)_stats.sumListenersSilent / (float)_numStatFrames;
 
     statsObject["silent_packets_per_frame"] = (float)_numSilentPackets / (float)_numStatFrames;
 
