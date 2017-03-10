@@ -98,7 +98,9 @@ Item {
                     }
 
                     onCurrentIndexChanged: {
-                        scrollSlider.y = currentIndex * (scrollBar.height - scrollSlider.height) / (listView.count - 1);
+                        if (!yScrollTimer.running) {
+                            scrollSlider.y = currentIndex * (scrollBar.height - scrollSlider.height) / (listView.count - 1);
+                        }
                     }
 
                     onContentYChanged: {
@@ -108,13 +110,14 @@ Item {
 
                     Timer {
                         id: yScrollTimer
-                        interval: 50
+                        interval: 200
                         repeat: false
                         running: false
                         onTriggered: {
-                            var index = listView.contentY / (scrollBar.height - scrollSlider.height);
+                            var index = (listView.count - 1) * listView.contentY / (listView.contentHeight - scrollBar.height);
                             index = Math.round(index);
                             listView.currentIndex = index;
+                            scrollSlider.y = index * (scrollBar.height - scrollSlider.height) / (listView.count - 1);
                         }
                     }
                 }
