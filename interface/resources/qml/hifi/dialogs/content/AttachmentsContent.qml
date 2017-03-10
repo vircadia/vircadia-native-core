@@ -42,8 +42,13 @@ Item {
 
                 ListView {
                     id: listView
-                    anchors.fill: parent
-                    anchors.margins: 4
+                    anchors {
+                        top: parent.top
+                        left: parent.left
+                        right: scrollBar.left
+                        bottom: parent.bottom
+                        margins: 4
+                    }
                     clip: true
                     snapMode: ListView.SnapToItem
 
@@ -81,15 +86,97 @@ Item {
 
                     onCountChanged: MyAvatar.setAttachmentsVariant(attachments);
 
-                    /* */
+                    /*
                     // DEBUG
                     highlight: Rectangle { color: "#40ffff00" }
                     highlightFollowsCurrentItem: true
-                    /* */
+                    */
 
                     onHeightChanged: {
                         // Keyboard has been raised / lowered.
-                        positionViewAtIndex(currentIndex, ListView.SnapPosition);
+                        positionViewAtIndex(listView.currentIndex, ListView.SnapPosition);
+                    }
+
+                    onCurrentIndexChanged: {
+                        scrollSlider.y = currentIndex * (scrollBar.height - scrollSlider.height) / (listView.count - 1);
+                    }
+
+                    onContentYChanged: {
+                        // User may have dragged content up/down.
+                        yScrollTimer.restart();
+                    }
+
+                    Timer {
+                        id: yScrollTimer
+                        interval: 50
+                        repeat: false
+                        running: false
+                        onTriggered: {
+                            var index = listView.contentY / (scrollBar.height - scrollSlider.height);
+                            index = Math.round(index);
+                            listView.currentIndex = index;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: scrollBar
+
+                    property bool scrolling: listView.contentHeight > listView.height
+
+                    anchors {
+                        top: parent.top
+                        right: parent.right
+                        bottom: parent.bottom
+                        topMargin: 4
+                        bottomMargin: 4
+                    }
+                    width: scrolling ? 18 : 0
+                    radius: attachmentsBackground.radius
+                    color: hifi.colors.baseGrayShadow
+
+                    MouseArea {
+                        anchors.fill: parent
+
+                        onClicked: {
+                            var index = listView.currentIndex;
+                            index = index + (mouse.y <= scrollSlider.y ? -1 : 1);
+                            if (index < 0) {
+                                index = 0;
+                            }
+                            if (index > listView.count - 1) {
+                                index = listView.count - 1;
+                            }
+                            listView.currentIndex = index;
+                        }
+                    }
+
+                    Rectangle {
+                        id: scrollSlider
+                        anchors {
+                            right: parent.right
+                            rightMargin: 3
+                        }
+                        width: 16
+                        height: (listView.height / listView.contentHeight) * listView.height
+                        radius: width / 2
+                        color: hifi.colors.lightGray
+
+                        visible: scrollBar.scrolling;
+
+                        onYChanged: {
+                            var index = y * (listView.count - 1) / (scrollBar.height - scrollSlider.height);
+                            index = Math.round(index);
+                            listView.currentIndex = index;
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            drag.target: scrollSlider
+                            drag.axis: Drag.YAxis
+                            drag.minimumY: 0
+                            drag.maximumY: scrollBar.height - scrollSlider.height
+                        }
                     }
                 }
             }
