@@ -1704,4 +1704,8 @@ function loaded() {
     document.addEventListener("contextmenu", function(event) {
         event.preventDefault();
     }, false);
+
+    setTimeout(function() {
+        EventBridge.emitWebEvent(JSON.stringify({ type: 'propertiesPageReady' }));
+    }, 1000);
 }
