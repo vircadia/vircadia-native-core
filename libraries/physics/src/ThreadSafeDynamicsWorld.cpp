@@ -128,25 +128,36 @@ void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
         for (int i=0;i<m_collisionObjects.size();i++) {
             btCollisionObject* colObj = m_collisionObjects[i];
             btRigidBody* body = btRigidBody::upcast(colObj);
-            if (body) {
-                if (body->getMotionState()) {
-                    synchronizeMotionState(body);
-                    _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
-                }
+            if (body && body->getMotionState()) {
+                synchronizeMotionState(body);
+                _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
             }
         }
     } else  {
         //iterate over all active rigid bodies
+        // TODO? if this becomes a performance bottleneck we could derive our own SimulationIslandManager
+        // that remembers a list of objects it recently deactivated
+        _activeStates.clear();
+        _deactivatedStates.clear();
         for (int i=0;i<m_nonStaticRigidBodies.size();i++) {
             btRigidBody* body = m_nonStaticRigidBodies[i];
-            if (body->isActive()) {
-                if (body->getMotionState()) {
+            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(body->getMotionState());
+            if (motionState) {
+                if (body->isActive()) {
                     synchronizeMotionState(body);
-                    _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
+                    _changedMotionStates.push_back(motionState);
+                    _activeStates.insert(motionState);
+                } else if (_lastActiveStates.find(motionState) != _lastActiveStates.end()) {
+                    // this object was active last frame but is no longer
+                    _deactivatedStates.push_back(motionState);
                 }
             }
         }
     }
+    if (_deactivatedStates.size() > 0) {
+        std::cout << secTimestampNow() << "  adebug num deactivated = " << _deactivatedStates.size() << std::endl;  // adebug
+    }
+    _activeStates.swap(_lastActiveStates);
 }
 
 void ThreadSafeDynamicsWorld::saveKinematicState(btScalar timeStep) {

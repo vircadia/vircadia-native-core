@@ -259,6 +259,19 @@ void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) 
     _pendingChanges.clear();
 }
 
+void PhysicalEntitySimulation::handleDeactivatedMotionStates(const VectorOfMotionStates& motionStates) {
+    for (auto stateItr : motionStates) {
+        ObjectMotionState* state = &(*stateItr);
+        assert(state);
+        if (state->getType() == MOTIONSTATE_TYPE_ENTITY) {
+            EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
+            entityState->handleDeactivation();
+            EntityItemPointer entity = entityState->getEntity();
+            _entitiesToSort.insert(entity);
+        }
+    }
+}
+
 void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionStates& motionStates) {
     QMutexLocker lock(&_mutex);
 

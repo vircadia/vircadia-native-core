@@ -10,6 +10,7 @@
 //
 
 #include <glm/gtx/norm.hpp>
+#include <iostream> // adebug
 
 #include <EntityItem.h>
 #include <EntityItemProperties.h>
@@ -28,7 +29,8 @@
 #endif
 
 // adebug TODO BOOKMARK:
-// The problem is that userB may deactivate and disown and object before userA deactivates
+// Consider an object near deactivation owned by userB and in view of userA...
+// The problem is that userB may deactivate and disown the object before userA deactivates
 // userA will sometimes insert non-zero velocities (and position errors) into the Entity before it is deactivated locally
 //
 // It would be nice to prevent data export from Bullet to Entity for unowned objects except in cases where it is really needed (?)
@@ -109,6 +111,24 @@ void EntityMotionState::updateServerPhysicsVariables() {
     _serverActionData = _entity->getActionData();
 }
 
+void EntityMotionState::handleDeactivation() {
+    // adebug
+    glm::vec3 pos = _entity->getPosition();
+    float dx = glm::distance(pos, _serverPosition);
+    glm::vec3 v = _entity->getVelocity();
+    float dv = glm::distance(v, _serverVelocity);
+    std::cout << "adebug deactivate '" << _entity->getName().toStdString()
+        << "' dx = " << dx << "  dv = " << dv << std::endl;  // adebug
+    // adebug
+
+    // copy _server data to entity
+    bool success;
+    _entity->setPosition(_serverPosition, success, false);
+    _entity->setOrientation(_serverRotation, success, false);
+    _entity->setVelocity(ENTITY_ITEM_ZERO_VEC3);
+    _entity->setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
+}
+
 // virtual
 void EntityMotionState::handleEasyChanges(uint32_t& flags) {
     assert(entityTreeIsLocked());
@@ -125,7 +145,7 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
                 _outgoingPriority = 0;
                 bool verbose = _entity->getName() == "fubar"; // adebug
                 if (verbose) {
-                    std::cout << (void*)(this) << "  adebug flag for deactivation" << std::endl;  // adebug
+                    std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug flag for deactivation" << std::endl;  // adebug
                 }
             } else {
                 // disowned object is still moving --> start timer for ownership bid
@@ -244,7 +264,7 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 }
 
 // This callback is invoked by the physics simulation at the end of each simulation step...
-// iff the corresponding RigidBody is DYNAMIC and has moved.
+// iff the corresponding RigidBody is DYNAMIC and ACTIVE.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     assert(_entity);
     assert(entityTreeIsLocked());
@@ -256,7 +276,10 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     // it goes inactive (at which point we should slam bullet to agree with entity)
     if (_body->getActivationState() == WANTS_DEACTIVATION && !_entity->isMoving()) {
         if (verbose) {
-            std::cout << (void*)(this) << "  adebug  v = " << _body->getLinearVelocity().length() << "  w = " << _body->getAngularVelocity().length() << std::endl;  // adebug
+            std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug  entity at rest but physics is not?"
+                << "  v = " << _body->getLinearVelocity().length()
+                << "  w = " << _body->getAngularVelocity().length()
+                << std::endl;  // adebug
         }
     }
     measureBodyAcceleration();
@@ -279,7 +302,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     if (verbose
             && (glm::length(getBodyLinearVelocity()) > 0.0f || glm::length(getBodyAngularVelocity()) > 0.0f)
             && _entity->getSimulationOwner().getID().isNull()) {
-        std::cout << (void*)(this) << "  adebug set non-zero v on unowned object AS = " << _body->getActivationState() << std::endl;  // adebug
+        std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug set non-zero v on unowned object AS = " << _body->getActivationState() << std::endl;  // adebug
 
     }
     _entity->setVelocity(getBodyLinearVelocity());
@@ -627,7 +650,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _outgoingPriority = 0;
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
         if (verbose) {
-            std::cout << (void*)(this) << "  adebug sendUpdate() clearOwnership numInactiveUpdates = " << (int)_numInactiveUpdates << std::endl;  // adebug
+            std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug sendUpdate() clearOwnership numInactiveUpdates = " << (int)_numInactiveUpdates << std::endl;  // adebug
         }
     } else if (Physics::getSessionUUID() != _entity->getSimulatorID()) {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
@@ -640,7 +663,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _entity->rememberHasSimulationOwnershipBid();
         // ...then reset _outgoingPriority in preparation for the next frame
         if (verbose) {
-            std::cout << (void*)(this) << "  adebug sendUpdate() bidOwnership at " << (int)_outgoingPriority << std::endl;  // adebug
+            std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug sendUpdate() bidOwnership at " << (int)_outgoingPriority << std::endl;  // adebug
         }
         _outgoingPriority = 0;
     } else if (_outgoingPriority != _entity->getSimulationPriority()) {
@@ -654,7 +677,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         }
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
         if (verbose) {
-            std::cout << (void*)(this) << "  adebug sendUpdate() changePriority to " << (int)_outgoingPriority << std::endl;  // adebug
+            std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug sendUpdate() changePriority to " << (int)_outgoingPriority << std::endl;  // adebug
         }
     }
 

@@ -56,6 +56,7 @@ public:
     void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
     void getObjectsToChange(VectorOfMotionStates& result);
 
+    void handleDeactivatedMotionStates(const VectorOfMotionStates& motionStates);
     void handleChangedMotionStates(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 

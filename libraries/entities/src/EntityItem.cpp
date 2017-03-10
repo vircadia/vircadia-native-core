@@ -676,7 +676,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         filterRejection = newSimOwner.getID().isNull();
         bool verbose = getName() == "fubar"; // adebug
         if (verbose && _simulationOwner != newSimOwner) {
-            std::cout << (void*)(this) << "  adebug ownership changed "
+            std::cout << (void*)(this) << "  " << secTimestampNow() << "  adebug ownership changed "
                 << _simulationOwner.getID().toString().toStdString() << "." << (int)_simulationOwner.getPriority() << "-->"
                 << newSimOwner.getID().toString().toStdString() << "." << (int)newSimOwner.getPriority()
                 << std::endl;  // adebug
