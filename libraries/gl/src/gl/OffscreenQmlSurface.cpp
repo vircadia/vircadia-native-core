@@ -434,6 +434,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     auto rootContext = getRootContext();
     rootContext->setContextProperty("urlHandler", new UrlHandler());
     rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
+    rootContext->setContextProperty("pathToFonts", "../../");
 }
 
 static uvec2 clampSize(const uvec2& size, uint32_t maxDimension) {
