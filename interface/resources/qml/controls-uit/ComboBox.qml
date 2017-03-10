@@ -24,6 +24,7 @@ FocusScope {
     readonly property alias currentText: comboBox.currentText;
     property alias currentIndex: comboBox.currentIndex;
 
+    property int dropdownHeight: 480
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property string label: ""
@@ -148,7 +149,7 @@ FocusScope {
 
     FocusScope {
         id: popup
-        parent: isDesktop ? desktop : parent
+        parent: isDesktop ? desktop : root
         anchors.fill: parent
         z: isDesktop ? desktop.zLevels.menu : 12
         visible: false
@@ -173,7 +174,7 @@ FocusScope {
 
         ScrollView {
             id: scrollView
-            height: 480
+            height: root.dropdownHeight
             width: root.width + 4
             property bool hoverEnabled: false;
 

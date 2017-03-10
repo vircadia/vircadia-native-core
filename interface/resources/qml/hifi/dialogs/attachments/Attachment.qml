@@ -87,6 +87,7 @@ Item {
         }
 
         Item {
+            z: 1000
             height: jointChooser.height + jointLabel.height + 4
             anchors { left: parent.left; right: parent.right; }
             HifiControls.Label {
@@ -97,6 +98,7 @@ Item {
             }
             HifiControls.ComboBox {
                 id: jointChooser;
+                dropdownHeight: (typeof desktop !== "undefined") ? 480 : 206
                 anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
                 colorScheme: hifi.colorSchemes.dark
                 currentIndex: attachment ? model.indexOf(attachment.jointName) : -1
