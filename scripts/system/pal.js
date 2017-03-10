@@ -696,6 +696,9 @@ function clearLocalQMLDataAndClosePAL() {
 }
 
 function shutdown() {
+    if (onPalScreen) {
+        tablet.gotoHomeScreen();
+    }
     button.clicked.disconnect(onTabletButtonClicked);
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
