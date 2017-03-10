@@ -19,6 +19,7 @@
 struct AudioMixerStats {
     int sumStreams { 0 };
     int sumListeners { 0 };
+    int sumListenersSilent { 0 };
 
     int totalMixes { 0 };
 
