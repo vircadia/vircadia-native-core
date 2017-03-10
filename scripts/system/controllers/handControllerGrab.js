@@ -3516,6 +3516,8 @@ function MyController(hand) {
     this.cleanup = function() {
         this.release();
         this.grabPointSphereOff();
+        this.hideStylus();
+        this.overlayLineOff();
     };
 
     this.thisHandIsParent = function(props) {
