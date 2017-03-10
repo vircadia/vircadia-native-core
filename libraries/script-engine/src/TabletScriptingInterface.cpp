@@ -393,7 +393,7 @@ void TabletProxy::popFromStack() {
 }
 
 void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
-    if (_state != State::Home && ( _state != State::Uninitialized || forceOntoHomeScreen)) {
+    if ((_state != State::Home && _state != State::Uninitialized) || forceOntoHomeScreen) {
         if (!_toolbarMode && _qmlTabletRoot) {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
             QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()), Qt::DirectConnection);
