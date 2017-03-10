@@ -48,6 +48,9 @@
     }, POLL_RATE);
 
     Script.scriptEnding.connect(function () {
+        if (enabled) {
+             Menu.closeInfoView('InfoView_html/help.html');
+        }
         button.clicked.disconnect(onClicked);
         Script.clearInterval(interval);
         if (tablet) {
