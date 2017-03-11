@@ -6,6 +6,7 @@ import Qt.labs.settings 1.0
 
 import "."
 import ".."
+import "../../tablet"
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControls
 import "../../../windows"
@@ -76,12 +77,24 @@ Item {
                     id: modelBrowserBuilder;
                     ModelBrowserDialog {}
                 }
+                Component {
+                    id: tabletModelBrowserBuilder;
+                    TabletModelBrowserDialog {}
+                }
 
                 onClicked: {
-                    var browser = modelBrowserBuilder.createObject(desktop);
-                    browser.selected.connect(function(newModelUrl){
-                        modelUrl.text = newModelUrl;
-                    })
+                    var browser;
+                    if (typeof desktop !== "undefined") {
+                        browser = modelBrowserBuilder.createObject(desktop);
+                        browser.selected.connect(function(newModelUrl){
+                            modelUrl.text = newModelUrl;
+                        });
+                    } else {
+                        browser = tabletModelBrowserBuilder.createObject(tabletRoot);
+                        browser.selected.connect(function(newModelUrl){
+                            modelUrl.text = newModelUrl;
+                        });
+                    }
                 }
             }
         }
