@@ -108,6 +108,7 @@ void EntityMotionState::handleDeactivation() {
     btTransform worldTrans;
     worldTrans.setOrigin(glmToBullet(_serverPosition));
     worldTrans.setRotation(glmToBullet(_serverRotation));
+    _body->setWorldTransform(worldTrans);
     // no need to update velocities... should already be zero
 }
 
