@@ -13,7 +13,6 @@
 
 (function () { // BEGIN LOCAL_SCOPE
 
-    var framesSinceOpened = 0;
     var scopeVisibile = AudioScope.getVisible();
     var scopePaused = AudioScope.getPause();
     var autoPause = false;
@@ -77,21 +76,16 @@
     });
 
     Audio.noiseGateOpened.connect(function(){
-        framesSinceOpened = 0;
+        if (autoPause) {
+            setScopePause(false);
+        }
     });
 
     Audio.noiseGateClosed.connect(function(){
         // noise gate closed
-    });
-
-    Audio.inputReceived.connect(function(){
-        if (autoPause && AudioScope.getVisible()) {
-            framesSinceOpened++;
-            if (framesSinceOpened > 50) {
-                setScopePause(true);
-            }
+        if (autoPause) {
+            setScopePause(true);
         }
     });
-
 
 }()); // END LOCAL_SCOPE
