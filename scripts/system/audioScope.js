@@ -19,19 +19,22 @@
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var showScopeButton = tablet.addButton({
-        icon: "http://s3.amazonaws.com/hifi-public/tony/icons/star.png",
+        icon: "icons/tablet-icons/scope.svg",
         text: "Audio Scope",
         isActive: scopeVisibile
     });
 
+    var scopePauseImage = "icons/tablet-icons/scope-pause.svg";
+    var scopePlayImage = "icons/tablet-icons/scope-play.svg";
+    
     var pauseScopeButton = tablet.addButton({
-        icon: "http://s3.amazonaws.com/hifi-public/tony/icons/star.png",
-        text: "Pause",
+        icon: scopePaused ? scopePlayImage : scopePauseImage,
+        text: scopePaused ? "Unpause" : "Pause",
         isActive: scopePaused
     });
 
     var autoPauseScopeButton = tablet.addButton({
-        icon: "http://s3.amazonaws.com/hifi-public/tony/icons/star.png",
+        icon: "icons/tablet-icons/scope-auto.svg",
         text: "Auto Pause",
         isActive: autoPause
     });
@@ -40,6 +43,7 @@
         scopePaused = paused;
         pauseScopeButton.editProperties({
             isActive: scopePaused,
+            icon: scopePaused ? scopePlayImage : scopePauseImage,
             text: scopePaused ? "Unpause" : "Pause"
         });
         AudioScope.setPause(scopePaused);
