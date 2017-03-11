@@ -51,8 +51,11 @@ void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info) {
     QString filename = info.requestUrl().fileName();
     
     if (isJavaScriptFile(filename) || isEntityFile(filename)) {
-        static const QString CONTENT_HEADER = "Content-Type";
-        static const QString HEADER_VALUE = "text/plain";
-        info.setHttpHeader(CONTENT_HEADER.toLocal8Bit(), HEADER_VALUE.toLocal8Bit());
+        static const QString CONTENT_HEADER = "Accept";
+        static const QString TYPE_VALUE = "text/html";
+        info.setHttpHeader(CONTENT_HEADER.toLocal8Bit(), TYPE_VALUE.toLocal8Bit());
+        static const QString CONTENT_DISPOSITION = "Content-Disposition";
+        static const QString DISPOSITION_VALUE = "inline";
+        info.setHttpHeader(CONTENT_DISPOSITION.toLocal8Bit(), DISPOSITION_VALUE.toLocal8Bit());
     }
 }
