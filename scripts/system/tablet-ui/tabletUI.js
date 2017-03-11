@@ -12,21 +12,47 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays, MyAvatar */
+/* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
+   MyAvatar, Menu */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletShown = false;
-    var tabletLocation = null;
+    var tabletRezzed = false;
     var activeHand = null;
+    var DEFAULT_WIDTH = 0.4375;
+    var DEFAULT_TABLET_SCALE = 100;
+    var preMakeTime = Date.now();
+    var validCheckTime = Date.now();
+    var debugTablet = false;
+    UIWebTablet = null;
 
     Script.include("../libraries/WebTablet.js");
 
-    function showTabletUI() {
-        tabletShown = true;
-        print("show tablet-ui");
+    function tabletIsValid() {
+        if (!UIWebTablet) {
+            return false;
+        }
+        if (UIWebTablet.tabletIsOverlay && Overlays.getProperty(HMD.tabletID, "type") != "model") {
+            if (debugTablet) {
+                print("TABLET is invalid due to frame: " + JSON.stringify(Overlays.getProperty(HMD.tabletID, "type")));
+            }
+            return false;
+        }
+        if (Overlays.getProperty(HMD.homeButtonID, "type") != "sphere" ||
+            Overlays.getProperty(HMD.tabletScreenID, "type") != "web3d") {
+            if (debugTablet) {
+                print("TABLET is invalid due to other");
+            }
+            return false;
+        }
+        return true;
+    }
 
-        var DEFAULT_WIDTH = 0.4375;
-        var DEFAULT_TABLET_SCALE = 100;
+
+    function rezTablet() {
+        if (debugTablet) {
+            print("TABLET rezzing");
+        }
         var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
         var TABLET_SCALE = DEFAULT_TABLET_SCALE;
         if (toolbarMode) {
@@ -34,37 +60,98 @@
         } else {
             TABLET_SCALE = Settings.getValue("hmdTabletScale") || DEFAULT_TABLET_SCALE;
         }
-        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", DEFAULT_WIDTH * (TABLET_SCALE / 100), null, activeHand, true);
+
+        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml",
+                                    DEFAULT_WIDTH * (TABLET_SCALE / 100),
+                                    null, activeHand, true);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;
         HMD.tabletScreenID = UIWebTablet.webOverlayID;
+
+        tabletRezzed = true;
+    }
+
+    function showTabletUI() {
+        tabletShown = true;
+
+        if (!tabletRezzed) {
+            rezTablet(false);
+        }
+
+        if (UIWebTablet && tabletRezzed) {
+            if (debugTablet) {
+                print("TABLET in showTabletUI, already rezzed");
+            }
+            var tabletProperties = {};
+            UIWebTablet.calculateTabletAttachmentProperties(activeHand, true, tabletProperties);
+            tabletProperties.visible = true;
+            if (UIWebTablet.tabletIsOverlay) {
+                Overlays.editOverlay(HMD.tabletID, tabletProperties);
+            }
+            Overlays.editOverlay(HMD.homeButtonID, { visible: true });
+            Overlays.editOverlay(HMD.tabletScreenID, { visible: true });
+            Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 90 });
+        }
     }
 
     function hideTabletUI() {
         tabletShown = false;
-        print("hide tablet-ui");
+        if (!UIWebTablet) {
+            return;
+        }
+
+        if (UIWebTablet.tabletIsOverlay) {
+            if (debugTablet) {
+                print("TABLET hide");
+            }
+            if (Settings.getValue("tabletVisibleToOthers")) {
+                closeTabletUI();
+            } else {
+                // Overlays.editOverlay(HMD.tabletID, { localPosition: { x: -1000, y: 0, z:0 } });
+                Overlays.editOverlay(HMD.tabletID, { visible: false });
+                Overlays.editOverlay(HMD.homeButtonID, { visible: false });
+                Overlays.editOverlay(HMD.tabletScreenID, { visible: false });
+                Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 1 });
+            }
+        } else {
+            closeTabletUI();
+        }
+    }
+
+    function closeTabletUI() {
+        tabletShown = false;
         if (UIWebTablet) {
             if (UIWebTablet.onClose) {
                 UIWebTablet.onClose();
             }
 
-            tabletLocation = UIWebTablet.getLocation();
+            if (debugTablet) {
+                print("TABLET close");
+            }
             UIWebTablet.unregister();
             UIWebTablet.destroy();
             UIWebTablet = null;
             HMD.tabletID = null;
             HMD.homeButtonID = null;
             HMD.tabletScreenID = null;
+        } else if (debugTablet) {
+            print("TABLET closeTabletUI, UIWebTablet is null");
         }
+        tabletRezzed = false;
     }
 
+
     function updateShowTablet() {
+        var MSECS_PER_SEC = 1000.0;
+        var now = Date.now();
 
         // close the WebTablet if it we go into toolbar mode.
         var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
+        var visibleToOthers = Settings.getValue("tabletVisibleToOthers");
+
         if (tabletShown && toolbarMode) {
-            hideTabletUI();
+            closeTabletUI();
             HMD.closeTablet();
             return;
         }
@@ -78,19 +165,48 @@
             tablet.updateAudioBar(currentMicLevel);
         }
 
-        if (tabletShown && UIWebTablet && Overlays.getOverlayType(UIWebTablet.webOverlayID) != "web3d") {
-            // when we switch domains, the tablet entity gets destroyed and recreated.  this causes
-            // the overlay to be deleted, but not recreated.  If the overlay is deleted for this or any
-            // other reason, close the tablet.
-            hideTabletUI();
-            HMD.closeTablet();
-        } else if (HMD.showTablet && !tabletShown && !toolbarMode) {
-            UserActivityLogger.openedTablet(Settings.getValue("tabletVisibleToOthers"));
+        if (validCheckTime - now > MSECS_PER_SEC) {
+            validCheckTime = now;
+            if (tabletRezzed && UIWebTablet && !tabletIsValid()) {
+                // when we switch domains, the tablet entity gets destroyed and recreated.  this causes
+                // the overlay to be deleted, but not recreated.  If the overlay is deleted for this or any
+                // other reason, close the tablet.
+                closeTabletUI();
+                HMD.closeTablet();
+                if (debugTablet) {
+                    print("TABLET autodestroying");
+                }
+            }
+        }
+
+
+        if (HMD.showTablet && !tabletShown && !toolbarMode) {
+            UserActivityLogger.openedTablet(visibleToOthers);
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
             UserActivityLogger.closedTablet();
-            hideTabletUI();
+            if (visibleToOthers) {
+                closeTabletUI();
+            } else {
+                hideTabletUI();
+            }
         }
+
+        // if the tablet is an overlay, attempt to pre-create it and then hide it so that when it's
+        // summoned, it will appear quickly.
+        if (!toolbarMode && !visibleToOthers) {
+            if (now - preMakeTime > MSECS_PER_SEC) {
+                preMakeTime = now;
+                if (!tabletIsValid()) {
+                    closeTabletUI();
+                    rezTablet(false);
+                    tabletShown = false;
+                } else if (!tabletShown) {
+                    hideTabletUI();
+                }
+            }
+        }
+
     }
 
     function toggleHand(channel, hand, senderUUID, localOnly) {

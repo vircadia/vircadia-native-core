@@ -758,16 +758,16 @@ function loaded() {
                     }
                 } else if (data.type == "update") {
 
-                    if (data.selections.length == 0) {
+                    if (!data.selections || data.selections.length == 0) {
                         if (editor !== null && lastEntityID !== null) {
                             saveJSONUserData(true);
                             deleteJSONEditor();
                         }
                         elTypeIcon.style.display = "none";
                         elType.innerHTML = "<i>No selection</i>";
-                        elID.innerHTML = "";
+                        elID.value = "";
                         disableProperties();
-                    } else if (data.selections.length > 1) {
+                    } else if (data.selections && data.selections.length > 1) {
                         deleteJSONEditor();
                         var selections = data.selections;
 
@@ -795,7 +795,7 @@ function loaded() {
                         elTypeIcon.innerHTML = ICON_FOR_TYPE[type];
                         elTypeIcon.style.display = "inline-block";
 
-                        elID.innerHTML = ids.join("<br>");
+                        elID.value = "";
 
                         disableProperties();
                     } else {
@@ -808,7 +808,7 @@ function loaded() {
                         //the event bridge and json parsing handle our avatar id string differently.
 
                         lastEntityID = '"' + properties.id + '"';
-                        elID.innerHTML = properties.id;
+                        elID.value = properties.id;
 
                         elType.innerHTML = properties.type;
                         elTypeIcon.innerHTML = ICON_FOR_TYPE[properties.type];

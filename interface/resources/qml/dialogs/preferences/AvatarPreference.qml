@@ -23,7 +23,10 @@ Preference {
 
     Component.onCompleted: {
         dataTextField.text = preference.value;
-        console.log("MyAvatar modelName " + MyAvatar.getFullAvatarModelName())
+        // FIXME: MyAvatar object isn't available in HMD mode for some reason.
+        if (typeof MyAvatar !== "undefined") {
+            console.log("MyAvatar modelName " + MyAvatar.getFullAvatarModelName())
+        }
         console.log("Application : " + ApplicationInterface)
         ApplicationInterface.fullAvatarURLChanged.connect(processNewAvatar);
     }

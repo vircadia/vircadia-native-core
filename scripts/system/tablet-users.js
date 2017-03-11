@@ -67,7 +67,6 @@
     }
 
     function onWebEventReceived(event) {
-        print("Script received a web event, its type is " + typeof event);
         if (typeof event === "string") {
             event = JSON.parse(event);
         }
@@ -115,6 +114,9 @@
     tablet.screenChanged.connect(onScreenChanged);
 
     function cleanup() {
+        if (onUsersScreen) {
+            tablet.gotoHomeScreen();
+        }
         button.clicked.disconnect(onClicked);
         tablet.removeButton(button);
     }

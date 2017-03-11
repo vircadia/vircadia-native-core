@@ -338,10 +338,10 @@ function loaded() {
                   }
               } else if (data.type == "update") {
                   var newEntities = data.entities;
-                  if (newEntities.length == 0) {
+                  if (newEntities && newEntities.length == 0) {
                       elNoEntitiesMessage.style.display = "block";
                       elFooter.firstChild.nodeValue = "0 entities found";
-                  } else {
+                  } else if (newEntities) {
                       elNoEntitiesMessage.style.display = "none";
                       for (var i = 0; i < newEntities.length; i++) {
                           var id = newEntities[i].id;

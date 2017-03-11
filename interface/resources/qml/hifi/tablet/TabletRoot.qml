@@ -1,5 +1,7 @@
 import QtQuick 2.0
 import Hifi 1.0
+import QtQuick.Controls 1.4
+import "../../dialogs"
 
 Item {
     id: tabletRoot
@@ -8,17 +10,48 @@ Item {
     property var eventBridge;
 
     property var rootMenu;
+    property var openModal: null;
+    property var openMessage: null;
     property string subMenu: ""
-
     signal showDesktop();
 
     function setOption(value) {
         option = value;
     }
 
+    Component { id: inputDialogBuilder; TabletQueryDialog { } }
+    function inputDialog(properties) {
+        openModal = inputDialogBuilder.createObject(tabletRoot, properties);
+        return openModal;
+    }
+    Component { id: messageBoxBuilder; TabletMessageBox { } }
+    function messageBox(properties) {
+        openMessage  = messageBoxBuilder.createObject(tabletRoot, properties);
+        return openMessage;
+    }
+
+    Component { id: customInputDialogBuilder; TabletCustomQueryDialog { } }
+    function customInputDialog(properties) {
+        return customInputDialogBuilder.createObject(tabletRoot, properties);
+    }
+
+    Component { id: fileDialogBuilder; TabletFileDialog { } }
+    function fileDialog(properties) {
+        openModal = fileDialogBuilder.createObject(tabletRoot, properties);
+        return openModal; 
+    }
+
     function setMenuProperties(rootMenu, subMenu) {
         tabletRoot.rootMenu = rootMenu;
         tabletRoot.subMenu = subMenu;
+    }
+
+    function isDialogOpen() {
+        if (openMessage !== null || openModal !== null) {
+            return true;
+        }
+
+        return false;
     }
 
     function loadSource(url) {
@@ -68,6 +101,7 @@ Item {
         objectName: "loader"
         asynchronous: false
 
+        
         width: parent.width
         height: parent.height
 
@@ -89,6 +123,12 @@ Item {
                 loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
             }
             loader.item.forceActiveFocus();
+
+            if (openModal) {
+                openModal.canceled();
+                openModal.destroy();
+                openModal = null;
+            }
         }
     }
 

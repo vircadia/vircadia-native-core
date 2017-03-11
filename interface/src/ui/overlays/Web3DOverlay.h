@@ -31,6 +31,7 @@ public:
 
     QString pickURL();
     void loadSourceURL();
+    void setMaxFPS(uint8_t maxFPS);
     virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
 
@@ -74,6 +75,9 @@ private:
 
     bool _pressed{ false };
     QTouchDevice _touchDevice;
+
+    uint8_t _desiredMaxFPS { 10 };
+    uint8_t _currentMaxFPS { 0 };
 
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;

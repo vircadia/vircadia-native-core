@@ -1,7 +1,6 @@
 "use strict";
 
-//  newEditEntities.js
-//  examples
+//  edit.js
 //
 //  Created by Brad Hefta-Gaub on 10/2/14.
 //  Persist toolbar by HRS 6/11/15.
@@ -12,6 +11,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -59,18 +60,13 @@ selectionManager.addEventListener(function () {
 const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
-var epsilon = 0.001;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
 var allowLargeModels = true;
 var allowSmallModels = true;
 
-var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
-var DEFAULT_TEXT_DIMENSION_X = 1.0;
-var DEFAULT_TEXT_DIMENSION_Y = 1.0;
-var DEFAULT_TEXT_DIMENSION_Z = 0.01;
 
 var DEFAULT_DIMENSIONS = {
     x: DEFAULT_DIMENSION,
@@ -85,7 +81,6 @@ var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_IN_EDIT_MODE = "Show Lights in Edit Mode";
 var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Edit Mode";
 
-var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
@@ -157,13 +152,13 @@ function hideMarketplace() {
     marketplaceWindow.setURL("about:blank");
 }
 
-function toggleMarketplace() {
-    if (marketplaceWindow.visible) {
-        hideMarketplace();
-    } else {
-        showMarketplace();
-    }
-}
+// function toggleMarketplace() {
+//     if (marketplaceWindow.visible) {
+//         hideMarketplace();
+//     } else {
+//         showMarketplace();
+//     }
+// }
 
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 
@@ -176,8 +171,6 @@ var toolBar = (function () {
         tablet = null;
 
     function createNewEntity(properties) {
-        Settings.setValue(EDIT_SETTING, false);
-
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
@@ -185,8 +178,12 @@ var toolBar = (function () {
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
                 properties.position = position;
             entityID = Entities.addEntity(properties);
+            if (properties.type == "ParticleEffect") {
+                selectParticleEntity(entityID);
+            }
         } else {
-            Window.notifyEditError("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
+            Window.notifyEditError("Can't create " + properties.type + ": " +
+                                   properties.type + " would be out of bounds.");
         }
 
         selectionManager.clearSelections();
@@ -206,24 +203,63 @@ var toolBar = (function () {
         }
     }
 
+    var buttonHandlers = {}; // only used to tablet mode
+
     function addButton(name, image, handler) {
-        var imageUrl = TOOLS_PATH + image;
-        var button = toolBar.addButton({
-            objectName: name,
-            imageURL: imageUrl,
-            imageOffOut: 1,
-            imageOffIn: 2,
-            imageOnOut: 0,
-            imageOnIn: 2,
-            alpha: 0.9,
-            visible: true
-        });
-        if (handler) {
-            button.clicked.connect(function () {
-                Script.setTimeout(handler, 100);
-            });
+        buttonHandlers[name] = handler;
+    }
+
+    var SHAPE_TYPE_NONE = 0;
+    var SHAPE_TYPE_SIMPLE_HULL = 1;
+    var SHAPE_TYPE_SIMPLE_COMPOUND = 2;
+    var SHAPE_TYPE_STATIC_MESH = 3;
+    var DYNAMIC_DEFAULT = false;
+
+    function handleNewModelDialogResult(result) {
+        if (result) {
+            var url = result.textInput;
+            var shapeType;
+            switch (result.comboBox) {
+            case SHAPE_TYPE_SIMPLE_HULL:
+                shapeType = "simple-hull";
+                break;
+            case SHAPE_TYPE_SIMPLE_COMPOUND:
+                shapeType = "simple-compound";
+                break;
+            case SHAPE_TYPE_STATIC_MESH:
+                shapeType = "static-mesh";
+                break;
+            default:
+                shapeType = "none";
+            }
+
+            var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
+            if (shapeType === "static-mesh" && dynamic) {
+                // The prompt should prevent this case
+                print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
+            } else if (url) {
+                createNewEntity({
+                    type: "Model",
+                    modelURL: url,
+                    shapeType: shapeType,
+                    dynamic: dynamic,
+                    gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
+                });
+            }
+        }        
+    }
+
+    function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        tablet.popFromStack();
+        switch (message.method) {
+        case "newModelDialogAdd":
+            handleNewModelDialogResult(message.params);
+            break;
+        case "newEntityButtonClicked":
+            buttonHandlers[message.params.buttonName]();
+            break;
         }
-        return button;
     }
 
     function initialize() {
@@ -240,101 +276,40 @@ var toolBar = (function () {
             }
         });
 
-
-        if (Settings.getValue("HUDUIEnabled")) {
-            systemToolbar = Toolbars.getToolbar(SYSTEM_TOOLBAR);
-            activeButton = systemToolbar.addButton({
-                objectName: EDIT_TOGGLE_BUTTON,
-                imageURL: TOOLS_PATH + "edit.svg",
-                visible: true,
-                alpha: 0.9,
-                defaultState: 1
-            });
-        } else {
-            tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            activeButton = tablet.addButton({
-                icon: "icons/tablet-icons/edit-i.svg",
-                activeIcon: "icons/tablet-icons/edit-a.svg",
-                text: "EDIT",
-                sortOrder: 10
-            });
-        }
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        activeButton = tablet.addButton({
+            icon: "icons/tablet-icons/edit-i.svg",
+            activeIcon: "icons/tablet-icons/edit-a.svg",
+            text: "EDIT",
+            sortOrder: 10
+        });
+        tablet.screenChanged.connect(function (type, url) {
+            if (isActive && (type !== "QML" || url !== "Edit.qml")) {
+                that.toggle();
+            }
+        });
+        tablet.fromQml.connect(fromQml);
 
         activeButton.clicked.connect(function() {
             that.toggle();
         });
 
-        toolBar = Toolbars.getToolbar(EDIT_TOOLBAR);
-        toolBar.writeProperty("shown", false);
-        addButton("openAssetBrowserButton","assets-01.svg",function(){
+        addButton("openAssetBrowserButton", "assets-01.svg", function(){
             Window.showAssetServer();
-        })
+        });
 
         addButton("newModelButton", "model-01.svg", function () {
-            var SHAPE_TYPE_NONE = 0;
-            var SHAPE_TYPE_SIMPLE_HULL = 1;
-            var SHAPE_TYPE_SIMPLE_COMPOUND = 2;
-            var SHAPE_TYPE_STATIC_MESH = 3;
 
             var SHAPE_TYPES = [];
             SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
             SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
             SHAPE_TYPES[SHAPE_TYPE_SIMPLE_COMPOUND] = "Good - Sub-meshes";
             SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
-
             var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
-            var DYNAMIC_DEFAULT = false;
-            var result = Window.customPrompt({
-                textInput: {
-                    label: "Model URL"
-                },
-                comboBox: {
-                    label: "Automatic Collisions",
-                    index: SHAPE_TYPE_DEFAULT,
-                    items: SHAPE_TYPES
-                },
-                checkBox: {
-                    label: "Dynamic",
-                    checked: DYNAMIC_DEFAULT,
-                    disableForItems: [
-                        SHAPE_TYPE_STATIC_MESH
-                    ],
-                    checkStateOnDisable: false,
-                    warningOnDisable: "Models with automatic collisions set to 'Exact' cannot be dynamic"
-                }
-            });
 
-            if (result) {
-                var url = result.textInput;
-                var shapeType;
-                switch (result.comboBox) {
-                    case SHAPE_TYPE_SIMPLE_HULL:
-                        shapeType = "simple-hull";
-                        break;
-                    case SHAPE_TYPE_SIMPLE_COMPOUND:
-                        shapeType = "simple-compound";
-                        break;
-                    case SHAPE_TYPE_STATIC_MESH:
-                        shapeType = "static-mesh";
-                        break;
-                    default:
-                        shapeType = "none";
-                }
-
-                var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
-                if (shapeType === "static-mesh" && dynamic) {
-                    // The prompt should prevent this case
-                    print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
-                } else if (url) {
-                    createNewEntity({
-                        type: "Model",
-                        modelURL: url,
-                        shapeType: shapeType,
-                        dynamic: dynamic,
-                        gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
-                    });
-                }
-            }
+            // tablet version of new-model dialog
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.pushOntoStack("NewModelDialog.qml");
         });
 
         addButton("newCubeButton", "cube-01.svg", function () {
@@ -456,10 +431,12 @@ var toolBar = (function () {
         entityListTool.clearEntityList();
     };
 
-
     that.toggle = function () {
         that.setActive(!isActive);
         activeButton.editProperties({isActive: isActive});
+        if (!isActive) {
+            tablet.gotoHomeScreen();
+        }
     };
 
     that.setActive = function (active) {
@@ -489,6 +466,8 @@ var toolBar = (function () {
             cameraManager.disable();
             selectionDisplay.triggerMapping.disable();
         } else {
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.loadQMLSource("Edit.qml");
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
             gridTool.setVisible(true);
@@ -498,13 +477,6 @@ var toolBar = (function () {
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
-        }
-        // Sets visibility of tool buttons, excluding the power button
-        toolBar.writeProperty("shown", active);
-        var visible = toolBar.readProperty("visible");
-        if (active && !visible) {
-            toolBar.writeProperty("shown", false);
-            toolBar.writeProperty("shown", true);
         }
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
@@ -642,7 +614,6 @@ var idleMouseTimerId = null;
 var CLICK_TIME_THRESHOLD = 500 * 1000; // 500 ms
 var CLICK_MOVE_DISTANCE_THRESHOLD = 20;
 var IDLE_MOUSE_TIMEOUT = 200;
-var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
 var lastMouseMoveEvent = null;
 
@@ -772,6 +743,12 @@ function mouseClickEvent(event) {
                 orientation = MyAvatar.orientation;
                 intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
 
+                if (event.isShifted) {
+                    particleExplorerTool.destroyWebView();
+                }
+                if (properties.type !== "ParticleEffect") {
+                    particleExplorerTool.destroyWebView();
+                }
 
                 if (!event.isShifted) {
                     selectionManager.setSelections([foundEntity]);
@@ -1297,11 +1274,11 @@ function getPositionToCreateEntity() {
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
 
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), distance))
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), distance));
     }
     position.y += 0.5;
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
-        return null
+        return null;
     }
     return position;
 }
@@ -1315,11 +1292,11 @@ function getPositionToImportEntity() {
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, longest));
 
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), longest))
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), longest));
     }
 
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
-        return null
+        return null;
     }
 
     return position;
@@ -1527,11 +1504,11 @@ var ServerScriptStatusMonitor = function(entityID, statusCallback) {
                     Entities.getServerScriptStatus(entityID, onStatusReceived);
                 }
             }, 1000);
-        };
+        }
     };
     self.stop = function() {
         self.active = false;
-    }
+    };
 
     Entities.getServerScriptStatus(entityID, onStatusReceived);
 };
@@ -1539,11 +1516,9 @@ var ServerScriptStatusMonitor = function(entityID, statusCallback) {
 var PropertiesTool = function (opts) {
     var that = {};
 
-    var webView = new OverlayWebWindow({
-        title: 'Entity Properties',
-        source: ENTITY_PROPERTIES_URL,
-        toolWindow: true
-    });
+    var webView = null;
+    webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    webView.setVisible = function(value) {};
 
     var visible = false;
 
@@ -1562,7 +1537,7 @@ var PropertiesTool = function (opts) {
     function updateScriptStatus(info) {
         info.type = "server_script_status";
         webView.emitScriptEvent(JSON.stringify(info));
-    };
+    }
 
     function resetScriptStatus() {
         updateScriptStatus({
@@ -1621,7 +1596,7 @@ var PropertiesTool = function (opts) {
             data = JSON.parse(data);
         }
         catch(e) {
-            print('Edit.js received web event that was not valid json.')
+            print('Edit.js received web event that was not valid json.');
             return;
         }
         var i, properties, dY, diff, newPosition;
@@ -1639,15 +1614,15 @@ var PropertiesTool = function (opts) {
                 for (i = 0; i < selectionManager.selections.length; i++) {
                     Entities.editEntity(selectionManager.selections[i], properties);
                 }
-            } else {
+            } else if (data.properties) {
                 if (data.properties.dynamic === false) {
                     // this object is leaving dynamic, so we zero its velocities
-                    data.properties["velocity"] = {
+                    data.properties.velocity = {
                         x: 0,
                         y: 0,
                         z: 0
                     };
-                    data.properties["angularVelocity"] = {
+                    data.properties.angularVelocity = {
                         x: 0,
                         y: 0,
                         z: 0
@@ -1960,6 +1935,21 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 var propertiesTool = new PropertiesTool();
 var particleExplorerTool = new ParticleExplorerTool();
 var selectedParticleEntity = 0;
+
+function selectParticleEntity(entityID) {
+    var properties = Entities.getEntityProperties(entityID);
+    var particleData = {
+        messageType: "particle_settings",
+        currentProperties: properties
+    };
+    particleExplorerTool.destroyWebView();
+    particleExplorerTool.createWebView();
+
+    selectedParticleEntity = entityID;
+    particleExplorerTool.setActiveParticleEntity(entityID);
+    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+}
+
 entityListTool.webView.webEventReceived.connect(function (data) {
     data = JSON.parse(data);
     if(data.type === 'parent') {
@@ -1975,22 +1965,7 @@ entityListTool.webView.webEventReceived.connect(function (data) {
                     return;
                 }
                 // Destroy the old particles web view first
-                particleExplorerTool.destroyWebView();
-                particleExplorerTool.createWebView();
-                var properties = Entities.getEntityProperties(ids[0]);
-                var particleData = {
-                    messageType: "particle_settings",
-                    currentProperties: properties
-                };
-                selectedParticleEntity = ids[0];
-                particleExplorerTool.setActiveParticleEntity(ids[0]);
-
-                particleExplorerTool.webView.webEventReceived.connect(function (data) {
-                    data = JSON.parse(data);
-                    if (data.messageType === "page_loaded") {
-                        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-                    }
-                });
+                selectParticleEntity(ids[0]);
             } else {
                 selectedParticleEntity = 0;
                 particleExplorerTool.destroyWebView();

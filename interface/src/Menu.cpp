@@ -294,13 +294,15 @@ Menu::Menu() {
     // Settings > General...
     action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_Comma, nullptr, nullptr, QAction::PreferencesRole);
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GeneralPreferencesDialog.qml"), "GeneralPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
+            QString("../../hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
     });
 
     // Settings > Avatar...
     action = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), "AvatarPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), 
+            QString("../../hifi/tablet/TabletAvatarPreferences.qml"), "AvatarPreferencesDialog");
     });
 
     // Settings > LOD...
@@ -550,8 +552,8 @@ Menu::Menu() {
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
     action = addActionToQMenuAndActionHash(networkMenu, MenuOption::Networking);
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QUrl("hifi/dialogs/NetworkingPreferencesDialog.qml"),
-                                                      "NetworkingPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/NetworkingPreferencesDialog.qml"),
+            QString("../../hifi/tablet/TabletNetworkingPreferences.qml"), "NetworkingPreferencesDialog");
     });
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
@@ -612,7 +614,8 @@ Menu::Menu() {
 
     action = addActionToQMenuAndActionHash(audioDebugMenu, "Buffers...");
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AudioPreferencesDialog.qml"), "AudioPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/AudioPreferencesDialog.qml"),
+            QString("../../hifi/tablet/TabletAudioPreferences.qml"), "AudioPreferencesDialog");
     });
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction, 0, true,
