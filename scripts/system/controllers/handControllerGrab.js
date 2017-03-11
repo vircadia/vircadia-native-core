@@ -1632,12 +1632,12 @@ function MyController(hand) {
         }
 
         // add the tabletScreen, if it is valid
-        if (HMD.tabletScreenID && HMD.tabletScreenID !== NULL_UUID) {
+        if (HMD.tabletScreenID && HMD.tabletScreenID !== NULL_UUID && Overlays.getProperty(HMD.tabletScreenID, "visible")) {
             stylusTargets.push(calculateStylusTargetFromOverlay(this.stylusTip, HMD.tabletScreenID));
         }
 
         // add the tablet home button.
-        if (HMD.homeButtonID && HMD.homeButtonID !== NULL_UUID) {
+        if (HMD.homeButtonID && HMD.homeButtonID !== NULL_UUID && Overlays.getProperty(HMD.homeButtonID, "visible")) {
             stylusTargets.push(calculateStylusTargetFromOverlay(this.stylusTip, HMD.homeButtonID));
         }
 
