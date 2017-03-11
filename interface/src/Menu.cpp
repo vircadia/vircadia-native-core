@@ -408,7 +408,8 @@ Menu::Menu() {
 
 
     // Developer > Render > LOD Tools
-    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0, dialogsManager.data(), SLOT(lodTools()));
+    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0,
+                                  qApp, SLOT(loadLODToolsDialog()));
 
     // HACK enable texture decimation
     {

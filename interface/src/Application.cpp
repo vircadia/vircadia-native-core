@@ -6363,6 +6363,18 @@ void Application::loadScriptURLDialog() const {
     }
 }
 
+void Application::loadLODToolsDialog() {
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
+        auto dialogsManager = DependencyManager::get<DialogsManager>();
+        dialogsManager->lodTools();
+    } else {
+        tablet->pushOntoStack("../../hifi/dialogs/TabletLODTools.qml");
+    }
+
+}
+
 void Application::toggleLogDialog() {
     if (! _logDialog) {
         _logDialog = new LogDialog(nullptr, getLogger());
