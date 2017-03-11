@@ -38,38 +38,16 @@ Item {
         Tablet.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
     }
 
-    anchors.topMargin: 90  // Space for header.
+    anchors.topMargin: hifi.dimensions.tabletMenuHeader  // Space for header.
 
-    // FIXME: Refactor with other tablet headers.
-    Rectangle {
+    HifiControls.TabletHeader {
         id: header
-        height: 90
+        title: root.title
+
         anchors {
             left: parent.left
             right: parent.right
             bottom: parent.top
-        }
-        z: 100
-
-        gradient: Gradient {
-            GradientStop {
-                position: 0
-                color: "#2b2b2b"
-            }
-
-            GradientStop {
-                position: 1
-                color: "#1e1e1e"
-            }
-        }
-
-        RalewayBold {
-            text: title
-            size: 26
-            color: "#34a2c7"
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.leftMargin: hifi.dimensions.contentMargin.x
         }
     }
 
