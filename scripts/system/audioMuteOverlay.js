@@ -40,7 +40,7 @@
         if (!AudioDevice.getMuted()) {
             return;
         }
-        updateTween();
+        updateOverlay();
     }
 
     function lerp(a, b, val) {
@@ -49,10 +49,31 @@
 
     function getOffsetPosition() {
         return Vec3.sum(MyAvatar.getHeadPosition(), Quat.getFront(MyAvatar.headOrientation));
-    }   
-    
-    function updateTween() {
-        // increase the tween value based on speed till it's complete
+    }
+
+    function onMuteToggled() {
+        if (AudioDevice.getMuted()) {
+            createOverlay();
+        } else {
+            deleteOverlay();
+        }
+    }
+
+    function createOverlay() {
+        overlayPosition = getOffsetPosition();
+        overlayID = Overlays.addOverlay("sphere", {
+            position: overlayPosition,
+            rotation: MyAvatar.orientation,
+            alpha: 0.9,
+            dimensions: 0.1,
+            solid: true,
+            ignoreRayIntersection: true,
+            visible: true
+        });
+    }
+
+    function updateOverlay() {
+        // increase by TWEEN_SPEED until completion
         if (tweenPosition < 1) {
             tweenPosition += TWEEN_SPEED;
         } else {
@@ -83,28 +104,6 @@
             },
             position: overlayPosition,
             rotation: MyAvatar.orientation,
-        });
-    }
-
-    function onMuteToggled() {
-        if (AudioDevice.getMuted()) {
-            createOverlay();
-        } else {
-            deleteOverlay();
-        }
-    }
-
-    function createOverlay() {
-        overlayPosition = getOffsetPosition();
-        overlayID = Overlays.addOverlay("sphere", {
-            name: "muteSphere",
-            position: overlayPosition,
-            rotation: MyAvatar.orientation,
-            alpha: 0.9,
-            dimensions: 0.1,
-            solid: true,
-            ignoreRayIntersection: true,
-            visible: true
         });
     }
 
