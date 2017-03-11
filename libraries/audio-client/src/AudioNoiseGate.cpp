@@ -141,15 +141,16 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         
     }
 
-    bool isOpeningGate = false;
+    _closedInLastFrame = false;
+    _openedInLastFrame = false;
 
     if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
-        isOpeningGate = !_isOpen;
+        _openedInLastFrame = !_isOpen;
         _isOpen = true;
         _framesToClose = NOISE_GATE_CLOSE_FRAME_DELAY;
     } else {
         if (--_framesToClose == 0) {
-            _closedInLastFrame = !_isOpen;
+            _closedInLastFrame = _isOpen;
             _isOpen = false;
         }
     }
@@ -166,7 +167,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         _lastLoudness = 0;
     }
 
-    if (isOpeningGate) {
+    if (_openedInLastFrame) {
         // would be nice to do a little crossfade from silence
         for (int i = 0; i < numSamples; i++) {
             float fadedSample = ((float)i / (float)numSamples) * (float)samples[i];

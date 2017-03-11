@@ -218,6 +218,8 @@ signals:
     void inputReceived(const QByteArray& inputSamples);
     void outputBytesToNetwork(int numBytes);
     void inputBytesFromNetwork(int numBytes);
+    void noiseGateOpened();
+    void noiseGateClosed();
 
     void changeDevice(const QAudioDeviceInfo& outputDeviceInfo);
     void deviceChanged();

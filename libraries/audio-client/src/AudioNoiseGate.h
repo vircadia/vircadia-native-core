@@ -25,6 +25,7 @@ public:
     
     bool clippedInLastFrame() const { return _didClipInLastFrame; }
     bool closedInLastFrame() const { return _closedInLastFrame; }
+    bool openedInLastFrame() const { return _openedInLastFrame; }
     float getMeasuredFloor() const { return _measuredFloor; }
     float getLastLoudness() const { return _lastLoudness; }
     
@@ -42,6 +43,7 @@ private:
     int _sampleCounter;
     bool _isOpen;
     bool _closedInLastFrame { false };
+    bool _openedInLastFrame { false };
     int _framesToClose;
 };
 

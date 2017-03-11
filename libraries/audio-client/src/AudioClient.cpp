@@ -1024,6 +1024,7 @@ void AudioClient::handleAudioInput() {
                 if (_inputGate.clippedInLastFrame()) {
                     _timeSinceLastClip = 0.0f;
                 }
+
             } else {
                 float loudness = 0.0f;
 
@@ -1040,6 +1041,13 @@ void AudioClient::handleAudioInput() {
             }
 
             emit inputReceived({ reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes });
+
+            if (_inputGate.openedInLastFrame()) {
+                emit noiseGateOpened();
+            }
+            if (_inputGate.closedInLastFrame()) {
+                emit noiseGateClosed();
+            }
 
         } else {
             // our input loudness is 0, since we're muted

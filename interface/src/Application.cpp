@@ -1182,6 +1182,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // set the local loopback interface for local sounds
     AudioInjector::setLocalAudioInterface(audioIO.data());
     AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
+    connect(audioIO.data(), &AudioClient::noiseGateOpened, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::noiseGateOpened);
+    connect(audioIO.data(), &AudioClient::noiseGateClosed, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::noiseGateClosed);
+    connect(audioIO.data(), &AudioClient::inputReceived, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::inputReceived);
+
 
     this->installEventFilter(this);
 
@@ -1947,6 +1951,9 @@ void Application::initializeUi() {
     rootContext->setContextProperty("ApplicationInterface", this);
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
+    //rootContext->setContextProperty("AudioScope", DependencyManager::get<AudioScope>.data());
+
+
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     _fileDownload = new FileScriptingInterface(engine);
@@ -5521,6 +5528,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
+    scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
