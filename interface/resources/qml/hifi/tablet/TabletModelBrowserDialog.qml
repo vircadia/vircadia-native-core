@@ -11,6 +11,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 
+import "../../controls-uit" as HifiControls
 import "../../styles-uit"
 import "../dialogs/content"
 
@@ -24,6 +25,10 @@ Item {
 
     signal selected(var modelUrl)
     signal canceled()
+
+    property bool keyboardEnabled: false
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
 
     anchors.fill: parent
 
@@ -72,7 +77,33 @@ Item {
             top: header.bottom
             left: parent.left
             right: parent.right
-            bottom: parent.top
+            bottom: keyboard.top
         }
+    }
+
+    HifiControls.Keyboard {
+        id: keyboard
+        raised: parent.keyboardEnabled && parent.keyboardRaised
+        numeric: parent.punctuationMode
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+    }
+
+    MouseArea {
+        id: activator
+        anchors.fill: parent
+        propagateComposedEvents: true
+        enabled: true
+        acceptedButtons: Qt.AllButtons
+        onPressed: {
+            mouse.accepted = false;
+        }
+    }
+
+    Component.onCompleted: {
+        keyboardEnabled = HMD.active;
     }
 }
