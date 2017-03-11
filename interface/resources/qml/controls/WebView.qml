@@ -2,7 +2,7 @@ import QtQuick 2.5
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 import "../controls-uit" as HiFiControls
-import HFWebEngineProfile 1.0
+import FileTypeProfile 1.0
 
 Item {
     property alias url: root.url
@@ -36,7 +36,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
-        profile: HFWebEngineProfile {
+        profile: FileTypeProfile {
             id: webviewProfile
             storageName: "qmlWebEngine"
         }

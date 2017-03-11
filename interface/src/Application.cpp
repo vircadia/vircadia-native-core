@@ -142,6 +142,7 @@
 #include "ModelPackager.h"
 #include "networking/HFWebEngineProfile.h"
 #include "networking/HFTabletWebEngineProfile.h"
+#include "networking/FileTypeProfile.h"
 #include "scripting/TestScriptingInterface.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
@@ -1934,6 +1935,7 @@ void Application::initializeUi() {
 
     qmlRegisterType<HFWebEngineProfile>("HFWebEngineProfile", 1, 0, "HFWebEngineProfile");
     qmlRegisterType<HFTabletWebEngineProfile>("HFTabletWebEngineProfile", 1, 0, "HFTabletWebEngineProfile");
+    qmlRegisterType<FileTypeProfile>("FileTypeProfile", 1, 0, "FileTypeProfile");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->qglContext());
