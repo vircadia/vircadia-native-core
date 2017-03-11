@@ -1951,7 +1951,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("ApplicationInterface", this);
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
-    //rootContext->setContextProperty("AudioScope", DependencyManager::get<AudioScope>.data());
+    rootContext->setContextProperty("AudioScope", DependencyManager::get<AudioScope>().data());
 
 
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
