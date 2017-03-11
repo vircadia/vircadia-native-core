@@ -75,9 +75,15 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioMixerInPps, 0)
     STATS_PROPERTY(int, audioMixerOutKbps, 0)
     STATS_PROPERTY(int, audioMixerOutPps, 0)
-
     STATS_PROPERTY(int, audioMixerKbps, 0)
     STATS_PROPERTY(int, audioMixerPps, 0)
+    STATS_PROPERTY(int, audioMicOutboundPPS, 0)
+    STATS_PROPERTY(int, audioSilentOutboundPPS, 0)
+    STATS_PROPERTY(int, audioAudioInboundPPS, 0)
+    STATS_PROPERTY(int, audioSilentInboundPPS, 0)
+    STATS_PROPERTY(QString, audioCodec, QString())
+    STATS_PROPERTY(QString, audioNoiseGate, QString())
+
     STATS_PROPERTY(int, downloads, 0)
     STATS_PROPERTY(int, downloadLimit, 0)
     STATS_PROPERTY(int, downloadsPending, 0)
@@ -192,6 +198,13 @@ signals:
     void audioMixerOutPpsChanged();
     void audioMixerKbpsChanged();
     void audioMixerPpsChanged();
+    void audioMicOutboundPPSChanged();
+    void audioSilentOutboundPPSChanged();
+    void audioAudioInboundPPSChanged();
+    void audioSilentInboundPPSChanged();
+    void audioCodecChanged();
+    void audioNoiseGateChanged();
+
     void downloadsChanged();
     void downloadLimitChanged();
     void downloadsPendingChanged();

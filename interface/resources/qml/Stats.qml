@@ -188,8 +188,23 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
+                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
+                            "Silent: " + root.audioSilentInboundPPS + " pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
                         text: "Audio Mixer Out: " + root.audioMixerOutKbps + " kbps, " +
                             root.audioMixerOutPps + "pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio Out Mic: " + root.audioMicOutboundPPS + " pps, " +
+                            "Silent: " + root.audioSilentOutboundPPS + " pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio Codec: " + root.audioCodec + " Noise Gate: " +
+                            root.audioNoiseGate;
                     }
                     StatText {
                         visible: root.expanded;

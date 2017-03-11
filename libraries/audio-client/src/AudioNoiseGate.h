@@ -26,6 +26,7 @@ public:
     bool clippedInLastFrame() const { return _didClipInLastFrame; }
     bool closedInLastFrame() const { return _closedInLastFrame; }
     bool openedInLastFrame() const { return _openedInLastFrame; }
+    bool isOpen() const { return _isOpen; }
     float getMeasuredFloor() const { return _measuredFloor; }
     float getLastLoudness() const { return _lastLoudness; }
     

@@ -608,6 +608,13 @@ void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessag
 }
 
 void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message) {
+
+    if (message->getType() == PacketType::SilentAudioFrame) {
+        _silentInbound.increment();
+    } else {
+        _audioInbound.increment();
+    }
+
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
 
@@ -1067,7 +1074,11 @@ void AudioClient::handleAudioInput() {
         // have _lastInputLoudness of 0 in our NEXT frame, we will send a silent packet
         if (_lastInputLoudness == 0 && !_inputGate.closedInLastFrame()) {
             packetType = PacketType::SilentAudioFrame;
+            _silentOutbound.increment();
+        } else {
+            _micAudioOutbound.increment();
         }
+
         Transform audioTransform;
         audioTransform.setTranslation(_positionGetter());
         audioTransform.setRotation(_orientationGetter());
@@ -1092,6 +1103,7 @@ void AudioClient::handleAudioInput() {
     }
 }
 
+// FIXME - should this go through the noise gate and honor mute and echo?
 void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     Transform audioTransform;
     audioTransform.setTranslation(_positionGetter());
@@ -1103,6 +1115,8 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     } else {
         encodedBuffer = audio;
     }
+
+    _micAudioOutbound.increment();
 
     // FIXME check a flag to see if we should echo audio?
     emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber,

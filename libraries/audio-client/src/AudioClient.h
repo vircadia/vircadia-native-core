@@ -46,6 +46,8 @@
 #include <AudioLimiter.h>
 #include <AudioConstants.h>
 
+#include <shared/RateCounter.h>
+
 #include <plugins/CodecPlugin.h>
 
 #include "AudioIOStats.h"
@@ -120,6 +122,13 @@ public:
 
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
+
+    Q_INVOKABLE QString getSelectedAudioFormat() const { return _selectedCodecName; }
+    Q_INVOKABLE bool getNoiseGateOpen() const { return _inputGate.isOpen(); }
+    Q_INVOKABLE float getSilentOutboundPPS() const { return _silentOutbound.rate(); }
+    Q_INVOKABLE float getMicAudioOutboundPPS() const { return _micAudioOutbound.rate(); }
+    Q_INVOKABLE float getSilentInboundPPS() const { return _silentInbound.rate(); }
+    Q_INVOKABLE float getAudioInboundPPS() const { return _audioInbound.rate(); }
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
@@ -384,6 +393,11 @@ private:
     Encoder* _encoder { nullptr }; // for outbound mic stream
 
     QThread* _checkDevicesThread { nullptr };
+
+    RateCounter<> _silentOutbound;
+    RateCounter<> _micAudioOutbound;
+    RateCounter<> _silentInbound;
+    RateCounter<> _audioInbound;
 };
 
 
