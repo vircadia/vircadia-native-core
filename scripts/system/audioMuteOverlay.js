@@ -79,15 +79,11 @@
         } else {
             // after tween completion reset to zero and flip values to ping pong 
             tweenPosition = 0;
-            var buf = startColor.red;
-            startColor.red = endColor.red;
-            endColor.red = buf;
-            buf = startColor.green;
-            startColor.green = endColor.green;
-            endColor.green = buf;
-            buf = startColor.blue;
-            startColor.blue = endColor.blue;
-            endColor.blue = buf;
+            for (var color in startColor) {
+                var storedColor = startColor[color];
+                startColor[color] = endColor[color];
+                endColor[color] = storedColor;
+            }
         }
 
         // update position based on LERP_AMOUNT
