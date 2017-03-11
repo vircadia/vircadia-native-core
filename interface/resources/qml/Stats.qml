@@ -183,6 +183,16 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
+                        text: "Audio Mixer In: " + root.audioMixerInKbps + " kbps, " +
+                            root.audioMixerInPps + "pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio Mixer Out: " + root.audioMixerOutKbps + " kbps, " +
+                            root.audioMixerOutPps + "pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
                         text: "Downloads: " + root.downloads + "/" + root.downloadLimit +
                               ", Pending: " + root.downloadsPending;
                     }

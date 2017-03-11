@@ -214,6 +214,12 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(audioMixerPps, roundf(
                 bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer) +
                 bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
+
+            STAT_UPDATE(audioMixerInKbps, roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMixerInPps, roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMixerOutKbps, roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMixerOutPps, roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
+
         } else {
             STAT_UPDATE(audioMixerKbps, -1);
             STAT_UPDATE(audioMixerPps, -1);
