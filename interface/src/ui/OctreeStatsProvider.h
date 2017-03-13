@@ -30,18 +30,15 @@ class OctreeStatsProvider : public QObject, public Dependency {
     Q_PROPERTY(QString localElements READ localElements NOTIFY localElementsChanged)
     Q_PROPERTY(QString localElementsMemory READ localElementsMemory NOTIFY localElementsMemoryChanged)
     Q_PROPERTY(QString sendingMode READ sendingMode NOTIFY sendingModeChanged)
-    //Incoming Entity Packets
     Q_PROPERTY(QString processedPackets READ processedPackets NOTIFY processedPacketsChanged)
-
-//    int _entityUpdateTime;
-//    int _entityUpdates;
-//    int _processedPacketsElements;
-//    int _processedPacketsEntities;
-//    int _processedPacketsTiming;
-//    int _outboundEditPackets;
+    Q_PROPERTY(QString processedPacketsElements READ processedPacketsElements NOTIFY processedPacketsElementsChanged)
+    Q_PROPERTY(QString processedPacketsEntities READ processedPacketsEntities NOTIFY processedPacketsEntitiesChanged)
+    Q_PROPERTY(QString processedPacketsTiming READ processedPacketsTiming NOTIFY processedPacketsTimingChanged)
+    Q_PROPERTY(QString outboundEditPackets READ outboundEditPackets NOTIFY outboundEditPacketsChanged)
+    Q_PROPERTY(QString entityUpdateTime READ entityUpdateTime NOTIFY entityUpdateTimeChanged)
+    Q_PROPERTY(QString entityUpdates READ entityUpdates NOTIFY entityUpdatesChanged)
 
 public:
-    // Sets up the UI
     OctreeStatsProvider(QObject* parent, NodeToOctreeSceneStats* model);
     ~OctreeStatsProvider();
 
@@ -67,14 +64,44 @@ public:
         return m_processedPackets;
     }
 
+    QString processedPacketsElements() const {
+        return m_processedPacketsElements;
+    }
+
+    QString processedPacketsEntities() const {
+        return m_processedPacketsEntities;
+    }
+
+    QString processedPacketsTiming() const {
+        return m_processedPacketsTiming;
+    }
+
+    QString outboundEditPackets() const {
+        return m_outboundEditPackets;
+    }
+
+    QString entityUpdateTime() const {
+        return m_entityUpdateTime;
+    }
+
+    QString entityUpdates() const {
+        return m_entityUpdates;
+    }
+
 signals:
 
     void serversNumChanged(int serversNum);
-    void serverElementsChanged(QString serverElements);
-    void localElementsChanged(QString localElements);
-    void sendingModeChanged(QString sendingMode);
-    void processedPacketsChanged(QString processedPackets);
-    void localElementsMemoryChanged(QString localElementsMemory);
+    void serverElementsChanged(const QString &serverElements);
+    void localElementsChanged(const QString &localElements);
+    void sendingModeChanged(const QString &sendingMode);
+    void processedPacketsChanged(const QString &processedPackets);
+    void localElementsMemoryChanged(const QString &localElementsMemory);
+    void processedPacketsElementsChanged(const QString &processedPacketsElements);
+    void processedPacketsEntitiesChanged(const QString &processedPacketsEntities);
+    void processedPacketsTimingChanged(const QString &processedPacketsTiming);
+    void outboundEditPacketsChanged(const QString &outboundEditPackets);
+    void entityUpdateTimeChanged(const QString &entityUpdateTime);
+    void entityUpdatesChanged(const QString &entityUpdates);
 
 public slots:
     void moreless(const QString& link);
@@ -84,8 +111,6 @@ public slots:
 private slots:
     void updateOctreeStatsData();
 protected:
-
-    int AddStatItem(const char* caption, unsigned colorRGBA = DEFAULT_COLOR);
     void updateOctreeServers();
     void showOctreeServersOfType(int& serverNumber, NodeType_t serverType, 
                     const char* serverTypeName, NodeToJurisdictionMap& serverJurisdictions);
@@ -94,19 +119,6 @@ private:
     NodeToOctreeSceneStats* _model;
     int _statCount;
     
-    int _sendingMode;
-    int _serverElements;
-    int _localElements;
-    int _localElementsMemory;
-
-    int _entityUpdateTime;
-    int _entityUpdates;
-    int _processedPackets;
-    int _processedPacketsElements;
-    int _processedPacketsEntities;
-    int _processedPacketsTiming;
-    int _outboundEditPackets;
-    
     const int SAMPLES_PER_SECOND = 10;
     SimpleMovingAverage _averageUpdatesPerSecond;
     quint64 _lastWindowAt = usecTimestampNow();
@@ -114,8 +126,6 @@ private:
 
     quint64 _lastRefresh = 0;
 
-//    int _octreeServerLables[MAX_VOXEL_SERVERS];
-//    int _octreeServerLabelsCount;
     QTimer _updateTimer;
     int m_serversNum {0};
     QString m_serverElements;
@@ -123,6 +133,12 @@ private:
     QString m_localElementsMemory;
     QString m_sendingMode;
     QString m_processedPackets;
+    QString m_processedPacketsElements;
+    QString m_processedPacketsEntities;
+    QString m_processedPacketsTiming;
+    QString m_outboundEditPackets;
+    QString m_entityUpdateTime;
+    QString m_entityUpdates;
 };
 
 #endif // hifi_OctreeStatsProvider_h

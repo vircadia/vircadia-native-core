@@ -22,38 +22,14 @@
 OctreeStatsProvider::OctreeStatsProvider(QObject* parent, NodeToOctreeSceneStats* model) :
     QObject(parent),
     _model(model)
-  //, _averageUpdatesPerSecond(SAMPLES_PER_SECOND)
+  , _averageUpdatesPerSecond(SAMPLES_PER_SECOND)
+  , _statCount(0)
 {
-    
-    _statCount = 0;
-//    _octreeServerLabelsCount = 0;
-
-//    for (int i = 0; i < MAX_VOXEL_SERVERS; i++) {
-//        _octreeServerLables[i] = 0;
-//    }
-
-    // Setup stat items
-//    _serverElements = AddStatItem("Elements on Servers");
-    _localElements = AddStatItem("Local Elements");
-    _localElementsMemory = AddStatItem("Elements Memory");
-    _sendingMode = AddStatItem("Sending Mode");
-
-    _processedPackets = AddStatItem("Incoming Entity Packets");
-    _processedPacketsElements = AddStatItem("Processed Packets Elements");
-    _processedPacketsEntities = AddStatItem("Processed Packets Entities");
-    _processedPacketsTiming = AddStatItem("Processed Packets Timing");
-
-    _outboundEditPackets = AddStatItem("Outbound Entity Packets");
-
-    _entityUpdateTime = AddStatItem("Entity Update Time");
-    _entityUpdates = AddStatItem("Entity Updates");
-    
     //schedule updates
     connect(&_updateTimer, &QTimer::timeout, this, &OctreeStatsProvider::updateOctreeStatsData);
     _updateTimer.setInterval(100);
     //timer will be rescheduled on each new timeout
     _updateTimer.setSingleShot(true);
-
 }
 
 void OctreeStatsProvider::moreless(const QString& link) {
@@ -88,32 +64,32 @@ void OctreeStatsProvider::stopUpdates() {
 }
 
 
-int OctreeStatsProvider::AddStatItem(const char* caption, unsigned colorRGBA) {
-    const int STATS_LABEL_WIDTH = 600;
+//int OctreeStatsProvider::AddStatItem(const char* caption, unsigned colorRGBA) {
+//    const int STATS_LABEL_WIDTH = 600;
     
-    _statCount++; // increment our current stat count
+//    _statCount++; // increment our current stat count
     
-    if (colorRGBA == 0) {
-        static unsigned rotatingColors[] = { GREENISH, YELLOWISH, GREYISH };
-        colorRGBA = rotatingColors[_statCount % (sizeof(rotatingColors)/sizeof(rotatingColors[0]))];
-    }
-    //QLabel* label = _labels[_statCount] = new QLabel();
+//    if (colorRGBA == 0) {
+//        static unsigned rotatingColors[] = { GREENISH, YELLOWISH, GREYISH };
+//        colorRGBA = rotatingColors[_statCount % (sizeof(rotatingColors)/sizeof(rotatingColors[0]))];
+//    }
+//    //QLabel* label = _labels[_statCount] = new QLabel();
 
-    // Set foreground color to 62.5% brightness of the meter (otherwise will be hard to read on the bright background)
-    //QPalette palette = label->palette();
+//    // Set foreground color to 62.5% brightness of the meter (otherwise will be hard to read on the bright background)
+//    //QPalette palette = label->palette();
     
-    // This goofiness came from the bandwidth meter code, it basically stores a color in an unsigned and extracts it
-    unsigned rgb = colorRGBA >> 8;
-    const unsigned colorpart1 = 0xfefefeu;
-    const unsigned colorpart2 = 0xf8f8f8;
-    rgb = ((rgb & colorpart1) >> 1) + ((rgb & colorpart2) >> 3);
+//    // This goofiness came from the bandwidth meter code, it basically stores a color in an unsigned and extracts it
+//    unsigned rgb = colorRGBA >> 8;
+//    const unsigned colorpart1 = 0xfefefeu;
+//    const unsigned colorpart2 = 0xf8f8f8;
+//    rgb = ((rgb & colorpart1) >> 1) + ((rgb & colorpart2) >> 3);
 //    palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
 //    label->setPalette(palette);
 //    _form->addRow(QString(" %1:").arg(caption), label);
 //    label->setFixedWidth(STATS_LABEL_WIDTH);
     
-    return _statCount;
-}
+//    return _statCount;
+//}
 
 OctreeStatsProvider::~OctreeStatsProvider() {
     _updateTimer.stop();
@@ -132,54 +108,43 @@ void OctreeStatsProvider::updateOctreeStatsData() {
     // Do this ever paint event... even if we don't update
     auto totalTrackedEdits = entitiesTree->getTotalTrackedEdits();
     
+    const quint64 SAMPLING_WINDOW = USECS_PER_SECOND / SAMPLES_PER_SECOND;
+    quint64 now = usecTimestampNow();
+    quint64 sinceLastWindow = now - _lastWindowAt;
+    auto editsInLastWindow = totalTrackedEdits - _lastKnownTrackedEdits;
+    float sinceLastWindowInSeconds = (float)sinceLastWindow / (float)USECS_PER_SECOND;
+    float recentUpdatesPerSecond = (float)editsInLastWindow / sinceLastWindowInSeconds;
+    if (sinceLastWindow > SAMPLING_WINDOW) {
+        _averageUpdatesPerSecond.updateAverage(recentUpdatesPerSecond);
+        _lastWindowAt = now;
+        _lastKnownTrackedEdits = totalTrackedEdits;
+    }
 
     // Only refresh our stats every once in a while, unless asked for realtime
+    quint64 REFRESH_AFTER = Menu::getInstance()->isOptionChecked(MenuOption::ShowRealtimeEntityStats) ? 0 : USECS_PER_SECOND;
+    quint64 sinceLastRefresh = now - _lastRefresh;
+    if (sinceLastRefresh < REFRESH_AFTER) {
+        _updateTimer.start((REFRESH_AFTER - sinceLastRefresh)/1000);
+        return;
+    }
+    // Only refresh our stats every once in a while, unless asked for realtime
     //if no realtime, then update once per second. Otherwise consider 60FPS update, ie 16ms interval
-    int updateinterval = Menu::getInstance()->isOptionChecked(MenuOption::ShowRealtimeEntityStats) ? 16 : 1000;
-    _updateTimer.start(updateinterval);
+    //int updateinterval = Menu::getInstance()->isOptionChecked(MenuOption::ShowRealtimeEntityStats) ? 16 : 1000;
+    _updateTimer.start(SAMPLING_WINDOW/1000);
 
     const int FLOATING_POINT_PRECISION = 3;
 
-    // Update labels
-
-    //QLabel* label;
-    QLocale locale(QLocale::English);
-    std::stringstream statsValue;
-//    statsValue.precision(4);
-
-    // Octree Elements Memory Usage
-    //label = _labels[_localElementsMemory];
-//    statsValue.str("");
-//    statsValue << "Elements RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.0f << "MB ";
-    //label->setText(statsValue.str().c_str());
     m_localElementsMemory = QString("Elements RAM: %1MB").arg(OctreeElement::getTotalMemoryUsage() / 1000000.0f, 5, 'f', 4);
     emit localElementsMemoryChanged(m_localElementsMemory);
+
     // Local Elements
-    //label = _labels[_localElements];
-//    unsigned long localTotal = OctreeElement::getNodeCount();
-//    unsigned long localInternal = OctreeElement::getInternalNodeCount();
-//    unsigned long localLeaves = OctreeElement::getLeafNodeCount();
-//    QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
-//    QString localInternalString = locale.toString((uint)localInternal);
-//    QString localLeavesString = locale.toString((uint)localLeaves);
-
-//    statsValue.str("");
-//    statsValue <<
-//        "Total: " << qPrintable(localTotalString) << " / " <<
-//        "Internal: " << qPrintable(localInternalString) << " / " <<
-//        "Leaves: " << qPrintable(localLeavesString) << "";
-
     m_localElements = QString("Total: %1 / Internal: %2 / Leaves: %3").
             arg(OctreeElement::getNodeCount()).
             arg(OctreeElement::getInternalNodeCount()).
             arg(OctreeElement::getLeafNodeCount());
     emit localElementsChanged(m_localElements);
 
-    //label->setText(statsValue.str().c_str());
-
     // iterate all the current octree stats, and list their sending modes, total their octree elements, etc...
-    std::stringstream sendingMode("");
-
     int serverCount = 0;
     int movingServerCount = 0;
     unsigned long totalNodes = 0;
@@ -200,45 +165,35 @@ void OctreeStatsProvider::updateOctreeStatsData() {
 
             // Sending mode
             if (serverCount > 1) {
-                sendingMode << ",";
+                m_sendingMode += ",";
             }
             if (stats.isMoving()) {
-                sendingMode << "M";
+                m_sendingMode += "M";
                 movingServerCount++;
             } else {
-                sendingMode << "S";
+                m_sendingMode += "S";
             }
             if (stats.isFullScene()) {
-                sendingMode << "F";
+                m_sendingMode += "F";
             } else {
-                sendingMode << "p";
+                m_sendingMode += "p";
             }
         }
     });
-    sendingMode << " - " << serverCount << " servers";
+    m_sendingMode += QString(" - %1 servers").arg(serverCount);
     if (movingServerCount > 0) {
-        sendingMode << " <SCENE NOT STABLE>";
+        m_sendingMode += " <SCENE NOT STABLE> ";
     } else {
-        sendingMode << " <SCENE STABLE>";
+        m_sendingMode += " <SCENE STABLE> ";
     }
 
-//    label = _labels[_sendingMode];
-//    label->setText(sendingMode.str().c_str());
+    emit sendingModeChanged(m_sendingMode);
     
     // Server Elements
-    m_serverElements = QString("Total: %1/ Internal: %2/ Leaves: %3").
+    m_serverElements = QString("Total: %1 / Internal: %2 / Leaves: %3").
             arg(totalNodes).arg(totalInternal).arg(totalLeaves);
     emit serverElementsChanged(m_serverElements);
-//    QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
-//    QString serversInternalString = locale.toString((uint)totalInternal);
-//    QString serversLeavesString = locale.toString((uint)totalLeaves);
-////    label = _labels[_serverElements];
-//    statsValue.str("");
-//    statsValue <<
-//        "Total: " << qPrintable(serversTotalString) << " / " <<
-//        "Internal: " << qPrintable(serversInternalString) << " / " <<
-//        "Leaves: " << qPrintable(serversLeavesString) << "";
-////    label->setText(statsValue.str().c_str());
+
 
     // Processed Packets Elements
     auto averageElementsPerPacket = entities->getAverageElementsPerPacket();
@@ -251,17 +206,6 @@ void OctreeStatsProvider::updateOctreeStatsData() {
     auto averageUncompressPerPacket = entities->getAverageUncompressPerPacket();
     auto averageReadBitstreamPerPacket = entities->getAverageReadBitstreamPerPacket();
 
-    QString averageElementsPerPacketString = locale.toString(averageElementsPerPacket, 'f', FLOATING_POINT_PRECISION);
-    QString averageEntitiesPerPacketString = locale.toString(averageEntitiesPerPacket, 'f', FLOATING_POINT_PRECISION);
-
-    QString averageElementsPerSecondString = locale.toString(averageElementsPerSecond, 'f', FLOATING_POINT_PRECISION);
-    QString averageEntitiesPerSecondString = locale.toString(averageEntitiesPerSecond, 'f', FLOATING_POINT_PRECISION);
-
-    QString averageWaitLockPerPacketString = locale.toString(averageWaitLockPerPacket);
-    QString averageUncompressPerPacketString = locale.toString(averageUncompressPerPacket);
-    QString averageReadBitstreamPerPacketString = locale.toString(averageReadBitstreamPerPacket);
-
-//    label = _labels[_processedPackets];
     const OctreePacketProcessor& entitiesPacketProcessor =  qApp->getOctreePacketProcessor();
 
     auto incomingPacketsDepth = entitiesPacketProcessor.packetsToProcessCount();
@@ -269,80 +213,50 @@ void OctreeStatsProvider::updateOctreeStatsData() {
     auto processedPPS = entitiesPacketProcessor.getProcessedPPS();
     auto treeProcessedPPS = entities->getAveragePacketsPerSecond();
 
-    QString incomingPPSString = locale.toString(incomingPPS, 'f', FLOATING_POINT_PRECISION);
-    QString processedPPSString = locale.toString(processedPPS, 'f', FLOATING_POINT_PRECISION);
-    QString treeProcessedPPSString = locale.toString(treeProcessedPPS, 'f', FLOATING_POINT_PRECISION);
+    m_processedPackets = QString("Queue Size: %1 Packets / Network IN: %2 PPS / Queue OUT: %3 PPS / Tree IN: %4 PPS")
+            .arg(incomingPacketsDepth)
+            .arg(incomingPPS, 5, 'f', FLOATING_POINT_PRECISION)
+            .arg(processedPPS, 5, 'f', FLOATING_POINT_PRECISION)
+            .arg(treeProcessedPPS, 5, 'f', FLOATING_POINT_PRECISION);
+    emit processedPacketsChanged(m_processedPackets);
 
-    statsValue.str("");
-    statsValue << 
-        "Queue Size: " << incomingPacketsDepth << " Packets / " <<
-        "Network IN: " << qPrintable(incomingPPSString) << " PPS / " <<
-        "Queue OUT: " << qPrintable(processedPPSString) << " PPS / " <<
-        "Tree IN: " << qPrintable(treeProcessedPPSString) << " PPS";
-        
-//    label->setText(statsValue.str().c_str());
+    m_processedPacketsElements = QString("%1 per packet / %2 per second")
+            .arg(averageElementsPerPacket, 5, 'f', FLOATING_POINT_PRECISION)
+            .arg(averageElementsPerSecond, 5, 'f', FLOATING_POINT_PRECISION);
+    emit processedPacketsElementsChanged(m_processedPacketsElements);
 
-//    label = _labels[_processedPacketsElements];
-    statsValue.str("");
-    statsValue << 
-        "" << qPrintable(averageElementsPerPacketString) << " per packet / " <<
-        "" << qPrintable(averageElementsPerSecondString) << " per second";
-        
-//    label->setText(statsValue.str().c_str());
+    m_processedPacketsEntities = QString("%1 per packet / %2 per second")
+            .arg(averageEntitiesPerPacket, 5, 'f', FLOATING_POINT_PRECISION)
+            .arg(averageEntitiesPerSecond, 5, 'f', FLOATING_POINT_PRECISION);
+    emit processedPacketsEntitiesChanged(m_processedPacketsEntities);
 
-//    label = _labels[_processedPacketsEntities];
-    statsValue.str("");
-    statsValue << 
-        "" << qPrintable(averageEntitiesPerPacketString) << " per packet / " <<
-        "" << qPrintable(averageEntitiesPerSecondString) << " per second";
-        
-//    label->setText(statsValue.str().c_str());
-
-//    label = _labels[_processedPacketsTiming];
-    statsValue.str("");
-    statsValue << 
-        "Lock Wait: " << qPrintable(averageWaitLockPerPacketString) << " (usecs) / " <<
-        "Uncompress: " << qPrintable(averageUncompressPerPacketString) << " (usecs) / " <<
-        "Process: " << qPrintable(averageReadBitstreamPerPacketString) << " (usecs)";
-        
-    //label->setText(statsValue.str().c_str());
+    m_processedPacketsTiming = QString("Lock Wait: %1 (usecs) / Uncompress: %2 (usecs) / Process: %3 (usecs)")
+            .arg(averageWaitLockPerPacket)
+            .arg(averageUncompressPerPacket)
+            .arg(averageReadBitstreamPerPacket);
+    emit processedPacketsTimingChanged(m_processedPacketsTiming);
 
     auto entitiesEditPacketSender = qApp->getEntityEditPacketSender();
-
     auto outboundPacketsDepth = entitiesEditPacketSender->packetsToSendCount();
     auto outboundQueuedPPS = entitiesEditPacketSender->getLifetimePPSQueued();
     auto outboundSentPPS = entitiesEditPacketSender->getLifetimePPS();
 
-    QString outboundQueuedPPSString = locale.toString(outboundQueuedPPS, 'f', FLOATING_POINT_PRECISION);
-    QString outboundSentPPSString = locale.toString(outboundSentPPS, 'f', FLOATING_POINT_PRECISION);
-
-    //label = _labels[_outboundEditPackets];
-    statsValue.str("");
-    statsValue <<
-        "Queue Size: " << outboundPacketsDepth << " packets / " <<
-        "Queued IN: " << qPrintable(outboundQueuedPPSString) << " PPS / " <<
-        "Sent OUT: " << qPrintable(outboundSentPPSString) << " PPS";
-
-    //label->setText(statsValue.str().c_str());
-
+    m_outboundEditPackets = QString("Queue Size: %1 packets / Queued IN: %2 PPS / Sent OUT: %3 PPS")
+            .arg(outboundPacketsDepth)
+            .arg(outboundQueuedPPS, 5, 'f', FLOATING_POINT_PRECISION)
+            .arg(outboundSentPPS, 5, 'f', FLOATING_POINT_PRECISION);
+    emit outboundEditPacketsChanged(m_outboundEditPackets);
     
     // Entity Edits update time
-    //label = _labels[_entityUpdateTime];
     auto averageEditDelta = entitiesTree->getAverageEditDeltas();
     auto maxEditDelta = entitiesTree->getMaxEditDelta();
 
-    QString averageEditDeltaString = locale.toString((uint)averageEditDelta);
-    QString maxEditDeltaString = locale.toString((uint)maxEditDelta);
-
-    statsValue.str("");
-    statsValue << 
-        "Average: " << qPrintable(averageEditDeltaString) << " (usecs) / " <<
-        "Max: " << qPrintable(maxEditDeltaString) << " (usecs)";
-        
-    //label->setText(statsValue.str().c_str());
+    m_entityUpdateTime = QString("Average: %1 (usecs) / Max: %2 (usecs)")
+            .arg(averageEditDelta)
+            .arg(maxEditDelta);
+    emit entityUpdateTimeChanged(m_entityUpdateTime);
 
     // Entity Edits
-    //label = _labels[_entityUpdates];
     auto bytesPerEdit = entitiesTree->getAverageEditBytes();
     
     auto updatesPerSecond = _averageUpdatesPerSecond.getAverage();
@@ -350,17 +264,11 @@ void OctreeStatsProvider::updateOctreeStatsData() {
         updatesPerSecond = 0; // we don't really care about small updates per second so suppress those
     }
 
-    QString totalTrackedEditsString = locale.toString((uint)totalTrackedEdits);
-    QString updatesPerSecondString = locale.toString(updatesPerSecond, 'f', FLOATING_POINT_PRECISION);
-    QString bytesPerEditString = locale.toString(bytesPerEdit);
-
-    statsValue.str("");
-    statsValue << 
-        "" << qPrintable(updatesPerSecondString) << " updates per second / " <<
-        "" << qPrintable(totalTrackedEditsString) << " total updates / " <<
-        "Average Size: " << qPrintable(bytesPerEditString) << " bytes ";
-        
-    //label->setText(statsValue.str().c_str());
+    m_entityUpdates = QString("%1 updates per second / %2 total updates / Average Size: %3 bytes")
+            .arg(updatesPerSecond, 5, 'f', FLOATING_POINT_PRECISION)
+            .arg(totalTrackedEdits)
+            .arg(bytesPerEdit);
+    emit entityUpdatesChanged(m_entityUpdates);
 
     updateOctreeServers();
 }

@@ -64,7 +64,7 @@ Rectangle {
             }
             HifiControls.Label {
                 id: elementsOnServerLabel
-                size: 20
+                size: 16
                 text: OctreeStats.serverElements
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -80,7 +80,7 @@ Rectangle {
             }
             HifiControls.Label {
                 id: localElementsLabel
-                size: 20
+                size: 16
                 text: OctreeStats.localElements
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -96,7 +96,7 @@ Rectangle {
             }
             HifiControls.Label {
                 id: elementsMemoryLabel
-                size: 20
+                size: 16
                 text: OctreeStats.localElementsMemory
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -112,7 +112,7 @@ Rectangle {
             }
             HifiControls.Label {
                 id: sendingModeLabel
-                size: 20
+                size: 16
                 text: OctreeStats.sendingMode
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -128,7 +128,7 @@ Rectangle {
             }
             HifiControls.Label {
                 id: incomingEntityPacketsLabel
-                size: 20
+                size: 16
                 text: OctreeStats.processedPackets
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -144,7 +144,8 @@ Rectangle {
             }
             HifiControls.Label {
                 id: processedPacketsElementsLabel
-                size: 20
+                size: 16
+                text: OctreeStats.processedPacketsElements
                 anchors.left: parent.left
                 anchors.right: parent.right
                 colorScheme: root.colorScheme
@@ -159,7 +160,8 @@ Rectangle {
             }
             HifiControls.Label {
                 id: processedPacketsEntitiesLabel
-                size: 20
+                size: 16
+                text: OctreeStats.processedPacketsEntities
                 anchors.left: parent.left
                 anchors.right: parent.right
                 colorScheme: root.colorScheme
@@ -174,7 +176,8 @@ Rectangle {
             }
             HifiControls.Label {
                 id: processedPacketsTimingLabel
-                size: 20
+                size: 16
+                text: OctreeStats.processedPacketsTiming
                 anchors.left: parent.left
                 anchors.right: parent.right
                 colorScheme: root.colorScheme
@@ -189,7 +192,8 @@ Rectangle {
             }
             HifiControls.Label {
                 id: outboundEntityPacketsLabel
-                size: 20
+                size: 16
+                text: OctreeStats.outboundEditPackets
                 anchors.left: parent.left
                 anchors.right: parent.right
                 colorScheme: root.colorScheme
@@ -204,7 +208,8 @@ Rectangle {
             }
             HifiControls.Label {
                 id: entityUpdateTimeLabel
-                size: 20
+                size: 16
+                text: OctreeStats.entityUpdateTime
                 anchors.left: parent.left
                 anchors.right: parent.right
                 colorScheme: root.colorScheme
@@ -219,7 +224,8 @@ Rectangle {
             }
             HifiControls.Label {
                 id: entityUpdatesLabel
-                size: 20
+                size: 16
+                text: OctreeStats.entityUpdates
                 anchors.left: parent.left
                 anchors.right: parent.right
                 colorScheme: root.colorScheme
