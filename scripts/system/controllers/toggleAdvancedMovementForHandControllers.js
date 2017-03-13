@@ -72,7 +72,6 @@ function registerBasicMapping() {
         }
         return;
     });
-    basicMapping.from(Controller.Standard.LX).to(Controller.Standard.RX);
     basicMapping.from(Controller.Standard.RY).to(function(value) {
         if (isDisabled) {
             return;
