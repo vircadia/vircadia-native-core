@@ -185,8 +185,8 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
         AvatarSharedPointer thisAvatar = nodeData->getAvatarSharedPointer();
         ViewFrustum cameraView = nodeData->getViewFrustom();
-        std::priority_queue<AvatarPriority> sortedAvatars = AvatarData::sortAvatars(
-                avatarList, cameraView,
+        std::priority_queue<AvatarPriority> sortedAvatars;
+        AvatarData::sortAvatars(avatarList, cameraView, sortedAvatars,
 
                 [&](AvatarSharedPointer avatar)->uint64_t{
                     auto avatarNode = avatarDataToNodes[avatar];
