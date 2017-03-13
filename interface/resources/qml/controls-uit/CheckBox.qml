@@ -88,7 +88,7 @@ Original.CheckBox {
         label: Label {
             text: control.text
             colorScheme: checkBox.colorScheme
-            x: checkBox.boxSize / 2
+            x: 2
             wrapMode: Text.Wrap
             enabled: checkBox.enabled
         }

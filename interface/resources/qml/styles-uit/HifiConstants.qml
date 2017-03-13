@@ -171,7 +171,7 @@ Item {
         readonly property real textFieldInputLabel: dimensions.largeScreen ? 13 : 9
         readonly property real textFieldSearchIcon: dimensions.largeScreen ? 30 : 24
         readonly property real tableHeading: dimensions.largeScreen ? 12 : 10
-        readonly property real tableHeadingIcon: dimensions.largeScreen ? 40 : 33
+        readonly property real tableHeadingIcon: dimensions.largeScreen ? 60 : 33
         readonly property real tableText: dimensions.largeScreen ? 15 : 12
         readonly property real buttonLabel: dimensions.largeScreen ? 13 : 9
         readonly property real iconButton: dimensions.largeScreen ? 13 : 9

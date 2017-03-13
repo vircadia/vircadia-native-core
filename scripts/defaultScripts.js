@@ -21,10 +21,10 @@ var DEFAULT_SCRIPTS = [
     "system/snapshot.js",
     "system/help.js",
     "system/pal.js", // "system/mod.js", // older UX, if you prefer
+    "system/makeUserConnection.js",
     "system/goto.js",
     "system/marketplaces/marketplaces.js",
     "system/edit.js",
-    "system/tablet-users.js",
     "system/selectAudioDevice.js",
     "system/notifications.js",
     "system/controllers/controllerDisplayManager.js",
