@@ -42,7 +42,7 @@ var selectionManager = SelectionManager;
 const PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
 const POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
 const SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
-var lightOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
+var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
     var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
     if (properties.type === 'Light') {
         return {
@@ -67,7 +67,7 @@ var entityListTool = new EntityListTool();
 
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
-    lightOverlayManager.updatePositions();
+    entityIconOverlayManager.updatePositions();
 });
 
 const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
@@ -520,7 +520,7 @@ var toolBar = (function () {
             toolBar.writeProperty("shown", false);
             toolBar.writeProperty("shown", true);
         }
-        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
+        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
@@ -585,8 +585,8 @@ function findClickedEntity(event) {
     }
 
     var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
-    var lightResult = lightOverlayManager.findRayIntersection(pickRay);
-    lightResult.accurate = true;
+    var iconResult = entityIconOverlayManager.findRayIntersection(pickRay);
+    iconResult.accurate = true;
 
     if (pickZones) {
         Entities.setZonesArePickable(false);
@@ -594,8 +594,8 @@ function findClickedEntity(event) {
 
     var result;
 
-    if (lightResult.intersects) {
-        result = lightResult;
+    if (iconResult.intersects) {
+        result = iconResult;
     } else if (entityResult.intersects) {
         result = entityResult;
     } else {
@@ -1292,7 +1292,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem === "Select All Entities Touching Box") {
         selectAllEtitiesInCurrentSelectionBox(true);
     } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
-        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
+        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
