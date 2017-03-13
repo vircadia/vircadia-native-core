@@ -75,8 +75,9 @@
     function showTabletUI() {
         tabletShown = true;
 
-        if (!tabletRezzed) {
-            rezTablet(false);
+        if (!tabletRezzed || !tabletIsValid()) {
+            closeTabletUI()
+            rezTablet();
         }
 
         if (UIWebTablet && tabletRezzed) {
@@ -199,7 +200,7 @@
                 preMakeTime = now;
                 if (!tabletIsValid()) {
                     closeTabletUI();
-                    rezTablet(false);
+                    rezTablet();
                     tabletShown = false;
                 } else if (!tabletShown) {
                     hideTabletUI();
