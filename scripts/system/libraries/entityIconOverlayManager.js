@@ -1,6 +1,6 @@
-EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
-    var self = this;
+/* globals EntityIconOverlayManager:true */
 
+EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
     var visible = false;
 
     // List of all created overlays
@@ -38,7 +38,7 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
 
         if (result.intersects) {
             for (var id in entityOverlays) {
-                if (result.overlayID == entityOverlays[id]) {
+                if (result.overlayID === entityOverlays[id]) {
                     result.entityID = entityIDs[id];
                     found = true;
                     break;
@@ -54,7 +54,7 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
     };
 
     this.setVisible = function(isVisible) {
-        if (visible != isVisible) {
+        if (visible !== isVisible) {
             visible = isVisible;
             for (var id in entityOverlays) {
                 Overlays.editOverlay(entityOverlays[id], {
@@ -66,12 +66,13 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
 
     // Allocate or get an unused overlay
     function getOverlay() {
-        if (unusedOverlays.length == 0) {
-            var overlay = Overlays.addOverlay("image3d", {});
+        var overlay;
+        if (unusedOverlays.length === 0) {
+            overlay = Overlays.addOverlay("image3d", {});
             allOverlays.push(overlay);
         } else {
-            var overlay = unusedOverlays.pop();
-        };
+            overlay = unusedOverlays.pop();
+        }
         return overlay;
     }
 
