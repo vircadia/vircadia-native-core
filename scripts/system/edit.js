@@ -68,6 +68,44 @@ var entityListTool = new EntityListTool();
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
     entityIconOverlayManager.updatePositions();
+
+    // Update particle explorer
+    var needToDestroyParticleExplorer = false;
+    if (selectionManager.selections.length === 1) {
+        var selectedEntityID = selectionManager.selections[0];
+        if (selectedEntityID === selectedParticleEntityID) {
+            return;
+        }
+        var type = Entities.getEntityProperties(selectedEntityID, "type").type;
+        if (type === "ParticleEffect") {
+            // Destroy the old particles web view first
+            particleExplorerTool.destroyWebView();
+            particleExplorerTool.createWebView();
+            var properties = Entities.getEntityProperties(selectedEntityID);
+            var particleData = {
+                messageType: "particle_settings",
+                currentProperties: properties
+            };
+            selectedParticleEntityID = selectedEntityID;
+            particleExplorerTool.setActiveParticleEntity(selectedParticleEntityID);
+
+            particleExplorerTool.webView.webEventReceived.connect(function (data) {
+                data = JSON.parse(data);
+                if (data.messageType === "page_loaded") {
+                    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+                }
+            });
+        } else {
+            needToDestroyParticleExplorer = true;
+        }
+    } else {
+        needToDestroyParticleExplorer = true;
+    }
+
+    if (needToDestroyParticleExplorer && selectedParticleEntityID !== null) {
+        selectedParticleEntityID = null;
+        particleExplorerTool.destroyWebView();
+    }
 });
 
 const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
@@ -1192,7 +1230,7 @@ function parentSelectedEntities() {
 }
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
-        selectedParticleEntity = 0;
+        selectedParticleEntityID = null;
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
@@ -1967,43 +2005,13 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
 var particleExplorerTool = new ParticleExplorerTool();
-var selectedParticleEntity = 0;
+var selectedParticleEntityID = null;
 entityListTool.webView.webEventReceived.connect(function (data) {
     data = JSON.parse(data);
-    if(data.type === 'parent') {
+    if (data.type === 'parent') {
         parentSelectedEntities();
     } else if(data.type === 'unparent') {
         unparentSelectedEntities();
-    } else if (data.type === "selectionUpdate") {
-        var ids = data.entityIds;
-        if (ids.length === 1) {
-            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
-                if (JSON.stringify(selectedParticleEntity) === JSON.stringify(ids[0])) {
-                    // This particle entity is already selected, so return
-                    return;
-                }
-                // Destroy the old particles web view first
-                particleExplorerTool.destroyWebView();
-                particleExplorerTool.createWebView();
-                var properties = Entities.getEntityProperties(ids[0]);
-                var particleData = {
-                    messageType: "particle_settings",
-                    currentProperties: properties
-                };
-                selectedParticleEntity = ids[0];
-                particleExplorerTool.setActiveParticleEntity(ids[0]);
-
-                particleExplorerTool.webView.webEventReceived.connect(function (data) {
-                    data = JSON.parse(data);
-                    if (data.messageType === "page_loaded") {
-                        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-                    }
-                });
-            } else {
-                selectedParticleEntity = 0;
-                particleExplorerTool.destroyWebView();
-            }
-        }
     }
 });
 
