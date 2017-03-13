@@ -28,7 +28,7 @@ AudioNoiseGate::AudioNoiseGate() :
     _measuredFloor(0.0f),
     _sampleCounter(0),
     _isOpen(false),
-    _buffersToClose(0)
+    _blocksToClose(0)
 {
     
 }
@@ -37,7 +37,7 @@ void AudioNoiseGate::removeDCOffset(int16_t* samples, int numSamples) {
     //
     //  DC Offset correction
     //
-    //  Measure the DC offset over a trailing number of buffers, and remove it from the input signal.
+    //  Measure the DC offset over a trailing number of blocks, and remove it from the input signal.
     //  This causes the noise background measurements and server muting to be more accurate.  Many off-board
     //  ADC's have a noticeable DC offset.
     //
@@ -51,7 +51,7 @@ void AudioNoiseGate::removeDCOffset(int16_t* samples, int numSamples) {
     // Update measured DC offset
     measuredDcOffset /= numSamples;
     if (_dcOffset == 0.0f) {
-        // On first buffer, copy over measured offset
+        // On first block, copy over measured offset
         _dcOffset = measuredDcOffset;
     } else {
         _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
@@ -69,11 +69,11 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     //
     //  NOISE_GATE_HEIGHT:  How loud you have to speak relative to noise background to open the gate.
     //                      Make this value lower for more sensitivity and less rejection of noise.
-    //  NOISE_GATE_WIDTH:   The number of samples in an audio buffer for which the height must be exceeded
+    //  NOISE_GATE_WIDTH:   The number of samples in an audio block for which the height must be exceeded
     //                      to open the gate.
-    //  NOISE_GATE_CLOSE_BLOCK_DELAY:  Once the noise is below the gate height for the buffer, how many buffers
+    //  NOISE_GATE_CLOSE_BLOCK_DELAY:  Once the noise is below the gate height for the block, how many blocks
     //                      will we wait before closing the gate.
-    //  NOISE_GATE_BLOCKSS_TO_AVERAGE:  How many audio buffers should we average together to compute noise floor.
+    //  NOISE_GATE_BLOCKSS_TO_AVERAGE:  How many audio blocks should we average together to compute noise floor.
     //                      More means better rejection but also can reject continuous things like singing.
     // NUMBER_OF_NOISE_SAMPLE_BLOCKS:  How often should we re-evaluate the noise floor?
 
@@ -147,16 +147,16 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
         _openedInLastBlock = !_isOpen;
         _isOpen = true;
-        _buffersToClose = NOISE_GATE_CLOSE_BLOCK_DELAY;
+        _blocksToClose = NOISE_GATE_CLOSE_BLOCK_DELAY;
     } else {
-        if (--_buffersToClose == 0) {
+        if (--_blocksToClose == 0) {
             _closedInLastBlock = _isOpen;
             _isOpen = false;
         }
     }
     if (!_isOpen) {
-        // First buffer after being closed gets faded to silence, we fade across
-        // the entire buffer on fading out. All subsequent buffers are muted by being slammed 
+        // First block after being closed gets faded to silence, we fade across
+        // the entire block on fading out. All subsequent blocks are muted by being slammed 
         // to zeros
         if (_closedInLastBlock) {
             float fadeSlope = (1.0f / numSamples);
@@ -172,7 +172,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
 
     if (_openedInLastBlock) {
         // would be nice to do a little crossfade from silence, but we only want to fade
-        // across the first 1/10th of the buffer, because we don't want to miss early
+        // across the first 1/10th of the block, because we don't want to miss early
         // transients.
         int fadeSamples = numSamples / 10; // fade over 1/10th of the samples
         float fadeSlope = (1.0f / fadeSamples);

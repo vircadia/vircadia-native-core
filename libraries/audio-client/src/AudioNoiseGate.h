@@ -45,7 +45,7 @@ private:
     bool _isOpen;
     bool _closedInLastBlock { false };
     bool _openedInLastBlock { false };
-    int _buffersToClose;
+    int _blocksToClose;
 };
 
 #endif // hifi_AudioNoiseGate_h
