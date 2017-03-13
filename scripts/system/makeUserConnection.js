@@ -354,11 +354,18 @@ Messages.subscribe(MESSAGE_CHANNEL);
 Messages.messageReceived.connect(messageHandler);
 
 
-function makeGripHandler(hand) {
+function makeGripHandler(hand, animate) {
     // determine if we are gripping or un-gripping
-    return function (value) {
-        updateTriggers(value, false, hand);
-    };
+    if (animate) {
+        return function(value) {
+            updateTriggers(value, true, hand);
+        };
+
+    } else {
+        return function (value) {
+            updateTriggers(value, false, hand);
+        };
+    }
 }
 
 function keyPressEvent(event) {
@@ -377,9 +384,11 @@ friendsMapping.from(Controller.Standard.LeftGrip).peek().to(makeGripHandler(Cont
 friendsMapping.from(Controller.Standard.RightGrip).peek().to(makeGripHandler(Controller.Standard.RightHand));
 
 // setup keyboard initiation
-
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
+
+// xbox controller cuz that's important
+friendsMapping.from(Controller.Standard.RB).peek().to(makeGripHandler(Controller.Standard.RightHand, true));
 
 // it is easy to forget this and waste a lot of time for nothing
 friendsMapping.enable();
