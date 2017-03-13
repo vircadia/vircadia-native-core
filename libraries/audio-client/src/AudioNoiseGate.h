@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 
-const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
+const int NUMBER_OF_NOISE_SAMPLE_BLOCKS = 300;
 
 class AudioNoiseGate {
 public:
@@ -23,9 +23,9 @@ public:
     void gateSamples(int16_t* samples, int numSamples);
     void removeDCOffset(int16_t* samples, int numSamples);
     
-    bool clippedInLastFrame() const { return _didClipInLastFrame; }
-    bool closedInLastFrame() const { return _closedInLastFrame; }
-    bool openedInLastFrame() const { return _openedInLastFrame; }
+    bool clippedInLastBlock() const { return _didClipInLastBlock; }
+    bool closedInLastBlock() const { return _closedInLastBlock; }
+    bool openedInLastBlock() const { return _openedInLastBlock; }
     bool isOpen() const { return _isOpen; }
     float getMeasuredFloor() const { return _measuredFloor; }
     float getLastLoudness() const { return _lastLoudness; }
@@ -33,19 +33,19 @@ public:
     static const float CLIPPING_THRESHOLD;
     
 private:
-    int _inputFrameCounter;
+    int _inputBlockCounter;
     float _lastLoudness;
-    float _quietestFrame;
-    float _loudestFrame;
-    bool _didClipInLastFrame;
+    float _quietestBlock;
+    float _loudestBlock;
+    bool _didClipInLastBlock;
     float _dcOffset;
     float _measuredFloor;
-    float _sampleFrames[NUMBER_OF_NOISE_SAMPLE_FRAMES];
+    float _sampleBlocks[NUMBER_OF_NOISE_SAMPLE_BLOCKS];
     int _sampleCounter;
     bool _isOpen;
-    bool _closedInLastFrame { false };
-    bool _openedInLastFrame { false };
-    int _framesToClose;
+    bool _closedInLastBlock { false };
+    bool _openedInLastBlock { false };
+    int _buffersToClose;
 };
 
 #endif // hifi_AudioNoiseGate_h
