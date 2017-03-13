@@ -47,8 +47,6 @@ public:
     EntityPropertyMetadataRequest(BaseScriptEngine* engine) : _engine(engine) {};
     bool script(EntityItemID entityID, QScriptValue handler);
     bool serverScripts(EntityItemID entityID, QScriptValue handler);
-    // this is used for internal testing and only available when DEBUG_ENTITY_METADATA is defined in the .cpp file
-    bool userData(EntityItemID entityID, QScriptValue handler);
 private:
     QPointer<BaseScriptEngine> _engine;
 };

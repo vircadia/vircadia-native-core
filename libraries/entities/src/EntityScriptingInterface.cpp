@@ -683,54 +683,6 @@ bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
     return client->reloadServerScript(entityID);
 }
 
-#ifdef DEBUG_ENTITY_METADATA
-// baseline example -- return parsed userData as a standard CPS callback
-bool EntityPropertyMetadataRequest::_userData(EntityItemID entityID, QScriptValue handler) {
-    QScriptValue err, result;
-    auto engine = _engine;
-    if (!engine) {
-        qCDebug(entities) << __FUNCTION__ << " -- engine destroyed while inflight" << entityID;
-        return false;
-    }
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    auto entityTree = entityScriptingInterface ? entityScriptingInterface->getEntityTree() : nullptr;
-    if (!entityTree) {
-        err = engine->makeError("Entities Tree unavailable", "InternalError");
-    } else {
-        EntityItemPointer entity = entityTree->findEntityByID(entityID);
-        if (!entity) {
-            err = engine->makeError("entity not found");
-        } else {
-            auto JSON = engine->globalObject().property("JSON");
-            auto parsed = JSON.property("parse").call(JSON, QScriptValueList({ entity->getUserData() }));
-            if (engine->hasUncaughtException()) {
-                err = engine->cloneUncaughtException(__FUNCTION__);
-                engine->clearExceptions();
-            } else {
-                result = parsed;
-            }
-        }
-    }
-    // this one second delay can be used with a Client script to query metadata and immediately Script.stop()
-    // (testing that the signal handler never gets called once the engine is destroyed)
-    // note: we still might want to check engine->isStopping() as an optimization in some places
-    QFutureWatcher<QVariant> *request = new QFutureWatcher<QVariant>;
-    QObject::connect(request, &QFutureWatcher<QVariant>::finished, engine, [=]() mutable {
-        if (!engine) {
-            qCDebug(entities) << "queryPropertyMetadata -- engine destroyed while inflight" << entityID;
-            return;
-        }
-        callScopedHandlerObject(handler, err, result);
-        request->deleteLater();
-    });
-    request->setFuture(QtConcurrent::run([]() -> QVariant {
-        QThread::sleep(1);
-        return QVariant();
-    }));
-    return true;
-}
-#endif
-
 bool EntityPropertyMetadataRequest::script(EntityItemID entityID, QScriptValue handler) {
     using LocalScriptStatusRequest = QFutureWatcher<QVariant>;
 
@@ -842,10 +794,6 @@ bool EntityScriptingInterface::queryPropertyMetadata(QUuid entityID, QScriptValu
         return request.script(entityID, handler);
     } else if (name == "serverScripts") {
         return request.serverScripts(entityID, handler);
-#ifdef DEBUG_ENTITY_METADATA
-    } else if (name == "userData") {
-        return request.userData(entityID, handler);
-#endif
     } else {
         engine->raiseException(engine->makeError("metadata for property " + name + " is not yet queryable"));
         engine->maybeEmitUncaughtException(__FUNCTION__);
