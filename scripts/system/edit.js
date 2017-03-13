@@ -594,18 +594,12 @@ function findClickedEntity(event) {
 
     var result;
 
-    if (!entityResult.intersects && !lightResult.intersects) {
-        return null;
-    } else if (entityResult.intersects && !lightResult.intersects) {
-        result = entityResult;
-    } else if (!entityResult.intersects && lightResult.intersects) {
+    if (lightResult.intersects) {
         result = lightResult;
+    } else if (entityResult.intersects) {
+        result = entityResult;
     } else {
-        if (entityResult.distance < lightResult.distance) {
-            result = entityResult;
-        } else {
-            result = lightResult;
-        }
+        return null;
     }
 
     if (!result.accurate) {
