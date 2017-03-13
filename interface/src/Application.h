@@ -403,6 +403,7 @@ public slots:
     void addAssetToWorldMessageClose();
 
     Q_INVOKABLE void toggleMuteAudio();
+    void loadEntityStatisticsDialog();
 
 private slots:
     void showDesktop();

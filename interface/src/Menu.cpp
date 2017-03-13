@@ -544,8 +544,10 @@ Menu::Menu() {
 
     // Developer > Entities >>>
     MenuWrapper* entitiesOptionsMenu = developerMenu->addMenu("Entities");
+
     addActionToQMenuAndActionHash(entitiesOptionsMenu, MenuOption::OctreeStats, 0,
-        dialogsManager.data(), SLOT(octreeStatsDetails()));
+        qApp, SLOT(loadEntityStatisticsDialog()));
+
     addCheckableActionToQMenuAndActionHash(entitiesOptionsMenu, MenuOption::ShowRealtimeEntityStats);
 
     // Developer > Network >>>

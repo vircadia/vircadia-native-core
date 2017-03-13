@@ -173,6 +173,7 @@
 #include "ui/overlays/Overlays.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
+#include "ui/OctreeStatsProvider.h"
 
 #include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
@@ -523,6 +524,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<OffscreenQmlSurfaceCache>();
     DependencyManager::set<EntityScriptClient>();
     DependencyManager::set<EntityScriptServerLogClient>();
+    DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     return previousSessionCrashed;
 }
 
@@ -1803,6 +1805,7 @@ Application::~Application() {
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
+    DependencyManager::destroy<OctreeStatsProvider>();
 
     ResourceManager::cleanup();
 
@@ -6363,6 +6366,18 @@ void Application::loadScriptURLDialog() const {
     }
 }
 
+
+void Application::loadEntityStatisticsDialog() {
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
+        auto dialogsManager = DependencyManager::get<DialogsManager>();
+        dialogsManager->octreeStatsDetails();
+    } else {
+        tablet->pushOntoStack("../../hifi/dialogs/TabletEntityStatistics.qml");
+    }
+
+}
 void Application::toggleLogDialog() {
     if (! _logDialog) {
         _logDialog = new LogDialog(nullptr, getLogger());
