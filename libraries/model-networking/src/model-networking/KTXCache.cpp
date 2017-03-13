@@ -16,55 +16,27 @@
 using File = cache::File;
 using FilePointer = cache::FilePointer;
 
-KTXFilePointer KTXCache::writeFile(Data data) {
-    return std::static_pointer_cast<KTXFile>(FileCache::writeFile(data.key, data.data, data.length, (void*)&data));
+KTXCache::KTXCache(const std::string& dir, const std::string& ext) :
+    FileCache(dir, ext) {
+    initialize();
 }
 
-KTXFilePointer KTXCache::getFile(const QUrl& url) {
-    Key key;
-    {
-        Lock lock(_urlMutex);
-        const auto it = _urlMap.find(url);
-        if (it != _urlMap.cend()) {
-            key = it->second;
-        }
-    }
-
-    KTXFilePointer file;
-    if (!key.empty()) {
-        file = std::static_pointer_cast<KTXFile>(FileCache::getFile(key));
-    }
-
-    return file;
+KTXFilePointer KTXCache::writeFile(const char* data, Metadata&& metadata) {
+    FilePointer file = FileCache::writeFile(data, std::move(metadata));
+    return std::static_pointer_cast<KTXFile>(file);
 }
 
-std::unique_ptr<File> KTXCache::createKTXFile(const Key& key, const std::string& filepath, size_t length, const QUrl& url) {
-    Lock lock(_urlMutex);
-    _urlMap[url] = key;
-    return std::unique_ptr<File>(new KTXFile(key, filepath, length, url));
+KTXFilePointer KTXCache::getFile(const Key& key) {
+    return std::static_pointer_cast<KTXFile>(FileCache::getFile(key));
 }
 
-std::unique_ptr<File> KTXCache::createFile(const Key& key, const std::string& filepath, size_t length, void* extra) {
-    const QUrl& url = reinterpret_cast<Data*>(extra)->url;
-    qCInfo(file_cache) << "Wrote KTX" << key.c_str() << url;
-    return createKTXFile(key, filepath, length, url);
+std::unique_ptr<File> KTXCache::createFile(Metadata&& metadata, const std::string& filepath) {
+    qCInfo(file_cache) << "Wrote KTX" << metadata.key.c_str();
+    return std::unique_ptr<File>(new KTXFile(std::move(metadata), filepath));
 }
 
-std::unique_ptr<File> KTXCache::loadFile(const Key& key, const std::string& filepath, size_t length, const std::string& metadata) {
-    const QUrl url = QString(metadata.c_str());
-    qCInfo(file_cache) << "Loaded KTX" << key.c_str() << url;
-    return createKTXFile(key, filepath, length, url);
-}
-
-void KTXCache::evictedFile(const FilePointer& file) {
-    const QUrl url = std::static_pointer_cast<KTXFile>(file)->getUrl();
-    Lock lock(_urlMutex);
-    _urlMap.erase(url);
-}
-
-std::string KTXFile::getMetadata() const {
-    return _url.toString().toStdString();
-}
+KTXFile::KTXFile(Metadata&& metadata, const std::string& filepath) :
+    cache::File(std::move(metadata), filepath) {}
 
 std::unique_ptr<ktx::KTX> KTXFile::getKTX() const {
     ktx::StoragePointer storage = std::make_shared<storage::FileStorage>(getFilepath().c_str());

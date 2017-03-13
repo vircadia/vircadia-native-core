@@ -60,45 +60,17 @@ void FileCache::initialize() {
     QDir dir(_dirpath.c_str());
 
     if (dir.exists()) {
-        std::unordered_map<std::string, std::pair<Key, std::string>> persistedEntries;
-        if (dir.exists(MANIFEST_NAME.c_str())) {
-            std::ifstream manifest;
-            manifest.open(dir.absoluteFilePath(MANIFEST_NAME.c_str()).toStdString());
-            while (manifest.good()) {
-                std::string key, metadata;
-                std::getline(manifest, key, '\t');
-                std::getline(manifest, metadata, '\n');
-                if (!key.empty()) {
-                    qCDebug(file_cache, "[%s] Manifest contains %s (%s)", _dirname.c_str(), key.c_str(), metadata.c_str());
-                    auto filename = key + '.' + _ext;
-                    persistedEntries[filename] = { key, metadata };
-                }
-            }
-        } else {
-            qCWarning(file_cache, "[%s] Missing manifest", _dirname.c_str());
-        }
+        auto nameFilters = QStringList(("*." + _ext).c_str());
+        auto filters = QDir::Filters(QDir::NoDotAndDotDot | QDir::Files);
+        auto sort = QDir::SortFlags(QDir::Time);
+        auto files = dir.entryList(nameFilters, filters, sort);
 
-        std::unordered_map<Key, std::string> entries;
-
-        foreach(QString filename, dir.entryList(QDir::Filters(QDir::NoDotAndDotDot | QDir::Files))) {
-            const auto& it = persistedEntries.find(filename.toStdString());
-            if (it == persistedEntries.cend()) {
-                // unlink extra files
-                dir.remove(filename);
-                qCDebug(file_cache, "[%s] Cleaned %s", _dirname.c_str(), filename.toStdString().c_str());
-            } else {
-                // load existing files
-                const Key& key = it->second.first;
-                const std::string& metadata = it->second.second;
-                const std::string filepath = dir.filePath(filename).toStdString();
-                const size_t length = std::ifstream(filepath, std::ios::binary | std::ios::ate).tellg();
-
-                FilePointer file(loadFile(key, filepath, length, metadata).release(), &fileDeleter);
-                file->_cache = this;
-                _files[key] = file;
-                _numTotalFiles += 1;
-                _totalFilesSize += length;
-            }
+        // load persisted files
+        foreach(QString filename, files) {
+            const Key key = filename.section('.', 0, 1).toStdString();
+            const std::string filepath = dir.filePath(filename).toStdString();
+            const size_t length = std::ifstream(filepath, std::ios::binary | std::ios::ate).tellg();
+            addFile(Metadata(key, length), filepath);
         }
 
         qCDebug(file_cache, "[%s] Initialized %s", _dirname.c_str(), _dirpath.c_str());
@@ -110,32 +82,40 @@ void FileCache::initialize() {
     _initialized = true;
 }
 
-FilePointer FileCache::writeFile(const Key& key, const char* data, size_t length, void* extra) {
+FilePointer FileCache::addFile(Metadata&& metadata, const std::string& filepath) {
+    FilePointer file(createFile(std::move(metadata), filepath).release(), &fileDeleter);
+    if (file) {
+        _numTotalFiles += 1;
+        _totalFilesSize += file->getLength();
+        file->_cache = this;
+        emit dirty();
+
+        Lock lock(_filesMutex);
+        _files[file->getKey()] = file;
+    }
+    return file;
+}
+
+FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata) {
     assert(_initialized);
 
-    std::string filepath = getFilepath(key);
+    std::string filepath = getFilepath(metadata.key);
 
     Lock lock(_filesMutex);
 
     // if file already exists, return it
-    FilePointer file = getFile(key);
+    FilePointer file = getFile(metadata.key);
     if (file) {
-        qCWarning(file_cache, "[%s] Attempted to overwrite %s", _dirname.c_str(), key.c_str());
+        qCWarning(file_cache, "[%s] Attempted to overwrite %s", _dirname.c_str(), metadata.key.c_str());
         return file;
     }
 
     // write the new file
     FILE* saveFile = fopen(filepath.c_str(), "wb");
-    if (saveFile != nullptr && fwrite(data, length, 1, saveFile) && fclose(saveFile) == 0) {
-        file.reset(createFile(key, filepath, length, extra).release(), &fileDeleter);
-        file->_cache = this;
-        _files[key] = file;
-        _numTotalFiles += 1;
-        _totalFilesSize += length;
-
-        emit dirty();
+    if (saveFile != nullptr && fwrite(data, metadata.length, 1, saveFile) && fclose(saveFile) == 0) {
+        file = addFile(std::move(metadata), filepath);
     } else {
-        qCWarning(file_cache, "[%s] Failed to write %s (%s)", _dirname.c_str(), key.c_str(), strerror(errno));
+        qCWarning(file_cache, "[%s] Failed to write %s (%s)", _dirname.c_str(), metadata.key.c_str(), strerror(errno));
         errno = 0;
     }
 
@@ -149,7 +129,7 @@ FilePointer FileCache::getFile(const Key& key) {
 
     Lock lock(_filesMutex);
 
-    // check if file already exists
+    // check if file exists
     const auto it = _files.find(key);
     if (it != _files.cend()) {
         file = it->second.lock();
@@ -221,58 +201,22 @@ void FileCache::reserve(size_t length) {
         _numUnusedFiles -= 1;
         _totalFilesSize -= length;
         _unusedFilesSize -= length;
-
-        unusedLock.unlock();
-        evictedFile(file);
-        unusedLock.lock();
     }
 }
 
 void FileCache::clear() {
-    auto forAllFiles = [&](std::function<void(const FilePointer& file)> functor) {
-        Lock unusedFilesLock(_unusedFilesMutex);
-        for (const auto& pair : _unusedFiles) {
-            functor(pair.second);
+    Lock unusedFilesLock(_unusedFilesMutex);
+    for (const auto& pair : _unusedFiles) {
+        auto& file = pair.second;
+        file->_cache = nullptr;
+
+        if (_totalFilesSize > _offlineFilesMaxSize) {
+            _totalFilesSize -= file->getLength();
+        } else {
+            file->_shouldPersist = true;
+            qCDebug(file_cache, "[%s] Persisting %s", _dirname.c_str(), file->getKey().c_str());
         }
-        // clear files so they are not reiterated from _files
-        _unusedFiles.clear();
-        unusedFilesLock.unlock();
-
-        Lock filesLock(_filesMutex);
-        for (const auto& pair : _files) {
-            FilePointer file;
-            if ((file = pair.second.lock())) {
-                functor(file);
-            }
-        }
-    };
-
-    try {
-        std::string manifestPath= _dirpath + '/' + MANIFEST_NAME;
-        std::ofstream manifest(manifestPath);
-
-        forAllFiles([&](const FilePointer& file) {
-            file->_cache = nullptr;
-
-            if (_totalFilesSize > _offlineFilesMaxSize) {
-                _totalFilesSize -= file->getLength();
-            } else {
-                manifest << file->getKey() << '\t' << file->getMetadata() << '\n';
-                file->_shouldPersist = true;
-                qCDebug(file_cache, "[%s] Persisting %s (%s)",
-                        _dirname.c_str(), file->getKey().c_str(), file->getMetadata().c_str());
-            }
-        });
-    } catch (std::exception& e) {
-        qCWarning(file_cache, "[%s] Failed to write manifest (%s)", _dirname.c_str(), e.what());
-
-        forAllFiles([](const FilePointer& file) {
-            file->_cache = nullptr;
-            file->_shouldPersist = false;
-        });
     }
-
-    Lock lock(_unusedFilesMutex);
     _unusedFiles.clear();
 }
 
@@ -284,6 +228,11 @@ void File::deleter() {
         deleteLater();
     }
 }
+
+File::File(Metadata&& metadata, const std::string& filepath) :
+    _key(std::move(metadata.key)),
+    _length(metadata.length),
+    _filepath(filepath) {}
 
 File::~File() {
     QFile file(getFilepath().c_str());
