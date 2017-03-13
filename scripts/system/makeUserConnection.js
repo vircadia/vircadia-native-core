@@ -38,6 +38,7 @@ var entity;
 var makingFriends = false; // really just for visualizations for now
 var animHandlerId;
 var entityDimensionMultiplier = 1.0;
+var friendingId;
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
@@ -155,9 +156,10 @@ function startHandshake(fromKeyboard) {
     }
     debug("starting handshake for", currentHand);
     state = STATES.waiting;
+    friendingId = undefined;
+    entityDimensionMultiplier = 1.0;
     waitingInterval = Script.setInterval(
         function () {
-            debug("currentHand", handToString(currentHand));
             messageSend({
                 key: "waiting",
                 hand: handToString(currentHand)
@@ -174,6 +176,10 @@ function endHandshake() {
     }
     if (friendingInterval) {
         friendingInterval = Script.clearInterval(friendingInterval);
+        // send done to let friend know you are not making friends now
+        messageSend({
+            key: "done"
+        });
     }
     if (animHandlerId) {
         debug("removing animation");
@@ -224,6 +230,11 @@ function isNearby(id, hand) {
 function makeFriends(id) {
     // temp code to just flash the visualization really (for now!)
     makingFriends = true;
+    // send done to let the friend know you have made friends.
+    messageSend({
+        key: "done",
+        friendId: id
+    });
     Controller.triggerHapticPulse(FRIENDING_SUCCESS_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
     Script.setTimeout(function () { makingFriends = false; entityDimensionMultiplier = 1.0; }, 1000);
 }
@@ -234,6 +245,7 @@ function makeFriends(id) {
 function startFriending(id, hand) {
     var count = 0;
     debug("friending", id, "hand", hand);
+    friendingId = id;
     state = STATES.friending;
     Controller.triggerHapticPulse(FRIENDING_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
     if (waitingInterval) {
@@ -315,6 +327,21 @@ function messageHandler(channel, messageString, senderID) {
                 if (message.key == "friending") {
                     debug(senderID, "is friending us, but not close enough??");
                 }
+            }
+        }
+        break;
+    case "done":
+        if (state == STATES.friending && friendingId == senderID) {
+            // if they are done, and didn't friend us, terminate our
+            // friending
+            if (message.friendId !== friendingId) {
+                if (friendingInterval) {
+                    friendingInterval = Script.clearInterval(friendingInterval);
+                }
+                // now just call startHandshake.  Should be ok to do so without a
+                // value for isKeyboard, as we should not change the animation
+                // state anyways (if any)
+                startHandshake();
             }
         }
         break;
