@@ -91,10 +91,8 @@ Item {
             enabled: selected || isMyCard;
             hoverEnabled: enabled
             onClicked: {
-            /*
-            THIS WILL OPEN THE BROWSER TO THE USER'S INFO PAGE!
-            I've no idea how to do this yet..
-            */
+                userInfoViewer.url = "http://highfidelity.com/users/" + (pal.activeTab == "nearbyTab" ? userName : displayName); // Connections tab puts username in "displayname" field
+                userInfoViewer.visible = true;
             }
         }
     }

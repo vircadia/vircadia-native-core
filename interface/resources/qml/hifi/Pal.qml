@@ -934,15 +934,138 @@ Rectangle {
             }
         } // Keyboard
 
-        /*
-        THIS WILL BE THE BROWSER THAT OPENS THE USER'S INFO PAGE!
-        I've no idea how to do this yet..
+        Item {
+            id: webViewContainer;
+            anchors.fill: parent;
 
-        HifiTablet.TabletAddressDialog {
-            id: userInfoViewer;
-            visible: false;
+            Rectangle {
+                id: navigationContainer;
+                visible: userInfoViewer.visible;
+                height: 75;
+                anchors {
+                    top: parent.top;
+                    left: parent.left;
+                    right: parent.right;
+                }
+                color: hifi.colors.faintGray;
+
+                Item {
+                    id: backButton
+                    anchors {
+                        top: parent.top;
+                        left: parent.left;
+                    }
+                    height: parent.height - urlBar.height;
+                    width: parent.width/2;
+
+                    FiraSansSemiBold {
+                        // Properties
+                        text: "BACK";
+                        elide: Text.ElideRight;
+                        // Anchors
+                        anchors.fill: parent;
+                        // Text Size
+                        size: 16;
+                        // Text Positioning
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHCenter;
+                        // Style
+                        color: backButtonMouseArea.containsMouse || !userInfoViewer.canGoBack ? hifi.colors.lightGray : hifi.colors.darkGray;
+                        MouseArea {
+                            id: backButtonMouseArea;
+                            anchors.fill: parent
+                            hoverEnabled: enabled
+                            onClicked: userInfoViewer.goBack();
+                        }
+                    }
+                }
+
+                Item {
+                    id: closeButton
+                    anchors {
+                        top: parent.top;
+                        right: parent.right;
+                    }
+                    height: parent.height - urlBar.height;
+                    width: parent.width/2;
+
+                    FiraSansSemiBold {
+                        // Properties
+                        text: "CLOSE";
+                        elide: Text.ElideRight;
+                        // Anchors
+                        anchors.fill: parent;
+                        // Text Size
+                        size: 16;
+                        // Text Positioning
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHCenter;
+                        // Style
+                        color: closeButtonMouseArea.containsMouse ? hifi.colors.lightGray : hifi.colors.darkGray;
+                        MouseArea {
+                            id: closeButtonMouseArea;
+                            anchors.fill: parent
+                            hoverEnabled: enabled
+                            onClicked: userInfoViewer.visible = false;
+                        }
+                    }
+                }
+
+                Item {
+                    id: urlBar
+                    anchors {
+                        top: closeButton.bottom;
+                        left: parent.left;
+                        right: parent.right;
+                    }
+                    height: 25;
+                    width: parent.width;
+
+                    FiraSansRegular {
+                        // Properties
+                        text: userInfoViewer.url;
+                        elide: Text.ElideRight;
+                        // Anchors
+                        anchors.fill: parent;
+                        // Text Size
+                        size: 14;
+                        // Text Positioning
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHCenter;
+                        // Style
+                        color: hifi.colors.lightGray;
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: userInfoViewer.visible = false;
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                id: webViewBackground;
+                color: "white";
+                visible: userInfoViewer.visible;
+                anchors {
+                    top: navigationContainer.bottom;
+                    bottom: parent.bottom;
+                    left: parent.left;
+                    right: parent.right;
+                }
+            }
+
+            HifiControls.WebView {
+                id: userInfoViewer;
+                anchors {
+                    top: navigationContainer.bottom;
+                    topMargin: 5;
+                    bottom: parent.bottom;
+                    left: parent.left;
+                    right: parent.right;
+                }
+                visible: false;
+            }
         }
-        */
 
 
     } // PAL container
