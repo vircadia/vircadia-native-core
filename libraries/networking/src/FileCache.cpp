@@ -46,7 +46,7 @@ FileCache::FileCache(const std::string& dirname, const std::string& ext, QObject
     QObject(parent),
     _ext(ext),
     _dirname(dirname),
-    _dirpath(PathUtils::getDataFilePath(dirname.c_str()).toStdString()) {}
+    _dirpath(PathUtils::getDataFilePath(dirname.c_str(), false).toStdString()) {}
 
 FileCache::~FileCache() {
     clear();
