@@ -65,9 +65,7 @@ public:
     typedef gpu::Texture* TextureLoader(const QImage& image, const std::string& srcImageName);
     using TextureLoaderFunc = std::function<TextureLoader>;
 
-    NetworkTexture(const QUrl& url, Type type, const KTXFilePointer& file);
     NetworkTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels);
-    NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content);
 
     QString getType() const override { return "NetworkTexture"; }
 
@@ -89,11 +87,10 @@ protected:
     virtual void downloadFinished(const QByteArray& data) override;
 
     Q_INVOKABLE void loadContent(const QByteArray& content);
-    Q_INVOKABLE void loadFile();
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
 private:
-    friend class FileReader;
+    friend class KTXReader;
     friend class ImageReader;
 
     Type _type;
@@ -149,6 +146,7 @@ protected:
 
 private:
     friend class ImageReader;
+    friend class NetworkTexture;
     friend class DilatableNetworkTexture;
 
     TextureCache();
