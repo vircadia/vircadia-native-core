@@ -1,14 +1,6 @@
-//
-//  TabletAudioPreferences.qml
-//
-//  Created by Davd Rowe on 7 Mar 2017.
-//  Copyright 2017 High Fidelity, Inc.
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
-
 import QtQuick 2.5
+import Qt.labs.settings 1.0
+
 import "tabletWindows"
 import "../../dialogs"
 import QtQuick.Controls 1.4
@@ -19,7 +11,7 @@ StackView {
     id: profileRoot
     initialItem: root
     objectName: "stack"
-    property var title: "Audio Preferences"
+
     property var eventBridge;
     signal sendToScript(var message);
 
@@ -33,10 +25,10 @@ StackView {
 
     TabletPreferencesDialog {
         id: root
-        property string title: "Audio Settings"
-        objectName: "TabletAudioPreferences"
+        property string title: "LOD Settings"
+        objectName: "TabletLodPreferences"
         width: parent.width
         height: parent.height
-        showCategories: ["Audio"]
+        showCategories: ["Level of Detail Tuning"]
     }
 }

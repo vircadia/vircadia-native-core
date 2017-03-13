@@ -5795,12 +5795,12 @@ void Application::toggleRunningScriptsWidget() const {
     
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
     if (tablet->getToolbarMode()) {
         static const QUrl url("hifi/dialogs/RunningScripts.qml");
         DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
     } else {
-        QQuickItem* tabletRoot = tablet->getTabletRoot();
-        if (!tabletRoot && !isHMDMode()) {
+        if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             static const QUrl url("hifi/dialogs/RunningScripts.qml");
             DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
         } else {
@@ -5837,12 +5837,11 @@ void Application::showAssetServerWidget(QString filePath) {
     };
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
     if (tablet->getToolbarMode()) {
         DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
     } else {
-        QQuickItem* tabletRoot = tablet->getTabletRoot();
-        if (!tabletRoot && !isHMDMode()) {
+        if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
             static const QUrl url("../../hifi/dialogs/TabletAssetServer.qml");
@@ -5875,10 +5874,11 @@ void Application::addAssetToWorldFromURL(QString url) {
 void Application::showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-    if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
+    if (tablet->getToolbarMode() || (!hmd->getShouldShowTablet() && !isHMDMode())) {
         DependencyManager::get<OffscreenUi>()->show(desktopURL, name);
     } else {
-        tablet->loadQMLSource(tabletURL);
+        tablet->pushOntoStack(tabletURL);
     }
 }
 
@@ -6361,6 +6361,18 @@ void Application::loadScriptURLDialog() const {
     } else if (!newScript.isEmpty()) {
         DependencyManager::get<ScriptEngines>()->loadScript(newScript);
     }
+}
+
+void Application::loadLODToolsDialog() {
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
+        auto dialogsManager = DependencyManager::get<DialogsManager>();
+        dialogsManager->lodTools();
+    } else {
+        tablet->pushOntoStack("../../hifi/dialogs/TabletLODTools.qml");
+    }
+
 }
 
 void Application::toggleLogDialog() {

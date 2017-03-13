@@ -22,22 +22,12 @@ Rectangle {
     height: hifi.dimensions.tabletMenuHeader
     z: 100
 
-    gradient: Gradient {
-        GradientStop {
-            position: 0
-            color: "#2b2b2b"
-        }
-
-        GradientStop {
-            position: 1
-            color: "#1e1e1e"
-        }
-    }
+    color: hifi.colors.darkGray
 
     RalewayBold {
         text: title
         size: 26
-        color: "#34a2c7"
+        color: hifi.colors.white
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.leftMargin: hifi.dimensions.contentMargin.x
