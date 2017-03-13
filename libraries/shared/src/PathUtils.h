@@ -27,10 +27,12 @@ class PathUtils : public QObject, public Dependency {
     Q_PROPERTY(QString resources READ resourcesPath)
 public:
     static const QString& resourcesPath();
-    static QString getRootDataDirectory(bool roaming = true);
 
-    static QString getDataDirectory(bool roaming = true);
-    static QString getDataFilePath(QString filename, bool roaming = true);
+    static QString getAppDataPath();
+    static QString getAppLocalDataPath();
+
+    static QString getAppDataFilePath(const QString& filename);
+    static QString getAppLocalDataFilePath(const QString& filename);
 
     static Qt::CaseSensitivity getFSCaseSensitivity();
     static QString stripFilename(const QUrl& url);

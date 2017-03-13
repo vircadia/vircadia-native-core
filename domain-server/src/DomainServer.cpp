@@ -1618,7 +1618,7 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
 QDir pathForAssignmentScriptsDirectory() {
     static const QString SCRIPTS_DIRECTORY_NAME = "/scripts/";
 
-    QDir directory(PathUtils::getDataDirectory() + SCRIPTS_DIRECTORY_NAME);
+    QDir directory(PathUtils::getAppDataPath() + SCRIPTS_DIRECTORY_NAME);
     if (!directory.exists()) {
         directory.mkpath(".");
         qInfo() << "Created path to " << directory.path();
