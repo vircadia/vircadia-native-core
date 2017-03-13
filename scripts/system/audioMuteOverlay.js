@@ -5,7 +5,7 @@
 //
 // audioMuteOverlay.js
 //
-// client scipt that creates an overlay to provide mute feedback
+// client script that creates an overlay to provide mute feedback
 //
 // Created by Triplelexx on 17/03/09
 // Copyright 2017 High Fidelity, Inc.
