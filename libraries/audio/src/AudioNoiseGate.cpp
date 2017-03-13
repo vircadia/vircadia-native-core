@@ -1,6 +1,6 @@
 //
 //  AudioNoiseGate.cpp
-//  interface/src/audio
+//  libraries/audio
 //
 //  Created by Stephen Birarda on 2014-12-16.
 //  Copyright 2014 High Fidelity, Inc.
@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioNoiseGate.h"
+
 #include <cstdlib>
 #include <string.h>
 
-#include <AudioConstants.h>
-
-#include "AudioNoiseGate.h"
+#include "AudioConstants.h"
 
 const float AudioNoiseGate::CLIPPING_THRESHOLD = 0.90f;
 

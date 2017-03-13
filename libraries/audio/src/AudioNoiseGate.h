@@ -1,6 +1,6 @@
 //
 //  AudioNoiseGate.h
-//  interface/src/audio
+//  libraries/audio
 //
 //  Created by Stephen Birarda on 2014-12-16.
 //  Copyright 2014 High Fidelity, Inc.
