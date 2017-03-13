@@ -564,7 +564,6 @@ void ScriptEngine::resetModuleCache(bool deleteScriptCache) {
             if (it.flags() & QScriptValue::SkipInEnumeration) {
                 continue;
             }
-            //scriptCache->deleteScript(it.name());
             qCDebug(scriptengine) << "resetModuleCache(true) -- staging " << it.name() << " for cache reset at next require";
             cacheMeta.setProperty(it.name(), true);
         }
@@ -594,8 +593,8 @@ void ScriptEngine::init() {
     entityScriptingInterface->init();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, this, [this](const EntityItemID& entityID) {
         if (_entityScripts.contains(entityID)) {
-            if (isEntityScriptRunning(entityID)) {
-                qCWarning(scriptengine) << "deletingEntity while entity script is still running!" << entityID;
+            if (isEntityScriptRunning(entityID) && !isStopping()) {
+                qCWarning(scriptengine) << "deletingEntity while entity script is still running" << entityID;
             }
             _entityScripts.remove(entityID);
             emit entityScriptDetailsUpdated();
@@ -954,7 +953,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
             syntaxError.setProperty("detail", "evaluate");
         }
         raiseException(syntaxError);
-        maybeEmitUncaughtException(__FUNCTION__);
+        maybeEmitUncaughtException("lint");
         return syntaxError;
     }
     QScriptProgram program { sourceCode, fileName, lineNumber };
@@ -962,14 +961,14 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
         // can this happen?
         auto err = makeError("could not create QScriptProgram for " + fileName);
         raiseException(err);
-        maybeEmitUncaughtException(__FUNCTION__);
+        maybeEmitUncaughtException("compile");
         return err;
     }
 
     QScriptValue result;
     {
         result = BaseScriptEngine::evaluate(program);
-        maybeEmitUncaughtException(__FUNCTION__);
+        maybeEmitUncaughtException("evaluate");
     }
     return result;
 }
@@ -1644,11 +1643,11 @@ QScriptValue ScriptEngine::require(const QString& moduleId) {
 
     auto exports = module.property("exports");
     if (!invalidateCache && exports.isObject()) {
-        // we have found a cacheed module -- just need to possibly register it with current parent
+        // we have found a cached module -- just need to possibly register it with current parent
         qCDebug(scriptengine_module) << QString("require - using cached module '%1' for '%2' (loaded: %3)")
             .arg(modulePath).arg(moduleId).arg(module.property("loaded").toString());
         registerModuleWithParent(module, parent);
-        maybeEmitUncaughtException(__FUNCTION__);
+        maybeEmitUncaughtException("cached module");
         return exports;
     }
 
@@ -2380,9 +2379,12 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
         const EntityScriptDetails &oldDetails = _entityScripts[entityID];
         if (isEntityScriptRunning(entityID)) {
             callEntityScriptMethod(entityID, "unload");
-        } else {
+        }
+#ifdef DEBUG_ENTITY_STATES
+        else {
             qCDebug(scriptengine) << "unload called while !running" << entityID << oldDetails.status;
         }
+#endif
         if (oldDetails.status != EntityScriptStatus::UNLOADED) {
             EntityScriptDetails newDetails;
             newDetails.status = EntityScriptStatus::UNLOADED;
