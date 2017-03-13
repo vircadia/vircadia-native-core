@@ -29,6 +29,7 @@
 
 #include <plugins/CodecPlugin.h>
 
+#include "AudioNoiseGate.h"
 #include "MixedAudioStream.h"
 #include "avatars/ScriptableAvatar.h"
 
@@ -110,6 +111,7 @@ private:
     QTimer* _avatarIdentityTimer = nullptr;
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 
+    AudioNoiseGate _noiseGate;
     bool _isNoiseGateEnabled { false };
 
     CodecPluginPointer _codec;
