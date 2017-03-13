@@ -308,7 +308,8 @@ Menu::Menu() {
     // Settings > LOD...
     action = addActionToQMenuAndActionHash(settingsMenu, "LOD...");
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/LodPreferencesDialog.qml"), "LodPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/LodPreferencesDialog.qml"),
+            QString("../../hifi/tablet/TabletLodPreferences.qml"), "LodPreferencesDialog");
     });
 
     // Settings > Control with Speech [advanced]
