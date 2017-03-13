@@ -73,7 +73,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     //                      to open the gate.
     //  NOISE_GATE_CLOSE_BLOCK_DELAY:  Once the noise is below the gate height for the block, how many blocks
     //                      will we wait before closing the gate.
-    //  NOISE_GATE_BLOCKSS_TO_AVERAGE:  How many audio blocks should we average together to compute noise floor.
+    //  NOISE_GATE_BLOCKS_TO_AVERAGE:  How many audio blocks should we average together to compute noise floor.
     //                      More means better rejection but also can reject continuous things like singing.
     // NUMBER_OF_NOISE_SAMPLE_BLOCKS:  How often should we re-evaluate the noise floor?
 
