@@ -1548,7 +1548,7 @@ var PropertiesTool = function (opts) {
         });
     }
 
-    selectionManager.addEventListener(function (selectionUpdated) {
+    function updateSelections(selectionUpdated) {
         var data = {
             type: 'update'
         };
@@ -1589,7 +1589,8 @@ var PropertiesTool = function (opts) {
         }
         data.selections = selections;
         webView.emitScriptEvent(JSON.stringify(data));
-    });
+    }
+    selectionManager.addEventListener(updateSelections);
 
     webView.webEventReceived.connect(function (data) {
         try {
@@ -1751,6 +1752,8 @@ var PropertiesTool = function (opts) {
                     }
                 }
             }
+        } else if (data.type === "propertiesPageReady") {
+            updateSelections(true);
         }
     });
 
