@@ -18,7 +18,7 @@
 
 #include <QDir>
 
-#include <ServerPathUtils.h>
+#include <PathUtils.h>
 
 Q_LOGGING_CATEGORY(file_cache, "hifi.file_cache", QtWarningMsg)
 
@@ -46,7 +46,7 @@ FileCache::FileCache(const std::string& dirname, const std::string& ext, QObject
     QObject(parent),
     _ext(ext),
     _dirname(dirname),
-    _dirpath(ServerPathUtils::getDataFilePath(dirname.c_str()).toStdString()) {}
+    _dirpath(PathUtils::getDataFilePath(dirname.c_str()).toStdString()) {}
 
 FileCache::~FileCache() {
     clear();
