@@ -14,7 +14,7 @@
 
 #include <OctreeSceneStats.h>
 #include <QTimer>
-#include <QQmlListProperty>
+#include <QColor>
 
 #include "DependencyManager.h"
 
@@ -115,6 +115,7 @@ signals:
 public slots:
     void startUpdates();
     void stopUpdates();
+    QColor getColor() const;
 
 private slots:
     void updateOctreeStatsData();

@@ -62,6 +62,7 @@ Rectangle {
                 titleText: qsTr("Elements on Servers:")
                 text: OctreeStats.serverElements
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             TabletEntityStatisticsItem {
@@ -70,6 +71,7 @@ Rectangle {
                 titleText: qsTr("Local Elements:")
                 text: OctreeStats.localElements
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             TabletEntityStatisticsItem {
@@ -78,6 +80,7 @@ Rectangle {
                 titleText: qsTr("Elements Memory:")
                 text: OctreeStats.localElementsMemory
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             TabletEntityStatisticsItem {
@@ -86,6 +89,7 @@ Rectangle {
                 titleText: qsTr("Sending Mode:")
                 text: OctreeStats.sendingMode
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             TabletEntityStatisticsItem {
@@ -94,6 +98,7 @@ Rectangle {
                 titleText: qsTr("Incoming Entity Packets:")
                 text: OctreeStats.processedPackets
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             TabletEntityStatisticsItem {
@@ -102,6 +107,7 @@ Rectangle {
                 titleText: qsTr("Processed Packets Elements:")
                 text: OctreeStats.processedPacketsElements
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             TabletEntityStatisticsItem {
@@ -110,6 +116,7 @@ Rectangle {
                 titleText: qsTr("Processed Packets Entities:")
                 text: OctreeStats.processedPacketsEntities
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             TabletEntityStatisticsItem {
@@ -118,6 +125,7 @@ Rectangle {
                 titleText: qsTr("Processed Packets Timing:")
                 text: OctreeStats.processedPacketsTiming
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             TabletEntityStatisticsItem {
@@ -126,6 +134,7 @@ Rectangle {
                 titleText: qsTr("Outbound Entity Packets:")
                 text: OctreeStats.outboundEditPackets
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             TabletEntityStatisticsItem {
@@ -134,6 +143,7 @@ Rectangle {
                 titleText: qsTr("Entity Update Time:")
                 text: OctreeStats.entityUpdateTime
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             TabletEntityStatisticsItem {
@@ -142,6 +152,7 @@ Rectangle {
                 titleText: qsTr("Entity Updates:")
                 text: OctreeStats.entityUpdates
                 colorScheme: root.colorScheme
+                color: OctreeStats.getColor()
             }
 
             Repeater {
@@ -160,6 +171,7 @@ Rectangle {
                         width: parent.width
                         titleText: qsTr("Entity Server ") + (index+1) + ":"
                         colorScheme: root.colorScheme
+                        color: OctreeStats.getColor()
                     }
 
                     Row {

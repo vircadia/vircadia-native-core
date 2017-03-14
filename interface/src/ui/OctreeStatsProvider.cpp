@@ -41,33 +41,17 @@ void OctreeStatsProvider::stopUpdates() {
     _updateTimer.stop();
 }
 
-
-//int OctreeStatsProvider::AddStatItem(const char* caption, unsigned colorRGBA) {
-//    const int STATS_LABEL_WIDTH = 600;
-
-//    _statCount++; // increment our current stat count
-
-//    if (colorRGBA == 0) {
-//        static unsigned rotatingColors[] = { GREENISH, YELLOWISH, GREYISH };
-//        colorRGBA = rotatingColors[_statCount % (sizeof(rotatingColors)/sizeof(rotatingColors[0]))];
-//    }
-//    //QLabel* label = _labels[_statCount] = new QLabel();
-
-//    // Set foreground color to 62.5% brightness of the meter (otherwise will be hard to read on the bright background)
-//    //QPalette palette = label->palette();
-
-//    // This goofiness came from the bandwidth meter code, it basically stores a color in an unsigned and extracts it
-//    unsigned rgb = colorRGBA >> 8;
-//    const unsigned colorpart1 = 0xfefefeu;
-//    const unsigned colorpart2 = 0xf8f8f8;
-//    rgb = ((rgb & colorpart1) >> 1) + ((rgb & colorpart2) >> 3);
-//    palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
-//    label->setPalette(palette);
-//    _form->addRow(QString(" %1:").arg(caption), label);
-//    label->setFixedWidth(STATS_LABEL_WIDTH);
-
-//    return _statCount;
-//}
+QColor OctreeStatsProvider::getColor() const {
+    static int statIndex = 1;
+    static quint32 rotatingColors[] = { GREENISH, YELLOWISH, GREYISH };
+    quint32 colorRGBA = rotatingColors[statIndex % (sizeof(rotatingColors)/sizeof(rotatingColors[0]))];
+    quint32 rgb = colorRGBA >> 8;
+    const quint32 colorpart1 = 0xfefefeu;
+    const quint32 colorpart2 = 0xf8f8f8;
+    rgb = ((rgb & colorpart1) >> 1) + ((rgb & colorpart2) >> 3);
+    statIndex++;
+    return QColor::fromRgb(rgb);
+}
 
 OctreeStatsProvider::~OctreeStatsProvider() {
     _updateTimer.stop();
@@ -108,7 +92,7 @@ void OctreeStatsProvider::updateOctreeStatsData() {
     // Only refresh our stats every once in a while, unless asked for realtime
     //if no realtime, then update once per second. Otherwise consider 60FPS update, ie 16ms interval
     //int updateinterval = Menu::getInstance()->isOptionChecked(MenuOption::ShowRealtimeEntityStats) ? 16 : 1000;
-    _updateTimer.start(SAMPLING_WINDOW/1000);
+    _updateTimer.start(REFRESH_AFTER/1000);
 
     const int FLOATING_POINT_PRECISION = 3;
 

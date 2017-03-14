@@ -21,6 +21,7 @@ Column {
 
     property alias titleText: titleLabel.text
     property alias text: valueLabel.text
+    property alias color: valueLabel.color
 
     HifiConstants { id: hifi }
 
