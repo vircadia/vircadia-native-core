@@ -29,16 +29,15 @@ const FRIENDING_SUCCESS_HAPTIC_STRENGTH = 1.0;
 const HAPTIC_DURATION = 20;
 
 var currentHand;
-var isWaiting = false;
-var nearbyAvatars = [];
 var state = STATES.inactive;
-var waitingInterval;
 var friendingInterval;
 var entity;
 var makingFriends = false; // really just for visualizations for now
 var animHandlerId;
 var entityDimensionMultiplier = 1.0;
 var friendingId;
+var pendingFriendAckFrom;
+var latestFriendRequestFrom;
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
@@ -126,24 +125,23 @@ function updateVisualization() {
     }
 
 }
-
-// this should find the nearest avatars, returning an array of avatar, hand pairs.  Currently
-// looking at distance between hands.
-function findNearbyAvatars() {
-    var nearbyAvatars = [];
+function findNearbyAvatars(nearestOnly) {
     var handPos = getHandPosition(MyAvatar, currentHand);
+    var minDistance = MAX_AVATAR_DISTANCE;
+    var nearbyAvatars = [];
     AvatarList.getAvatarIdentifiers().forEach(function (identifier) {
         if (!identifier) { return; }
         var avatar = AvatarList.getAvatar(identifier);
         var distanceR = Vec3.distance(getHandPosition(avatar, Controller.Standard.RightHand), handPos);
         var distanceL = Vec3.distance(getHandPosition(avatar, Controller.Standard.LeftHand), handPos);
         var distance = Math.min(distanceL, distanceR);
-        if (distance < MAX_AVATAR_DISTANCE) {
-            if (distance == distanceR) {
-                nearbyAvatars.push({avatar: identifier, hand: Controller.Standard.RightHand});
-            } else {
-                nearbyAvatars.push({avatar: identifier, hand: Controller.Standard.LeftHand});
+        if (distance < minDistance) {
+            if (nearestOnly) {
+                minDistance = distance;
+                nearbyAvatars = [];
             }
+            var hand = (distance == distanceR ? Controller.Standard.RightHand : Controller.Standard.LeftHand);
+            nearbyAvatars.push({avatar: identifier, hand: hand});
         }
     });
     return nearbyAvatars;
@@ -156,24 +154,35 @@ function startHandshake(fromKeyboard) {
     }
     debug("starting handshake for", currentHand);
     state = STATES.waiting;
-    friendingId = undefined;
     entityDimensionMultiplier = 1.0;
-    waitingInterval = Script.setInterval(
-        function () {
+    pendingFriendAckFrom = undefined;
+    //  if we have a recent friendRequest, send an ack back
+    if (latestFriendRequestFrom) {
+        debug("sending friendAck to", latestFriendRequestFrom);
+        messageSend({
+            key: "friendAck",
+            id: latestFriendRequestFrom,
+            hand: handToString(currentHand)
+        });
+    } else {
+        var nearestAvatar = findNearbyAvatars(true)[0];
+        debug("nearest avatar", nearestAvatar);
+        if (nearestAvatar) {
+            pendingFriendAckFrom = nearestAvatar.avatar;
+            debug("sending friendRequest to", pendingFriendAckFrom);
             messageSend({
-                key: "waiting",
-                hand: handToString(currentHand)
+                key: "friendRequest",
+                id: nearestAvatar.avatar,
+                hand: handToString(nearestAvatar.hand)
             });
-        }, WAITING_INTERVAL);
+        }
+    }
 }
 
 function endHandshake() {
     debug("ending handshake for", currentHand);
     currentHand = undefined;
     state = STATES.inactive;
-    if (waitingInterval) {
-        waitingInterval = Script.clearInterval(waitingInterval);
-    }
     if (friendingInterval) {
         friendingInterval = Script.clearInterval(friendingInterval);
         // send done to let friend know you are not making friends now
@@ -217,6 +226,7 @@ function messageSend(message) {
 }
 
 function isNearby(id, hand) {
+    var nearbyAvatars = findNearbyAvatars();
     for(var i = 0; i < nearbyAvatars.length; i++) {
         if (nearbyAvatars[i].avatar == id && handToString(nearbyAvatars[i].hand) == hand) {
             return true;
@@ -246,20 +256,24 @@ function startFriending(id, hand) {
     var count = 0;
     debug("friending", id, "hand", hand);
     friendingId = id;
+    pendingFriendAckFrom = undefined;
+    latestFriendRequestFrom = undefined;
     state = STATES.friending;
     Controller.triggerHapticPulse(FRIENDING_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
-    if (waitingInterval) {
-        waitingInterval = Script.clearInterval(waitingInterval);
-    }
+
+    // send message that we are friending them
+    messageSend({
+        key: "friending",
+        id: id,
+        hand: handToString(currentHand)
+    });
+
     friendingInterval = Script.setInterval(function () {
-        nearbyAvatars = findNearbyAvatars();
         entityDimensionMultiplier = 1.0 + 2.0 * ++count * FRIENDING_INTERVAL / FRIENDING_TIME;
-        // insure senderID is still nearby
         if (state != STATES.friending) {
             debug("stopping friending interval, state changed");
             friendingInterval = Script.clearInterval(friendingInterval);
-        }
-        if (!isNearby(id, hand)) {
+        } else if (!isNearby(id, hand)) {
             // gotta go back to waiting
             debug(id, "moved, back to waiting");
             friendingInterval = Script.clearInterval(friendingInterval);
@@ -276,21 +290,19 @@ A simple sequence diagram:
 
      Avatar A                       Avatar B
         |                               |
-        |  <---------(waiting) --- startHandshake
-   startHandshake -- (waiting) ----->   |
+        |  <-----(FriendRequest) -- startHandshake
+   startHandshake -- (FriendAck) --->   |
         |                               |
         |  <-------(friending) -- startFriending
    startFriending -- (friending) --->   |
         |                               |
         |                            friends
      friends                            |
-        |           `                   |
+        | <---------  (done) ---------- |
+        | ---------- (done) --------->  |
 */
 function messageHandler(channel, messageString, senderID) {
     if (channel !== MESSAGE_CHANNEL) {
-        return;
-    }
-    if (state == STATES.inactive) {
         return;
     }
     if (MyAvatar.sessionUUID === senderID) { // ignore my own
@@ -302,32 +314,42 @@ function messageHandler(channel, messageString, senderID) {
     } catch (e) {
         debug(e);
     }
+    debug("message", message);
     switch (message.key) {
-    case "waiting":
+    case "friendRequest":
+        if (state == STATES.inactive && message.id == MyAvatar.sessionUUID) {
+            debug("setting latestFriendRequestFrom", senderID);
+            latestFriendRequestFrom = senderID;
+        } else if (state == STATES.waiting && !pendingFriendAckFrom) {
+            // you are waiting for a friend request, so send the ack
+            pendingFriendAckFrom = senderID;
+            messageSend({
+                key: "friendAck",
+                id: senderID,
+                hand: handToString(currentHand)
+            });
+        }
+        // TODO: ponder keeping this up-to-date during
+        // other states?
+        break;
+    case "friendAck":
+        if (state == STATES.waiting && message.id == MyAvatar.sessionUUID) {
+            if (pendingFriendAckFrom && senderID != pendingFriendAckFrom) {
+                debug("ignoring friendAck from", senderID, ", waiting on", pendingFriendAckFrom);
+                break;
+            }
+            // start friending...
+            startFriending(senderID, message.hand);
+        }
+        break;
     case "friending":
-        if (state == STATES.waiting) {
-            if (message.key == "friending" && message.id != MyAvatar.sessionUUID) {
+        if (state == STATES.waiting && senderID == latestFriendRequestFrom) {
+            if (message.id != MyAvatar.sessionUUID) {
                 // for now, just ignore these. Hmm
                 debug("ignoring friending message", message, "from", senderID);
                 break;
             }
-            nearbyAvatars = findNearbyAvatars();
-            if (isNearby(senderID, message.hand)) {
-                // if we are responding to a friending message (they didn't send a
-                // waiting before noticing us and friending), don't bother with sending
-                // a friending message?
-                messageSend({
-                    key: "friending",
-                    id: senderID,
-                    hand: handToString(currentHand)
-                });
-                startFriending(senderID, message.hand);
-            } else {
-                // for now, ignore this.  Hmm.
-                if (message.key == "friending") {
-                    debug(senderID, "is friending us, but not close enough??");
-                }
-            }
+            startFriending(senderID, message.hand);
         }
         break;
     case "done":
@@ -342,6 +364,16 @@ function messageHandler(channel, messageString, senderID) {
                 // value for isKeyboard, as we should not change the animation
                 // state anyways (if any)
                 startHandshake();
+            }
+        } else {
+            // if waiting or inactive, lets clear the pending stuff
+            if (pendingFriendAckFrom == senderID || lastestFriendRequestFrom == senderID) {
+                if (state == STATES.inactive) {
+                    pendingFriendAckFrom = undefined;
+                    latestFriendRequestFrom = undefined;
+                } else {
+                    startHandshake();
+                }
             }
         }
         break;
