@@ -80,7 +80,7 @@ Preference {
         property var sliderBuilder: Component { SliderPreference { } }
         property var avatarBuilder: Component { AvatarPreference { } }
         property var buttonBuilder: Component { ButtonPreference { } }
-        property var comboBoxBuilder: Component { TabletComboBoxPreference { } }
+        property var comboBoxBuilder: Component { ComboBoxPreference { } }
         property var preferences: []
         property int checkBoxCount: 0
 
