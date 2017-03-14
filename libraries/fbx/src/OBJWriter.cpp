@@ -13,6 +13,7 @@
 #include <QFileInfo>
 #include "model/Geometry.h"
 #include "OBJWriter.h"
+#include "ModelFormatLogging.h"
 
 static QString formatFloat(double n) {
     // limit precision to 6, but don't output trailing zeros.
@@ -23,6 +24,18 @@ static QString formatFloat(double n) {
     if (s.endsWith(".")) {
         s.remove(s.size() - 1, 1);
     }
+
+    // check for non-numbers.  if we get NaN or inf or scientific notation, just return 0
+    for (int i = 0; i < s.length(); i++) {
+        auto c = s.at(i).toLatin1();
+        if (c != '-' &&
+            c != '.' &&
+            (c < '0' || c > '9')) {
+            qCDebug(modelformat) << "OBJWriter zeroing bad vertex coordinate:" << s << "because of" << c;
+            return QString("0");
+        }
+    }
+
     return s;
 }
 
@@ -70,7 +83,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
             out << "g part-" << nth++ << "\n";
 
             // model::Mesh::TRIANGLES
-            // XXX handle other formats
+            // TODO -- handle other formats
             gpu::BufferView::Iterator<const uint32_t> indexItr = indexBuffer.cbegin<uint32_t>();
             indexItr += part._startIndex;
 
@@ -108,13 +121,13 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
 
 bool writeOBJToFile(QString path, QList<MeshPointer> meshes) {
     if (QFileInfo(path).exists() && !QFile::remove(path)) {
-        qDebug() << "OBJ writer failed, file exists:" << path; // XXX qCDebug
+        qCDebug(modelformat) << "OBJ writer failed, file exists:" << path;
         return false;
     }
 
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly)) {
-        qDebug() << "OBJ writer failed to open output file:" << path; // XXX qCDebug
+        qCDebug(modelformat) << "OBJ writer failed to open output file:" << path;
         return false;
     }
 
