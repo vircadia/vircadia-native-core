@@ -122,9 +122,6 @@
         overlayPosition.z = lerp(overlayPosition.z, offsetPosition.z, LERP_AMOUNT);
 
         var rgbColor = hsvToRgb(
-            lerp(startColor.h, endColor.h, tweenPosition),
-            lerp(startColor.s, endColor.s, tweenPosition),
-            lerp(startColor.v, endColor.v, tweenPosition)
         );
 
         Overlays.editOverlay(overlayID, {
