@@ -55,7 +55,10 @@
         return Math.pow(t / 1, 5);
     }
 
-    // hsv conversion expects 0-1 values
+    // Adapted from a blog post on http://mjijackson.com
+    // Michael J. I. Jackson
+    // Converts an HSV color value to RGB. Conversion formula adapted from http: //en.wikipedia.org/wiki/HSV_color_space.
+    // Assumes h, s, and v are contained in the set[0, 1]
     function hsvToRgb(h, s, v) {
         var r, g, b;
 
