@@ -363,7 +363,7 @@ function messageHandler(channel, messageString, senderID) {
             }
         } else {
             // if waiting or inactive, lets clear the pending stuff
-            if (pendingFriendAckFrom == senderID || lastestFriendRequestFrom == senderID) {
+            if (pendingFriendAckFrom == senderID || latestFriendRequestFrom == senderID) {
                 if (state == STATES.inactive) {
                     pendingFriendAckFrom = undefined;
                     latestFriendRequestFrom = undefined;
