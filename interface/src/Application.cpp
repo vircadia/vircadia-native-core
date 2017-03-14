@@ -1625,9 +1625,10 @@ QString Application::getUserAgent() {
 
 void Application::toggleTabletUI() const {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     bool messageOpen = tablet->isMessageDialogOpen();
-    if (!messageOpen) {
+    if (!messageOpen || (messageOpen && !hmd->getShouldShowTablet())) {
         auto HMD = DependencyManager::get<HMDScriptingInterface>();
         HMD->toggleShouldShowTablet();
     }
