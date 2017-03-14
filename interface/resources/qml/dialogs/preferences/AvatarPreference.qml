@@ -89,9 +89,7 @@ Preference {
                         root.browser = null;
                     });
                 } else {
-                    root.browser = tabletAvatarBrowserBuilder.createObject(tabletRoot, {
-                        createGlobalEventBridgeSource: eventBridgeJavaScriptToInject
-                    });
+                    root.browser = tabletAvatarBrowserBuilder.createObject(tabletRoot);
 
                     // Make dialog modal.
                     tabletRoot.openModal = root.browser;
@@ -101,7 +99,9 @@ Preference {
 
         Component {
             id: tabletAvatarBrowserBuilder;
-            TabletAvatarBrowser { }
+            TabletAvatarBrowser {
+                eventBridge: tabletRoot.eventBridge
+            }
         }
     }
 }

@@ -25,17 +25,16 @@ Item {
 
     property var result
 
+    property bool keyboardEnabled: false
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+
     signal selected(var modelUrl)
     signal canceled()
 
-    anchors.fill: parent
+    property alias eventBridge: eventBridgeWrapper.eventBridge
 
-    /*
-    Rectangle {
-        id: pane  // Surrogate for ScrollingWindow's pane.
-        anchors.fill: parent
-    }
-    */
+    anchors.fill: parent
 
     BaseWebView {
         id: webview
@@ -48,6 +47,32 @@ Item {
             right: parent.right
             bottom: footer.top
         }
+
+        QtObject {
+            id: eventBridgeWrapper
+            WebChannel.id: "eventBridgeWrapper"
+            property var eventBridge;
+        }
+
+        webChannel.registeredObjects: [eventBridgeWrapper]
+
+        // Create a global EventBridge object for raiseAndLowerKeyboard.
+        WebEngineScript {
+            id: createGlobalEventBridge
+            sourceCode: eventBridgeJavaScriptToInject
+            injectionPoint: WebEngineScript.DocumentCreation
+            worldId: WebEngineScript.MainWorld
+        }
+
+        // Detect when may want to raise and lower keyboard.
+        WebEngineScript {
+            id: raiseAndLowerKeyboard
+            injectionPoint: WebEngineScript.Deferred
+            sourceUrl: resourceDirectoryUrl + "html/raiseAndLowerKeyboard.js"
+            worldId: WebEngineScript.MainWorld
+        }
+
+        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
     }
 
     Rectangle {
@@ -57,7 +82,7 @@ Item {
         anchors {
             left: parent.left
             right: parent.right
-            bottom: parent.bottom
+            bottom: keyboard.top
         }
 
         color: hifi.colors.baseGray
@@ -75,5 +100,22 @@ Item {
                 onClicked: root.destroy();
             }
         }
+    }
+
+    Keyboard {
+        id: keyboard
+
+        raised: parent.keyboardEnabled && parent.keyboardRaised
+        numeric: parent.punctuationMode
+
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+    }
+
+    Component.onCompleted: {
+        keyboardEnabled = HMD.active;
     }
 }
