@@ -526,16 +526,20 @@ void ImageReader::read() {
 
         // Save the image into a KTXFile
         auto ktx = gpu::Texture::serialize(*texture);
-        const char* data = reinterpret_cast<const char*>(ktx->_storage->data());
-        size_t length = ktx->_storage->size();
-        KTXFilePointer file;
-        auto& ktxCache = DependencyManager::get<TextureCache>()->_ktxCache;
-        if (!ktx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(_hash, length)))) {
-            qCWarning(modelnetworking) << _url << "file cache failed";
+        if (ktx) {
+            const char* data = reinterpret_cast<const char*>(ktx->_storage->data());
+            size_t length = ktx->_storage->size();
+            KTXFilePointer file;
+            auto& ktxCache = DependencyManager::get<TextureCache>()->_ktxCache;
+            if (!ktx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(_hash, length)))) {
+                qCWarning(modelnetworking) << _url << "file cache failed";
+            } else {
+                resource.staticCast<NetworkTexture>()->_file = file;
+                auto ktx = file->getKTX();
+                texture->setKtxBacking(ktx);
+            }
         } else {
-            resource.staticCast<NetworkTexture>()->_file = file;
-            auto ktx = file->getKTX();
-            texture->setKtxBacking(ktx);
+            qCWarning(modelnetworking) << "Unable to serialize texture to KTX " << _url;
         }
     }
 
