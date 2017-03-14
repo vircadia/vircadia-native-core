@@ -881,18 +881,9 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     return success;
 }
 
-
 bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
     return polyVoxWorker(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
-        return polyVoxEntity.setSphere(center, radius, value);
-    });
-}
-
-bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
-    PROFILE_RANGE(script_entities, __FUNCTION__);
-
-    return polyVoxWorker(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setSphere(center, radius, value);
     });
 }
@@ -902,7 +893,7 @@ bool EntityScriptingInterface::setVoxelCapsule(QUuid entityID,
                                                float radius, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return setVoxels(entityID, [start, end, radius, value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [start, end, radius, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setCapsule(start, end, radius, value);
     });
 }
@@ -910,7 +901,7 @@ bool EntityScriptingInterface::setVoxelCapsule(QUuid entityID,
 bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return setVoxels(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setVoxelInVolume(position, value);
     });
 }
