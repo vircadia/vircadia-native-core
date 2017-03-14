@@ -58,7 +58,6 @@ void AudioNoiseGate::removeDCOffset(int16_t* samples, int numSamples) {
     }
 }
 
-
 void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     //
     //  Impose Noise Gate
@@ -77,8 +76,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     //  NOISE_GATE_FRAMES_TO_AVERAGE:  How many audio frames should we average together to compute noise floor.
     //                      More means better rejection but also can reject continuous things like singing.
     // NUMBER_OF_NOISE_SAMPLE_FRAMES:  How often should we re-evaluate the noise floor?
-    
-    
+
     float loudness = 0;
     int thisSample = 0;
     int samplesOverNoiseGate = 0;
@@ -142,16 +140,38 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         _sampleCounter = 0;
         
     }
+
+    _closedInLastFrame = false;
+    _openedInLastFrame = false;
+
     if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
+        _openedInLastFrame = !_isOpen;
         _isOpen = true;
         _framesToClose = NOISE_GATE_CLOSE_FRAME_DELAY;
     } else {
         if (--_framesToClose == 0) {
+            _closedInLastFrame = _isOpen;
             _isOpen = false;
         }
     }
     if (!_isOpen) {
-        memset(samples, 0, numSamples * sizeof(int16_t));
+        if (_closedInLastFrame) {
+            // would be nice to do a little crossfade to silence
+            for (int i = 0; i < numSamples; i++) {
+                float fadedSample = (1.0f - (float)i / (float)numSamples) * (float)samples[i];
+                samples[i] = (int16_t)fadedSample;
+            }
+        } else {
+            memset(samples, 0, numSamples * sizeof(int16_t));
+        }
         _lastLoudness = 0;
+    }
+
+    if (_openedInLastFrame) {
+        // would be nice to do a little crossfade from silence
+        for (int i = 0; i < numSamples; i++) {
+            float fadedSample = ((float)i / (float)numSamples) * (float)samples[i];
+            samples[i] = (int16_t)fadedSample;
+        }
     }
 }

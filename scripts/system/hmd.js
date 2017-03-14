@@ -45,6 +45,7 @@ var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
 
 function onHmdChanged(isHmd) {
+    HMD.closeTablet();
     if (isHmd) {
         button.editProperties({
             icon: "icons/tablet-icons/switch-desk-i.svg",
