@@ -79,14 +79,13 @@ Item {
         }
         StateImage {
             id: infoHoverImage;
-            visible: avatarImageMouseArea.containsMouse ? true : false;
+            visible: false;
             imageURL: "../../images/info-icon-2-state.svg";
             size: 32;
             buttonState: 1;
             anchors.centerIn: parent;
         }
         MouseArea {
-            id: avatarImageMouseArea;
             anchors.fill: parent
             enabled: selected || isMyCard;
             hoverEnabled: enabled
@@ -94,6 +93,8 @@ Item {
                 userInfoViewer.url = defaultBaseUrl + "/users/" + userName;
                 userInfoViewer.visible = true;
             }
+            onEntered: infoHoverImage.visible = true;
+            onExited: infoHoverImage.visible = false;
         }
     }
 
@@ -124,7 +125,7 @@ Item {
         anchors.leftMargin: avatarImage.visible ? 5 : 0;
         anchors.rightMargin: 5;
         // Style
-        color: myDisplayNameMouseArea.containsMouse ? hifi.colors.lightGrayText : hifi.colors.textFieldLightBackground
+        color: hifi.colors.textFieldLightBackground
         border.color: hifi.colors.blueHighlight
         border.width: 0
         TextInput {
@@ -165,7 +166,6 @@ Item {
             }
         }
         MouseArea {
-            id: myDisplayNameMouseArea;
             anchors.fill: parent
             hoverEnabled: true
             onClicked: {
@@ -182,6 +182,8 @@ Item {
                 pal.currentlyEditingDisplayName = true
                 myDisplayNameText.autoScroll = true;
             }
+            onEntered: myDisplayName.color = hifi.colors.lightGrayText;
+            onExited: myDisplayName.color = hifi.colors.textFieldLightBackground;
         }
         // Edit pencil glyph
         HiFiGlyphs {
@@ -226,13 +228,20 @@ Item {
             // Text Positioning
             verticalAlignment: Text.AlignTop
             // Style
-            color: (displayNameTextMouseArea.containsMouse || userNameTextMouseArea.containsMouse) ? hifi.colors.blueHighlight : hifi.colors.darkGray;
+            color: hifi.colors.darkGray;
             MouseArea {
-                id: displayNameTextMouseArea;
                 anchors.fill: parent
                 enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "";
                 hoverEnabled: enabled
                 onClicked: pal.sendToScript({method: 'goToUser', params: thisNameCard.userName});
+                onEntered: {
+                    displayNameText.color = hifi.colors.blueHighlight;
+                    userNameText.color = hifi.colors.blueHighlight;
+                }
+                onExited: {
+                    displayNameText.color = hifi.colors.darkGray
+                    userNameText.color = hifi.colors.greenShadow;
+                }
             }
         }
         TextMetrics {
@@ -309,14 +318,20 @@ Item {
         // Text Positioning
         verticalAlignment: Text.AlignBottom
         // Style
-        color: (pal.activeTab == "nearbyTab" && (displayNameTextMouseArea.containsMouse || userNameTextMouseArea.containsMouse))
-            ? hifi.colors.blueHighlight : hifi.colors.greenShadow;
+        color: hifi.colors.greenShadow;
         MouseArea {
-            id: userNameTextMouseArea;
             anchors.fill: parent
             enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "";
             hoverEnabled: enabled
             onClicked: pal.sendToScript({method: 'goToUser', params: thisNameCard.userName});
+            onEntered: {
+                displayNameText.color = hifi.colors.blueHighlight;
+                userNameText.color = hifi.colors.blueHighlight;
+            }
+            onExited: {
+                displayNameText.color = hifi.colors.darkGray;
+                userNameText.color = hifi.colors.greenShadow;
+            }
         }
     }
     // VU Meter
