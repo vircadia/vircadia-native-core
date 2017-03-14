@@ -17,7 +17,7 @@ Item {
     id: root
     anchors.fill: parent
     objectName: "tabletMenuHandlerItem"
-    
+
     StackView {
         anchors.fill: parent
         id: d
@@ -54,6 +54,10 @@ Item {
             d.currentItem.focus = true;
             d.currentItem.forceActiveFocus();
             breadcrumbText.text = d.currentItem.title;
+            if (typeof bgNavBar !== "undefined") {
+                d.currentItem.y = bgNavBar.height;
+                d.currentItem.height -= bgNavBar.height;
+            }
         }
 
         function popSource() {

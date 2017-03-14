@@ -79,266 +79,297 @@ Rectangle {
         scripts.stopAllScripts();
     }
 
-    Column {
+    Flickable {
+        id: flickable
         width: parent.width
-        HifiControls.TabletContentSection {
-            name: "Currently Running"
-            isFirst: true
+        height: parent.height - (keyboard.raised ? keyboard.raisedHeight : 0)
+        contentWidth: parent.width
+        contentHeight: column.childrenRect.height
+        clip: true
 
-            HifiControls.VerticalSpacer {}
+        Column {
+            id: column
+            width: parent.width
+            HifiControls.TabletContentSection {
+                id: firstSection
+                name: "Currently Running"
+                isFirst: true
 
-            Row {
-                spacing: hifi.dimensions.contentSpacing.x
+                HifiControls.VerticalSpacer {}
 
-                HifiControls.Button {
-                    text: "Reload All"
-                    color: hifi.buttons.black
-                    onClicked: reloadAll()
-                }
+                Row {
+                    spacing: hifi.dimensions.contentSpacing.x
 
-                HifiControls.Button {
-                    text: "Remove All"
-                    color: hifi.buttons.red
-                    onClicked: stopAll()
-                }
-            }
-
-            HifiControls.VerticalSpacer {
-                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
-            }
-
-            HifiControls.Table {
-                model: runningScriptsModel
-                id: table
-                height: 185
-                colorScheme: hifi.colorSchemes.dark
-                anchors.left: parent.left
-                anchors.right: parent.right
-                expandSelectedRow: true
-
-                itemDelegate: Item {
-                    anchors {
-                        left: parent ? parent.left : undefined
-                        leftMargin: hifi.dimensions.tablePadding
-                        right: parent ? parent.right : undefined
-                        rightMargin: hifi.dimensions.tablePadding
+                    HifiControls.Button {
+                        text: "Reload All"
+                        color: hifi.buttons.black
+                        onClicked: reloadAll()
                     }
 
-                    FiraSansSemiBold {
-                        id: textItem
-                        text: styleData.value
-                        size: hifi.fontSizes.tableText
-                        color: table.colorScheme == hifi.colorSchemes.light
-                                   ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
-                                   : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                    HifiControls.Button {
+                        text: "Remove All"
+                        color: hifi.buttons.red
+                        onClicked: stopAll()
+                    }
+                }
+
+                HifiControls.VerticalSpacer {
+                    height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+                }
+
+                HifiControls.Table {
+                    model: runningScriptsModel
+                    id: table
+                    height: 185
+                    colorScheme: hifi.colorSchemes.dark
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    expandSelectedRow: true
+
+                    itemDelegate: Item {
                         anchors {
-                            left: parent.left
-                            right: parent.right
-                            top: parent.top
-                            topMargin: 3
+                            left: parent ? parent.left : undefined
+                            leftMargin: hifi.dimensions.tablePadding
+                            right: parent ? parent.right : undefined
+                            rightMargin: hifi.dimensions.tablePadding
                         }
 
-                        HiFiGlyphs {
-                            id: reloadButton
-                            text: hifi.glyphs.reloadSmall
-                            color: reloadButtonArea.pressed ? hifi.colors.white : parent.color
+                        FiraSansSemiBold {
+                            id: textItem
+                            text: styleData.value
+                            size: hifi.fontSizes.tableText
+                            color: table.colorScheme == hifi.colorSchemes.light
+                                ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                            : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
                             anchors {
-                                top: parent.top
-                                right: stopButton.left
-                                verticalCenter: parent.verticalCenter
-                            }
-                            MouseArea {
-                                id: reloadButtonArea
-                                anchors { fill: parent; margins: -2 }
-                                onClicked: reloadScript(model.url)
-                            }
-                        }
-
-                        HiFiGlyphs {
-                            id: stopButton
-                            text: hifi.glyphs.closeSmall
-                            color: stopButtonArea.pressed ? hifi.colors.white : parent.color
-                            anchors {
-                                top: parent.top
+                                left: parent.left
                                 right: parent.right
-                                verticalCenter: parent.verticalCenter
+                                top: parent.top
+                                topMargin: 3
                             }
-                            MouseArea {
-                                id: stopButtonArea
-                                anchors { fill: parent; margins: -2 }
-                                onClicked: stopScript(model.url)
+
+                            HiFiGlyphs {
+                                id: reloadButton
+                                text: hifi.glyphs.reloadSmall
+                                color: reloadButtonArea.pressed ? hifi.colors.white : parent.color
+                                anchors {
+                                    top: parent.top
+                                    right: stopButton.left
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                MouseArea {
+                                    id: reloadButtonArea
+                                    anchors { fill: parent; margins: -2 }
+                                    onClicked: reloadScript(model.url)
+                                }
+                            }
+
+                            HiFiGlyphs {
+                                id: stopButton
+                                text: hifi.glyphs.closeSmall
+                                color: stopButtonArea.pressed ? hifi.colors.white : parent.color
+                                anchors {
+                                    top: parent.top
+                                    right: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                MouseArea {
+                                    id: stopButtonArea
+                                    anchors { fill: parent; margins: -2 }
+                                    onClicked: stopScript(model.url)
+                                }
+                            }
+
+                        }
+
+                        FiraSansSemiBold {
+                            text: runningScriptsModel.get(styleData.row) ? runningScriptsModel.get(styleData.row).url : ""
+                            elide: Text.ElideMiddle
+                            size: hifi.fontSizes.tableText
+                            color: table.colorScheme == hifi.colorSchemes.light
+                                ? (styleData.selected ? hifi.colors.black : hifi.colors.lightGray)
+                            : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                            anchors {
+                                top: textItem.bottom
+                                left: parent.left
+                                right: parent.right
+                            }
+                            visible: styleData.selected
+                        }
+                    }
+
+                    TableViewColumn {
+                        role: "name"
+                    }
+                }
+
+                HifiControls.VerticalSpacer {
+                    height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+                }
+            }
+
+            HifiControls.TabletContentSection {
+                name: "Load Scripts"
+
+                HifiControls.VerticalSpacer {}
+
+                Row {
+                    spacing: hifi.dimensions.contentSpacing.x
+
+                    HifiControls.Button {
+                        text: "from URL"
+                        color: hifi.buttons.black
+                        height: 26
+                        onClicked: fromUrlTimer.running = true
+
+                        // For some reason trigginer an API that enters
+                        // an internal event loop directly from the button clicked
+                        // trigger below causes the appliction to behave oddly.
+                        // Most likely because the button onClicked handling is never
+                        // completed until the function returns.
+                        // FIXME find a better way of handling the input dialogs that
+                        // doesn't trigger this.
+                        Timer {
+                            id: fromUrlTimer
+                            interval: 5
+                            repeat: false
+                            running: false
+                            onTriggered: ApplicationInterface.loadScriptURLDialog();
+                        }
+                    }
+
+                    HifiControls.Button {
+                        text: "from Disk"
+                        color: hifi.buttons.black
+                        height: 26
+                        onClicked: fromDiskTimer.running = true
+
+                        Timer {
+                            id: fromDiskTimer
+                            interval: 5
+                            repeat: false
+                            running: false
+                            onTriggered: ApplicationInterface.loadDialog();
+                        }
+                    }
+
+                    HifiControls.Button {
+                        text: "Load Defaults"
+                        color: hifi.buttons.black
+                        height: 26
+                        onClicked: loadDefaults()
+                    }
+                }
+
+                HifiControls.VerticalSpacer {}
+
+                HifiControls.TextField {
+                    id: filterEdit
+                    isSearchField: true
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    colorScheme: hifi.colorSchemes.dark
+                    placeholderText: "Filter"
+                    onTextChanged: scriptsModel.filterRegExp = new RegExp("^.*" + text + ".*$", "i")
+                    Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
+                    onActiveFocusChanged: {
+                        // raise the keyboard
+                        keyboard.raised = activeFocus;
+
+                        // scroll to the bottom of the content area.
+                        if (activeFocus) {
+                            flickable.contentY = (flickable.contentHeight - flickable.height);
+                        }
+                    }
+                }
+
+                HifiControls.VerticalSpacer {
+                    height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+                }
+
+                HifiControls.Tree {
+                    id: treeView
+                    height: 155
+                    treeModel: scriptsModel
+                    colorScheme: hifi.colorSchemes.dark
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                }
+
+                HifiControls.VerticalSpacer {
+                    height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+                }
+
+                HifiControls.TextField {
+                    id: selectedScript
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.rightMargin: loadButton.width + hifi.dimensions.contentSpacing.x
+
+                    colorScheme: hifi.colorSchemes.dark
+                    readOnly: true
+
+                    Connections {
+                        target: treeView
+                        onCurrentIndexChanged: {
+                            var path = scriptsModel.data(treeView.currentIndex, 0x100)
+                            if (path) {
+                                selectedScript.text = path
+                            } else {
+                                selectedScript.text = ""
                             }
                         }
-
-                    }
-
-                    FiraSansSemiBold {
-                        text: runningScriptsModel.get(styleData.row) ? runningScriptsModel.get(styleData.row).url : ""
-                        elide: Text.ElideMiddle
-                        size: hifi.fontSizes.tableText
-                        color: table.colorScheme == hifi.colorSchemes.light
-                                   ? (styleData.selected ? hifi.colors.black : hifi.colors.lightGray)
-                                   : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
-                        anchors {
-                            top: textItem.bottom
-                            left: parent.left
-                            right: parent.right
-                        }
-                        visible: styleData.selected
                     }
                 }
 
-                TableViewColumn {
-                    role: "name"
-                }
-            }
-
-            HifiControls.VerticalSpacer {
-                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
-            }
-        }
-
-        HifiControls.TabletContentSection {
-            name: "Load Scripts"
-
-            HifiControls.VerticalSpacer {}
-
-            Row {
-                spacing: hifi.dimensions.contentSpacing.x
-
-                HifiControls.Button {
-                    text: "from URL"
-                    color: hifi.buttons.black
-                    height: 26
-                    onClicked: fromUrlTimer.running = true
-
-                    // For some reason trigginer an API that enters
-                    // an internal event loop directly from the button clicked
-                    // trigger below causes the appliction to behave oddly.
-                    // Most likely because the button onClicked handling is never
-                    // completed until the function returns.
-                    // FIXME find a better way of handling the input dialogs that
-                    // doesn't trigger this.
-                    Timer {
-                        id: fromUrlTimer
-                        interval: 5
-                        repeat: false
-                        running: false
-                        onTriggered: ApplicationInterface.loadScriptURLDialog();
-                    }
-                }
-
-                HifiControls.Button {
-                    text: "from Disk"
-                    color: hifi.buttons.black
-                    height: 26
-                    onClicked: fromDiskTimer.running = true
-
-                    Timer {
-                        id: fromDiskTimer
-                        interval: 5
-                        repeat: false
-                        running: false
-                        onTriggered: ApplicationInterface.loadDialog();
-                    }
-                }
-
-                HifiControls.Button {
-                    text: "Load Defaults"
-                    color: hifi.buttons.black
-                    height: 26
-                    onClicked: loadDefaults()
-                }
-            }
-
-            HifiControls.VerticalSpacer {}
-
-            HifiControls.TextField {
-                id: filterEdit
-                isSearchField: true
-                anchors.left: parent.left
-                anchors.right: parent.right
-                colorScheme: hifi.colorSchemes.dark
-                placeholderText: "Filter"
-                onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")
-                Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
-            }
-
-            HifiControls.VerticalSpacer {
-                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
-            }
-
-            HifiControls.Tree {
-                id: treeView
-                height: 155
-                treeModel: scriptsModel
-                colorScheme: hifi.colorSchemes.dark
-                anchors.left: parent.left
-                anchors.right: parent.right
-            }
-
-            HifiControls.VerticalSpacer {
-                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
-            }
-
-            HifiControls.TextField {
-                id: selectedScript
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.rightMargin: loadButton.width + hifi.dimensions.contentSpacing.x
-
-                colorScheme: hifi.colorSchemes.dark
-                readOnly: true
-
-                Connections {
-                    target: treeView
-                    onCurrentIndexChanged: {
-                        var path = scriptsModel.data(treeView.currentIndex, 0x100)
-                        if (path) {
-                            selectedScript.text = path
-                        } else {
-                            selectedScript.text = ""
-                        }
-                    }
-                }
-            }
-
-            Item {
-                // Take the loadButton out of the column flow.
-                id: loadButtonContainer
-                anchors.top: selectedScript.top
-                anchors.right: parent.right
-
-                HifiControls.Button {
-                    id: loadButton
+                Item {
+                    // Take the loadButton out of the column flow.
+                    id: loadButtonContainer
+                    anchors.top: selectedScript.top
                     anchors.right: parent.right
 
-                    text: "Load"
-                    color: hifi.buttons.blue
-                    enabled: selectedScript.text != ""
-                    onClicked: root.loadScript(selectedScript.text)
+                    HifiControls.Button {
+                        id: loadButton
+                        anchors.right: parent.right
+
+                        text: "Load"
+                        color: hifi.buttons.blue
+                        enabled: selectedScript.text != ""
+                        onClicked: root.loadScript(selectedScript.text)
+                    }
+                }
+
+                HifiControls.VerticalSpacer {
+                    height: hifi.dimensions.controlInterlineHeight - (!isHMD ? 3 : 0)
+                }
+
+                HifiControls.TextAction {
+                    id: directoryButton
+                    icon: hifi.glyphs.script
+                    iconSize: 24
+                    text: "Reveal Scripts Folder"
+                    onClicked: fileDialogHelper.openDirectory(scripts.defaultScriptsPath)
+                    colorScheme: hifi.colorSchemes.dark
+                    anchors.left: parent.left
+                    visible: !isHMD
+                }
+
+                HifiControls.VerticalSpacer {
+                    height: hifi.dimensions.controlInterlineHeight - 3
+                    visible: !isHMD
                 }
             }
+        }
+    }
 
-            HifiControls.VerticalSpacer {
-                height: hifi.dimensions.controlInterlineHeight - (!isHMD ? 3 : 0)
-            }
-
-            HifiControls.TextAction {
-                id: directoryButton
-                icon: hifi.glyphs.script
-                iconSize: 24
-                text: "Reveal Scripts Folder"
-                onClicked: fileDialogHelper.openDirectory(scripts.defaultScriptsPath)
-                colorScheme: hifi.colorSchemes.dark
-                anchors.left: parent.left
-                visible: !isHMD
-            }
-
-            HifiControls.VerticalSpacer {
-                height: hifi.dimensions.controlInterlineHeight - 3
-                visible: !isHMD
-            }
+    HifiControls.Keyboard {
+        id: keyboard
+        raised: false
+        numeric: false
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
         }
     }
 }
