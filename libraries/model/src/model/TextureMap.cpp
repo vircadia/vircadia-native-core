@@ -354,7 +354,6 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     const double pStrength = 2.0;
     int width = image.width();
     int height = image.height();
-  //  QImage result(width, height, QImage::Format_RGB888);
 
     QImage result(width, height, QImage::Format_ARGB32);
 
