@@ -78,7 +78,7 @@
     }
 
     function getOffsetPosition() {
-        return Vec3.sum(MyAvatar.getHeadPosition(), Quat.getFront(Camera.orientation));
+        return Vec3.sum(Camera.position, Quat.getFront(Camera.orientation));
     }
 
     function onMuteToggled() {
