@@ -86,6 +86,7 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
+    Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
 
 public:
     explicit MyAvatar(RigPointer rig);
@@ -172,6 +173,8 @@ public:
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
 
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
+    void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
+        { _useAdvancedMovementControls.set(useAdvancedMovementControls); }
 
     // get/set avatar data
     void saveData();
