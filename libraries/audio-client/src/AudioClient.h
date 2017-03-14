@@ -128,7 +128,7 @@ public:
     Q_INVOKABLE float getSilentInboundPPS() const { return _silentInbound.rate(); }
     Q_INVOKABLE float getAudioInboundPPS() const { return _audioInbound.rate(); }
     Q_INVOKABLE float getSilentOutboundPPS() const { return _silentOutbound.rate(); }
-    Q_INVOKABLE float getMicAudioOutboundPPS() const { return _audioOutbound.rate(); }
+    Q_INVOKABLE float getAudioOutboundPPS() const { return _audioOutbound.rate(); }
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
