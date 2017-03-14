@@ -7,8 +7,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global getControllerWorldLocation, setEntityCustomData, Tablet, WebTablet:true, HMD, Settings, Script,
-   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform */
+/* global getControllerWorldLocation, Tablet, WebTablet:true, HMD, Settings, Script,
+   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp, Controller, Mat4 */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
@@ -25,13 +25,17 @@ var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
 var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
-var TABLET_URL = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
+
 var NO_HANDS = -1;
 
 // will need to be recaclulated if dimensions of fbx model change.
 var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
-var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
-var TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
+
+var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
+// var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
+var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
+var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
+
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
@@ -45,24 +49,30 @@ function calcSpawnInfo(hand, height) {
         var handController = getControllerWorldLocation(hand, true);
         var controllerPosition = handController.position;
 
-        // compute the angle of the chord with length (height / 2)
-        var theta = Math.asin(height / (2 * Vec3.distance(headPos, controllerPosition)));
+        // base of the tablet is slightly above controller position
+        var TABLET_BASE_DISPLACEMENT = {x: 0, y: 0.1, z: 0};
+        var tabletBase = Vec3.sum(controllerPosition, TABLET_BASE_DISPLACEMENT);
 
-        // then we can use this angle to rotate the vector between the HMD position and the center of the tablet.
-        // this vector, u, will become our new look at direction.
-        var d = Vec3.normalize(Vec3.subtract(headPos, controllerPosition));
+        var d = Vec3.subtract(headPos, tabletBase);
+        var theta = Math.acos(d.y / Vec3.length(d));
+        d.y = 0;
+        if (Vec3.length(d) < 0.0001) {
+            d = {x: 1, y: 0, z: 0};
+        } else {
+            d = Vec3.normalize(d);
+        }
         var w = Vec3.normalize(Vec3.cross(Y_AXIS, d));
-        var q = Quat.angleAxis(theta * (180 / Math.PI), w);
+        var ANGLE_OFFSET = 25;
+        var q = Quat.angleAxis(theta * (180 / Math.PI) - (90 - ANGLE_OFFSET), w);
         var u = Vec3.multiplyQbyV(q, d);
 
         // use u to compute a full lookAt quaternion.
-        var lookAtRot = Quat.lookAt(controllerPosition, Vec3.sum(controllerPosition, u), Y_AXIS);
-
-        // adjust the tablet position by a small amount.
-        var yDisplacement = (height / 2) + 0.1;
+        var lookAtRot = Quat.lookAt(tabletBase, Vec3.sum(tabletBase, u), Y_AXIS);
+        var yDisplacement = (height / 2);
         var zDisplacement = 0.05;
         var tabletOffset = Vec3.multiplyQbyV(lookAtRot, {x: 0, y: yDisplacement, z: zDisplacement});
-        finalPosition = Vec3.sum(controllerPosition, tabletOffset);
+        finalPosition = Vec3.sum(tabletBase, tabletOffset);
+
         return {
             position: finalPosition,
             rotation: lookAtRot
@@ -102,10 +112,19 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
     }
 
+    var modelURL;
+    if (Settings.getValue("tabletVisibleToOthers")) {
+        modelURL = TABLET_MODEL_PATH;
+    } else {
+        modelURL = LOCAL_TABLET_MODEL_PATH;
+    }
+
     var tabletProperties = {
         name: "WebTablet Tablet",
         type: "Model",
-        modelURL: TABLET_MODEL_PATH,
+        modelURL: modelURL,
+        url: modelURL, // for overlay
+        grabbable: true, // for overlay
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
@@ -114,10 +133,17 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     };
 
     // compute position, rotation & parentJointIndex of the tablet
-    this.calculateTabletAttachmentProperties(hand, tabletProperties);
+    this.calculateTabletAttachmentProperties(hand, true, tabletProperties);
 
     this.cleanUpOldTablets();
-    this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
+
+    if (Settings.getValue("tabletVisibleToOthers")) {
+        this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
+        this.tabletIsOverlay = false;
+    } else {
+        this.tabletEntityID = Overlays.addOverlay("model", tabletProperties);
+        this.tabletIsOverlay = true;
+    }
 
     if (this.webOverlayID) {
         Overlays.deleteOverlay(this.webOverlayID);
@@ -141,12 +167,12 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         isAA: HMD.active
     });
 
-    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.035;
-    this.homeButtonEntity = Overlays.addOverlay("sphere", {
+    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.009;
+    this.homeButtonID = Overlays.addOverlay("sphere", {
         name: "homeButton",
-        localPosition: {x: 0.0, y: -HOME_BUTTON_Y_OFFSET, z: -0.01},
+        localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
         localRotation: Quat.angleAxis(0, Y_AXIS),
-        dimensions: { x: 0.04, y: 0.04, z: 0.02},
+        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor},
         alpha: 0.0,
         visible: true,
         drawInFront: false,
@@ -155,7 +181,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     });
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
-        if (_this.homeButtonEntity === parseInt(senderID)) {
+        if (_this.homeButtonID == senderID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             var onHomeScreen = tablet.onHomeScreen();
             if (onHomeScreen) {
@@ -174,7 +200,16 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     };
 
     this.getLocation = function() {
-        return Entities.getEntityProperties(_this.tabletEntityID, ["localPosition", "localRotation"]);
+        if (this.tabletIsOverlay) {
+            var location = Overlays.getProperty(this.tabletEntityID, "localPosition");
+            var orientation = Overlays.getProperty(this.tabletEntityID, "localOrientation");
+            return {
+                localPosition: location,
+                localRotation: orientation
+            };
+        } else {
+            return Entities.getEntityProperties(_this.tabletEntityID, ["localPosition", "localRotation"]);
+        }
     };
     this.clicked = false;
 
@@ -215,7 +250,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
 };
 
 WebTablet.prototype.setHomeButtonTexture = function() {
-    print(this.homeButtonEntity);
     Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
 };
 
@@ -233,8 +267,12 @@ WebTablet.prototype.getOverlayObject = function () {
 
 WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
-    Entities.deleteEntity(this.tabletEntityID);
-    Overlays.deleteOverlay(this.homeButtonEntity);
+    if (this.tabletIsOverlay) {
+        Overlays.deleteOverlay(this.tabletEntityID);
+    } else {
+        Entities.deleteEntity(this.tabletEntityID);
+    }
+    Overlays.deleteOverlay(this.homeButtonID);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
     Controller.mousePressEvent.disconnect(this.myMousePressEvent);
@@ -248,31 +286,78 @@ WebTablet.prototype.destroy = function () {
 WebTablet.prototype.geometryChanged = function (geometry) {
     if (!HMD.active) {
         var tabletProperties = {};
+
         // compute position, rotation & parentJointIndex of the tablet
-        this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+        this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
         Entities.editEntity(this.tabletEntityID, tabletProperties);
     }
 };
 
+function gluPerspective(fovy, aspect, zNear, zFar) {
+    var cotan = 1 / Math.tan(fovy / 2);
+    var alpha = -(zFar + zNear) / (zFar - zNear);
+    var beta = -(2 * zFar * zNear) / (zFar - zNear);
+    var col0 = {x: cotan / aspect, y: 0, z: 0, w: 0};
+    var col1 = {x: 0, y: cotan, z: 0, w: 0};
+    var col2 = {x: 0, y: 0, z: alpha, w: -1};
+    var col3 = {x: 0, y: 0, z: beta, w: 0};
+    return Mat4.createFromColumns(col0, col1, col2, col3);
+}
+
 // calclulate the appropriate position of the tablet in world space, such that it fits in the center of the screen.
 // with a bit of padding on the top and bottom.
-WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function () {
+// windowPos is used to position the center of the tablet at the given position.
+WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos) {
+
     var DEFAULT_DESKTOP_TABLET_SCALE = 75;
     var DESKTOP_TABLET_SCALE = Settings.getValue("desktopTabletScale") || DEFAULT_DESKTOP_TABLET_SCALE;
+
+    // clamp window pos so 2d tablet is not off-screen.
+    var TABLET_TEXEL_PADDING = {x: 60, y: 90};
+    var X_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((TABLET_TEXTURE_RESOLUTION.x / 2) + TABLET_TEXEL_PADDING.x);
+    var Y_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((TABLET_TEXTURE_RESOLUTION.y / 2) + TABLET_TEXEL_PADDING.y);
+    windowPos.x = clamp(windowPos.x, X_CLAMP, Window.innerWidth - X_CLAMP);
+    windowPos.y = clamp(windowPos.y, Y_CLAMP, Window.innerHeight - Y_CLAMP);
+
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
     var MAX_PADDING_FACTOR = 2.2;
     var PADDING_FACTOR = Math.min(Window.innerHeight / TABLET_TEXTURE_RESOLUTION.y, MAX_PADDING_FACTOR);
     var TABLET_HEIGHT = (TABLET_TEXTURE_RESOLUTION.y / this.dpi) * INCHES_TO_METERS;
     var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+
+    // calcualte distance from camera
     var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2) * (DESKTOP_TABLET_SCALE / 100)) - WEB_ENTITY_Z_OFFSET;
+
+    var Z_NEAR = 0.01;
+    var Z_FAR = 100.0;
+
+    // calculate mouse position in clip space
+    var alpha = -(Z_FAR + Z_NEAR) / (Z_FAR - Z_NEAR);
+    var beta = -(2 * Z_FAR * Z_NEAR) / (Z_FAR - Z_NEAR);
+    var clipZ = (beta / dist) - alpha;
+    var clipMousePosition = {x: (2 * windowPos.x / Window.innerWidth) - 1,
+                             y: (2 * ((Window.innerHeight - windowPos.y) / Window.innerHeight)) - 1,
+                             z: clipZ};
+
+    // calculate projection matrix
+    var aspect = Window.innerWidth / Window.innerHeight;
+    var projMatrix = gluPerspective(fov, aspect, Z_NEAR, Z_FAR);
+
+    // transform mouse clip position into view coordinates.
+    var viewMousePosition = Mat4.transformPoint(Mat4.inverse(projMatrix), clipMousePosition);
+
+    // transform view mouse position into world coordinates.
+    var viewToWorldMatrix = Mat4.createFromRotAndTrans(Camera.orientation, Camera.position);
+    var worldMousePosition = Mat4.transformPoint(viewToWorldMatrix, viewMousePosition);
+
     return {
-        position: Vec3.sum(Camera.position, Vec3.multiply(dist, Quat.getFront(Camera.orientation))),
+        position: worldMousePosition,
         rotation: Quat.multiply(Camera.orientation, ROT_Y_180)
     };
 };
 
 // compute position, rotation & parentJointIndex of the tablet
-WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, tabletProperties) {
+WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMouse, tabletProperties) {
     if (HMD.active) {
         // in HMD mode, the tablet should be relative to the sensor to world matrix.
         tabletProperties.parentJointIndex = SENSOR_TO_ROOM_MATRIX;
@@ -285,8 +370,16 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, tablet
         // in desktop mode, the tablet should be relative to the camera
         tabletProperties.parentJointIndex = CAMERA_MATRIX;
 
-        // compute the appropriate postion of the tablet such that it fits in the center of the screen nicely.
-        var attitude = this.calculateWorldAttitudeRelativeToCamera();
+        var windowPos;
+        if (useMouse) {
+            // compute the appropriate postion of the tablet such that it fits in the center of the screen nicely.
+            windowPos = {x: Controller.getValue(Controller.Hardware.Keyboard.MouseX),
+                         y: Controller.getValue(Controller.Hardware.Keyboard.MouseY)};
+        } else {
+            windowPos = {x: Window.innerWidth / 2,
+                         y: Window.innerHeight / 2};
+        }
+        var attitude = this.calculateWorldAttitudeRelativeToCamera(windowPos);
         tabletProperties.position = attitude.position;
         tabletProperties.rotation = attitude.rotation;
     }
@@ -306,7 +399,7 @@ WebTablet.prototype.onHmdChanged = function () {
 
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
-    this.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+    this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
     Entities.editEntity(this.tabletEntityID, tabletProperties);
 
     // Full scene FXAA should be disabled on the overlay when the tablet in desktop mode.
@@ -326,14 +419,10 @@ WebTablet.prototype.register = function() {
 WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
     children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, jointIndex));
-    print("cleanup " + children);
     children.forEach(function(childID) {
         var props = Entities.getEntityProperties(childID, ["name"]);
         if (props.name === "WebTablet Tablet") {
-            print("cleaning up " + props.name);
             Entities.deleteEntity(childID);
-        } else {
-            print("not cleaning up " + props.name);
         }
     });
 };
@@ -366,10 +455,16 @@ WebTablet.prototype.getPosition = function () {
 
 WebTablet.prototype.mousePressEvent = function (event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
-    var entityPickResults = Entities.findRayIntersection(pickRay, true, [this.tabletEntityID]); // non-accurate picking
-    if (entityPickResults.intersects && entityPickResults.entityID === this.tabletEntityID) {
-        var overlayPickResults = Overlays.findRayIntersection(pickRay);
-        if (overlayPickResults.intersects && overlayPickResults.overlayID === HMD.homeButtonID) {
+    var entityPickResults;
+    if (this.tabletIsOverlay) {
+        entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
+    } else {
+        entityPickResults = Entities.findRayIntersection(pickRay, true, [this.tabletEntityID]);
+    }
+    if (entityPickResults.intersects && (entityPickResults.entityID === this.tabletEntityID ||
+                                         entityPickResults.overlayID === this.tabletEntityID)) {
+        var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.webOverlayID, this.homeButtonID], []);
+        if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             var onHomeScreen = tablet.onHomeScreen();
             if (onHomeScreen) {
@@ -378,11 +473,15 @@ WebTablet.prototype.mousePressEvent = function (event) {
                 tablet.gotoHomeScreen();
                 this.setHomeButtonTexture();
             }
-        } else if (!HMD.active && (!overlayPickResults.intersects || !overlayPickResults.overlayID === this.webOverlayID)) {
+        } else if (!HMD.active && (!overlayPickResults.intersects || overlayPickResults.overlayID !== this.webOverlayID)) {
             this.dragging = true;
             var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
             this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);
-            this.initialLocalPosition = Entities.getEntityProperties(this.tabletEntityID, ["localPosition"]).localPosition;
+            if (this.tabletIsOverlay) {
+                this.initialLocalPosition = Overlays.getProperty(this.tabletEntityID, "localPosition");
+            } else {
+                this.initialLocalPosition = Entities.getEntityProperties(this.tabletEntityID, ["localPosition"]).localPosition;
+            }
         }
     }
 };
@@ -394,7 +493,7 @@ WebTablet.prototype.cameraModeChanged = function (newMode) {
         var self = this;
         var tabletProperties = {};
         // compute position, rotation & parentJointIndex of the tablet
-        self.calculateTabletAttachmentProperties(NO_HANDS, tabletProperties);
+        self.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
         Entities.editEntity(self.tabletEntityID, tabletProperties);
     }
 };
@@ -428,9 +527,15 @@ WebTablet.prototype.mouseMoveEvent = function (event) {
             var localIntersectionPoint = Vec3.sum(localPickRay.origin, Vec3.multiply(localPickRay.direction, result.distance));
             var localOffset = Vec3.subtract(localIntersectionPoint, this.initialLocalIntersectionPoint);
             var localPosition = Vec3.sum(this.initialLocalPosition, localOffset);
-            Entities.editEntity(this.tabletEntityID, {
-                localPosition: localPosition
-            });
+            if (this.tabletIsOverlay) {
+                Overlays.editOverlay(this.tabletEntityID, {
+                    localPosition: localPosition
+                });
+            } else {
+                Entities.editEntity(this.tabletEntityID, {
+                    localPosition: localPosition
+                });
+            }
         }
     }
 };

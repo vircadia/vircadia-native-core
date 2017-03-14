@@ -16,6 +16,7 @@
 // When profiling something that may happen many times per frame, use a xxx_detail category so that they may easily be filtered out of trace results
 Q_DECLARE_LOGGING_CATEGORY(trace_app)
 Q_DECLARE_LOGGING_CATEGORY(trace_app_detail)
+Q_DECLARE_LOGGING_CATEGORY(trace_metadata)
 Q_DECLARE_LOGGING_CATEGORY(trace_network)
 Q_DECLARE_LOGGING_CATEGORY(trace_render)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_detail)
@@ -23,6 +24,8 @@ Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu)
 Q_DECLARE_LOGGING_CATEGORY(trace_resource)
 Q_DECLARE_LOGGING_CATEGORY(trace_resource_parse)
 Q_DECLARE_LOGGING_CATEGORY(trace_resource_network)
+Q_DECLARE_LOGGING_CATEGORY(trace_script)
+Q_DECLARE_LOGGING_CATEGORY(trace_script_entities)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_animation)
@@ -69,6 +72,10 @@ inline void counter(const QLoggingCategory& category, const QString& name, const
     }
 }
 
+inline void metadata(const QString& metadataType, const QVariantMap& args) {
+    tracing::traceEvent(trace_metadata(), metadataType, tracing::Metadata, "", args);
+}
+
 #define PROFILE_RANGE(category, name) Duration profileRangeThis(trace_##category(), name);
 #define PROFILE_RANGE_EX(category, name, argbColor, payload, ...) Duration profileRangeThis(trace_##category(), name, argbColor, (uint64_t)payload, ##__VA_ARGS__);
 #define PROFILE_RANGE_BEGIN(category, rangeId, name, argbColor) rangeId = Duration::beginRange(trace_##category(), name, argbColor)
@@ -78,6 +85,7 @@ inline void counter(const QLoggingCategory& category, const QString& name, const
 #define PROFILE_COUNTER_IF_CHANGED(category, name, type, value) { static type lastValue = 0; type newValue = value;  if (newValue != lastValue) { counter(trace_##category(), name, { { name, newValue }}); lastValue = newValue; } }
 #define PROFILE_COUNTER(category, name, ...) counter(trace_##category(), name, ##__VA_ARGS__);
 #define PROFILE_INSTANT(category, name, ...) instant(trace_##category(), name, ##__VA_ARGS__);
+#define PROFILE_SET_THREAD_NAME(threadName) metadata("thread_name", { { "name", threadName } });
 
 #define SAMPLE_PROFILE_RANGE(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_RANGE(category, name); }
 #define SAMPLE_PROFILE_RANGE_EX(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_RANGE_EX(category, name, argbColor, payload, ##__VA_ARGS__); }

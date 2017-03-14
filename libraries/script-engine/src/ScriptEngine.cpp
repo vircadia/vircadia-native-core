@@ -34,6 +34,7 @@
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
+#include <DebugDraw.h>
 #include <EntityScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
@@ -49,6 +50,7 @@
 
 #include "ArrayBufferViewClass.h"
 #include "BatchLoader.h"
+#include "BaseScriptEngine.h"
 #include "DataViewClass.h"
 #include "EventTypes.h"
 #include "FileScriptingInterface.h" // unzip project
@@ -66,11 +68,18 @@
 #include "ModelScriptingInterface.h"
 
 
+#include <Profile.h>
+
 #include "MIDIEvent.h"
 
-static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
 static const QScriptEngine::QObjectWrapOptions DEFAULT_QOBJECT_WRAP_OPTIONS =
                 QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects;
+static const QScriptValue::PropertyFlags READONLY_PROP_FLAGS { QScriptValue::ReadOnly | QScriptValue::Undeletable };
+static const QScriptValue::PropertyFlags READONLY_HIDDEN_PROP_FLAGS { READONLY_PROP_FLAGS | QScriptValue::SkipInEnumeration };
+
+
+
+static const bool HIFI_AUTOREFRESH_FILE_SCRIPTS { true };
 
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
 int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
@@ -87,13 +96,9 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     }
     qCDebug(scriptengineScript).noquote() << "script:print()<<" << message;  // noquote() so that \n is treated as newline
 
-    message = message.replace("\\", "\\\\")
-                     .replace("\n", "\\n")
-                     .replace("\r", "\\r")
-                     .replace("'", "\\'");
-
-    // FIXME - this approach neeeds revisiting. print() comes here, which ends up doing an evaluate?
-    engine->evaluate("Script.print('" + message + "')");
+    // FIXME - this approach neeeds revisiting. print() comes here, which ends up calling Script.print?
+    engine->globalObject().property("Script").property("print")
+        .call(engine->nullValue(), QScriptValueList({ message }));
 
     return QScriptValue();
 }
@@ -137,41 +142,15 @@ QString encodeEntityIdIntoEntityUrl(const QString& url, const QString& entityID)
     return url + " [EntityID:" + entityID + "]";
 }
 
-static bool hasCorrectSyntax(const QScriptProgram& program, ScriptEngine* reportingEngine) {
-    const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
-    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
-        const auto error = syntaxCheck.errorMessage();
-        const auto line = QString::number(syntaxCheck.errorLineNumber());
-        const auto column = QString::number(syntaxCheck.errorColumnNumber());
-        const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, program.fileName(), line, column);
-        reportingEngine->scriptErrorMessage(qPrintable(message));
-        return false;
-    }
-    return true;
+QString ScriptEngine::logException(const QScriptValue& exception) {
+    auto message = formatException(exception);
+    scriptErrorMessage(qPrintable(message));
+    return message;
 }
 
-static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName, ScriptEngine* reportingEngine, QString* exceptionMessage = nullptr) {
-    if (engine.hasUncaughtException()) {
-        const auto backtrace = engine.uncaughtExceptionBacktrace();
-        const auto exception = engine.uncaughtException().toString();
-        const auto line = QString::number(engine.uncaughtExceptionLineNumber());
-        engine.clearExceptions();
-
-        QString message = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, fileName, line);
-        if (!backtrace.empty()) {
-            static const auto lineSeparator = "\n    ";
-            message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
-        }
-        reportingEngine->scriptErrorMessage(qPrintable(message));
-        if (exceptionMessage) {
-            *exceptionMessage = message;
-        }
-        return true;
-    }
-    return false;
-}
-
+int ScriptEngine::processLevelMaxRetries { ScriptRequest::MAX_RETRIES };
 ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const QString& fileNameString) :
+    BaseScriptEngine(),
     _context(context),
     _scriptContents(scriptContents),
     _timerFunctionMap(),
@@ -181,10 +160,30 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     DependencyManager::get<ScriptEngines>()->addScriptEngine(this);
 
     connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
-        hadUncaughtExceptions(*this, _fileNameString, this);
-    });
+        if (hasUncaughtException()) {
+            // the engine's uncaughtException() seems to produce much better stack traces here
+            emit unhandledException(cloneUncaughtException("signalHandlerException"));
+            clearExceptions();
+        } else {
+            // ... but may not always be available -- so if needed we fallback to the passed exception
+            emit unhandledException(exception);
+        }
+    }, Qt::DirectConnection);
     
     setProcessEventsInterval(MSECS_PER_SECOND);
+    if (isEntityServerScript()) {
+        qCDebug(scriptengine) << "isEntityServerScript() -- limiting maxRetries to 1";
+        processLevelMaxRetries = 1;
+    }
+
+    // this is where all unhandled exceptions end up getting logged
+    connect(this, &BaseScriptEngine::unhandledException, this, [this](const QScriptValue& err) {
+        auto output = err.engine() == this ? err : makeError(err);
+        if (!output.property("detail").isValid()) {
+            output.setProperty("detail", "UnhandledException");
+        }
+        logException(output);
+    });
 }
 
 QString ScriptEngine::getContext() const {
@@ -204,13 +203,22 @@ QString ScriptEngine::getContext() const {
 }
 
 ScriptEngine::~ScriptEngine() {
+    // FIXME: are these scriptInfoMessage/scriptWarningMessage segfaulting anybody else at app shutdown?
+#if !defined(Q_OS_LINUX)
     scriptInfoMessage("Script Engine shutting down:" + getFilename());
+#else
+    qCDebug(scriptengine) << "~ScriptEngine()" << this;
+#endif
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (scriptEngines) {
         scriptEngines->removeScriptEngine(this);
     } else {
+#if !defined(Q_OS_LINUX)
         scriptWarningMessage("Script destroyed after ScriptEngines!");
+#else
+        qCWarning(scriptengine) << ("Script destroyed after ScriptEngines!");
+#endif
     }
 }
 
@@ -300,8 +308,14 @@ void ScriptEngine::runDebuggable() {
             }
         }
         _lastUpdate = now;
-        // Debug and clear exceptions
-        hadUncaughtExceptions(*this, _fileNameString, this);
+
+        // only clear exceptions if we are not in the middle of evaluating
+        if (!isEvaluating() && hasUncaughtException()) {
+            qCWarning(scriptengine) << __FUNCTION__ << "---------- UNCAUGHT EXCEPTION --------";
+            qCWarning(scriptengine) << "runDebuggable" << uncaughtException().toString();
+            logException(__FUNCTION__);
+            clearExceptions();
+        }
     });
 
     timer->start(10);
@@ -332,6 +346,15 @@ void ScriptEngine::runInThread() {
     connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
 
     workerThread->start();
+}
+
+void ScriptEngine::executeOnScriptThread(std::function<void()> function, const Qt::ConnectionType& type ) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "executeOnScriptThread", type, Q_ARG(std::function<void()>, function));
+        return;
+    }
+
+    function();
 }
 
 void ScriptEngine::waitTillDoneRunning() {
@@ -399,8 +422,6 @@ QString ScriptEngine::getFilename() const {
     return lastPart;
 }
 
-
-// FIXME - switch this to the new model of ScriptCache callbacks
 void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     if (_isRunning) {
         return;
@@ -410,19 +431,27 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     _fileNameString = url.toString();
     _isReloading = reload;
 
-    bool isPending;
+    const auto maxRetries = 0; // for consistency with previous scriptCache->getScript() behavior
     auto scriptCache = DependencyManager::get<ScriptCache>();
-    scriptCache->getScript(url, this, isPending, reload);
-}
+    scriptCache->getScriptContents(url.toString(), [this](const QString& url, const QString& scriptContents, bool isURL, bool success, const QString&status) {
+        qCDebug(scriptengine) << "loadURL" << url << status << QThread::currentThread();
+        if (!success) {
+            scriptErrorMessage("ERROR Loading file (" + status + "):" + url);
+            emit errorLoadingScript(_fileNameString);
+            return;
+        }
 
-// FIXME - switch this to the new model of ScriptCache callbacks
-void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
-    _scriptContents = scriptContents;
-    static const QString DEBUG_FLAG("#debug");
-    if (QRegularExpression(DEBUG_FLAG).match(scriptContents).hasMatch()) {
-        _debuggable = true;
-    }
-    emit scriptLoaded(url.toString());
+        _scriptContents = scriptContents;
+
+        {
+            static const QString DEBUG_FLAG("#debug");
+            if (QRegularExpression(DEBUG_FLAG).match(scriptContents).hasMatch()) {
+                qCWarning(scriptengine) << "NOTE: ScriptEngine for " << QUrl(url).fileName() << " will be launched in debug mode";
+                _debuggable = true;
+            }
+        }
+        emit scriptLoaded(url);
+    }, reload, maxRetries);
 }
 
 void ScriptEngine::scriptErrorMessage(const QString& message) {
@@ -438,12 +467,6 @@ void ScriptEngine::scriptWarningMessage(const QString& message) {
 void ScriptEngine::scriptInfoMessage(const QString& message) {
     qCInfo(scriptengine) << message;
     emit infoMessage(message);
-}
-
-// FIXME - switch this to the new model of ScriptCache callbacks
-void ScriptEngine::errorInLoadingScript(const QUrl& url) {
-    scriptErrorMessage("ERROR Loading file:" + url.toString());
-    emit errorLoadingScript(_fileNameString);
 }
 
 // Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of
@@ -520,6 +543,16 @@ void ScriptEngine::init() {
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->init();
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, this, [this](const EntityItemID& entityID) {
+        if (_entityScripts.contains(entityID)) {
+            if (isEntityScriptRunning(entityID)) {
+                qCWarning(scriptengine) << "deletingEntity while entity script is still running!" << entityID;
+            }
+            _entityScripts.remove(entityID);
+            emit entityScriptDetailsUpdated();
+        }
+    });
+
 
     // register various meta-types
     registerMetaTypes(this);
@@ -535,6 +568,7 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
     qScriptRegisterMetaType(this, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
     qScriptRegisterMetaType(this, RayToAvatarIntersectionResultToScriptValue, RayToAvatarIntersectionResultFromScriptValue);
+    qScriptRegisterMetaType(this, AvatarEntityMapToScriptValue, AvatarEntityMapFromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<QUuid>>(this);
     qScriptRegisterSequenceMetaType<QVector<EntityItemID>>(this);
 
@@ -548,8 +582,7 @@ void ScriptEngine::init() {
     QScriptValue webSocketConstructorValue = newFunction(WebSocketClass::constructor);
     globalObject().setProperty("WebSocket", webSocketConstructorValue);
 
-    QScriptValue printConstructorValue = newFunction(debugPrint);
-    globalObject().setProperty("print", printConstructorValue);
+    globalObject().setProperty("print", newFunction(debugPrint));
 
     QScriptValue audioEffectOptionsConstructorValue = newFunction(AudioEffectOptions::constructor);
     globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
@@ -563,6 +596,7 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, wscReadyStateToScriptValue, wscReadyStateFromScriptValue);
 
     registerGlobalObject("Script", this);
+
     registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
@@ -588,6 +622,8 @@ void ScriptEngine::init() {
     registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
     registerGlobalObject("Assets", &_assetScriptingInterface);
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
+
+    registerGlobalObject("DebugDraw", &DebugDraw::getInstance());
 
     registerGlobalObject("Model", new ModelScriptingInterface(this));
     qScriptRegisterMetaType(this, meshToScriptValue, meshFromScriptValue);
@@ -833,7 +869,6 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
     handlersForEvent << handlerData; // Note that the same handler can be added many times. See removeEntityEventHandler().
 }
 
-
 QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fileName, int lineNumber) {
     if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         return QScriptValue(); // bail early
@@ -854,21 +889,40 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
     }
 
     // Check syntax
-    const QScriptProgram program(sourceCode, fileName, lineNumber);
-    if (!hasCorrectSyntax(program, this)) {
-        return QScriptValue();
+    auto syntaxError = lintScript(sourceCode, fileName);
+    if (syntaxError.isError()) {
+        if (isEvaluating()) {
+            currentContext()->throwValue(syntaxError);
+        } else {
+            syntaxError.setProperty("detail", "evaluate");
+            emit unhandledException(syntaxError);
+        }
+        return syntaxError;
+    }
+    QScriptProgram program { sourceCode, fileName, lineNumber };
+    if (program.isNull()) {
+        // can this happen?
+        auto err = makeError("could not create QScriptProgram for " + fileName);
+        emit unhandledException(err);
+        return err;
     }
 
-    ++_evaluatesPending;
-    const auto result = QScriptEngine::evaluate(program);
-    --_evaluatesPending;
-
-    const auto hadUncaughtException = hadUncaughtExceptions(*this, program.fileName(), this);
-    emit evaluationFinished(result, hadUncaughtException);
+    QScriptValue result;
+    {
+        result = BaseScriptEngine::evaluate(program);
+        if (!isEvaluating() && hasUncaughtException()) {
+            emit unhandledException(cloneUncaughtException(__FUNCTION__));
+            clearExceptions();
+        }
+    }
     return result;
 }
 
 void ScriptEngine::run() {
+    auto filenameParts = _fileNameString.split("/");
+    auto name = filenameParts.size() > 0 ? filenameParts[filenameParts.size() - 1] : "unknown";
+    PROFILE_SET_THREAD_NAME("Script: " + name);
+
     if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         return; // bail early - avoid setting state in init(), as evaluate() will bail too
     }
@@ -880,8 +934,13 @@ void ScriptEngine::run() {
     _isRunning = true;
     emit runningStateChanged();
 
-    QScriptValue result = evaluate(_scriptContents, _fileNameString);
-
+    {
+        evaluate(_scriptContents, _fileNameString);
+        if (!isEvaluating() && hasUncaughtException()) {
+            emit unhandledException(cloneUncaughtException(__FUNCTION__));
+            clearExceptions();
+        }
+    }
 #ifdef _WIN32
     // VS13 does not sleep_until unless it uses the system_clock, see:
     // https://www.reddit.com/r/cpp_questions/comments/3o71ic/sleep_until_not_working_with_a_time_pointsteady/
@@ -929,7 +988,10 @@ void ScriptEngine::run() {
         bool processedEvents = false;
         while (!_isFinished && clock::now() < sleepUntil) {
 
-            QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            {
+                PROFILE_RANGE(script, "processEvents-sleep");
+                QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+            }
             processedEvents = true;
 
             // If after processing events, we're past due, exit asap
@@ -943,6 +1005,8 @@ void ScriptEngine::run() {
             auto smallSleepUntil = clock::now() + static_cast<std::chrono::microseconds>(SMALL_SLEEP_AMOUNT);
             std::this_thread::sleep_until(smallSleepUntil);
         }
+
+        PROFILE_RANGE(script, "ScriptMainLoop");
 
 #ifdef SCRIPT_DELAY_DEBUG
         {
@@ -967,6 +1031,7 @@ void ScriptEngine::run() {
 
         // Only call this if we didn't processEvents as part of waiting for next frame
         if (!processedEvents) {
+            PROFILE_RANGE(script, "processEvents");
             QCoreApplication::processEvents();
         }
 
@@ -991,7 +1056,10 @@ void ScriptEngine::run() {
             float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
                 auto preUpdate = clock::now();
-                emit update(deltaTime);
+                {
+                    PROFILE_RANGE(script, "ScriptUpdate");
+                    emit update(deltaTime);
+                }
                 auto postUpdate = clock::now();
                 auto elapsed = (postUpdate - preUpdate);
                 totalUpdates += std::chrono::duration_cast<std::chrono::microseconds>(elapsed);
@@ -999,10 +1067,14 @@ void ScriptEngine::run() {
         }
         _lastUpdate = now;
 
-        // Debug and clear exceptions
-        hadUncaughtExceptions(*this, _fileNameString, this);
+        // only clear exceptions if we are not in the middle of evaluating
+        if (!isEvaluating() && hasUncaughtException()) {
+            qCWarning(scriptengine) << __FUNCTION__ << "---------- UNCAUGHT EXCEPTION --------";
+            qCWarning(scriptengine) << "runInThread" << uncaughtException().toString();
+            emit unhandledException(cloneUncaughtException(__FUNCTION__));
+            clearExceptions();
+        }
     }
-
     scriptInfoMessage("Script Engine stopping:" + getFilename());
 
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
@@ -1035,9 +1107,11 @@ void ScriptEngine::run() {
 // we want to only call it in our own run "shutdown" processing.
 void ScriptEngine::stopAllTimers() {
     QMutableHashIterator<QTimer*, CallbackData> i(_timerFunctionMap);
+    int j {0};
     while (i.hasNext()) {
         i.next();
         QTimer* timer = i.key();
+        qCDebug(scriptengine) << getFilename() << "stopAllTimers[" << j++ << "]";
         stopTimer(timer);
     }
 }
@@ -1132,10 +1206,10 @@ void ScriptEngine::timerFired() {
         auto postTimer = p_high_resolution_clock::now();
         auto elapsed = (postTimer - preTimer);
         _totalTimerExecution += std::chrono::duration_cast<std::chrono::microseconds>(elapsed);
-
+    } else {
+        qCWarning(scriptengine) << "timerFired -- invalid function" << timerData.function.toVariant().toString();
     }
 }
-
 
 QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot) {
     // create the timer, add it to the map, and start it
@@ -1153,7 +1227,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
     // make sure the timer stops when the script does
     connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
 
-    CallbackData timerData = {function, currentEntityIdentifier, currentSandboxURL };
+    CallbackData timerData = { function, currentEntityIdentifier, currentSandboxURL };
     _timerFunctionMap.insert(newTimer, timerData);
 
     newTimer->start(intervalMS);
@@ -1183,33 +1257,44 @@ void ScriptEngine::stopTimer(QTimer *timer) {
         timer->stop();
         _timerFunctionMap.remove(timer);
         delete timer;
+    } else {
+        qCDebug(scriptengine) << "stopTimer -- not in _timerFunctionMap" << timer;
     }
 }
 
 QUrl ScriptEngine::resolvePath(const QString& include) const {
     QUrl url(include);
-    // first lets check to see if it's already a full URL
-    if (!url.scheme().isEmpty()) {
+    // first lets check to see if it's already a full URL -- or a Windows path like "c:/"
+    if (include.startsWith("/") || url.scheme().length() == 1) {
+        url = QUrl::fromLocalFile(include);
+    }
+    if (!url.isRelative()) {
         return expandScriptUrl(url);
     }
 
-    QScriptContextInfo contextInfo { currentContext()->parentContext() };
-
-
     // we apparently weren't a fully qualified url, so, let's assume we're relative
-    // to the original URL of our script
-    QUrl parentURL = contextInfo.fileName();
-    if (parentURL.isEmpty()) {
-        if (_parentURL.isEmpty()) {
-            parentURL = QUrl(_fileNameString);
-        } else {
-            parentURL = QUrl(_parentURL);
-        }
+    // to the first absolute URL in the JS scope chain
+    QUrl parentURL;
+    auto context = currentContext();
+    do {
+        QScriptContextInfo contextInfo { context };
+        parentURL = QUrl(contextInfo.fileName());
+        context = context->parentContext();
+    } while (parentURL.isRelative() && context);
+
+    if (parentURL.isRelative()) {
+        // fallback to the "include" parent (if defined, this will already be absolute)
+        parentURL = QUrl(_parentURL);
     }
 
-    // if the parent URL's scheme is empty, then this is probably a local file...
-    if (parentURL.scheme().isEmpty()) {
-        parentURL = QUrl::fromLocalFile(_fileNameString);
+    if (parentURL.isRelative()) {
+        // fallback to the original script engine URL
+        parentURL = QUrl(_fileNameString);
+
+        // if still relative and path-like, then this is probably a local file...
+        if (parentURL.isRelative() && url.path().contains("/")) {
+            parentURL = QUrl::fromLocalFile(_fileNameString);
+        }
     }
 
     // at this point we should have a legitimate fully qualified URL for our parent
@@ -1236,22 +1321,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         return; // bail early
     }
     QList<QUrl> urls;
-    bool knowsSensitivity = false;
-    Qt::CaseSensitivity sensitivity { Qt::CaseSensitive };
-    auto getSensitivity = [&]() {
-        if (!knowsSensitivity) {
-            QString path = currentSandboxURL.path();
-            QFileInfo upperFI(path.toUpper());
-            QFileInfo lowerFI(path.toLower());
-            sensitivity = (upperFI == lowerFI) ? Qt::CaseInsensitive : Qt::CaseSensitive;
-            knowsSensitivity = true;
-        }
-        return sensitivity;
-    };
 
-    // Guard against meaningless query and fragment parts.
-    // Do NOT use PreferLocalFile as its behavior is unpredictable (e.g., on defaultScriptsLocation())
-    const auto strippingFlags = QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment;
     for (QString includeFile : includeFiles) {
         QString file = ResourceManager::normalizeURL(includeFile);
         QUrl thisURL;
@@ -1268,10 +1338,8 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
             thisURL = resolvePath(file);
         }
 
-        if (!isStandardLibrary && !currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
-            (currentSandboxURL.scheme() != "file" ||
-             !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity()))) {
-
+        bool disallowOutsideFiles = thisURL.isLocalFile() && !isStandardLibrary && !currentSandboxURL.isLocalFile();
+        if (disallowOutsideFiles && !PathUtils::isDescendantOf(thisURL, currentSandboxURL)) {
             scriptWarningMessage("Script.include() ignoring file path" + thisURL.toString() 
                                 + "outside of original entity script" + currentSandboxURL.toString());
         } else {
@@ -1290,12 +1358,12 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     EntityItemID capturedEntityIdentifier = currentEntityIdentifier;
     QUrl capturedSandboxURL = currentSandboxURL;
 
-    auto evaluateScripts = [=](const QMap<QUrl, QString>& data) {
+    auto evaluateScripts = [=](const QMap<QUrl, QString>& data, const QMap<QUrl, QString>& status) {
         auto parentURL = _parentURL;
         for (QUrl url : urls) {
             QString contents = data[url];
             if (contents.isNull()) {
-                scriptErrorMessage("Error loading file: " + url.toString());
+                scriptErrorMessage("Error loading file (" + status[url] +"): " + url.toString());
             } else {
                 std::lock_guard<std::recursive_mutex> lock(_lock);
                 if (!_includedURLs.contains(url)) {
@@ -1308,6 +1376,10 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                     };
 
                     doWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, operation);
+                    if (hasUncaughtException()) {
+                        emit unhandledException(cloneUncaughtException(__FUNCTION__));
+                        clearExceptions();
+                    }
                 } else {
                     scriptWarningMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
                 }
@@ -1327,7 +1399,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     // If we are destroyed before the loader completes, make sure to clean it up
     connect(this, &QObject::destroyed, loader, &QObject::deleteLater);
 
-    loader->start();
+    loader->start(processLevelMaxRetries);
 
     if (!callback.isFunction() && !loader->isFinished()) {
         QEventLoop loop;
@@ -1359,7 +1431,7 @@ void ScriptEngine::load(const QString& loadFile) {
     }
     if (!currentEntityIdentifier.isInvalidID()) {
         scriptWarningMessage("Script.load() from entity script is ignored...  loadFile:" 
-                + loadFile + "parent script:" + getFilename());
+                + loadFile + "parent script:" + getFilename() + "entity: " + currentEntityIdentifier.toString());
         return; // bail early
     }
 
@@ -1399,6 +1471,28 @@ void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QStrin
     }
 }
 
+int ScriptEngine::getNumRunningEntityScripts() const {
+    int sum = 0;
+    for (auto& st : _entityScripts) {
+        if (st.status == EntityScriptStatus::RUNNING) {
+            ++sum;
+        }
+    }
+    return sum;
+}
+
+void ScriptEngine::setEntityScriptDetails(const EntityItemID& entityID, const EntityScriptDetails& details) {
+    _entityScripts[entityID] = details;
+    emit entityScriptDetailsUpdated();
+}
+
+void ScriptEngine::updateEntityScriptStatus(const EntityItemID& entityID, const EntityScriptStatus &status, const QString& errorInfo) {
+    EntityScriptDetails &details = _entityScripts[entityID];
+    details.status = status;
+    details.errorInfo = errorInfo;
+    emit entityScriptDetailsUpdated();
+}
+
 bool ScriptEngine::getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const {
     auto it = _entityScripts.constFind(entityID);
     if (it == _entityScripts.constEnd()) {
@@ -1408,28 +1502,171 @@ bool ScriptEngine::getEntityScriptDetails(const EntityItemID& entityID, EntitySc
     return true;
 }
 
-// since all of these operations can be asynch we will always do the actual work in the response handler
-// for the download
-void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
-    // NOTE: If the script content is not currently in the cache, the LAMBDA here will be called on the Main Thread
-    //       which means we're guaranteed that it's not the correct thread for the ScriptEngine. This means
-    //       when we get into entityScriptContentAvailable() we will likely invokeMethod() to get it over
-    //       to the "Entities" ScriptEngine thread.
-    DependencyManager::get<ScriptCache>()->getScriptContents(entityScript, [theEngine, entityID](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
-        QSharedPointer<ScriptEngine> strongEngine = theEngine.toStrongRef();
-        if (strongEngine) {
-#ifdef THREAD_DEBUGGING
-            qCDebug(scriptengine) << "ScriptEngine::entityScriptContentAvailable() IN LAMBDA contentAvailable on thread ["
-                << QThread::currentThread() << "] expected thread [" << strongEngine->thread() << "]";
-#endif
-            strongEngine->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
+const static EntityItemID BAD_SCRIPT_UUID_PLACEHOLDER { "{20170224-dead-face-0000-cee000021114}" };
+
+void ScriptEngine::processDeferredEntityLoads(const QString& entityScript, const EntityItemID& leaderID) {
+    QList<DeferredLoadEntity> retryLoads;
+    QMutableListIterator<DeferredLoadEntity> i(_deferredEntityLoads);
+    while (i.hasNext()) {
+        auto retry = i.next();
+        if (retry.entityScript == entityScript) {
+            retryLoads << retry;
+            i.remove();
         }
+    }
+    foreach(DeferredLoadEntity retry, retryLoads) {
+        // check whether entity was since been deleted
+        if (!_entityScripts.contains(retry.entityID)) {
+            qCDebug(scriptengine) << "processDeferredEntityLoads -- entity details gone (entity deleted?)"
+                                  << retry.entityID;
+            continue;
+        }
+
+        // check whether entity has since been unloaded or otherwise errored-out
+        auto details = _entityScripts[retry.entityID];
+        if (details.status != EntityScriptStatus::PENDING) {
+            qCDebug(scriptengine) << "processDeferredEntityLoads -- entity status no longer PENDING; "
+                                  << retry.entityID << details.status;
+            continue;
+        }
+
+        // propagate leader's failure reasons to the pending entity
+        const auto leaderDetails = _entityScripts[leaderID];
+        if (leaderDetails.status != EntityScriptStatus::RUNNING) {
+            qCDebug(scriptengine) << QString("... pending load of %1 cancelled (leader: %2 status: %3)")
+                .arg(retry.entityID.toString()).arg(leaderID.toString()).arg(leaderDetails.status);
+
+            auto extraDetail = QString("\n(propagated from %1)").arg(leaderID.toString());
+            if (leaderDetails.status == EntityScriptStatus::ERROR_LOADING_SCRIPT ||
+                leaderDetails.status == EntityScriptStatus::ERROR_RUNNING_SCRIPT) {
+                // propagate same error so User doesn't have to hunt down stampede's leader
+                updateEntityScriptStatus(retry.entityID, leaderDetails.status, leaderDetails.errorInfo + extraDetail);
+            } else {
+                // the leader Entity somehow ended up in some other state (rapid-fire delete or unload could cause)
+                updateEntityScriptStatus(retry.entityID, EntityScriptStatus::ERROR_LOADING_SCRIPT,
+                    "A previous Entity failed to load using this script URL; reload to try again." + extraDetail);
+            }
+            continue;
+        }
+
+        if (_occupiedScriptURLs.contains(retry.entityScript)) {
+            qCWarning(scriptengine) << "--- SHOULD NOT HAPPEN -- recursive call into processDeferredEntityLoads" << retry.entityScript;
+            continue;
+        }
+
+        // if we made it here then the leading entity was successful so proceed with normal load
+        loadEntityScript(retry.entityID, retry.entityScript, false);
+    }
+}
+
+void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadEntityScript",
+            Q_ARG(const EntityItemID&, entityID),
+            Q_ARG(const QString&, entityScript),
+            Q_ARG(bool, forceRedownload)
+        );
+        return;
+    }
+    PROFILE_RANGE(script, __FUNCTION__);
+
+    if (isStopping() || DependencyManager::get<ScriptEngines>()->isStopped()) {
+        qCDebug(scriptengine) << "loadEntityScript.start " << entityScript << entityID.toString()
+                                     << " but isStopping==" << isStopping()
+                                     << " || engines->isStopped==" << DependencyManager::get<ScriptEngines>()->isStopped();
+        return;
+    }
+
+    if (!_entityScripts.contains(entityID)) {
+        // make sure EntityScriptDetails has an entry for this UUID right away
+        // (which allows bailing from the loading/provisioning process early if the Entity gets deleted mid-flight)
+        updateEntityScriptStatus(entityID, EntityScriptStatus::PENDING, "...pending...");
+    }
+
+    // This "occupied" approach allows multiple Entities to boot from the same script URL while still taking
+    // full advantage of cacheable require modules.  This only affects Entities literally coming in back-to-back
+    // before the first one has time to finish loading.
+    if (_occupiedScriptURLs.contains(entityScript)) {
+        auto currentEntityID = _occupiedScriptURLs[entityScript];
+        if (currentEntityID == BAD_SCRIPT_UUID_PLACEHOLDER) {
+            if (forceRedownload) {
+                // script was previously marked unusable, but we're reloading so reset it
+                _occupiedScriptURLs.remove(entityScript);
+            } else {
+                // since not reloading, assume that the exact same input would produce the exact same output again
+                // note: this state gets reset with "reload all scripts," leaving/returning to a Domain, clear cache, etc.
+#ifdef DEBUG_ENTITY_STATES
+                qCDebug(scriptengine) << QString("loadEntityScript.cancelled entity: %1 script: %2 (previous script failure)")
+                    .arg(entityID.toString()).arg(entityScript);
+#endif
+                updateEntityScriptStatus(entityID, EntityScriptStatus::ERROR_LOADING_SCRIPT,
+                                         "A previous Entity failed to load using this script URL; reload to try again.");
+                return;
+            }
+        } else {
+            // another entity is busy loading from this script URL so wait for them to finish
+#ifdef DEBUG_ENTITY_STATES
+            qCDebug(scriptengine) << QString("loadEntityScript.deferring[%0] entity: %1 script: %2 (waiting on %3)")
+                .arg(_deferredEntityLoads.size()).arg(entityID.toString()).arg(entityScript).arg(currentEntityID.toString());
+#endif
+            _deferredEntityLoads.push_back({ entityID, entityScript });
+            return;
+        }
+    }
+
+    // the scriptURL slot is available; flag as in-use
+    _occupiedScriptURLs[entityScript] = entityID;
+
+#ifdef DEBUG_ENTITY_STATES
+    auto previousStatus = _entityScripts.contains(entityID) ? _entityScripts[entityID].status : EntityScriptStatus::PENDING;
+    qCDebug(scriptengine) << "loadEntityScript.LOADING: " << entityScript << entityID.toString()
+                                 << "(previous: " << previousStatus << ")";
+#endif
+
+    EntityScriptDetails newDetails;
+    newDetails.scriptText = entityScript;
+    newDetails.status = EntityScriptStatus::LOADING;
+    newDetails.definingSandboxURL = currentSandboxURL;
+    setEntityScriptDetails(entityID, newDetails);
+
+    auto scriptCache = DependencyManager::get<ScriptCache>();
+    // note: see EntityTreeRenderer.cpp for shared pointer lifecycle management
+    QWeakPointer<ScriptEngine> weakRef(sharedFromThis());
+    scriptCache->getScriptContents(entityScript,
+        [this, weakRef, entityScript, entityID](const QString& url, const QString& contents, bool isURL, bool success, const QString& status) {
+            QSharedPointer<ScriptEngine> strongRef(weakRef);
+            if (!strongRef) {
+                qCWarning(scriptengine) << "loadEntityScript.contentAvailable -- ScriptEngine was deleted during getScriptContents!!";
+                return;
+            }
+            if (isStopping()) {
+#ifdef DEBUG_ENTITY_STATES
+                qCDebug(scriptengine) << "loadEntityScript.contentAvailable -- stopping";
+#endif
+                return;
+            }
+            executeOnScriptThread([=]{
+#ifdef DEBUG_ENTITY_STATES
+                qCDebug(scriptengine) << "loadEntityScript.contentAvailable" << status << QUrl(url).fileName() << entityID.toString();
+#endif
+                if (!isStopping() && _entityScripts.contains(entityID)) {
+                    entityScriptContentAvailable(entityID, url, contents, isURL, success, status);
+                } else {
+#ifdef DEBUG_ENTITY_STATES
+                    qCDebug(scriptengine) << "loadEntityScript.contentAvailable -- aborting";
+#endif
+                }
+                // recheck whether us since may have been set to BAD_SCRIPT_UUID_PLACEHOLDER in entityScriptContentAvailable
+                if (_occupiedScriptURLs.contains(entityScript) && _occupiedScriptURLs[entityScript] == entityID) {
+                    _occupiedScriptURLs.remove(entityScript);
+                }
+            });
     }, forceRedownload);
 }
 
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
-void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
+void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success , const QString& status) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::entityScriptContentAvailable() called on wrong thread ["
@@ -1443,7 +1680,8 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
                                   Q_ARG(const QString&, scriptOrURL),
                                   Q_ARG(const QString&, contents),
                                   Q_ARG(bool, isURL),
-                                  Q_ARG(bool, success));
+                                  Q_ARG(bool, success),
+                                  Q_ARG(const QString&, status));
         return;
     }
 
@@ -1453,26 +1691,51 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
     bool isFileUrl = isURL && scriptOrURL.startsWith("file://");
-    auto fileName = isURL ? scriptOrURL : "EmbeddedEntityScript";
+    auto fileName = isURL ? scriptOrURL : "about:EmbeddedEntityScript";
+
+    const EntityScriptDetails &oldDetails = _entityScripts[entityID];
+    const QString entityScript = oldDetails.scriptText;
 
     EntityScriptDetails newDetails;
     newDetails.scriptText = scriptOrURL;
 
+    // If an error happens below, we want to update newDetails with the new status info
+    // and also abort any pending Entity loads that are waiting on the exact same script URL.
+    auto setError = [&](const QString &errorInfo, const EntityScriptStatus& status) {
+        newDetails.errorInfo = errorInfo;
+        newDetails.status = status;
+        setEntityScriptDetails(entityID, newDetails);
+
+#ifdef DEBUG_ENTITY_STATES
+        qCDebug(scriptengine) << "entityScriptContentAvailable -- flagging " << entityScript << " as BAD_SCRIPT_UUID_PLACEHOLDER";
+#endif
+        // flag the original entityScript as unusuable
+        _occupiedScriptURLs[entityScript] = BAD_SCRIPT_UUID_PLACEHOLDER;
+        processDeferredEntityLoads(entityScript, entityID);
+    };
+
+    // NETWORK / FILESYSTEM ERRORS
     if (!success) {
-        newDetails.status = ERROR_LOADING_SCRIPT;
-        newDetails.errorInfo = "Failed to load script";
-        _entityScripts[entityID] = newDetails;
+        setError("Failed to load script (" + status + ")", EntityScriptStatus::ERROR_LOADING_SCRIPT);
         return;
     }
 
-    QScriptProgram program(contents, fileName);
-    if (!hasCorrectSyntax(program, this)) {
-        if (!isFileUrl) {
-            scriptCache->addScriptToBadScriptList(scriptOrURL);
+    // SYNTAX ERRORS
+    auto syntaxError = lintScript(contents, fileName);
+    if (syntaxError.isError()) {
+        auto message = syntaxError.property("formatted").toString();
+        if (message.isEmpty()) {
+            message = syntaxError.toString();
         }
-        newDetails.status = ERROR_RUNNING_SCRIPT;
-        newDetails.errorInfo = "Bad syntax";
-        _entityScripts[entityID] = newDetails;
+        setError(QString("Bad syntax (%1)").arg(message), EntityScriptStatus::ERROR_RUNNING_SCRIPT);
+        syntaxError.setProperty("detail", entityID.toString());
+        emit unhandledException(syntaxError);
+        return;
+    }
+    QScriptProgram program { contents, fileName };
+    if (program.isNull()) {
+        setError("Bad program (isNull)", EntityScriptStatus::ERROR_RUNNING_SCRIPT);
+        emit unhandledException(makeError("program.isNull"));
         return; // done processing script
     }
 
@@ -1480,33 +1743,44 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         setParentURL(scriptOrURL);
     }
 
+    // SANITY/PERFORMANCE CHECK USING SANDBOX
     const int SANDBOX_TIMEOUT = 0.25 * MSECS_PER_SECOND;
-    QScriptEngine sandbox;
+    BaseScriptEngine sandbox;
     sandbox.setProcessEventsInterval(SANDBOX_TIMEOUT);
-    QScriptValue testConstructor;
+    QScriptValue testConstructor, exception;
     {
         QTimer timeout;
         timeout.setSingleShot(true);
         timeout.start(SANDBOX_TIMEOUT);
-        connect(&timeout, &QTimer::timeout, [&sandbox, SANDBOX_TIMEOUT]{
+        connect(&timeout, &QTimer::timeout, [&sandbox, SANDBOX_TIMEOUT, scriptOrURL]{
             auto context = sandbox.currentContext();
             if (context) {
+                qCDebug(scriptengine) << "ScriptEngine::entityScriptContentAvailable timeout(" << scriptOrURL << ")";
+
                 // Guard against infinite loops and non-performant code
                 context->throwError(QString("Timed out (entity constructors are limited to %1ms)").arg(SANDBOX_TIMEOUT));
             }
         });
+
         testConstructor = sandbox.evaluate(program);
+
+        if (sandbox.hasUncaughtException()) {
+            exception = sandbox.cloneUncaughtException(QString("(preflight %1)").arg(entityID.toString()));
+            sandbox.clearExceptions();
+        } else if (testConstructor.isError()) {
+            exception = testConstructor;
+        }
     }
 
-    QString exceptionMessage;
-    if (hadUncaughtExceptions(sandbox, program.fileName(), this, &exceptionMessage)) {
-        newDetails.status = ERROR_RUNNING_SCRIPT;
-        newDetails.errorInfo = exceptionMessage;
-        _entityScripts[entityID] = newDetails;
-
+    if (exception.isError()) {
+        // create a local copy using makeError to decouple from the sandbox engine
+        exception = makeError(exception);
+        setError(formatException(exception), EntityScriptStatus::ERROR_RUNNING_SCRIPT);
+        emit unhandledException(exception);
         return;
     }
 
+    // CONSTRUCTOR VIABILITY
     if (!testConstructor.isFunction()) {
         QString testConstructorType = QString(testConstructor.toVariant().typeName());
         if (testConstructorType == "") {
@@ -1517,39 +1791,53 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         if (testConstructorValue.size() > maxTestConstructorValueSize) {
             testConstructorValue = testConstructorValue.mid(0, maxTestConstructorValueSize) + "...";
         }
-        scriptErrorMessage("Error -- ScriptEngine::loadEntityScript() entity:" + entityID.toString()
-                              + "failed to load entity script -- expected a function, got " + testConstructorType
-                              + "," + testConstructorValue
-                              + "," + scriptOrURL);
+        auto message = QString("failed to load entity script -- expected a function, got %1, %2")
+            .arg(testConstructorType).arg(testConstructorValue);
 
-        if (!isFileUrl) {
-            scriptCache->addScriptToBadScriptList(scriptOrURL);
-        }
+        auto err = makeError(message);
+        err.setProperty("fileName", scriptOrURL);
+        err.setProperty("detail", "(constructor " + entityID.toString() + ")");
 
-        newDetails.status = ERROR_RUNNING_SCRIPT;
-        newDetails.errorInfo = "Could not find constructor";
-        _entityScripts[entityID] = newDetails;
-
+        setError("Could not find constructor (" + testConstructorType + ")", EntityScriptStatus::ERROR_RUNNING_SCRIPT);
+        emit unhandledException(err);
         return; // done processing script
     }
 
+    // (this feeds into refreshFileScript)
     int64_t lastModified = 0;
     if (isFileUrl) {
         QString file = QUrl(scriptOrURL).toLocalFile();
         lastModified = (quint64)QFileInfo(file).lastModified().toMSecsSinceEpoch();
     }
+
+    // THE ACTUAL EVALUATION AND CONSTRUCTION
     QScriptValue entityScriptConstructor, entityScriptObject;
     QUrl sandboxURL = currentSandboxURL.isEmpty() ? scriptOrURL : currentSandboxURL;
     auto initialization = [&]{
         entityScriptConstructor = evaluate(contents, fileName);
         entityScriptObject = entityScriptConstructor.construct();
+
+        if (hasUncaughtException()) {
+            entityScriptObject = cloneUncaughtException("(construct " + entityID.toString() + ")");
+            clearExceptions();
+        }
     };
+
     doWithEnvironment(entityID, sandboxURL, initialization);
 
+    if (entityScriptObject.isError()) {
+        auto exception = entityScriptObject;
+        setError(formatException(exception), EntityScriptStatus::ERROR_RUNNING_SCRIPT);
+        emit unhandledException(exception);
+        return;
+    }
+
+    // ... AND WE HAVE LIFTOFF
+    newDetails.status = EntityScriptStatus::RUNNING;
     newDetails.scriptObject = entityScriptObject;
     newDetails.lastModified = lastModified;
     newDetails.definingSandboxURL = sandboxURL;
-    _entityScripts[entityID] = newDetails;
+    setEntityScriptDetails(entityID, newDetails);
 
     if (isURL) {
         setParentURL("");
@@ -1557,6 +1845,9 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     // if we got this far, then call the preload method
     callEntityScriptMethod(entityID, "preload");
+
+    _occupiedScriptURLs.remove(entityScript);
+    processDeferredEntityLoads(entityScript, entityID);
 }
 
 void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
@@ -1576,11 +1867,25 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
 #endif
 
     if (_entityScripts.contains(entityID)) {
-        if (_entityScripts[entityID].status == RUNNING) {
+        const EntityScriptDetails &oldDetails = _entityScripts[entityID];
+        if (isEntityScriptRunning(entityID)) {
             callEntityScriptMethod(entityID, "unload");
+        } else {
+            qCDebug(scriptengine) << "unload called while !running" << entityID << oldDetails.status;
         }
-        _entityScripts.remove(entityID);
+        if (oldDetails.status != EntityScriptStatus::UNLOADED) {
+            EntityScriptDetails newDetails;
+            newDetails.status = EntityScriptStatus::UNLOADED;
+            newDetails.lastModified = QDateTime::currentMSecsSinceEpoch();
+            // keep scriptText populated for the current need to "debouce" duplicate calls to unloadEntityScript
+            newDetails.scriptText = oldDetails.scriptText;
+            setEntityScriptDetails(entityID, newDetails);
+        }
         stopAllTimersForEntityScript(entityID);
+        {
+            // FIXME: shouldn't have to do this here, but currently something seems to be firing unloads moments after firing initial load requests
+            processDeferredEntityLoads(oldDetails.scriptText, entityID);
+        }
     }
 }
 
@@ -1597,25 +1902,23 @@ void ScriptEngine::unloadAllEntityScripts() {
     qCDebug(scriptengine) << "ScriptEngine::unloadAllEntityScripts() called on correct thread [" << thread() << "]";
 #endif
     foreach(const EntityItemID& entityID, _entityScripts.keys()) {
-        if (_entityScripts[entityID].status == RUNNING) {
-            callEntityScriptMethod(entityID, "unload");
-        }
+        unloadEntityScript(entityID);
     }
     _entityScripts.clear();
+    emit entityScriptDetailsUpdated();
+    _occupiedScriptURLs.clear();
 
 #ifdef DEBUG_ENGINE_STATE
-    qCDebug(scriptengine) << "---- CURRENT STATE OF ENGINE: --------------------------";
-    QScriptValueIterator it(globalObject());
-    while (it.hasNext()) {
-        it.next();
-        qCDebug(scriptengine) << it.name() << ":" << it.value().toString();
-    }
-    qCDebug(scriptengine) << "--------------------------------------------------------";
+    _debugDump(
+        "---- CURRENT STATE OF ENGINE: --------------------------",
+        globalObject(),
+        "--------------------------------------------------------"
+    );
 #endif // DEBUG_ENGINE_STATE
 }
 
 void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
-    if (!_entityScripts.contains(entityID)) {
+    if (!HIFI_AUTOREFRESH_FILE_SCRIPTS || !_entityScripts.contains(entityID)) {
         return;
     }
 
@@ -1632,17 +1935,7 @@ void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
         auto lastModified = QFileInfo(filePath).lastModified().toMSecsSinceEpoch();
         if (lastModified > details.lastModified) {
             scriptInfoMessage("Reloading modified script " + details.scriptText);
-
-            QFile file(filePath);
-            file.open(QIODevice::ReadOnly);
-            QString scriptContents = QTextStream(&file).readAll();
-            this->unloadEntityScript(entityID);
-            this->entityScriptContentAvailable(entityID, details.scriptText, scriptContents, true, true);
-            if (!_entityScripts.contains(entityID) || _entityScripts[entityID].status != RUNNING) {
-                scriptWarningMessage("Reload script " + details.scriptText + " failed");
-            } else {
-                details = _entityScripts[entityID];
-            }
+            loadEntityScript(entityID, details.scriptText, true);
         }
     }
     recurseGuard = false;
@@ -1666,11 +1959,14 @@ void ScriptEngine::doWithEnvironment(const EntityItemID& entityID, const QUrl& s
 #else
     operation();
 #endif
-    hadUncaughtExceptions(*this, _fileNameString, this);
-
+    if (!isEvaluating() && hasUncaughtException()) {
+        emit unhandledException(cloneUncaughtException(!entityID.isNull() ? entityID.toString() : __FUNCTION__));
+        clearExceptions();
+    }
     currentEntityIdentifier = oldIdentifier;
     currentSandboxURL = oldSandboxURL;
 }
+
 void ScriptEngine::callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args) {
     auto operation = [&]() {
         function.call(thisObject, args);
@@ -1696,8 +1992,10 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         "entityID:" << entityID << "methodName:" << methodName;
 #endif
 
-    refreshFileScript(entityID);
-    if (_entityScripts.contains(entityID) && _entityScripts[entityID].status == RUNNING) {
+    if (HIFI_AUTOREFRESH_FILE_SCRIPTS && methodName != "unload") {
+        refreshFileScript(entityID);
+    }
+    if (isEntityScriptRunning(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded
         if (entityScript.property(methodName).isFunction()) {
@@ -1728,8 +2026,10 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         "entityID:" << entityID << "methodName:" << methodName << "event: pointerEvent";
 #endif
 
-    refreshFileScript(entityID);
-    if (_entityScripts.contains(entityID) && _entityScripts[entityID].status == RUNNING) {
+    if (HIFI_AUTOREFRESH_FILE_SCRIPTS) {
+        refreshFileScript(entityID);
+    }
+    if (isEntityScriptRunning(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded
         if (entityScript.property(methodName).isFunction()) {
@@ -1740,7 +2040,6 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         }
     }
 }
-
 
 void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision) {
     if (QThread::currentThread() != thread()) {
@@ -1761,8 +2060,10 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         "entityID:" << entityID << "methodName:" << methodName << "otherID:" << otherID << "collision: collision";
 #endif
     
-    refreshFileScript(entityID);
-    if (_entityScripts.contains(entityID) && _entityScripts[entityID].status == RUNNING) {
+    if (HIFI_AUTOREFRESH_FILE_SCRIPTS) {
+        refreshFileScript(entityID);
+    }
+    if (isEntityScriptRunning(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded
         if (entityScript.property(methodName).isFunction()) {
@@ -1774,3 +2075,4 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         }
     }
 }
+

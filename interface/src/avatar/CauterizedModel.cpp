@@ -95,12 +95,6 @@ void CauterizedModel::createCollisionRenderItemSet() {
 	Model::createCollisionRenderItemSet();
 }
 
-// Called within Model::simulate call, below.
-void CauterizedModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-    Model::updateRig(deltaTime, parentTransform);
-    _needsUpdateClusterMatrices = true;
-}
-
 void CauterizedModel::updateClusterMatrices() {
     PerformanceTimer perfTimer("CauterizedModel::updateClusterMatrices");
 
@@ -116,13 +110,7 @@ void CauterizedModel::updateClusterMatrices() {
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
-#if GLM_ARCH & GLM_ARCH_SSE2
-            glm::mat4 out, inverseBindMatrix = cluster.inverseBindMatrix;
-            glm_mat4_mul((glm_vec4*)&jointMatrix, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
-            state.clusterMatrices[j] = out;
-#else
-            state.clusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
-#endif
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }
 
         // Once computed the cluster matrices, update the buffer(s)
@@ -155,13 +143,7 @@ void CauterizedModel::updateClusterMatrices() {
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointMatrix = cauterizeMatrix;
                 }
-#if GLM_ARCH & GLM_ARCH_SSE2
-                glm::mat4 out, inverseBindMatrix = cluster.inverseBindMatrix;
-                glm_mat4_mul((glm_vec4*)&jointMatrix, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
-                state.clusterMatrices[j] = out;
-#else
-                state.clusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
-#endif
+                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
             }
 
             if (!_cauterizeBoneSet.empty() && (state.clusterMatrices.size() > 1)) {

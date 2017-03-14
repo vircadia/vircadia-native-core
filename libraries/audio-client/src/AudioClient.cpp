@@ -39,13 +39,10 @@
 #include <plugins/CodecPlugin.h>
 #include <plugins/PluginManager.h>
 #include <udt/PacketHeaders.h>
-#include <PositionalAudioStream.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
-#include <UUID.h>
 #include <Transform.h>
 
-#include "PositionalAudioStream.h"
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
 
@@ -294,12 +291,12 @@ QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
     IPropertyStore* pPropertyStore;
     pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
     pEndpoint->Release();
-    pEndpoint = NULL;
+    pEndpoint = nullptr;
     PROPVARIANT pv;
     PropVariantInit(&pv);
     HRESULT hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
     pPropertyStore->Release();
-    pPropertyStore = NULL;
+    pPropertyStore = nullptr;
     deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
     if (!IsWindows8OrGreater()) {
         // Windows 7 provides only the 31 first characters of the device name.
@@ -313,9 +310,9 @@ QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
 QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
     QString deviceName;
     HRESULT hr = S_OK;
-    CoInitialize(NULL);
-    IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
-    CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
+    CoInitialize(nullptr);
+    IMMDeviceEnumerator* pMMDeviceEnumerator = nullptr;
+    CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
     IMMDevice* pEndpoint;
     hr = pMMDeviceEnumerator->GetDevice(guid, &pEndpoint);
     if (hr == E_NOTFOUND) {
@@ -325,7 +322,7 @@ QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
         deviceName = ::friendlyNameForAudioDevice(pEndpoint);
     }
     pMMDeviceEnumerator->Release();
-    pMMDeviceEnumerator = NULL;
+    pMMDeviceEnumerator = nullptr;
     CoUninitialize();
     return deviceName;
 }
@@ -611,6 +608,13 @@ void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessag
 }
 
 void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message) {
+
+    if (message->getType() == PacketType::SilentAudioFrame) {
+        _silentInbound.increment();
+    } else {
+        _audioInbound.increment();
+    }
+
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
 
@@ -968,8 +972,7 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput() {
-
-    if (!_inputDevice) {
+    if (!_inputDevice || _isPlayingBackRecording) {
         return;
     }
 
@@ -1028,6 +1031,7 @@ void AudioClient::handleAudioInput() {
                 if (_inputGate.clippedInLastFrame()) {
                     _timeSinceLastClip = 0.0f;
                 }
+
             } else {
                 float loudness = 0.0f;
 
@@ -1045,6 +1049,13 @@ void AudioClient::handleAudioInput() {
 
             emit inputReceived({ reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes });
 
+            if (_inputGate.openedInLastFrame()) {
+                emit noiseGateOpened();
+            }
+            if (_inputGate.closedInLastFrame()) {
+                emit noiseGateClosed();
+            }
+
         } else {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;
@@ -1056,9 +1067,18 @@ void AudioClient::handleAudioInput() {
         auto packetType = _shouldEchoToServer ?
             PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
 
-        if (_lastInputLoudness == 0) {
+        // if the _inputGate closed in this last frame, then we don't actually want
+        // to send a silent packet, instead, we want to go ahead and encode and send
+        // the output from the input gate (eventually, this could be crossfaded)
+        // and allow the codec to properly encode down to silent/zero. If we still
+        // have _lastInputLoudness of 0 in our NEXT frame, we will send a silent packet
+        if (_lastInputLoudness == 0 && !_inputGate.closedInLastFrame()) {
             packetType = PacketType::SilentAudioFrame;
+            _silentOutbound.increment();
+        } else {
+            _micAudioOutbound.increment();
         }
+
         Transform audioTransform;
         audioTransform.setTranslation(_positionGetter());
         audioTransform.setRotation(_orientationGetter());
@@ -1083,6 +1103,7 @@ void AudioClient::handleAudioInput() {
     }
 }
 
+// FIXME - should this go through the noise gate and honor mute and echo?
 void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     Transform audioTransform;
     audioTransform.setTranslation(_positionGetter());
@@ -1094,6 +1115,8 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     } else {
         encodedBuffer = audio;
     }
+
+    _micAudioOutbound.increment();
 
     // FIXME check a flag to see if we should echo audio?
     emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber,
@@ -1120,7 +1143,7 @@ void AudioClient::prepareLocalAudioInjectors() {
     while (samplesNeeded > 0) {
         // lock for every write to avoid locking out the device callback
         // this lock is intentional - the buffer is only lock-free in its use in the device callback
-        Lock lock(_localAudioMutex);
+        RecursiveLock lock(_localAudioMutex);
 
         samplesNeeded = bufferCapacity - _localSamplesAvailable.load(std::memory_order_relaxed);
         if (samplesNeeded <= 0) {
@@ -1457,7 +1480,7 @@ void AudioClient::outputNotify() {
 bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
     bool supportedFormat = false;
 
-    Lock lock(_localAudioMutex);
+    RecursiveLock lock(_localAudioMutex);
     _localSamplesAvailable.exchange(0, std::memory_order_release);
 
     // cleanup any previously initialized device
@@ -1671,7 +1694,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 
     int injectorSamplesPopped = 0;
     {
-        Lock lock(_audio->_localAudioMutex);
+        RecursiveLock lock(_audio->_localAudioMutex);
         bool append = networkSamplesPopped > 0;
         samplesRequested = std::min(samplesRequested, _audio->_localSamplesAvailable.load(std::memory_order_acquire));
         if ((injectorSamplesPopped = _localInjectorsStream.appendSamples(mixBuffer, samplesRequested, append)) > 0) {

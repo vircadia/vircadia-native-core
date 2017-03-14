@@ -16,7 +16,7 @@
 
 var MESSAGE_CHANNEL = "io.highfidelity.summon-crowd";
 
-print('crowd-agent version 4');
+print('crowd-agent version 5');
 
 /* Observations:
 - File urls for AC scripts silently fail. Use a local server (e.g., python SimpleHTTPServer) for development.
@@ -84,6 +84,9 @@ function startAgent(parameters) { // Can also be used to update.
     clearStopper();
     var wasOff = !Agent.isAvatar;
     Agent.isAvatar = true;
+    if (parameters.displayName !== undefined) {
+        Avatar.displayName = parameters.displayName;
+    }
     if (parameters.position) {
         Avatar.position = parameters.position;
     }

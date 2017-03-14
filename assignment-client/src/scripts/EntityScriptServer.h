@@ -12,7 +12,11 @@
 #ifndef hifi_EntityScriptServer_h
 #define hifi_EntityScriptServer_h
 
+#include <set>
+#include <vector>
+
 #include <QtCore/QObject>
+#include <QtCore/QUuid>
 
 #include <EntityEditPacketSender.h>
 #include <EntityTreeHeadlessViewer.h>
@@ -20,11 +24,15 @@
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
+static const int DEFAULT_MAX_ENTITY_PPS = 9000;
+static const int DEFAULT_ENTITY_PPS_PER_SCRIPT = 900;
+
 class EntityScriptServer : public ThreadedAssignment {
     Q_OBJECT
 
 public:
     EntityScriptServer(ReceivedMessage& message);
+    ~EntityScriptServer();
 
     virtual void aboutToFinish() override;
 
@@ -42,6 +50,13 @@ private slots:
     void handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleEntityScriptGetStatusPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
+    void handleSettings();
+    void updateEntityPPS();
+
+    void handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
+    void pushLogs();
+
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -55,12 +70,20 @@ private:
     void entityServerScriptChanging(const EntityItemID& entityID, const bool reload);
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
 
+    void cleanupOldKilledListeners();
+
     bool _shuttingDown { false };
 
     static int _entitiesScriptEngineCount;
     QSharedPointer<ScriptEngine> _entitiesScriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
+
+    int _maxEntityPPS { DEFAULT_MAX_ENTITY_PPS };
+    int _entityPPSPerScript { DEFAULT_ENTITY_PPS_PER_SCRIPT };
+
+    std::set<QUuid> _logListeners;
+    std::vector<std::pair<QUuid, quint64>> _killedListeners;
 
     QString _selectedCodecName;
     CodecPluginPointer _codec;

@@ -14,6 +14,8 @@
 
 #include <string>
 #include <memory>
+#include <queue>
+
 /* VS2010 defines stdint.h, but not inttypes.h */
 #if defined(_MSC_VER)
 typedef signed char  int8_t;
@@ -44,6 +46,7 @@ typedef unsigned long long quint64;
 #include <QVariantMap>
 #include <QVector>
 #include <QtScript/QScriptable>
+#include <QtScript/QScriptValueIterator>
 #include <QReadWriteLock>
 
 #include <JointData.h>
@@ -57,6 +60,7 @@ typedef unsigned long long quint64;
 #include <ThreadSafeValueCache.h>
 #include <SharedUtil.h>
 #include <shared/RateCounter.h>
+#include <ViewFrustum.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -133,6 +137,7 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION  = 1U << 9;
     const HasFlags PACKET_HAS_FACE_TRACKER_INFO      = 1U << 10;
     const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
+    const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
     // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
@@ -288,6 +293,31 @@ class AttachmentData;
 class Transform;
 using TransformPointer = std::shared_ptr<Transform>;
 
+class AvatarDataRate {
+public:
+    RateCounter<> globalPositionRate;
+    RateCounter<> localPositionRate;
+    RateCounter<> avatarBoundingBoxRate;
+    RateCounter<> avatarOrientationRate;
+    RateCounter<> avatarScaleRate;
+    RateCounter<> lookAtPositionRate;
+    RateCounter<> audioLoudnessRate;
+    RateCounter<> sensorToWorldRate;
+    RateCounter<> additionalFlagsRate;
+    RateCounter<> parentInfoRate;
+    RateCounter<> faceTrackerRate;
+    RateCounter<> jointDataRate;
+};
+
+class AvatarPriority {
+public:
+    AvatarPriority(AvatarSharedPointer a, float p) : avatar(a), priority(p) {}
+    AvatarSharedPointer avatar;
+    float priority;
+    // NOTE: we invert the less-than operator to sort high priorities to front
+    bool operator<(const AvatarPriority& other) const { return priority < other.priority; }
+};
+
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
@@ -329,7 +359,7 @@ public:
 
     static const QString FRAME_NAME;
 
-    static void fromFrame(const QByteArray& frameData, AvatarData& avatar);
+    static void fromFrame(const QByteArray& frameData, AvatarData& avatar, bool useFrameSkeleton = true);
     static QByteArray toFrame(const AvatarData& avatar);
 
     AvatarData();
@@ -345,14 +375,19 @@ public:
     void setHandPosition(const glm::vec3& handPosition);
 
     typedef enum { 
+        NoData,
+        PALMinimum,
         MinimumData, 
         CullSmallData,
         IncludeSmallData,
         SendAllData
     } AvatarDataDetail;
 
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail);
+
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-                        bool distanceAdjust = false, glm::vec3 viewerPosition = glm::vec3(0), QVector<JointData>* sentJointDataOut = nullptr);
+        AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition, 
+        QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut = nullptr) const;
 
     virtual void doneEncoding(bool cullSmallChanges);
 
@@ -380,8 +415,27 @@ public:
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     virtual void updateAttitude() {} // Tell skeleton mesh about changes
 
-    glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
-    void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
+    glm::quat getHeadOrientation() const { 
+        lazyInitHeadData();
+        return _headData->getOrientation(); 
+    }
+    void setHeadOrientation(const glm::quat& orientation) { 
+        if (_headData) {
+            _headData->setOrientation(orientation);
+        }
+    }
+
+    void setLookAtPosition(const glm::vec3& lookAtPosition) { 
+        if (_headData) {
+            _headData->setLookAtPosition(lookAtPosition); 
+        }
+    }
+
+    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { 
+        if (_headData) {
+            _headData->setBlendshapeCoefficients(blendshapeCoefficients);
+        }
+    }
 
     // access to Head().set/getMousePitch (degrees)
     float getHeadPitch() const { return _headData->getBasePitch(); }
@@ -400,7 +454,6 @@ public:
     void setAudioAverageLoudness(float value) { _headData->setAudioAverageLoudness(value); }
 
     //  Scale
-    float getTargetScale() const;
     virtual void setTargetScale(float targetScale);
 
     float getDomainLimitedScale() const { return glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale); }
@@ -475,7 +528,7 @@ public:
     // displayNameChanged returns true if displayName has changed, false otherwise.
     void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
 
-    QByteArray identityByteArray();
+    QByteArray identityByteArray() const;
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
@@ -501,8 +554,6 @@ public:
 
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
 
-    const AABox& getLocalAABox() const { return _localAABox; }
-
     int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
@@ -513,10 +564,10 @@ public:
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
     QJsonObject toJson() const;
-    void fromJson(const QJsonObject& json);
+    void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
-    glm::vec3 getClientGlobalPosition() { return _globalPosition; }
-    glm::vec3 getGlobalBoundingBoxCorner() { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
+    glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
+    glm::vec3 getGlobalBoundingBoxCorner() const { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
 
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
@@ -528,15 +579,39 @@ public:
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 
-    float getDataRate(const QString& rateName = QString(""));
+    Q_INVOKABLE float getDataRate(const QString& rateName = QString("")) const;
+    Q_INVOKABLE float getUpdateRate(const QString& rateName = QString("")) const;
 
-    int getJointCount() { return _jointData.size(); }
+    int getJointCount() const { return _jointData.size(); }
 
-    QVector<JointData> getLastSentJointData() { 
+    QVector<JointData> getLastSentJointData() {
         QReadLocker readLock(&_jointDataLock);
         _lastSentJointData.resize(_jointData.size());
         return _lastSentJointData;
     }
+
+
+    bool shouldDie() const {
+        const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
+        return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS;
+    }
+
+    static const float OUT_OF_VIEW_PENALTY;
+
+    static void sortAvatars(
+        QList<AvatarSharedPointer> avatarList,
+        const ViewFrustum& cameraView,
+        std::priority_queue<AvatarPriority>& sortedAvatarsOut,
+        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
+        std::function<float(AvatarSharedPointer)> getBoundingRadius,
+        std::function<bool(AvatarSharedPointer)> shouldIgnore);
+
+    // TODO: remove this HACK once we settle on optimal sort coefficients
+    // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
+    static float _avatarSortCoefficientSize;
+    static float _avatarSortCoefficientCenter;
+    static float _avatarSortCoefficientAge;
+
 
 
 public slots:
@@ -551,28 +626,27 @@ public slots:
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
-    float getTargetScale() { return _targetScale; }
+    float getTargetScale() const { return _targetScale; } // why is this a slot?
 
     void resetLastSent() { _lastToByteArray = 0; }
 
 protected:
-    void lazyInitHeadData();
+    void lazyInitHeadData() const;
 
-    float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition);
-    float getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition);
+    float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) const;
+    float getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition) const;
 
-    bool avatarBoundingBoxChangedSince(quint64 time);
-    bool avatarScaleChangedSince(quint64 time);
-    bool lookAtPositionChangedSince(quint64 time);
-    bool audioLoudnessChangedSince(quint64 time);
-    bool sensorToWorldMatrixChangedSince(quint64 time);
-    bool additionalFlagsChangedSince(quint64 time);
+    bool avatarBoundingBoxChangedSince(quint64 time) const { return _avatarBoundingBoxChanged >= time; }
+    bool avatarScaleChangedSince(quint64 time) const { return _avatarScaleChanged >= time; }
+    bool lookAtPositionChangedSince(quint64 time) const { return _headData->lookAtPositionChangedSince(time); }
+    bool audioLoudnessChangedSince(quint64 time) const { return _headData->audioLoudnessChangedSince(time); }
+    bool sensorToWorldMatrixChangedSince(quint64 time) const { return _sensorToWorldMatrixChanged >= time; }
+    bool additionalFlagsChangedSince(quint64 time) const { return _additionalFlagsChanged >= time; }
+    bool parentInfoChangedSince(quint64 time) const { return _parentChanged >= time; }
+    bool faceTrackerInfoChangedSince(quint64 time) const { return true; } // FIXME
 
-    bool hasParent() { return !getParentID().isNull(); }
-    bool parentInfoChangedSince(quint64 time);
-
-    bool hasFaceTracker() { return _headData ? _headData->_isFaceTrackerConnected : false; }
-    bool faceTrackerInfoChangedSince(quint64 time);
+    bool hasParent() const { return !getParentID().isNull(); }
+    bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
 
     glm::vec3 _handPosition;
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
@@ -594,9 +668,9 @@ protected:
     KeyState _keyState;
 
     bool _forceFaceTrackerConnected;
-    bool _hasNewJointData; // set in AvatarData, cleared in Avatar
+    bool _hasNewJointData { true }; // set in AvatarData, cleared in Avatar
 
-    HeadData* _headData;
+    mutable HeadData* _headData { nullptr };
 
     QUrl _skeletonModelURL;
     bool _firstSkeletonCheck { true };
@@ -604,7 +678,7 @@ protected:
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
     QString _sessionDisplayName { };
-    const QUrl& cannonicalSkeletonModelURL(const QUrl& empty);
+    QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
 
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
@@ -620,8 +694,6 @@ protected:
     virtual void updateJointMappings();
 
     glm::vec3 _targetVelocity;
-
-    AABox _localAABox;
 
     SimpleMovingAverage _averageBytesReceived;
 
@@ -644,7 +716,7 @@ protected:
 
     quint64  _lastToByteArray { 0 }; // tracks the last time we did a toByteArray
 
-    // Some rate data for incoming data
+    // Some rate data for incoming data in bytes
     RateCounter<> _parseBufferRate;
     RateCounter<> _globalPositionRate;
     RateCounter<> _localPositionRate;
@@ -658,6 +730,24 @@ protected:
     RateCounter<> _parentInfoRate;
     RateCounter<> _faceTrackerRate;
     RateCounter<> _jointDataRate;
+
+    // Some rate data for incoming data updates
+    RateCounter<> _parseBufferUpdateRate;
+    RateCounter<> _globalPositionUpdateRate;
+    RateCounter<> _localPositionUpdateRate;
+    RateCounter<> _avatarBoundingBoxUpdateRate;
+    RateCounter<> _avatarOrientationUpdateRate;
+    RateCounter<> _avatarScaleUpdateRate;
+    RateCounter<> _lookAtPositionUpdateRate;
+    RateCounter<> _audioLoudnessUpdateRate;
+    RateCounter<> _sensorToWorldUpdateRate;
+    RateCounter<> _additionalFlagsUpdateRate;
+    RateCounter<> _parentInfoUpdateRate;
+    RateCounter<> _faceTrackerUpdateRate;
+    RateCounter<> _jointDataUpdateRate;
+
+    // Some rate data for outgoing data
+    AvatarDataRate _outboundDataRate;
 
     glm::vec3 _globalBoundingBoxDimensions;
     glm::vec3 _globalBoundingBoxOffset;
@@ -759,6 +849,11 @@ Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
 
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
 void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
+
+Q_DECLARE_METATYPE(AvatarEntityMap)
+
+QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value);
+void AvatarEntityMapFromScriptValue(const QScriptValue& object, AvatarEntityMap& value);
 
 // faux joint indexes (-1 means invalid)
 const int SENSOR_TO_WORLD_MATRIX_INDEX = 65534; // -2

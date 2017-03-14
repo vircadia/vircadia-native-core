@@ -138,8 +138,6 @@ private:
 
     friend class DomainServer;
 
-    void validateDescriptorsMap();
-
     // these cause calls to metaverse's group api
     void apiGetGroupID(const QString& groupName);
     void apiGetGroupRanks(const QUuid& groupID);

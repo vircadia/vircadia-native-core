@@ -12,9 +12,14 @@
 #ifndef hifi_AudioMixerStats_h
 #define hifi_AudioMixerStats_h
 
+#ifdef HIFI_AUDIO_MIXER_DEBUG
+#include <cstdint>
+#endif
+
 struct AudioMixerStats {
     int sumStreams { 0 };
     int sumListeners { 0 };
+    int sumListenersSilent { 0 };
 
     int totalMixes { 0 };
 
@@ -24,6 +29,10 @@ struct AudioMixerStats {
 
     int manualStereoMixes { 0 };
     int manualEchoMixes { 0 };
+
+#ifdef HIFI_AUDIO_MIXER_DEBUG
+    uint64_t mixTime { 0 };
+#endif
 
     void reset();
     void accumulate(const AudioMixerStats& otherStats);

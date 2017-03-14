@@ -996,6 +996,10 @@ function saveSettings() {
       if (password && password.length > 0) {
         formJSON["security"]["http_password"] = sha256_digest(password);
       }
+      var verify_password = formJSON["security"]["verify_http_password"];
+      if (verify_password && verify_password.length > 0) {
+        formJSON["security"]["verify_http_password"] = sha256_digest(verify_password);
+      }
     }
 
     // verify that the password and confirmation match before saving
@@ -1010,7 +1014,6 @@ function saveSettings() {
           bootbox.alert({"message": "Passwords must match!", "title":"Password Error"});
           canPost = false;
         } else {
-          formJSON["security"]["http_password"] = sha256_digest(password);
           delete formJSON["security"]["verify_http_password"];
         }
       }
@@ -1306,7 +1309,9 @@ function badgeSidebarForDifferences(changedElement) {
   var isGrouped = $('#' + panelParentID).hasClass('grouped');
 
   if (isGrouped) {
-    var initialPanelJSON = Settings.initialValues[panelParentID];
+    var initialPanelJSON = Settings.initialValues[panelParentID]
+      ? Settings.initialValues[panelParentID]
+      : {};
 
     // get a JSON representation of that section
     var panelJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID];
@@ -1417,7 +1422,7 @@ function addTableRow(row) {
 
   input_clone.children('td').each(function () {
     if ($(this).attr("name") !== keepField) {
-      $(this).find("input").val($(this).attr('data-default'));
+      $(this).find("input").val($(this).children('input').attr('data-default'));
     }
   });
 
@@ -1595,7 +1600,11 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
 
     // get a JSON representation of that section
     var panelSettingJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID][tableShortName]
-    var initialPanelSettingJSON = Settings.initialValues[panelParentID][tableShortName]
+    if (Settings.initialValues[panelParentID]) {
+      var initialPanelSettingJSON = Settings.initialValues[panelParentID][tableShortName]
+    } else {
+      var initialPanelSettingJSON = {};
+    }
 
     // if they are equal, we don't need data-changed
     isTrue = !_.isEqual(panelSettingJSON, initialPanelSettingJSON)

@@ -97,6 +97,7 @@ private:
 
     bool _enabled { false };
     std::list<TraceEvent> _events;
+    std::list<TraceEvent> _metadataEvents;
     std::mutex _eventsMutex;
 };
 

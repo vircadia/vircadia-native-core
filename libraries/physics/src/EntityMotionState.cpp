@@ -199,15 +199,12 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
         return;
     }
     assert(entityTreeIsLocked());
-    if (_motionType == MOTION_TYPE_KINEMATIC) {
+    if (_motionType == MOTION_TYPE_KINEMATIC && !_entity->hasAncestorOfType(NestableType::Avatar)) {
         BT_PROFILE("kinematicIntegration");
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation and uses full gravity for acceleration.
-        if (_entity->hasAncestorOfType(NestableType::Avatar)) {
-            _entity->setAcceleration(glm::vec3(0.0f));
-        } else {
-            _entity->setAcceleration(_entity->getGravity());
-        }
+        _entity->setAcceleration(_entity->getGravity());
+
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
         _entity->stepKinematicMotion(dt);
@@ -614,7 +611,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     properties.setClientOnly(_entity->getClientOnly());
     properties.setOwningAvatarID(_entity->getOwningAvatarID());
 
-    entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, tree, id, properties);
+    entityPacketSender->queueEditEntityMessage(PacketType::EntityPhysics, tree, id, properties);
     _entity->setLastBroadcast(now);
 
     // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
@@ -630,7 +627,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 newQueryCubeProperties.setClientOnly(entityDescendant->getClientOnly());
                 newQueryCubeProperties.setOwningAvatarID(entityDescendant->getOwningAvatarID());
 
-                entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, tree,
+                entityPacketSender->queueEditEntityMessage(PacketType::EntityPhysics, tree,
                                                            descendant->getID(), newQueryCubeProperties);
                 entityDescendant->setLastBroadcast(now);
             }

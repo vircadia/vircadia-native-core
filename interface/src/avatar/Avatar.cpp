@@ -228,17 +228,43 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    bool success = true;
     QScriptEngine scriptEngine;
     entityTree->withWriteLock([&] {
         AvatarEntityMap avatarEntities = getAvatarEntityData();
-        for (auto entityID : avatarEntities.keys()) {
+        AvatarEntityMap::const_iterator dataItr = avatarEntities.begin();
+        while (dataItr != avatarEntities.end()) {
+            // compute hash of data.  TODO? cache this?
+            QByteArray data = dataItr.value();
+            uint32_t newHash = qHash(data);
+
+            // check to see if we recognize this hash and whether it was already successfully processed
+            QUuid entityID = dataItr.key();
+            MapOfAvatarEntityDataHashes::iterator stateItr = _avatarEntityDataHashes.find(entityID);
+            if (stateItr != _avatarEntityDataHashes.end()) {
+                if (stateItr.value().success) {
+                    if (newHash == stateItr.value().hash) {
+                        // data hasn't changed --> nothing to do
+                        ++dataItr;
+                        continue;
+                    }
+                } else {
+                    // NOTE: if the data was unsuccessful in producing an entity in the past
+                    // we will try again just in case something changed (unlikely).
+                    // Unfortunately constantly trying to build the entity for this data costs
+                    // CPU cycles that we'd rather not spend.
+                    // TODO? put a maximum number of tries on this?
+                }
+            } else {
+                // remember this hash for the future
+                stateItr = _avatarEntityDataHashes.insert(entityID, AvatarEntityDataHash(newHash));
+            }
+            ++dataItr;
+
             // see EntityEditPacketSender::queueEditEntityMessage for the other end of this.  unpack properties
             // and either add or update the entity.
-            QByteArray jsonByteArray = avatarEntities.value(entityID);
-            QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(jsonByteArray);
+            QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(data);
             if (!jsonProperties.isObject()) {
-                qCDebug(interfaceapp) << "got bad avatarEntity json" << QString(jsonByteArray.toHex());
+                qCDebug(interfaceapp) << "got bad avatarEntity json" << QString(data.toHex());
                 continue;
             }
 
@@ -266,8 +292,9 @@ void Avatar::updateAvatarEntities() {
                 properties.setScript(noScript);
             }
 
+            // try to build the entity
             EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
-
+            bool success = true;
             if (entity) {
                 if (entityTree->updateEntity(entityID, properties)) {
                     entity->updateLastEditedFromRemote();
@@ -280,6 +307,7 @@ void Avatar::updateAvatarEntities() {
                     success = false;
                 }
             }
+            stateItr.value().success = success;
         }
 
         AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
@@ -292,26 +320,38 @@ void Avatar::updateAvatarEntities() {
                     }
                 }
             });
+
+            // remove stale data hashes
+            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+                MapOfAvatarEntityDataHashes::iterator stateItr = _avatarEntityDataHashes.find(entityID);
+                if (stateItr != _avatarEntityDataHashes.end()) {
+                    _avatarEntityDataHashes.erase(stateItr);
+                }
+            }
         }
     });
 
-    if (success) {
-        setAvatarEntityDataChanged(false);
-    }
-}
-
-bool Avatar::shouldDie() const {
-    const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
-    return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS;
+    setAvatarEntityDataChanged(false);
 }
 
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
+
+    _simulationRate.increment();
+    if (inView) {
+        _simulationInViewRate.increment();
+    }
+
+
     PerformanceTimer perfTimer("simulate");
     {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView && _hasNewJointData) {
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
+            glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
+            _skeletonModel->getRig()->computeExternalPoses(rootTransform);
+            _jointDataSimulationRate.increment();
+
             _skeletonModel->simulate(deltaTime, true);
 
             locationChanged(); // joints changed, so if there are any children, update them.
@@ -329,6 +369,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
         }
+        _skeletonModelSimulationRate.increment();
     }
 
     // update animation for display name fade in/out
@@ -353,8 +394,26 @@ void Avatar::simulate(float deltaTime, bool inView) {
         measureMotionDerivatives(deltaTime);
         simulateAttachments(deltaTime);
         updatePalms();
+    }
+    {
+        PROFILE_RANGE(simulation, "entities");
         updateAvatarEntities();
     }
+}
+
+float Avatar::getSimulationRate(const QString& rateName) const {
+    if (rateName == "") {
+        return _simulationRate.rate();
+    } else if (rateName == "avatar") {
+        return _simulationRate.rate();
+    } else if (rateName == "avatarInView") {
+        return _simulationInViewRate.rate();
+    } else if (rateName == "skeletonModel") {
+        return _skeletonModelSimulationRate.rate();
+    } else if (rateName == "jointData") {
+        return _jointDataSimulationRate.rate();
+    }
+    return 0.0f;
 }
 
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
@@ -875,6 +934,10 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
+    if (index < 0) {
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
+    }
+
     switch(index) {
         case SENSOR_TO_WORLD_MATRIX_INDEX: {
             glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
@@ -911,6 +974,10 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
 }
 
 glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    if (index < 0) {
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
+    }
+
     switch(index) {
         case SENSOR_TO_WORLD_MATRIX_INDEX: {
             glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
@@ -1010,7 +1077,7 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setModelURLFinished(bool success) {
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
-        qDebug() << "Using default after failing to load Avatar model: " << _skeletonModelURL;
+        qCWarning(interfaceapp) << "Using default after failing to load Avatar model: " << _skeletonModelURL;
         // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
         // we don't redo this every time we receive an identity packet from the avatar with the bad url.
         QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
@@ -1298,6 +1365,7 @@ void Avatar::setParentID(const QUuid& parentID) {
     if (!isMyAvatar()) {
         return;
     }
+    QUuid initialParentID = getParentID();
     bool success;
     Transform beforeChangeTransform = getTransform(success);
     SpatiallyNestable::setParentID(parentID);
@@ -1305,6 +1373,9 @@ void Avatar::setParentID(const QUuid& parentID) {
         setTransform(beforeChangeTransform, success);
         if (!success) {
             qCDebug(interfaceapp) << "Avatar::setParentID failed to reset avatar's location.";
+        }
+        if (initialParentID != parentID) {
+            _parentChanged = usecTimestampNow();
         }
     }
 }

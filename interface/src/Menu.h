@@ -49,7 +49,6 @@ namespace MenuOption {
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString Back = "Back";
-    const QString BandwidthDetails = "Bandwidth Details";
     const QString BinaryEyelidControl = "Binary Eyelid Control";
     const QString BookmarkLocation = "Bookmark Location";
     const QString Bookmarks = "Bookmarks";
@@ -98,6 +97,7 @@ namespace MenuOption {
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EnableCharacterController = "Enable avatar collisions";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
+    const QString EntityScriptServerLog = "Entity Script Server Log";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";

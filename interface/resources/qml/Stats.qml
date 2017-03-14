@@ -105,6 +105,14 @@ Item {
                         visible: root.expanded
                         text: "Asset Mbps In/Out: " + root.assetMbpsIn.toFixed(2) + "/" + root.assetMbpsOut.toFixed(2)
                     }
+                    StatText {
+                        visible: root.expanded
+                        text: "Avatars Updated: " + root.updatedAvatarCount
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text: "Avatars NOT Updated: " + root.notUpdatedAvatarCount
+                    }
                 }
             }
 
@@ -175,6 +183,31 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
+                        text: "Audio Mixer In: " + root.audioMixerInKbps + " kbps, " +
+                            root.audioMixerInPps + "pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
+                            "Silent: " + root.audioSilentInboundPPS + " pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio Mixer Out: " + root.audioMixerOutKbps + " kbps, " +
+                            root.audioMixerOutPps + "pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio Out Mic: " + root.audioMicOutboundPPS + " pps, " +
+                            "Silent: " + root.audioSilentOutboundPPS + " pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio Codec: " + root.audioCodec + " Noise Gate: " +
+                            root.audioNoiseGate;
+                    }
+                    StatText {
+                        visible: root.expanded;
                         text: "Downloads: " + root.downloads + "/" + root.downloadLimit +
                               ", Pending: " + root.downloadsPending;
                     }
@@ -217,7 +250,10 @@ Item {
                         text: "      Batch: " + root.batchFrameTime.toFixed(1) + " ms"
                     }
                     StatText {
-                        text: "      GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                        text: "        GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                    }
+                    StatText {
+                        text: "     Avatar: " + root.avatarSimulationTime.toFixed(1) + " ms"
                     }
                     StatText {
                         text: "Triangles: " + root.triangles +

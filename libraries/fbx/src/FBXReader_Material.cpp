@@ -27,6 +27,56 @@
 
 #include "ModelFormatLogging.h"
 
+void FBXMaterial::getTextureNames(QSet<QString>& textureList) const {
+    if (!normalTexture.isNull()) {
+        textureList.insert(normalTexture.name);
+    }
+    if (!albedoTexture.isNull()) {
+        textureList.insert(albedoTexture.name);
+    }
+    if (!opacityTexture.isNull()) {
+        textureList.insert(opacityTexture.name);
+    }
+    if (!glossTexture.isNull()) {
+        textureList.insert(glossTexture.name);
+    }
+    if (!roughnessTexture.isNull()) {
+        textureList.insert(roughnessTexture.name);
+    }
+    if (!specularTexture.isNull()) {
+        textureList.insert(specularTexture.name);
+    }
+    if (!metallicTexture.isNull()) {
+        textureList.insert(metallicTexture.name);
+    }
+    if (!emissiveTexture.isNull()) {
+        textureList.insert(emissiveTexture.name);
+    }
+    if (!occlusionTexture.isNull()) {
+        textureList.insert(occlusionTexture.name);
+    }
+    if (!scatteringTexture.isNull()) {
+        textureList.insert(scatteringTexture.name);
+    }
+    if (!lightmapTexture.isNull()) {
+        textureList.insert(lightmapTexture.name);
+    }
+}
+
+void FBXMaterial::setMaxNumPixelsPerTexture(int maxNumPixels) {
+    normalTexture.maxNumPixels = maxNumPixels;
+    albedoTexture.maxNumPixels = maxNumPixels;
+    opacityTexture.maxNumPixels = maxNumPixels;
+    glossTexture.maxNumPixels = maxNumPixels;
+    roughnessTexture.maxNumPixels = maxNumPixels;
+    specularTexture.maxNumPixels = maxNumPixels;
+    metallicTexture.maxNumPixels = maxNumPixels;
+    emissiveTexture.maxNumPixels = maxNumPixels;
+    occlusionTexture.maxNumPixels = maxNumPixels;
+    scatteringTexture.maxNumPixels = maxNumPixels;
+    lightmapTexture.maxNumPixels = maxNumPixels;
+}
+
 bool FBXMaterial::needTangentSpace() const {
     return !normalTexture.isNull();
 }
@@ -47,10 +97,10 @@ FBXTexture FBXReader::getTexture(const QString& textureID) {
     texture.texcoordSet = 0;
     if (_textureParams.contains(textureID)) {
         auto p = _textureParams.value(textureID);
-        
+
         texture.transform.setTranslation(p.translation);
         texture.transform.setRotation(glm::quat(glm::radians(p.rotation)));
-        
+
         auto scaling = p.scaling;
         // Protect from bad scaling which should never happen
         if (scaling.x == 0.0f) {
@@ -63,7 +113,7 @@ FBXTexture FBXReader::getTexture(const QString& textureID) {
             scaling.z = 1.0f;
         }
         texture.transform.setScale(scaling);
-        
+
         if ((p.UVSet != "map1") && (p.UVSet != "UVSet0")) {
             texture.texcoordSet = 1;
         }
@@ -78,11 +128,10 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
     QJsonDocument materialMapDocument = QJsonDocument::fromJson(materialMapString.toUtf8());
     QJsonObject materialMap = materialMapDocument.object();
 
-    // foreach (const QString& materialID, materials) {
     for (QHash<QString, FBXMaterial>::iterator it = _fbxMaterials.begin(); it != _fbxMaterials.end(); it++) {
         FBXMaterial& material = (*it);
 
-        // Maya is the exporting the shading model and we aretrying to use it
+        // Maya is the exporting the shading model and we are trying to use it
         bool isMaterialLambert = (material.shadingModel.toLower() == "lambert");
 
         // the pure material associated with this part
@@ -127,21 +176,19 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
             detectDifferentUVs |= (transparentTexture.texcoordSet != 0) || (!transparentTexture.transform.isIdentity());
         }
 
-
-
         FBXTexture normalTexture;
         QString bumpTextureID = bumpTextures.value(material.materialID);
         QString normalTextureID = normalTextures.value(material.materialID);
         if (!normalTextureID.isNull()) {
             normalTexture = getTexture(normalTextureID);
             normalTexture.isBumpmap = false;
-            
+
             material.normalTexture = normalTexture;
             detectDifferentUVs |= (normalTexture.texcoordSet != 0) || (!normalTexture.transform.isIdentity());
         } else if (!bumpTextureID.isNull()) {
             normalTexture = getTexture(bumpTextureID);
             normalTexture.isBumpmap = true;
-            
+
             material.normalTexture = normalTexture;
             detectDifferentUVs |= (normalTexture.texcoordSet != 0) || (!normalTexture.transform.isIdentity());
         }
@@ -151,7 +198,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
         if (!specularTextureID.isNull()) {
             specularTexture = getTexture(specularTextureID);
             detectDifferentUVs |= (specularTexture.texcoordSet != 0) || (!specularTexture.transform.isIdentity());
-            material.specularTexture = specularTexture;            
+            material.specularTexture = specularTexture;
         }
 
         FBXTexture metallicTexture;
@@ -222,7 +269,7 @@ void FBXReader::consolidateFBXMaterials(const QVariantHash& mapping) {
                 ambientTextureID = ambientFactorTextures.value(material.materialID);
             }
         }
-        
+
         if (_loadLightmaps && !ambientTextureID.isNull()) {
             ambientTexture = getTexture(ambientTextureID);
             detectDifferentUVs |= (ambientTexture.texcoordSet != 0) || (!ambientTexture.transform.isIdentity());

@@ -49,6 +49,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, simrate, 0)
     STATS_PROPERTY(int, avatarSimrate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
+    STATS_PROPERTY(int, updatedAvatarCount, 0)
+    STATS_PROPERTY(int, notUpdatedAvatarCount, 0)
     STATS_PROPERTY(int, packetInCount, 0)
     STATS_PROPERTY(int, packetOutCount, 0)
     STATS_PROPERTY(float, mbpsIn, 0)
@@ -68,8 +70,20 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, avatarMixerOutKbps, 0)
     STATS_PROPERTY(int, avatarMixerOutPps, 0)
     STATS_PROPERTY(float, myAvatarSendRate, 0)
+
+    STATS_PROPERTY(int, audioMixerInKbps, 0)
+    STATS_PROPERTY(int, audioMixerInPps, 0)
+    STATS_PROPERTY(int, audioMixerOutKbps, 0)
+    STATS_PROPERTY(int, audioMixerOutPps, 0)
     STATS_PROPERTY(int, audioMixerKbps, 0)
     STATS_PROPERTY(int, audioMixerPps, 0)
+    STATS_PROPERTY(int, audioMicOutboundPPS, 0)
+    STATS_PROPERTY(int, audioSilentOutboundPPS, 0)
+    STATS_PROPERTY(int, audioAudioInboundPPS, 0)
+    STATS_PROPERTY(int, audioSilentInboundPPS, 0)
+    STATS_PROPERTY(QString, audioCodec, QString())
+    STATS_PROPERTY(QString, audioNoiseGate, QString())
+
     STATS_PROPERTY(int, downloads, 0)
     STATS_PROPERTY(int, downloadLimit, 0)
     STATS_PROPERTY(int, downloadsPending, 0)
@@ -111,6 +125,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuFreeMemory, 0)
     STATS_PROPERTY(float, gpuFrameTime, 0)
     STATS_PROPERTY(float, batchFrameTime, 0)
+    STATS_PROPERTY(float, avatarSimulationTime, 0)
 
 public:
     static Stats* getInstance();
@@ -156,6 +171,8 @@ signals:
     void simrateChanged();
     void avatarSimrateChanged();
     void avatarCountChanged();
+    void updatedAvatarCountChanged();
+    void notUpdatedAvatarCountChanged();
     void packetInCountChanged();
     void packetOutCountChanged();
     void mbpsInChanged();
@@ -175,8 +192,19 @@ signals:
     void avatarMixerOutKbpsChanged();
     void avatarMixerOutPpsChanged();
     void myAvatarSendRateChanged();
+    void audioMixerInKbpsChanged();
+    void audioMixerInPpsChanged();
+    void audioMixerOutKbpsChanged();
+    void audioMixerOutPpsChanged();
     void audioMixerKbpsChanged();
     void audioMixerPpsChanged();
+    void audioMicOutboundPPSChanged();
+    void audioSilentOutboundPPSChanged();
+    void audioAudioInboundPPSChanged();
+    void audioSilentInboundPPSChanged();
+    void audioCodecChanged();
+    void audioNoiseGateChanged();
+
     void downloadsChanged();
     void downloadLimitChanged();
     void downloadsPendingChanged();
@@ -216,6 +244,7 @@ signals:
     void gpuFreeMemoryChanged();
     void gpuFrameTimeChanged();
     void batchFrameTimeChanged();
+    void avatarSimulationTimeChanged();
     void rectifiedTextureCountChanged();
     void decimatedTextureCountChanged();
 

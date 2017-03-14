@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, HMD, WebTablet, UIWebTablet */
+/* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays, MyAvatar */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletShown = false;
@@ -26,12 +26,19 @@
         print("show tablet-ui");
 
         var DEFAULT_WIDTH = 0.4375;
-        var DEFAULT_HMD_TABLET_SCALE = 100;
-        var HMD_TABLET_SCALE = Settings.getValue("hmdTabletScale") || DEFAULT_HMD_TABLET_SCALE;
-        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", DEFAULT_WIDTH * (HMD_TABLET_SCALE / 100), null, activeHand, true);
+        var DEFAULT_TABLET_SCALE = 100;
+        var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
+        var TABLET_SCALE = DEFAULT_TABLET_SCALE;
+        if (toolbarMode) {
+            TABLET_SCALE = Settings.getValue("desktopTabletScale") || DEFAULT_TABLET_SCALE;
+        } else {
+            TABLET_SCALE = Settings.getValue("hmdTabletScale") || DEFAULT_TABLET_SCALE;
+        }
+        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml", DEFAULT_WIDTH * (TABLET_SCALE / 100), null, activeHand, true);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
-        HMD.homeButtonID = UIWebTablet.homeButtonEntity;
+        HMD.homeButtonID = UIWebTablet.homeButtonID;
+        HMD.tabletScreenID = UIWebTablet.webOverlayID;
     }
 
     function hideTabletUI() {
@@ -48,13 +55,26 @@
             UIWebTablet = null;
             HMD.tabletID = null;
             HMD.homeButtonID = null;
+            HMD.tabletScreenID = null;
         }
     }
 
     function updateShowTablet() {
+
+        // close the WebTablet if it we go into toolbar mode.
+        var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
+        if (tabletShown && toolbarMode) {
+            hideTabletUI();
+            HMD.closeTablet();
+            return;
+        }
+
         if (tabletShown) {
+            var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
+            var currentMicEnabled = !Menu.isOptionChecked(MUTE_MICROPHONE_MENU_ITEM);
             var currentMicLevel = getMicLevel();
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.updateMicEnabled(currentMicEnabled);
             tablet.updateAudioBar(currentMicLevel);
         }
 
@@ -64,9 +84,11 @@
             // other reason, close the tablet.
             hideTabletUI();
             HMD.closeTablet();
-        } else if (HMD.showTablet && !tabletShown) {
+        } else if (HMD.showTablet && !tabletShown && !toolbarMode) {
+            UserActivityLogger.openedTablet(Settings.getValue("tabletVisibleToOthers"));
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
+            UserActivityLogger.closedTablet();
             hideTabletUI();
         }
     }
@@ -86,7 +108,6 @@
     var accumulatedLevel = 0.0;
     // Note: Might have to tweak the following two based on the rate we're getting the data
     var AVERAGING_RATIO = 0.05;
-    var MIC_LEVEL_UPDATE_INTERVAL_MS = 100;
 
     // Calculate microphone level with the same scaling equation (log scale, exponentially averaged) in AvatarInputs and pal.js
     function getMicLevel() {
@@ -110,8 +131,11 @@
     }
 
     Script.scriptEnding.connect(function () {
-        Entities.deleteEntity(HMD.tabletID);
+        var tabletID = HMD.tabletID;
+        Entities.deleteEntity(tabletID);
+        Overlays.deleteOverlay(tabletID)
         HMD.tabletID = null;
         HMD.homeButtonID = null;
+        HMD.tabletScreenID = null;
     });
 }()); // END LOCAL_SCOPE

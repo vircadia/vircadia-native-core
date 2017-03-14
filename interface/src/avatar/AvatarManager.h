@@ -41,7 +41,11 @@ public:
     void init();
 
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
-    AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) override;
+    AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const override;
+
+    int getNumAvatarsUpdated() const { return _numAvatarsUpdated; }
+    int getNumAvatarsNotUpdated() const { return _numAvatarsNotUpdated; }
+    float getAvatarSimulationTime() const { return _avatarSimulationTime; }
 
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
@@ -69,10 +73,17 @@ public:
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
-    Q_INVOKABLE float getAvatarDataRate(const QUuid& sessionID, const QString& rateName = QString(""));
+    Q_INVOKABLE float getAvatarDataRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
+    Q_INVOKABLE float getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
+    Q_INVOKABLE float getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
+
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue());
+
+    // TODO: remove this HACK once we settle on optimal default sort coefficients
+    Q_INVOKABLE float getAvatarSortCoefficient(const QString& name);
+    Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const QScriptValue& value);
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
 
@@ -109,7 +120,9 @@ private:
     VectorOfMotionStates _motionStatesToRemoveFromPhysics;
 
     RateCounter<> _myAvatarSendRate;
-
+    int _numAvatarsUpdated { 0 };
+    int _numAvatarsNotUpdated { 0 };
+    float _avatarSimulationTime { 0.0f };
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

@@ -26,9 +26,10 @@ public:
     };
 
     enum EventType {
-        Press,     // A button has just been pressed
-        Release,   // A button has just been released
-        Move       // The pointer has just moved
+        Press,       // A button has just been pressed
+        DoublePress, // A button has just been double pressed
+        Release,     // A button has just been released
+        Move         // The pointer has just moved
     };
 
     PointerEvent();

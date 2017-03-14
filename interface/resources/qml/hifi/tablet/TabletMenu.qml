@@ -14,6 +14,7 @@ FocusScope {
 
     property var rootMenu: Menu { objectName:"rootMenu" }
     property var point: Qt.point(50, 50)
+    property string subMenu: ""
 
     TabletMouseHandler { id: menuPopperUpper }
 
@@ -96,11 +97,31 @@ FocusScope {
         menuPopperUpper.closeLastMenu();
     }
 
-    function setRootMenu(menu) {
-        tabletMenu.rootMenu = menu
+    function setRootMenu(rootMenu, subMenu) {
+        tabletMenu.subMenu = subMenu;
+        tabletMenu.rootMenu = rootMenu;
         buildMenu()
     }
+
     function buildMenu() {
-        menuPopperUpper.popup(tabletMenu, rootMenu.items)
+        // Build submenu if specified.
+        if (subMenu !== "") {
+            var index = 0;
+            var found = false;
+            while (!found && index < rootMenu.items.length) {
+                found = rootMenu.items[index].title === subMenu;
+                if (!found) {
+                    index += 1;
+                }
+            }
+            subMenu = "";  // Continue with full menu after initially displaying submenu.
+            if (found) {
+                menuPopperUpper.popup(tabletMenu, rootMenu.items[index].items);
+                return;
+            }
+        }
+
+        // Otherwise build whole menu.
+        menuPopperUpper.popup(tabletMenu, rootMenu.items);
     }
 }

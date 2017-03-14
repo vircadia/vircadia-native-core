@@ -206,6 +206,17 @@ foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
   include(${CUSTOM_MACRO})
 endforeach()
 
+file(GLOB_RECURSE JS_SRC scripts/*.js)
+add_custom_target(js SOURCES ${JS_SRC})
+
+if (UNIX)
+   install(
+   DIRECTORY "${CMAKE_SOURCE_DIR}/scripts"
+   DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/interface
+   COMPONENT ${CLIENT_COMPONENT}
+   )
+endif()
+
 if (ANDROID)
   file(GLOB ANDROID_CUSTOM_MACROS "cmake/android/*.cmake")
   foreach(CUSTOM_MACRO ${ANDROID_CUSTOM_MACROS})

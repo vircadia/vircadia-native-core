@@ -14,21 +14,29 @@
 void AudioMixerStats::reset() {
     sumStreams = 0;
     sumListeners = 0;
+    sumListenersSilent = 0;
     totalMixes = 0;
     hrtfRenders = 0;
     hrtfSilentRenders = 0;
     hrtfThrottleRenders = 0;
     manualStereoMixes = 0;
     manualEchoMixes = 0;
+#ifdef HIFI_AUDIO_MIXER_DEBUG
+    mixTime = 0;
+#endif
 }
 
 void AudioMixerStats::accumulate(const AudioMixerStats& otherStats) {
     sumStreams += otherStats.sumStreams;
     sumListeners += otherStats.sumListeners;
+    sumListenersSilent += otherStats.sumListenersSilent;
     totalMixes += otherStats.totalMixes;
     hrtfRenders += otherStats.hrtfRenders;
     hrtfSilentRenders += otherStats.hrtfSilentRenders;
     hrtfThrottleRenders += otherStats.hrtfThrottleRenders;
     manualStereoMixes += otherStats.manualStereoMixes;
     manualEchoMixes += otherStats.manualEchoMixes;
+#ifdef HIFI_AUDIO_MIXER_DEBUG
+    mixTime += otherStats.mixTime;
+#endif
 }

@@ -12,64 +12,32 @@
 #ifndef hifi_LogDialog_h
 #define hifi_LogDialog_h
 
-#include <QDialog>
-#include <QMutex>
-#include <QPlainTextEdit>
-#include <QLineEdit>
-#include <QPushButton>
-#include <QCheckBox>
-#include <QSyntaxHighlighter>
+#include "BaseLogDialog.h"
 
-#include <shared/AbstractLoggerInterface.h>
+class QCheckBox;
+class QPushButton;
+class QResizeEvent;
+class AbstractLoggerInterface;
 
-class KeywordHighlighter : public QSyntaxHighlighter {
+class LogDialog : public BaseLogDialog {
     Q_OBJECT
 
 public:
-    KeywordHighlighter(QTextDocument *parent = 0);
-    QString keyword;
-
-protected:
-    void highlightBlock(const QString &text) override;
-
-private:
-    QTextCharFormat keywordFormat;
-
-};
-
-class LogDialog : public QDialog {
-    Q_OBJECT
-
-public:
-    LogDialog(QWidget*, AbstractLoggerInterface*);
-    ~LogDialog();
-
-public slots:
-    void appendLogLine(QString logLine);
+    LogDialog(QWidget* parent, AbstractLoggerInterface* logger);
 
 private slots:
-    void handleSearchButton();
     void handleRevealButton();
-    void handleExtraDebuggingCheckbox(const int);
-    void handleSearchTextChanged(const QString);
+    void handleExtraDebuggingCheckbox(int);
 
 protected:
-    void resizeEvent(QResizeEvent*) override;
-    void showEvent(QShowEvent*) override;
-
+    void resizeEvent(QResizeEvent* event) override;
+    QString getCurrentLog() override;
+    
 private:
-    QPushButton* _searchButton;
-    QLineEdit* _searchTextBox;
     QCheckBox* _extraDebuggingBox;
     QPushButton* _revealLogButton;
-    QPlainTextEdit* _logTextBox;
-    QString _searchTerm;
-    KeywordHighlighter* _highlighter;
 
     AbstractLoggerInterface* _logger;
-
-    void initControls();
-    void showLogData();
 };
 
 #endif // hifi_LogDialog_h

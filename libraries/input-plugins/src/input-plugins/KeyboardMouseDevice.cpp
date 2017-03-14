@@ -25,6 +25,9 @@ void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputC
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->withLock([&, this]() {
         _inputDevice->update(deltaTime, inputCalibrationData);
+
+        _inputDevice->_axisStateMap[MOUSE_AXIS_X] = _lastCursor.x();
+        _inputDevice->_axisStateMap[MOUSE_AXIS_Y] = _lastCursor.y();
     });
 
     // For touch event, we need to check that the last event is not too long ago
@@ -248,6 +251,9 @@ controller::Input::NamedVector KeyboardMouseDevice::InputDevice::getAvailableInp
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_NEG), "MouseMoveLeft"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_Y_POS), "MouseMoveUp"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_Y_NEG), "MouseMoveDown"));
+
+        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X), "MouseX"));
+        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_Y), "MouseY"));
 
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_Y_POS), "MouseWheelRight"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_Y_NEG), "MouseWheelLeft"));

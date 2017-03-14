@@ -24,9 +24,10 @@ var ICON_FOR_TYPE = {
 }
 
 var EDITOR_TIMEOUT_DURATION = 1500;
-
+const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var colorPickers = [];
 var lastEntityID = null;
+
 debugPrint = function(message) {
     EventBridge.emitWebEvent(
         JSON.stringify({
@@ -273,7 +274,7 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
             propertyValue += subPropertyString + ',';
         }
     } else {
-        // We've unchecked, so remove 
+        // We've unchecked, so remove
         propertyValue = propertyValue.replace(subPropertyString + ",", "");
     }
 
@@ -323,13 +324,9 @@ function setUserDataFromEditor(noUpdate) {
                 })
             );
         }
-
     }
-
-
 }
-
-function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, defaultValue) {
+function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
     var properties = {};
     var parsedData = {};
     try {
@@ -339,17 +336,31 @@ function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, d
         } else {
             parsedData = JSON.parse(userDataElement.value);
         }
-
     } catch (e) {}
 
     if (!(groupName in parsedData)) {
         parsedData[groupName] = {}
     }
-    delete parsedData[groupName][keyName];
-    if (checkBoxElement.checked !== defaultValue) {
-        parsedData[groupName][keyName] = checkBoxElement.checked;
-    }
-
+    var keys = Object.keys(updateKeyPair);
+    keys.forEach(function (key) {
+        delete parsedData[groupName][key];
+        if (updateKeyPair[key] !== null && updateKeyPair[key] !== "null") {
+            if (updateKeyPair[key] instanceof Element) {
+                if(updateKeyPair[key].type === "checkbox") {
+                    if (updateKeyPair[key].checked !== defaults[key]) {
+                        parsedData[groupName][key] = updateKeyPair[key].checked;
+                    }
+                } else {
+                    var val = isNaN(updateKeyPair[key].value) ? updateKeyPair[key].value : parseInt(updateKeyPair[key].value);
+                    if (val !== defaults[key]) {
+                        parsedData[groupName][key] = val;
+                    }
+                }
+            } else {
+                parsedData[groupName][key] = updateKeyPair[key];
+            }
+        }
+    });
     if (Object.keys(parsedData[groupName]).length == 0) {
         delete parsedData[groupName];
     }
@@ -368,6 +379,12 @@ function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, d
             properties: properties,
         })
     );
+}
+function userDataChanger(groupName, keyName, values, userDataElement, defaultValue) {
+    var val = {}, def = {};
+    val[keyName] = values;
+    def[keyName] = defaultValue;
+    multiDataUpdater(groupName, val, userDataElement, def);
 };
 
 function setTextareaScrolling(element) {
@@ -521,6 +538,7 @@ function unbindAllInputs() {
 
 function loaded() {
     openEventBridge(function() {
+
         var allSections = [];
         var elID = document.getElementById("property-id");
         var elType = document.getElementById("property-type");
@@ -584,6 +602,13 @@ function loaded() {
         var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
 
         var elGrabbable = document.getElementById("property-grabbable");
+
+        var elCloneable = document.getElementById("property-cloneable");
+        var elCloneableDynamic = document.getElementById("property-cloneable-dynamic");
+        var elCloneableGroup = document.getElementById("group-cloneable-group");
+        var elCloneableLifetime = document.getElementById("property-cloneable-lifetime");
+        var elCloneableLimit = document.getElementById("property-cloneable-limit");
+
         var elWantsTrigger = document.getElementById("property-wants-trigger");
         var elIgnoreIK = document.getElementById("property-ignore-ik");
 
@@ -697,6 +722,7 @@ function loaded() {
 
         var elZoneFlyingAllowed = document.getElementById("property-zone-flying-allowed");
         var elZoneGhostingAllowed = document.getElementById("property-zone-ghosting-allowed");
+        var elZoneFilterURL = document.getElementById("property-zone-filter-url");
 
         var elPolyVoxSections = document.querySelectorAll(".poly-vox-section");
         allSections.push(elPolyVoxSections);
@@ -713,24 +739,22 @@ function loaded() {
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
                 if (data.type == "server_script_status") {
-                    if (!data.statusRetrieved) {
-                        elServerScriptStatus.innerHTML = "Failed to retrieve status";
-                        elServerScriptError.style.display = "none";
+                    elServerScriptError.value = data.errorInfo;
+                    elServerScriptError.style.display = data.errorInfo ? "block" : "none";
+                    if (data.statusRetrieved === false) {
+                        elServerScriptStatus.innerText = "Failed to retrieve status";
                     } else if (data.isRunning) {
-                        if (data.status == "running") {
-                            elServerScriptStatus.innerHTML = "Running";
-                            elServerScriptError.style.display = "none";
-                        } else if (data.status == "error_loading_script") {
-                            elServerScriptStatus.innerHTML = "Error loading script";
-                            elServerScriptError.style.display = "block";
-                        } else if (data.status == "error_running_script") {
-                            elServerScriptStatus.innerHTML = "Error running script";
-                            elServerScriptError.style.display = "block";
-                        }
-                        elServerScriptError.innerHTML = data.errorInfo;;
+                        var ENTITY_SCRIPT_STATUS = {
+                            pending: "Pending",
+                            loading: "Loading",
+                            error_loading_script: "Error loading script",
+                            error_running_script: "Error running script",
+                            running: "Running",
+                            unloaded: "Unloaded",
+                        };
+                        elServerScriptStatus.innerText = ENTITY_SCRIPT_STATUS[data.status] || data.status;
                     } else {
-                        elServerScriptStatus.innerHTML = "Not running";
-                        elServerScriptError.style.display = "none";
+                        elServerScriptStatus.innerText = "Not running";
                     }
                 } else if (data.type == "update") {
 
@@ -781,7 +805,7 @@ function loaded() {
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
-                        //the event bridge and json parsing handle our avatar id string differently.  
+                        //the event bridge and json parsing handle our avatar id string differently.
 
                         lastEntityID = '"' + properties.id + '"';
                         elID.innerHTML = properties.id;
@@ -848,8 +872,16 @@ function loaded() {
                         elCollideOtherAvatar.checked = properties.collidesWith.indexOf("otherAvatar") > -1;
 
                         elGrabbable.checked = properties.dynamic;
+
                         elWantsTrigger.checked = false;
                         elIgnoreIK.checked = true;
+
+                        elCloneable.checked = false;
+                        elCloneableDynamic.checked = false;
+                        elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
+                        elCloneableLimit.value = 0;
+                        elCloneableLifetime.value = 300;
+
                         var parsedUserData = {}
                         try {
                             parsedUserData = JSON.parse(properties.userData);
@@ -864,8 +896,23 @@ function loaded() {
                                 if ("ignoreIK" in parsedUserData["grabbableKey"]) {
                                     elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
                                 }
+                                if ("cloneable" in parsedUserData["grabbableKey"]) {
+                                    elCloneable.checked = parsedUserData["grabbableKey"].cloneable;
+                                    elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
+                                    elCloneableDynamic.checked = parsedUserData["grabbableKey"].cloneDynamic ? parsedUserData["grabbableKey"].cloneDynamic : properties.dynamic;
+                                    elDynamic.checked = elCloneable.checked ? false: properties.dynamic;
+                                    if (elCloneable.checked) {
+                                      if ("cloneLifetime" in parsedUserData["grabbableKey"]) {
+                                          elCloneableLifetime.value = parsedUserData["grabbableKey"].cloneLifetime ? parsedUserData["grabbableKey"].cloneLifetime : 300;
+                                      }
+                                      if ("cloneLimit" in parsedUserData["grabbableKey"]) {
+                                          elCloneableLimit.value = parsedUserData["grabbableKey"].cloneLimit ? parsedUserData["grabbableKey"].cloneLimit : 0;
+                                      }
+                                    }
+                                }
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                        }
 
                         elCollisionSoundURL.value = properties.collisionSoundURL;
                         elLifetime.value = properties.lifetime;
@@ -1034,6 +1081,7 @@ function loaded() {
 
                             elZoneFlyingAllowed.checked = properties.flyingAllowed;
                             elZoneGhostingAllowed.checked = properties.ghostingAllowed;
+                            elZoneFilterURL.value = properties.filterURL;
 
                             showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
                         } else if (properties.type == "PolyVox") {
@@ -1154,8 +1202,38 @@ function loaded() {
         });
 
         elGrabbable.addEventListener('change', function() {
+            if(elCloneable.checked) {
+              elGrabbable.checked = false;
+            }
             userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
         });
+        elCloneableDynamic.addEventListener('change', function (event){
+            userDataChanger("grabbableKey", "cloneDynamic", event.target, elUserData, -1);
+        });
+        elCloneable.addEventListener('change', function (event) {
+            var checked = event.target.checked;
+            if (checked) {
+                multiDataUpdater("grabbableKey",
+                    {cloneLifetime: elCloneableLifetime, cloneLimit: elCloneableLimit, cloneDynamic: elCloneableDynamic, cloneable: event.target},
+                    elUserData, {});
+                elCloneableGroup.style.display = "block";
+                EventBridge.emitWebEvent(
+                    '{"id":' + lastEntityID + ', "type":"update", "properties":{"dynamic":false, "grabbable": false}}'
+                );
+            } else {
+                multiDataUpdater("grabbableKey",
+                    {cloneLifetime: null, cloneLimit: null, cloneDynamic: null, cloneable: false},
+                    elUserData, {});
+                elCloneableGroup.style.display = "none";
+            }
+        });
+
+        var numberListener = function (event) {
+            userDataChanger("grabbableKey", event.target.getAttribute("data-user-data-type"), parseInt(event.target.value), elUserData, false);
+        };
+        elCloneableLifetime.addEventListener('change', numberListener);
+        elCloneableLimit.addEventListener('change', numberListener);
+
         elWantsTrigger.addEventListener('change', function() {
             userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);
         });
@@ -1169,6 +1247,10 @@ function loaded() {
         elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
         elScriptTimestamp.addEventListener('change', createEmitNumberPropertyUpdateFunction('scriptTimestamp'));
         elServerScripts.addEventListener('change', createEmitTextPropertyUpdateFunction('serverScripts'));
+        elServerScripts.addEventListener('change', function() {
+            // invalidate the current status (so that same-same updates can still be observed visually)
+            elServerScriptStatus.innerText = '[' + elServerScriptStatus.innerText + ']';
+        });
 
         elClearUserData.addEventListener("click", function() {
             deleteJSONEditor();
@@ -1385,6 +1467,7 @@ function loaded() {
 
         elZoneFlyingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('flyingAllowed'));
         elZoneGhostingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ghostingAllowed'));
+        elZoneFilterURL.addEventListener('change', createEmitTextPropertyUpdateFunction('filterURL'));
 
         var voxelVolumeSizeChangeFunction = createEmitVec3PropertyUpdateFunction(
             'voxelVolumeSize', elVoxelVolumeSizeX, elVoxelVolumeSizeY, elVoxelVolumeSizeZ);
@@ -1428,13 +1511,23 @@ function loaded() {
             }));
         });
         elReloadServerScriptsButton.addEventListener("click", function() {
+            // invalidate the current status (so that same-same updates can still be observed visually)
+            elServerScriptStatus.innerText = '[' + elServerScriptStatus.innerText + ']';
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
                 action: "reloadServerScripts"
             }));
         });
 
-
+        document.addEventListener("keydown", function (keyDown) {
+          if (keyDown.keyCode === KEY_P && keyDown.ctrlKey) {
+              if (keyDown.shiftKey) {
+                  EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+              } else {
+                  EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+              }
+          }
+        });
         window.onblur = function() {
             // Fake a change event
             var ev = document.createEvent("HTMLEvents");

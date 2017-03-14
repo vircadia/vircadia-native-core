@@ -7,7 +7,7 @@ PreferencesDialog {
     id: root
     objectName: "AvatarPreferencesDialog"
     title: "Avatar Settings"
-    showCategories: [ "Avatar Basics", "Snapshots", "Avatar Tuning", "Avatar Camera" ]
+    showCategories: [ "Avatar Basics", "Avatar Tuning", "Avatar Camera" ]
     property var settings: Settings {
         category: root.objectName
         property alias x: root.x

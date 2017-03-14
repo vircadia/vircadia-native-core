@@ -82,6 +82,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
 
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
+    Q_PROPERTY(float isAway READ getIsAway WRITE setAway)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
@@ -98,6 +99,7 @@ public:
 
     void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
 
+    Q_INVOKABLE void resetSensorsAndBody();
     Q_INVOKABLE void centerBody(); // thread-safe
     Q_INVOKABLE void clearIKJointLimitHistory(); // thread-safe
 
@@ -215,6 +217,11 @@ public:
     virtual void clearJointData(int index) override;
     virtual void clearJointsData() override;
 
+    Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
+    Q_INVOKABLE bool clearPinOnJoint(int index);
+
+    Q_INVOKABLE float getIKErrorOnLastSolve() const;
+
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
     Q_INVOKABLE QUrl getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
     Q_INVOKABLE QString getFullAvatarModelName() const { return _fullAvatarModelName; }
@@ -328,6 +335,8 @@ signals:
     void energyChanged(float newEnergy);
     void positionGoneTo();
     void onLoadComplete();
+    void wentAway();
+    void wentActive();
 
 private:
 
@@ -335,8 +344,7 @@ private:
     glm::quat getWorldBodyOrientation() const;
 
 
-    virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-                            bool distanceAdjust = false, glm::vec3 viewerPosition = glm::vec3(0), QVector<JointData>* sentJointDataOut = nullptr) override;
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
@@ -385,6 +393,7 @@ private:
     bool _isPushing;
     bool _isBeingPushed;
     bool _isBraking;
+    bool _isAway;
 
     float _boomLength;
     float _yawSpeed; // degrees/sec
@@ -482,6 +491,7 @@ private:
     std::unordered_set<int> _headBoneSet;
     RigPointer _rig;
     bool _prevShouldDrawHead;
+    bool _rigEnabled { true };
 
     bool _enableDebugDrawDefaultPose { false };
     bool _enableDebugDrawAnimPose { false };
@@ -507,6 +517,8 @@ private:
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;
 
+    uint64_t _identityPacketExpiry { 0 };
+
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };
     float MAX_AVATAR_MOVEMENT_PER_FRAME { 30.0f };
@@ -519,6 +531,10 @@ private:
     float getEnergy();
     void setEnergy(float value);
     bool didTeleport();
+    bool getIsAway() const { return _isAway; }
+    void setAway(bool value);
+
+    std::vector<int> _pinnedJoints;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
