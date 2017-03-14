@@ -126,3 +126,14 @@ bool writeOBJToFile(QString path, QList<MeshPointer> meshes) {
     file.close();
     return success;
 }
+
+QString writeOBJToString(QList<MeshPointer> meshes) {
+    QString result;
+    QTextStream outStream(&result, QIODevice::ReadWrite);
+    bool success;
+    success = writeOBJToTextStream(outStream, meshes);
+    if (success) {
+        return result;
+    }
+    return QString("");
+}

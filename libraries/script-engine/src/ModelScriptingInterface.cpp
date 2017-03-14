@@ -44,17 +44,10 @@ void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out) {
 }
 
 QString ModelScriptingInterface::meshToOBJ(MeshProxyList in) {
-    bool success;
-    QString filename = "/tmp/okokok.obj";
-
     QList<MeshPointer> meshes;
     foreach (const MeshProxy* meshProxy, in) {
         meshes.append(meshProxy->getMeshPointer());
     }
 
-    success = writeOBJToFile(filename, meshes);
-    if (!success) {
-        return "";
-    }
-    return filename;
+    return writeOBJToString(meshes);
 }

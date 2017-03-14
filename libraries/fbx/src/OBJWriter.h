@@ -21,6 +21,6 @@ using MeshPointer = std::shared_ptr<model::Mesh>;
 
 bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes);
 bool writeOBJToFile(QString path, QList<MeshPointer> meshes);
-
+QString writeOBJToString(QList<MeshPointer> meshes);
 
 #endif // hifi_objwriter_h
