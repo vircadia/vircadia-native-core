@@ -4,7 +4,10 @@
         { "from": "Standard.LY", "to": "Actions.TranslateZ" },
 
         { "from": "Standard.LX",
-          "when": [ "Application.InHMD", "Application.SnapTurn" ],
+          "when": [
+            "Application.InHMD", "!Application.AdvancedMovement",
+            "Application.SnapTurn", "!Standard.RX"
+          ],
           "to": "Actions.StepYaw",
           "filters":
             [
@@ -14,7 +17,12 @@
                 { "type": "scale", "scale": 22.5 }
             ]
         },
-        { "from": "Standard.LX", "to": "Actions.TranslateX" },
+        { "from": "Standard.LX", "to": "Actions.TranslateX",
+          "when": [ "Application.AdvancedMovement" ]
+        },
+        { "from": "Standard.LX", "to": "Actions.Yaw",
+          "when": [ "!Application.AdvancedMovement", "!Application.SnapTurn" ]
+        },
 
         { "from": "Standard.RX",
           "when": [ "Application.InHMD", "Application.SnapTurn" ],
@@ -27,8 +35,10 @@
                 { "type": "scale", "scale": 22.5 }
             ]
         },
-        { "from": "Standard.RX", "to": "Actions.Yaw" },
-        
+        { "from": "Standard.RX", "to": "Actions.Yaw",
+          "when": [ "!Application.SnapTurn" ]
+        },
+
         { "from": "Standard.RY",
           "when": "Application.Grounded",
           "to": "Actions.Up",

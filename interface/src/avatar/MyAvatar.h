@@ -171,6 +171,8 @@ public:
     Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
 
+    bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
+
     // get/set avatar data
     void saveData();
     void loadData();
@@ -423,6 +425,7 @@ private:
     glm::vec3 _trackedHeadPosition;
 
     Setting::Handle<float> _realWorldFieldOfView;
+    Setting::Handle<bool> _useAdvancedMovementControls;
 
     // private methods
     void updateOrientation(float deltaTime);

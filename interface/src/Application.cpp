@@ -423,6 +423,7 @@ static const QString STATE_CAMERA_THIRD_PERSON = "CameraThirdPerson";
 static const QString STATE_CAMERA_ENTITY = "CameraEntity";
 static const QString STATE_CAMERA_INDEPENDENT = "CameraIndependent";
 static const QString STATE_SNAP_TURN = "SnapTurn";
+static const QString STATE_ADVANCED_MOVEMENT_CONTROLS = "AdvancedMovement";
 static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
@@ -513,7 +514,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
                     STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
-                    STATE_SNAP_TURN, STATE_GROUNDED, STATE_NAV_FOCUSED } });
+                    STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED } });
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
@@ -1127,6 +1128,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _applicationStateDevice->setInputVariant(STATE_SNAP_TURN, []() -> float {
         return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
     });
+    _applicationStateDevice->setInputVariant(STATE_ADVANCED_MOVEMENT_CONTROLS, []() -> float {
+        return qApp->getMyAvatar()->useAdvancedMovementControls() ? 1 : 0;
+    });
+
     _applicationStateDevice->setInputVariant(STATE_GROUNDED, []() -> float {
         return qApp->getMyAvatar()->getCharacterController()->onGround() ? 1 : 0;
     });
