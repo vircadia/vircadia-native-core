@@ -19,7 +19,7 @@ StackView {
     id: profileRoot
     initialItem: root
     objectName: "stack"
-
+    property var title: "Avatar Preferences"
     property var eventBridge;
     signal sendToScript(var message);
 
