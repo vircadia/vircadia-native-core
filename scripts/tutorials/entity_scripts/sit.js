@@ -2,7 +2,6 @@
     Script.include("/~/system/libraries/utils.js");
 
     var SETTING_KEY = "com.highfidelity.avatar.isSitting";
-    var ROLES = MyAvatar.getAnimationRoles();
     var ANIMATION_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
     var ANIMATION_FPS = 30;
     var ANIMATION_FIRST_FRAME = 1;
@@ -104,6 +103,7 @@
         if (previousValue === "") {
             MyAvatar.characterControllerEnabled = false;
             MyAvatar.hmdLeanRecenterEnabled = false;
+            var ROLES = MyAvatar.getAnimationRoles();
             for (i in ROLES) {
                 MyAvatar.overrideRoleAnimation(ROLES[i], ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
             }
@@ -137,7 +137,7 @@
         this.setSeatUser(null);
         if (Settings.getValue(SETTING_KEY) === this.entityID) {
             Settings.setValue(SETTING_KEY, "");
-
+            var ROLES = MyAvatar.getAnimationRoles();
             for (i in ROLES) {
                 MyAvatar.restoreRoleAnimation(ROLES[i]);
             }
