@@ -158,7 +158,6 @@ function startHandshake(fromKeyboard) {
     pendingFriendAckFrom = undefined;
     //  if we have a recent friendRequest, send an ack back
     if (latestFriendRequestFrom) {
-        debug("sending friendAck to", latestFriendRequestFrom);
         messageSend({
             key: "friendAck",
             id: latestFriendRequestFrom,
@@ -166,10 +165,8 @@ function startHandshake(fromKeyboard) {
         });
     } else {
         var nearestAvatar = findNearbyAvatars(true)[0];
-        debug("nearest avatar", nearestAvatar);
         if (nearestAvatar) {
             pendingFriendAckFrom = nearestAvatar.avatar;
-            debug("sending friendRequest to", pendingFriendAckFrom);
             messageSend({
                 key: "friendRequest",
                 id: nearestAvatar.avatar,
@@ -314,14 +311,13 @@ function messageHandler(channel, messageString, senderID) {
     } catch (e) {
         debug(e);
     }
-    debug("message", message);
     switch (message.key) {
     case "friendRequest":
         if (state == STATES.inactive && message.id == MyAvatar.sessionUUID) {
-            debug("setting latestFriendRequestFrom", senderID);
             latestFriendRequestFrom = senderID;
-        } else if (state == STATES.waiting && !pendingFriendAckFrom) {
-            // you are waiting for a friend request, so send the ack
+        } else if (state == STATES.waiting && (pendingFriendAckFrom == senderID || !pendingFriendAckFrom)) {
+            // you are waiting for a friend request, so send the ack.  Or, you and the other
+            // guy raced and both send friendRequests.  Handle that too
             pendingFriendAckFrom = senderID;
             messageSend({
                 key: "friendAck",
@@ -436,5 +432,8 @@ Script.scriptEnding.connect(function () {
     Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
     debug("disconnecting updateVisualization");
     Script.update.disconnect(updateVisualization);
+    if (entity) {
+        entity = Entities.deleteEntity(entity);
+    }
 });
 
