@@ -171,9 +171,9 @@ Menu::Menu() {
     // Avatar > Attachments...
     auto action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->show(QString("hifi/dialogs/AttachmentsDialog.qml"), "AttachmentsDialog");
+        qApp->showDialog(QString("hifi/dialogs/AttachmentsDialog.qml"),
+            QString("../../hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
     });
-
 
     // Avatar > Size
     MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
@@ -308,7 +308,8 @@ Menu::Menu() {
     // Settings > LOD...
     action = addActionToQMenuAndActionHash(settingsMenu, "LOD...");
     connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/LodPreferencesDialog.qml"), "LodPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/LodPreferencesDialog.qml"),
+            QString("../../hifi/tablet/TabletLodPreferences.qml"), "LodPreferencesDialog");
     });
 
     // Settings > Control with Speech [advanced]
@@ -409,7 +410,8 @@ Menu::Menu() {
 
 
     // Developer > Render > LOD Tools
-    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0, dialogsManager.data(), SLOT(lodTools()));
+    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0,
+                                  qApp, SLOT(loadLODToolsDialog()));
 
     // HACK enable texture decimation
     {

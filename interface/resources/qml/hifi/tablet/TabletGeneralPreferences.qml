@@ -19,10 +19,11 @@ StackView {
     id: profileRoot
     initialItem: root
     objectName: "stack"
-
+    property var title: "General Prefernces"
+    
     property var eventBridge;
     signal sendToScript(var message);
-
+    
     function pushSource(path) {
         editRoot.push(Qt.reslovedUrl(path));
     }

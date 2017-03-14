@@ -20,6 +20,7 @@ import "../../windows"
 Rectangle {
     id: root
     objectName: "RunningScripts"
+    property var title: "Running Scripts"
     HifiConstants { id: hifi }
     signal sendToScript(var message);
     property var eventBridge;

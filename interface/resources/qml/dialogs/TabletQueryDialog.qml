@@ -109,7 +109,7 @@ TabletModalWindow {
                 }
             }
 
-            TabletComboBox {
+            ComboBox {
                 id: comboBox
                 label: root.label
                 focus: true

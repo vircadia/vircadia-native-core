@@ -120,8 +120,6 @@ Window {
     function addButton(properties) {
         properties = properties || {}
 
-        unpinnedAlpha = 1;
-
         // If a name is specified, then check if there's an existing button with that name
         // and return it if so.  This will allow multiple clients to listen to a single button,
         // and allow scripts to be idempotent so they don't duplicate buttons if they're reloaded
@@ -156,7 +154,7 @@ Window {
         updatePinned();
 
         if (buttons.length === 0) {
-            unpinnedAlpha = 0;
+            fadeOut(function () {});
         }
     }
 
