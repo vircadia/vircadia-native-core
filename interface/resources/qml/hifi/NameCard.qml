@@ -91,7 +91,7 @@ Item {
             enabled: selected || isMyCard;
             hoverEnabled: enabled
             onClicked: {
-                userInfoViewer.url = "http://highfidelity.com/users/" + userName;
+                userInfoViewer.url = defaultBaseUrl + "/users/" + userName;
                 userInfoViewer.visible = true;
             }
         }
@@ -116,12 +116,12 @@ Item {
         id: myDisplayName
         visible: isMyCard
         // Size
-        width: parent.width - avatarImage.width - anchors.leftMargin*2 - anchors.rightMargin;
+        width: parent.width - avatarImage.width - anchors.leftMargin - anchors.rightMargin*2;
         height: 40
         // Anchors
         anchors.top: avatarImage.top
         anchors.left: avatarImage.right
-        anchors.leftMargin: 5;
+        anchors.leftMargin: avatarImage.visible ? 5 : 0;
         anchors.rightMargin: 5;
         // Style
         color: myDisplayNameMouseArea.containsMouse ? hifi.colors.lightGrayText : hifi.colors.textFieldLightBackground
@@ -293,7 +293,7 @@ Item {
     FiraSansRegular {
         id: userNameText
         // Properties
-        text: thisNameCard.userName
+        text: thisNameCard.userName === "Unknown user" ? "not logged in" : thisNameCard.userName;
         elide: Text.ElideRight
         visible: thisNameCard.userName !== "";
         // Size

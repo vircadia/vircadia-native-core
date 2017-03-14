@@ -941,7 +941,7 @@ Rectangle {
             Rectangle {
                 id: navigationContainer;
                 visible: userInfoViewer.visible;
-                height: 75;
+                height: 70;
                 anchors {
                     top: parent.top;
                     left: parent.left;
@@ -1018,7 +1018,7 @@ Rectangle {
                         left: parent.left;
                         right: parent.right;
                     }
-                    height: 25;
+                    height: 30;
                     width: parent.width;
 
                     FiraSansRegular {
@@ -1125,6 +1125,7 @@ Rectangle {
             break;
         case 'connections':
             var data = message.params;
+            console.log('Got connection data: ', JSON.stringify(data));
             connectionsUserModelData = data;
             sortConnectionsModel();
             connectionsLoading.visible = false;
