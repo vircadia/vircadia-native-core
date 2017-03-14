@@ -38,9 +38,16 @@
 
     function update(dt) {
         if (!AudioDevice.getMuted()) {
+            if (overlayID) {
+                deleteOverlay();
+            }
             return;
         }
-        updateOverlay();
+        if (!overlayID) {
+            createOverlay();
+        } else {
+            updateOverlay();
+        }    
     }
 
     function lerp(a, b, val) {
