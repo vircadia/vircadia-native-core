@@ -51,6 +51,10 @@
         return (1 - val) * a + val * b;
     }
 
+    function easeIn(t) {
+        return Math.pow(t / 1, 5);
+    }
+
     // hsv conversion expects 0-1 values
     function hsvToRgb(h, s, v) {
         var r, g, b;
@@ -122,6 +126,9 @@
         overlayPosition.z = lerp(overlayPosition.z, offsetPosition.z, LERP_AMOUNT);
 
         var rgbColor = hsvToRgb(
+            lerp(startColor.h, endColor.h, easeIn(tweenPosition)),
+            lerp(startColor.s, endColor.s, easeIn(tweenPosition)),
+            lerp(startColor.v, endColor.v, easeIn(tweenPosition))
         );
 
         Overlays.editOverlay(overlayID, {
