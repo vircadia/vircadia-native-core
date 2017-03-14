@@ -48,7 +48,7 @@
     }
 
     function getOffsetPosition() {
-        return Vec3.sum(MyAvatar.getHeadPosition(), Quat.getFront(MyAvatar.headOrientation));
+        return Vec3.sum(MyAvatar.getHeadPosition(), Quat.getFront(Camera.orientation));
     }
 
     function onMuteToggled() {
@@ -63,12 +63,11 @@
         overlayPosition = getOffsetPosition();
         overlayID = Overlays.addOverlay("sphere", {
             position: overlayPosition,
-            rotation: MyAvatar.orientation,
+            rotation: Camera.orientation,
             alpha: 0.9,
             dimensions: 0.1,
             solid: true,
-            ignoreRayIntersection: true,
-            visible: true
+            ignoreRayIntersection: true
         });
     }
 
@@ -99,7 +98,7 @@
                 blue: lerp(startColor.blue, endColor.blue, tweenPosition)
             },
             position: overlayPosition,
-            rotation: MyAvatar.orientation,
+            rotation: Camera.orientation
         });
     }
 
