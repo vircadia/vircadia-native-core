@@ -860,8 +860,8 @@ Rectangle {
                     visible: styleData.role === "userName";
                     profileUrl: (model && model.profileUrl) || "";
                     imageMaskColor: rowColor(styleData.selected, styleData.row % 2);
-                    displayName: model ? model.userName : "";
-                    userName: "";
+                    displayName: "";
+                    userName: model ? model.userName : "";
                     connectionStatus : model ? model.connection : "";
                     selected: styleData.selected;
                     // Size
@@ -1001,7 +1001,7 @@ Rectangle {
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter;
                         // Style
-                        color: closeButtonMouseArea.containsMouse ? hifi.colors.lightGray : hifi.colors.darkGray;
+                        color: closeButtonMouseArea.containsMouse ? hifi.colors.redAccent : hifi.colors.redHighlight;
                         MouseArea {
                             id: closeButtonMouseArea;
                             anchors.fill: parent

@@ -91,7 +91,7 @@ Item {
             enabled: selected || isMyCard;
             hoverEnabled: enabled
             onClicked: {
-                userInfoViewer.url = "http://highfidelity.com/users/" + (pal.activeTab == "nearbyTab" ? userName : displayName); // Connections tab puts username in "displayname" field
+                userInfoViewer.url = "http://highfidelity.com/users/" + userName;
                 userInfoViewer.visible = true;
             }
         }
@@ -202,13 +202,12 @@ Item {
     // DisplayName container for others' cards
     Item {
         id: displayNameContainer
-        visible: !isMyCard
+        visible: !isMyCard && pal.activeTab !== "connectionsTab"
         // Size
         width: parent.width - anchors.leftMargin - avatarImage.width - anchors.leftMargin;
         height: displayNameTextPixelSize + 4
         // Anchors
-        anchors.top: pal.activeTab == "connectionsTab" ? undefined : avatarImage.top;
-        anchors.bottom: pal.activeTab == "connectionsTab" ? avatarImage.bottom : undefined;
+        anchors.top: avatarImage.top;
         anchors.left: avatarImage.right
         anchors.leftMargin: avatarImage.visible ? 5 : 0;
         // DisplayName Text for others' cards
@@ -227,8 +226,7 @@ Item {
             // Text Positioning
             verticalAlignment: Text.AlignTop
             // Style
-            color: (pal.activeTab == "nearbyTab" && (displayNameTextMouseArea.containsMouse || userNameTextMouseArea.containsMouse))
-                ? hifi.colors.blueHighlight : (pal.activeTab == "nearbyTab" ? hifi.colors.darkGray : hifi.colors.greenShadow);
+            color: (displayNameTextMouseArea.containsMouse || userNameTextMouseArea.containsMouse) ? hifi.colors.blueHighlight : hifi.colors.darkGray;
             MouseArea {
                 id: displayNameTextMouseArea;
                 anchors.fill: parent
@@ -297,21 +295,22 @@ Item {
         // Properties
         text: thisNameCard.userName
         elide: Text.ElideRight
-        visible: thisNameCard.displayName
+        visible: thisNameCard.userName !== "";
         // Size
         width: parent.width
-        height: usernameTextPixelSize + 4
+        height: pal.activeTab == "nearbyTab" || isMyCard ? usernameTextPixelSize + 4 : displayNameTextPixelSize + 4
         // Anchors
         anchors.top: isMyCard ? myDisplayName.bottom : undefined;
-        anchors.bottom: isMyCard ? undefined : avatarImage.bottom
+        anchors.bottom: !isMyCard ? avatarImage.bottom : undefined;
         anchors.left: avatarImage.right;
         anchors.leftMargin: avatarImage.visible ? 5 : 0;
         // Text Size
-        size: usernameTextPixelSize;
+        size: pal.activeTab == "nearbyTab" || isMyCard ? usernameTextPixelSize : displayNameTextPixelSize;
         // Text Positioning
         verticalAlignment: Text.AlignBottom
         // Style
-        color: (pal.activeTab == "nearbyTab" && (displayNameTextMouseArea.containsMouse || userNameTextMouseArea.containsMouse)) ? hifi.colors.blueHighlight : hifi.colors.greenShadow;
+        color: (pal.activeTab == "nearbyTab" && (displayNameTextMouseArea.containsMouse || userNameTextMouseArea.containsMouse))
+            ? hifi.colors.blueHighlight : hifi.colors.greenShadow;
         MouseArea {
             id: userNameTextMouseArea;
             anchors.fill: parent
