@@ -9,21 +9,23 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+(function() { // BEGIN LOCAL_SCOPE
 const version = 0.1;
-const label = "Friends";
-const MAX_AVATAR_DISTANCE = 1.0;
+const label = "makeUserConnection";
+const MAX_AVATAR_DISTANCE = 1.25;
 const GRIP_MIN = 0.05;
-const MESSAGE_CHANNEL = "io.highfidelity.friends";
+const MESSAGE_CHANNEL = "io.highfidelity.makeUserConnection";
 const STATES = {
     inactive : 0,
     waiting: 1,
     friending: 2,
+    makingFriends: 3
 };
-const STATE_STRINGS = ["inactive", "waiting", "friending"];
+const STATE_STRINGS = ["inactive", "waiting", "friending", "makingFriends"];
 const WAITING_INTERVAL = 100; // ms
 const FRIENDING_INTERVAL = 100; // ms
 const FRIENDING_TIME = 3000; // ms
-const OVERLAY_COLORS = [{red: 0x00, green: 0xFF, blue: 0x00}, {red: 0x00, green: 0x00, blue: 0xFF}];
+const ENTITY_COLORS = [{red: 0x00, green: 0xFF, blue: 0x00}, {red: 0x00, green: 0x00, blue: 0xFF}, {red: 0xFF, green: 0x00, blue: 0x00}];
 const FRIENDING_HAPTIC_STRENGTH = 0.5;
 const FRIENDING_SUCCESS_HAPTIC_STRENGTH = 1.0;
 const HAPTIC_DURATION = 20;
@@ -32,17 +34,14 @@ var currentHand;
 var state = STATES.inactive;
 var friendingInterval;
 var entity;
-var makingFriends = false; // really just for visualizations for now
 var animHandlerId;
 var entityDimensionMultiplier = 1.0;
 var friendingId;
-var pendingFriendAckFrom;
-var latestFriendRequestFrom;
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
     var versionString = "v" + version;
-    print.apply(null, [].concat.apply([label, versionString, stateString], [].map.call(arguments, JSON.stringify)));
+    print.apply(null, [].concat.apply([label, versionString, stateString, friendingId], [].map.call(arguments, JSON.stringify)));
 }
 
 function handToString(hand) {
@@ -99,13 +98,8 @@ function updateVisualization() {
         return;
     }
 
-    var color = state == STATES.waiting ? OVERLAY_COLORS[0] : OVERLAY_COLORS[1];
+    var color = ENTITY_COLORS[state-1];
     var position = getHandPosition(MyAvatar, currentHand);
-
-    // temp code, though all of this stuff really is temp...
-    if (makingFriends) {
-        color = { red: 0xFF, green: 0x00, blue: 0x00 };
-    }
 
     // TODO: make the size scale with avatar, up to
     // the actual size of MAX_AVATAR_DISTANCE
@@ -150,26 +144,32 @@ function findNearbyAvatars(nearestOnly) {
 function startHandshake(fromKeyboard) {
     if (fromKeyboard) {
         debug("adding animation");
+        // just in case order of press/unpress is broken
+        if (animHandlerId) {
+            animHandlerId = MyAvatar.removeAnimationStateHandler(animHandlerId);
+        }
         animHandlerId = MyAvatar.addAnimationStateHandler(shakeHandsAnimation, []);
     }
     debug("starting handshake for", currentHand);
     state = STATES.waiting;
     entityDimensionMultiplier = 1.0;
-    pendingFriendAckFrom = undefined;
-    //  if we have a recent friendRequest, send an ack back
-    if (latestFriendRequestFrom) {
+    // if we have a recent friendRequest, send an ack back.
+    // TODO: be sure the friendingId resets when we get the done message
+    if (friendingId) {
+        debug("sending friendAck to", friendingId);
         messageSend({
             key: "friendAck",
-            id: latestFriendRequestFrom,
+            id: friendingId,
             hand: handToString(currentHand)
         });
     } else {
         var nearestAvatar = findNearbyAvatars(true)[0];
         if (nearestAvatar) {
-            pendingFriendAckFrom = nearestAvatar.avatar;
+            friendingId = nearestAvatar.avatar;
+            debug("sending friendRequest to", friendingId);
             messageSend({
                 key: "friendRequest",
-                id: nearestAvatar.avatar,
+                id: friendingId,
                 hand: handToString(nearestAvatar.hand)
             });
         }
@@ -181,6 +181,7 @@ function endHandshake() {
     currentHand = undefined;
     state = STATES.inactive;
     if (friendingInterval) {
+        friendingId = undefined;
         friendingInterval = Script.clearInterval(friendingInterval);
         // send done to let friend know you are not making friends now
         messageSend({
@@ -235,15 +236,19 @@ function isNearby(id, hand) {
 // this should be where we make the appropriate friend call.  For now just make the
 // visualization change.
 function makeFriends(id) {
-    // temp code to just flash the visualization really (for now!)
-    makingFriends = true;
     // send done to let the friend know you have made friends.
     messageSend({
         key: "done",
         friendId: id
     });
     Controller.triggerHapticPulse(FRIENDING_SUCCESS_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
-    Script.setTimeout(function () { makingFriends = false; entityDimensionMultiplier = 1.0; }, 1000);
+    state = STATES.makingFriends;
+    // now that we made friends, reset everything
+    Script.setTimeout(function () {
+            state = STATES.waiting;
+            friendingId = undefined;
+            entityDimensionMultiplier = 1.0;
+        }, 1000);
 }
 // we change states, start the friendingInterval where we check
 // to be sure the hand is still close enough.  If not, we terminate
@@ -252,9 +257,8 @@ function makeFriends(id) {
 function startFriending(id, hand) {
     var count = 0;
     debug("friending", id, "hand", hand);
+    // do we need to do this?
     friendingId = id;
-    pendingFriendAckFrom = undefined;
-    latestFriendRequestFrom = undefined;
     state = STATES.friending;
     Controller.triggerHapticPulse(FRIENDING_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
 
@@ -274,6 +278,10 @@ function startFriending(id, hand) {
             // gotta go back to waiting
             debug(id, "moved, back to waiting");
             friendingInterval = Script.clearInterval(friendingInterval);
+            messageSend({
+                key: "done"
+            });
+            friendingId = undefined;
             startHandshake();
         } else if (count > FRIENDING_TIME/FRIENDING_INTERVAL) {
             debug("made friends with " + id);
@@ -311,38 +319,41 @@ function messageHandler(channel, messageString, senderID) {
     } catch (e) {
         debug(e);
     }
+    debug("recv'd message:", message);
     switch (message.key) {
     case "friendRequest":
         if (state == STATES.inactive && message.id == MyAvatar.sessionUUID) {
-            latestFriendRequestFrom = senderID;
-        } else if (state == STATES.waiting && (pendingFriendAckFrom == senderID || !pendingFriendAckFrom)) {
-            // you are waiting for a friend request, so send the ack.  Or, you and the other
+            friendingId = senderID;
+        } else if (state == STATES.waiting && message.id == MyAvatar.sessionUUID && (!friendingId || friendingId == senderID)) {
+            // you were waiting for a friend request, so send the ack.  Or, you and the other
             // guy raced and both send friendRequests.  Handle that too
-            pendingFriendAckFrom = senderID;
+            if (!friendingId) {
+                friendingId = senderID;
+            }
             messageSend({
                 key: "friendAck",
                 id: senderID,
                 hand: handToString(currentHand)
             });
         }
-        // TODO: ponder keeping this up-to-date during
-        // other states?
+        // TODO: check to see if the person we are trying to friend sent this to someone else,
+        // and try again
         break;
     case "friendAck":
-        if (state == STATES.waiting && message.id == MyAvatar.sessionUUID) {
-            if (pendingFriendAckFrom && senderID != pendingFriendAckFrom) {
-                debug("ignoring friendAck from", senderID, ", waiting on", pendingFriendAckFrom);
-                break;
-            }
+        if (state == STATES.waiting && message.id == MyAvatar.sessionUUID && (!friendingId || friendingId == senderID)) {
             // start friending...
+            friendingId = senderID;
             startFriending(senderID, message.hand);
         }
+        // TODO: check to see if we are waiting for this but the person we are friending sent it to
+        // someone else, and try again
         break;
     case "friending":
-        if (state == STATES.waiting && senderID == latestFriendRequestFrom) {
+        if (state == STATES.waiting && senderID == friendingId) {
             if (message.id != MyAvatar.sessionUUID) {
-                // for now, just ignore these. Hmm
-                debug("ignoring friending message", message, "from", senderID);
+                // the person we were trying to friend is friending someone else
+                // so try again
+                startHandshake();
                 break;
             }
             startFriending(senderID, message.hand);
@@ -352,22 +363,22 @@ function messageHandler(channel, messageString, senderID) {
         if (state == STATES.friending && friendingId == senderID) {
             // if they are done, and didn't friend us, terminate our
             // friending
-            if (message.friendId !== friendingId) {
+            if (message.friendId !== MyAvatar.sessionUUID) {
                 if (friendingInterval) {
                     friendingInterval = Script.clearInterval(friendingInterval);
                 }
                 // now just call startHandshake.  Should be ok to do so without a
                 // value for isKeyboard, as we should not change the animation
                 // state anyways (if any)
+                friendingId = undefined;
                 startHandshake();
             }
         } else {
-            // if waiting or inactive, lets clear the pending stuff
-            if (pendingFriendAckFrom == senderID || latestFriendRequestFrom == senderID) {
-                if (state == STATES.inactive) {
-                    pendingFriendAckFrom = undefined;
-                    latestFriendRequestFrom = undefined;
-                } else {
+            // if waiting or inactive, lets clear the friending id. If in makingFriends,
+            // do nothing (so you see the red for a bit)
+            if (state != STATES.makingFriends && friendingId == senderID) {
+                friendingId = undefined;
+                if (state != STATES.inactive) {
                     startHandshake();
                 }
             }
@@ -436,4 +447,6 @@ Script.scriptEnding.connect(function () {
         entity = Entities.deleteEntity(entity);
     }
 });
+
+}()); // END LOCAL_SCOPE
 
