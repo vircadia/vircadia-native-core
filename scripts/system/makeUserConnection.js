@@ -1,7 +1,7 @@
 "use strict";
 //
-//  friends.js
-//  scripts/developer/tests/performance/
+//  makeUserConnetion.js
+//  scripts/system
 //
 //  Created by David Kelly on 3/7/2017.
 //  Copyright 2017 High Fidelity, Inc.
