@@ -189,9 +189,13 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const
 }
 
 gpu::TexturePointer getFallbackTextureForType(NetworkTexture::Type type) {
-    auto textureCache = DependencyManager::get<TextureCache>();
-
     gpu::TexturePointer result;
+    auto textureCache = DependencyManager::get<TextureCache>();
+    // Since this can be called on a background thread, there's a chance that the cache 
+    // will be destroyed by the time we request it
+    if (!textureCache) {
+        return result;
+    }
     switch (type) {
         case NetworkTexture::DEFAULT_TEXTURE:
         case NetworkTexture::ALBEDO_TEXTURE:
