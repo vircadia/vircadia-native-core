@@ -149,7 +149,7 @@ TabletModalWindow {
             }
         }
 
-        TabletComboBox {
+        ComboBox {
             id: pathSelector
             z: 10
             anchors {

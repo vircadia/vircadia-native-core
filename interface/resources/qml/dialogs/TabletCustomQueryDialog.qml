@@ -205,7 +205,7 @@ TabletModalWindow {
                     //                }
                 }
 
-                ControlsUIT.TabletComboBox {
+                ControlsUIT.ComboBox {
                     id: comboBoxField;
                     label: root.comboBox.label;
                     focus: Boolean(root.comboBox);

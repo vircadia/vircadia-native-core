@@ -31,7 +31,6 @@ Item {
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
-   
 
     property var tablet;
   
@@ -59,24 +58,14 @@ Item {
         Tablet.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
     }
 
-    Rectangle {
+    HifiControls.TabletHeader {
         id: header
-        height: 90
+        title: parent.title
+
         anchors {
             top: parent.top
             left: parent.left
             right: parent.right
-        }
-        z: 100
-
-        color: hifi.colors.darkGray
-        RalewayBold {
-            text: title
-            size: 26
-            color: hifi.colors.white
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.leftMargin: hifi.dimensions.contentMargin.x
         }
     }
 
@@ -90,7 +79,7 @@ Item {
         }
 
         color: hifi.colors.baseGray
-        
+
         Flickable {
             id: scrollView
             width: parent.width
@@ -184,7 +173,7 @@ Item {
             left: parent.left
             right: parent.right
         }
-
+            
         color: hifi.colors.baseGray
 
         Row {
