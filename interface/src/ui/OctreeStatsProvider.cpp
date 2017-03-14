@@ -151,6 +151,7 @@ void OctreeStatsProvider::updateOctreeStatsData() {
     unsigned long totalInternal = 0;
     unsigned long totalLeaves = 0;
 
+    m_sendingMode.clear();
     NodeToOctreeSceneStats* sceneStats = qApp->getOcteeSceneStats();
     sceneStats->withReadLock([&] {
         for (NodeToOctreeSceneStatsIterator i = sceneStats->begin(); i != sceneStats->end(); i++) {

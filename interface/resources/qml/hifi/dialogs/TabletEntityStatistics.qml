@@ -55,179 +55,91 @@ Rectangle {
             y: hifi.dimensions.tabletMenuHeader //-bgNavBar
             spacing: 20
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Elements on Servers:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: elementsOnServerLabel
-                size: 16
+                titleText: qsTr("Elements on Servers:")
                 text: OctreeStats.serverElements
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Local Elements:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: localElementsLabel
-                size: 16
+                titleText: qsTr("Local Elements:")
                 text: OctreeStats.localElements
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Elements Memory:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: elementsMemoryLabel
-                size: 16
+                titleText: qsTr("Elements Memory:")
                 text: OctreeStats.localElementsMemory
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Sending Mode:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: sendingModeLabel
-                size: 16
+                titleText: qsTr("Sending Mode:")
                 text: OctreeStats.sendingMode
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Incoming Entity Packets:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: incomingEntityPacketsLabel
-                size: 16
+                titleText: qsTr("Incoming Entity Packets:")
                 text: OctreeStats.processedPackets
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Processed Packets Elements:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: processedPacketsElementsLabel
-                size: 16
+                titleText: qsTr("Processed Packets Elements:")
                 text: OctreeStats.processedPacketsElements
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Processed Packets Entities:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: processedPacketsEntitiesLabel
-                size: 16
+                titleText: qsTr("Processed Packets Entities:")
                 text: OctreeStats.processedPacketsEntities
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Processed Packets Timing:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: processedPacketsTimingLabel
-                size: 16
+                titleText: qsTr("Processed Packets Timing:")
                 text: OctreeStats.processedPacketsTiming
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Outbound Entity Packets:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: outboundEntityPacketsLabel
-                size: 16
+                titleText: qsTr("Outbound Entity Packets:")
                 text: OctreeStats.outboundEditPackets
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Entity Update Time:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: entityUpdateTimeLabel
-                size: 16
+                titleText: qsTr("Entity Update Time:")
                 text: OctreeStats.entityUpdateTime
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
-            HifiControls.Label {
-                size: 20
+            TabletEntityStatisticsItem {
                 anchors.left: parent.left
                 anchors.right: parent.right
-                text: qsTr("Entity Updates:")
-                colorScheme: root.colorScheme
-            }
-            HifiControls.Label {
-                id: entityUpdatesLabel
-                size: 16
+                titleText: qsTr("Entity Updates:")
                 text: OctreeStats.entityUpdates
-                anchors.left: parent.left
-                anchors.right: parent.right
                 colorScheme: root.colorScheme
             }
 
@@ -242,18 +154,12 @@ Rectangle {
 
                     state: "less"
 
-                    HifiControls.Label {
-                        size: 20
+                    TabletEntityStatisticsItem {
                         width: parent.width
-                        text: qsTr("Entity Server ") + (index+1) + ":"
+                        titleText: qsTr("Entity Server ") + (index+1) + ":"
                         colorScheme: root.colorScheme
                     }
-                    HifiControls.Label {
-                        id: entityServer1Label
-                        size: 20
-                        width: parent.width
-                        colorScheme: root.colorScheme
-                    }
+
                     Row {
                         id: buttonsRow
                         width: parent.width
