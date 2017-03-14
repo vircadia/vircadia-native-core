@@ -23,14 +23,9 @@ Item {
 
     property string title: "Attachment Model"
 
-    property var result
-
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
-
-    signal selected(var modelUrl)
-    signal canceled()
 
     property alias eventBridge: eventBridgeWrapper.eventBridge
 
