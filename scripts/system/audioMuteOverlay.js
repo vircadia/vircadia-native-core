@@ -20,15 +20,16 @@
 
     var overlayPosition = Vec3.ZERO;
     var tweenPosition = 0;
+    // colors are in HSV, h needs to be a value from 0-1
     var startColor = {
-        red: 150,
-        green: 150,
-        blue: 150
+        h: 0,
+        s: 0,
+        v: 0.67
     };
     var endColor = {
-        red: 255,
-        green: 0,
-        blue: 0
+        h: 0,
+        s: 1,
+        v: 1
     };
     var overlayID;
 
@@ -43,15 +44,37 @@
             }
             return;
         }
-        if (!overlayID) {
-            createOverlay();
-        } else {
-            updateOverlay();
-        }    
+        updateOverlay(); 
     }
 
     function lerp(a, b, val) {
         return (1 - val) * a + val * b;
+    }
+
+    // hsv conversion expects 0-1 values
+    function hsvToRgb(h, s, v) {
+        var r, g, b;
+
+        var i = Math.floor(h * 6);
+        var f = h * 6 - i;
+        var p = v * (1 - s);
+        var q = v * (1 - f * s);
+        var t = v * (1 - (1 - f) * s);
+
+        switch (i % 6) {
+            case 0: r = v, g = t, b = p; break;
+            case 1: r = q, g = v, b = p; break;
+            case 2: r = p, g = v, b = t; break;
+            case 3: r = p, g = q, b = v; break;
+            case 4: r = t, g = p, b = v; break;
+            case 5: r = v, g = p, b = q; break;
+        }
+
+        return {
+            red: r * 255,
+            green: g * 255,
+            blue: b * 255
+        }
     }
 
     function getOffsetPosition() {
@@ -98,11 +121,17 @@
         overlayPosition.y = lerp(overlayPosition.y, offsetPosition.y, LERP_AMOUNT);
         overlayPosition.z = lerp(overlayPosition.z, offsetPosition.z, LERP_AMOUNT);
 
+        var rgbColor = hsvToRgb(
+            lerp(startColor.h, endColor.h, tweenPosition),
+            lerp(startColor.s, endColor.s, tweenPosition),
+            lerp(startColor.v, endColor.v, tweenPosition)
+        );
+
         Overlays.editOverlay(overlayID, {
             color: {
-                red: lerp(startColor.red, endColor.red, tweenPosition),
-                green: lerp(startColor.green, endColor.green, tweenPosition),
-                blue: lerp(startColor.blue, endColor.blue, tweenPosition)
+                red: rgbColor.red,
+                green: rgbColor.green,
+                blue: rgbColor.blue
             },
             position: overlayPosition,
             rotation: Camera.orientation
@@ -114,9 +143,7 @@
     }
 
     function cleanup() {
-        if (overlayID) {
-            deleteOverlay();
-        }
+        deleteOverlay();
         AudioDevice.muteToggled.disconnect(onMuteToggled);
         Script.update.disconnect(update);
     }
