@@ -14,6 +14,7 @@
 
 #include <OctreeSceneStats.h>
 #include <QTimer>
+#include <QQmlListProperty>
 
 #include "DependencyManager.h"
 
@@ -37,6 +38,8 @@ class OctreeStatsProvider : public QObject, public Dependency {
     Q_PROPERTY(QString outboundEditPackets READ outboundEditPackets NOTIFY outboundEditPacketsChanged)
     Q_PROPERTY(QString entityUpdateTime READ entityUpdateTime NOTIFY entityUpdateTimeChanged)
     Q_PROPERTY(QString entityUpdates READ entityUpdates NOTIFY entityUpdatesChanged)
+
+    Q_PROPERTY(QStringList servers READ servers NOTIFY serversChanged)
 
 public:
     OctreeStatsProvider(QObject* parent, NodeToOctreeSceneStats* model);
@@ -88,6 +91,10 @@ public:
         return m_entityUpdates;
     }
 
+    QStringList servers() const {
+        return m_servers;
+    }
+
 signals:
 
     void serversNumChanged(int serversNum);
@@ -103,8 +110,9 @@ signals:
     void entityUpdateTimeChanged(const QString &entityUpdateTime);
     void entityUpdatesChanged(const QString &entityUpdates);
 
+    void serversChanged(const QStringList &servers);
+
 public slots:
-    void moreless(const QString& link);
     void startUpdates();
     void stopUpdates();
 
@@ -139,6 +147,7 @@ private:
     QString m_outboundEditPackets;
     QString m_entityUpdateTime;
     QString m_entityUpdates;
+    QStringList m_servers;
 };
 
 #endif // hifi_OctreeStatsProvider_h

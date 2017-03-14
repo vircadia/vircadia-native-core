@@ -9,11 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <sstream>
-
-#include <QPalette>
-#include <QColor>
-
 #include "Application.h"
 
 #include "../octree/OctreePacketProcessor.h"
@@ -30,23 +25,6 @@ OctreeStatsProvider::OctreeStatsProvider(QObject* parent, NodeToOctreeSceneStats
     _updateTimer.setInterval(100);
     //timer will be rescheduled on each new timeout
     _updateTimer.setSingleShot(true);
-}
-
-void OctreeStatsProvider::moreless(const QString& link) {
-    QStringList linkDetails = link.split("-");
-    const int COMMAND_ITEM = 0;
-    const int SERVER_NUMBER_ITEM = 1;
-    QString serverNumberString = linkDetails[SERVER_NUMBER_ITEM];
-    QString command = linkDetails[COMMAND_ITEM];
-    int serverNumber = serverNumberString.toInt();
-    
-//    if (command == "more") {
-//        _extraServerDetails[serverNumber-1] = MORE;
-//    } else if (command == "most") {
-//        _extraServerDetails[serverNumber-1] = MOST;
-//    } else {
-//        _extraServerDetails[serverNumber-1] = LESS;
-//    }
 }
 
 /*
@@ -66,9 +44,9 @@ void OctreeStatsProvider::stopUpdates() {
 
 //int OctreeStatsProvider::AddStatItem(const char* caption, unsigned colorRGBA) {
 //    const int STATS_LABEL_WIDTH = 600;
-    
+
 //    _statCount++; // increment our current stat count
-    
+
 //    if (colorRGBA == 0) {
 //        static unsigned rotatingColors[] = { GREENISH, YELLOWISH, GREYISH };
 //        colorRGBA = rotatingColors[_statCount % (sizeof(rotatingColors)/sizeof(rotatingColors[0]))];
@@ -77,7 +55,7 @@ void OctreeStatsProvider::stopUpdates() {
 
 //    // Set foreground color to 62.5% brightness of the meter (otherwise will be hard to read on the bright background)
 //    //QPalette palette = label->palette();
-    
+
 //    // This goofiness came from the bandwidth meter code, it basically stores a color in an unsigned and extracts it
 //    unsigned rgb = colorRGBA >> 8;
 //    const unsigned colorpart1 = 0xfefefeu;
@@ -87,7 +65,7 @@ void OctreeStatsProvider::stopUpdates() {
 //    label->setPalette(palette);
 //    _form->addRow(QString(" %1:").arg(caption), label);
 //    label->setFixedWidth(STATS_LABEL_WIDTH);
-    
+
 //    return _statCount;
 //}
 
@@ -278,8 +256,7 @@ void OctreeStatsProvider::updateOctreeServers() {
     int serverCount = 0;
 
     showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity",
-            qApp->getEntityServerJurisdictions());
-    //qDebug() << "vladest: octree servers:" << serverCount;
+                            qApp->getEntityServerJurisdictions());
     if (m_serversNum != serverCount) {
         m_serversNum = serverCount;
         emit serversNumChanged(m_serversNum);
@@ -287,34 +264,25 @@ void OctreeStatsProvider::updateOctreeServers() {
 }
 
 void OctreeStatsProvider::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName,
-                                                NodeToJurisdictionMap& serverJurisdictions) {
-                                                
-    QLocale locale(QLocale::English);
-    
+                                                  NodeToJurisdictionMap& serverJurisdictions) {
+
+    m_servers.clear();
+
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->eachNode([&](const SharedNodePointer& node){
+    nodeList->eachNode([&](const SharedNodePointer& node) {
         
         // only send to the NodeTypes that are NodeType_t_VOXEL_SERVER
         if (node->getType() == serverType) {
             serverCount++;
             
-//            if (serverCount > _octreeServerLabelsCount) {
-//                QString label = QString("%1 Server %2").arg(serverTypeName).arg(serverCount);
-//                //int thisServerRow = _octreeServerLables[serverCount-1] = AddStatItem(label.toUtf8().constData());
-////                _labels[thisServerRow]->setTextFormat(Qt::RichText);
-////                _labels[thisServerRow]->setTextInteractionFlags(Qt::TextBrowserInteraction);
-////                connect(_labels[thisServerRow], SIGNAL(linkActivated(const QString&)), this, SLOT(moreless(const QString&)));
-//                _octreeServerLabelsCount++;
-//            }
-            
-            std::stringstream serverDetails("");
-            std::stringstream extraDetails("");
-            std::stringstream linkDetails("");
+            QString lesserDetails;
+            QString moreDetails;
+            QString mostDetails;
             
             if (node->getActiveSocket()) {
-                serverDetails << "active ";
+                lesserDetails += "active ";
             } else {
-                serverDetails << "inactive ";
+                lesserDetails += "inactive ";
             }
             
             QUuid nodeUUID = node->getUUID();
@@ -323,9 +291,9 @@ void OctreeStatsProvider::showOctreeServersOfType(int& serverCount, NodeType_t s
             // missing at least one jurisdiction
             serverJurisdictions.withReadLock([&] {
                 if (serverJurisdictions.find(nodeUUID) == serverJurisdictions.end()) {
-                    serverDetails << " unknown jurisdiction ";
+                    lesserDetails += " unknown jurisdiction ";
                     return;
-                } 
+                }
                 const JurisdictionMap& map = serverJurisdictions[nodeUUID];
 
                 auto rootCode = map.getRootOctalCode();
@@ -336,135 +304,90 @@ void OctreeStatsProvider::showOctreeServersOfType(int& serverCount, NodeType_t s
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode.get(), rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverDetails << " jurisdiction: "
-                        << qPrintable(rootCodeHex)
-                        << " ["
-                        << rootDetails.x << ", "
-                        << rootDetails.y << ", "
-                        << rootDetails.z << ": "
-                        << rootDetails.s << "] ";
+                    lesserDetails += QString(" jurisdiction: %1 [%2, %3, %4: %5]")
+                            .arg(rootCodeHex)
+                            .arg(rootDetails.x)
+                            .arg(rootDetails.y)
+                            .arg(rootDetails.z)
+                            .arg(rootDetails.s);
                 } else {
-                    serverDetails << " jurisdiction has no rootCode";
+                    lesserDetails += " jurisdiction has no rootCode";
                 } // root code
             });
             
             // now lookup stats details for this server...
-            if (/*_extraServerDetails[serverCount-1] != LESS*/true) {
-                NodeToOctreeSceneStats* sceneStats = qApp->getOcteeSceneStats();
-                sceneStats->withReadLock([&] {
-                    if (sceneStats->find(nodeUUID) != sceneStats->end()) {
-                        OctreeSceneStats& stats = sceneStats->at(nodeUUID);
-/*
-                        switch (_extraServerDetails[serverCount - 1]) {
-                        case MOST: {
-                            extraDetails << "<br/>";
+            NodeToOctreeSceneStats* sceneStats = qApp->getOcteeSceneStats();
+            sceneStats->withReadLock([&] {
+                if (sceneStats->find(nodeUUID) != sceneStats->end()) {
+                    OctreeSceneStats& stats = sceneStats->at(nodeUUID);
 
-                            float lastFullEncode = stats.getLastFullTotalEncodeTime() / USECS_PER_MSEC;
-                            float lastFullSend = stats.getLastFullElapsedTime() / USECS_PER_MSEC;
-                            float lastFullSendInSeconds = stats.getLastFullElapsedTime() / USECS_PER_SECOND;
-                            float lastFullPackets = stats.getLastFullTotalPackets();
-                            float lastFullPPS = lastFullPackets;
-                            if (lastFullSendInSeconds > 0) {
-                                lastFullPPS = lastFullPackets / lastFullSendInSeconds;
-                            }
-
-                            QString lastFullEncodeString = locale.toString(lastFullEncode);
-                            QString lastFullSendString = locale.toString(lastFullSend);
-                            QString lastFullPacketsString = locale.toString(lastFullPackets);
-                            QString lastFullBytesString = locale.toString((uint)stats.getLastFullTotalBytes());
-                            QString lastFullPPSString = locale.toString(lastFullPPS);
-
-                            extraDetails << "<br/>" << "Last Full Scene... " <<
-                                "Encode: " << qPrintable(lastFullEncodeString) << " ms " <<
-                                "Send: " << qPrintable(lastFullSendString) << " ms " <<
-                                "Packets: " << qPrintable(lastFullPacketsString) << " " <<
-                                "Bytes: " << qPrintable(lastFullBytesString) << " " <<
-                                "Rate: " << qPrintable(lastFullPPSString) << " PPS";
-
-                            for (int i = 0; i < OctreeSceneStats::ITEM_COUNT; i++) {
-                                OctreeSceneStats::Item item = (OctreeSceneStats::Item)(i);
-                                OctreeSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
-                                extraDetails << "<br/>" << itemInfo.caption << " " << stats.getItemValue(item);
-                            }
-                        } // fall through... since MOST has all of MORE
-                        case MORE: {
-                            QString totalString = locale.toString((uint)stats.getTotalElements());
-                            QString internalString = locale.toString((uint)stats.getTotalInternal());
-                            QString leavesString = locale.toString((uint)stats.getTotalLeaves());
-
-                            serverDetails << "<br/>" << "Node UUID: " << qPrintable(nodeUUID.toString()) << " ";
-
-                            serverDetails << "<br/>" << "Elements: " <<
-                                qPrintable(totalString) << " total " <<
-                                qPrintable(internalString) << " internal " <<
-                                qPrintable(leavesString) << " leaves ";
-
-                            QString incomingPacketsString = locale.toString((uint)stats.getIncomingPackets());
-                            QString incomingBytesString = locale.toString((uint)stats.getIncomingBytes());
-                            QString incomingWastedBytesString = locale.toString((uint)stats.getIncomingWastedBytes());
-                            const SequenceNumberStats& seqStats = stats.getIncomingOctreeSequenceNumberStats();
-                            QString incomingOutOfOrderString = locale.toString((uint)seqStats.getOutOfOrder());
-                            QString incomingLateString = locale.toString((uint)seqStats.getLate());
-                            QString incomingUnreasonableString = locale.toString((uint)seqStats.getUnreasonable());
-                            QString incomingEarlyString = locale.toString((uint)seqStats.getEarly());
-                            QString incomingLikelyLostString = locale.toString((uint)seqStats.getLost());
-                            QString incomingRecovered = locale.toString((uint)seqStats.getRecovered());
-
-                            qint64 clockSkewInUsecs = node->getClockSkewUsec();
-                            QString formattedClockSkewString = formatUsecTime(clockSkewInUsecs);
-                            qint64 clockSkewInMS = clockSkewInUsecs / (qint64)USECS_PER_MSEC;
-                            QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
-                            QString incomingPingTimeString = locale.toString(node->getPingMs());
-                            QString incomingClockSkewString = locale.toString(clockSkewInMS);
-
-                            serverDetails << "<br/>" << "Incoming Packets: " << qPrintable(incomingPacketsString) <<
-                                "/ Lost: " << qPrintable(incomingLikelyLostString) <<
-                                "/ Recovered: " << qPrintable(incomingRecovered);
-
-                            serverDetails << "<br/>" << " Out of Order: " << qPrintable(incomingOutOfOrderString) <<
-                                "/ Early: " << qPrintable(incomingEarlyString) <<
-                                "/ Late: " << qPrintable(incomingLateString) <<
-                                "/ Unreasonable: " << qPrintable(incomingUnreasonableString);
-
-                            serverDetails << "<br/>" <<
-                                " Average Flight Time: " << qPrintable(incomingFlightTimeString) << " msecs";
-
-                            serverDetails << "<br/>" <<
-                                " Average Ping Time: " << qPrintable(incomingPingTimeString) << " msecs";
-
-                            serverDetails << "<br/>" <<
-                                " Average Clock Skew: " << qPrintable(incomingClockSkewString) << " msecs" << 
-                                " [" << qPrintable(formattedClockSkewString) << "]";
-
-
-                            serverDetails << "<br/>" << "Incoming" <<
-                                " Bytes: " << qPrintable(incomingBytesString) <<
-                                " Wasted Bytes: " << qPrintable(incomingWastedBytesString);
-
-                            serverDetails << extraDetails.str();
-                            if (_extraServerDetails[serverCount - 1] == MORE) {
-                                linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
-                                linkDetails << "   " << " [<a href='less-" << serverCount << "'>less...</a>]";
-                            } else {
-                                linkDetails << "   " << " [<a href='more-" << serverCount << "'>less...</a>]";
-                                linkDetails << "   " << " [<a href='less-" << serverCount << "'>least...</a>]";
-                            }
-
-                        } break;
-                        case LESS: {
-                            // nothing
-                        } break;
-                        }*/
+                    float lastFullEncode = stats.getLastFullTotalEncodeTime() / USECS_PER_MSEC;
+                    float lastFullSend = stats.getLastFullElapsedTime() / USECS_PER_MSEC;
+                    float lastFullSendInSeconds = stats.getLastFullElapsedTime() / USECS_PER_SECOND;
+                    float lastFullPackets = stats.getLastFullTotalPackets();
+                    float lastFullPPS = lastFullPackets;
+                    if (lastFullSendInSeconds > 0) {
+                        lastFullPPS = lastFullPackets / lastFullSendInSeconds;
                     }
-                });
-            } else {
-                linkDetails << "   " << " [<a href='more-" << serverCount << "'>more...</a>]";
-                linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
-            }
-            serverDetails << linkDetails.str();
-            //_labels[_octreeServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
+
+                    mostDetails += QString("<br/><br/>Last Full Scene... Encode: %1 ms Send: %2 ms Packets: %3 Bytes: %4 Rate: %5 PPS")
+                            .arg(lastFullEncode)
+                            .arg(lastFullSend)
+                            .arg(lastFullPackets)
+                            .arg(stats.getLastFullTotalBytes())
+                            .arg(lastFullPPS);
+
+                    for (int i = 0; i < OctreeSceneStats::ITEM_COUNT; i++) {
+                        OctreeSceneStats::Item item = (OctreeSceneStats::Item)(i);
+                        OctreeSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
+                        mostDetails += QString("<br/> %1 %2")
+                                .arg(itemInfo.caption).arg(stats.getItemValue(item));
+                    }
+
+                    moreDetails += "<br/>Node UUID: " +nodeUUID.toString() + " ";
+
+                    moreDetails += QString("<br/>Elements: %1 total %2 internal %3 leaves ")
+                            .arg(stats.getTotalElements())
+                            .arg(stats.getTotalInternal())
+                            .arg(stats.getTotalLeaves());
+
+                    const SequenceNumberStats& seqStats = stats.getIncomingOctreeSequenceNumberStats();
+                    qint64 clockSkewInUsecs = node->getClockSkewUsec();
+                    qint64 clockSkewInMS = clockSkewInUsecs / (qint64)USECS_PER_MSEC;
+
+                    moreDetails += QString("<br/>Incoming Packets: %1/ Lost: %2/ Recovered: %3")
+                            .arg(stats.getIncomingPackets())
+                            .arg(seqStats.getLost())
+                            .arg(seqStats.getRecovered());
+
+                    moreDetails += QString("<br/> Out of Order: %1/ Early: %2/ Late: %3/ Unreasonable: %4")
+                            .arg(seqStats.getOutOfOrder())
+                            .arg(seqStats.getEarly())
+                            .arg(seqStats.getLate())
+                            .arg(seqStats.getUnreasonable());
+
+                    moreDetails += QString("<br/> Average Flight Time: %1 msecs")
+                            .arg(stats.getIncomingFlightTimeAverage());
+
+                    moreDetails += QString("<br/> Average Ping Time: %1 msecs")
+                            .arg(node->getPingMs());
+
+                    moreDetails += QString("<br/> Average Clock Skew: %1 msecs [%2]")
+                            .arg(clockSkewInMS)
+                            .arg(formatUsecTime(clockSkewInUsecs));
+
+
+                    moreDetails += QString("<br/>Incoming Bytes: %1 Wasted Bytes: %2")
+                            .arg(stats.getIncomingBytes())
+                            .arg(stats.getIncomingWastedBytes());
+                }
+            });
+            m_servers.append(lesserDetails);
+            m_servers.append(moreDetails);
+            m_servers.append(mostDetails);
         } // is VOXEL_SERVER
     });
+    emit serversChanged(m_servers);
 }
 
 

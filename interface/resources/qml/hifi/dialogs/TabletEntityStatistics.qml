@@ -46,6 +46,7 @@ Rectangle {
         anchors.bottomMargin: hifi.dimensions.tabletMenuHeader
         contentWidth: column.implicitWidth
         contentHeight: column.implicitHeight
+        boundsBehavior: Flickable.StopAtBounds
 
         Column {
             id: column
@@ -155,6 +156,7 @@ Rectangle {
                     state: "less"
 
                     TabletEntityStatisticsItem {
+                        id: serverStats
                         width: parent.width
                         titleText: qsTr("Entity Server ") + (index+1) + ":"
                         colorScheme: root.colorScheme
@@ -178,7 +180,7 @@ Rectangle {
                                 } else if (serverColumn.state === "more") {
                                     serverColumn.state = "most"
                                 } else {
-                                    serverColumn.state = "less"
+                                    serverColumn.state = "more"
                                 }
                             }
                         }
@@ -194,7 +196,7 @@ Rectangle {
                                 } else if (serverColumn.state === "more") {
                                     serverColumn.state = "less"
                                 } else {
-                                    serverColumn.state = "more"
+                                    serverColumn.state = "less"
                                 }
                             }
 
@@ -205,16 +207,22 @@ Rectangle {
                             name: "less"
                             PropertyChanges { target: moreButton; text: qsTr("more..."); }
                             PropertyChanges { target: mostButton; text: qsTr("most..."); }
+                            PropertyChanges { target: serverStats; text: OctreeStats.servers[index*3]; }
                         },
                         State {
                             name: "more"
                             PropertyChanges { target: moreButton; text: qsTr("most..."); }
                             PropertyChanges { target: mostButton; text: qsTr("less..."); }
+                            PropertyChanges { target: serverStats; text: OctreeStats.servers[index*3] +
+                                                                         OctreeStats.servers[index*3 + 1]; }
                         },
                         State {
                             name: "most"
                             PropertyChanges { target: moreButton; text: qsTr("less..."); }
                             PropertyChanges { target: mostButton; text: qsTr("least..."); }
+                            PropertyChanges { target: serverStats; text: OctreeStats.servers[index*3] +
+                                                                         OctreeStats.servers[index*3 + 1] +
+                                                                         OctreeStats.servers[index*3 + 2]; }
                         }
                     ]
                 } //servers column
