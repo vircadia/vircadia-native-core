@@ -221,6 +221,7 @@ void generateMips(gpu::Texture* texture, QImage& image, bool fastResize) {
             texture->assignStoredMip(level, mipImage.byteCount(), mipImage.constBits());
         }
     }
+
 #else
     texture->autoGenerateMips(-1);
 #endif
@@ -353,7 +354,8 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     const double pStrength = 2.0;
     int width = image.width();
     int height = image.height();
-    QImage result(width, height, QImage::Format_RGB888);
+
+    QImage result(width, height, QImage::Format_ARGB32);
 
     for (int i = 0; i < width; i++) {
         const int iNextClamped = clampPixelCoordinate(i + 1, width - 1);
@@ -399,15 +401,17 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     }
 
     gpu::Texture* theTexture = nullptr;
-    if ((image.width() > 0) && (image.height() > 0)) {
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+    if ((result.width() > 0) && (result.height() > 0)) {
 
-        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        gpu::Element formatMip = gpu::Element::COLOR_BGRA_32;
+        gpu::Element formatGPU = gpu::Element::COLOR_RGBA_32;
+
+
+        theTexture = (gpu::Texture::create2D(formatGPU, result.width(), result.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
-        theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
-        generateMips(theTexture, image, true);
+        theTexture->assignStoredMip(0, result.byteCount(), result.constBits());
+        generateMips(theTexture, result, true);
 
         theTexture->setSource(srcImageName);
     }
