@@ -93,7 +93,14 @@ Item {
                         browser = tabletModelBrowserBuilder.createObject(tabletRoot);
                         browser.selected.connect(function(newModelUrl){
                             modelUrl.text = newModelUrl;
+                            tabletRoot.openModal = null;
                         });
+                        browser.canceled.connect(function() {
+                            tabletRoot.openModal = null;
+                        });
+
+                        // Make dialog modal.
+                        tabletRoot.openModal = browser;
                     }
                 }
             }
