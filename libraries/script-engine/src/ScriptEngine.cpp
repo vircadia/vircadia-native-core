@@ -541,16 +541,6 @@ void ScriptEngine::init() {
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->init();
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, this, [this](const EntityItemID& entityID) {
-        if (_entityScripts.contains(entityID)) {
-            if (isEntityScriptRunning(entityID)) {
-                qCWarning(scriptengine) << "deletingEntity while entity script is still running!" << entityID;
-            }
-            _entityScripts.remove(entityID);
-            emit entityScriptDetailsUpdated();
-        }
-    });
-
 
     // register various meta-types
     registerMetaTypes(this);
@@ -1844,7 +1834,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     processDeferredEntityLoads(entityScript, entityID);
 }
 
-void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
+void ScriptEngine::unloadEntityScript(const EntityItemID& entityID, bool shouldRemoveFromMap) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::unloadEntityScript() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
@@ -1852,7 +1842,8 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
 #endif
 
         QMetaObject::invokeMethod(this, "unloadEntityScript",
-                                  Q_ARG(const EntityItemID&, entityID));
+                                  Q_ARG(const EntityItemID&, entityID),
+                                  Q_ARG(bool, shouldRemoveFromMap));
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -1867,7 +1858,12 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
         } else {
             qCDebug(scriptengine) << "unload called while !running" << entityID << oldDetails.status;
         }
-        if (oldDetails.status != EntityScriptStatus::UNLOADED) {
+
+        if (shouldRemoveFromMap) {
+            // this was a deleted entity, we've been asked to remove it from the map
+            _entityScripts.remove(entityID);
+            emit entityScriptDetailsUpdated();
+        } else if (oldDetails.status != EntityScriptStatus::UNLOADED) {
             EntityScriptDetails newDetails;
             newDetails.status = EntityScriptStatus::UNLOADED;
             newDetails.lastModified = QDateTime::currentMSecsSinceEpoch();
@@ -1875,6 +1871,7 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
             newDetails.scriptText = oldDetails.scriptText;
             setEntityScriptDetails(entityID, newDetails);
         }
+
         stopAllTimersForEntityScript(entityID);
         {
             // FIXME: shouldn't have to do this here, but currently something seems to be firing unloads moments after firing initial load requests
