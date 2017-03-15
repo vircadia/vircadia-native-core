@@ -94,11 +94,13 @@ var NotificationType = {
     LOD_WARNING: 2,
     CONNECTION_REFUSED: 3,
     EDIT_ERROR: 4,
+    TABLET: 5,
     properties: [
         { text: "Snapshot" },
         { text: "Level of Detail" },
         { text: "Connection Refused" },
-        { text: "Edit error" }
+        { text: "Edit error" },
+        { text: "Tablet" }
     ],
     getTypeFromMenuItem: function(menuItemName) {
         if (menuItemName.substr(menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length) !== NOTIFICATION_MENU_ITEM_POST) {
@@ -535,6 +537,10 @@ function onSnapshotTaken(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     }
 }
 
+function tabletNotification() {
+    createNotification("Tablet need your attention", NotificationType.TABLET);
+}
+
 function processingGif() {
     createNotification("Processing GIF snapshot...", NotificationType.SNAPSHOT);
 }
@@ -641,7 +647,7 @@ Window.snapshotTaken.connect(onSnapshotTaken);
 Window.processingGif.connect(processingGif);
 Window.notifyEditError = onEditError;
 Window.notify = onNotify;
-
+Tablet.tabletNotification.connect(tabletNotification);
 setup();
 
 }()); // END LOCAL_SCOPE

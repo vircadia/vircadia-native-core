@@ -56,7 +56,14 @@ public:
     QQuickWindow* getTabletWindow();
 
     QObject* getFlags();
-
+signals:
+    /** jsdoc
+     * Signaled when a tablet message or dialog is created
+     * @function TabletProxy#tabletNotification
+     * @returns {Signal}
+     */
+    void tabletNotification();
+    
 private:
     void processMenuEvents(QObject* object, const QKeyEvent* event);
     void processTabletEvents(QObject* object, const QKeyEvent* event);
