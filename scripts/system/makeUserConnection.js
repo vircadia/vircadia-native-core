@@ -25,23 +25,30 @@ const STATE_STRINGS = ["inactive", "waiting", "friending", "makingFriends"];
 const WAITING_INTERVAL = 100; // ms
 const FRIENDING_INTERVAL = 100; // ms
 const FRIENDING_TIME = 3000; // ms
-const ENTITY_COLORS = [{red: 0x00, green: 0xFF, blue: 0x00}, {red: 0x00, green: 0x00, blue: 0xFF}, {red: 0xFF, green: 0x00, blue: 0x00}];
 const FRIENDING_HAPTIC_STRENGTH = 0.5;
 const FRIENDING_SUCCESS_HAPTIC_STRENGTH = 1.0;
 const HAPTIC_DURATION = 20;
+const MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx";
+const TEXTURES = [
+    {"Texture": "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx/sphere-3-color.fbm/green-50pct-opaque-64.png"},
+    {"Texture": "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx/sphere-3-color.fbm/blue-50pct-opaque-64.png"},
+    {"Texture": "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx/sphere-3-color.fbm/red-50pct-opaque-64.png"}
+];
 
 var currentHand;
 var state = STATES.inactive;
 var friendingInterval;
-var entity;
+var overlay;
 var animHandlerId;
 var entityDimensionMultiplier = 1.0;
 var friendingId;
+var friendingHand;
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
     var versionString = "v" + version;
-    print.apply(null, [].concat.apply([label, versionString, stateString, friendingId], [].map.call(arguments, JSON.stringify)));
+    var friending = "[" + friendingId + "/" + friendingHand + "]";
+    print.apply(null, [].concat.apply([label, versionString, stateString, friending], [].map.call(arguments, JSON.stringify)));
 }
 
 function handToString(hand) {
@@ -53,6 +60,16 @@ function handToString(hand) {
     return "";
 }
 
+function stringToHand(hand) {
+    if (hand == "RightHand") {
+        return Controller.Standard.RightHand;
+    } else if (hand == "LeftHand") {
+        return Controller.Standard.LeftHand;
+    }
+    debug("stringToHand called with bad hand string:", hand);
+    return 0;
+}
+
 function handToHaptic(hand) {
     if (hand === Controller.Standard.RightHand) {
         return 1;
@@ -62,11 +79,13 @@ function handToHaptic(hand) {
     return -1;
 }
 
-
+// This returns the position of the palm, really.  Which relies on the avatar
+// having the expected middle1 joint.  TODO: fallback for when this isn't part
+// of the avatar?
 function getHandPosition(avatar, hand) {
     if (!hand) {
-        debug("calling getHandPosition with no hand!");
-        return;
+        debug("calling getHandPosition with no hand! (returning avatar position but this is a BUG)");
+        return avatar.position;
     }
     var jointName = handToString(hand) + "Middle1";
     return avatar.getJointPosition(avatar.getJointIndex(jointName));
@@ -92,33 +111,43 @@ function shakeHandsAnimation(animationProperties) {
 // this is called frequently, but usually does nothing
 function updateVisualization() {
     if (state == STATES.inactive) {
-        if (entity) {
-            entity = Entities.deleteEntity(entity);
+        if (overlay) {
+            overlay = Overlays.deleteOverlay(overlay);
         }
         return;
     }
 
-    var color = ENTITY_COLORS[state-1];
+    var textures = TEXTURES[state-1];
     var position = getHandPosition(MyAvatar, currentHand);
 
     // TODO: make the size scale with avatar, up to
     // the actual size of MAX_AVATAR_DISTANCE
     var wrist = MyAvatar.getJointPosition(MyAvatar.getJointIndex(handToString(currentHand)));
     var d = entityDimensionMultiplier * Vec3.distance(wrist, position);
-    var dimension = {x: d, y: d, z: d};
-    if (!entity) {
-        var props =  {
-            type: "Sphere",
-            color: color,
-            position: position,
-            dimensions: dimension
+    if (friendingId) {
+        // put the position between the 2 hands, if we have a friendingId
+        var other = AvatarList.getAvatar(friendingId);
+        if (other) {
+            var otherHand = getHandPosition(other, stringToHand(friendingHand));
+            position = Vec3.sum(position, Vec3.multiply(0.5, Vec3.subtract(otherHand, position)));
         }
-        entity = Entities.addEntity(props);
+    }
+    var dimension = {x: d, y: d, z: d};
+    if (!overlay) {
+        var props =  {
+            url: MODEL_URL,
+            position: position,
+            dimensions: dimension,
+            textures: textures
+        };
+        overlay = Overlays.addOverlay("model", props);
     } else {
-        Entities.editEntity(entity, {dimensions: dimension, position: position, color: color});
+        Overlays.editOverlay(overlay, {textures: textures});
+        Overlays.editOverlay(overlay, {dimensions: dimension, position: position});
     }
 
 }
+
 function findNearbyAvatars(nearestOnly) {
     var handPos = getHandPosition(MyAvatar, currentHand);
     var minDistance = MAX_AVATAR_DISTANCE;
@@ -141,6 +170,15 @@ function findNearbyAvatars(nearestOnly) {
     return nearbyAvatars;
 }
 
+// As currently implemented, we select the closest avatar (if close enough) and send
+// them a friendRequest, or if someone already has sent us one, we just send the friendAck
+// back to them.  If nobody is close enough or has sent us a friendRequest, we just wait
+// transition to waiting and wait for a friendRequest.  If the 2 people who want to connect
+// are both somewhat out of range when they initiate the shake, then neither gets a message
+// and they both just stand there with their hands out.
+// Ideally we'd either show that (so they ungrip/regrip and adjust position), or do what I
+// initially did and start an interval to look for nearby avatars.  The issue with the latter
+// is this introduces some race condition we may need to handle (hence I didn't do it yet).
 function startHandshake(fromKeyboard) {
     if (fromKeyboard) {
         debug("adding animation");
@@ -170,7 +208,7 @@ function startHandshake(fromKeyboard) {
             messageSend({
                 key: "friendRequest",
                 id: friendingId,
-                hand: handToString(nearestAvatar.hand)
+                hand: handToString(currentHand)
             });
         }
     }
@@ -179,9 +217,14 @@ function startHandshake(fromKeyboard) {
 function endHandshake() {
     debug("ending handshake for", currentHand);
     currentHand = undefined;
+    // note that setting the state to inactive should really
+    // only be done here, unless we change how the triggering works,
+    // as we ignore the key release event when inactive.  See updateTriggers
+    // below.
     state = STATES.inactive;
     if (friendingInterval) {
         friendingId = undefined;
+        friendingHand = undefined;
         friendingInterval = Script.clearInterval(friendingInterval);
         // send done to let friend know you are not making friends now
         messageSend({
@@ -211,6 +254,7 @@ function updateTriggers(value, fromKeyboard, hand) {
             startHandshake(fromKeyboard);
         }
     } else {
+        // TODO: should we end handshake even when inactive?  Ponder
         if (state != STATES.inactive) {
             endHandshake();
         } else {
@@ -247,6 +291,7 @@ function makeFriends(id) {
     Script.setTimeout(function () {
             state = STATES.waiting;
             friendingId = undefined;
+            friendingHand = undefined;
             entityDimensionMultiplier = 1.0;
         }, 1000);
 }
@@ -270,7 +315,8 @@ function startFriending(id, hand) {
     });
 
     friendingInterval = Script.setInterval(function () {
-        entityDimensionMultiplier = 1.0 + 2.0 * ++count * FRIENDING_INTERVAL / FRIENDING_TIME;
+        count += 1;
+        entityDimensionMultiplier = 1.0 + 2.0 * count * FRIENDING_INTERVAL / FRIENDING_TIME;
         if (state != STATES.friending) {
             debug("stopping friending interval, state changed");
             friendingInterval = Script.clearInterval(friendingInterval);
@@ -282,6 +328,7 @@ function startFriending(id, hand) {
                 key: "done"
             });
             friendingId = undefined;
+            friendingHand = undefined;
             startHandshake();
         } else if (count > FRIENDING_TIME/FRIENDING_INTERVAL) {
             debug("made friends with " + id);
@@ -324,11 +371,13 @@ function messageHandler(channel, messageString, senderID) {
     case "friendRequest":
         if (state == STATES.inactive && message.id == MyAvatar.sessionUUID) {
             friendingId = senderID;
+            friendingHand = message.hand;
         } else if (state == STATES.waiting && message.id == MyAvatar.sessionUUID && (!friendingId || friendingId == senderID)) {
             // you were waiting for a friend request, so send the ack.  Or, you and the other
             // guy raced and both send friendRequests.  Handle that too
             if (!friendingId) {
                 friendingId = senderID;
+                friendingHand = message.hand;
             }
             messageSend({
                 key: "friendAck",
@@ -343,6 +392,7 @@ function messageHandler(channel, messageString, senderID) {
         if (state == STATES.waiting && message.id == MyAvatar.sessionUUID && (!friendingId || friendingId == senderID)) {
             // start friending...
             friendingId = senderID;
+            friendingHand = message.hand;
             startFriending(senderID, message.hand);
         }
         // TODO: check to see if we are waiting for this but the person we are friending sent it to
@@ -371,6 +421,7 @@ function messageHandler(channel, messageString, senderID) {
                 // value for isKeyboard, as we should not change the animation
                 // state anyways (if any)
                 friendingId = undefined;
+                friendingHand = undefined;
                 startHandshake();
             }
         } else {
@@ -378,6 +429,7 @@ function messageHandler(channel, messageString, senderID) {
             // do nothing (so you see the red for a bit)
             if (state != STATES.makingFriends && friendingId == senderID) {
                 friendingId = undefined;
+                friendingHand = undefined;
                 if (state != STATES.inactive) {
                     startHandshake();
                 }
@@ -386,6 +438,7 @@ function messageHandler(channel, messageString, senderID) {
         break;
     default:
         debug("unknown message", message);
+        break;
     }
 }
 
