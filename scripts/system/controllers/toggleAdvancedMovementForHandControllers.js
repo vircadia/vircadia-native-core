@@ -109,10 +109,10 @@ function menuItemEvent(menuItem) {
     if (menuItem == MENU_ITEM_NAME) {
         isChecked = Menu.isOptionChecked(MENU_ITEM_NAME);
         if (isChecked === true) {
-            MyAvatar.setUseAdvancedMovementControls(true);
+            MyAvatar.advancedMovementControls = true;
             disableMappings();
         } else if (isChecked === false) {
-            MyAvatar.setUseAdvancedMovementControls(false);
+            MyAvatar.advancedMovementControls = false;
             enableMappings();
         }
     }
