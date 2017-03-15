@@ -21,7 +21,7 @@ CauterizedMeshPartPayload::CauterizedMeshPartPayload(Model* model, int meshIndex
     : ModelMeshPartPayload(model, meshIndex, partIndex, shapeIndex, transform, offsetTransform) {}
 
 void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(
-		const Transform& renderTransform,
+        const Transform& renderTransform,
         const gpu::BufferPointer& buffer) {
     _cauterizedTransform = renderTransform;
     _cauterizedClusterBuffer = buffer;
@@ -33,12 +33,12 @@ void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::S
     SkeletonModel* skeleton = static_cast<SkeletonModel*>(_model);
     bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE) && skeleton->getEnableCauterization();
 
-	if (useCauterizedMesh) {
+    if (useCauterizedMesh) {
         if (_cauterizedClusterBuffer) {
             batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _cauterizedClusterBuffer);
         }
         batch.setModelTransform(_cauterizedTransform);
-	} else {
+    } else {
         if (_clusterBuffer) {
             batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
         }

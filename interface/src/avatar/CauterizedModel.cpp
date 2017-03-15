@@ -26,8 +26,8 @@ CauterizedModel::~CauterizedModel() {
 }
 
 void CauterizedModel::deleteGeometry() {
-	Model::deleteGeometry();
-	_cauterizeMeshStates.clear();
+    Model::deleteGeometry();
+    _cauterizeMeshStates.clear();
 }
 
 bool CauterizedModel::updateGeometry() {
@@ -41,7 +41,7 @@ bool CauterizedModel::updateGeometry() {
             _cauterizeMeshStates.append(state);
         }
     }
-	return needsFullUpdate;
+    return needsFullUpdate;
 }
 
 void CauterizedModel::createVisibleRenderItemSet() {
@@ -86,13 +86,13 @@ void CauterizedModel::createVisibleRenderItemSet() {
             }
         }
     } else {
-	    Model::createVisibleRenderItemSet();
+        Model::createVisibleRenderItemSet();
     }
 }
 
 void CauterizedModel::createCollisionRenderItemSet() {
     // Temporary HACK: use base class method for now
-	Model::createCollisionRenderItemSet();
+    Model::createCollisionRenderItemSet();
 }
 
 void CauterizedModel::updateClusterMatrices() {
@@ -122,8 +122,8 @@ void CauterizedModel::updateClusterMatrices() {
                 state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
                                                 (const gpu::Byte*) state.clusterMatrices.constData());
             }
-		}
-	}
+        }
+    }
 
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
     if (!_cauterizeBoneSet.empty()) {
@@ -212,31 +212,22 @@ void CauterizedModel::updateRenderItems() {
                     if (data._model && data._model->isLoaded()) {
                         // Ensure the model geometry was not reset between frames
                         if (deleteGeometryCounter == data._model->getGeometryCounter()) {
-							// this stuff identical to what happens in regular Model
-                          	const Model::MeshState& state = data._model->getMeshState(data._meshIndex);
-                          	Transform renderTransform = modelTransform;
-                          	if (state.clusterMatrices.size() == 1) {
-                              	renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
-                          	}
-                          	data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
-
-							// this stuff for cauterized mesh
-                            CauterizedModel* cModel = static_cast<CauterizedModel*>(data._model);
-                          	const Model::MeshState& cState = cModel->getCauterizeMeshState(data._meshIndex);
-                          	renderTransform = modelTransform;
-                          	if (cState.clusterMatrices.size() == 1) {
-                              	renderTransform = modelTransform.worldTransform(Transform(cState.clusterMatrices[0]));
-                          	}
-                          	data.updateTransformForCauterizedMesh(renderTransform, cState.clusterBuffer);
-
-/*
-                            // update the model transform and bounding box for this render item.
+                            // this stuff identical to what happens in regular Model
                             const Model::MeshState& state = data._model->getMeshState(data._meshIndex);
+                            Transform renderTransform = modelTransform;
+                            if (state.clusterMatrices.size() == 1) {
+                                renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
+                            }
+                            data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
+
+                            // this stuff for cauterized mesh
                             CauterizedModel* cModel = static_cast<CauterizedModel*>(data._model);
-                            assert(data._meshIndex < cModel->_cauterizeMeshStates.size());
-                            const Model::MeshState& cState = cModel->_cauterizeMeshStates.at(data._meshIndex);
-                            data.updateTransformForSkinnedCauterizedMesh(modelTransform, state.clusterMatrices, cState.clusterMatrices);
-*/
+                            const Model::MeshState& cState = cModel->getCauterizeMeshState(data._meshIndex);
+                            renderTransform = modelTransform;
+                            if (cState.clusterMatrices.size() == 1) {
+                                renderTransform = modelTransform.worldTransform(Transform(cState.clusterMatrices[0]));
+                            }
+                            data.updateTransformForCauterizedMesh(renderTransform, cState.clusterBuffer);
                         }
                     }
                 });

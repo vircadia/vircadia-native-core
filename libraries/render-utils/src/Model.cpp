@@ -228,7 +228,7 @@ void Model::updateRenderItems() {
         }
 
         // lazy update of cluster matrices used for rendering.
-        // We need to update them here, so we can correctly update the bounding box.
+        // We need to update them here so we can correctly update the bounding box.
         self->updateClusterMatrices();
 
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
@@ -245,10 +245,10 @@ void Model::updateRenderItems() {
                         modelTransform.setScale(glm::vec3(1.0f));
 
                         const Model::MeshState& state = data._model->getMeshState(data._meshIndex);
-						Transform renderTransform = modelTransform;
-						if (state.clusterMatrices.size() == 1) {
-							renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
-						}
+                        Transform renderTransform = modelTransform;
+                        if (state.clusterMatrices.size() == 1) {
+                            renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
+                        }
                         data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
                     }
                 }
@@ -1052,7 +1052,7 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 }
 
 void Model::computeMeshPartLocalBounds() {
-	for (auto& part : _modelMeshRenderItemsSet) {
+    for (auto& part : _modelMeshRenderItemsSet) {
         assert(part->_meshIndex < _modelMeshRenderItemsSet.size());
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
         part->computeAdjustedLocalBound(state.clusterMatrices);
