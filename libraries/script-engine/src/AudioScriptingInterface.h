@@ -32,10 +32,13 @@ protected:
     Q_INVOKABLE void setStereoInput(bool stereo);
 
 signals:
-    void mutedByMixer();
-    void environmentMuted();
-    void receivedFirstPacket();
-    void disconnected();
+    void mutedByMixer(); /// the client has been muted by the mixer
+    void environmentMuted(); /// the entire environment has been muted by the mixer
+    void receivedFirstPacket(); /// the client has received its first packet from the audio mixer
+    void disconnected(); /// the client has been disconnected from the audio mixer
+    void noiseGateOpened(); /// the noise gate has opened
+    void noiseGateClosed(); /// the noise gate has closed
+    void inputReceived(const QByteArray& inputSamples); /// a frame of mic input audio has been received and processed
 
 private:
     AudioScriptingInterface();
