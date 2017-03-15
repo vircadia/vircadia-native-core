@@ -143,12 +143,35 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
 }
 
 void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
-    // first bump and prune contacts for all objects in the list
+    // bump and prune contacts for all objects in the list
     for (auto object : objects) {
         bumpAndPruneContacts(object);
     }
 
-    // then remove them
+    if (_activeStaticBodies.size() > 0) {
+        // _activeStaticBodies was not cleared last frame.
+        // The only way to get here is if a static object were moved but we did not actually step the simulation last
+        // frame (because the framerate is faster than our physics simulation rate).  When this happens we must scan
+        // _activeStaticBodies for objects that were recently deleted so we don't try to access a dangling pointer.
+        for (auto object : objects) {
+            btRigidBody* body = object->getRigidBody();
+
+            std::vector<btRigidBody*>::reverse_iterator itr = _activeStaticBodies.rbegin();
+            while (itr != _activeStaticBodies.rend()) {
+                if (body == *itr) {
+                    if (*itr != *(_activeStaticBodies.rbegin())) {
+                        // swap with rbegin
+                        *itr = *(_activeStaticBodies.rbegin());
+                    }
+                    _activeStaticBodies.pop_back();
+                    break;
+                }
+                ++itr;
+            }
+        }
+    }
+
+    // remove bodies
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
         if (body) {
