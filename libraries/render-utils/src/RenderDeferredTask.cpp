@@ -259,7 +259,14 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
-        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+        // From the lighting model define a global shapKey ORED with individiual keys
+        ShapeKey::Builder keyBuilder;
+        if (lightingModel->isWireframeEnabled()) {
+            keyBuilder.withWireframe();
+        }
+        ShapeKey globalKey = keyBuilder.build();
+
+        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
         args->_batch = nullptr;
     });
 
@@ -295,10 +302,17 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
+        // From the lighting model define a global shapKey ORED with individiual keys
+        ShapeKey::Builder keyBuilder;
+        if (lightingModel->isWireframeEnabled()) {
+            keyBuilder.withWireframe();
+        }
+        ShapeKey globalKey = keyBuilder.build();
+
         if (_stateSort) {
-            renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+            renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
         } else {
-            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
         }
         args->_batch = nullptr;
     });

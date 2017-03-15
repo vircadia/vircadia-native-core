@@ -64,6 +64,9 @@ public:
     void setShowLightContour(bool enable);
     bool isShowLightContourEnabled() const;
 
+    void setWireframe(bool enable);
+    bool isWireframeEnabled() const;
+
     UniformBufferView getParametersBuffer() const { return _parametersBuffer; }
 
 protected:
@@ -89,13 +92,12 @@ protected:
         float enablePointLight{ 1.0f };
         float enableSpotLight{ 1.0f };
 
-        float showLightContour{ 0.0f }; // false by default
+        float showLightContour { 0.0f }; // false by default
 
         float enableObscurance{ 1.0f };
 
         float enableMaterialTexturing { 1.0f };
-
-        float spares{ 0.0f };
+        float enableWireframe { 0.0f }; // false by default
 
         Parameters() {}
     };
@@ -129,6 +131,7 @@ class MakeLightingModelConfig : public render::Job::Config {
     Q_PROPERTY(bool enablePointLight MEMBER enablePointLight NOTIFY dirty)
     Q_PROPERTY(bool enableSpotLight MEMBER enableSpotLight NOTIFY dirty)
 
+    Q_PROPERTY(bool enableWireframe MEMBER enableWireframe NOTIFY dirty)
     Q_PROPERTY(bool showLightContour MEMBER showLightContour NOTIFY dirty)
 
 public:
@@ -152,8 +155,9 @@ public:
     bool enablePointLight{ true };
     bool enableSpotLight{ true };
 
-
     bool showLightContour { false }; // false by default
+
+    bool enableWireframe { false }; // false by default
 
 signals:
     void dirty();

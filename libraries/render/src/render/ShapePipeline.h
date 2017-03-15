@@ -46,6 +46,10 @@ public:
     ShapeKey() : _flags{ 0 } {}
     ShapeKey(const Flags& flags) : _flags{flags} {}
 
+    friend ShapeKey operator&(const ShapeKey& _Left, const ShapeKey& _Right) { return ShapeKey(_Left._flags & _Right._flags); }
+    friend ShapeKey operator|(const ShapeKey& _Left, const ShapeKey& _Right) { return ShapeKey(_Left._flags | _Right._flags); }
+    friend ShapeKey operator^(const ShapeKey& _Left, const ShapeKey& _Right) { return ShapeKey(_Left._flags ^ _Right._flags); }
+
     class Builder {
     public:
         Builder() {}
