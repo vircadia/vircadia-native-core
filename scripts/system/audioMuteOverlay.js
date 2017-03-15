@@ -20,31 +20,31 @@
 
     var overlayPosition = Vec3.ZERO;
     var tweenPosition = 0;
-    // colors are in HSV, h needs to be a value from 0-1
     var startColor = {
-        h: 0,
-        s: 0,
-        v: 0.67
+        red: 170,
+        green: 170,
+        blue: 170
     };
     var endColor = {
-        h: 0,
-        s: 1,
-        v: 1
+        red: 255,
+        green: 0,
+        blue: 0
     };
     var overlayID;
 
-    AudioDevice.muteToggled.connect(onMuteToggled);
     Script.update.connect(update);
     Script.scriptEnding.connect(cleanup);
 
     function update(dt) {
         if (!AudioDevice.getMuted()) {
-            if (overlayID) {
+            if (hasOverlay()) {
                 deleteOverlay();
             }
-            return;
-        }
-        updateOverlay(); 
+        } else if (!hasOverlay()) {
+            createOverlay();
+        } else {
+            updateOverlay();
+        }    
     }
 
     function lerp(a, b, val) {
@@ -55,45 +55,8 @@
         return Math.pow(t / 1, 5);
     }
 
-    // Adapted from a blog post on http://mjijackson.com
-    // Michael J. I. Jackson
-    // Converts an HSV color value to RGB. Conversion formula adapted from http: //en.wikipedia.org/wiki/HSV_color_space.
-    // Assumes h, s, and v are contained in the set[0, 1]
-    function hsvToRgb(h, s, v) {
-        var r, g, b;
-
-        var i = Math.floor(h * 6);
-        var f = h * 6 - i;
-        var p = v * (1 - s);
-        var q = v * (1 - f * s);
-        var t = v * (1 - (1 - f) * s);
-
-        switch (i % 6) {
-            case 0: r = v, g = t, b = p; break;
-            case 1: r = q, g = v, b = p; break;
-            case 2: r = p, g = v, b = t; break;
-            case 3: r = p, g = q, b = v; break;
-            case 4: r = t, g = p, b = v; break;
-            case 5: r = v, g = p, b = q; break;
-        }
-
-        return {
-            red: r * 255,
-            green: g * 255,
-            blue: b * 255
-        }
-    }
-
     function getOffsetPosition() {
         return Vec3.sum(Camera.position, Quat.getFront(Camera.orientation));
-    }
-
-    function onMuteToggled() {
-        if (AudioDevice.getMuted()) {
-            createOverlay();
-        } else {
-            deleteOverlay();
-        }
     }
 
     function createOverlay() {
@@ -106,6 +69,10 @@
             solid: true,
             ignoreRayIntersection: true
         });
+    }
+
+    function hasOverlay() {
+       return Overlays.getProperty(overlayID, "position") !== undefined;
     }
 
     function updateOverlay() {
@@ -128,17 +95,11 @@
         overlayPosition.y = lerp(overlayPosition.y, offsetPosition.y, LERP_AMOUNT);
         overlayPosition.z = lerp(overlayPosition.z, offsetPosition.z, LERP_AMOUNT);
 
-        var rgbColor = hsvToRgb(
-            lerp(startColor.h, endColor.h, easeIn(tweenPosition)),
-            lerp(startColor.s, endColor.s, easeIn(tweenPosition)),
-            lerp(startColor.v, endColor.v, easeIn(tweenPosition))
-        );
-
         Overlays.editOverlay(overlayID, {
             color: {
-                red: rgbColor.red,
-                green: rgbColor.green,
-                blue: rgbColor.blue
+                red: lerp(startColor.red, endColor.red, easeIn(tweenPosition)),
+                green: lerp(startColor.green, endColor.green, easeIn(tweenPosition)),
+                blue: lerp(startColor.blue, endColor.blue, easeIn(tweenPosition))
             },
             position: overlayPosition,
             rotation: Camera.orientation
