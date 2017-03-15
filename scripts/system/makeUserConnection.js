@@ -38,17 +38,19 @@ const TEXTURES = [
 var currentHand;
 var state = STATES.inactive;
 var friendingInterval;
+var waitingInterval;
 var overlay;
 var animHandlerId;
 var entityDimensionMultiplier = 1.0;
 var friendingId;
 var friendingHand;
+var waitingList = {};
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
     var versionString = "v" + version;
     var friending = "[" + friendingId + "/" + friendingHand + "]";
-    print.apply(null, [].concat.apply([label, versionString, stateString, friending], [].map.call(arguments, JSON.stringify)));
+    print.apply(null, [].concat.apply([label, versionString, stateString, JSON.stringify(waitingList), friending], [].map.call(arguments, JSON.stringify)));
 }
 
 function handToString(hand) {
@@ -85,6 +87,7 @@ function handToHaptic(hand) {
 function getHandPosition(avatar, hand) {
     if (!hand) {
         debug("calling getHandPosition with no hand! (returning avatar position but this is a BUG)");
+        debug(new Error().stack);
         return avatar.position;
     }
     var jointName = handToString(hand) + "Middle1";
@@ -148,33 +151,42 @@ function updateVisualization() {
 
 }
 
-function findNearbyAvatars(nearestOnly) {
-    var handPos = getHandPosition(MyAvatar, currentHand);
-    var minDistance = MAX_AVATAR_DISTANCE;
-    var nearbyAvatars = [];
-    AvatarList.getAvatarIdentifiers().forEach(function (identifier) {
-        if (!identifier) { return; }
-        var avatar = AvatarList.getAvatar(identifier);
-        var distanceR = Vec3.distance(getHandPosition(avatar, Controller.Standard.RightHand), handPos);
-        var distanceL = Vec3.distance(getHandPosition(avatar, Controller.Standard.LeftHand), handPos);
-        var distance = Math.min(distanceL, distanceR);
-        if (distance < minDistance) {
-            if (nearestOnly) {
-                minDistance = distance;
-                nearbyAvatars = [];
-            }
-            var hand = (distance == distanceR ? Controller.Standard.RightHand : Controller.Standard.LeftHand);
-            nearbyAvatars.push({avatar: identifier, hand: hand});
+function isNearby(id, hand) {
+    if (currentHand) {
+        var handPos = getHandPosition(MyAvatar, currentHand);
+        var avatar = AvatarList.getAvatar(id);
+        if (avatar) {
+            var otherHand = stringToHand(hand);
+            var distance = Vec3.distance(getHandPosition(avatar, otherHand), handPos);
+            return (distance < MAX_AVATAR_DISTANCE);
         }
-    });
-    return nearbyAvatars;
+    }
+    return false;
 }
 
-// As currently implemented, we select the closest avatar (if close enough) and send
-// them a friendRequest, or if someone already has sent us one, we just send the friendAck
-// back to them.  If nobody is close enough or has sent us a friendRequest, we just wait
-// transition to waiting and wait for a friendRequest.  If the 2 people who want to connect
-// are both somewhat out of range when they initiate the shake, then neither gets a message
+function findNearestWaitingAvatar() {
+    var handPos = getHandPosition(MyAvatar, currentHand);
+    var minDistance = MAX_AVATAR_DISTANCE;
+    var nearestAvatar = {};
+    Object.keys(waitingList).forEach(function (identifier) {
+        var avatar = AvatarList.getAvatar(identifier);
+        if (avatar) {
+            var hand = stringToHand(waitingList[identifier]);
+            var distance = Vec3.distance(getHandPosition(avatar, hand), handPos);
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestAvatar = {avatar: identifier, hand: hand};
+            }
+        }
+    });
+    return nearestAvatar;
+}
+
+
+// As currently implemented, we select the closest waiting avatar (if close enough) and send
+// them a friendRequest.  If nobody is close enough we just wait for a friendRequest.  If the
+// 2 people who want to connect are both somewhat out of range when they initiate the shake,
+// then neither gets a message
 // and they both just stand there with their hands out.
 // Ideally we'd either show that (so they ungrip/regrip and adjust position), or do what I
 // initially did and start an interval to look for nearby avatars.  The issue with the latter
@@ -191,26 +203,26 @@ function startHandshake(fromKeyboard) {
     debug("starting handshake for", currentHand);
     state = STATES.waiting;
     entityDimensionMultiplier = 1.0;
-    // if we have a recent friendRequest, send an ack back.
-    // TODO: be sure the friendingId resets when we get the done message
-    if (friendingId) {
-        debug("sending friendAck to", friendingId);
+    friendingId = undefined;
+    friendingHand = undefined;
+    var nearestAvatar = findNearestWaitingAvatar();
+    if (nearestAvatar.avatar) {
+        friendingId = nearestAvatar.avatar;
+        friendingHand = handToString(nearestAvatar.hand);
+        debug("sending friendRequest to", friendingId);
         messageSend({
-            key: "friendAck",
+            key: "friendRequest",
             id: friendingId,
             hand: handToString(currentHand)
         });
     } else {
-        var nearestAvatar = findNearbyAvatars(true)[0];
-        if (nearestAvatar) {
-            friendingId = nearestAvatar.avatar;
-            debug("sending friendRequest to", friendingId);
-            messageSend({
-                key: "friendRequest",
-                id: friendingId,
-                hand: handToString(currentHand)
-            });
-        }
+        // send waiting message
+        debug("sending waiting message");
+        messageSend({
+            key: "waiting",
+            hand: handToString(currentHand)
+        });
+        lookForWaitingAvatar();
     }
 }
 
@@ -222,9 +234,9 @@ function endHandshake() {
     // as we ignore the key release event when inactive.  See updateTriggers
     // below.
     state = STATES.inactive;
+    friendingId = undefined;
+    friendingHand = undefined;
     if (friendingInterval) {
-        friendingId = undefined;
-        friendingHand = undefined;
         friendingInterval = Script.clearInterval(friendingInterval);
         // send done to let friend know you are not making friends now
         messageSend({
@@ -267,14 +279,39 @@ function messageSend(message) {
     Messages.sendMessage(MESSAGE_CHANNEL, JSON.stringify(message));
 }
 
-function isNearby(id, hand) {
-    var nearbyAvatars = findNearbyAvatars();
-    for(var i = 0; i < nearbyAvatars.length; i++) {
-        if (nearbyAvatars[i].avatar == id && handToString(nearbyAvatars[i].hand) == hand) {
-            return true;
-        }
+function lookForWaitingAvatar() {
+    // we started with nobody close enough, but maybe I've moved
+    // or they did.  Note that 2 people doing this race, so stop
+    // as soon as you have a friendingId (which means you got their
+    // message before noticing they were in range in this loop)
+
+    // just in case we reenter before stopping
+    if (waitingInterval) {
+        waitingInterval = Script.clearInterval(waitingInterval);
     }
-    return false;
+    debug("started looking for waiting avatars");
+    waitingInterval = Script.setInterval(function () {
+        if (state == STATES.waiting && !friendingId) {
+            // find the closest in-range avatar, and send friend request
+            // TODO: this is same code as in startHandshake - get this
+            // cleaned up.
+            var nearestAvatar = findNearestWaitingAvatar();
+            if (nearestAvatar.avatar) {
+                friendingId = nearestAvatar.avatar;
+                friendingHand = handToString(nearestAvatar.hand);
+                debug("sending friendRequest to", friendingId);
+                messageSend({
+                    key: "friendRequest",
+                    id: friendingId,
+                    hand: handToString(currentHand)
+                });
+            }
+        } else {
+            // something happened, stop looking for avatars to friend
+            waitingInterval = Script.clearInterval(waitingInterval);
+            debug("stopped looking for waiting avatars");
+        }
+    }, WAITING_INTERVAL);
 }
 
 // this should be where we make the appropriate friend call.  For now just make the
@@ -289,12 +326,12 @@ function makeFriends(id) {
     state = STATES.makingFriends;
     // now that we made friends, reset everything
     Script.setTimeout(function () {
-            state = STATES.waiting;
             friendingId = undefined;
             friendingHand = undefined;
             entityDimensionMultiplier = 1.0;
         }, 1000);
 }
+
 // we change states, start the friendingInterval where we check
 // to be sure the hand is still close enough.  If not, we terminate
 // the interval, go back to the waiting state.  If we make it
@@ -304,6 +341,7 @@ function startFriending(id, hand) {
     debug("friending", id, "hand", hand);
     // do we need to do this?
     friendingId = id;
+    friendingHand = hand;
     state = STATES.friending;
     Controller.triggerHapticPulse(FRIENDING_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
 
@@ -327,8 +365,6 @@ function startFriending(id, hand) {
             messageSend({
                 key: "done"
             });
-            friendingId = undefined;
-            friendingHand = undefined;
             startHandshake();
         } else if (count > FRIENDING_TIME/FRIENDING_INTERVAL) {
             debug("made friends with " + id);
@@ -368,17 +404,18 @@ function messageHandler(channel, messageString, senderID) {
     }
     debug("recv'd message:", message);
     switch (message.key) {
+    case "waiting":
+        // add this guy to waiting object.  Any other message from this person will
+        // remove it from the list
+        waitingList[senderID] = message.hand;
+        break;
     case "friendRequest":
-        if (state == STATES.inactive && message.id == MyAvatar.sessionUUID) {
-            friendingId = senderID;
-            friendingHand = message.hand;
-        } else if (state == STATES.waiting && message.id == MyAvatar.sessionUUID && (!friendingId || friendingId == senderID)) {
+        delete waitingList[senderID];
+        if (state == STATES.waiting && message.id == MyAvatar.sessionUUID && (!friendingId || friendingId == senderID)) {
             // you were waiting for a friend request, so send the ack.  Or, you and the other
             // guy raced and both send friendRequests.  Handle that too
-            if (!friendingId) {
-                friendingId = senderID;
-                friendingHand = message.hand;
-            }
+            friendingId = senderID;
+            friendingHand = message.hand;
             messageSend({
                 key: "friendAck",
                 id: senderID,
@@ -389,17 +426,32 @@ function messageHandler(channel, messageString, senderID) {
         // and try again
         break;
     case "friendAck":
-        if (state == STATES.waiting && message.id == MyAvatar.sessionUUID && (!friendingId || friendingId == senderID)) {
-            // start friending...
-            friendingId = senderID;
-            friendingHand = message.hand;
-            startFriending(senderID, message.hand);
+        delete waitingList[senderID];
+        if (state == STATES.waiting && (!friendingId || friendingId == senderID)) {
+            if (message.id == MyAvatar.sessionUUID) {
+                // start friending...
+                friendingId = senderID;
+                friendingHand = message.hand;
+                startFriending(senderID, message.hand);
+            } else {
+                if (friendingId) {
+                    // this is for someone else (we lost race in friendRequest),
+                    // so lets start over
+                    startHandshake();
+                }
+            }
         }
         // TODO: check to see if we are waiting for this but the person we are friending sent it to
         // someone else, and try again
         break;
     case "friending":
+        delete waitingList[senderID];
         if (state == STATES.waiting && senderID == friendingId) {
+            // temporary logging
+            if (friendingHand != message.hand) {
+                debug("friending hand", friendingHand, "not same as friending hand in message", message.hand);
+            }
+            friendingHand = message.hand;
             if (message.id != MyAvatar.sessionUUID) {
                 // the person we were trying to friend is friending someone else
                 // so try again
@@ -410,6 +462,7 @@ function messageHandler(channel, messageString, senderID) {
         }
         break;
     case "done":
+        delete waitingList[senderID];
         if (state == STATES.friending && friendingId == senderID) {
             // if they are done, and didn't friend us, terminate our
             // friending
@@ -420,8 +473,6 @@ function messageHandler(channel, messageString, senderID) {
                 // now just call startHandshake.  Should be ok to do so without a
                 // value for isKeyboard, as we should not change the animation
                 // state anyways (if any)
-                friendingId = undefined;
-                friendingHand = undefined;
                 startHandshake();
             }
         } else {
@@ -496,8 +547,8 @@ Script.scriptEnding.connect(function () {
     Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
     debug("disconnecting updateVisualization");
     Script.update.disconnect(updateVisualization);
-    if (entity) {
-        entity = Entities.deleteEntity(entity);
+    if (overlay) {
+        overlay = Overlays.deleteOverlay(overlay);
     }
 });
 
