@@ -29,7 +29,6 @@ void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(
 
 void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
     // Still relying on the raw data from the model
-    const Model::MeshState& state = _model->getMeshState(_meshIndex);
     SkeletonModel* skeleton = static_cast<SkeletonModel*>(_model);
     bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE) && skeleton->getEnableCauterization();
 
