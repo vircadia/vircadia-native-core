@@ -7,6 +7,7 @@ import "../../controls"
 import "../toolbars"
 import HFWebEngineProfile 1.0
 import QtGraphicalEffects 1.0
+import "../../controls-uit" as HifiControls
 import "../../styles-uit"
 
 StackView {
@@ -16,6 +17,8 @@ StackView {
 
     property var eventBridge;
     signal sendToScript(var message);
+
+    HifiConstants { id: hifi }
 
     function pushSource(path) {
         editRoot.push(Qt.resolvedUrl(path));
@@ -246,6 +249,18 @@ StackView {
                                 }
                             }
                         ]
+                    }
+
+                    HifiControls.Button {
+                        text: "Import Entities"
+                        color: hifi.buttons.black
+                        colorScheme: hifi.colorSchemes.dark
+                        anchors.right: parent.right
+                        anchors.rightMargin: 55
+                        anchors.left: parent.left
+                        anchors.leftMargin: 55
+                        anchors.top: assetServerButton.bottom
+                        anchors.topMargin: 35
                     }
                 }
             }
