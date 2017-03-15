@@ -582,11 +582,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     auto locations =  args->_pipeline->locations;
     assert(locations);
 
-    // update the clusterMatrices if necessary
-    // TODO: we want to remove this updateClusterMatrices() call in this context
-    // but I recall we tried this before and broke something. - Andrew
-    _model->updateClusterMatrices();
-
     bindTransform(batch, locations, args->_renderMode);
 
     //Bind the index buffer and vertex buffer and Blend shapes if needed
