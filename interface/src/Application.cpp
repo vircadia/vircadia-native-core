@@ -2011,6 +2011,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
+    rootContext->setContextProperty("location", DependencyManager::get<AddressManager>().data());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 

@@ -299,7 +299,8 @@ function updateUser(data) {
 // User management services
 //
 // These are prototype versions that will be changed when the back end changes.
-var METAVERSE_BASE = 'https://metaverse.highfidelity.com';
+var METAVERSE_BASE = location.metaverseServerUrl;
+
 
 function request(url, callback) { // cb(error, responseOfCorrectContentType) of url. General for 'get' text/html/json, but without redirects.
     var httpRequest = new XMLHttpRequest();
