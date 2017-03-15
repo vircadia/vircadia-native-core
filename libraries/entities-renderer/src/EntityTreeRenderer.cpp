@@ -760,7 +760,7 @@ void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
         PointerEvent pointerEvent(PointerEvent::Press, MOUSE_POINTER_ID,
             pos2D, rayPickResult.intersection,
             rayPickResult.surfaceNormal, ray.direction,
-            toPointerButton(*event), toPointerButtons(*event));
+            toPointerButton(*event), toPointerButtons(*event), Qt::NoModifier);
 
         emit mouseDoublePressOnEntity(rayPickResult.entityID, pointerEvent);
 
