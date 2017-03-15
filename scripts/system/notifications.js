@@ -538,7 +538,7 @@ function onSnapshotTaken(pathStillSnapshot, pathAnimatedSnapshot, notify) {
 }
 
 function tabletNotification() {
-    createNotification("Tablet need your attention", NotificationType.TABLET);
+    createNotification("Tablet needs your attention", NotificationType.TABLET);
 }
 
 function processingGif() {
