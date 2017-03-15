@@ -85,29 +85,18 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
             indexItr += part._startIndex;
 
             int indexCount = 0;
-            while (indexItr != indexBuffer.cend<uint32_t>()) {
-                if (indexItr == part._numIndices) {
-                    break;
-                }
+            while (indexItr != indexBuffer.cend<uint32_t>() && indexCount < part._numIndices) {
                 uint32_t index0 = *indexItr;
                 indexItr++;
                 indexCount++;
-                if (indexItr == indexBuffer.cend<uint32_t>()) {
-                    qCDebug(modelformat) << "OBJWriter -- index buffer length isn't multiple of 3";
-                    break;
-                }
-                if (indexItr == part._numIndices) {
+                if (indexItr == indexBuffer.cend<uint32_t>() || indexCount >= part._numIndices) {
                     qCDebug(modelformat) << "OBJWriter -- index buffer length isn't multiple of 3";
                     break;
                 }
                 uint32_t index1 = *indexItr;
                 indexItr++;
                 indexCount++;
-                if (indexItr == indexBuffer.cend<uint32_t>()) {
-                    qCDebug(modelformat) << "OBJWriter -- index buffer length isn't multiple of 3";
-                    break;
-                }
-                if (indexItr == part._numIndices) {
+                if (indexItr == indexBuffer.cend<uint32_t>() || indexCount >= part._numIndices) {
                     qCDebug(modelformat) << "OBJWriter -- index buffer length isn't multiple of 3";
                     break;
                 }
