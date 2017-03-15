@@ -132,8 +132,16 @@ public:
     bool contains(const QString& keyFirst, const QUuid& keySecond) const {
         return 0 != _data.count(NodePermissionsKey(keyFirst.toLower(), keySecond));
     }
-    //QList<NodePermissionsKey> keys() const { return _data.keys(); }
-    std::unordered_map<NodePermissionsKey, NodePermissionsPointer> get() { return _data; }
+
+    QList<NodePermissionsKey> keys() const { 
+        QList<NodePermissionsKey> result;
+        for (const auto& entry : _data) {
+            result.push_back(entry.first);
+        }
+        return result;
+    }
+
+    const std::unordered_map<NodePermissionsKey, NodePermissionsPointer>& get() { return _data; }
     void clear() { _data.clear(); }
     void remove(const NodePermissionsKey& key) { _data.erase(key); }
 
