@@ -15,6 +15,7 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
+    var utilsPath = Script.resolvePath('../developer/libraries/utils.js?v='+  Date.now());
     Script.include(utilsPath);
 
     var TWEEN_SPEED = 0.025;
