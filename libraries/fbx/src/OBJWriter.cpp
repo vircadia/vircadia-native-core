@@ -75,7 +75,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
         const gpu::BufferView& indexBuffer = mesh->getIndexBuffer();
         // const gpu::BufferView& vertexBuffer = mesh->getVertexBuffer();
 
-        size_t partCount = mesh->getNumParts();
+        model::Index partCount = mesh->getNumParts();
         qDebug() << "writeOBJToTextStream part count is" << partCount;
         for (int partIndex = 0; partIndex < partCount; partIndex++) {
             const model::Mesh::Part& part = partBuffer.get<model::Mesh::Part>(partIndex);
