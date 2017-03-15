@@ -17,6 +17,7 @@ import QtGraphicalEffects 1.0
 import Qt.labs.settings 1.0
 import "../styles-uit"
 import "../controls-uit" as HifiControls
+import HFWebEngineProfile 1.0
 
 // references HMD, Users, UserActivityLogger from root context
 
@@ -285,7 +286,9 @@ Rectangle {
                             pal.sendToScript({method: 'refreshConnections'});
                         }
                         activeTab = "connectionsTab";
+                        connectionsLoading.visible = false;
                         connectionsLoading.visible = true;
+                        connectionsRefreshProblemText.visible = false;
                     }
                 }
 
@@ -307,6 +310,7 @@ Rectangle {
                             width: reloadConnections.height;
                             glyph: hifi.glyphs.reload;
                             onClicked: {
+                                connectionsLoading.visible = false;
                                 connectionsLoading.visible = true;
                                 pal.sendToScript({method: 'refreshConnections'});
                             }
@@ -795,6 +799,35 @@ Rectangle {
             height: width;
             anchors.centerIn: parent;
             visible: true;
+            onVisibleChanged: {
+                if (visible) {
+                    connectionsTimeoutTimer.start();
+                } else {
+                    connectionsTimeoutTimer.stop();     
+                    connectionsRefreshProblemText.visible = false;               
+                }
+            }
+        }
+
+        // "This is taking too long..." text
+        FiraSansSemiBold {
+            id: connectionsRefreshProblemText
+            // Properties
+            text: "This is taking longer than normal.\nIf you get stuck, try refreshing the Connections tab.";
+            // Anchors
+            anchors.top: connectionsLoading.bottom;
+            anchors.topMargin: 10;
+            anchors.left: parent.left;
+            anchors.bottom: parent.bottom;
+            width: parent.width;
+            // Text Size
+            size: 16;
+            // Text Positioning
+            verticalAlignment: Text.AlignTop;
+            horizontalAlignment: Text.AlignHCenter;
+            wrapMode: Text.WordWrap;
+            // Style
+            color: hifi.colors.darkGray;
         }
 
         // This TableView refers to the Connections Table (on the "Connections" tab below the current user's NameCard)
@@ -945,7 +978,7 @@ Rectangle {
             Rectangle {
                 id: navigationContainer;
                 visible: userInfoViewer.visible;
-                height: 70;
+                height: 60;
                 anchors {
                     top: parent.top;
                     left: parent.left;
@@ -959,7 +992,7 @@ Rectangle {
                         top: parent.top;
                         left: parent.left;
                     }
-                    height: parent.height - urlBar.height;
+                    height: parent.height - addressBar.height;
                     width: parent.width/2;
 
                     FiraSansSemiBold {
@@ -979,7 +1012,11 @@ Rectangle {
                             id: backButtonMouseArea;
                             anchors.fill: parent
                             hoverEnabled: enabled
-                            onClicked: userInfoViewer.goBack();
+                            onClicked: {
+                                if (userInfoViewer.canGoBack) {
+                                    userInfoViewer.goBack();
+                                }
+                            }
                         }
                     }
                 }
@@ -990,7 +1027,7 @@ Rectangle {
                         top: parent.top;
                         right: parent.right;
                     }
-                    height: parent.height - urlBar.height;
+                    height: parent.height - addressBar.height;
                     width: parent.width/2;
 
                     FiraSansSemiBold {
@@ -1018,7 +1055,7 @@ Rectangle {
                 }
 
                 Item {
-                    id: urlBar
+                    id: addressBar
                     anchors {
                         top: closeButtonContainer.bottom;
                         left: parent.left;
@@ -1033,17 +1070,14 @@ Rectangle {
                         elide: Text.ElideRight;
                         // Anchors
                         anchors.fill: parent;
+                        anchors.leftMargin: 5;
                         // Text Size
                         size: 14;
                         // Text Positioning
                         verticalAlignment: Text.AlignVCenter
-                        horizontalAlignment: Text.AlignHCenter;
+                        horizontalAlignment: Text.AlignLeft;
                         // Style
                         color: hifi.colors.lightGray;
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: userInfoViewer.visible = false;
-                        }
                     }
                 }
             }
@@ -1062,9 +1096,11 @@ Rectangle {
 
             HifiControls.WebView {
                 id: userInfoViewer;
+                profile: HFWebEngineProfile {
+                    storageName: "qmlWebEngine"
+                }
                 anchors {
                     top: navigationContainer.bottom;
-                    topMargin: 5;
                     bottom: parent.bottom;
                     left: parent.left;
                     right: parent.right;
@@ -1090,6 +1126,15 @@ Rectangle {
             } else {
                 nearbyTable.selection.deselect(userIndex);
             }
+        }
+    }
+
+    // Timer used when refreshing the Connections tab
+    Timer {
+        id: connectionsTimeoutTimer;
+        interval: 3000; // 3 seconds
+        onTriggered: {
+            connectionsRefreshProblemText.visible = true;
         }
     }
 
@@ -1135,6 +1180,7 @@ Rectangle {
             connectionsUserModelData = data;
             sortConnectionsModel();
             connectionsLoading.visible = false;
+            connectionsRefreshProblemText.visible = false;
             break;
         case 'select':
             var sessionIds = message.params[0];
