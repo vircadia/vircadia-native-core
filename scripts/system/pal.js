@@ -261,6 +261,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         UserActivityLogger.palAction("refresh_nearby", "");
         break;
     case 'refreshConnections':
+        print('Refreshing Connections...');
         getConnectionData();
         UserActivityLogger.palAction("refresh_connections", "");
         break;

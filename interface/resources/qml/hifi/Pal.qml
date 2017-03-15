@@ -346,13 +346,12 @@ Rectangle {
                             text: "[?]";
                             size: connectionsTabSelectorText.size + 6;
                             font.capitalization: Font.AllUppercase;
-                            color: connectionsTabSelectorMouseArea.containsMouse ? hifi.colors.redAccent : hifi.colors.redHighlight;
+                            color: hifi.colors.redHighlight;
                             horizontalAlignment: Text.AlignHCenter;
                             verticalAlignment: Text.AlignVCenter;
                             anchors.fill: parent;
                         }
                         MouseArea {
-                            id: connectionsTabSelectorMouseArea;
                             anchors.fill: parent;
                             hoverEnabled: true;
                             onClicked: letterbox(hifi.glyphs.question,
@@ -361,6 +360,8 @@ Rectangle {
                                                  "When your availability is set to Everyone, Connections can see your username and location.<br><br>" +
                                                  "<font color='green'>Green borders around profile pictures are <b>Friends</b>.</font><br>" +
                                                  "When your availability is set to Friends, only Friends can see your username and location.");
+                            onEntered: connectionsHelpText.color = hifi.colors.redAccent;
+                            onExited: connectionsHelpText.color = hifi.colors.redHighlight;
                         }
                     }
                 }
@@ -703,7 +704,6 @@ Rectangle {
         }
         // This Rectangle refers to the [?] popup button next to "NAMES"
         Rectangle {
-            id: helpText;
             color: hifi.colors.tableBackgroundLight;
             width: 20;
             height: hifi.dimensions.tableHeaderHeight - 2;
@@ -712,16 +712,16 @@ Rectangle {
             anchors.topMargin: 1;
             anchors.leftMargin: actionButtonWidth + nearbyNameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6;
             RalewayRegular {
+                id: helpText;
                 text: "[?]";
                 size: hifi.fontSizes.tableHeading + 2;
                 font.capitalization: Font.AllUppercase;
-                color: helpTextMouseArea.containsMouse ? hifi.colors.baseGrayHighlight : hifi.colors.darkGray;
+                color: hifi.colors.darkGray;
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignVCenter;
                 anchors.fill: parent;
             }
             MouseArea {
-                id: helpTextMouseArea;
                 anchors.fill: parent;
                 hoverEnabled: true;
                 onClicked: letterbox(hifi.glyphs.question,
@@ -733,6 +733,8 @@ Rectangle {
                                      "If you can see someone's username, you can GoTo them by selecting them in the PAL, then clicking their name.<br>" +
                                      "<br>If someone's display name isn't set, a unique <b>session display name</b> is assigned to them.<br>" +
                                      "<br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.");
+                onEntered: helpText.color = hifi.colors.baseGrayHighlight;
+                onExited: helpText.color = hifi.colors.darkGray;
             }
         }
         // This Rectangle refers to the [?] popup button next to "ADMIN"
@@ -750,19 +752,20 @@ Rectangle {
                 text: "[?]";
                 size: hifi.fontSizes.tableHeading + 2;
                 font.capitalization: Font.AllUppercase;
-                color: adminHelpTextMouseArea.containsMouse ? "#94132e" : hifi.colors.redHighlight;
+                color: hifi.colors.redHighlight;
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignVCenter;
                 anchors.fill: parent;
             }
             MouseArea {
-                id: adminHelpTextMouseArea;
                 anchors.fill: parent;
                 hoverEnabled: true;
                 onClicked: letterbox(hifi.glyphs.question,
                                      "Admin Actions",
                                      "<b>Silence</b> mutes a user's microphone. Silenced users can unmute themselves by clicking &quot;UNMUTE&quot; on their toolbar.<br><br>" +
                                      "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.");
+                onEntered: adminHelpText.color = "#94132e";
+                onExited: adminHelpText.color = hifi.colors.redHighlight;
             }
         }
     } // "Nearby" Tab
@@ -860,8 +863,8 @@ Rectangle {
                     visible: styleData.role === "userName";
                     profileUrl: (model && model.profileUrl) || "";
                     imageMaskColor: rowColor(styleData.selected, styleData.row % 2);
-                    displayName: model ? model.userName : "";
-                    userName: "";
+                    displayName: "";
+                    userName: model ? model.userName : "";
                     connectionStatus : model ? model.connection : "";
                     selected: styleData.selected;
                     // Size
@@ -887,13 +890,14 @@ Rectangle {
                     // Text Positioning
                     verticalAlignment: Text.AlignVCenter
                     // Style
-                    color: connectionsLocationDataMouseArea.containsMouse ? hifi.colors.blueHighlight : hifi.colors.darkGray;
+                    color: hifi.colors.darkGray;
                     MouseArea {
-                        id: connectionsLocationDataMouseArea;
                         anchors.fill: parent
                         hoverEnabled: enabled
                         enabled: connectionsNameCard.selected && pal.activeTab == "connectionsTab"
                         onClicked: pal.sendToScript({method: 'goToUser', params: model.userName});
+                        onEntered: connectionsLocationData.color = hifi.colors.blueHighlight;
+                        onExited: connectionsLocationData.color = hifi.colors.darkGray;
                     }
                 }
 
@@ -934,15 +938,140 @@ Rectangle {
             }
         } // Keyboard
 
-        /*
-        THIS WILL BE THE BROWSER THAT OPENS THE USER'S INFO PAGE!
-        I've no idea how to do this yet..
+        Item {
+            id: webViewContainer;
+            anchors.fill: parent;
 
-        HifiTablet.TabletAddressDialog {
-            id: userInfoViewer;
-            visible: false;
+            Rectangle {
+                id: navigationContainer;
+                visible: userInfoViewer.visible;
+                height: 70;
+                anchors {
+                    top: parent.top;
+                    left: parent.left;
+                    right: parent.right;
+                }
+                color: hifi.colors.faintGray;
+
+                Item {
+                    id: backButton
+                    anchors {
+                        top: parent.top;
+                        left: parent.left;
+                    }
+                    height: parent.height - urlBar.height;
+                    width: parent.width/2;
+
+                    FiraSansSemiBold {
+                        // Properties
+                        text: "BACK";
+                        elide: Text.ElideRight;
+                        // Anchors
+                        anchors.fill: parent;
+                        // Text Size
+                        size: 16;
+                        // Text Positioning
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHCenter;
+                        // Style
+                        color: backButtonMouseArea.containsMouse || !userInfoViewer.canGoBack ? hifi.colors.lightGray : hifi.colors.darkGray;
+                        MouseArea {
+                            id: backButtonMouseArea;
+                            anchors.fill: parent
+                            hoverEnabled: enabled
+                            onClicked: userInfoViewer.goBack();
+                        }
+                    }
+                }
+
+                Item {
+                    id: closeButtonContainer
+                    anchors {
+                        top: parent.top;
+                        right: parent.right;
+                    }
+                    height: parent.height - urlBar.height;
+                    width: parent.width/2;
+
+                    FiraSansSemiBold {
+                        id: closeButton;
+                        // Properties
+                        text: "CLOSE";
+                        elide: Text.ElideRight;
+                        // Anchors
+                        anchors.fill: parent;
+                        // Text Size
+                        size: 16;
+                        // Text Positioning
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHCenter;
+                        // Style
+                        color: hifi.colors.redHighlight;
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: enabled
+                            onClicked: userInfoViewer.visible = false;
+                            onEntered: closeButton.color = hifi.colors.redAccent;
+                            onExited: closeButton.color = hifi.colors.redHighlight;
+                        }
+                    }
+                }
+
+                Item {
+                    id: urlBar
+                    anchors {
+                        top: closeButtonContainer.bottom;
+                        left: parent.left;
+                        right: parent.right;
+                    }
+                    height: 30;
+                    width: parent.width;
+
+                    FiraSansRegular {
+                        // Properties
+                        text: userInfoViewer.url;
+                        elide: Text.ElideRight;
+                        // Anchors
+                        anchors.fill: parent;
+                        // Text Size
+                        size: 14;
+                        // Text Positioning
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHCenter;
+                        // Style
+                        color: hifi.colors.lightGray;
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: userInfoViewer.visible = false;
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                id: webViewBackground;
+                color: "white";
+                visible: userInfoViewer.visible;
+                anchors {
+                    top: navigationContainer.bottom;
+                    bottom: parent.bottom;
+                    left: parent.left;
+                    right: parent.right;
+                }
+            }
+
+            HifiControls.WebView {
+                id: userInfoViewer;
+                anchors {
+                    top: navigationContainer.bottom;
+                    topMargin: 5;
+                    bottom: parent.bottom;
+                    left: parent.left;
+                    right: parent.right;
+                }
+                visible: false;
+            }
         }
-        */
 
 
     } // PAL container
@@ -1002,6 +1131,7 @@ Rectangle {
             break;
         case 'connections':
             var data = message.params;
+            console.log('Got connection data: ', JSON.stringify(data));
             connectionsUserModelData = data;
             sortConnectionsModel();
             connectionsLoading.visible = false;
