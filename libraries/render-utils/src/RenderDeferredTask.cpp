@@ -265,9 +265,12 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
             keyBuilder.withWireframe();
         }
         ShapeKey globalKey = keyBuilder.build();
+        args->_globalShapeKey = globalKey._flags.to_ulong();
 
         renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
+
         args->_batch = nullptr;
+        args->_globalShapeKey = 0;
     });
 
     config->setNumDrawn((int)inItems.size());
@@ -308,6 +311,7 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
             keyBuilder.withWireframe();
         }
         ShapeKey globalKey = keyBuilder.build();
+        args->_globalShapeKey = globalKey._flags.to_ulong();
 
         if (_stateSort) {
             renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
@@ -315,6 +319,7 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
             renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
         }
         args->_batch = nullptr;
+        args->_globalShapeKey = 0;
     });
 
     config->setNumDrawn((int)inItems.size());
