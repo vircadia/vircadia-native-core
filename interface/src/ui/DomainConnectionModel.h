@@ -1,5 +1,5 @@
 //
-//  ScriptsUsersModel.h
+//  DomainConnectionModel.h
 //
 //  Created by Vlad Stelmahovsky
 //  Copyright 2017 High Fidelity, Inc.
