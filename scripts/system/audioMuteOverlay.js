@@ -15,8 +15,10 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
+    Script.include(utilsPath);
+
     var TWEEN_SPEED = 0.025;
-    var LERP_AMOUNT = 0.25;
+    var MIX_AMOUNT = 0.25;
 
     var overlayPosition = Vec3.ZERO;
     var tweenPosition = 0;
@@ -45,14 +47,6 @@
         } else {
             updateOverlay();
         }    
-    }
-
-    function lerp(a, b, val) {
-        return (1 - val) * a + val * b;
-    }
-
-    function easeIn(t) {
-        return Math.pow(t / 1, 5);
     }
 
     function getOffsetPosition() {
@@ -88,19 +82,10 @@
                 endColor[color] = storedColor;
             }
         }
-
-        // update position based on LERP_AMOUNT
-        var offsetPosition = getOffsetPosition();
-        overlayPosition.x = lerp(overlayPosition.x, offsetPosition.x, LERP_AMOUNT);
-        overlayPosition.y = lerp(overlayPosition.y, offsetPosition.y, LERP_AMOUNT);
-        overlayPosition.z = lerp(overlayPosition.z, offsetPosition.z, LERP_AMOUNT);
-
+        // mix previous position with new and mix colors
+        overlayPosition = Vec3.mix(overlayPosition, getOffsetPosition(), MIX_AMOUNT);
         Overlays.editOverlay(overlayID, {
-            color: {
-                red: lerp(startColor.red, endColor.red, easeIn(tweenPosition)),
-                green: lerp(startColor.green, endColor.green, easeIn(tweenPosition)),
-                blue: lerp(startColor.blue, endColor.blue, easeIn(tweenPosition))
-            },
+            color: colorMix(startColor, endColor, easeIn(tweenPosition)),
             position: overlayPosition,
             rotation: Camera.orientation
         });
