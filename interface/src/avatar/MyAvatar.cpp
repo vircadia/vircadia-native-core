@@ -119,9 +119,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     using namespace recording;
     _skeletonModel->flagAsCauterized();
 
-    for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
-        _driveKeys[i] = 0.0f;
-    }
+    clearDriveKeys();
 
     // Necessary to select the correct slot
     using SlotType = void(MyAvatar::*)(const glm::vec3&, bool, const glm::quat&, bool);
@@ -462,7 +460,7 @@ void MyAvatar::simulate(float deltaTime) {
         // When there are no step values, we zero out the last step pulse.
         // This allows a user to do faster snapping by tapping a control
         for (int i = STEP_TRANSLATE_X; !stepAction && i <= STEP_YAW; ++i) {
-            if (_driveKeys[i] != 0.0f) {
+            if (getDriveKey(i) != 0.0f) {
                 stepAction = true;
             }
         }
@@ -1655,7 +1653,7 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 void MyAvatar::updateOrientation(float deltaTime) {
 
     //  Smoothly rotate body with arrow keys
-    float targetSpeed = _driveKeys[YAW] * _yawSpeed;
+    float targetSpeed = getDriveKey(YAW) * _yawSpeed;
     if (targetSpeed != 0.0f) {
         const float ROTATION_RAMP_TIMESCALE = 0.1f;
         float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
@@ -1684,8 +1682,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
     // snap turn every half second.
-    if (_driveKeys[STEP_YAW] != 0.0f) {
-        totalBodyYaw += _driveKeys[STEP_YAW];
+    if (getDriveKey(STEP_YAW) != 0.0f) {
+        totalBodyYaw += getDriveKey(STEP_YAW);
     }
 
     // use head/HMD orientation to turn while flying
@@ -1722,7 +1720,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // update body orientation by movement inputs
     setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * _pitchSpeed * deltaTime);
+    getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
     if (qApp->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
@@ -1756,14 +1754,14 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     }
 
     // compute action input
-    glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
-    glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
+    glm::vec3 front = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FRONT;
+    glm::vec3 right = (getDriveKey(TRANSLATE_X)) * IDENTITY_RIGHT;
 
     glm::vec3 direction = front + right;
     CharacterController::State state = _characterController.getState();
     if (state == CharacterController::State::Hover) {
         // we're flying --> support vertical motion
-        glm::vec3 up = (_driveKeys[TRANSLATE_Y]) * IDENTITY_UP;
+        glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         direction += up;
     }
 
@@ -1802,7 +1800,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = MAX_WALKING_SPEED * direction;
     }
 
-    float boomChange = _driveKeys[ZOOM];
+    float boomChange = getDriveKey(ZOOM);
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 }
@@ -1833,11 +1831,11 @@ void MyAvatar::updatePosition(float deltaTime) {
     }
 
     // capture the head rotation, in sensor space, when the user first indicates they would like to move/fly.
-    if (!_hoverReferenceCameraFacingIsCaptured && (fabs(_driveKeys[TRANSLATE_Z]) > 0.1f || fabs(_driveKeys[TRANSLATE_X]) > 0.1f)) {
+    if (!_hoverReferenceCameraFacingIsCaptured && (fabs(getDriveKey(TRANSLATE_Z)) > 0.1f || fabs(getDriveKey(TRANSLATE_X)) > 0.1f)) {
         _hoverReferenceCameraFacingIsCaptured = true;
         // transform the camera facing vector into sensor space.
         _hoverReferenceCameraFacing = transformVectorFast(glm::inverse(_sensorToWorldMatrix), getHead()->getCameraOrientation() * Vectors::UNIT_Z);
-    } else if (_hoverReferenceCameraFacingIsCaptured && (fabs(_driveKeys[TRANSLATE_Z]) <= 0.1f && fabs(_driveKeys[TRANSLATE_X]) <= 0.1f)) {
+    } else if (_hoverReferenceCameraFacingIsCaptured && (fabs(getDriveKey(TRANSLATE_Z)) <= 0.1f && fabs(getDriveKey(TRANSLATE_X)) <= 0.1f)) {
         _hoverReferenceCameraFacingIsCaptured = false;
     }
 }
@@ -2094,12 +2092,12 @@ bool MyAvatar::getCharacterControllerEnabled() {
 
 void MyAvatar::clearDriveKeys() {
     for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
-        _driveKeys[i] = 0.0f;
+        setDriveKey(i, 0.0f);
     }
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (_driveKeys[TRANSLATE_Y] > 0.0f) {
+    if (getDriveKey(TRANSLATE_Y) > 0.0f) {
         _characterController.jump();
     }
 }
@@ -2382,7 +2380,7 @@ bool MyAvatar::didTeleport() {
 }
 
 bool MyAvatar::hasDriveInput() const {
-    return fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Y]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
+    return fabsf(getDriveKey(TRANSLATE_X)) > 0.0f || fabsf(getDriveKey(TRANSLATE_Y)) > 0.0f || fabsf(getDriveKey(TRANSLATE_Z)) > 0.0f;
 }
 
 void MyAvatar::setAway(bool value) {
@@ -2498,7 +2496,7 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
         return false;
     }
 
-    setPosition(position);
+    slamPosition(position);
     setOrientation(orientation);
 
     _rig->setMaxHipsOffsetLength(0.05f);

@@ -12,6 +12,8 @@
 #ifndef hifi_MyAvatar_h
 #define hifi_MyAvatar_h
 
+#include <bitset>
+
 #include <glm/glm.hpp>
 
 #include <SettingHandle.h>
@@ -86,6 +88,8 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
+
+    Q_ENUMS(DriveKeys)
 
 public:
     explicit MyAvatar(RigPointer rig);
@@ -180,8 +184,14 @@ public:
 
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
-    void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
+    void setDriveKey(int key, float val) { _driveKeys[key] = val; };
+    float getDriveKey(int key) const { return isDriveKeyCaptured(key) ? 0.0f : _driveKeys[key]; };
+    Q_INVOKABLE float getRawDriveKey(int key) const { return _driveKeys[key]; };
     void relayDriveKeysToCharacterController();
+
+    Q_INVOKABLE void captureDriveKey(int key) { _capturedDriveKeys.set(key); }
+    Q_INVOKABLE void releaseDriveKey(int key) { _capturedDriveKeys.reset(key); }
+    Q_INVOKABLE bool isDriveKeyCaptured(int key) const { return _capturedDriveKeys.test(key); }
 
     eyeContactTarget getEyeContactTarget();
 
@@ -352,7 +362,6 @@ private:
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }
-    bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
@@ -388,7 +397,9 @@ private:
     void clampScaleChangeToDomainLimits(float desiredScale);
     glm::mat4 computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const;
 
-    float _driveKeys[MAX_DRIVE_KEYS];
+    std::array<float, MAX_DRIVE_KEYS> _driveKeys;
+    std::bitset<MAX_DRIVE_KEYS> _capturedDriveKeys;
+
     bool _wasPushing;
     bool _isPushing;
     bool _isBeingPushed;
