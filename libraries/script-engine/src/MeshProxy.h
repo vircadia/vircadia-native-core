@@ -25,7 +25,7 @@ public:
 
     MeshPointer getMeshPointer() const { return _mesh; }
 
-    Q_INVOKABLE int getNumVertices() const { return _mesh->getNumVertices(); }
+    Q_INVOKABLE int getNumVertices() const { (int)return _mesh->getNumVertices(); }
     Q_INVOKABLE glm::vec3 getPos3(int index) const { return _mesh->getPos3(index); }
 
 

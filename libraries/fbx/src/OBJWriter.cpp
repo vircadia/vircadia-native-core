@@ -75,7 +75,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
         const gpu::BufferView& indexBuffer = mesh->getIndexBuffer();
         // const gpu::BufferView& vertexBuffer = mesh->getVertexBuffer();
 
-        int partCount = mesh->getNumParts();
+        size_t partCount = mesh->getNumParts();
         qDebug() << "writeOBJToTextStream part count is" << partCount;
         for (int partIndex = 0; partIndex < partCount; partIndex++) {
             const model::Mesh::Part& part = partBuffer.get<model::Mesh::Part>(partIndex);
@@ -88,11 +88,11 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
             indexItr += part._startIndex;
 
             int indexCount = 0;
-            while (indexItr != indexBuffer.cend<uint32_t>() && indexItr != part._numIndices) {
+            while (indexItr != indexBuffer.cend<uint32_t>() && (indexItr != part._numIndices)) {
                 uint32_t index0 = *indexItr;
                 indexItr++;
                 indexCount++;
-                if (indexItr == indexBuffer.cend<uint32_t>() || indexItr == part._numIndices) {
+                if (indexItr == indexBuffer.cend<uint32_t>() || (indexItr == part._numIndices)) {
                     qDebug() << "OBJWriter -- index buffer length isn't multiple of 3";
                     break;
                 }
