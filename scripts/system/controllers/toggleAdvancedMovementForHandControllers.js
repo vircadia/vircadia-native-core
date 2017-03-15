@@ -112,7 +112,7 @@ function menuItemEvent(menuItem) {
             MyAvatar.setUseAdvancedMovementControls(true);
             disableMappings();
         } else if (isChecked === false) {
-            MyAvatar.setUseAdvancedMovementControls(true);
+            MyAvatar.setUseAdvancedMovementControls(false);
             enableMappings();
         }
     }
