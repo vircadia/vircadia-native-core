@@ -17,8 +17,8 @@
 OctreeStatsProvider::OctreeStatsProvider(QObject* parent, NodeToOctreeSceneStats* model) :
     QObject(parent),
     _model(model)
-  , _averageUpdatesPerSecond(SAMPLES_PER_SECOND)
   , _statCount(0)
+  , _averageUpdatesPerSecond(SAMPLES_PER_SECOND)
 {
     //schedule updates
     connect(&_updateTimer, &QTimer::timeout, this, &OctreeStatsProvider::updateOctreeStatsData);
