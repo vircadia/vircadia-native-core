@@ -404,6 +404,7 @@ public slots:
 
     Q_INVOKABLE void toggleMuteAudio();
     void loadLODToolsDialog();
+    void loadEntityStatisticsDialog();
 
 private slots:
     void showDesktop();
@@ -497,7 +498,7 @@ private:
 
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
-    void mouseDoublePressEvent(QMouseEvent* event) const;
+    void mouseDoublePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
 
     void touchBeginEvent(QTouchEvent* event);

@@ -173,6 +173,7 @@
 #include "ui/overlays/Overlays.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
+#include "ui/OctreeStatsProvider.h"
 
 #include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
@@ -523,6 +524,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<OffscreenQmlSurfaceCache>();
     DependencyManager::set<EntityScriptClient>();
     DependencyManager::set<EntityScriptServerLogClient>();
+    DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     return previousSessionCrashed;
 }
 
@@ -550,7 +552,7 @@ const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_TABLET_VISIBLE_TO_OTHERS = false;
-const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
+const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = true;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
     QApplication(argc, argv),
@@ -1188,6 +1190,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // set the local loopback interface for local sounds
     AudioInjector::setLocalAudioInterface(audioIO.data());
     AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
+    connect(audioIO.data(), &AudioClient::noiseGateOpened, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::noiseGateOpened);
+    connect(audioIO.data(), &AudioClient::noiseGateClosed, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::noiseGateClosed);
+    connect(audioIO.data(), &AudioClient::inputReceived, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::inputReceived);
+
 
     this->installEventFilter(this);
 
@@ -1625,9 +1631,10 @@ QString Application::getUserAgent() {
 
 void Application::toggleTabletUI() const {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     bool messageOpen = tablet->isMessageDialogOpen();
-    if (!messageOpen) {
+    if (!messageOpen || (messageOpen && !hmd->getShouldShowTablet())) {
         auto HMD = DependencyManager::get<HMDScriptingInterface>();
         HMD->toggleShouldShowTablet();
     }
@@ -1803,6 +1810,7 @@ Application::~Application() {
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
+    DependencyManager::destroy<OctreeStatsProvider>();
 
     ResourceManager::cleanup();
 
@@ -1950,6 +1958,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("ApplicationInterface", this);
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
+    rootContext->setContextProperty("AudioScope", DependencyManager::get<AudioScope>().data());
+
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     _fileDownload = new FileScriptingInterface(engine);
@@ -3178,7 +3188,23 @@ void Application::mousePressEvent(QMouseEvent* event) {
     }
 }
 
-void Application::mouseDoublePressEvent(QMouseEvent* event) const {
+void Application::mouseDoublePressEvent(QMouseEvent* event) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QMouseEvent mappedEvent(event->type(),
+        transformedPos,
+        event->screenPos(), event->button(),
+        event->buttons(), event->modifiers());
+
+    if (!_aboutToQuit) {
+        getOverlays().mouseDoublePressEvent(&mappedEvent);
+        if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
+            getEntities()->mouseDoublePressEvent(&mappedEvent);
+        }
+    }
+
+
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
@@ -5525,6 +5551,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
+    scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -6375,6 +6402,18 @@ void Application::loadLODToolsDialog() {
 
 }
 
+
+void Application::loadEntityStatisticsDialog() {
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
+        auto dialogsManager = DependencyManager::get<DialogsManager>();
+        dialogsManager->octreeStatsDetails();
+    } else {
+        tablet->pushOntoStack("../../hifi/dialogs/TabletEntityStatistics.qml");
+    }
+
+}
 void Application::toggleLogDialog() {
     if (! _logDialog) {
         _logDialog = new LogDialog(nullptr, getLogger());
