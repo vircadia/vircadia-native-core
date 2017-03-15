@@ -27,7 +27,7 @@ Item {
 
     // Properties
     property string profileUrl: "";
-    property string defaultBaseUrl: "http://highfidelity.com";
+    property string defaultBaseUrl: location.metaverseServerUrl;
     property string connectionStatus : ""
     property string uuid: ""
     property string displayName: ""

@@ -24,29 +24,34 @@ public:
     RateCounter() { _rate = 0; } // avoid use of std::atomic copy ctor
 
     void increment(size_t count = 1) {
-        auto now = usecTimestampNow();
-        float currentIntervalMs = (now - _start) / (float) USECS_PER_MSEC;
-        if (currentIntervalMs > (float) INTERVAL) {
-            float currentCount = _count;
-            float intervalSeconds = currentIntervalMs / (float) MSECS_PER_SECOND;
-            _rate = roundf(currentCount / intervalSeconds * _scale) / _scale;
-            _start = now;
-            _count = 0;
-        };
+        checkRate();
         _count += count;
     }
 
-    float rate() const { return _rate; }
+    float rate() const { checkRate(); return _rate; }
 
     uint8_t precision() const { return PRECISION; }
 
     uint32_t interval() const { return INTERVAL; }
 
 private:
-    uint64_t _start { usecTimestampNow() };
-    size_t _count { 0 };
+    mutable uint64_t _start { usecTimestampNow() };
+    mutable size_t _count { 0 };
     const float _scale { powf(10, PRECISION) };
-    std::atomic<float> _rate;
+    mutable std::atomic<float> _rate;
+
+    void checkRate() const {
+        auto now = usecTimestampNow();
+        float currentIntervalMs = (now - _start) / (float)USECS_PER_MSEC;
+        if (currentIntervalMs > (float)INTERVAL) {
+            float currentCount = _count;
+            float intervalSeconds = currentIntervalMs / (float)MSECS_PER_SECOND;
+            _rate = roundf(currentCount / intervalSeconds * _scale) / _scale;
+            _start = now;
+            _count = 0;
+        };
+    }
+
 };
 
 #endif
