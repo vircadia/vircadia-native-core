@@ -111,7 +111,7 @@ function menuItemEvent(menuItem) {
         if (isChecked === true) {
             MyAvatar.setUseAdvancedMovementControls(true);
             disableMappings();
-        } else if (isChecked === false)
+        } else if (isChecked === false) {
             MyAvatar.setUseAdvancedMovementControls(true);
             enableMappings();
         }
