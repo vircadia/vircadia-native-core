@@ -45,13 +45,13 @@
 #include <AudioReverb.h>
 #include <AudioLimiter.h>
 #include <AudioConstants.h>
+#include <AudioNoiseGate.h>
 
 #include <shared/RateCounter.h>
 
 #include <plugins/CodecPlugin.h>
 
 #include "AudioIOStats.h"
-#include "AudioNoiseGate.h"
 
 #ifdef _WIN32
 #pragma warning( push )
