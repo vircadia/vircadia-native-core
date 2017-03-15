@@ -77,10 +77,10 @@
         } else {
             // after tween completion reset to zero and flip values to ping pong 
             tweenPosition = 0;
-            for (var color in startColor) {
-                var storedColor = startColor[color];
-                startColor[color] = endColor[color];
-                endColor[color] = storedColor;
+            for (var component in startColor) {
+                var storedColor = startColor[component];
+                startColor[component] = endColor[component];
+                endColor[component] = storedColor;
             }
         }
         // mix previous position with new and mix colors
