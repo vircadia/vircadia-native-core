@@ -40,8 +40,6 @@ static QString formatFloat(double n) {
 }
 
 bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
-    qDebug() << "writeOBJToTextStream mesh count is" << meshes.size();
-
     // each mesh's vertices are numbered from zero.  We're combining all their vertices into one list here,
     // so keep track of the start index for each mesh.
     QList<int> meshVertexStartOffset;
@@ -75,8 +73,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
         const gpu::BufferView& indexBuffer = mesh->getIndexBuffer();
         // const gpu::BufferView& vertexBuffer = mesh->getVertexBuffer();
 
-        model::Index partCount = mesh->getNumParts();
-        qDebug() << "writeOBJToTextStream part count is" << partCount;
+        model::Index partCount = (model::Index)mesh->getNumParts();
         for (int partIndex = 0; partIndex < partCount; partIndex++) {
             const model::Mesh::Part& part = partBuffer.get<model::Mesh::Part>(partIndex);
 
@@ -88,19 +85,30 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
             indexItr += part._startIndex;
 
             int indexCount = 0;
-            while (indexItr != indexBuffer.cend<uint32_t>() && (indexItr != part._numIndices)) {
+            while (indexItr != indexBuffer.cend<uint32_t>()) {
+                if (indexItr == part._numIndices) {
+                    break;
+                }
                 uint32_t index0 = *indexItr;
                 indexItr++;
                 indexCount++;
-                if (indexItr == indexBuffer.cend<uint32_t>() || (indexItr == part._numIndices)) {
-                    qDebug() << "OBJWriter -- index buffer length isn't multiple of 3";
+                if (indexItr == indexBuffer.cend<uint32_t>()) {
+                    qCDebug(modelformat) << "OBJWriter -- index buffer length isn't multiple of 3";
+                    break;
+                }
+                if (indexItr == part._numIndices) {
+                    qCDebug(modelformat) << "OBJWriter -- index buffer length isn't multiple of 3";
                     break;
                 }
                 uint32_t index1 = *indexItr;
                 indexItr++;
                 indexCount++;
-                if (indexItr == indexBuffer.cend<uint32_t>() || indexItr == part._numIndices) {
-                    qDebug() << "OBJWriter -- index buffer length isn't multiple of 3";
+                if (indexItr == indexBuffer.cend<uint32_t>()) {
+                    qCDebug(modelformat) << "OBJWriter -- index buffer length isn't multiple of 3";
+                    break;
+                }
+                if (indexItr == part._numIndices) {
+                    qCDebug(modelformat) << "OBJWriter -- index buffer length isn't multiple of 3";
                     break;
                 }
                 uint32_t index2 = *indexItr;
