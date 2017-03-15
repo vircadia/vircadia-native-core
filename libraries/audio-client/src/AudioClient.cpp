@@ -608,6 +608,13 @@ void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessag
 }
 
 void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message) {
+
+    if (message->getType() == PacketType::SilentAudioFrame) {
+        _silentInbound.increment();
+    } else {
+        _audioInbound.increment();
+    }
+
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
 
@@ -1021,9 +1028,10 @@ void AudioClient::handleAudioInput() {
                 // if we performed the noise gate we can get values from it instead of enumerating the samples again
                 _lastInputLoudness = _inputGate.getLastLoudness();
 
-                if (_inputGate.clippedInLastFrame()) {
+                if (_inputGate.clippedInLastBlock()) {
                     _timeSinceLastClip = 0.0f;
                 }
+
             } else {
                 float loudness = 0.0f;
 
@@ -1041,6 +1049,12 @@ void AudioClient::handleAudioInput() {
 
             emit inputReceived({ reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes });
 
+            if (_inputGate.openedInLastBlock()) {
+                emit noiseGateOpened();
+            } else if (_inputGate.closedInLastBlock()) {
+                emit noiseGateClosed();
+            }
+
         } else {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;
@@ -1057,9 +1071,13 @@ void AudioClient::handleAudioInput() {
         // the output from the input gate (eventually, this could be crossfaded)
         // and allow the codec to properly encode down to silent/zero. If we still
         // have _lastInputLoudness of 0 in our NEXT frame, we will send a silent packet
-        if (_lastInputLoudness == 0 && !_inputGate.closedInLastFrame()) {
+        if (_lastInputLoudness == 0 && !_inputGate.closedInLastBlock()) {
             packetType = PacketType::SilentAudioFrame;
+            _silentOutbound.increment();
+        } else {
+            _micAudioOutbound.increment();
         }
+
         Transform audioTransform;
         audioTransform.setTranslation(_positionGetter());
         audioTransform.setRotation(_orientationGetter());
@@ -1084,6 +1102,7 @@ void AudioClient::handleAudioInput() {
     }
 }
 
+// FIXME - should this go through the noise gate and honor mute and echo?
 void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     Transform audioTransform;
     audioTransform.setTranslation(_positionGetter());
@@ -1095,6 +1114,8 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     } else {
         encodedBuffer = audio;
     }
+
+    _micAudioOutbound.increment();
 
     // FIXME check a flag to see if we should echo audio?
     emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber,
