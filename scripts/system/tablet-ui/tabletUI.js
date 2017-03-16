@@ -131,7 +131,9 @@
     }
 
     Script.scriptEnding.connect(function () {
-        Entities.deleteEntity(HMD.tabletID);
+        var tabletID = HMD.tabletID;
+        Entities.deleteEntity(tabletID);
+        Overlays.deleteOverlay(tabletID)
         HMD.tabletID = null;
         HMD.homeButtonID = null;
         HMD.tabletScreenID = null;

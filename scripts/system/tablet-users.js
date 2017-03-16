@@ -115,6 +115,9 @@
     tablet.screenChanged.connect(onScreenChanged);
 
     function cleanup() {
+        if (onUsersScreen) {
+            tablet.gotoHomeScreen();
+        }
         button.clicked.disconnect(onClicked);
         tablet.removeButton(button);
     }

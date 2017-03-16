@@ -72,6 +72,9 @@ tablet.screenChanged.connect(onScreenChanged);
 AudioDevice.muteToggled.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
+    if (onAudioScreen) {
+        tablet.gotoHomeScreen();
+    }
     button.clicked.disconnect(onClicked);
     tablet.screenChanged.disconnect(onScreenChanged);
     AudioDevice.muteToggled.disconnect(onMuteToggled);

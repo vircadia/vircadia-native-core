@@ -769,6 +769,26 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
     return false;
 }
 
+bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
+    if (rayPickResult.intersects) {
+        _currentClickingOnOverlayID = rayPickResult.overlayID;
+
+        // Only Web overlays can have focus.
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
+        if (thisOverlay) {
+            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Press);
+            emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
+            return true;
+        }
+    }
+    emit mouseDoublePressOffOverlay();
+    return false;
+}
+
 bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
 

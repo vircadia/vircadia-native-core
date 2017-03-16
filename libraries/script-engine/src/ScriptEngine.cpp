@@ -150,7 +150,7 @@ QString encodeEntityIdIntoEntityUrl(const QString& url, const QString& entityID)
 
 QString ScriptEngine::logException(const QScriptValue& exception) {
     auto message = formatException(exception, _enableExtendedJSExceptions.get());
-    scriptErrorMessage(qPrintable(message));
+    scriptErrorMessage(message);
     return message;
 }
 
@@ -461,7 +461,7 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 }
 
 void ScriptEngine::scriptErrorMessage(const QString& message) {
-    qCCritical(scriptengine) << message;
+    qCCritical(scriptengine) << qPrintable(message);
     emit errorMessage(message);
 }
 

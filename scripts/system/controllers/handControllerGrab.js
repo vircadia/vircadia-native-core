@@ -310,24 +310,24 @@ function getFingerWorldLocation(hand) {
 
 // Object assign  polyfill
 if (typeof Object.assign != 'function') {
-  Object.assign = function(target, varArgs) {
-    'use strict';
-    if (target == null) {
-      throw new TypeError('Cannot convert undefined or null to object');
-    }
-    var to = Object(target);
-    for (var index = 1; index < arguments.length; index++) {
-      var nextSource = arguments[index];
-      if (nextSource != null) {
-        for (var nextKey in nextSource) {
-          if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
-            to[nextKey] = nextSource[nextKey];
-          }
+    Object.assign = function(target, varArgs) {
+        'use strict';
+        if (target == null) {
+            throw new TypeError('Cannot convert undefined or null to object');
         }
-      }
-    }
-    return to;
-  };
+        var to = Object(target);
+        for (var index = 1; index < arguments.length; index++) {
+            var nextSource = arguments[index];
+            if (nextSource != null) {
+                for (var nextKey in nextSource) {
+                    if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                        to[nextKey] = nextSource[nextKey];
+                    }
+                }
+            }
+        }
+        return to;
+    };
 }
 
 function distanceBetweenPointAndEntityBoundingBox(point, entityProps) {
@@ -1604,16 +1604,16 @@ function MyController(hand) {
         return true;
     };
     this.entityIsCloneable = function(entityID) {
-      var entityProps = entityPropertiesCache.getGrabbableProps(entityID);
-      var props = entityPropertiesCache.getProps(entityID);
-      if (!props) {
-          return false;
-      }
+        var entityProps = entityPropertiesCache.getGrabbableProps(entityID);
+        var props = entityPropertiesCache.getProps(entityID);
+        if (!props) {
+            return false;
+        }
 
-      if (entityProps.hasOwnProperty("cloneable")) {
-          return entityProps.cloneable;
-      }
-      return false;
+        if (entityProps.hasOwnProperty("cloneable")) {
+            return entityProps.cloneable;
+        }
+        return false;
     }
     this.entityIsGrabbable = function(entityID) {
         var grabbableProps = entityPropertiesCache.getGrabbableProps(entityID);
@@ -2309,7 +2309,7 @@ function MyController(hand) {
                 // Can't set state of other controller to STATE_DISTANCE_HOLDING because then either:
                 // (a) The entity would jump to line up with the formerly rotating controller's orientation, or
                 // (b) The grab beam would need an orientation offset to the controller's true orientation.
-                // Neither of these options is good, so instead set STATE_SEARCHING and subsequently let the formerly distance 
+                // Neither of these options is good, so instead set STATE_SEARCHING and subsequently let the formerly distance
                 // rotating controller start distance holding the entity if it happens to be pointing at the entity.
             }
             return;
@@ -2681,30 +2681,28 @@ function MyController(hand) {
                         var userData = JSON.parse(grabbedProperties.userData);
                         var grabInfo = userData.grabbableKey;
                         if (grabInfo && grabInfo.cloneable) {
-                            // Check if
-                            var worldEntities = Entities.findEntitiesInBox(Vec3.subtract(MyAvatar.position, {x:25,y:25, z:25}), {x:50, y: 50, z: 50})
+                            var worldEntities = Entities.findEntities(MyAvatar.position, 50);
                             var count = 0;
                             worldEntities.forEach(function(item) {
                                 var item = Entities.getEntityProperties(item, ["name"]);
-                                if (item.name === grabbedProperties.name) {
+                                if (item.name.indexOf('-clone-' + grabbedProperties.id) !== -1) {
                                     count++;
                                 }
                             })
+
+                            var limit = grabInfo.cloneLimit ? grabInfo.cloneLimit : 0;
+                            if (count >= limit && limit !== 0) {
+                                delete limit;
+                                return;
+                            }
+
                             var cloneableProps = Entities.getEntityProperties(grabbedProperties.id);
+                            cloneableProps.name = cloneableProps.name + '-clone-' + grabbedProperties.id;
                             var lifetime = grabInfo.cloneLifetime ? grabInfo.cloneLifetime : 300;
-                            var limit = grabInfo.cloneLimit ? grabInfo.cloneLimit : 10;
                             var dynamic = grabInfo.cloneDynamic ? grabInfo.cloneDynamic : false;
                             var cUserData = Object.assign({}, userData);
                             var cProperties = Object.assign({}, cloneableProps);
                             isClone = true;
-
-                            if (count > limit) {
-                                delete cloneableProps;
-                                delete lifetime;
-                                delete cUserData;
-                                delete cProperties;
-                                return;
-                            }
 
                             delete cUserData.grabbableKey.cloneLifetime;
                             delete cUserData.grabbableKey.cloneable;
