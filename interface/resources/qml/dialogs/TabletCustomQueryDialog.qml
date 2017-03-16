@@ -12,7 +12,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 
-import "../controls-uit" as ControlsUIT
+import "../controls-uit"
 import "../styles-uit"
 import "../windows"
 
@@ -160,7 +160,7 @@ TabletModalWindow {
             }
 
             // FIXME make a text field type that can be bound to a history for autocompletion
-            ControlsUIT.TextField {
+            TextField {
                 id: textField;
                 label: root.textInput.label;
                 focus: root.textInput ? true : false;
@@ -176,7 +176,7 @@ TabletModalWindow {
             property alias keyboardOverride: root.keyboardOverride
             property alias keyboardRaised: root.keyboardRaised
             property alias punctuationMode: root.punctuationMode
-            ControlsUIT.Keyboard {
+            Keyboard {
                 id: keyboard
                 raised: keyboardEnabled && keyboardRaised
                 numeric: punctuationMode
@@ -205,7 +205,7 @@ TabletModalWindow {
             onWidthChanged: d.resize();
             z: 20
 
-            ControlsUIT.CheckBox {
+            CheckBox {
                 id: checkBoxField;
                 text: root.checkBox.label;
                 focus: Boolean(root.checkBox);
@@ -218,7 +218,7 @@ TabletModalWindow {
                 }
             }
 
-            ControlsUIT.ComboBox {
+            ComboBox {
                 id: comboBoxField;
                 label: root.comboBox.label;
                 focus: Boolean(root.comboBox);
@@ -263,12 +263,12 @@ TabletModalWindow {
                 warningText.width = rowWidth - buttonsWidth - warningIconWidth;
             }
 
-            ControlsUIT.Button {
+            Button {
                 id: cancelButton;
                 action: cancelAction;
             }
 
-            ControlsUIT.Button {
+            Button {
                 id: acceptButton;
                 action: acceptAction;
             }
