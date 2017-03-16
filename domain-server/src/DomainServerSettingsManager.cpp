@@ -246,8 +246,10 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 _agentPermissions[editorKey]->set(NodePermissions::Permission::canAdjustLocks);
             }
 
-            QList<std::unordered_map<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
-            permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get();
+            std::list<std::unordered_map<NodePermissionsKey, NodePermissionsPointer>> permissionsSets{
+                _standardAgentPermissions.get(),
+                _agentPermissions.get()
+            };
             foreach (auto permissionsSet, permissionsSets) {
                 for (auto entry : permissionsSet) {
                     const auto& userKey = entry.first;
@@ -301,7 +303,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 }
 
 QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
-
     static const QString DESCRIPTORS{ "descriptors" };
 
     auto& settingsMap = getSettingsMap();
