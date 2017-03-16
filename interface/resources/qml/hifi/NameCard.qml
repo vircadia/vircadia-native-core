@@ -156,7 +156,10 @@ Item {
             autoScroll: false;
             // Signals
             onEditingFinished: {
-                pal.sendToScript({method: 'displayNameUpdate', params: text})
+                if (MyAvatar.displayName !== text) {
+                    MyAvatar.displayName = text;
+                    UserActivityLogger.palAction("display_name_change", text);
+                }
                 cursorPosition = 0
                 focus = false
                 myDisplayName.border.width = 0
@@ -233,7 +236,10 @@ Item {
                 anchors.fill: parent
                 enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "";
                 hoverEnabled: enabled
-                onClicked: pal.sendToScript({method: 'goToUser', params: thisNameCard.userName});
+                onClicked: {
+                    AddressManager.goToUser(thisNameCard.userName);
+                    UserActivityLogger.palAction("go_to_user", thisNameCard.userName);
+                }
                 onEntered: {
                     displayNameText.color = hifi.colors.blueHighlight;
                     userNameText.color = hifi.colors.blueHighlight;
@@ -323,7 +329,10 @@ Item {
             anchors.fill: parent
             enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "";
             hoverEnabled: enabled
-            onClicked: pal.sendToScript({method: 'goToUser', params: thisNameCard.userName});
+            onClicked: {
+                AddressManager.goToUser(thisNameCard.userName);
+                UserActivityLogger.palAction("go_to_user", thisNameCard.userName);
+            }
             onEntered: {
                 displayNameText.color = hifi.colors.blueHighlight;
                 userNameText.color = hifi.colors.blueHighlight;

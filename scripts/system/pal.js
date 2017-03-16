@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars:true, plusplus:true, forin:true*/
-/*global Tablet, Settings, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, HMD, Controller, Account, UserActivityLogger, Messages, Window, XMLHttpRequest, print, location, getControllerWorldLocation, GlobalServices*/
+/*global Tablet, Settings, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, HMD, Controller, Account, UserActivityLogger, Messages, Window, XMLHttpRequest, print, location, getControllerWorldLocation*/
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // pal.js
@@ -264,24 +264,6 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         print('Refreshing Connections...');
         getConnectionData();
         UserActivityLogger.palAction("refresh_connections", "");
-        break;
-    case 'displayNameUpdate':
-        if (MyAvatar.displayName !== message.params) {
-            MyAvatar.displayName = message.params;
-            UserActivityLogger.palAction("display_name_change", "");
-        }
-        break;
-    case 'goToUser':
-        location.goToUser(message.params);
-        UserActivityLogger.palAction("go_to_user", "");
-        break;
-    case 'setAvailability':
-        GlobalServices.findableBy = message.params;
-        UserActivityLogger.palAction("set_availability", "");
-        print('Setting availability:', JSON.stringify(message));
-        break;
-    case 'getAvailability':
-        findableByChanged(GlobalServices.findableBy);
         break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
@@ -709,7 +691,6 @@ function startup() {
     Messages.subscribe(CHANNEL);
     Messages.messageReceived.connect(receiveMessage);
     Users.avatarDisconnected.connect(avatarDisconnected);
-    GlobalServices.findableByChanged.connect(findableByChanged);
 }
 
 startup();
@@ -747,7 +728,6 @@ function onTabletButtonClicked() {
         onPalScreen = true;
         Users.requestsDomainListData = true;
         populateNearbyUserList();
-        findableByChanged(GlobalServices.findableBy);
         isWired = true;
         Script.update.connect(updateOverlays);
         Controller.mousePressEvent.connect(handleMouseEvent);
@@ -857,20 +837,6 @@ function avatarDisconnected(nodeID) {
     sendToQml({method: 'avatarDisconnected', params: [nodeID]});
 }
 
-function findableByChanged(usernameAvailability) {
-    // Update PAL availability dropdown
-    // Default to "friends" if undeterminable
-    var availability = 1;
-    if (usernameAvailability === "all") {
-        availability = 0;
-    } else if (usernameAvailability === "friends") {
-        availability = 1;
-    } else if (usernameAvailability === "none") {
-        availability = 2;
-    }
-    sendToQml({ method: 'updateAvailability', params: availability });
-}
-
 function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
 }
@@ -888,7 +854,6 @@ function shutdown() {
     Messages.subscribe(CHANNEL);
     Messages.messageReceived.disconnect(receiveMessage);
     Users.avatarDisconnected.disconnect(avatarDisconnected);
-    GlobalServices.findableByChanged.disconnect(findableByChanged);
     off();
 }
 

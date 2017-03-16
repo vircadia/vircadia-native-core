@@ -340,7 +340,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
 
-    Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName)
+    Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName NOTIFY displayNameChanged)
     // sessionDisplayName is sanitized, defaulted version displayName that is defined by the AvatarMixer rather than by Interface clients.
     // The result is unique among all avatars present at the time.
     Q_PROPERTY(QString sessionDisplayName READ getSessionDisplayName WRITE setSessionDisplayName)
@@ -614,6 +614,9 @@ public:
 
 
 
+signals:
+    void displayNameChanged();
+    
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
