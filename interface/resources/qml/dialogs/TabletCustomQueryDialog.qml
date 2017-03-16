@@ -279,7 +279,7 @@ TabletModalWindow {
                 text: root.warning;
                 wrapMode: Text.WordWrap;
                 font.italic: true;
-                maximumLineCount: 3;
+                maximumLineCount: 2;
             }
 
             HiFiGlyphs {
