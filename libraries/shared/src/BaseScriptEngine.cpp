@@ -31,6 +31,7 @@ bool BaseScriptEngine::IS_THREADSAFE_INVOCATION(const QThread *thread, const QSt
     qCCritical(shared) << QString("Scripting::%1 @ %2 -- ignoring thread-unsafe call from %3")
         .arg(method).arg(thread ? thread->objectName() : "(!thread)").arg(QThread::currentThread()->objectName());
     qCDebug(shared) << "(please resolve on the calling side by using invokeMethod, executeOnScriptThread, etc.)";
+    Q_ASSERT(false);
     return false;
 }
 
