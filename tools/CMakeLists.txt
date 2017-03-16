@@ -18,4 +18,4 @@ add_subdirectory(skeleton-dump)
 set_target_properties(skeleton-dump PROPERTIES FOLDER "Tools")
 
 add_subdirectory(atp-get)
-set_target_properties(skeleton-dump PROPERTIES FOLDER "Tools")
+set_target_properties(atp-get PROPERTIES FOLDER "Tools")
