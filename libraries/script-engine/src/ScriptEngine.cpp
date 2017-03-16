@@ -627,6 +627,9 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, qWSCloseCodeToScriptValue, qWSCloseCodeFromScriptValue);
     qScriptRegisterMetaType(this, wscReadyStateToScriptValue, wscReadyStateFromScriptValue);
 
+    // NOTE: You do not want to end up creating new instances of singletons here. They will be on the ScriptEngine thread
+    // and are likely to be unusable if we "reset" the ScriptEngine by creating a new one (on a whole new thread).
+
     registerGlobalObject("Script", this);
 
     {
@@ -638,7 +641,8 @@ void ScriptEngine::init() {
         resetModuleCache();
     }
 
-    registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
+    registerGlobalObject("Audio", DependencyManager::get<AudioScriptingInterface>().data());
+
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);

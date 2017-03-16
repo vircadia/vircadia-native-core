@@ -58,6 +58,8 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
+    DependencyManager::set<AudioScriptingInterface>();
+
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
     DependencyManager::set<AudioInjectorManager>();

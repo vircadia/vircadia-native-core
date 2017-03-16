@@ -740,23 +740,24 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
+    auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface>();
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
-    connect(audioIO.data(), &AudioClient::mutedByMixer, &audioScriptingInterface, &AudioScriptingInterface::mutedByMixer);
-    connect(audioIO.data(), &AudioClient::receivedFirstPacket, &audioScriptingInterface, &AudioScriptingInterface::receivedFirstPacket);
-    connect(audioIO.data(), &AudioClient::disconnected, &audioScriptingInterface, &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
+    connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
     connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
         auto audioClient = DependencyManager::get<AudioClient>();
+        auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
         auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
         float distance = glm::distance(myAvatarPosition, position);
         bool shouldMute = !audioClient->isMuted() && (distance < radius);
 
         if (shouldMute) {
             audioClient->toggleMute();
-            AudioScriptingInterface::getInstance().environmentMuted();
+            audioScriptingInterface->environmentMuted();
         }
     });
 
@@ -1181,10 +1182,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the local loopback interface for local sounds
     AudioInjector::setLocalAudioInterface(audioIO.data());
-    AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
-    connect(audioIO.data(), &AudioClient::noiseGateOpened, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::noiseGateOpened);
-    connect(audioIO.data(), &AudioClient::noiseGateClosed, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::noiseGateClosed);
-    connect(audioIO.data(), &AudioClient::inputReceived, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::inputReceived);
+    audioScriptingInterface->setLocalAudioInterface(audioIO.data());
+    connect(audioIO.data(), &AudioClient::noiseGateOpened, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateOpened);
+    connect(audioIO.data(), &AudioClient::noiseGateClosed, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateClosed);
+    connect(audioIO.data(), &AudioClient::inputReceived, audioScriptingInterface.data(), &AudioScriptingInterface::inputReceived);
 
 
     this->installEventFilter(this);
@@ -1949,7 +1950,7 @@ void Application::initializeUi() {
     // For some reason there is already an "Application" object in the QML context,
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("ApplicationInterface", this);
-    rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
+    rootContext->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
     rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     rootContext->setContextProperty("AudioScope", DependencyManager::get<AudioScope>().data());
 
