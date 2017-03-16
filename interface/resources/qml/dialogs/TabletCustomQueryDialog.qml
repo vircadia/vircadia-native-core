@@ -20,7 +20,9 @@ TabletModalWindow {
     id: root;
     HifiConstants { id: hifi; }
 
-    y: hifi.dimensions.tabletMenuHeader
+    anchors.fill: parent
+    width: parent.width
+    height: parent.height
 
     title: ""
     visible: true;
@@ -108,7 +110,7 @@ TabletModalWindow {
 
     TabletModalFrame {
         id: modalWindowItem
-        width: parent.width - 12
+        width: parent.width - 6
         height: 240
         anchors {
             verticalCenter: parent.verticalCenter
@@ -119,7 +121,7 @@ TabletModalWindow {
             id: d;
             readonly property int minWidth: 470
             readonly property int maxWidth: 470
-            readonly property int minHeight: 240
+            readonly property int minHeight: 120
             readonly property int maxHeight: 720
 
             function resize() {
@@ -130,8 +132,8 @@ TabletModalWindow {
                         ((keyboardEnabled && keyboardRaised) ? (keyboard.raisedHeight + hifi.dimensions.contentSpacing.y) : 0);
 
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
-                root.height = (targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ?
-                                                                                d.maxHeight : targetHeight);
+                modalWindowItem.height = (targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ?
+                                                                                           d.maxHeight : targetHeight);
                 if (checkBoxField.visible && comboBoxField.visible) {
                     checkBoxField.width = extraInputs.width / 2;
                     comboBoxField.width = extraInputs.width / 2;
@@ -140,14 +142,16 @@ TabletModalWindow {
                 }
             }
         }
-//        Item {
-//            anchors {
-//                //                top: parent.top;
-//                //                bottom: extraInputs.visible ? extraInputs.top : buttons.top;
-//                left: parent.left;
-//                right: parent.right;
-//                topMargin: 20
-//            }
+
+        Item {
+            anchors {
+                top: parent.top;
+                bottom: extraInputs.visible ? extraInputs.top : buttons.top;
+                left: parent.left;
+                right: parent.right;
+                leftMargin: 12
+                rightMargin: 12
+            }
 
             // FIXME make a text field type that can be bound to a history for autocompletion
             ControlsUIT.TextField {
@@ -156,14 +160,16 @@ TabletModalWindow {
                 focus: root.textInput ? true : false;
                 visible: root.textInput ? true : false;
                 anchors {
-                    top: parent.top
                     left: parent.left;
                     right: parent.right;
-                    leftMargin: 5; rightMargin: 5;
-                    topMargin: textField.controlHeight - textField.height + 5
+                    bottom: keyboard.top;
+                    bottomMargin: hifi.dimensions.contentSpacing.y;
                 }
             }
 
+            property alias keyboardOverride: root.keyboardOverride
+            property alias keyboardRaised: root.keyboardRaised
+            property alias punctuationMode: root.punctuationMode
             ControlsUIT.Keyboard {
                 id: keyboard
                 raised: keyboardEnabled && keyboardRaised
@@ -171,110 +177,111 @@ TabletModalWindow {
                 anchors {
                     left: parent.left
                     right: parent.right
-                    leftMargin: 5; rightMargin: 5;
-                    top: textField.bottom
-                    topMargin: raised ? hifi.dimensions.contentSpacing.y : 0
+                    bottom: parent.bottom
+                    bottomMargin: raised ? hifi.dimensions.contentSpacing.y : 0
                 }
             }
-            //        }
+        }
 
-            Row {
-                id: extraInputs;
-                visible: Boolean(root.checkBox || root.comboBox);
+        Item {
+            id: extraInputs;
+            visible: Boolean(root.checkBox || root.comboBox);
+            anchors {
+                left: parent.left;
+                right: parent.right;
+                bottom: buttons.top;
+                bottomMargin: hifi.dimensions.contentSpacing.y;
+                leftMargin: 12
+                rightMargin: 12
+            }
+            height: comboBoxField.controlHeight;
+            onHeightChanged: d.resize();
+            onWidthChanged: d.resize();
+
+            ControlsUIT.CheckBox {
+                id: checkBoxField;
+                text: root.checkBox.label;
+                focus: Boolean(root.checkBox);
+                visible: Boolean(root.checkBox);
                 anchors {
                     left: parent.left;
-                    right: parent.right;
-                    leftMargin: 5; rightMargin: 5;
-                    top: keyboard.bottom;
-                    topMargin: hifi.dimensions.contentSpacing.y + 20;
-                }
-                height: comboBoxField.controlHeight;
-                onHeightChanged: d.resize();
-                onWidthChanged: d.resize();
-
-                ControlsUIT.CheckBox {
-                    id: checkBoxField;
-                    text: root.checkBox.label;
-                    focus: Boolean(root.checkBox);
-                    visible: Boolean(root.checkBox);
-                    //                anchors {
-                    //                    left: parent.left;
-                    //                    bottom: parent.bottom;
-                    //                    leftMargin: 6;  // Magic number to align with warning icon
-                    //                    bottomMargin: 6;
-                    //                }
-                }
-
-                ControlsUIT.ComboBox {
-                    id: comboBoxField;
-                    label: root.comboBox.label;
-                    focus: Boolean(root.comboBox);
-                    visible: Boolean(root.comboBox);
-                    //                anchors {
-                    //                    right: parent.right;
-                    //                    bottom: parent.bottom;
-                    //                }
-                    model: root.comboBox ? root.comboBox.items : [];
-                    onAccepted: {
-                        updateCheckbox();
-                        focus = true;
-                    }
-                }
-            }
-
-            Row {
-                id: buttons;
-                focus: true;
-                spacing: hifi.dimensions.contentSpacing.x;
-                layoutDirection: Qt.RightToLeft;
-                onHeightChanged: d.resize();
-                onWidthChanged: {
-                    d.resize();
-                    resizeWarningText();
-                }
-
-                anchors {
                     bottom: parent.bottom;
-                    left: parent.left;
-                    right: parent.right;
-                    bottomMargin: hifi.dimensions.contentSpacing.y;
-                    leftMargin: 5; rightMargin: 5;
-                }
-
-                function resizeWarningText() {
-                    var rowWidth = buttons.width;
-                    var buttonsWidth = acceptButton.width + cancelButton.width + hifi.dimensions.contentSpacing.x * 2;
-                    var warningIconWidth = warningIcon.width + hifi.dimensions.contentSpacing.x;
-                    warningText.width = rowWidth - buttonsWidth - warningIconWidth;
-                }
-
-                ControlsUIT.Button {
-                    id: cancelButton;
-                    action: cancelAction;
-                }
-
-                ControlsUIT.Button {
-                    id: acceptButton;
-                    action: acceptAction;
-                }
-
-                Text {
-                    id: warningText;
-                    visible: Boolean(root.warning);
-                    text: root.warning;
-                    wrapMode: Text.WordWrap;
-                    font.italic: true;
-                    maximumLineCount: 2;
-                }
-
-                HiFiGlyphs {
-                    id: warningIcon;
-                    visible: Boolean(root.warning);
-                    text: hifi.glyphs.alert;
-                    size: hifi.dimensions.controlLineHeight;
+                    leftMargin: 6;  // Magic number to align with warning icon
+                    bottomMargin: 6;
                 }
             }
-//        }//column
+
+            ControlsUIT.ComboBox {
+                id: comboBoxField;
+                label: root.comboBox.label;
+                focus: Boolean(root.comboBox);
+                visible: Boolean(root.comboBox);
+                anchors {
+                    right: parent.right;
+                    bottom: parent.bottom;
+                }
+                model: root.comboBox ? root.comboBox.items : [];
+                onAccepted: {
+                    updateCheckbox();
+                    focus = true;
+                }
+            }
+        }
+
+        Row {
+            id: buttons;
+            focus: true;
+            spacing: hifi.dimensions.contentSpacing.x;
+            layoutDirection: Qt.RightToLeft;
+            onHeightChanged: d.resize();
+            onWidthChanged: {
+                d.resize();
+                resizeWarningText();
+            }
+
+            anchors {
+                bottom: parent.bottom;
+                left: parent.left;
+                right: parent.right;
+                bottomMargin: hifi.dimensions.contentSpacing.y;
+                leftMargin: 12
+                rightMargin: 12
+            }
+
+            function resizeWarningText() {
+                var rowWidth = buttons.width;
+                var buttonsWidth = acceptButton.width + cancelButton.width + hifi.dimensions.contentSpacing.x * 2;
+                var warningIconWidth = warningIcon.width + hifi.dimensions.contentSpacing.x;
+                warningText.width = rowWidth - buttonsWidth - warningIconWidth;
+            }
+
+            ControlsUIT.Button {
+                id: cancelButton;
+                action: cancelAction;
+            }
+
+            ControlsUIT.Button {
+                id: acceptButton;
+                action: acceptAction;
+            }
+
+            Text {
+                id: warningText;
+                visible: Boolean(root.warning);
+                text: root.warning;
+                wrapMode: Text.WordWrap;
+                font.italic: true;
+                maximumLineCount: 2;
+            }
+
+            HiFiGlyphs {
+                id: warningIcon;
+                visible: Boolean(root.warning);
+                text: hifi.glyphs.alert;
+                size: hifi.dimensions.controlLineHeight;
+            }
+        }
+
         Action {
             id: cancelAction;
             text: qsTr("Cancel");
