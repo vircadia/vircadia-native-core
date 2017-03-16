@@ -572,7 +572,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
         dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
-        dialogsManager.data(), SLOT(showDomainConnectionDialog()));
+        qApp, SLOT(loadDomainConnectionDialog()));
 
     #if (PR_BUILD || DEV_BUILD)
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongProtocolVersion, 0, false,
