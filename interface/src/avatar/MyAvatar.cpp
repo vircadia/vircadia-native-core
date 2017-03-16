@@ -154,9 +154,12 @@ MyAvatar::MyAvatar(RigPointer rig) :
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 setRecordingBasis();
             }
+            _wasCharacterControllerEnabled = _characterController.isEnabled();
+            _characterController.setEnabled(false);
         } else {
             clearRecordingBasis();
             useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
+            _characterController.setEnabled(_wasCharacterControllerEnabled);
         }
 
         auto audioIO = DependencyManager::get<AudioClient>();

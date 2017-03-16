@@ -411,6 +411,7 @@ private:
     SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
+    bool _wasCharacterControllerEnabled { true };
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
