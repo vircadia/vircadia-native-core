@@ -107,10 +107,10 @@ ModalWindow {
 
         QtObject {
             id: d;
-            readonly property int minWidth: 480;
-            readonly property int maxWdith: 1280;
-            readonly property int minHeight: 120;
-            readonly property int maxHeight: 720;
+            readonly property int minWidth: 480
+            readonly property int maxWdith: 1280
+            readonly property int minHeight: 120
+            readonly property int maxHeight: 720
 
             function resize() {
                 var targetWidth = Math.max(titleWidth, pane.width);
@@ -259,6 +259,7 @@ ModalWindow {
                 visible: Boolean(root.warning);
                 text: hifi.glyphs.alert;
                 size: hifi.dimensions.controlLineHeight;
+                width: 20  // Line up with checkbox.
             }
         }
 
