@@ -17,6 +17,7 @@ import QtGraphicalEffects 1.0
 import Qt.labs.settings 1.0
 import "../styles-uit"
 import "../controls-uit" as HifiControls
+import HFWebEngineProfile 1.0
 
 // references HMD, Users, UserActivityLogger from root context
 
@@ -285,7 +286,9 @@ Rectangle {
                             pal.sendToScript({method: 'refreshConnections'});
                         }
                         activeTab = "connectionsTab";
+                        connectionsLoading.visible = false;
                         connectionsLoading.visible = true;
+                        connectionsRefreshProblemText.visible = false;
                     }
                 }
 
@@ -307,6 +310,7 @@ Rectangle {
                             width: reloadConnections.height;
                             glyph: hifi.glyphs.reload;
                             onClicked: {
+                                connectionsLoading.visible = false;
                                 connectionsLoading.visible = true;
                                 pal.sendToScript({method: 'refreshConnections'});
                             }
@@ -346,13 +350,12 @@ Rectangle {
                             text: "[?]";
                             size: connectionsTabSelectorText.size + 6;
                             font.capitalization: Font.AllUppercase;
-                            color: connectionsTabSelectorMouseArea.containsMouse ? hifi.colors.redAccent : hifi.colors.redHighlight;
+                            color: hifi.colors.redHighlight;
                             horizontalAlignment: Text.AlignHCenter;
                             verticalAlignment: Text.AlignVCenter;
                             anchors.fill: parent;
                         }
                         MouseArea {
-                            id: connectionsTabSelectorMouseArea;
                             anchors.fill: parent;
                             hoverEnabled: true;
                             onClicked: letterbox(hifi.glyphs.question,
@@ -361,6 +364,8 @@ Rectangle {
                                                  "When your availability is set to Everyone, Connections can see your username and location.<br><br>" +
                                                  "<font color='green'>Green borders around profile pictures are <b>Friends</b>.</font><br>" +
                                                  "When your availability is set to Friends, only Friends can see your username and location.");
+                            onEntered: connectionsHelpText.color = hifi.colors.redAccent;
+                            onExited: connectionsHelpText.color = hifi.colors.redHighlight;
                         }
                     }
                 }
@@ -703,7 +708,6 @@ Rectangle {
         }
         // This Rectangle refers to the [?] popup button next to "NAMES"
         Rectangle {
-            id: helpText;
             color: hifi.colors.tableBackgroundLight;
             width: 20;
             height: hifi.dimensions.tableHeaderHeight - 2;
@@ -712,16 +716,16 @@ Rectangle {
             anchors.topMargin: 1;
             anchors.leftMargin: actionButtonWidth + nearbyNameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6;
             RalewayRegular {
+                id: helpText;
                 text: "[?]";
                 size: hifi.fontSizes.tableHeading + 2;
                 font.capitalization: Font.AllUppercase;
-                color: helpTextMouseArea.containsMouse ? hifi.colors.baseGrayHighlight : hifi.colors.darkGray;
+                color: hifi.colors.darkGray;
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignVCenter;
                 anchors.fill: parent;
             }
             MouseArea {
-                id: helpTextMouseArea;
                 anchors.fill: parent;
                 hoverEnabled: true;
                 onClicked: letterbox(hifi.glyphs.question,
@@ -733,6 +737,8 @@ Rectangle {
                                      "If you can see someone's username, you can GoTo them by selecting them in the PAL, then clicking their name.<br>" +
                                      "<br>If someone's display name isn't set, a unique <b>session display name</b> is assigned to them.<br>" +
                                      "<br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.");
+                onEntered: helpText.color = hifi.colors.baseGrayHighlight;
+                onExited: helpText.color = hifi.colors.darkGray;
             }
         }
         // This Rectangle refers to the [?] popup button next to "ADMIN"
@@ -750,19 +756,20 @@ Rectangle {
                 text: "[?]";
                 size: hifi.fontSizes.tableHeading + 2;
                 font.capitalization: Font.AllUppercase;
-                color: adminHelpTextMouseArea.containsMouse ? "#94132e" : hifi.colors.redHighlight;
+                color: hifi.colors.redHighlight;
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignVCenter;
                 anchors.fill: parent;
             }
             MouseArea {
-                id: adminHelpTextMouseArea;
                 anchors.fill: parent;
                 hoverEnabled: true;
                 onClicked: letterbox(hifi.glyphs.question,
                                      "Admin Actions",
                                      "<b>Silence</b> mutes a user's microphone. Silenced users can unmute themselves by clicking &quot;UNMUTE&quot; on their toolbar.<br><br>" +
                                      "<b>Ban</b> removes a user from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.");
+                onEntered: adminHelpText.color = "#94132e";
+                onExited: adminHelpText.color = hifi.colors.redHighlight;
             }
         }
     } // "Nearby" Tab
@@ -792,6 +799,35 @@ Rectangle {
             height: width;
             anchors.centerIn: parent;
             visible: true;
+            onVisibleChanged: {
+                if (visible) {
+                    connectionsTimeoutTimer.start();
+                } else {
+                    connectionsTimeoutTimer.stop();     
+                    connectionsRefreshProblemText.visible = false;               
+                }
+            }
+        }
+
+        // "This is taking too long..." text
+        FiraSansSemiBold {
+            id: connectionsRefreshProblemText
+            // Properties
+            text: "This is taking longer than normal.\nIf you get stuck, try refreshing the Connections tab.";
+            // Anchors
+            anchors.top: connectionsLoading.bottom;
+            anchors.topMargin: 10;
+            anchors.left: parent.left;
+            anchors.bottom: parent.bottom;
+            width: parent.width;
+            // Text Size
+            size: 16;
+            // Text Positioning
+            verticalAlignment: Text.AlignTop;
+            horizontalAlignment: Text.AlignHCenter;
+            wrapMode: Text.WordWrap;
+            // Style
+            color: hifi.colors.darkGray;
         }
 
         // This TableView refers to the Connections Table (on the "Connections" tab below the current user's NameCard)
@@ -887,13 +923,14 @@ Rectangle {
                     // Text Positioning
                     verticalAlignment: Text.AlignVCenter
                     // Style
-                    color: connectionsLocationDataMouseArea.containsMouse ? hifi.colors.blueHighlight : hifi.colors.darkGray;
+                    color: hifi.colors.darkGray;
                     MouseArea {
-                        id: connectionsLocationDataMouseArea;
                         anchors.fill: parent
                         hoverEnabled: enabled
                         enabled: connectionsNameCard.selected && pal.activeTab == "connectionsTab"
                         onClicked: pal.sendToScript({method: 'goToUser', params: model.userName});
+                        onEntered: connectionsLocationData.color = hifi.colors.blueHighlight;
+                        onExited: connectionsLocationData.color = hifi.colors.darkGray;
                     }
                 }
 
@@ -941,7 +978,7 @@ Rectangle {
             Rectangle {
                 id: navigationContainer;
                 visible: userInfoViewer.visible;
-                height: 75;
+                height: 60;
                 anchors {
                     top: parent.top;
                     left: parent.left;
@@ -955,7 +992,7 @@ Rectangle {
                         top: parent.top;
                         left: parent.left;
                     }
-                    height: parent.height - urlBar.height;
+                    height: parent.height - addressBar.height;
                     width: parent.width/2;
 
                     FiraSansSemiBold {
@@ -975,21 +1012,26 @@ Rectangle {
                             id: backButtonMouseArea;
                             anchors.fill: parent
                             hoverEnabled: enabled
-                            onClicked: userInfoViewer.goBack();
+                            onClicked: {
+                                if (userInfoViewer.canGoBack) {
+                                    userInfoViewer.goBack();
+                                }
+                            }
                         }
                     }
                 }
 
                 Item {
-                    id: closeButton
+                    id: closeButtonContainer
                     anchors {
                         top: parent.top;
                         right: parent.right;
                     }
-                    height: parent.height - urlBar.height;
+                    height: parent.height - addressBar.height;
                     width: parent.width/2;
 
                     FiraSansSemiBold {
+                        id: closeButton;
                         // Properties
                         text: "CLOSE";
                         elide: Text.ElideRight;
@@ -1001,24 +1043,25 @@ Rectangle {
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter;
                         // Style
-                        color: closeButtonMouseArea.containsMouse ? hifi.colors.redAccent : hifi.colors.redHighlight;
+                        color: hifi.colors.redHighlight;
                         MouseArea {
-                            id: closeButtonMouseArea;
                             anchors.fill: parent
                             hoverEnabled: enabled
                             onClicked: userInfoViewer.visible = false;
+                            onEntered: closeButton.color = hifi.colors.redAccent;
+                            onExited: closeButton.color = hifi.colors.redHighlight;
                         }
                     }
                 }
 
                 Item {
-                    id: urlBar
+                    id: addressBar
                     anchors {
-                        top: closeButton.bottom;
+                        top: closeButtonContainer.bottom;
                         left: parent.left;
                         right: parent.right;
                     }
-                    height: 25;
+                    height: 30;
                     width: parent.width;
 
                     FiraSansRegular {
@@ -1027,17 +1070,14 @@ Rectangle {
                         elide: Text.ElideRight;
                         // Anchors
                         anchors.fill: parent;
+                        anchors.leftMargin: 5;
                         // Text Size
                         size: 14;
                         // Text Positioning
                         verticalAlignment: Text.AlignVCenter
-                        horizontalAlignment: Text.AlignHCenter;
+                        horizontalAlignment: Text.AlignLeft;
                         // Style
                         color: hifi.colors.lightGray;
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: userInfoViewer.visible = false;
-                        }
                     }
                 }
             }
@@ -1056,9 +1096,11 @@ Rectangle {
 
             HifiControls.WebView {
                 id: userInfoViewer;
+                profile: HFWebEngineProfile {
+                    storageName: "qmlWebEngine"
+                }
                 anchors {
                     top: navigationContainer.bottom;
-                    topMargin: 5;
                     bottom: parent.bottom;
                     left: parent.left;
                     right: parent.right;
@@ -1084,6 +1126,15 @@ Rectangle {
             } else {
                 nearbyTable.selection.deselect(userIndex);
             }
+        }
+    }
+
+    // Timer used when refreshing the Connections tab
+    Timer {
+        id: connectionsTimeoutTimer;
+        interval: 3000; // 3 seconds
+        onTriggered: {
+            connectionsRefreshProblemText.visible = true;
         }
     }
 
@@ -1125,9 +1176,11 @@ Rectangle {
             break;
         case 'connections':
             var data = message.params;
+            console.log('Got connection data: ', JSON.stringify(data));
             connectionsUserModelData = data;
             sortConnectionsModel();
             connectionsLoading.visible = false;
+            connectionsRefreshProblemText.visible = false;
             break;
         case 'select':
             var sessionIds = message.params[0];

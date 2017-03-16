@@ -198,15 +198,16 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(avatarMixerInPps, roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer)));
             STAT_UPDATE(avatarMixerOutKbps, roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
             STAT_UPDATE(avatarMixerOutPps, roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
-            STAT_UPDATE(myAvatarSendRate, avatarManager->getMyAvatarSendRate());
         } else {
             STAT_UPDATE(avatarMixerInKbps, -1);
             STAT_UPDATE(avatarMixerInPps, -1);
             STAT_UPDATE(avatarMixerOutKbps, -1);
             STAT_UPDATE(avatarMixerOutPps, -1);
-            STAT_UPDATE(myAvatarSendRate, avatarManager->getMyAvatarSendRate());
         }
+        STAT_UPDATE(myAvatarSendRate, avatarManager->getMyAvatarSendRate());
+
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
+        auto audioClient = DependencyManager::get<AudioClient>();
         if (audioMixerNode || force) {
             STAT_UPDATE(audioMixerKbps, roundf(
                 bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
@@ -214,10 +215,30 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(audioMixerPps, roundf(
                 bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer) +
                 bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
+
+            STAT_UPDATE(audioMixerInKbps, roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMixerInPps, roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMixerOutKbps, roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMixerOutPps, roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMicOutboundPPS, audioClient->getMicAudioOutboundPPS());
+            STAT_UPDATE(audioSilentOutboundPPS, audioClient->getSilentOutboundPPS());
+            STAT_UPDATE(audioAudioInboundPPS, audioClient->getAudioInboundPPS());
+            STAT_UPDATE(audioSilentInboundPPS, audioClient->getSilentInboundPPS());
         } else {
             STAT_UPDATE(audioMixerKbps, -1);
             STAT_UPDATE(audioMixerPps, -1);
+            STAT_UPDATE(audioMixerInKbps, -1);
+            STAT_UPDATE(audioMixerInPps, -1);
+            STAT_UPDATE(audioMixerOutKbps, -1);
+            STAT_UPDATE(audioMixerOutPps, -1);
+            STAT_UPDATE(audioMicOutboundPPS, -1);
+            STAT_UPDATE(audioSilentOutboundPPS, -1);
+            STAT_UPDATE(audioAudioInboundPPS, -1);
+            STAT_UPDATE(audioSilentInboundPPS, -1);
         }
+        STAT_UPDATE(audioCodec, audioClient->getSelectedAudioFormat());
+        STAT_UPDATE(audioNoiseGate, audioClient->getNoiseGateOpen() ? "Open" : "Closed");
+
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
         STAT_UPDATE(downloads, loadingRequests.size());
