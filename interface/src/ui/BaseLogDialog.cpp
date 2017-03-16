@@ -29,6 +29,7 @@ const int SEARCH_BUTTON_WIDTH = 20;
 const int SEARCH_TOGGLE_BUTTON_WIDTH = 50;
 const int SEARCH_TEXT_WIDTH = 240;
 const int TIME_STAMP_LENGTH = 16;
+const int FONT_WEIGHT = 75;
 const QColor HIGHLIGHT_COLOR = QColor("#3366CC");
 const QColor BOLD_COLOR = QColor("#445c8c");
 const QString BOLD_PATTERN = "\\[\\d*\\/.*:\\d*:\\d*\\]";
@@ -38,7 +39,7 @@ public:
     Highlighter(QTextDocument* parent = nullptr);
     void setBold(int indexToBold);
     QString keyword;
-    
+
 protected:
     void highlightBlock(const QString& text) override;
 
@@ -94,7 +95,7 @@ void BaseLogDialog::initControls() {
     _leftPad += SEARCH_TOGGLE_BUTTON_WIDTH + BUTTON_MARGIN;
     _searchPrevButton->show();
     connect(_searchPrevButton, SIGNAL(clicked()), SLOT(toggleSearchPrev()));
-    
+
     _searchNextButton = new QPushButton(this);
     _searchNextButton->setObjectName("searchNextButton");
     _searchNextButton->setGeometry(_leftPad, ELEMENT_MARGIN, SEARCH_TOGGLE_BUTTON_WIDTH, ELEMENT_HEIGHT);
@@ -134,7 +135,7 @@ void BaseLogDialog::handleSearchTextChanged(QString searchText) {
     if (searchText.isEmpty()) {
         return;
     }
-    
+
     QTextCursor cursor = _logTextBox->textCursor();
     if (cursor.hasSelection()) {
         QString selectedTerm = cursor.selectedText();
@@ -142,16 +143,16 @@ void BaseLogDialog::handleSearchTextChanged(QString searchText) {
           return;
         }
     }
-    
+
     cursor.setPosition(0, QTextCursor::MoveAnchor);
     _logTextBox->setTextCursor(cursor);
     bool foundTerm = _logTextBox->find(searchText);
-    
+
     if (!foundTerm) {
         cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
         _logTextBox->setTextCursor(cursor);
     }
-    
+
     _searchTerm = searchText;
     _highlighter->keyword = searchText;
     _highlighter->rehighlight();
@@ -195,10 +196,10 @@ void BaseLogDialog::updateSelection() {
 }
 
 Highlighter::Highlighter(QTextDocument* parent) : QSyntaxHighlighter(parent) {
-    boldFormat.setFontWeight(75);
+    boldFormat.setFontWeight(FONT_WEIGHT);
     boldFormat.setForeground(BOLD_COLOR);
     keywordFormat.setForeground(HIGHLIGHT_COLOR);
-  }
+}
 
 void Highlighter::highlightBlock(const QString& text) {
     QRegExp expression(BOLD_PATTERN);
@@ -206,11 +207,11 @@ void Highlighter::highlightBlock(const QString& text) {
     int index = text.indexOf(expression, 0);
 
     while (index >= 0) {
-      int length = expression.matchedLength();
-      setFormat(index, length, boldFormat);
-      index = text.indexOf(expression, index + length);
+        int length = expression.matchedLength();
+        setFormat(index, length, boldFormat);
+        index = text.indexOf(expression, index + length);
     }
-    
+
     if (keyword.isNull() || keyword.isEmpty()) {
         return;
     }
