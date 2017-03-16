@@ -58,21 +58,10 @@ Item {
         Tablet.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
     }
 
-    HifiControls.TabletHeader {
-        id: header
-        title: parent.title
-
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-        }
-    }
-
     Rectangle {
         id: main
         anchors {
-            top: header.bottom
+            top: parent.top
             bottom: footer.top
             left: parent.left
             right: parent.right

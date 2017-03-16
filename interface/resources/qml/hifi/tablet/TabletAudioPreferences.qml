@@ -9,17 +9,16 @@
 //
 
 import QtQuick 2.5
+import QtQuick.Controls 1.4
 import "tabletWindows"
 import "../../dialogs"
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
-import QtGraphicalEffects 1.0
 
 StackView {
     id: profileRoot
     initialItem: root
     objectName: "stack"
-    property var title: "Audio Preferences"
+    property string title: "Audio Settings"
+
     property var eventBridge;
     signal sendToScript(var message);
 
@@ -33,10 +32,7 @@ StackView {
 
     TabletPreferencesDialog {
         id: root
-        property string title: "Audio Settings"
         objectName: "TabletAudioPreferences"
-        width: parent.width
-        height: parent.height
         showCategories: ["Audio"]
     }
 }
