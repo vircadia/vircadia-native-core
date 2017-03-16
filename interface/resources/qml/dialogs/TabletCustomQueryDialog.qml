@@ -203,6 +203,7 @@ TabletModalWindow {
             height: comboBoxField.controlHeight;
             onHeightChanged: d.resize();
             onWidthChanged: d.resize();
+            z: 20
 
             ControlsUIT.CheckBox {
                 id: checkBoxField;
@@ -244,6 +245,7 @@ TabletModalWindow {
                 d.resize();
                 resizeWarningText();
             }
+            z: 10
 
             anchors {
                 bottom: parent.bottom;
