@@ -101,11 +101,11 @@ Item {
         }
 
         onNewViewRequested:{
-            // desktop is not defined for web-entities
-            if (desktop) {
-                var component = Qt.createComponent("../Browser.qml");
-                var newWindow = component.createObject(desktop);
-                request.openIn(newWindow.webView);
+            // desktop is not defined for web-entities or tablet
+            if (typeof desktop !== "undefined") {
+                desktop.openBrowserWindow(request, profile);
+            } else {
+                console.log("onNewViewRequested: desktop not defined");
             }
         }
     }

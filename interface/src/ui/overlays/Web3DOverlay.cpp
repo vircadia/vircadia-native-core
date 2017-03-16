@@ -39,6 +39,7 @@
 #include "scripting/HMDScriptingInterface.h"
 #include <Preferences.h>
 #include "FileDialogHelper.h"
+#include <OffscreenUi.h>
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -177,6 +178,8 @@ void Web3DOverlay::loadSourceURL() {
         }
     }
     _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    _webSurface->getRootContext()->setContextProperty("desktop", offscreenUi->getDesktop());
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
