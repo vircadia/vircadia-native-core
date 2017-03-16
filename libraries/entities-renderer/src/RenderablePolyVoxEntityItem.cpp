@@ -1574,7 +1574,6 @@ void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
 bool RenderablePolyVoxEntityItem::getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) const {
     bool success = false;
     MeshProxy* meshProxy = nullptr;
-    model::MeshPointer mesh = nullptr;
     withReadLock([&] {
         if (_meshInitialized) {
             success = true;
