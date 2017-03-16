@@ -32,6 +32,18 @@ describe('require', function() {
                     mod.exists;
                 }).toThrowError(/Cannot find/);
             });
+            it('should reject unanchored, existing filenames with advice', function() {
+                expect(function() {
+                    var mod = require.resolve('moduleTests/example.json');
+                    mod.exists;
+                }).toThrowError(/use '.\/moduleTests\/example\.json'/);
+            });
+            it('should reject unanchored, non-existing filenames', function() {
+                expect(function() {
+                    var mod = require.resolve('asdfssdf/example.json');
+                    mod.exists;
+                }).toThrowError(/Cannot find.*system module not found/);
+            });
             it('should reject non-existent filenames', function() {
                 expect(function() {
                     require.resolve('./404error.js');
@@ -67,19 +79,21 @@ describe('require', function() {
             var example = require('./moduleTests/example.json');
             expect(example.name).toEqual('Example JSON Module');
         });
-        INTERFACE.describe('interface', function() {
-            NETWORK.describe('network', function() {
-                // xit('should import #content-type=application/json modules', function() {
-                //     var results = require('https://jsonip.com#content-type=application/json');
-                //     expect(results.ip).toMatch(/^[.0-9]+$/);
-                // });
-                it('should import content-type: application/json modules', function() {
-                    var scope = { 'content-type': 'application/json' };
-                    var results = require.call(scope, 'https://jsonip.com');
-                    expect(results.ip).toMatch(/^[.0-9]+$/);
-                });
-            });
-        });
+        // noet: support for loading JSON via content type workarounds reverted
+        // (leaving these tests intact in case ever revisited later)
+        // INTERFACE.describe('interface', function() {
+        //     NETWORK.describe('network', function() {
+        //         xit('should import #content-type=application/json modules', function() {
+        //             var results = require('https://jsonip.com#content-type=application/json');
+        //             expect(results.ip).toMatch(/^[.0-9]+$/);
+        //         });
+        //         xit('should import content-type: application/json modules', function() {
+        //             var scope = { 'content-type': 'application/json' };
+        //             var results = require.call(scope, 'https://jsonip.com');
+        //             expect(results.ip).toMatch(/^[.0-9]+$/);
+        //         });
+        //     });
+        // });
 
     });
 

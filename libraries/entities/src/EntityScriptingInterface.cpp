@@ -686,24 +686,18 @@ bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
 bool EntityPropertyMetadataRequest::script(EntityItemID entityID, QScriptValue handler) {
     using LocalScriptStatusRequest = QFutureWatcher<QVariant>;
 
-    LocalScriptStatusRequest *request = new LocalScriptStatusRequest;
+    LocalScriptStatusRequest* request = new LocalScriptStatusRequest;
     QObject::connect(request, &LocalScriptStatusRequest::finished, _engine, [=]() mutable {
-        auto engine = _engine;
-        if (!engine) {
-            // this is just to address any lingering doubts -- when _engine is destroyed, this connect gets broken automatically
-            qCDebug(entities) << __FUNCTION__ << " -- engine destroyed while inflight" << entityID;
-            return;
-        }
         auto details = request->result().toMap();
         QScriptValue err, result;
         if (details.contains("isError")) {
             if (!details.contains("message")) {
                 details["message"] = details["errorInfo"];
             }
-            err = engine->makeError(engine->toScriptValue(details));
+            err = _engine->makeError(_engine->toScriptValue(details));
         } else {
             details["success"] = true;
-            result = engine->toScriptValue(details);
+            result = _engine->toScriptValue(details);
         }
         callScopedHandlerObject(handler, err, result);
         request->deleteLater();

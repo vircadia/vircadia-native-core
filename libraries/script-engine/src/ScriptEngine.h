@@ -167,7 +167,7 @@ public:
     QScriptValue currentModule();
     bool registerModuleWithParent(const QScriptValue& module, const QScriptValue& parent);
     QScriptValue newModule(const QString& modulePath, const QScriptValue& parent = QScriptValue());
-    QScriptValue fetchModuleSource(const QString& modulePath, const bool forceDownload = false);
+    QVariantMap fetchModuleSource(const QString& modulePath, const bool forceDownload = false);
     QScriptValue instantiateModule(const QScriptValue& module, const QString& sourceCode);
 
     Q_INVOKABLE QObject* setInterval(const QScriptValue& function, int intervalMS);
@@ -308,7 +308,7 @@ protected:
 
     AssetScriptingInterface _assetScriptingInterface{ this };
 
-    std::function<bool()> _emitScriptUpdates{ [](){ return true; }  };
+    std::function<bool()> _emitScriptUpdates{ []() { return true; }  };
 
     std::recursive_mutex _lock;
 
@@ -317,10 +317,7 @@ protected:
     static const QString _SETTINGS_ENABLE_EXTENDED_MODULE_COMPAT;
     static const QString _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS;
 
-    Setting::Handle<bool> _enableExtendedModuleCompatbility { _SETTINGS_ENABLE_EXTENDED_MODULE_COMPAT, false };
     Setting::Handle<bool> _enableExtendedJSExceptions { _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS, true };
-
-    void applyUserOptions(QScriptValue& module, QScriptValue& options);
 };
 
 #endif // hifi_ScriptEngine_h

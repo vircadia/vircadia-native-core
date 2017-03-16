@@ -62,7 +62,7 @@
     clearTimeout = Script.clearTimeout;
     clearInterval = Script.clearInterval;
 
-    var jasmine = jasmineRequire.core(jasmineRequire);
+    var jasmine = this.jasmine = jasmineRequire.core(jasmineRequire);
 
     var env = jasmine.getEnv();
 
