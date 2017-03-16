@@ -117,6 +117,12 @@ TabletModalWindow {
             horizontalCenter: parent.horizontalCenter
         }
 
+        MouseArea {
+            // Clicking dialog background defocuses active control.
+            anchors.fill: parent
+            onClicked: parent.forceActiveFocus();
+        }
+
         QtObject {
             id: d;
             readonly property int minWidth: 470
