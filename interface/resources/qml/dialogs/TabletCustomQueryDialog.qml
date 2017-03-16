@@ -277,7 +277,7 @@ TabletModalWindow {
                 text: root.warning;
                 wrapMode: Text.WordWrap;
                 font.italic: true;
-                maximumLineCount: 2;
+                maximumLineCount: 3;
             }
 
             HiFiGlyphs {
@@ -285,6 +285,7 @@ TabletModalWindow {
                 visible: Boolean(root.warning);
                 text: hifi.glyphs.alert;
                 size: hifi.dimensions.controlLineHeight;
+                width: 20  // Line up with checkbox.
             }
         }
 

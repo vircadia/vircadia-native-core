@@ -259,6 +259,7 @@ ModalWindow {
                 visible: Boolean(root.warning);
                 text: hifi.glyphs.alert;
                 size: hifi.dimensions.controlLineHeight;
+                width: 20  // Line up with checkbox.
             }
         }
 
