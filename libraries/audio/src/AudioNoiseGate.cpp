@@ -19,19 +19,13 @@
 const float AudioNoiseGate::CLIPPING_THRESHOLD = 0.90f;
 
 AudioNoiseGate::AudioNoiseGate() :
-    _inputBlockCounter(0),
     _lastLoudness(0.0f),
-    _quietestBlock(std::numeric_limits<float>::max()),
-    _loudestBlock(0.0f),
     _didClipInLastBlock(false),
     _dcOffset(0.0f),
     _measuredFloor(0.0f),
     _sampleCounter(0),
     _isOpen(false),
-    _blocksToClose(0)
-{
-    
-}
+    _blocksToClose(0) {}
 
 void AudioNoiseGate::removeDCOffset(int16_t* samples, int numSamples) {
     //
@@ -80,7 +74,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     float loudness = 0;
     int thisSample = 0;
     int samplesOverNoiseGate = 0;
-    
+
     const float NOISE_GATE_HEIGHT = 7.0f;
     const int NOISE_GATE_WIDTH = 5;
     const int NOISE_GATE_CLOSE_BLOCK_DELAY = 5;
@@ -88,36 +82,22 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
 
     //  Check clipping, and check if should open noise gate
     _didClipInLastBlock = false;
-    
+
     for (int i = 0; i < numSamples; i++) {
         thisSample = std::abs(samples[i]);
         if (thisSample >= ((float) AudioConstants::MAX_SAMPLE_VALUE * CLIPPING_THRESHOLD)) {
             _didClipInLastBlock = true;
         }
-        
+
         loudness += thisSample;
         //  Noise Reduction:  Count peaks above the average loudness
         if (thisSample > (_measuredFloor * NOISE_GATE_HEIGHT)) {
             samplesOverNoiseGate++;
         }
     }
-    
+
     _lastLoudness = fabs(loudness / numSamples);
-    
-    if (_quietestBlock > _lastLoudness) {
-        _quietestBlock = _lastLoudness;
-    }
-    if (_loudestBlock < _lastLoudness) {
-        _loudestBlock = _lastLoudness;
-    }
-    
-    const int FRAMES_FOR_NOISE_DETECTION = 400;
-    if (_inputBlockCounter++ > FRAMES_FOR_NOISE_DETECTION) {
-        _quietestBlock = std::numeric_limits<float>::max();
-        _loudestBlock = 0.0f;
-        _inputBlockCounter = 0;
-    }
-    
+
     //  If Noise Gate is enabled, check and turn the gate on and off
     float averageOfAllSampleBlocks = 0.0f;
     _sampleBlocks[_sampleCounter++] = _lastLoudness;
@@ -130,7 +110,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
                 averageOfAllSampleBlocks += _sampleBlocks[j];
             }
             thisAverage /= NOISE_GATE_BLOCKS_TO_AVERAGE;
-            
+
             if (thisAverage < smallestSample) {
                 smallestSample = thisAverage;
             }
@@ -138,7 +118,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         averageOfAllSampleBlocks /= NUMBER_OF_NOISE_SAMPLE_BLOCKS;
         _measuredFloor = smallestSample;
         _sampleCounter = 0;
-        
+
     }
 
     _closedInLastBlock = false;
@@ -156,7 +136,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     }
     if (!_isOpen) {
         // First block after being closed gets faded to silence, we fade across
-        // the entire block on fading out. All subsequent blocks are muted by being slammed 
+        // the entire block on fading out. All subsequent blocks are muted by being slammed
         // to zeros
         if (_closedInLastBlock) {
             float fadeSlope = (1.0f / numSamples);

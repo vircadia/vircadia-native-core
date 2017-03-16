@@ -19,24 +19,21 @@ const int NUMBER_OF_NOISE_SAMPLE_BLOCKS = 300;
 class AudioNoiseGate {
 public:
     AudioNoiseGate();
-    
+
     void gateSamples(int16_t* samples, int numSamples);
     void removeDCOffset(int16_t* samples, int numSamples);
-    
+
     bool clippedInLastBlock() const { return _didClipInLastBlock; }
     bool closedInLastBlock() const { return _closedInLastBlock; }
     bool openedInLastBlock() const { return _openedInLastBlock; }
     bool isOpen() const { return _isOpen; }
     float getMeasuredFloor() const { return _measuredFloor; }
     float getLastLoudness() const { return _lastLoudness; }
-    
+
     static const float CLIPPING_THRESHOLD;
-    
+
 private:
-    int _inputBlockCounter;
     float _lastLoudness;
-    float _quietestBlock;
-    float _loudestBlock;
     bool _didClipInLastBlock;
     float _dcOffset;
     float _measuredFloor;
