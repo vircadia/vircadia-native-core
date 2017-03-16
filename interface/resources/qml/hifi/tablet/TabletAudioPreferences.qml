@@ -23,11 +23,11 @@ StackView {
     signal sendToScript(var message);
 
     function pushSource(path) {
-        editRoot.push(Qt.reslovedUrl(path));
+        profileRoot.push(Qt.reslovedUrl(path));
     }
 
     function popSource() {
-
+        profileRoot.pop();
     }
 
     TabletPreferencesDialog {
