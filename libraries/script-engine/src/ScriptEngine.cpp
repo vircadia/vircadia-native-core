@@ -464,17 +464,17 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 
 void ScriptEngine::scriptErrorMessage(const QString& message) {
     qCCritical(scriptengine) << qPrintable(message);
-    emit errorMessage(message);
+    emit errorMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptWarningMessage(const QString& message) {
     qCWarning(scriptengine) << message;
-    emit warningMessage(message);
+    emit warningMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptInfoMessage(const QString& message) {
     qCInfo(scriptengine) << message;
-    emit infoMessage(message);
+    emit infoMessage(message, getFilename());
 }
 
 // Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of
@@ -1351,7 +1351,7 @@ QUrl ScriptEngine::resourcesPath() const {
 }
 
 void ScriptEngine::print(const QString& message) {
-    emit printedMessage(message);
+    emit printedMessage(message, getFilename());
 }
 
 // Script.require.resolve -- like resolvePath, but performs more validation and throws exceptions on invalid module identifiers (for consistency with Node.js)

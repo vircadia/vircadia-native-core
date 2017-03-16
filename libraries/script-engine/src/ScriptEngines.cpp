@@ -34,34 +34,24 @@ ScriptsModel& getScriptsModel() {
     return scriptsModel;
 }
 
-void ScriptEngines::onPrintedMessage(const QString& message) {
-    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
-    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+void ScriptEngines::onPrintedMessage(const QString& message, const QString& scriptName) {
     emit printedMessage(message, scriptName);
 }
 
-void ScriptEngines::onErrorMessage(const QString& message) {
-    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
-    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+void ScriptEngines::onErrorMessage(const QString& message, const QString& scriptName) {
     emit errorMessage(message, scriptName);
 }
 
-void ScriptEngines::onWarningMessage(const QString& message) {
-    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
-    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+void ScriptEngines::onWarningMessage(const QString& message, const QString& scriptName) {
     emit warningMessage(message, scriptName);
 }
 
-void ScriptEngines::onInfoMessage(const QString& message) {
-    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
-    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
+void ScriptEngines::onInfoMessage(const QString& message, const QString& scriptName) {
     emit infoMessage(message, scriptName);
 }
 
 void ScriptEngines::onErrorLoadingScript(const QString& url) {
-    auto scriptEngine = qobject_cast<ScriptEngine*>(sender());
-    auto scriptName = scriptEngine ? scriptEngine->getFilename() : "";
-    emit errorLoadingScript(url, scriptName);
+    emit errorLoadingScript(url);
 }
 
 ScriptEngines::ScriptEngines(ScriptEngine::Context context)
