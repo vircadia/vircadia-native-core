@@ -182,14 +182,16 @@ public:
 
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
-    void setDriveKey(int key, float val) { _driveKeys[key] = val; };
-    float getDriveKey(int key) const { return isDriveKeyDisabled(key) ? 0.0f : _driveKeys[key]; };
-    Q_INVOKABLE float getRawDriveKey(int key) const { return _driveKeys[key]; };
+    void setDriveKey(int key, float val);
+    float getDriveKey(int key) const;
+    Q_INVOKABLE float getRawDriveKey(int key) const;
     void relayDriveKeysToCharacterController();
 
-    Q_INVOKABLE void disableDriveKey(int key) { _disabledDriveKeys.set(key); }
-    Q_INVOKABLE void enableDriveKey(int key) { _disabledDriveKeys.reset(key); }
-    Q_INVOKABLE bool isDriveKeyDisabled(int key) const { return _disabledDriveKeys.test(key); }
+    Q_INVOKABLE void disableDriveKey(int key);
+    Q_INVOKABLE void enableDriveKey(int key);
+    Q_INVOKABLE void disableDriveKeys(std::vector<int> key);
+    Q_INVOKABLE void enableDriveKeys(std::vector<int> key);
+    Q_INVOKABLE bool isDriveKeyDisabled(int key) const;
 
     eyeContactTarget getEyeContactTarget();
 
@@ -395,7 +397,7 @@ private:
     void clampScaleChangeToDomainLimits(float desiredScale);
     glm::mat4 computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const;
 
-    float _driveKeys[MAX_DRIVE_KEYS];
+    std::array<float, MAX_DRIVE_KEYS> _driveKeys;
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
     bool _wasPushing;

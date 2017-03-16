@@ -125,18 +125,14 @@
             return { headType: 0 };
         }, ["headType"]);
         Script.update.connect(this, this.update);
-        for (var i in OVERRIDEN_DRIVE_KEYS) {
-            MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
-        }
+        MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS);
     }
 
     this.standUp = function() {
         print("Standing up (" + this.entityID + ")");
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
         Script.update.disconnect(this, this.update);
-        for (var i in OVERRIDEN_DRIVE_KEYS) {
-            MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
-        }
+        MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS);
 
         this.setSeatUser(null);
         if (Settings.getValue(SETTING_KEY) === this.entityID) {
