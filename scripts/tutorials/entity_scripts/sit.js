@@ -19,7 +19,7 @@
     this.entityID = null;
     this.animStateHandlerID = null;
     this.interval = null;
-    this.sitDownTimestamp = null;
+    this.sitDownSettlePeriod = null;
     this.lastTimeNoDriveKeys = null;
 
     this.preload = function(entityID) {
@@ -100,8 +100,9 @@
         }
         print("Sitting down (" + this.entityID + ")");
 
-        this.sitDownTimestamp = Date.now();
-        this.lastTimeNoDriveKeys = this.sitDownTimestamp;
+        var now = Date.now();
+        this.sitDownSettlePeriod = now + IK_SETTLE_TIME;
+        this.lastTimeNoDriveKeys = now;
 
         var previousValue = Settings.getValue(SETTING_KEY);
         Settings.setValue(SETTING_KEY, this.entityID);
@@ -125,7 +126,7 @@
         }, ["headType"]);
         Script.update.connect(this, this.update);
         for (var i in OVERRIDEN_DRIVE_KEYS) {
-            MyAvatar.captureDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
+            MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
         }
     }
 
@@ -134,7 +135,7 @@
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
         Script.update.disconnect(this, this.update);
         for (var i in OVERRIDEN_DRIVE_KEYS) {
-            MyAvatar.releaseDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
+            MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
         }
 
         this.setSeatUser(null);
@@ -232,11 +233,8 @@
             }
 
             // Allow some time for the IK to settle
-            if (ikError > MAX_IK_ERROR) {
-                var elapsed = now - this.sitDownTimestamp;
-                if (elapsed > IK_SETTLE_TIME) {
-                    shouldStandUp = true;
-                }
+            if (ikError > MAX_IK_ERROR && now > this.sitDownSettlePeriod) {
+                shouldStandUp = true;
             }
 
 

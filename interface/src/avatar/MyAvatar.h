@@ -89,8 +89,6 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
 
-    Q_ENUMS(DriveKeys)
-
 public:
     explicit MyAvatar(RigPointer rig);
     ~MyAvatar();
@@ -185,13 +183,13 @@ public:
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
     void setDriveKey(int key, float val) { _driveKeys[key] = val; };
-    float getDriveKey(int key) const { return isDriveKeyCaptured(key) ? 0.0f : _driveKeys[key]; };
+    float getDriveKey(int key) const { return isDriveKeyDisabled(key) ? 0.0f : _driveKeys[key]; };
     Q_INVOKABLE float getRawDriveKey(int key) const { return _driveKeys[key]; };
     void relayDriveKeysToCharacterController();
 
-    Q_INVOKABLE void captureDriveKey(int key) { _capturedDriveKeys.set(key); }
-    Q_INVOKABLE void releaseDriveKey(int key) { _capturedDriveKeys.reset(key); }
-    Q_INVOKABLE bool isDriveKeyCaptured(int key) const { return _capturedDriveKeys.test(key); }
+    Q_INVOKABLE void disableDriveKey(int key) { _disabledDriveKeys.set(key); }
+    Q_INVOKABLE void enableDriveKey(int key) { _disabledDriveKeys.reset(key); }
+    Q_INVOKABLE bool isDriveKeyDisabled(int key) const { return _disabledDriveKeys.test(key); }
 
     eyeContactTarget getEyeContactTarget();
 
@@ -397,8 +395,8 @@ private:
     void clampScaleChangeToDomainLimits(float desiredScale);
     glm::mat4 computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const;
 
-    std::array<float, MAX_DRIVE_KEYS> _driveKeys;
-    std::bitset<MAX_DRIVE_KEYS> _capturedDriveKeys;
+    float _driveKeys[MAX_DRIVE_KEYS];
+    std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
     bool _wasPushing;
     bool _isPushing;
