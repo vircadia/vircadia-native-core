@@ -562,8 +562,6 @@ Menu::Menu() {
         false,
         &UserActivityLogger::getInstance(),
         SLOT(disable(bool)));
-    addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0,
-        dialogsManager.data(), SLOT(cachesSizeDialog()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         dialogsManager.data(), SLOT(showDomainConnectionDialog()));
 

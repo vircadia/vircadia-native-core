@@ -48,7 +48,6 @@ public slots:
     void toggleLoginDialog();
     void showLoginDialog();
     void octreeStatsDetails();
-    void cachesSizeDialog();
     void lodTools();
     void hmdTools(bool showTools);
     void showScriptEditor();
