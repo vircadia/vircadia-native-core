@@ -42,7 +42,6 @@ Rectangle {
     property var connectionsUserModelData: []; // This simple list is essentially a mirror of the connectionsUserModel listModel without all the extra complexities.
     property bool iAmAdmin: false;
     property var activeTab: "nearbyTab";
-    property int usernameAvailability;
     property bool currentlyEditingDisplayName: false
 
     HifiConstants { id: hifi; }
@@ -162,6 +161,18 @@ Rectangle {
                     verticalAlignment: Text.AlignTop;
                 }
                 HifiControlsUit.TabletComboBox {
+                    function determineAvailabilityIndex() {
+                        var globalServicesAvailability = GlobalServices.findableBy;
+                        if (globalServicesAvailability === "all") {
+                            return 0;
+                        } else if (globalServicesAvailability === "friends") {
+                            return 1;
+                        } else if (globalServicesAvailability === "none") {
+                            return 2;
+                        } else {
+                            return 1;
+                        }
+                    }
                     id: availabilityComboBox;
                     // Anchors
                     anchors.top: parent.top;
@@ -169,14 +180,18 @@ Rectangle {
                     // Size
                     width: parent.width;
                     height: 40;
-                    currentIndex: usernameAvailability;
+                    currentIndex: determineAvailabilityIndex();
                     model: ListModel {
                         id: availabilityComboBoxListItems
                         ListElement { text: "Everyone"; value: "all"; }
                         ListElement { text: "Friends Only"; value: "friends"; }
                         ListElement { text: "Appear Offline"; value: "none" }
                     }
-                    onCurrentIndexChanged: { pal.sendToScript({method: 'setAvailability', params: availabilityComboBoxListItems.get(currentIndex).value})}
+                    onCurrentIndexChanged: {
+                        GlobalServices.findableBy = availabilityComboBoxListItems.get(currentIndex).value;
+                        UserActivityLogger.palAction("set_availability", availabilityComboBoxListItems.get(currentIndex).value);
+                        print('Setting availability:', JSON.stringify(GlobalServices.findableBy));
+                    }
                 }
             }
         }
@@ -928,7 +943,10 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: enabled
                         enabled: connectionsNameCard.selected && pal.activeTab == "connectionsTab"
-                        onClicked: pal.sendToScript({method: 'goToUser', params: model.userName});
+                        onClicked: {
+                            AddressManager.goToUser(model.userName);
+                            UserActivityLogger.palAction("go_to_user", model.userName);
+                        }
                         onEntered: connectionsLocationData.color = hifi.colors.blueHighlight;
                         onExited: connectionsLocationData.color = hifi.colors.darkGray;
                     }
@@ -1259,9 +1277,6 @@ Rectangle {
         case 'avatarDisconnected':
             var sessionID = message.params[0];
             delete ignored[sessionID];
-            break;
-        case 'updateAvailability':
-            usernameAvailability = message.params;
             break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
