@@ -276,7 +276,11 @@
                     var offset = { x: 0, y: 1.0, z: -0.5 - properties.dimensions.z * properties.registrationPoint.z };
                     var position = Vec3.sum(properties.position, Vec3.multiplyQbyV(properties.rotation, offset));
                     MyAvatar.position = position;
-                    print("Moving Avatar in front of the chair.")
+                    print("Moving Avatar in front of the chair.");
+                    // Delay standing up by 1 cycle.
+                    // This leaves times for the avatar to actually move since a lot
+                    // of the stand up operations are threaded
+                    return;
                 }
 
                 this.standUp();
