@@ -223,6 +223,7 @@ QQuickItem* OffscreenUi::createMessageBox(Icon icon, const QString& title, const
         invokeResult =  QMetaObject::invokeMethod(tabletRoot, "messageBox",
                                                   Q_RETURN_ARG(QVariant, result),
                                                   Q_ARG(QVariant, QVariant::fromValue(map)));
+        emit tabletScriptingInterface->tabletNotification();
     }
 
     if (!invokeResult) {
@@ -430,6 +431,7 @@ QQuickItem* OffscreenUi::createInputDialog(const Icon icon, const QString& title
         invokeResult = QMetaObject::invokeMethod(tabletRoot, "inputDialog",
                                                  Q_RETURN_ARG(QVariant, result),
                                                  Q_ARG(QVariant, QVariant::fromValue(map)));
+        emit tabletScriptingInterface->tabletNotification();
     }
     if (!invokeResult) {
         qWarning() << "Failed to create message box";
@@ -457,6 +459,7 @@ QQuickItem* OffscreenUi::createCustomInputDialog(const Icon icon, const QString&
         invokeResult = QMetaObject::invokeMethod(tabletRoot, "inputDialog",
                                                  Q_RETURN_ARG(QVariant, result),
                                                  Q_ARG(QVariant, QVariant::fromValue(map)));
+        emit tabletScriptingInterface->tabletNotification();
     }
     
     if (!invokeResult) {
@@ -614,6 +617,7 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
         invokeResult =  QMetaObject::invokeMethod(tabletRoot, "fileDialog",
                                   Q_RETURN_ARG(QVariant, buildDialogResult),
                                   Q_ARG(QVariant, QVariant::fromValue(properties)));
+        emit tabletScriptingInterface->tabletNotification();
     }
 
     if (!invokeResult) {
