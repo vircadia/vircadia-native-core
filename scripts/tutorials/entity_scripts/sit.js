@@ -1,6 +1,16 @@
+//
+//  sit.js
+//
+//  Created by Clement Brisset on 3/3/17
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 (function() {
     Script.include("/~/system/libraries/utils.js");
-
+   
     var SETTING_KEY = "com.highfidelity.avatar.isSitting";
     var ANIMATION_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
     var ANIMATION_FPS = 30;
@@ -28,6 +38,7 @@
     this.interval = null;
     this.sitDownSettlePeriod = null;
     this.lastTimeNoDriveKeys = null;
+    this.sittingDown = false;
 
     this.preload = function(entityID) {
         this.entityID = entityID;
@@ -106,6 +117,7 @@
             return;
         }
         print("Sitting down (" + this.entityID + ")");
+        this.sittingDown = true;
 
         var now = Date.now();
         this.sitDownSettlePeriod = now + IK_SETTLE_TIME;
@@ -121,6 +133,11 @@
             for (i in ROLES) {
                 MyAvatar.overrideRoleAnimation(ROLES[i], ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
             }
+
+            for (var i in OVERRIDEN_DRIVE_KEYS) {
+                MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
+            }
+
             MyAvatar.resetSensorsAndBody();
         }
 
@@ -132,22 +149,21 @@
             return { headType: 0 };
         }, ["headType"]);
         Script.update.connect(this, this.update);
-        for (var i in OVERRIDEN_DRIVE_KEYS) {
-            MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
-        }
     }
 
     this.standUp = function() {
         print("Standing up (" + this.entityID + ")");
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
         Script.update.disconnect(this, this.update);
-        for (var i in OVERRIDEN_DRIVE_KEYS) {
-            MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
-        }
 
         this.setSeatUser(null);
         if (Settings.getValue(SETTING_KEY) === this.entityID) {
             Settings.setValue(SETTING_KEY, "");
+
+            for (var i in OVERRIDEN_DRIVE_KEYS) {
+                MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
+            }
+
             var ROLES = MyAvatar.getAnimationRoles();
             for (i in ROLES) {
                 MyAvatar.restoreRoleAnimation(ROLES[i]);
@@ -165,6 +181,7 @@
                 MyAvatar.bodyRoll = 0.0;
             }, SIT_DELAY);
         }
+        this.sittingDown = false;
     }
 
     // function called by teleport.js if it detects the appropriate userData
@@ -215,7 +232,7 @@
     }
 
     this.update = function(dt) {
-        if (MyAvatar.sessionUUID === this.getSeatUser()) {
+        if (this.sittingDown === true) {
             var properties = Entities.getEntityProperties(this.entityID);
             var avatarDistance = Vec3.distance(MyAvatar.position, properties.position);
             var ikError = MyAvatar.getIKErrorOnLastSolve();
