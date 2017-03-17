@@ -156,7 +156,10 @@
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
         Script.update.disconnect(this, this.update);
 
-        this.setSeatUser(null);
+        if (MyAvatar.sessionUUID === this.getSeatUser()) {
+            this.setSeatUser(null);
+        }
+
         if (Settings.getValue(SETTING_KEY) === this.entityID) {
             Settings.setValue(SETTING_KEY, "");
 
@@ -261,6 +264,9 @@
                 shouldStandUp = true;
             }
 
+            if (MyAvatar.sessionUUID !== this.getSeatUser()) {
+                shouldStandUp = true;
+            }
 
             if (shouldStandUp || avatarDistance > RELEASE_DISTANCE) {
                 print("IK error: " + ikError + ", distance from chair: " + avatarDistance);
