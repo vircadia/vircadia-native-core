@@ -10,6 +10,7 @@ Item {
     property alias eventBridge: eventBridgeWrapper.eventBridge
     property alias canGoBack: root.canGoBack;
     property var goBack: root.goBack;
+    property alias urlTag: root.urlTag
     property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
     property bool punctuationMode: false
@@ -68,6 +69,8 @@ Item {
             injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
             worldId: WebEngineScript.MainWorld
         }
+        
+        property string urlTag: "?noDowload=false";
 
         userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
@@ -95,7 +98,7 @@ Item {
 
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-                var url = loadRequest.url.toString();
+                var url = loadRequest.url.toString() + urlTag;
                 if (urlHandler.canHandleUrl(url)) {
                     if (urlHandler.handleUrl(url)) {
                         root.stop();

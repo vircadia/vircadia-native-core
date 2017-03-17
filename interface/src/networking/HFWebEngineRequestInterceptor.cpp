@@ -18,6 +18,5 @@
 #include "RequestFilters.h"
 
 void HFWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
-    RequestFilters* filter = new RequestFilters;
-    filter->interceptHFWebEngineRequest(info);
+    RequestFilters::interceptHFWebEngineRequest(info);
 }

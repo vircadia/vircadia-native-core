@@ -17,4 +17,6 @@ WebView {
         id: webviewProfile
         storageName: "qmlWebEngine"
     }
+    
+    urlTag: "?noDowload=true";
 }

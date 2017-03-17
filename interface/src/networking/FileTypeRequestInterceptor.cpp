@@ -16,7 +16,6 @@
 #include "RequestFilters.h"
 
 void FileTypeRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
-    RequestFilters* filter = new RequestFilters;
-    filter->interceptHFWebEngineRequest(info);
-    filter->interceptFileType(info);
+    RequestFilters::interceptHFWebEngineRequest(info);
+    RequestFilters::interceptFileType(info);
 }

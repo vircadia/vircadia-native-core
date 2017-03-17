@@ -15,7 +15,7 @@
 
 #include <AccountManager.h>
 
-bool isAuthableHighFidelityURL(const QUrl& url) {
+bool static isAuthableHighFidelityURL(const QUrl& url) {
     static const QStringList HF_HOSTS = {
         "highfidelity.com", "highfidelity.io",
         "metaverse.highfidelity.com", "metaverse.highfidelity.io"
@@ -24,11 +24,11 @@ bool isAuthableHighFidelityURL(const QUrl& url) {
     return url.scheme() == "https" && HF_HOSTS.contains(url.host());
 }
 
-bool isJavaScriptFile(const QString filename) {
+bool static isJavaScriptFile(const QString filename) {
     return filename.contains(".js", Qt::CaseInsensitive);
 }
 
-bool isEntityFile(const QString filename) {
+bool static isEntityFile(const QString filename) {
     return filename.contains(".svo.json", Qt::CaseInsensitive);
 }
 

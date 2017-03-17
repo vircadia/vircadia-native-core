@@ -219,6 +219,7 @@ static const QString FST_EXTENSION  = ".fst";
 static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
+static const QString WEB_VIEW_TAG = "?noDowload=true";
 
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
@@ -2607,7 +2608,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
 
         QUrl url = fileEvent->url();
-
+                
         if (!url.isEmpty()) {
             QString urlString = url.toString();
 
@@ -5549,6 +5550,8 @@ bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         return true;
+    } else if (urlString.endsWith(WEB_VIEW_TAG)) {
+        return false;
     }
     QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
     QString lowerPath = url.path().toLower();

@@ -21,8 +21,8 @@ class RequestFilters : public QObject {
     Q_OBJECT
 
 public: 
-    void interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info);
-    void interceptFileType(QWebEngineUrlRequestInfo& info);
+    static void interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info);
+    static void interceptFileType(QWebEngineUrlRequestInfo& info);
 };
 
 #endif // hifi_RequestFilters_h
