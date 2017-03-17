@@ -128,6 +128,18 @@ EntityListTool = function(opts) {
             if (selectionManager.hasSelection()) {
                 MyAvatar.position = selectionManager.worldPosition;
             }
+        } else if (data.type == "export") {
+            if (!selectionManager.hasSelection()) {
+                Window.notifyEditError("No entities have been selected.");
+            } else {
+                var filename = Window.save("Select Where to Save", "", "*.json");
+                if (filename) {
+                    var success = Clipboard.exportEntities(filename, selectionManager.selections);
+                    if (!success) {
+                        Window.notifyEditError("Export failed.");
+                    }
+                }
+            }
         } else if (data.type == "pal") {
             var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.
             selectionManager.selections.forEach(function (id) {

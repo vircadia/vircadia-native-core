@@ -40,6 +40,7 @@ function loaded() {
       elInView = document.getElementById("in-view")
       elRadius = document.getElementById("radius");
       elTeleport = document.getElementById("teleport");
+      elExport = document.getElementById("export");
       elPal = document.getElementById("pal");
       elEntityTable = document.getElementById("entity-table");
       elInfoToggle = document.getElementById("info-toggle");
@@ -275,6 +276,9 @@ function loaded() {
       }
       elTeleport.onclick = function () {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'teleport' }));
+      }
+      elExport.onclick = function() {
+          EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
       }
       elPal.onclick = function () {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
