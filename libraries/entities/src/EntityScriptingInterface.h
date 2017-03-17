@@ -294,6 +294,14 @@ public slots:
     Q_INVOKABLE bool AABoxIntersectsCapsule(const glm::vec3& low, const glm::vec3& dimensions,
                                             const glm::vec3& start, const glm::vec3& end, float radius);
 
+
+    /**jsdoc
+     * Returns object to world transform, excluding scale
+     *
+     * @function Entities.getEntityTransform
+     * @param {EntityID} entityID The ID of the entity whose transform is to be returned
+     * @return {Mat4} Entity's object to world transform, excluding scale
+     */
     Q_INVOKABLE glm::mat4 getEntityTransform(const QUuid& entityID);
 
 signals:

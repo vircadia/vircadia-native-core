@@ -8,6 +8,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+
 #include "EntityScriptingInterface.h"
 
 #include "EntityItemID.h"
@@ -926,13 +930,16 @@ bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3
 void EntityScriptingInterface::voxelsToMesh(QUuid entityID, QScriptValue callback) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    polyVoxWorker(entityID, [callback](PolyVoxEntityItem& polyVoxEntity) mutable {
-        QScriptValue mesh;
-        polyVoxEntity.getMeshAsScriptValue(callback.engine(), mesh);
-        QScriptValueList args { mesh };
-        callback.call(QScriptValue(), args);
+    bool success;
+    QScriptValue mesh;
+
+    polyVoxWorker(entityID, [&](PolyVoxEntityItem& polyVoxEntity) mutable {
+        success = polyVoxEntity.getMeshAsScriptValue(callback.engine(), mesh);
         return true;
     });
+
+    QScriptValueList args { mesh, success };
+    callback.call(QScriptValue(), args);
 }
 
 bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::vec3>& points) {
@@ -1557,7 +1564,11 @@ glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {
         _entityTree->withReadLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
             if (entity) {
-                result = entity->getEntityToWorldMatrix();
+                glm::mat4 translation = glm::translate(entity->getPosition());
+                glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
+                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
+                                                        entity->getRegistrationPoint());
+                result = translation * rotation * registration;
             }
         });
     }

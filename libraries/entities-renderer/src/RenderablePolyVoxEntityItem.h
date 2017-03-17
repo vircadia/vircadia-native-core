@@ -133,7 +133,7 @@ public:
     QByteArray volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const;
 
     void setMesh(model::MeshPointer mesh);
-    bool getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) const override;
+    bool getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) override;
     void setCollisionPoints(ShapeInfo::PointCollection points, AABox box);
     PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData; }
 
@@ -192,6 +192,7 @@ private:
     void cacheNeighbors();
     void copyUpperEdgesFromNeighbors();
     void bonkNeighbors();
+    bool updateDependents();
 };
 
 bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,

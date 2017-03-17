@@ -133,7 +133,7 @@ class PolyVoxEntityItem : public EntityItem {
     void setVoxelDataDirty(bool value) { withWriteLock([&] { _voxelDataDirty = value; }); }
     virtual void recomputeMesh() {};
 
-    virtual bool getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) const;
+    virtual bool getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result);
 
  protected:
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
