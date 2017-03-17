@@ -22,11 +22,6 @@
             //_this.homePos = Entities.getEntityProperties(entityID, ["position"]).position;
             //Entities.editEntity(_this.entityID, {position: _this.homePos}); //This is the workaround for collisionWithEntity not being triggered after entity is reloaded.
             _this.sound = SoundCache.getSound(soundURL);
-
-                    MyAvatar.collisionWithEntity.connect(function(collision){
-                        print ("The avatar collided with an entity.");
-                        if (!_this.isWaiting && collision.type == 0) {_this.hit();}
-                    });
         },
 
         collisionWithEntity: function(thisEntity, otherEntity, collision) {
