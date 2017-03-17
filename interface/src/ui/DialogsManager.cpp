@@ -19,7 +19,6 @@
 #include <PathUtils.h>
 
 #include "AddressBarDialog.h"
-#include "CachesSizeDialog.h"
 #include "ConnectionFailureDialog.h"
 #include "DiskCacheEditor.h"
 #include "DomainConnectionDialog.h"
@@ -95,16 +94,6 @@ void DialogsManager::octreeStatsDetails() {
         _octreeStatsDialog->show();
     }
     _octreeStatsDialog->raise();
-}
-
-void DialogsManager::cachesSizeDialog() {
-    if (!_cachesSizeDialog) {
-        maybeCreateDialog(_cachesSizeDialog);
-
-        connect(_cachesSizeDialog, SIGNAL(closed()), _cachesSizeDialog, SLOT(deleteLater()));
-        _cachesSizeDialog->show();
-    }
-    _cachesSizeDialog->raise();
 }
 
 void DialogsManager::lodTools() {

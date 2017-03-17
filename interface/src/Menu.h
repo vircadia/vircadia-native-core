@@ -52,7 +52,6 @@ namespace MenuOption {
     const QString BinaryEyelidControl = "Binary Eyelid Control";
     const QString BookmarkLocation = "Bookmark Location";
     const QString Bookmarks = "Bookmarks";
-    const QString CachesSize = "RAM Caches Size";
     const QString CalibrateCamera = "Calibrate Camera";
     const QString CameraEntityMode = "Entity Mode";
     const QString CenterPlayerInView = "Center Player In View";
