@@ -815,8 +815,7 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     }
 }
 
-bool EntityScriptingInterface::setVoxels(QUuid entityID,
-                                         std::function<bool(PolyVoxEntityItem&)> actor) {
+bool EntityScriptingInterface::polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     if (!_entityTree) {
@@ -882,11 +881,9 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     return success;
 }
 
-
 bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
-
-    return setVoxels(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setSphere(center, radius, value);
     });
 }
@@ -896,7 +893,7 @@ bool EntityScriptingInterface::setVoxelCapsule(QUuid entityID,
                                                float radius, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return setVoxels(entityID, [start, end, radius, value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [start, end, radius, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setCapsule(start, end, radius, value);
     });
 }
@@ -904,7 +901,7 @@ bool EntityScriptingInterface::setVoxelCapsule(QUuid entityID,
 bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return setVoxels(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setVoxelInVolume(position, value);
     });
 }
@@ -912,7 +909,7 @@ bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& positio
 bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return setVoxels(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setAll(value);
     });
 }
@@ -921,8 +918,20 @@ bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3
                                                  const glm::vec3& cuboidSize, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return setVoxels(entityID, [lowPosition, cuboidSize, value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [lowPosition, cuboidSize, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setCuboid(lowPosition, cuboidSize, value);
+    });
+}
+
+void EntityScriptingInterface::voxelsToMesh(QUuid entityID, QScriptValue callback) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
+    polyVoxWorker(entityID, [callback](PolyVoxEntityItem& polyVoxEntity) mutable {
+        QScriptValue mesh;
+        polyVoxEntity.getMeshAsScriptValue(callback.engine(), mesh);
+        QScriptValueList args { mesh };
+        callback.call(QScriptValue(), args);
+        return true;
     });
 }
 

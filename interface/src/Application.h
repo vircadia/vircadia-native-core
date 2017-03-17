@@ -72,6 +72,8 @@
 
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
+#include <ModelScriptingInterface.h>
+
 
 class OffscreenGLCanvas;
 class GLCanvas;

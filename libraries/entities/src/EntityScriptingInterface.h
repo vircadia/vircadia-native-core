@@ -35,6 +35,7 @@
 #include "EntityItemProperties.h"
 
 class EntityTree;
+class MeshProxy;
 
 class RayToEntityIntersectionResult {
 public:
@@ -229,6 +230,7 @@ public slots:
     Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
     Q_INVOKABLE bool setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition,
                                        const glm::vec3& cuboidSize, int value);
+    Q_INVOKABLE void voxelsToMesh(QUuid entityID, QScriptValue callback);
 
     Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<glm::vec3>& points);
     Q_INVOKABLE bool appendPoint(QUuid entityID, const glm::vec3& point);
@@ -325,7 +327,7 @@ signals:
 
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor);
-    bool setVoxels(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
+    bool polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
 

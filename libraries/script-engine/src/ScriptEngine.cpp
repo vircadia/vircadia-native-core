@@ -65,6 +65,8 @@
 #include "RecordingScriptingInterface.h"
 #include "ScriptEngines.h"
 #include "TabletScriptingInterface.h"
+#include "ModelScriptingInterface.h"
+
 
 #include <Profile.h>
 
@@ -594,7 +596,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
 
     registerGlobalObject("File", new FileScriptingInterface(this));
-    
+
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
 
@@ -612,6 +614,10 @@ void ScriptEngine::init() {
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
 
     registerGlobalObject("DebugDraw", &DebugDraw::getInstance());
+
+    registerGlobalObject("Model", new ModelScriptingInterface(this));
+    qScriptRegisterMetaType(this, meshToScriptValue, meshFromScriptValue);
+    qScriptRegisterMetaType(this, meshesToScriptValue, meshesFromScriptValue);
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {

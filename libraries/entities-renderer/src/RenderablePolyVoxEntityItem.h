@@ -133,6 +133,7 @@ public:
     QByteArray volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const;
 
     void setMesh(model::MeshPointer mesh);
+    bool getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) const override;
     void setCollisionPoints(ShapeInfo::PointCollection points, AABox box);
     PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData; }
 
@@ -167,7 +168,7 @@ private:
     ShapeInfo _shapeInfo;
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
-    bool _volDataDirty = false; // does getMesh need to be called?
+    bool _volDataDirty = false; // does recomputeMesh need to be called?
     int _onCount; // how many non-zero voxels are in _volData
 
     bool _neighborsNeedUpdate { false };
@@ -178,7 +179,7 @@ private:
     // these are run off the main thread
     void decompressVolumeData();
     void compressVolumeDataAndSendEditPacket();
-    virtual void getMesh() override; // recompute mesh
+    virtual void recomputeMesh() override; // recompute mesh
     void computeShapeInfoWorker();
 
     // these are cached lookups of _xNNeighborID, _yNNeighborID, _zNNeighborID, _xPNeighborID, _yPNeighborID, _zPNeighborID
