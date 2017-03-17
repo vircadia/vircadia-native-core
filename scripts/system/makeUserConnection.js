@@ -63,15 +63,17 @@ const PARTICLE_EFFECT_PROPS = {
         "y": 0.0,
         "z": 0.0
     },
-    "emitRate": 360,
-    "emitSpeed": 0.0003,
+    "emitRate": 100,
+    "emitSpeed": 0.001,//0.0003,
     "emitterShouldTrail": 1,
-    "maxParticles": 1370,
-    "polarFinish": 1,
+    "maxParticles": 25,
+    "polarStart" : -Math.PI/2,
+    "polarFinish": Math.PI/2,
     "radiusSpread": 9,
     "radiusStart": 0.04,
     "radiusFinish": 0.02,
     "speedSpread": 0.09,
+    "lifespan": 3.0,
     "textures": "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle.png",
     "type": "ParticleEffect"
 };
@@ -83,12 +85,12 @@ var waitingInterval;
 var makingFriendsTimeout;
 var overlay;
 var animHandlerId;
-var entityDimensionMultiplier = 1.0;
 var friendingId;
 var friendingHand;
 var waitingList = {};
 var particleEffect;
 var waitingBallScale;
+var particleRotationAngle = 0.0;
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
@@ -179,42 +181,50 @@ function positionFractionallyTowards(posA, posB, frac) {
 
 // this is called frequently, but usually does nothing
 function updateVisualization() {
-    if (state != STATES.waiting) {
+    // after making friends, if you are still holding the grip lets transition
+    // back to waiting
+    if (state == STATES.makingFriends && !friendingId) {
+        startHandshake();
+    }
+    if (state == STATES.friending) {
         if (overlay) {
             overlay = Overlays.deleteOverlay(overlay);
         }
-    }
-    if (state == STATES.inactive || state == STATES.waiting) {
+    } else {
         if (particleEffect) {
             particleEffect = Entities.deleteEntity(particleEffect);
         }
     }
     if (state == STATES.inactive) {
+        if (overlay) {
+            overlay = Overlays.deleteOverlay(overlay);
+        }
         return;
     }
 
     var textures = TEXTURES[state-1];
-    var position = getHandPosition(MyAvatar, currentHand);
+    var myHandPosition = getHandPosition(MyAvatar, currentHand);
+    var position = myHandPosition;
 
     // TODO: make the size scale with avatar, up to
     // the actual size of MAX_AVATAR_DISTANCE
     var wrist = MyAvatar.getJointPosition(MyAvatar.getJointIndex(handToString(currentHand)));
-    var d = Math.abs(entityDimensionMultiplier) * Vec3.distance(wrist, position);
+    var d = Vec3.distance(wrist, position);
     if (friendingId) {
         // put the position between the 2 hands, if we have a friendingId
         var other = AvatarList.getAvatar(friendingId);
         if (other) {
             var otherHand = getHandPosition(other, stringToHand(friendingHand));
-            position = positionFractionallyTowards(position, otherHand, entityDimensionMultiplier);
+            position = positionFractionallyTowards(position, otherHand, 0.5);
         }
     }
-    if (state == STATES.waiting) {
+    if (state != STATES.friending) {
        var dimension = {x: d, y: d, z: d};
         if (!overlay) {
-            waitingBallScale = 1.0/32.0;
+            waitingBallScale = (state == STATES.waiting ? 1.0/32.0 : 1.0);
             var props =  {
                 url: MODEL_URL,
-                position: position,
+                position: myHandPosition,
                 dimensions: Vec3.multiply(waitingBallScale, dimension),
                 textures: textures
             };
@@ -222,19 +232,18 @@ function updateVisualization() {
         } else {
             waitingBallScale = Math.min(1.0, waitingBallScale * 1.1);
             Overlays.editOverlay(overlay, {textures: textures});
-            Overlays.editOverlay(overlay, {dimensions: Vec3.multiply(waitingBallScale, dimension), position: position});
+            Overlays.editOverlay(overlay, {dimensions: Vec3.multiply(waitingBallScale, dimension), position: myHandPosition});
         }
     } else {
         var particleProps = {};
         particleProps.position = position;
         if (!particleEffect) {
+            particleRotationAngle = 0.0;
             particleProps = PARTICLE_EFFECT_PROPS;
             particleEffect = Entities.addEntity(particleProps);
         } else {
-            if (state == STATES.makingFriends) {
-                particleProps.colorFinish = {red: 0xFF, green: 0x00, blue: 0x00};
-                particleProps.color = particleProps.colorFinish;
-            }
+            particleRotationAngle += 360/45; // about 1 hz
+            particleProps.position = Vec3.sum(position, Vec3.multiplyQbyV(Quat.angleAxis(particleRotationAngle, Quat.getFront(MyAvatar.orientation)), {x:0, y:0.2, z:0}));
             Entities.editEntity(particleEffect, particleProps);
         }
     }
@@ -288,7 +297,6 @@ function startHandshake(fromKeyboard) {
     }
     debug("starting handshake for", currentHand);
     state = STATES.waiting;
-    entityDimensionMultiplier = 1.0;
     friendingId = undefined;
     friendingHand = undefined;
     // just in case
@@ -418,7 +426,6 @@ function makeFriends(id) {
     makingFriendsTimeout = Script.setTimeout(function () {
             friendingId = undefined;
             friendingHand = undefined;
-            entityDimensionMultiplier = 1.0;
             makingFriendsTimeout = undefined;
         }, MAKING_FRIENDS_TIMEOUT);
 }
@@ -445,7 +452,6 @@ function startFriending(id, hand) {
 
     friendingInterval = Script.setInterval(function () {
         count += 1;
-        entityDimensionMultiplier = Math.abs(Math.sin(Math.PI * 2 * 2 * count * FRIENDING_INTERVAL / FRIENDING_TIME));
         if (state != STATES.friending) {
             debug("stopping friending interval, state changed");
             stopFriending();
