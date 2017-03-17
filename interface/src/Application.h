@@ -368,7 +368,6 @@ public slots:
     void calibrateEyeTracker5Points();
 #endif
 
-    void aboutApp();
     static void showHelp();
 
     void cycleCamera();
