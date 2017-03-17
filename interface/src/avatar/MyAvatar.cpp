@@ -2097,7 +2097,7 @@ void MyAvatar::clearDriveKeys() {
 void MyAvatar::setDriveKey(int key, float val) {
     try {
         _driveKeys.at(key) = val;
-    } catch (const std::exception& exception) {
+    } catch (const std::exception&) {
         qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
     }
 }
@@ -2109,7 +2109,7 @@ float MyAvatar::getDriveKey(int key) const {
 float MyAvatar::getRawDriveKey(int key) const {
     try {
         return _driveKeys.at(key);
-    } catch (const std::exception& exception) {
+    } catch (const std::exception&) {
         qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
         return 0.0f;
     }
@@ -2124,7 +2124,7 @@ void MyAvatar::relayDriveKeysToCharacterController() {
 void MyAvatar::disableDriveKey(int key) {
     try {
         _disabledDriveKeys.set(key);
-    } catch (const std::exception& exception) {
+    } catch (const std::exception&) {
         qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
     }
 }
@@ -2132,7 +2132,7 @@ void MyAvatar::disableDriveKey(int key) {
 void MyAvatar::enableDriveKey(int key) {
     try {
         _disabledDriveKeys.reset(key);
-    } catch (const std::exception& exception) {
+    } catch (const std::exception&) {
         qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
     }
 }
@@ -2142,7 +2142,7 @@ void MyAvatar::disableDriveKeys(std::vector<int> key) {
         std::for_each(std::begin(key), std::end(key), [&](int val){
             _disabledDriveKeys.set(val);
         });
-    } catch (const std::exception& exception) {
+    } catch (const std::exception&) {
         qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
     }
 }
@@ -2152,7 +2152,7 @@ void MyAvatar::enableDriveKeys(std::vector<int> key) {
         std::for_each(std::begin(key), std::end(key), [&](int val) {
             _disabledDriveKeys.reset(val);
         });
-    } catch (const std::exception& exception) {
+    } catch (const std::exception&) {
         qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
     }
 }
@@ -2160,7 +2160,7 @@ void MyAvatar::enableDriveKeys(std::vector<int> key) {
 bool MyAvatar::isDriveKeyDisabled(int key) const {
     try {
         return _disabledDriveKeys.test(key);
-    } catch (const std::exception& exception) {
+    } catch (const std::exception&) {
         qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
         return false;
     }
