@@ -10,6 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 (function() { // BEGIN LOCAL_SCOPE
+
 const version = 0.1;
 const label = "makeUserConnection";
 const MAX_AVATAR_DISTANCE = 1.25;
@@ -35,6 +36,45 @@ const TEXTURES = [
     {"Texture": "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx/sphere-3-color.fbm/blue-50pct-opaque-64.png"},
     {"Texture": "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx/sphere-3-color.fbm/red-50pct-opaque-64.png"}
 ];
+const PARTICLE_EFFECT_PROPS = {
+    "color": {
+        "blue": 0,
+        "green": 104,
+        "red": 0
+    },
+    "colorFinish": {
+        "blue": 172,
+        "green": 75,
+        "red": 255
+    },
+    "colorStart": {
+        "blue": 0,
+        "green": 104,
+        "red": 255
+    },
+    "dimensions": {
+        "x": 0.03,
+        "y": 0.03,
+        "z": 0.03
+    },
+    "emitOrientation": {
+        "w": 0.707,
+        "x": -0.707,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "emitRate": 360,
+    "emitSpeed": 0.0003,
+    "emitterShouldTrail": 1,
+    "maxParticles": 1370,
+    "polarFinish": 1,
+    "radiusSpread": 9,
+    "radiusStart": 0.04,
+    "radiusFinish": 0.02,
+    "speedSpread": 0.09,
+    "textures": "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle.png",
+    "type": "ParticleEffect"
+};
 
 var currentHand;
 var state = STATES.inactive;
@@ -47,6 +87,8 @@ var entityDimensionMultiplier = 1.0;
 var friendingId;
 var friendingHand;
 var waitingList = {};
+var particleEffect;
+var waitingBallScale;
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
@@ -131,12 +173,23 @@ function shakeHandsAnimation(animationProperties) {
     return result;
 }
 
+function positionFractionallyTowards(posA, posB, frac) {
+    return Vec3.sum(posA, Vec3.multiply(frac, Vec3.subtract(posB, posA)));
+}
+
 // this is called frequently, but usually does nothing
 function updateVisualization() {
-    if (state == STATES.inactive) {
+    if (state != STATES.waiting) {
         if (overlay) {
             overlay = Overlays.deleteOverlay(overlay);
         }
+    }
+    if (state == STATES.inactive || state == STATES.waiting) {
+        if (particleEffect) {
+            particleEffect = Entities.deleteEntity(particleEffect);
+        }
+    }
+    if (state == STATES.inactive) {
         return;
     }
 
@@ -146,29 +199,45 @@ function updateVisualization() {
     // TODO: make the size scale with avatar, up to
     // the actual size of MAX_AVATAR_DISTANCE
     var wrist = MyAvatar.getJointPosition(MyAvatar.getJointIndex(handToString(currentHand)));
-    var d = entityDimensionMultiplier * Vec3.distance(wrist, position);
+    var d = Math.abs(entityDimensionMultiplier) * Vec3.distance(wrist, position);
     if (friendingId) {
         // put the position between the 2 hands, if we have a friendingId
         var other = AvatarList.getAvatar(friendingId);
         if (other) {
             var otherHand = getHandPosition(other, stringToHand(friendingHand));
-            position = Vec3.sum(position, Vec3.multiply(0.5, Vec3.subtract(otherHand, position)));
+            position = positionFractionallyTowards(position, otherHand, entityDimensionMultiplier);
         }
     }
-    var dimension = {x: d, y: d, z: d};
-    if (!overlay) {
-        var props =  {
-            url: MODEL_URL,
-            position: position,
-            dimensions: dimension,
-            textures: textures
-        };
-        overlay = Overlays.addOverlay("model", props);
+    if (state == STATES.waiting) {
+       var dimension = {x: d, y: d, z: d};
+        if (!overlay) {
+            waitingBallScale = 1.0/32.0;
+            var props =  {
+                url: MODEL_URL,
+                position: position,
+                dimensions: Vec3.multiply(waitingBallScale, dimension),
+                textures: textures
+            };
+            overlay = Overlays.addOverlay("model", props);
+        } else {
+            waitingBallScale = Math.min(1.0, waitingBallScale * 1.1);
+            Overlays.editOverlay(overlay, {textures: textures});
+            Overlays.editOverlay(overlay, {dimensions: Vec3.multiply(waitingBallScale, dimension), position: position});
+        }
     } else {
-        Overlays.editOverlay(overlay, {textures: textures});
-        Overlays.editOverlay(overlay, {dimensions: dimension, position: position});
+        var particleProps = {};
+        particleProps.position = position;
+        if (!particleEffect) {
+            particleProps = PARTICLE_EFFECT_PROPS;
+            particleEffect = Entities.addEntity(particleProps);
+        } else {
+            if (state == STATES.makingFriends) {
+                particleProps.colorFinish = {red: 0xFF, green: 0x00, blue: 0x00};
+                particleProps.color = particleProps.colorFinish;
+            }
+            Entities.editEntity(particleEffect, particleProps);
+        }
     }
-
 }
 
 function isNearby(id, hand) {
@@ -376,7 +445,7 @@ function startFriending(id, hand) {
 
     friendingInterval = Script.setInterval(function () {
         count += 1;
-        entityDimensionMultiplier = 1.0 + 2.0 * count * FRIENDING_INTERVAL / FRIENDING_TIME;
+        entityDimensionMultiplier = Math.abs(Math.sin(Math.PI * 2 * 2 * count * FRIENDING_INTERVAL / FRIENDING_TIME));
         if (state != STATES.friending) {
             debug("stopping friending interval, state changed");
             stopFriending();
