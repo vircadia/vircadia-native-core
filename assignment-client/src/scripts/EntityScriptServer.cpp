@@ -343,7 +343,7 @@ void EntityScriptServer::nodeKilled(SharedNodePointer killedNode) {
                 return true;
             });
 
-            if (hasAnotherEntityServer) {
+            if (!hasAnotherEntityServer) {
                 clear();
             }
             
