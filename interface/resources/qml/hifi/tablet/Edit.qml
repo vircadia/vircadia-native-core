@@ -177,7 +177,7 @@ StackView {
                     }
 
                     HifiControls.Button {
-                        text: "Import Entities"
+                        text: "Import Entities (.json)"
                         color: hifi.buttons.black
                         colorScheme: hifi.colorSchemes.dark
                         anchors.right: parent.right
