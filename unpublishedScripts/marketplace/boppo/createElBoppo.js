@@ -11,10 +11,14 @@
 /* globals SCRIPT_IMPORT_PROPERTIES */
 
 var MODELS_PATH = 'http://hifi-content.s3.amazonaws.com/DomainContent/Welcome%20Area/production/models/boxingRing/';
-var SCRIPT_PATH = this.isCleanupAndSpawnScript ?
-    'http://s3-us-west-1.amazonaws.com/hifi-content/thoys/dev/2017/elBoppo/' :
-    Script.resolvePath('');
 var WANT_CLEANUP_ON_SCRIPT_ENDING = false;
+
+var getScriptPath = function(localPath) {
+    if (this.isCleanupAndSpawnScript) {
+        return 'http://s3-us-west-1.amazonaws.com/hifi-content/thoys/dev/2017/elBoppo/' + localPath;
+    }
+    return Script.resolvePath(localPath);
+};
 
 var getCreatePosition = function() {
     // can either return position defined by resetScript or avatar position
@@ -40,7 +44,7 @@ var boxingRing = Entities.addEntity({
     },
     position: getCreatePosition(),
     scriptTimestamp: 1489612158459,
-    serverScripts: SCRIPT_PATH + 'boppoServer.js',
+    serverScripts: getScriptPath('boppoServer.js'),
     shapeType: 'static-mesh',
     type: 'Model',
     userData: JSON.stringify({
@@ -181,7 +185,7 @@ var boppoEntities = [
             y: -1.52587890625e-05,
             z: -1.52587890625e-05
         },
-        script: SCRIPT_PATH + 'clownGloveDispenser.js',
+        script: getScriptPath('clownGloveDispenser.js'),
         shapeType: 'box',
         type: 'Zone',
         visible: false
