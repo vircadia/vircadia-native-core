@@ -294,6 +294,7 @@ public slots:
     Q_INVOKABLE bool AABoxIntersectsCapsule(const glm::vec3& low, const glm::vec3& dimensions,
                                             const glm::vec3& start, const glm::vec3& end, float radius);
 
+    Q_INVOKABLE glm::mat4 getEntityTransform(const QUuid& entityID);
 
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);

@@ -1550,3 +1550,16 @@ bool EntityScriptingInterface::AABoxIntersectsCapsule(const glm::vec3& low, cons
     AABox aaBox(low, dimensions);
     return aaBox.findCapsulePenetration(start, end, radius, penetration);
 }
+
+glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {
+    glm::mat4 result;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                result = entity->getEntityToWorldMatrix();
+            }
+        });
+    }
+    return result;
+}
