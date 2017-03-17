@@ -24,12 +24,8 @@ bool static isAuthableHighFidelityURL(const QUrl& url) {
     return url.scheme() == "https" && HF_HOSTS.contains(url.host());
 }
 
-bool static isJavaScriptFile(const QString filename) {
+bool static isScript(const QString filename) {
     return filename.contains(".js", Qt::CaseInsensitive);
-}
-
-bool static isEntityFile(const QString filename) {
-    return filename.contains(".svo.json", Qt::CaseInsensitive);
 }
 
 void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info) {
@@ -49,9 +45,9 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info)
 
 void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info) {
     QString filename = info.requestUrl().fileName();
-    if (isJavaScriptFile(filename) || isEntityFile(filename)) {
+    if (isScript(filename)) {
         static const QString CONTENT_HEADER = "Accept";
-        static const QString TYPE_VALUE = "text/plain";
+        static const QString TYPE_VALUE = "text/plain,text/html";
         info.setHttpHeader(CONTENT_HEADER.toLocal8Bit(), TYPE_VALUE.toLocal8Bit());
     }
 }
