@@ -564,8 +564,6 @@ Menu::Menu() {
         SLOT(disable(bool)));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0,
         dialogsManager.data(), SLOT(cachesSizeDialog()));
-    addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
-        dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         dialogsManager.data(), SLOT(showDomainConnectionDialog()));
 

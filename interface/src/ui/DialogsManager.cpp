@@ -21,7 +21,6 @@
 #include "AddressBarDialog.h"
 #include "CachesSizeDialog.h"
 #include "ConnectionFailureDialog.h"
-#include "DiskCacheEditor.h"
 #include "DomainConnectionDialog.h"
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
@@ -65,11 +64,6 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
     } else {
         ConnectionFailureDialog::hide();
     }
-}
-
-void DialogsManager::toggleDiskCacheEditor() {
-    maybeCreateDialog(_diskCacheEditor);
-    _diskCacheEditor->toggle();
 }
 
 void DialogsManager::toggleLoginDialog() {
