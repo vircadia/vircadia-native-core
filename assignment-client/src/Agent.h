@@ -29,6 +29,7 @@
 
 #include <plugins/CodecPlugin.h>
 
+#include "AudioNoiseGate.h"
 #include "MixedAudioStream.h"
 #include "avatars/ScriptableAvatar.h"
 
@@ -38,6 +39,7 @@ class Agent : public ThreadedAssignment {
     Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
     Q_PROPERTY(bool isPlayingAvatarSound READ isPlayingAvatarSound)
     Q_PROPERTY(bool isListeningToAudioStream READ isListeningToAudioStream WRITE setIsListeningToAudioStream)
+    Q_PROPERTY(bool isNoiseGateEnabled READ isNoiseGateEnabled WRITE setIsNoiseGateEnabled)
     Q_PROPERTY(float lastReceivedAudioLoudness READ getLastReceivedAudioLoudness)
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
 
@@ -51,6 +53,9 @@ public:
 
     bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
     void setIsListeningToAudioStream(bool isListeningToAudioStream);
+
+    bool isNoiseGateEnabled() const { return _isNoiseGateEnabled; }
+    void setIsNoiseGateEnabled(bool isNoiseGateEnabled);
 
     float getLastReceivedAudioLoudness() const { return _lastReceivedAudioLoudness; }
     QUuid getSessionUUID() const;
@@ -105,6 +110,9 @@ private:
     bool _isAvatar = false;
     QTimer* _avatarIdentityTimer = nullptr;
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
+
+    AudioNoiseGate _noiseGate;
+    bool _isNoiseGateEnabled { false };
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;

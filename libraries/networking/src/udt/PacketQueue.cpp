@@ -15,6 +15,10 @@
 
 using namespace udt;
 
+PacketQueue::PacketQueue() {
+    _channels.emplace_back(new std::list<PacketPointer>());
+}
+
 MessageNumber PacketQueue::getNextMessageNumber() {
     static const MessageNumber MAX_MESSAGE_NUMBER = MessageNumber(1) << MESSAGE_NUMBER_SIZE;
     _currentMessageNumber = (_currentMessageNumber + 1) % MAX_MESSAGE_NUMBER;
@@ -24,7 +28,7 @@ MessageNumber PacketQueue::getNextMessageNumber() {
 bool PacketQueue::isEmpty() const {
     LockGuard locker(_packetsLock);
     // Only the main channel and it is empty
-    return (_channels.size() == 1) && _channels.front().empty();
+    return (_channels.size() == 1) && _channels.front()->empty();
 }
 
 PacketQueue::PacketPointer PacketQueue::takePacket() {
@@ -34,19 +38,19 @@ PacketQueue::PacketPointer PacketQueue::takePacket() {
     }
 
     // Find next non empty channel
-    if (_channels[nextIndex()].empty()) {
+    if (_channels[nextIndex()]->empty()) {
         nextIndex();
     }
     auto& channel = _channels[_currentIndex];
-    Q_ASSERT(!channel.empty());
+    Q_ASSERT(!channel->empty());
 
     // Take front packet
-    auto packet = std::move(channel.front());
-    channel.pop_front();
+    auto packet = std::move(channel->front());
+    channel->pop_front();
 
     // Remove now empty channel (Don't remove the main channel)
-    if (channel.empty() && _currentIndex != 0) {
-        channel.swap(_channels.back());
+    if (channel->empty() && _currentIndex != 0) {
+        channel->swap(*_channels.back());
         _channels.pop_back();
         --_currentIndex;
     }
@@ -61,7 +65,7 @@ unsigned int PacketQueue::nextIndex() {
 
 void PacketQueue::queuePacket(PacketPointer packet) {
     LockGuard locker(_packetsLock);
-    _channels.front().push_back(std::move(packet));
+    _channels.front()->push_back(std::move(packet));
 }
 
 void PacketQueue::queuePacketList(PacketListPointer packetList) {
@@ -70,5 +74,6 @@ void PacketQueue::queuePacketList(PacketListPointer packetList) {
     }
 
     LockGuard locker(_packetsLock);
-    _channels.push_back(std::move(packetList->_packets));
+    _channels.emplace_back(new std::list<PacketPointer>());
+    _channels.back()->swap(packetList->_packets);
 }
