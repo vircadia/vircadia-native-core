@@ -5548,10 +5548,10 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
 bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
-    if (urlString.startsWith(HIFI_URL_SCHEME)) {
-        return true;
-    } else if (urlString.endsWith(WEB_VIEW_TAG)) {
+    if (urlString.endsWith(WEB_VIEW_TAG)) {
         return false;
+    } else if (urlString.startsWith(HIFI_URL_SCHEME)) {
+        return true;
     }
     QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
     QString lowerPath = url.path().toLower();
