@@ -2162,7 +2162,7 @@ bool MyAvatar::isDriveKeyDisabled(int key) const {
         return _disabledDriveKeys.test(key);
     } catch (const std::exception&) {
         qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
-        return false;
+        return true;
     }
 }
 
