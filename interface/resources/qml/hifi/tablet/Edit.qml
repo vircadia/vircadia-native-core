@@ -186,6 +186,11 @@ StackView {
                         anchors.leftMargin: 55
                         anchors.top: assetServerButton.bottom
                         anchors.topMargin: 20
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "importEntitiesButton" }
+                            });
+                        }
                     }
                 }
             }
