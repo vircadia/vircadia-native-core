@@ -228,6 +228,21 @@ MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
 }
 
+void MyAvatar::registerMetaTypes(QScriptEngine* engine) {
+    QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
+    engine->globalObject().setProperty("MyAvatar", value);
+
+    QScriptValue driveKeys = engine->newObject();
+    auto metaEnum = QMetaEnum::fromType<DriveKeys>();
+    for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
+        driveKeys.setProperty(metaEnum.key(i), metaEnum.value(i));
+    }
+    engine->globalObject().setProperty("DriveKeys", driveKeys);
+
+    qScriptRegisterMetaType(engine, audioListenModeToScriptValue, audioListenModeFromScriptValue);
+    qScriptRegisterMetaType(engine, driveKeysToScriptValue, driveKeysFromScriptValue);
+}
+
 void MyAvatar::setOrientationVar(const QVariant& newOrientationVar) {
     Avatar::setOrientation(quatFromVariant(newOrientationVar));
 }
@@ -460,7 +475,7 @@ void MyAvatar::simulate(float deltaTime) {
         // When there are no step values, we zero out the last step pulse.
         // This allows a user to do faster snapping by tapping a control
         for (int i = STEP_TRANSLATE_X; !stepAction && i <= STEP_YAW; ++i) {
-            if (getDriveKey(i) != 0.0f) {
+            if (getDriveKey((DriveKeys)i) != 0.0f) {
                 stepAction = true;
             }
         }
@@ -2094,7 +2109,7 @@ void MyAvatar::clearDriveKeys() {
     _driveKeys.fill(0.0f);
 }
 
-void MyAvatar::setDriveKey(int key, float val) {
+void MyAvatar::setDriveKey(DriveKeys key, float val) {
     try {
         _driveKeys.at(key) = val;
     } catch (const std::exception&) {
@@ -2102,11 +2117,11 @@ void MyAvatar::setDriveKey(int key, float val) {
     }
 }
 
-float MyAvatar::getDriveKey(int key) const {
+float MyAvatar::getDriveKey(DriveKeys key) const {
     return isDriveKeyDisabled(key) ? 0.0f : getRawDriveKey(key);
 }
 
-float MyAvatar::getRawDriveKey(int key) const {
+float MyAvatar::getRawDriveKey(DriveKeys key) const {
     try {
         return _driveKeys.at(key);
     } catch (const std::exception&) {
@@ -2121,7 +2136,7 @@ void MyAvatar::relayDriveKeysToCharacterController() {
     }
 }
 
-void MyAvatar::disableDriveKey(int key) {
+void MyAvatar::disableDriveKey(DriveKeys key) {
     try {
         _disabledDriveKeys.set(key);
     } catch (const std::exception&) {
@@ -2129,7 +2144,7 @@ void MyAvatar::disableDriveKey(int key) {
     }
 }
 
-void MyAvatar::enableDriveKey(int key) {
+void MyAvatar::enableDriveKey(DriveKeys key) {
     try {
         _disabledDriveKeys.reset(key);
     } catch (const std::exception&) {
@@ -2137,27 +2152,7 @@ void MyAvatar::enableDriveKey(int key) {
     }
 }
 
-void MyAvatar::disableDriveKeys(std::vector<int> key) {
-    try {
-        std::for_each(std::begin(key), std::end(key), [&](int val){
-            _disabledDriveKeys.set(val);
-        });
-    } catch (const std::exception&) {
-        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
-    }
-}
-
-void MyAvatar::enableDriveKeys(std::vector<int> key) {
-    try {
-        std::for_each(std::begin(key), std::end(key), [&](int val) {
-            _disabledDriveKeys.reset(val);
-        });
-    } catch (const std::exception&) {
-        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
-    }
-}
-
-bool MyAvatar::isDriveKeyDisabled(int key) const {
+bool MyAvatar::isDriveKeyDisabled(DriveKeys key) const {
     try {
         return _disabledDriveKeys.test(key);
     } catch (const std::exception&) {
@@ -2251,7 +2246,15 @@ QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioList
 }
 
 void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode) {
-    audioListenerMode = (AudioListenerMode)object.toUInt16();
+    audioListenerMode = static_cast<AudioListenerMode>(object.toUInt16());
+}
+
+QScriptValue driveKeysToScriptValue(QScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys) {
+    return driveKeys;
+}
+
+void driveKeysFromScriptValue(const QScriptValue& object, MyAvatar::DriveKeys& driveKeys) {
+    driveKeys = static_cast<MyAvatar::DriveKeys>(object.toUInt16());
 }
 
 

@@ -14,7 +14,14 @@
     var DESKTOP_MAX_DISTANCE = 5;
     var SIT_DELAY = 25;
     var MAX_RESET_DISTANCE = 0.5; // meters
-    var OVERRIDEN_DRIVE_KEYS = [0, 1, 2, 4, 5, 6];
+    var OVERRIDEN_DRIVE_KEYS = [
+        DriveKeys.TRANSLATE_X,
+        DriveKeys.TRANSLATE_Y,
+        DriveKeys.TRANSLATE_Z,
+        DriveKeys.STEP_TRANSLATE_X,
+        DriveKeys.STEP_TRANSLATE_Y,
+        DriveKeys.STEP_TRANSLATE_Z,
+    ];
 
     this.entityID = null;
     this.animStateHandlerID = null;
@@ -125,14 +132,18 @@
             return { headType: 0 };
         }, ["headType"]);
         Script.update.connect(this, this.update);
-        MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS);
+        for (var i in OVERRIDEN_DRIVE_KEYS) {
+            MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
+        }
     }
 
     this.standUp = function() {
         print("Standing up (" + this.entityID + ")");
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
         Script.update.disconnect(this, this.update);
-        MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS);
+        for (var i in OVERRIDEN_DRIVE_KEYS) {
+            MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
+        }
 
         this.setSeatUser(null);
         if (Settings.getValue(SETTING_KEY) === this.entityID) {

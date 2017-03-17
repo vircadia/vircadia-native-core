@@ -31,20 +31,6 @@
 class AvatarActionHold;
 class ModelItemID;
 
-enum DriveKeys {
-    TRANSLATE_X = 0,
-    TRANSLATE_Y,
-    TRANSLATE_Z,
-    YAW,
-    STEP_TRANSLATE_X,
-    STEP_TRANSLATE_Y,
-    STEP_TRANSLATE_Z,
-    STEP_YAW,
-    PITCH,
-    ZOOM,
-    MAX_DRIVE_KEYS
-};
-
 enum eyeContactTarget {
     LEFT_EYE,
     RIGHT_EYE,
@@ -90,8 +76,25 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
 
 public:
+    enum DriveKeys {
+        TRANSLATE_X = 0,
+        TRANSLATE_Y,
+        TRANSLATE_Z,
+        YAW,
+        STEP_TRANSLATE_X,
+        STEP_TRANSLATE_Y,
+        STEP_TRANSLATE_Z,
+        STEP_YAW,
+        PITCH,
+        ZOOM,
+        MAX_DRIVE_KEYS
+    };
+    Q_ENUM(DriveKeys)
+
     explicit MyAvatar(RigPointer rig);
     ~MyAvatar();
+
+    void registerMetaTypes(QScriptEngine* engine);
 
     virtual void simulateAttachments(float deltaTime) override;
 
@@ -182,16 +185,14 @@ public:
 
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
-    void setDriveKey(int key, float val);
-    float getDriveKey(int key) const;
-    Q_INVOKABLE float getRawDriveKey(int key) const;
+    void setDriveKey(DriveKeys key, float val);
+    float getDriveKey(DriveKeys key) const;
+    Q_INVOKABLE float getRawDriveKey(DriveKeys key) const;
     void relayDriveKeysToCharacterController();
 
-    Q_INVOKABLE void disableDriveKey(int key);
-    Q_INVOKABLE void enableDriveKey(int key);
-    Q_INVOKABLE void disableDriveKeys(std::vector<int> key);
-    Q_INVOKABLE void enableDriveKeys(std::vector<int> key);
-    Q_INVOKABLE bool isDriveKeyDisabled(int key) const;
+    Q_INVOKABLE void disableDriveKey(DriveKeys key);
+    Q_INVOKABLE void enableDriveKey(DriveKeys key);
+    Q_INVOKABLE bool isDriveKeyDisabled(DriveKeys key) const;
 
     eyeContactTarget getEyeContactTarget();
 
@@ -551,5 +552,8 @@ private:
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
 void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode);
+
+QScriptValue driveKeysToScriptValue(QScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys);
+void driveKeysFromScriptValue(const QScriptValue& object, MyAvatar::DriveKeys& driveKeys);
 
 #endif // hifi_MyAvatar_h
