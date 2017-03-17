@@ -1468,6 +1468,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     // Create the Material Library
     consolidateFBXMaterials(mapping);
 
+    // We can't scale allow the scaling of a given image to different sizes, because the hash used for the KTX cache is based on the original image
+    // Allowing scaling of the same image to different sizes would cause different KTX files to target the same cache key
+#if 0
     // HACK: until we get proper LOD management we're going to cap model textures
     // according to how many unique textures the model uses:
     //   1 - 8 textures --> 2048
@@ -1481,6 +1484,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     int numTextures = uniqueTextures.size();
     const int MAX_NUM_TEXTURES_AT_MAX_RESOLUTION = 8;
     int maxWidth = sqrt(MAX_NUM_PIXELS_FOR_FBX_TEXTURE);
+
     if (numTextures > MAX_NUM_TEXTURES_AT_MAX_RESOLUTION) {
         int numTextureThreshold = MAX_NUM_TEXTURES_AT_MAX_RESOLUTION;
         const int MIN_MIP_TEXTURE_WIDTH = 64;
@@ -1494,7 +1498,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             material.setMaxNumPixelsPerTexture(maxWidth * maxWidth);
         }
     }
-
+#endif
     geometry.materials = _fbxMaterials;
 
     // see if any materials have texture children
