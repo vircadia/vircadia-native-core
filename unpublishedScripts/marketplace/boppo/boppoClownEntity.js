@@ -11,7 +11,7 @@
 /* globals BoppoClownEntity:true LookAtTarget */
 
 (function() {
-    var SFX_PREFIX = 'http://hifi-content.s3-us-west-1.amazonaws.com/caitlyn/production/elBoppo/sfx/';
+    var SFX_PREFIX = 'https://hifi-content.s3-us-west-1.amazonaws.com/caitlyn/production/elBoppo/sfx/';
     var CHANNEL_PREFIX = 'io.highfidelity.boppo_server_';
     var PUNCH_SOUNDS = [
         'punch_1.wav',

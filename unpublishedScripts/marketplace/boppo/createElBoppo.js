@@ -10,12 +10,12 @@
 
 /* globals SCRIPT_IMPORT_PROPERTIES */
 
-var MODELS_PATH = 'http://hifi-content.s3.amazonaws.com/DomainContent/Welcome%20Area/production/models/boxingRing/';
+var MODELS_PATH = 'https://hifi-content.s3.amazonaws.com/DomainContent/Welcome%20Area/production/models/boxingRing/';
 var WANT_CLEANUP_ON_SCRIPT_ENDING = false;
 
 var getScriptPath = function(localPath) {
     if (this.isCleanupAndSpawnScript) {
-        return 'http://s3-us-west-1.amazonaws.com/hifi-content/thoys/dev/2017/elBoppo/' + localPath;
+        return 'https://hifi-content.s3.amazonaws.com/DomainContent/Welcome%20Area/Scripts/boppo/' + localPath;
     }
     return Script.resolvePath(localPath);
 };

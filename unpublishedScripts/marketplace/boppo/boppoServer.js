@@ -11,7 +11,7 @@
 /* globals BoppoServer:true */
 
 (function() {
-    var SFX_PREFIX = 'http://hifi-content.s3-us-west-1.amazonaws.com/caitlyn/production/elBoppo/sfx/';
+    var SFX_PREFIX = 'https://hifi-content.s3-us-west-1.amazonaws.com/caitlyn/production/elBoppo/sfx/';
     var CLOWN_LAUGHS = [
         'clown_laugh_1.wav',
         'clown_laugh_2.wav',
@@ -196,9 +196,9 @@
                 var boppoBaseProperties = Entities.getEntityProperties(_entityID, ['position', 'rotation']);
                 _boppoClownID = Entities.addEntity({
                     angularDamping: 0.0,
-                    collisionSoundURL: 'http://hifi-content.s3.amazonaws.com/caitlyn/production/elBoppo/51460__andre-rocha-nascimento__basket-ball-01-bounce.wav',
+                    collisionSoundURL: 'https://hifi-content.s3.amazonaws.com/caitlyn/production/elBoppo/51460__andre-rocha-nascimento__basket-ball-01-bounce.wav',
                     collisionsWillMove: true,
-                    compoundShapeURL: 'http://hifi-content.s3.amazonaws.com/caitlyn/production/elBoppo/bopo_phys.obj',
+                    compoundShapeURL: 'https://hifi-content.s3.amazonaws.com/caitlyn/production/elBoppo/bopo_phys.obj',
                     damping: 1.0,
                     density: 10000,
                     dimensions: {
@@ -213,7 +213,7 @@
                         y: -25,
                         z: 0
                     },
-                    modelURL: 'http://hifi-content.s3.amazonaws.com/caitlyn/production/elBoppo/elBoppo3_VR.fbx',
+                    modelURL: 'https://hifi-content.s3.amazonaws.com/caitlyn/production/elBoppo/elBoppo3_VR.fbx',
                     name: 'El Boppo the Punching Bag Clown',
                     registrationPoint: {
                         x: 0.5,
