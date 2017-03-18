@@ -2863,30 +2863,30 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 #endif
 
-            case Qt::Key_H:
+            case Qt::Key_H: {
                 // whenever switching to/from full screen mirror from the keyboard, remember
                 // the state you were in before full screen mirror, and return to that.
                 auto previousMode = _myCamera.getMode();
                 if (previousMode != CAMERA_MODE_MIRROR) {
                     switch (previousMode) {
-                        case CAMERA_MODE_FIRST_PERSON:
-                            _returnFromFullScreenMirrorTo = MenuOption::FirstPerson;
-                            break;
-                        case CAMERA_MODE_THIRD_PERSON:
-                            _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
-                            break;
+                    case CAMERA_MODE_FIRST_PERSON:
+                        _returnFromFullScreenMirrorTo = MenuOption::FirstPerson;
+                        break;
+                    case CAMERA_MODE_THIRD_PERSON:
+                        _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
+                        break;
 
                         // FIXME - it's not clear that these modes make sense to return to...
-                        case CAMERA_MODE_INDEPENDENT:
-                            _returnFromFullScreenMirrorTo = MenuOption::IndependentMode;
-                            break;
-                        case CAMERA_MODE_ENTITY:
-                            _returnFromFullScreenMirrorTo = MenuOption::CameraEntityMode;
-                            break;
+                    case CAMERA_MODE_INDEPENDENT:
+                        _returnFromFullScreenMirrorTo = MenuOption::IndependentMode;
+                        break;
+                    case CAMERA_MODE_ENTITY:
+                        _returnFromFullScreenMirrorTo = MenuOption::CameraEntityMode;
+                        break;
 
-                        default:
-                            _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
-                            break;
+                    default:
+                        _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
+                        break;
                     }
                 }
 
@@ -2904,6 +2904,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 cameraMenuChanged();
                 break;
+            }
+
             case Qt::Key_P: {
                 if (!(isShifted || isMeta || isOption)) {
                     bool isFirstPersonChecked = Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson);
