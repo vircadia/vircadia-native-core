@@ -560,8 +560,6 @@ Menu::Menu() {
         false,
         &UserActivityLogger::getInstance(),
         SLOT(disable(bool)));
-    addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0,
-        dialogsManager.data(), SLOT(cachesSizeDialog()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
         dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,

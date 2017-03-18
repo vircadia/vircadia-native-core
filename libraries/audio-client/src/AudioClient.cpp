@@ -160,7 +160,7 @@ AudioClient::AudioClient() :
     _loopbackAudioOutput(NULL),
     _loopbackOutputDevice(NULL),
     _inputRingBuffer(0),
-    _localInjectorsStream(0),
+    _localInjectorsStream(0, 1),
     _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
     _isStereoInput(false),
     _outputStarveDetectionStartTimeMsec(0),
