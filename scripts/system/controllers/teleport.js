@@ -240,11 +240,11 @@ function Teleporter() {
         //    We might hit an invisible entity that is not a seat, so we need to do a second pass.
         //  * In the second pass we pick against visible entities only.
         //
-        var intersection = Entities.findRayIntersection(pickRay, true, ignoredEntities, [this.targetEntity], false, true);
+        var intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity].concat(ignoredEntities), false, true);
 
         var teleportLocationType = getTeleportTargetType(intersection);
         if (teleportLocationType === TARGET.INVISIBLE) {
-            intersection = Entities.findRayIntersection(pickRay, true, ignoredEntities, [this.targetEntity], true, true);
+            intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity].concat(ignoredEntities), true, true);
             teleportLocationType = getTeleportTargetType(intersection);
         }
 

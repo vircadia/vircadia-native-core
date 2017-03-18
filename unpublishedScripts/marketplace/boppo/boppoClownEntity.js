@@ -19,7 +19,7 @@
     ];
     var PUNCH_COOLDOWN = 300;
 
-    Script.include(Script.resolvePath('lookAtEntity.js?v2'));
+    Script.include('lookAtEntity.js');
 
     BoppoClownEntity = function() {
         var _this,
