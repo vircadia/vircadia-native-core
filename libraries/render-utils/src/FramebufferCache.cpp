@@ -29,10 +29,6 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
 }
 
 void FramebufferCache::createPrimaryFramebuffer() {
-    auto colorFormat = gpu::Element::COLOR_SRGBA_32;
-    auto width = _frameBufferSize.width();
-    auto height = _frameBufferSize.height();
-
     auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
 
     auto smoothSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR);
