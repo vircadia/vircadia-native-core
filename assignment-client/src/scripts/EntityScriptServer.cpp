@@ -455,13 +455,13 @@ void EntityScriptServer::addingEntity(const EntityItemID& entityID) {
 
 void EntityScriptServer::deletingEntity(const EntityItemID& entityID) {
     if (_entityViewer.getTree() && !_shuttingDown && _entitiesScriptEngine) {
-        _entitiesScriptEngine->unloadEntityScript(entityID);
+        _entitiesScriptEngine->unloadEntityScript(entityID, true);
     }
 }
 
 void EntityScriptServer::entityServerScriptChanging(const EntityItemID& entityID, const bool reload) {
     if (_entityViewer.getTree() && !_shuttingDown) {
-        _entitiesScriptEngine->unloadEntityScript(entityID);
+        _entitiesScriptEngine->unloadEntityScript(entityID, true);
         checkAndCallPreload(entityID, reload);
     }
 }

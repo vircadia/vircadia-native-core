@@ -60,7 +60,7 @@ FocusScope {
                 anchors.fill: parent
                 hoverEnabled: true
                 onEntered: iconColorOverlay.color = "#1fc6a6";
-                onExited: iconColorOverlay.color = "#ffffff";
+                onExited: iconColorOverlay.color = "#34a2c7";
                 // navigate back to root level menu
                 onClicked: {
                     buildMenu();

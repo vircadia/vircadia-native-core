@@ -9,34 +9,30 @@
 //
 
 import QtQuick 2.5
+import QtQuick.Controls 1.4
 import "tabletWindows"
 import "../../dialogs"
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
-import QtGraphicalEffects 1.0
 
 StackView {
     id: profileRoot
     initialItem: root
     objectName: "stack"
-    property var title: "Avatar Preferences"
+    property string title: "Avatar Settings"
+
     property var eventBridge;
     signal sendToScript(var message);
 
     function pushSource(path) {
-        editRoot.push(Qt.reslovedUrl(path));
+        profileRoot.push(Qt.reslovedUrl(path));
     }
 
     function popSource() {
-
+        profileRoot.pop();
     }
 
     TabletPreferencesDialog {
         id: root
-        property string title: "Avatar Preferences"
         objectName: "TabletAvatarPreferences"
-        width: parent.width
-        height: parent.height
         showCategories: ["Avatar Basics", "Avatar Tuning", "Avatar Camera"]
     }
 }

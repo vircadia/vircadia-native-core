@@ -33,6 +33,7 @@ void Deck::queueClip(ClipPointer clip, float timeOffset) {
 
     // FIXME disabling multiple clips for now
     _clips.clear();
+    _length = 0.0f;
 
     // if the time offset is not zero, wrap in an OffsetClip
     if (timeOffset != 0.0f) {
@@ -153,8 +154,8 @@ void Deck::processFrames() {
             // if doing relative movement
             emit looped();
         } else {
-            // otherwise pause playback
-            pause();
+            // otherwise stop playback
+            stop();
         }
         return;
     } 
