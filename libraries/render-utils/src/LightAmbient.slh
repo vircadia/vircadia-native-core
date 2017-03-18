@@ -77,6 +77,16 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
     // Diffuse from ambient
     diffuse = (1.0 - metallic) * sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), normal).xyz;
 
+    if (gl_FragCoord.x > 1000) {
+        vec3 ambientFresnel = vec3 (1.0) - fresnelSchlickAmbient(fresnel, eyeDir, normal, 1.0 - roughness);
+        diffuse *= ambientFresnel * (1.0 / 3.14);
+
+
+        if (gl_FragCoord.x > 2000) {
+            diffuse *= obscurance;
+        }
+    }
+
     // Specular highlight from ambient
     specular = evalAmbientSpecularIrradiance(ambient, eyeDir, normal, roughness, fresnel) * obscurance * getLightAmbientIntensity(ambient);
 
