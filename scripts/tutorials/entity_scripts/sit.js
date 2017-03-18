@@ -46,6 +46,9 @@
     this.lastTimeNoDriveKeys = null;
     this.sittingDown = false;
 
+    // Preload the animation file
+    this.animation = AnimationCache.prefetch(ANIMATION_URL);
+
     this.preload = function(entityID) {
         this.entityID = entityID;
     }
