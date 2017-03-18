@@ -123,6 +123,10 @@ public:
                     std::function<glm::vec3(glm::vec3)> normalFunc,
                     std::function<uint32_t(uint32_t)> indexFunc);
 
+    void forEach(std::function<void(glm::vec3)> vertexFunc,
+                 std::function<void(glm::vec3)> normalFunc,
+                 std::function<void(uint32_t)> indexFunc);
+
 protected:
 
     gpu::Stream::FormatPointer _vertexFormat;
