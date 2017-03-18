@@ -10,7 +10,13 @@
 
 (function() {
     Script.include("/~/system/libraries/utils.js");
-   
+    if (!String.prototype.startsWith) {
+        String.prototype.startsWith = function(searchString, position){
+          position = position || 0;
+          return this.substr(position, searchString.length) === searchString;
+      };
+    }
+
     var SETTING_KEY = "com.highfidelity.avatar.isSitting";
     var ANIMATION_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
     var ANIMATION_FPS = 30;
@@ -111,6 +117,12 @@
         return seatUser !== null;
     }
 
+    this.rolesToOverride = function() {
+        return MyAvatar.getAnimationRoles().filter(function(role) {
+            return role === "fly" || role.startsWith("inAir");
+        });
+    }
+
     this.sitDown = function() {
         if (this.checkSeatForAvatar()) {
             print("Someone is already sitting in that chair.");
@@ -129,9 +141,9 @@
         if (previousValue === "") {
             MyAvatar.characterControllerEnabled = false;
             MyAvatar.hmdLeanRecenterEnabled = false;
-            var ROLES = MyAvatar.getAnimationRoles();
-            for (i in ROLES) {
-                MyAvatar.overrideRoleAnimation(ROLES[i], ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
+            var roles = this.rolesToOverride();
+            for (i in roles) {
+                MyAvatar.overrideRoleAnimation(roles[i], ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
             }
 
             for (var i in OVERRIDEN_DRIVE_KEYS) {
@@ -167,9 +179,9 @@
                 MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
             }
 
-            var ROLES = MyAvatar.getAnimationRoles();
-            for (i in ROLES) {
-                MyAvatar.restoreRoleAnimation(ROLES[i]);
+            var roles = this.rolesToOverride();
+            for (i in roles) {
+                MyAvatar.restoreRoleAnimation(roles[i]);
             }
             MyAvatar.characterControllerEnabled = true;
             MyAvatar.hmdLeanRecenterEnabled = true;
