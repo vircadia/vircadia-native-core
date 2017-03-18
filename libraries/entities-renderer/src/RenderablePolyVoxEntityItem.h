@@ -164,6 +164,7 @@ private:
     const int MATERIAL_GPU_SLOT = 3;
     render::ItemID _myItem{ render::Item::INVALID_ITEM_ID };
     static gpu::PipelinePointer _pipeline;
+    static gpu::PipelinePointer _wireframePipeline;
 
     ShapeInfo _shapeInfo;
 

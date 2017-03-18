@@ -54,6 +54,8 @@
 #include "PhysicalEntitySimulation.h"
 
 gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
+gpu::PipelinePointer RenderablePolyVoxEntityItem::_wireframePipeline = nullptr;
+
 const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
 
@@ -697,7 +699,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         !mesh->getIndexBuffer()._buffer) {
         return;
     }
-
+    
     if (!_pipeline) {
         gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
         gpu::ShaderPointer pixelShader = gpu::Shader::createPixel(std::string(polyvox_frag));
@@ -716,6 +718,13 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
 
         _pipeline = gpu::Pipeline::create(program, state);
+
+        auto wireframeState = std::make_shared<gpu::State>();
+        wireframeState->setCullMode(gpu::State::CULL_BACK);
+        wireframeState->setDepthTest(true, true, gpu::LESS_EQUAL);
+        wireframeState->setFillMode(gpu::State::FILL_LINE);
+
+        _wireframePipeline = gpu::Pipeline::create(program, wireframeState);
     }
 
     if (!_vertexFormat) {
@@ -726,7 +735,11 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     }
 
     gpu::Batch& batch = *args->_batch;
-    batch.setPipeline(_pipeline);
+
+    // Pick correct Pipeline
+    bool wireframe = (render::ShapeKey(args->_globalShapeKey).isWireframe());
+    auto pipeline = (wireframe ? _wireframePipeline : _pipeline);
+    batch.setPipeline(pipeline);
 
     Transform transform(voxelToWorldMatrix());
     batch.setModelTransform(transform);
@@ -763,7 +776,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         batch.setResourceTexture(2, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
 
-    int voxelVolumeSizeLocation = _pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
+    int voxelVolumeSizeLocation = pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
     batch._glUniform3f(voxelVolumeSizeLocation, voxelVolumeSize.x, voxelVolumeSize.y, voxelVolumeSize.z);
 
     batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)mesh->getNumIndices(), 0);
