@@ -930,11 +930,15 @@ bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3
 void EntityScriptingInterface::voxelsToMesh(QUuid entityID, QScriptValue callback) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    bool success;
-    QScriptValue mesh;
+    bool success { false };
+    QScriptValue mesh { false };
 
     polyVoxWorker(entityID, [&](PolyVoxEntityItem& polyVoxEntity) mutable {
-        success = polyVoxEntity.getMeshAsScriptValue(callback.engine(), mesh);
+        if (polyVoxEntity.getOnCount() == 0) {
+            success = true;
+        } else {
+            success = polyVoxEntity.getMeshAsScriptValue(callback.engine(), mesh);
+        }
         return true;
     });
 

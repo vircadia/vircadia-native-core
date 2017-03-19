@@ -61,6 +61,8 @@ public:
     virtual uint8_t getVoxel(int x, int y, int z) override;
     virtual bool setVoxel(int x, int y, int z, uint8_t toValue) override;
 
+    int getOnCount() const override { return _onCount; }
+
     void render(RenderArgs* args) override;
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
