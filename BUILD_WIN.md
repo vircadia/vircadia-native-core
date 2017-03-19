@@ -8,23 +8,23 @@ Note: Newer versions of Visual Studio are not yet compatible.
 
 ###Step 2. Installing CMake
 
-Download and install the "win64-x64 Installer" from the [CMake Website](https://cmake.org/download/). Make sure "Add CMake to system PATH for all users" is checked when going through the installer.
+Download and install the CMake 3.8.0-rc2 "win64-x64 Installer" from the [CMake Website](https://cmake.org/download/). Make sure "Add CMake to system PATH for all users" is checked when going through the installer.
 
 ###Step 3. Installing Qt
 
-Download and install the [Qt 5.6.1 Installer](https://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013_64-5.6.1-1.exe)
+Download and install the [Qt 5.6.1 Installer](https://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013_64-5.6.1-1.exe). Please note that the download file is large (850MB) and may take some time.
 
 Make sure to select all components when going through the installer.
 
 ###Step 4. Setting Qt Environment Variable
 
-Go to "Control Panel > System > Advanced System Settings > Environment Variables > New..."
+Go to "Control Panel > System > Advanced System Settings > Environment Variables > New..." (or search “Environment Variables” in Start Search).
 * Set "Variable name": QT_CMAKE_PREFIX_PATH
 * Set "Variable value": `C:\Qt\Qt5.6.1\5.6\msvc2013_64\lib\cmake`
 
 ###Step 5. Installing OpenSSL
 
-Download and install the "Win64 OpenSSL v1.0.xk" Installer from [this website](https://slproweb.com/products/Win32OpenSSL.html), where "x" is the number of the latest release (ex. Win64 OpenSSL v1.0.2k).
+Download and install the "Win64 OpenSSL v1.0.2k" Installer from [this website](https://slproweb.com/products/Win32OpenSSL.html).
 
 ###Step 6. Running CMake to Generate Build Files
 
@@ -44,7 +44,7 @@ Change the Solution Configuration (next to the green play button) from "Debug" t
 
 Run Build > Build Solution.
 
-###Step 8. Testing the Interface
+###Step 8. Testing Interface
 
 Create another environment variable (see Step #4)
 * Set "Variable name": _NO_DEBUG_HEAP
@@ -54,12 +54,12 @@ In Visual Studio, right+click "interface" under the Apps folder in Solution Expl
 
 Now, you should have a full build of High Fidelity and be able to run the Interface using Visual Studio. Please check our [Docs](https://wiki.highfidelity.com/wiki/Main_Page) for more information regarding the programming workflow.
 
-Note: You can also run Interface by launching it from command line or File Explorer from %HIFI_DIR%\build\interface\Debug\interface.exe
+Note: You can also run Interface by launching it from command line or File Explorer from %HIFI_DIR%\build\interface\Release\interface.exe
 
 ###Troubleshooting
 
 For any problems after Step #6, first try this: 
-* Delete the highfidelity repository
+* Delete your locally cloned copy of the highfidelity repository
 * Restart your computer
 * Redownload the [repository](https://github.com/highfidelity/hifi) 
 * Restart directions from Step #6
@@ -77,4 +77,5 @@ If not, add the directory where nmake is located to the PATH environment variabl
 
 ####Qt is throwing an error
 
-Make sure you have the current version (5.6.1-1) installed and 'QT_CMAKE_PREFIX_PATH' environment variable is set correctly.
+Make sure you have the correct version (5.6.1-1) installed and 'QT_CMAKE_PREFIX_PATH' environment variable is set correctly.
+
