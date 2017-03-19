@@ -51,7 +51,6 @@ public slots:
     void octreeStatsDetails();
     void lodTools();
     void hmdTools(bool showTools);
-    void showScriptEditor();
     void showDomainConnectionDialog();
     void showTestingResults();
     
@@ -79,7 +78,6 @@ private:
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
-    QPointer<ScriptEditorWindow> _scriptEditor;
     QPointer<TestingDialog> _testingDialog;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
 };

@@ -27,7 +27,6 @@
 #include "LoginDialog.h"
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
-#include "ScriptEditorWindow.h"
 #include "UpdateDialog.h"
 
 template<typename T>
@@ -124,12 +123,6 @@ void DialogsManager::hmdToolsClosed() {
     if (_hmdToolsDialog) {
         _hmdToolsDialog->hide();
     }
-}
-
-void DialogsManager::showScriptEditor() {
-    maybeCreateDialog(_scriptEditor);
-    _scriptEditor->show();
-    _scriptEditor->raise();
 }
 
 void DialogsManager::showTestingResults() {
