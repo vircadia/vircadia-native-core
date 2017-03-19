@@ -26,6 +26,9 @@
     var MESSAGE_HIT = 'hit';
     var MESSAGE_ENTER_ZONE = 'enter-zone';
     var MESSAGE_UNLOAD_FIX = 'unload-fix';
+
+    var DEFAULT_SOUND_VOLUME = 0.6;
+
     // don't set the search radius too high, it might remove boppo's from other nearby instances
     var BOPPO_SEARCH_RADIUS = 4.0;
 
@@ -116,6 +119,9 @@
 
         var playSoundAtBoxingRing = function(sound, properties) {
             var _properties = properties ? properties : {};
+            if (_properties['volume'] === undefined) {
+                _properties['volume'] = DEFAULT_SOUND_VOLUME;
+            }
             _properties['position'] = Entities.getEntityProperties(_entityID, ['position']).position;
             // play beep
             return Audio.playSound(sound, _properties);
@@ -285,7 +291,7 @@
                 if (_updateInterval) {
                     Script.clearInterval(_updateInterval);
                 }
-                Messages.messageReceived.connect(onMessage);
+                Messages.messageReceived.disconnect(onMessage);
                 Messages.unsubscribe(_channel);
                 Entities.deleteEntity(_boppoClownID);
                 print('endOfUnload');
