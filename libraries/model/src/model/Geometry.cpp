@@ -138,15 +138,13 @@ Box Mesh::evalPartsBound(int partStart, int partEnd) const {
 model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
                              std::function<glm::vec3(glm::vec3)> normalFunc,
                              std::function<uint32_t(uint32_t)> indexFunc) {
-    int attributeTypeNormal = gpu::Stream::InputSlot::NORMAL; // libraries/gpu/src/gpu/Stream.h
-
     // vertex data
-    gpu::Resource::Size vertexSize = getNumVertices() * sizeof(glm::vec3);
-    unsigned char* resultVertexData  = new unsigned char[vertexSize];
-    unsigned char* vertexDataCursor = resultVertexData;
-
     const gpu::BufferView& vertexBufferView = getVertexBuffer();
     gpu::BufferView::Index numVertices = (gpu::BufferView::Index)getNumVertices();
+    gpu::Resource::Size vertexSize = numVertices * sizeof(glm::vec3);
+    unsigned char* resultVertexData = new unsigned char[vertexSize];
+    unsigned char* vertexDataCursor = resultVertexData;
+
     for (gpu::BufferView::Index i = 0; i < numVertices; i ++) {
         glm::vec3 pos = vertexFunc(vertexBufferView.get<glm::vec3>(i));
         memcpy(vertexDataCursor, &pos, sizeof(pos));
@@ -154,12 +152,13 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
     }
 
     // normal data
-    gpu::Resource::Size normalSize = getNumAttributes() * sizeof(glm::vec3);
-    unsigned char* resultNormalData  = new unsigned char[normalSize];
+    int attributeTypeNormal = gpu::Stream::InputSlot::NORMAL; // libraries/gpu/src/gpu/Stream.h
+    const gpu::BufferView& normalsBufferView = getAttributeBuffer(attributeTypeNormal);
+    gpu::BufferView::Index numNormals = (gpu::BufferView::Index)normalsBufferView.getNumElements();
+    gpu::Resource::Size normalSize = numNormals * sizeof(glm::vec3);
+    unsigned char* resultNormalData = new unsigned char[normalSize];
     unsigned char* normalDataCursor = resultNormalData;
 
-    const gpu::BufferView& normalsBufferView = getAttributeBuffer(attributeTypeNormal);
-    gpu::BufferView::Index numNormals =  (gpu::BufferView::Index)getNumAttributes();
     for (gpu::BufferView::Index i = 0; i < numNormals; i ++) {
         glm::vec3 normal = normalFunc(normalsBufferView.get<glm::vec3>(i));
         memcpy(normalDataCursor, &normal, sizeof(normal));
@@ -168,12 +167,12 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
     // TODO -- other attributes
 
     // face data
-    gpu::Resource::Size indexSize = getNumIndices() * sizeof(uint32_t);
-    unsigned char* resultIndexData  = new unsigned char[indexSize];
+    const gpu::BufferView& indexBufferView = getIndexBuffer();
+    gpu::BufferView::Index numIndexes = (gpu::BufferView::Index)getNumIndices();
+    gpu::Resource::Size indexSize = numIndexes * sizeof(uint32_t);
+    unsigned char* resultIndexData = new unsigned char[indexSize];
     unsigned char* indexDataCursor = resultIndexData;
 
-    const gpu::BufferView& indexBufferView = getIndexBuffer();
-    gpu::BufferView::Index numIndexes =  (gpu::BufferView::Index)getNumIndices();
     for (gpu::BufferView::Index i = 0; i < numIndexes; i ++) {
         uint32_t index = indexFunc(indexBufferView.get<uint32_t>(i));
         memcpy(indexDataCursor, &index, sizeof(index));
@@ -229,7 +228,7 @@ void Mesh::forEach(std::function<void(glm::vec3)> vertexFunc,
 
     // normal data
     const gpu::BufferView& normalsBufferView = getAttributeBuffer(attributeTypeNormal);
-    gpu::BufferView::Index numNormals =  (gpu::BufferView::Index)getNumAttributes();
+    gpu::BufferView::Index numNormals =  (gpu::BufferView::Index) normalsBufferView.getNumElements();
     for (gpu::BufferView::Index i = 0; i < numNormals; i ++) {
         normalFunc(normalsBufferView.get<glm::vec3>(i));
     }
@@ -237,7 +236,7 @@ void Mesh::forEach(std::function<void(glm::vec3)> vertexFunc,
 
     // face data
     const gpu::BufferView& indexBufferView = getIndexBuffer();
-    gpu::BufferView::Index numIndexes =  (gpu::BufferView::Index)getNumIndices();
+    gpu::BufferView::Index numIndexes = (gpu::BufferView::Index)getNumIndices();
     for (gpu::BufferView::Index i = 0; i < numIndexes; i ++) {
         indexFunc(indexBufferView.get<uint32_t>(i));
     }

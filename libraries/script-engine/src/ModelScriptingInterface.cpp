@@ -61,7 +61,12 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
     foreach (const MeshProxy* meshProxy, in) {
         MeshPointer mesh = meshProxy->getMeshPointer();
         totalVertexCount += mesh->getNumVertices();
-        totalAttributeCount += mesh->getNumAttributes();
+
+        int attributeTypeNormal = gpu::Stream::InputSlot::NORMAL; // libraries/gpu/src/gpu/Stream.h
+        const gpu::BufferView& normalsBufferView = mesh->getAttributeBuffer(attributeTypeNormal);
+        gpu::BufferView::Index numNormals = (gpu::BufferView::Index)normalsBufferView.getNumElements();
+        totalAttributeCount += numNormals;
+
         totalIndexCount += mesh->getNumIndices();
     }
 

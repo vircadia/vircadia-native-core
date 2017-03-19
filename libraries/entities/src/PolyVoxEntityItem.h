@@ -57,6 +57,8 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void setVoxelData(QByteArray voxelData);
     virtual const QByteArray getVoxelData() const;
 
+    virtual int getOnCount() const { return 0; }
+
     enum PolyVoxSurfaceStyle {
         SURFACE_MARCHING_CUBES,
         SURFACE_CUBIC,
