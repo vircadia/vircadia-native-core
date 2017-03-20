@@ -417,6 +417,9 @@ Menu::Menu() {
     }
 
     // Developer > Assets >>>
+    // Menu item is not currently needed but code should be kept in case it proves useful again at some stage.
+//#define WANT_ASSET_MIGRATION
+#ifdef WANT_ASSET_MIGRATION
     MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
     auto& atpMigrator = ATPAssetMigrator::getInstance();
     atpMigrator.setDialogParent(this);
@@ -424,6 +427,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(assetDeveloperMenu, MenuOption::AssetMigration,
         0, &atpMigrator,
         SLOT(loadEntityServerFile()));
+#endif
 
     // Developer > Avatar >>>
     MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
