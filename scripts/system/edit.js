@@ -42,7 +42,7 @@ var selectionManager = SelectionManager;
 const PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
 const POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
 const SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
-var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
+entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
     var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
     if (properties.type === 'Light') {
         return {
