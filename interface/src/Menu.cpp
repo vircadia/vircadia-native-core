@@ -417,6 +417,9 @@ Menu::Menu() {
     }
 
     // Developer > Assets >>>
+    // Menu item is not currently needed but code should be kept in case it proves useful again at some stage.
+//#define WANT_ASSET_MIGRATION
+#ifdef WANT_ASSET_MIGRATION
     MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
     auto& atpMigrator = ATPAssetMigrator::getInstance();
     atpMigrator.setDialogParent(this);
@@ -424,6 +427,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(assetDeveloperMenu, MenuOption::AssetMigration,
         0, &atpMigrator,
         SLOT(loadEntityServerFile()));
+#endif
 
     // Developer > Avatar >>>
     MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
@@ -554,14 +558,14 @@ Menu::Menu() {
                                                       "NetworkingPreferencesDialog");
     });
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::ClearDiskCache, 0,
+        DependencyManager::get<AssetClient>().data(), SLOT(clearCache()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
         MenuOption::DisableActivityLogger,
         0,
         false,
         &UserActivityLogger::getInstance(),
         SLOT(disable(bool)));
-    addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
-        dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         dialogsManager.data(), SLOT(showDomainConnectionDialog()));
 
