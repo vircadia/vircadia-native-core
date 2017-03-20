@@ -34,7 +34,23 @@
 #include "EntitiesScriptEngineProvider.h"
 #include "EntityItemProperties.h"
 
+#include "BaseScriptEngine.h"
+
 class EntityTree;
+class MeshProxy;
+
+// helper factory to compose standardized, async metadata queries for "magic" Entity properties
+// like .script and .serverScripts.  This is used for automated testing of core scripting features
+// as well as to provide early adopters a self-discoverable, consistent way to diagnose common
+// problems with their own Entity scripts.
+class EntityPropertyMetadataRequest {
+public:
+    EntityPropertyMetadataRequest(BaseScriptEngine* engine) : _engine(engine) {};
+    bool script(EntityItemID entityID, QScriptValue handler);
+    bool serverScripts(EntityItemID entityID, QScriptValue handler);
+private:
+    QPointer<BaseScriptEngine> _engine;
+};
 
 class RayToEntityIntersectionResult {
 public:
@@ -67,6 +83,7 @@ class EntityScriptingInterface : public OctreeScriptingInterface, public Depende
     Q_PROPERTY(float costMultiplier READ getCostMultiplier WRITE setCostMultiplier)
     Q_PROPERTY(QUuid keyboardFocusEntity READ getKeyboardFocusEntity WRITE setKeyboardFocusEntity)
 
+    friend EntityPropertyMetadataRequest;
 public:
     EntityScriptingInterface(bool bidOnSimulationOwnership);
 
@@ -211,6 +228,26 @@ public slots:
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
 
     Q_INVOKABLE bool reloadServerScripts(QUuid entityID);
+
+    /**jsdoc
+     * Query additional metadata for "magic" Entity properties like `script` and `serverScripts`.
+     *
+     * @function Entities.queryPropertyMetadata
+     * @param {EntityID} entityID The ID of the entity.
+     * @param {string} property The name of the property extended metadata is wanted for.
+     * @param {ResultCallback} callback Executes callback(err, result) with the query results.
+     */
+    /**jsdoc
+     * Query additional metadata for "magic" Entity properties like `script` and `serverScripts`.
+     *
+     * @function Entities.queryPropertyMetadata
+     * @param {EntityID} entityID The ID of the entity.
+     * @param {string} property The name of the property extended metadata is wanted for.
+     * @param {Object} thisObject The scoping "this" context that callback will be executed within.
+     * @param {ResultCallback} callbackOrMethodName Executes thisObject[callbackOrMethodName](err, result) with the query results.
+     */
+    Q_INVOKABLE bool queryPropertyMetadata(QUuid entityID, QScriptValue property, QScriptValue scopeOrCallback, QScriptValue methodOrName = QScriptValue());
+
     Q_INVOKABLE bool getServerScriptStatus(QUuid entityID, QScriptValue callback);
 
     Q_INVOKABLE void setLightsArePickable(bool value);
@@ -229,6 +266,7 @@ public slots:
     Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
     Q_INVOKABLE bool setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition,
                                        const glm::vec3& cuboidSize, int value);
+    Q_INVOKABLE void voxelsToMesh(QUuid entityID, QScriptValue callback);
 
     Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<glm::vec3>& points);
     Q_INVOKABLE bool appendPoint(QUuid entityID, const glm::vec3& point);
@@ -323,9 +361,14 @@ signals:
 
     void webEventReceived(const EntityItemID& entityItemID, const QVariant& message);
 
+protected:
+    void withEntitiesScriptEngine(std::function<void(EntitiesScriptEngineProvider*)> function) {
+        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+        function(_entitiesScriptEngine);
+    };
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor);
-    bool setVoxels(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
+    bool polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
 

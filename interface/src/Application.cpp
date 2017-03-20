@@ -179,6 +179,8 @@
 #include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
+#include <EntityScriptClient.h>
+#include <ModelScriptingInterface.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -4391,16 +4393,16 @@ void Application::update(float deltaTime) {
     myAvatar->clearDriveKeys();
     if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
         if (!_controllerScriptingInterface->areActionsCaptured()) {
-            myAvatar->setDriveKeys(TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
-            myAvatar->setDriveKeys(TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
-            myAvatar->setDriveKeys(TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
+            myAvatar->setDriveKey(MyAvatar::TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
+            myAvatar->setDriveKey(MyAvatar::TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
+            myAvatar->setDriveKey(MyAvatar::TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
             if (deltaTime > FLT_EPSILON) {
-                myAvatar->setDriveKeys(PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
-                myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
-                myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
+                myAvatar->setDriveKey(MyAvatar::PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
+                myAvatar->setDriveKey(MyAvatar::YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
+                myAvatar->setDriveKey(MyAvatar::STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
             }
         }
-        myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
+        myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
 
     controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
@@ -5511,8 +5513,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Rates", new RatesScriptingInterface(this));
 
     // hook our avatar and avatar hash map object into this script engine
-    scriptEngine->registerGlobalObject("MyAvatar", getMyAvatar().get());
-    qScriptRegisterMetaType(scriptEngine, audioListenModeToScriptValue, audioListenModeFromScriptValue);
+    getMyAvatar()->registerMetaTypes(scriptEngine);
 
     scriptEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarManager>().data());
 
