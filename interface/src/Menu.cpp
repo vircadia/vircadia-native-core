@@ -554,14 +554,14 @@ Menu::Menu() {
                                                       "NetworkingPreferencesDialog");
     });
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::ClearDiskCache, 0,
+        DependencyManager::get<AssetClient>().data(), SLOT(clearCache()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
         MenuOption::DisableActivityLogger,
         0,
         false,
         &UserActivityLogger::getInstance(),
         SLOT(disable(bool)));
-    addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
-        dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         dialogsManager.data(), SLOT(showDomainConnectionDialog()));
 
