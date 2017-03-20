@@ -307,7 +307,7 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
 void addPlumberPipeline(ShapePlumber& plumber,
         const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel) {
     // These key-values' pipelines are added by this functor in addition to the key passed
-    assert(!key.isWireFrame());
+    assert(!key.isWireframe());
     assert(!key.isDepthBiased());
     assert(key.isCullFace());
 
