@@ -14,7 +14,11 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-var populateNearbyUserList, color, textures, removeOverlays, controllerComputePickRay, onTabletButtonClicked, onTabletScreenChanged, receiveMessage, avatarDisconnected, clearLocalQMLDataAndClosePAL, createAudioInterval, tablet, CHANNEL, getConnectionData, findableByChanged; // forward references;
+var populateNearbyUserList, color, textures, removeOverlays,
+    controllerComputePickRay, onTabletButtonClicked, onTabletScreenChanged,
+    receiveMessage, avatarDisconnected, clearLocalQMLDataAndClosePAL,
+    createAudioInterval, tablet, CHANNEL, getConnectionData, findableByChanged,
+    avatarAdded, avatarRemoved, avatarSessionChanged; // forward references;
 
 // hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed
 // something, will revisit as this is sorta horrible.
@@ -691,6 +695,9 @@ function startup() {
     Messages.subscribe(CHANNEL);
     Messages.messageReceived.connect(receiveMessage);
     Users.avatarDisconnected.connect(avatarDisconnected);
+    AvatarList.avatarAddedEvent.connect(avatarAdded);
+    AvatarList.avatarRemovedEvent.connect(avatarRemoved);
+    AvatarList.avatarSessionChangedEvent.connect(avatarSessionChanged);
 }
 
 startup();
@@ -841,6 +848,18 @@ function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
 }
 
+function avatarAdded() {
+    sendToQml({ method: 'palIsStale' });
+}
+
+function avatarRemoved() {
+    sendToQml({ method: 'palIsStale' });
+}
+
+function avatarSessionChanged() {
+    sendToQml({ method: 'palIsStale' });
+}
+
 function shutdown() {
     if (onPalScreen) {
         tablet.gotoHomeScreen();
@@ -854,6 +873,9 @@ function shutdown() {
     Messages.subscribe(CHANNEL);
     Messages.messageReceived.disconnect(receiveMessage);
     Users.avatarDisconnected.disconnect(avatarDisconnected);
+    AvatarList.avatarAddedEvent.disconnect(avatarAdded);
+    AvatarList.avatarRemovedEvent.disconnect(avatarRemoved);
+    AvatarList.avatarSessionChangedEvent.disconnect(avatarSessionChanged);
     off();
 }
 

@@ -279,7 +279,9 @@ Rectangle {
                             id: reloadNearby;
                             width: reloadNearby.height;
                             glyph: hifi.glyphs.reload;
-                            onClicked: refreshNearbyWithFilter();
+                            onClicked: {
+                                refreshNearbyWithFilter();
+                            }
                         }
                     }
                 }
@@ -1188,6 +1190,8 @@ Rectangle {
                 }
             }
             sortModel();
+            reloadNearby.glyph = hifi.glyphs.reload;
+            reloadNearby.color = 0;
             break;
         case 'connections':
             var data = message.params;
@@ -1277,6 +1281,10 @@ Rectangle {
         case 'avatarDisconnected':
             var sessionID = message.params[0];
             delete ignored[sessionID];
+            break;
+        case 'palIsStale':
+            reloadNearby.glyph = hifi.glyphs.alert;
+            reloadNearby.color = 2;
             break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
