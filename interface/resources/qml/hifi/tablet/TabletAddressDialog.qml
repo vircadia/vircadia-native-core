@@ -87,25 +87,11 @@ Item {
             width: 480
             height: 70
 
-            gradient: Gradient {
-                GradientStop {
-                    position: 0
-                    color: "#c2ced8"
-
-                }
-
-                GradientStop {
-                    position: 1
-                    color: "#c2ced8"
-                }
-            }
-
             anchors {
                 top: parent.top
                 right: parent.right
                 left: parent.left
             }
-
 
             ToolbarButton {
                 id: homeButton
@@ -120,10 +106,40 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
             }
+            ToolbarButton {
+                id: backArrow;
+                imageURL: "../../../images/backward.svg";
+                onClicked: addressBarDialog.loadBack();
+                anchors {
+                    left: homeButton.right
+                    verticalCenter: parent.verticalCenter
+                }
+            }
+            ToolbarButton {
+                id: forwardArrow;
+                imageURL: "../../../images/forward.svg";
+                onClicked: addressBarDialog.loadForward();
+                anchors {
+                    left: backArrow.right
+                    verticalCenter: parent.verticalCenter
+                }
+            }
+        }
+
+        Rectangle {
+            id: addressBar
+            width: 480
+            height: 70
+            anchors {
+                top: navBar.bottom
+                right: parent.right
+                left: parent.left
+            }
+
             property int inputAreaHeight: 70
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
-             HifiStyles.RalewayLight {
+            HifiStyles.RalewayLight {
                 id: notice;
                 font.pixelSize: hifi.fonts.pixelSize * 0.50;
                 anchors {
@@ -147,10 +163,10 @@ Item {
                 focus: true
                 anchors {
                     bottom: parent.bottom
-                    left: homeButton.right
+                    left: parent.left
                     right: parent.right
-                    leftMargin: homeButton.width
-                    rightMargin: homeButton.width / 2
+                    leftMargin: 0
+                    rightMargin: 0
                     topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
                     bottomMargin: parent.inputAreaStep
                 }
@@ -204,7 +220,7 @@ Item {
             anchors.left: parent.left
             anchors.leftMargin: 0
             anchors.topMargin: 0
-            anchors.top: navBar.bottom
+            anchors.top: addressBar.bottom
             
             Row {
                 id: thing
