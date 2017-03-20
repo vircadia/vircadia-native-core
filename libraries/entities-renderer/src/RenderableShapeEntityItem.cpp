@@ -114,13 +114,22 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
         auto outColor = _procedural->getColor(color);
         outColor.a *= _procedural->isFading() ? Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) : 1.0f;
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
-        DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
+        if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
+            DependencyManager::get<GeometryCache>()->renderWireShape(batch, MAPPING[_shape]);
+        } else {
+            DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
+        }
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         color.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
-        geometryCache->renderSolidShapeInstance(batch, MAPPING[_shape], color, pipeline);
+        
+        if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
+            geometryCache->renderWireShapeInstance(batch, MAPPING[_shape], color, pipeline);
+        } else {
+            geometryCache->renderSolidShapeInstance(batch, MAPPING[_shape], color, pipeline);
+        }
     }
 
     static const auto triCount = DependencyManager::get<GeometryCache>()->getShapeTriangleCount(MAPPING[_shape]);

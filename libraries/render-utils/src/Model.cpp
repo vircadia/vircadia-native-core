@@ -227,6 +227,10 @@ void Model::updateRenderItems() {
             return;
         }
 
+        // lazy update of cluster matrices used for rendering.
+        // We need to update them here so we can correctly update the bounding box.
+        self->updateClusterMatrices();
+
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
@@ -240,12 +244,12 @@ void Model::updateRenderItems() {
                         Transform modelTransform = data._model->getTransform();
                         modelTransform.setScale(glm::vec3(1.0f));
 
-                        // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
-                        data._model->updateClusterMatrices();
-
-                        // update the model transform and bounding box for this render item.
-                        const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                        data.updateTransformForSkinnedMesh(modelTransform, state.clusterMatrices);
+                        const Model::MeshState& state = data._model->getMeshState(data._meshIndex);
+                        Transform renderTransform = modelTransform;
+                        if (state.clusterMatrices.size() == 1) {
+                            renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
+                        }
+                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
                     }
                 }
             });
@@ -1048,7 +1052,7 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 }
 
 void Model::computeMeshPartLocalBounds() {
-	for (auto& part : _modelMeshRenderItemsSet) {
+    for (auto& part : _modelMeshRenderItemsSet) {
         assert(part->_meshIndex < _modelMeshRenderItemsSet.size());
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
         part->computeAdjustedLocalBound(state.clusterMatrices);

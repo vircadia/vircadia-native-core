@@ -13,7 +13,6 @@
 
 #include <avatar/AvatarManager.h>
 #include <GLMHelpers.h>
-#include <FramebufferCache.h>
 #include <GLMHelpers.h>
 #include <OffscreenUi.h>
 #include <CursorManager.h>
@@ -42,7 +41,6 @@ ApplicationOverlay::ApplicationOverlay()
     _domainStatusBorder = geometryCache->allocateID();
     _magnifierBorder = geometryCache->allocateID();
     _qmlGeometryId = geometryCache->allocateID();
-    _rearViewGeometryId = geometryCache->allocateID();
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
@@ -51,7 +49,6 @@ ApplicationOverlay::~ApplicationOverlay() {
         geometryCache->releaseID(_domainStatusBorder);
         geometryCache->releaseID(_magnifierBorder);
         geometryCache->releaseID(_qmlGeometryId);
-        geometryCache->releaseID(_rearViewGeometryId);
     }
 }
 
@@ -86,7 +83,6 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
         // Now render the overlay components together into a single texture
         renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
         renderAudioScope(renderArgs); // audio scope in the very back - NOTE: this is the debug audio scope, not the VU meter
-        renderRearView(renderArgs); // renders the mirror view selfie
         renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
         renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
         renderStatsAndLogs(renderArgs);  // currently renders nothing
@@ -161,45 +157,6 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
     // cameral controls for the edit.js
     qApp->getOverlays().renderHUD(renderArgs);
-}
-
-void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
-}
-
-void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
-    if (!qApp->isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror) &&
-        !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-        gpu::Batch& batch = *renderArgs->_batch;
-
-        auto geometryCache = DependencyManager::get<GeometryCache>();
-
-        auto framebuffer = DependencyManager::get<FramebufferCache>();
-        auto selfieTexture = framebuffer->getSelfieFramebuffer()->getRenderBuffer(0);
-
-        int width = renderArgs->_viewport.z;
-        int height = renderArgs->_viewport.w;
-        mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
-        batch.setProjectionTransform(legacyProjection);
-        batch.setModelTransform(Transform());
-        batch.resetViewTransform();
-        
-        float screenRatio = ((float)qApp->getDevicePixelRatio());
-        float renderRatio = ((float)qApp->getRenderResolutionScale());
-        
-        auto viewport = qApp->getMirrorViewRect();
-        glm::vec2 bottomLeft(viewport.left(), viewport.top() + viewport.height());
-        glm::vec2 topRight(viewport.left() + viewport.width(), viewport.top());
-        bottomLeft *= screenRatio;
-        topRight *= screenRatio;
-        glm::vec2 texCoordMinCorner(0.0f, 0.0f);
-        glm::vec2 texCoordMaxCorner(viewport.width() * renderRatio / float(selfieTexture->getWidth()), viewport.height() * renderRatio / float(selfieTexture->getHeight()));
-
-        batch.setResourceTexture(0, selfieTexture);
-        float alpha = DependencyManager::get<OffscreenUi>()->getDesktop()->property("unpinnedAlpha").toFloat();
-        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, alpha), _rearViewGeometryId);
-
-        batch.setResourceTexture(0, renderArgs->_whiteTexture);
-    }
 }
 
 void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {

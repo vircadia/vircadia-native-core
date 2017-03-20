@@ -403,7 +403,6 @@ void AnimDebugDraw::update() {
         for (auto& iter : rays) {
             addLine(std::get<0>(iter), std::get<1>(iter), std::get<2>(iter), v);
         }
-        DebugDraw::getInstance().clearRays();
 
         data._vertexBuffer->resize(sizeof(AnimDebugDrawData::Vertex) * numVerts);
         data._vertexBuffer->setSubData<AnimDebugDrawData::Vertex>(0, vertices);
