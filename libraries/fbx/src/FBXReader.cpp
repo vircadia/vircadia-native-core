@@ -1631,13 +1631,11 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
         // whether we're skinned depends on how many clusters are attached
         const FBXCluster& firstFBXCluster = extracted.mesh.clusters.at(0);
-        int maxJointIndex = firstFBXCluster.jointIndex;
         glm::mat4 inverseModelTransform = glm::inverse(modelTransform);
         if (clusterIDs.size() > 1) {
             // this is a multi-mesh joint
             extracted.mesh.clusterIndices.resize(extracted.mesh.vertices.size());
             extracted.mesh.clusterWeights.resize(extracted.mesh.vertices.size());
-            float maxWeight = 0.0f;
             for (int i = 0; i < clusterIDs.size(); i++) {
                 QString clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
@@ -1662,11 +1660,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
                 ShapeVertices& points = shapeVertices.at(jointIndex);
 
-                float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int oldIndex = cluster.indices.at(j);
                     float weight = cluster.weights.at(j);
-                    totalWeight += weight;
                     for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
                             it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
 
@@ -1701,10 +1697,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         }
                     }
                 }
-                if (totalWeight > maxWeight) {
-                    maxWeight = totalWeight;
-                    maxJointIndex = jointIndex;
-                }
             }
             // normalize the weights if they don't add up to one
             for (int i = 0; i < extracted.mesh.clusterWeights.size(); i++) {
@@ -1716,7 +1708,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         } else {
             // this is a single-mesh joint
-            int jointIndex = maxJointIndex;
+            int jointIndex = firstFBXCluster.jointIndex;
             FBXJoint& joint = geometry.joints[jointIndex];
 
             // transform cluster vertices to joint-frame and save for later
@@ -1736,17 +1728,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 }
             }
         }
-        extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
-
         buildModelMesh(extracted.mesh, url);
-
-        if (extracted.mesh.isEye) {
-            if (maxJointIndex == geometry.leftEyeJointIndex) {
-                geometry.leftEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
-            } else {
-                geometry.rightEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
-            }
-        }
 
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;

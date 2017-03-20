@@ -219,8 +219,6 @@ public:
     Extents meshExtents;
     glm::mat4 modelTransform;
 
-    bool isEye;
-    
     QVector<FBXBlendshape> blendshapes;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
