@@ -83,6 +83,107 @@ Item {
 
         onMetaverseServerUrlChanged: updateLocationTextTimer.start();
         Rectangle {
+            id: navBar
+            width: 480
+            height: 70
+
+            gradient: Gradient {
+                GradientStop {
+                    position: 0
+                    color: "#c2ced8"
+
+                }
+
+                GradientStop {
+                    position: 1
+                    color: "#c2ced8"
+                }
+            }
+
+            anchors {
+                top: parent.top
+                right: parent.right
+                left: parent.left
+            }
+
+
+            ToolbarButton {
+                id: homeButton
+                imageURL: "../../../images/home.svg"
+                onClicked: {
+                    addressBarDialog.loadHome();
+                    root.shown = false;
+                }
+                anchors {
+                    left: parent.left
+                    leftMargin: homeButton.width / 2
+                    verticalCenter: parent.verticalCenter
+                }
+            }
+            property int inputAreaHeight: 70
+            property int inputAreaStep: (height - inputAreaHeight) / 2
+
+             HifiStyles.RalewayLight {
+                id: notice;
+                font.pixelSize: hifi.fonts.pixelSize * 0.50;
+                anchors {
+                    top: parent.top
+                    topMargin: parent.inputAreaStep + 12
+                    left: addressLine.left
+                    right: addressLine.right
+                }
+            }
+            HifiStyles.FiraSansRegular {
+                id: location;
+                font.pixelSize: addressLine.font.pixelSize;
+                color: "gray";
+                clip: true;
+                anchors.fill: addressLine;
+                visible: addressLine.text.length === 0
+            }
+
+            TextInput {
+                id: addressLine
+                focus: true
+                anchors {
+                    bottom: parent.bottom
+                    left: homeButton.right
+                    right: parent.right
+                    leftMargin: homeButton.width
+                    rightMargin: homeButton.width / 2
+                    topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
+                    bottomMargin: parent.inputAreaStep
+                }
+                font.pixelSize: hifi.fonts.pixelSize * 0.75
+                cursorVisible: false
+                onTextChanged: {
+                    filterChoicesByText();
+                    updateLocationText(text.length > 0);
+                    if (!isCursorVisible && text.length > 0) {
+                        isCursorVisible = true;
+                        cursorVisible = true;
+                    }
+                }
+                onAccepted: {
+                    addressBarDialog.keyboardEnabled = false;
+                }
+                onActiveFocusChanged: {
+                    cursorVisible = isCursorVisible && focus;
+                }
+                MouseArea {
+                    // If user clicks in address bar show cursor to indicate ability to enter address.
+                    anchors.fill: parent
+                    onClicked: {
+                        isCursorVisible = true;
+                        //parent.cursorVisible = true;
+                        parent.forceActiveFocus();
+                        addressBarDialog.keyboardEnabled = HMD.active
+                        tabletRoot.playButtonClickSound();
+                    }
+                }
+            }
+        }
+        Rectangle {
             id: topBar
             height: 90
             gradient: Gradient {
@@ -103,7 +204,7 @@ Item {
             anchors.left: parent.left
             anchors.leftMargin: 0
             anchors.topMargin: 0
-            anchors.top: parent.top
+            anchors.top: navBar.bottom
             
             Row {
                 id: thing
@@ -158,7 +259,7 @@ Item {
                 }
 
             
-            anchors.bottom: backgroundImage.top
+            anchors.bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom
             anchors.bottomMargin: 0
             anchors.right: parent.right
             anchors.rightMargin: 0
@@ -210,109 +311,7 @@ Item {
             }
         }
 
-        Rectangle {
-            id: backgroundImage
-            width: 480
-            height: 70
-
-            gradient: Gradient {
-                GradientStop {
-                    position: 0
-                    color: "#c2ced8"
-
-                }
-                
-                GradientStop {
-                    position: 1
-                    color: "#c2ced8"
-                }
-            }
-
-            anchors {
-                bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom
-                right: parent.right
-                left: parent.left
-            }
-
-
-            ToolbarButton {
-                id: homeButton
-                imageURL: "../../../images/home.svg"
-                onClicked: {
-                    addressBarDialog.loadHome();
-                    root.shown = false;
-                }
-                anchors {
-                    left: parent.left
-                    leftMargin: homeButton.width / 2
-                    verticalCenter: parent.verticalCenter
-                }
-            }
-            property int inputAreaHeight: 70
-            property int inputAreaStep: (height - inputAreaHeight) / 2
-
-             HifiStyles.RalewayLight {
-                id: notice;
-                font.pixelSize: hifi.fonts.pixelSize * 0.50;
-                anchors {
-                    top: parent.top
-                    topMargin: parent.inputAreaStep + 12
-                    left: addressLine.left
-                    right: addressLine.right
-                }
-            }
-            HifiStyles.FiraSansRegular {
-                id: location;
-                font.pixelSize: addressLine.font.pixelSize;
-                color: "gray";
-                clip: true;
-                anchors.fill: addressLine;
-                visible: addressLine.text.length === 0
-            }
-            
-            TextInput {
-                id: addressLine
-                focus: true
-                anchors {
-                    bottom: parent.bottom
-                    left: homeButton.right
-                    right: parent.right
-                    leftMargin: homeButton.width
-                    rightMargin: homeButton.width / 2
-                    topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
-                    bottomMargin: parent.inputAreaStep
-                }
-                font.pixelSize: hifi.fonts.pixelSize * 0.75
-                cursorVisible: false
-                onTextChanged: {
-                    filterChoicesByText();
-                    updateLocationText(text.length > 0);
-                    if (!isCursorVisible && text.length > 0) {
-                        isCursorVisible = true;
-                        cursorVisible = true;
-                    }
-                }
-                onAccepted: {
-                    addressBarDialog.keyboardEnabled = false;
-                }
-                onActiveFocusChanged: {
-                    cursorVisible = isCursorVisible && focus;
-                }
-                MouseArea {
-                    // If user clicks in address bar show cursor to indicate ability to enter address.
-                    anchors.fill: parent
-                    onClicked: {
-                        isCursorVisible = true;
-                        //parent.cursorVisible = true;
-                        parent.forceActiveFocus();
-                        addressBarDialog.keyboardEnabled = HMD.active
-                        tabletRoot.playButtonClickSound();
-                    }
-                }
-            }  
-        }
-
-          Timer {
+        Timer {
             // Delay updating location text a bit to avoid flicker of content and so that connection status is valid.
             id: updateLocationTextTimer
             running: false
