@@ -1312,7 +1312,7 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
         }
         _mesh = mesh;
         _meshDirty = true;
-        _meshInitialized = true;
+        _meshReady = true;
         neighborsNeedUpdate = _neighborsNeedUpdate;
         _neighborsNeedUpdate = false;
     });
@@ -1324,7 +1324,7 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
 void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
     // this creates a collision-shape for the physics engine.  The shape comes from
     // _volData for cubic extractors and from _mesh for marching-cube extractors
-    if (!_meshInitialized) {
+    if (!_meshReady) {
         return;
     }
 
@@ -1601,15 +1601,22 @@ bool RenderablePolyVoxEntityItem::getMeshAsScriptValue(QScriptEngine *engine, QS
     MeshProxy* meshProxy = nullptr;
     glm::mat4 transform = voxelToLocalMatrix();
     withReadLock([&] {
-        if (_meshInitialized) {
+        gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
+        if (!_meshReady) {
+            // we aren't ready to return a mesh.  the caller will have to try again later.
+            success = false;
+        } else if (numVertices == 0) {
+            // we are ready, but there are no triangles in the mesh.
+            success = true;
+        } else {
             success = true;
             // the mesh will be in voxel-space.  transform it into object-space
             meshProxy = new MeshProxy(
                 _mesh->map([=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
                            [=](glm::vec3 normal){ return glm::vec3(transform * glm::vec4(normal, 0.0f)); },
-                           [](uint32_t index){ return index; }));
+                           [&](uint32_t index){ return index; }));
+            result = meshToScriptValue(engine, meshProxy);
         }
     });
-    result = meshToScriptValue(engine, meshProxy);
     return success;
 }

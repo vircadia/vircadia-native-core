@@ -228,7 +228,7 @@ void Mesh::forEach(std::function<void(glm::vec3)> vertexFunc,
 
     // normal data
     const gpu::BufferView& normalsBufferView = getAttributeBuffer(attributeTypeNormal);
-    gpu::BufferView::Index numNormals =  (gpu::BufferView::Index) normalsBufferView.getNumElements();
+    gpu::BufferView::Index numNormals =  (gpu::BufferView::Index)normalsBufferView.getNumElements();
     for (gpu::BufferView::Index i = 0; i < numNormals; i ++) {
         normalFunc(normalsBufferView.get<glm::vec3>(i));
     }

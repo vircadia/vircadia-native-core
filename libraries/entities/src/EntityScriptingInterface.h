@@ -304,6 +304,16 @@ public slots:
      */
     Q_INVOKABLE glm::mat4 getEntityTransform(const QUuid& entityID);
 
+
+    /**jsdoc
+     * Returns object to world transform, excluding scale
+     *
+     * @function Entities.getEntityLocalTransform
+     * @param {EntityID} entityID The ID of the entity whose local transform is to be returned
+     * @return {Mat4} Entity's object to parent transform, excluding scale
+     */
+    Q_INVOKABLE glm::mat4 getEntityLocalTransform(const QUuid& entityID);
+
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 

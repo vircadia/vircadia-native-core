@@ -142,7 +142,7 @@ public:
     uint8_t getVoxelInternal(int x, int y, int z) const;
     bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
 
-    void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; }); }
+    void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; _meshReady = false; }); }
 
     // Transparent polyvox didn't seem to be working so disable for now
     bool isTransparent() override { return false; }
@@ -157,7 +157,7 @@ private:
     model::MeshPointer _mesh;
     gpu::Stream::FormatPointer _vertexFormat;
     bool _meshDirty { true }; // does collision-shape need to be recomputed?
-    bool _meshInitialized { false };
+    bool _meshReady { false };
 
     NetworkTexturePointer _xTexture;
     NetworkTexturePointer _yTexture;

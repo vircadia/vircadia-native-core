@@ -934,11 +934,7 @@ void EntityScriptingInterface::voxelsToMesh(QUuid entityID, QScriptValue callbac
     QScriptValue mesh { false };
 
     polyVoxWorker(entityID, [&](PolyVoxEntityItem& polyVoxEntity) mutable {
-        if (polyVoxEntity.getOnCount() == 0) {
-            success = true;
-        } else {
-            success = polyVoxEntity.getMeshAsScriptValue(callback.engine(), mesh);
-        }
+        success = polyVoxEntity.getMeshAsScriptValue(callback.engine(), mesh);
         return true;
     });
 
@@ -1570,6 +1566,23 @@ glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {
             if (entity) {
                 glm::mat4 translation = glm::translate(entity->getPosition());
                 glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
+                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
+                                                        entity->getRegistrationPoint());
+                result = translation * rotation * registration;
+            }
+        });
+    }
+    return result;
+}
+
+glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityID) {
+    glm::mat4 result;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                glm::mat4 translation = glm::translate(entity->getLocalPosition());
+                glm::mat4 rotation = glm::mat4_cast(entity->getLocalOrientation());
                 glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
                                                         entity->getRegistrationPoint());
                 result = translation * rotation * registration;
