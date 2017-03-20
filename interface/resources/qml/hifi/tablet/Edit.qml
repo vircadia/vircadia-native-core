@@ -7,6 +7,7 @@ import "../../controls"
 import "../toolbars"
 import HFWebEngineProfile 1.0
 import QtGraphicalEffects 1.0
+import "../../controls-uit" as HifiControls
 import "../../styles-uit"
 
 StackView {
@@ -16,6 +17,8 @@ StackView {
 
     property var eventBridge;
     signal sendToScript(var message);
+
+    HifiConstants { id: hifi }
 
     function pushSource(path) {
         editRoot.push(Qt.resolvedUrl(path));
@@ -155,97 +158,39 @@ StackView {
                         }
                     }
 
-                    Item {
+                    HifiControls.Button {
                         id: assetServerButton
-                        width: 370
-                        height: 38
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Open This Domain's Asset Server"
+                        color: hifi.buttons.black
+                        colorScheme: hifi.colorSchemes.dark
+                        anchors.right: parent.right
+                        anchors.rightMargin: 55
+                        anchors.left: parent.left
+                        anchors.leftMargin: 55
                         anchors.top: createEntitiesFlow.bottom
                         anchors.topMargin: 35
-                        
-                        Rectangle {
-                            id: assetServerButtonBg
-                            color: "black"
-                            opacity: 1
-                            radius: 6
-                            anchors.right: parent.right
-                            anchors.rightMargin: 0
-                            anchors.left: parent.left
-                            anchors.leftMargin: 0
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 0
-                            anchors.top: parent.top
-                            anchors.topMargin: 0
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "openAssetBrowserButton" }
+                            });
                         }
+                    }
 
-                        Rectangle {
-                            id: assetServerButtonGradient
-                            gradient: Gradient {
-                                GradientStop {
-                                    position: 0
-                                    color: "#383838"
-                                }
-
-                                GradientStop {
-                                    position: 1
-                                    color: "black"
-                                }
-                            }
-                            opacity: 1
-                            radius: 6
-                            anchors.right: parent.right
-                            anchors.rightMargin: 0
-                            anchors.left: parent.left
-                            anchors.leftMargin: 0
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 0
-                            anchors.top: parent.top
-                            anchors.topMargin: 0
+                    HifiControls.Button {
+                        text: "Import Entities (.json)"
+                        color: hifi.buttons.black
+                        colorScheme: hifi.colorSchemes.dark
+                        anchors.right: parent.right
+                        anchors.rightMargin: 55
+                        anchors.left: parent.left
+                        anchors.leftMargin: 55
+                        anchors.top: assetServerButton.bottom
+                        anchors.topMargin: 20
+                        onClicked: {
+                            editRoot.sendToScript({
+                                method: "newEntityButtonClicked", params: { buttonName: "importEntitiesButton" }
+                            });
                         }
-
-                        Text {
-                            color: "#ffffff"
-                            text: "OPEN THIS DOMAIN'S ASSET SERVER"
-                            font.bold: true
-                            font.pixelSize: 14
-                            anchors.centerIn: parent
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            enabled: true
-                            onClicked: {
-                                editRoot.sendToScript({
-                                    method: "newEntityButtonClicked", params: { buttonName: "openAssetBrowserButton" }
-                                });
-                            }
-                            onEntered: {
-                                assetServerButton.state = "hover state";
-                            }
-                            onExited: {
-                                assetServerButton.state = "base state";
-                            }
-                        }
-
-                        states: [
-                            State {
-                                name: "hover state"
-
-                                PropertyChanges {
-                                    target: assetServerButtonGradient
-                                    opacity: 0
-                                }
-                            },
-                            State {
-                                name: "base state"
-
-                                PropertyChanges {
-                                    target: assetServerButtonGradient
-                                    opacity: 1
-                                }
-                            }
-                        ]
                     }
                 }
             }

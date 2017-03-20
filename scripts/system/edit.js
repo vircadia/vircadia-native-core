@@ -294,7 +294,21 @@ var toolBar = (function () {
             that.toggle();
         });
 
-        addButton("openAssetBrowserButton", "assets-01.svg", function(){
+        addButton("importEntitiesButton", "assets-01.svg", function() {
+            var importURL = null;
+            var fullPath = Window.browse("Select Model to Import", "", "*.json");
+            if (fullPath) {
+                importURL = "file:///" + fullPath;
+            }
+            if (importURL) {
+                if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+                    toolBar.toggle();
+                }
+                importSVO(importURL);
+            }
+        });
+
+        addButton("openAssetBrowserButton", "assets-01.svg", function() {
             Window.showAssetServer();
         });
 
