@@ -8,6 +8,8 @@ Item {
     property alias url: root.url
     property alias scriptURL: root.userScriptUrl
     property alias eventBridge: eventBridgeWrapper.eventBridge
+    property alias canGoBack: root.canGoBack;
+    property var goBack: root.goBack;
     property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
     property bool punctuationMode: false

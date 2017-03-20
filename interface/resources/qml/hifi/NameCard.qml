@@ -16,6 +16,8 @@ import QtGraphicalEffects 1.0
 import "../styles-uit"
 import "toolbars"
 
+// references Users, UserActivityLogger, MyAvatar, Vec3, Quat, AddressManager from root context
+
 Item {
     id: thisNameCard
     // Size
@@ -44,7 +46,7 @@ Item {
 
     Item {
         id: avatarImage
-        visible: profileUrl !== "";
+        visible: profileUrl !== "" && userName !== "";
         // Size
         height: isMyCard ? 70 : 42;
         width: visible ? height : 0;
@@ -237,8 +239,8 @@ Item {
                 enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "";
                 hoverEnabled: enabled
                 onClicked: {
-                    AddressManager.goToUser(thisNameCard.userName);
-                    UserActivityLogger.palAction("go_to_user", thisNameCard.userName);
+                    goToUserInDomain(thisNameCard.uuid);
+                    UserActivityLogger.palAction("go_to_user_in_domain", thisNameCard.uuid);
                 }
                 onEntered: {
                     displayNameText.color = hifi.colors.blueHighlight;
@@ -330,8 +332,8 @@ Item {
             enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "";
             hoverEnabled: enabled
             onClicked: {
-                AddressManager.goToUser(thisNameCard.userName);
-                UserActivityLogger.palAction("go_to_user", thisNameCard.userName);
+                goToUserInDomain(thisNameCard.uuid);
+                UserActivityLogger.palAction("go_to_user_in_domain", thisNameCard.uuid);
             }
             onEntered: {
                 displayNameText.color = hifi.colors.blueHighlight;
@@ -487,5 +489,23 @@ Item {
         if (isReleased) {
            UserActivityLogger.palAction("avatar_gain_changed", avatarUuid);
         }
+    }
+
+    // Function body by Howard Stearns 2017-01-08
+    function goToUserInDomain(avatarUuid) {
+        var avatar = AvatarList.getAvatar(avatarUuid);
+        if (!avatar) {
+            console.log("This avatar is no longer present. goToUserInDomain() failed.");
+            return;
+        }
+        var vector = Vec3.subtract(avatar.position, MyAvatar.position);
+        var distance = Vec3.length(vector);
+        var target = Vec3.multiply(Vec3.normalize(vector), distance - 2.0);
+        // FIXME: We would like the avatar to recompute the avatar's "maybe fly" test at the new position, so that if high enough up,
+        // the avatar goes into fly mode rather than falling. However, that is not exposed to Javascript right now.
+        // FIXME: it would be nice if this used the same teleport steps and smoothing as in the teleport.js script.
+        // Note, however, that this script allows teleporting to a person in the air, while teleport.js is going to a grounded target.
+        MyAvatar.orientation = Quat.lookAtSimple(MyAvatar.position, avatar.position);
+        MyAvatar.position = Vec3.sum(MyAvatar.position, target);
     }
 }
