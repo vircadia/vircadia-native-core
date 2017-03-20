@@ -188,6 +188,35 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const
     return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
 }
 
+gpu::TexturePointer TextureCache::getTextureByHash(const std::string& hash) {
+    std::weak_ptr<gpu::Texture> weakPointer;
+    {
+        std::unique_lock<std::mutex> lock(_texturesByHashesMutex);
+        weakPointer = _texturesByHashes[hash];
+    }
+    auto result = weakPointer.lock();
+    if (result) {
+        qCWarning(modelnetworking) << "QQQ Returning live texture for hash " << hash.c_str();
+    }
+    return result;
+}
+
+gpu::TexturePointer TextureCache::cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture) {
+    gpu::TexturePointer result;
+    {
+        std::unique_lock<std::mutex> lock(_texturesByHashesMutex);
+        result = _texturesByHashes[hash].lock();
+        if (!result) {
+            _texturesByHashes[hash] = texture;
+            result = texture;
+        } else {
+            qCWarning(modelnetworking) << "QQQ Swapping out texture with previous live texture in hash " << hash.c_str();
+        }
+    }
+    return result;
+}
+
+
 gpu::TexturePointer getFallbackTextureForType(NetworkTexture::Type type) {
     gpu::TexturePointer result;
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -386,15 +415,6 @@ private:
     int _maxNumPixels;
 };
 
-class KTXReader : public Reader {
-public:
-    KTXReader(const QWeakPointer<Resource>& resource, const QUrl& url, const KTXFilePointer& ktxFile);
-    void read() override final;
-
-private:
-    KTXFilePointer _file;
-};
-
 void NetworkTexture::downloadFinished(const QByteArray& data) {
     loadContent(data);
 }
@@ -408,15 +428,39 @@ void NetworkTexture::loadContent(const QByteArray& content) {
         hash = hasher.result().toHex().toStdString();
     }
 
-    std::unique_ptr<Reader> reader;
-    KTXFilePointer ktxFile;
-    if (!_cache.isNull() && (ktxFile = static_cast<TextureCache*>(_cache.data())->_ktxCache.getFile(hash))) {
-        reader.reset(new KTXReader(_self, _url, ktxFile));
-    } else {
-        reader.reset(new ImageReader(_self, _url, content, hash, _maxNumPixels));
+    auto textureCache = static_cast<TextureCache*>(_cache.data());
+
+    if (textureCache != nullptr) {
+        // If we already have a live texture with the same hash, use it
+        auto texture = textureCache->getTextureByHash(hash);
+
+        // If there is no live texture, check if there's an existing KTX file
+        if (!texture) {
+            KTXFilePointer ktxFile = textureCache->_ktxCache.getFile(hash);
+            if (ktxFile) {
+                // Ensure that the KTX deserialization worked
+                auto ktx = ktxFile->getKTX();
+                if (ktx) {
+                    texture.reset(gpu::Texture::unserialize(ktx));
+                    // Ensure that the texture population worked
+                    if (texture) {
+                        texture->setKtxBacking(ktx);
+                        texture = textureCache->cacheTextureByHash(hash, texture);
+                    }
+                }
+            }
+        }
+
+        // If we found the texture either because it's in use or via KTX deserialization, 
+        // set the image and return immediately.
+        if (texture) {
+            setImage(texture, texture->getWidth(), texture->getHeight());
+            return;
+        }
     }
 
-    QThreadPool::globalInstance()->start(reader.release());
+    // We failed to find an existing live or KTX texture, so trigger an image reader
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, hash, _maxNumPixels));
 }
 
 Reader::Reader(const QWeakPointer<Resource>& resource, const QUrl& url) :
@@ -526,22 +570,34 @@ void ImageReader::read() {
             texture->setFallbackTexture(networkTexture->getFallbackTexture());
         }
 
+        auto textureCache = DependencyManager::get<TextureCache>();
         // Save the image into a KTXFile
-        auto ktx = gpu::Texture::serialize(*texture);
-        if (ktx) {
-            const char* data = reinterpret_cast<const char*>(ktx->_storage->data());
-            size_t length = ktx->_storage->size();
+        auto memKtx = gpu::Texture::serialize(*texture);
+        if (!memKtx) {
+            qCWarning(modelnetworking) << "Unable to serialize texture to KTX " << _url;
+        }
+
+        if (memKtx && textureCache) {
+            const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
+            size_t length = memKtx->_storage->size();
             KTXFilePointer file;
-            auto& ktxCache = DependencyManager::get<TextureCache>()->_ktxCache;
-            if (!ktx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(_hash, length)))) {
+            auto& ktxCache = textureCache->_ktxCache;
+            if (!memKtx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(_hash, length)))) {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {
                 resource.staticCast<NetworkTexture>()->_file = file;
-                auto ktx = file->getKTX();
-                texture->setKtxBacking(ktx);
+                auto fileKtx = file->getKTX();
+                if (fileKtx) {
+                    texture->setKtxBacking(fileKtx);
+                }
             }
-        } else {
-            qCWarning(modelnetworking) << "Unable to serialize texture to KTX " << _url;
+        }
+
+        // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
+        // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
+        // be the winner
+        if (textureCache) {
+            texture = textureCache->cacheTextureByHash(_hash, texture);
         }
     }
 
@@ -553,36 +609,4 @@ void ImageReader::read() {
     } else {
         qCDebug(modelnetworking) << _url << "loading stopped; resource out of scope";
     }
-}
-
-KTXReader::KTXReader(const QWeakPointer<Resource>& resource, const QUrl& url,
-        const KTXFilePointer& ktxFile) :
-    Reader(resource, url), _file(ktxFile) {}
-
-void KTXReader::read() {
-    PROFILE_RANGE_EX(resource_parse_image_ktx, __FUNCTION__, 0xffff0000, 0, { { "url", _url.toString() } });
-
-    gpu::TexturePointer texture;
-    {
-        auto resource = _resource.lock(); // to ensure the resource is still needed
-        if (!resource) {
-            qCDebug(modelnetworking) << _url << "loading stopped; resource out of scope";
-            return;
-        }
-
-        resource.staticCast<NetworkTexture>()->_file = _file;
-        auto ktx = _file->getKTX();
-        texture.reset(gpu::Texture::unserialize(ktx));
-        texture->setKtxBacking(ktx);
-    }
-
-    auto resource = _resource.lock(); // to ensure the resource is still needed
-    if (resource) {
-        QMetaObject::invokeMethod(resource.data(), "setImage",
-            Q_ARG(gpu::TexturePointer, texture),
-            Q_ARG(int, texture->getWidth()), Q_ARG(int, texture->getHeight()));
-    } else {
-        qCDebug(modelnetworking) << _url << "loading stopped; resource out of scope";
-    }
-
 }
