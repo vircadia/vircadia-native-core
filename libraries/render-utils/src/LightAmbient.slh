@@ -77,23 +77,10 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
     vec3 ambientFresnel = fresnelSchlickAmbient(fresnel, eyeDir, normal, 1.0 - roughness);
 
     // Diffuse from ambient
-    diffuse = (1.0 - metallic) * (vec3 (1.0) - ambientFresnel);
-
-    if (gl_FragCoord.x > 600) {
-               float levels = getLightAmbientMapNumMips(ambient);
-            float lod = min(floor((roughness)* levels), levels);
-     diffuse *= evalSkyboxLight(normal, lod).xyz;
-    } else {
-        diffuse *= sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), normal).xyz;
-    }
-
-    if (gl_FragCoord.y > 600) {
-        diffuse *= 1.0 / 3.14;
-    }
+    diffuse = (1.0 - metallic) * (vec3(1.0) - ambientFresnel) * sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), normal).xyz;
 
     // Specular highlight from ambient
     specular = evalAmbientSpecularIrradiance(ambient, eyeDir, normal, roughness)  * ambientFresnel;
-
 
 <@if supportScattering@>
     float ambientOcclusion = curvatureAO(lowNormalCurvature.w * 20.0f) * 0.5f;
