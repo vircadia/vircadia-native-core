@@ -5821,12 +5821,14 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
     }
 }
 
-void Application::toggleRunningScriptsWidget() const {
-    
+void Application::toggleRunningScriptsWidget() const {    
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    bool _scriptsRunning = !scriptEngines->getRunningScripts().isEmpty();
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    if (tablet->getToolbarMode()) {
+    if (tablet->getToolbarMode() || false == _scriptsRunning) {
         static const QUrl url("hifi/dialogs/RunningScripts.qml");
         DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
     } else {
