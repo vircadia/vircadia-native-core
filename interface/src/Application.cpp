@@ -4438,9 +4438,12 @@ void Application::update(float deltaTime) {
 
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
-                    const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
-                    _entitySimulation->handleOutgoingChanges(outgoingChanges);
-                    avatarManager->handleOutgoingChanges(outgoingChanges);
+                    const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
+                    _entitySimulation->handleDeactivatedMotionStates(deactivations);
+
+                    const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
+                    _entitySimulation->handleChangedMotionStates(outgoingChanges);
+                    avatarManager->handleChangedMotionStates(outgoingChanges);
                 });
 
                 if (!_aboutToQuit) {
