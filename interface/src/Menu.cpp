@@ -74,9 +74,6 @@ Menu::Menu() {
     // File > Help
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Help, 0, qApp, SLOT(showHelp()));
 
-    // File > About
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
-
     // File > Quit
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Quit, Qt::CTRL | Qt::Key_Q, qApp, SLOT(quit()), QAction::QuitRole);
 
@@ -248,9 +245,6 @@ Menu::Menu() {
         UNSPECIFIED_POSITION, "Advanced"));
 
     viewMenu->addSeparator();
-
-    // View > Mini Mirror
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror, 0, false);
 
     // View > Center Player In View
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,

@@ -26,7 +26,6 @@ public:
 };
 
 namespace MenuOption {
-    const QString AboutApp = "About Interface";
     const QString AddRemoveFriends = "Add/Remove Friends...";
     const QString AddressBar = "Show Address Bar";
     const QString Animations = "Animations...";
@@ -123,7 +122,6 @@ namespace MenuOption {
     const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MeshVisible = "Draw Mesh";
-    const QString MiniMirror = "Mini Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MuteFaceTracking = "Mute Face Tracking";

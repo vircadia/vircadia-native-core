@@ -278,8 +278,6 @@ public:
 
     virtual void pushPostUpdateLambda(void* key, std::function<void()> func) override;
 
-    const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
-
     void updateMyAvatarLookAtPosition();
 
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
@@ -370,7 +368,6 @@ public slots:
     void calibrateEyeTracker5Points();
 #endif
 
-    void aboutApp();
     static void showHelp();
 
     void cycleCamera();
@@ -559,8 +556,6 @@ private:
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};
     Camera _myCamera;                            // My view onto the world
-    Camera _mirrorCamera;                        // Camera for mirror view
-    QRect _mirrorViewRect;
 
     Setting::Handle<QString> _previousScriptLocation;
     Setting::Handle<float> _fieldOfView;
