@@ -30,9 +30,8 @@ vec3 fresnelSchlickAmbient(vec3 fresnelColor, vec3 lightDir, vec3 halfDir, float
 <$declareSkyboxMap()$>
 <@endif@>
 
-vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, vec3 fragEyeDir, vec3 fragNormal, float roughness, vec3 fresnel) {
+vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, vec3 fragEyeDir, vec3 fragNormal, float roughness) {
     vec3 direction = -reflect(fragEyeDir, fragNormal);
-    vec3 ambientFresnel = fresnelSchlickAmbient(fresnel, fragEyeDir, fragNormal, 1.0 - roughness);
     vec3 specularLight;
     <@if supportIfAmbientMapElseAmbientSphere@>
         if (getLightHasAmbientMap(ambient))
@@ -53,7 +52,7 @@ vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, vec3 fragEyeDir, vec3 f
     }
     <@endif@>
 
-        return specularLight * ambientFresnel;
+        return specularLight;
 }
 <@endfunc@>
 
@@ -74,16 +73,26 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
 <@endif@>
     ) {
 
-    // Diffuse from ambient
-    diffuse = (1.0 - metallic) * sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), normal).xyz;
+    // Fresnel
+    vec3 ambientFresnel = fresnelSchlickAmbient(fresnel, eyeDir, normal, 1.0 - roughness);
 
-    if (gl_FragCoord.x > 300) {
-        vec3 ambientFresnelDiffuse = vec3 (1.0) - fresnelSchlickAmbient(fresnel, eyeDir, normal, 1.0 - roughness);
-        diffuse *= ambientFresnelDiffuse;
+    // Diffuse from ambient
+    diffuse = (1.0 - metallic) * (vec3 (1.0) - ambientFresnel);
+
+    if (gl_FragCoord.x > 600) {
+               float levels = getLightAmbientMapNumMips(ambient);
+            float lod = min(floor((roughness)* levels), levels);
+     diffuse *= evalSkyboxLight(normal, lod).xyz;
+    } else {
+        diffuse *= sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), normal).xyz;
+    }
+
+    if (gl_FragCoord.y > 600) {
+        diffuse *= 1.0 / 3.14;
     }
 
     // Specular highlight from ambient
-    specular = evalAmbientSpecularIrradiance(ambient, eyeDir, normal, roughness, fresnel);
+    specular = evalAmbientSpecularIrradiance(ambient, eyeDir, normal, roughness)  * ambientFresnel;
 
 
 <@if supportScattering@>
