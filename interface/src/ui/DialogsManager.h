@@ -22,7 +22,6 @@
 class AnimationsDialog;
 class AttachmentsDialog;
 class CachesSizeDialog;
-class DiskCacheEditor;
 class LodToolsDialog;
 class OctreeStatsDialog;
 class ScriptEditorWindow;
@@ -46,11 +45,9 @@ public slots:
     void showAddressBar();
     void showFeed();
     void setDomainConnectionFailureVisibility(bool visible);
-    void toggleDiskCacheEditor();
     void toggleLoginDialog();
     void showLoginDialog();
     void octreeStatsDetails();
-    void cachesSizeDialog();
     void lodTools();
     void hmdTools(bool showTools);
     void showScriptEditor();
@@ -77,7 +74,6 @@ private:
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
-    QPointer<DiskCacheEditor> _diskCacheEditor;
     QPointer<QMessageBox> _ircInfoBox;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;

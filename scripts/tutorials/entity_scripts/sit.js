@@ -6,26 +6,35 @@
     var ANIMATION_FPS = 30;
     var ANIMATION_FIRST_FRAME = 1;
     var ANIMATION_LAST_FRAME = 10;
-    var RELEASE_KEYS = ['w', 'a', 's', 'd', 'UP', 'LEFT', 'DOWN', 'RIGHT'];
     var RELEASE_TIME = 500; // ms
     var RELEASE_DISTANCE = 0.2; // meters
     var MAX_IK_ERROR = 30;
+    var IK_SETTLE_TIME = 250; // ms
     var DESKTOP_UI_CHECK_INTERVAL = 100;
     var DESKTOP_MAX_DISTANCE = 5;
-    var SIT_DELAY = 25
-    var MAX_RESET_DISTANCE = 0.5
+    var SIT_DELAY = 25;
+    var MAX_RESET_DISTANCE = 0.5; // meters
+    var OVERRIDEN_DRIVE_KEYS = [
+        DriveKeys.TRANSLATE_X,
+        DriveKeys.TRANSLATE_Y,
+        DriveKeys.TRANSLATE_Z,
+        DriveKeys.STEP_TRANSLATE_X,
+        DriveKeys.STEP_TRANSLATE_Y,
+        DriveKeys.STEP_TRANSLATE_Z,
+    ];
 
     this.entityID = null;
-    this.timers = {};
     this.animStateHandlerID = null;
     this.interval = null;
+    this.sitDownSettlePeriod = null;
+    this.lastTimeNoDriveKeys = null;
 
     this.preload = function(entityID) {
         this.entityID = entityID;
     }
     this.unload = function() {
         if (Settings.getValue(SETTING_KEY) === this.entityID) {
-            this.sitUp();
+            this.standUp();
         }
         if (this.interval !== null) {
             Script.clearInterval(this.interval);
@@ -96,6 +105,11 @@
             print("Someone is already sitting in that chair.");
             return;
         }
+        print("Sitting down (" + this.entityID + ")");
+
+        var now = Date.now();
+        this.sitDownSettlePeriod = now + IK_SETTLE_TIME;
+        this.lastTimeNoDriveKeys = now;
 
         var previousValue = Settings.getValue(SETTING_KEY);
         Settings.setValue(SETTING_KEY, this.entityID);
@@ -118,20 +132,17 @@
             return { headType: 0 };
         }, ["headType"]);
         Script.update.connect(this, this.update);
-        Controller.keyPressEvent.connect(this, this.keyPressed);
-        Controller.keyReleaseEvent.connect(this, this.keyReleased);
-        for (var i in RELEASE_KEYS) {
-            Controller.captureKeyEvents({ text: RELEASE_KEYS[i] });
+        for (var i in OVERRIDEN_DRIVE_KEYS) {
+            MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
         }
     }
 
-    this.sitUp = function() {
+    this.standUp = function() {
+        print("Standing up (" + this.entityID + ")");
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
         Script.update.disconnect(this, this.update);
-        Controller.keyPressEvent.disconnect(this, this.keyPressed);
-        Controller.keyReleaseEvent.disconnect(this, this.keyReleased);
-        for (var i in RELEASE_KEYS) {
-            Controller.releaseKeyEvents({ text: RELEASE_KEYS[i] });
+        for (var i in OVERRIDEN_DRIVE_KEYS) {
+            MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
         }
 
         this.setSeatUser(null);
@@ -156,6 +167,7 @@
         }
     }
 
+    // function called by teleport.js if it detects the appropriate userData
     this.sit = function () {
         this.sitDown();
     }
@@ -207,7 +219,33 @@
             var properties = Entities.getEntityProperties(this.entityID);
             var avatarDistance = Vec3.distance(MyAvatar.position, properties.position);
             var ikError = MyAvatar.getIKErrorOnLastSolve();
-            if (avatarDistance > RELEASE_DISTANCE || ikError > MAX_IK_ERROR) {
+            var now = Date.now();
+            var shouldStandUp = false;
+
+            // Check if a drive key is pressed
+            var hasActiveDriveKey = false;
+            for (var i in OVERRIDEN_DRIVE_KEYS) {
+                if (MyAvatar.getRawDriveKey(OVERRIDEN_DRIVE_KEYS[i]) != 0.0) {
+                    hasActiveDriveKey = true;
+                    break;
+                }
+            }
+
+            // Only standup if user has been pushing a drive key for RELEASE_TIME
+            if (hasActiveDriveKey) {
+                var elapsed = now - this.lastTimeNoDriveKeys;
+                shouldStandUp = elapsed > RELEASE_TIME;
+            } else {
+                this.lastTimeNoDriveKeys = Date.now();
+            }
+
+            // Allow some time for the IK to settle
+            if (ikError > MAX_IK_ERROR && now > this.sitDownSettlePeriod) {
+                shouldStandUp = true;
+            }
+
+
+            if (shouldStandUp || avatarDistance > RELEASE_DISTANCE) {
                 print("IK error: " + ikError + ", distance from chair: " + avatarDistance);
 
                 // Move avatar in front of the chair to avoid getting stuck in collision hulls
@@ -215,45 +253,13 @@
                     var offset = { x: 0, y: 1.0, z: -0.5 - properties.dimensions.z * properties.registrationPoint.z };
                     var position = Vec3.sum(properties.position, Vec3.multiplyQbyV(properties.rotation, offset));
                     MyAvatar.position = position;
+                    print("Moving Avatar in front of the chair.")
                 }
 
-                this.sitUp();
+                this.standUp();
             }
         }
     }
-    this.keyPressed = function(event) {
-        if (isInEditMode()) {
-            return;
-        }
-
-        if (RELEASE_KEYS.indexOf(event.text) !== -1) {
-            var that = this;
-            this.timers[event.text] = Script.setTimeout(function() {
-                delete that.timers[event.text];
-
-                var properties = Entities.getEntityProperties(that.entityID);
-                var avatarDistance = Vec3.distance(MyAvatar.position, properties.position);
-
-                // Move avatar in front of the chair to avoid getting stuck in collision hulls
-                if (avatarDistance < MAX_RESET_DISTANCE) {
-                    var offset = { x: 0, y: 1.0, z: -0.5 - properties.dimensions.z * properties.registrationPoint.z };
-                    var position = Vec3.sum(properties.position, Vec3.multiplyQbyV(properties.rotation, offset));
-                    MyAvatar.position = position;
-                }
-
-                that.sitUp();
-            }, RELEASE_TIME);
-        }
-    }
-    this.keyReleased = function(event) {
-        if (RELEASE_KEYS.indexOf(event.text) !== -1) {
-            if (this.timers[event.text]) {
-                Script.clearTimeout(this.timers[event.text]);
-                delete this.timers[event.text];
-            }
-        }
-    }
-
     this.canSitDesktop = function() {
         var properties = Entities.getEntityProperties(this.entityID, ["position"]);
         var distanceFromSeat = Vec3.distance(MyAvatar.position, properties.position);

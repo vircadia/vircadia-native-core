@@ -54,7 +54,8 @@ template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
             in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
             position += compressedLength;
             arrayData = qUncompress(compressed);
-            if (arrayData.isEmpty() || arrayData.size() != (sizeof(T) * arrayLength)) { // answers empty byte array if corrupt
+            if (arrayData.isEmpty() ||
+                (unsigned int)arrayData.size() != (sizeof(T) * arrayLength)) { // answers empty byte array if corrupt
                 throw QString("corrupt fbx file");
             }
         } else {
