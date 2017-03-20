@@ -39,7 +39,6 @@ function loaded() {
       elFilter = document.getElementById("filter");
       elInView = document.getElementById("in-view")
       elRadius = document.getElementById("radius");
-      elTeleport = document.getElementById("teleport");
       elExport = document.getElementById("export");
       elPal = document.getElementById("pal");
       elEntityTable = document.getElementById("entity-table");
@@ -273,9 +272,6 @@ function loaded() {
       }
       elToggleVisible.onclick = function () {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
-      }
-      elTeleport.onclick = function () {
-          EventBridge.emitWebEvent(JSON.stringify({ type: 'teleport' }));
       }
       elExport.onclick = function() {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
