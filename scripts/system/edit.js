@@ -687,11 +687,22 @@ function mouseReleaseEvent(event) {
     }
 }
 
+function wasTabletClicked(event) {
+    var rayPick = Camera.computePickRay(event.x, event.y);
+    var result = Overlays.findRayIntersection(rayPick, true, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    return result.intersects;
+}
+    
 function mouseClickEvent(event) {
     var wantDebug = false;
-    var result, properties;
+    var result, properties, tabletClicked;
     if (isActive && event.isLeftButton) {
         result = findClickedEntity(event);
+        tabletClicked = wasTabletClicked(event);
+        if (tabletClicked) {
+            return;
+        }
+        
         if (result === null || result === undefined) {
             if (!event.isShifted) {
                 selectionManager.clearSelections();
