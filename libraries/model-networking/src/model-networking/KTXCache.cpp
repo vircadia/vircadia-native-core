@@ -40,5 +40,8 @@ KTXFile::KTXFile(Metadata&& metadata, const std::string& filepath) :
 
 std::unique_ptr<ktx::KTX> KTXFile::getKTX() const {
     ktx::StoragePointer storage = std::make_shared<storage::FileStorage>(getFilepath().c_str());
-    return ktx::KTX::create(storage);
+    if (*storage) {
+        return ktx::KTX::create(storage);
+    }
+    return {};
 }

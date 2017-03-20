@@ -137,6 +137,10 @@ public:
     NetworkTexturePointer getTexture(const QUrl& url, Type type = Type::DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
+
+    gpu::TexturePointer getTextureByHash(const std::string& hash);
+    gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
+
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
@@ -155,6 +159,9 @@ private:
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
     KTXCache _ktxCache;
+    // Map from image hashes to texture weak pointers
+    std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
+    std::mutex _texturesByHashesMutex;
 
     gpu::TexturePointer _permutationNormalTexture;
     gpu::TexturePointer _whiteTexture;

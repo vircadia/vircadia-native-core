@@ -8,7 +8,11 @@
 
 #include "Storage.h"
 
-#include <QFileInfo>
+#include <QtCore/QFileInfo>
+#include <QtCore/QDebug>
+#include <QtCore/QLoggingCategory>
+
+Q_LOGGING_CATEGORY(storagelogging, "hifi.core.storage")
 
 using namespace storage;
 
@@ -64,12 +68,15 @@ StoragePointer FileStorage::create(const QString& filename, size_t size, const u
 }
 
 FileStorage::FileStorage(const QString& filename) : _file(filename) {
-    if (!_file.open(QFile::ReadOnly)) {
-        throw std::runtime_error("Unable to open file");
-    }
-    _mapped = _file.map(0, _file.size());
-    if (!_mapped) {
-        throw std::runtime_error("Unable to map file");
+    if (_file.open(QFile::ReadOnly)) {
+        _mapped = _file.map(0, _file.size());
+        if (_mapped) {
+            _valid = true;
+        } else {
+            qCWarning(storagelogging) << "Failed to map file " << filename;
+        }
+    } else {
+        qCWarning(storagelogging) << "Failed to open file " << filename;
     }
 }
 
