@@ -219,7 +219,6 @@ static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
-static const QString INFO_WELCOME_PATH = "html/interface-welcome.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 static const QString INFO_HELP_PATH = "html/help.html";
 
@@ -2358,10 +2357,6 @@ void Application::setPreferAvatarFingerOverStylus(bool value) {
 void Application::setSettingConstrainToolbarPosition(bool setting) {
     _constrainToolbarPosition.set(setting);
     DependencyManager::get<OffscreenUi>()->setConstrainToolbarToCenterX(setting);
-}
-
-void Application::aboutApp() {
-    InfoView::show(INFO_WELCOME_PATH);
 }
 
 void Application::showHelp() {

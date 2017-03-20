@@ -26,7 +26,6 @@ public:
 };
 
 namespace MenuOption {
-    const QString AboutApp = "About Interface";
     const QString AddRemoveFriends = "Add/Remove Friends...";
     const QString AddressBar = "Show Address Bar";
     const QString Animations = "Animations...";
