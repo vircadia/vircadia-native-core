@@ -2,7 +2,27 @@
     "name": "Standard to Action",
     "channels": [
         { "from": "Standard.LY", "to": "Actions.TranslateZ" },
-        { "from": "Standard.LX", "to": "Actions.TranslateX" },
+
+        { "from": "Standard.LX",
+          "when": [
+            "Application.InHMD", "!Application.AdvancedMovement",
+            "Application.SnapTurn", "!Standard.RX"
+          ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                { "type": "deadZone", "min": 0.15 },
+                "constrainToInteger",
+                { "type": "pulse", "interval": 0.25 },
+                { "type": "scale", "scale": 22.5 }
+            ]
+        },
+        { "from": "Standard.LX", "to": "Actions.TranslateX",
+          "when": [ "Application.AdvancedMovement" ]
+        },
+        { "from": "Standard.LX", "to": "Actions.Yaw",
+          "when": [ "!Application.AdvancedMovement", "!Application.SnapTurn" ]
+        },
 
         { "from": "Standard.RX",
           "when": [ "Application.InHMD", "Application.SnapTurn" ],
@@ -15,29 +35,29 @@
                 { "type": "scale", "scale": 22.5 }
             ]
         },
+        { "from": "Standard.RX", "to": "Actions.Yaw",
+          "when": [ "!Application.SnapTurn" ]
+        },
 
-        { "from": "Standard.RX", "to": "Actions.Yaw" },
-        { "from": "Standard.RY", 
-          "when": "Application.Grounded", 
-          "to": "Actions.Up", 
-          "filters": 
+        { "from": "Standard.RY",
+          "when": "Application.Grounded",
+          "to": "Actions.Up",
+          "filters":
             [
                 { "type": "deadZone", "min": 0.6 },
                 "invert"
             ]
-        }, 
+        },
 
-        { "from": "Standard.RY", "to": "Actions.Up", "filters": "invert"}, 
+        { "from": "Standard.RY", "to": "Actions.Up", "filters": "invert"},
 
         { "from": "Standard.Back", "to": "Actions.CycleCamera" },
         { "from": "Standard.Start", "to": "Actions.ContextMenu" },
 
-        { "from": "Standard.LT", "to": "Actions.LeftHandClick" }, 
+        { "from": "Standard.LT", "to": "Actions.LeftHandClick" },
         { "from": "Standard.RT", "to": "Actions.RightHandClick" },
 
-        { "from": "Standard.LeftHand", "to": "Actions.LeftHand" }, 
+        { "from": "Standard.LeftHand", "to": "Actions.LeftHand" },
         { "from": "Standard.RightHand", "to": "Actions.RightHand" }
     ]
 }
-
-
