@@ -5823,15 +5823,15 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
 
 void Application::toggleRunningScriptsWidget() const {    
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
-    bool _scriptsRunning = !scriptEngines->getRunningScripts().isEmpty();
+    bool scriptsRunning = !scriptEngines->getRunningScripts().isEmpty();
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-    auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    if (tablet->getToolbarMode() || false == _scriptsRunning) {
+
+    if (tablet->getToolbarMode() || false == scriptsRunning) {
         static const QUrl url("hifi/dialogs/RunningScripts.qml");
         DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
     } else {
+        auto hmd = DependencyManager::get<HMDScriptingInterface>();
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             static const QUrl url("hifi/dialogs/RunningScripts.qml");
             DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
