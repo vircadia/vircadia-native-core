@@ -61,6 +61,8 @@ public:
     virtual uint8_t getVoxel(int x, int y, int z) override;
     virtual bool setVoxel(int x, int y, int z, uint8_t toValue) override;
 
+    int getOnCount() const override { return _onCount; }
+
     void render(RenderArgs* args) override;
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -133,7 +135,7 @@ public:
     QByteArray volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const;
 
     void setMesh(model::MeshPointer mesh);
-    bool getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) const override;
+    bool getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) override;
     void setCollisionPoints(ShapeInfo::PointCollection points, AABox box);
     PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData; }
 
@@ -193,6 +195,7 @@ private:
     void cacheNeighbors();
     void copyUpperEdgesFromNeighbors();
     void bonkNeighbors();
+    bool updateDependents();
 };
 
 bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,

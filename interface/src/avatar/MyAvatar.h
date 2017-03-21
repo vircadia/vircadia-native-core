@@ -74,6 +74,7 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
+    Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
 
 public:
     enum DriveKeys {
@@ -175,6 +176,10 @@ public:
 
     Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
+
+    bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
+    void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
+        { _useAdvancedMovementControls.set(useAdvancedMovementControls); }
 
     // get/set avatar data
     void saveData();
@@ -436,6 +441,7 @@ private:
     glm::vec3 _trackedHeadPosition;
 
     Setting::Handle<float> _realWorldFieldOfView;
+    Setting::Handle<bool> _useAdvancedMovementControls;
 
     // private methods
     void updateOrientation(float deltaTime);

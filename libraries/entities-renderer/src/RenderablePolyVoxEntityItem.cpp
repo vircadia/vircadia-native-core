@@ -666,11 +666,8 @@ void RenderablePolyVoxEntityItem::setZTextureURL(QString zTextureURL) {
     }
 }
 
-void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
-    PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
-    assert(getType() == EntityTypes::PolyVox);
-    Q_ASSERT(args->_batch);
 
+bool RenderablePolyVoxEntityItem::updateDependents() {
     bool voxelDataDirty;
     bool volDataDirty;
     withWriteLock([&] {
@@ -687,6 +684,17 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     } else if (volDataDirty) {
         recomputeMesh();
     }
+
+    return !volDataDirty;
+}
+
+
+void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
+    PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
+    assert(getType() == EntityTypes::PolyVox);
+    Q_ASSERT(args->_batch);
+
+    updateDependents();
 
     model::MeshPointer mesh;
     glm::vec3 voxelVolumeSize;
@@ -1584,14 +1592,22 @@ void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     scene->enqueuePendingChanges(pendingChanges);
 }
 
-bool RenderablePolyVoxEntityItem::getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) const {
+bool RenderablePolyVoxEntityItem::getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) {
+    if (!updateDependents()) {
+        return false;
+    }
+
     bool success = false;
     MeshProxy* meshProxy = nullptr;
-    model::MeshPointer mesh = nullptr;
+    glm::mat4 transform = voxelToLocalMatrix();
     withReadLock([&] {
         if (_meshInitialized) {
             success = true;
-            meshProxy = new MeshProxy(_mesh);
+            // the mesh will be in voxel-space.  transform it into object-space
+            meshProxy = new MeshProxy(
+                _mesh->map([=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+                           [=](glm::vec3 normal){ return glm::vec3(transform * glm::vec4(normal, 0.0f)); },
+                           [](uint32_t index){ return index; }));
         }
     });
     result = meshToScriptValue(engine, meshProxy);

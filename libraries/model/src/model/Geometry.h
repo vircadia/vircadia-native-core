@@ -25,6 +25,10 @@ typedef AABox Box;
 typedef std::vector< Box > Boxes;
 typedef glm::vec3 Vec3;
 
+class Mesh;
+using MeshPointer = std::shared_ptr< Mesh >;
+
+
 class Mesh {
 public:
     const static Index PRIMITIVE_RESTART_INDEX = -1;
@@ -114,6 +118,15 @@ public:
 
     static gpu::Primitive topologyToPrimitive(Topology topo) { return static_cast<gpu::Primitive>(topo); }
 
+    // create a copy of this mesh after passing its vertices, normals, and indexes though the provided functions
+    MeshPointer map(std::function<glm::vec3(glm::vec3)> vertexFunc,
+                    std::function<glm::vec3(glm::vec3)> normalFunc,
+                    std::function<uint32_t(uint32_t)> indexFunc);
+
+    void forEach(std::function<void(glm::vec3)> vertexFunc,
+                 std::function<void(glm::vec3)> normalFunc,
+                 std::function<void(uint32_t)> indexFunc);
+
 protected:
 
     gpu::Stream::FormatPointer _vertexFormat;
@@ -130,7 +143,6 @@ protected:
     void evalVertexStream();
 
 };
-using MeshPointer = std::shared_ptr< Mesh >;
 
 
 class Geometry {

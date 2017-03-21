@@ -279,6 +279,38 @@ WebTablet.prototype.getOverlayObject = function () {
     return Overlays.getOverlayObject(this.webOverlayID);
 };
 
+WebTablet.prototype.setWidth = function (width) {
+
+    // scale factor of natural tablet dimensions.
+    this.width = width || DEFAULT_WIDTH;
+    var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
+    this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
+
+    // update tablet model dimensions
+    if (this.tabletIsOverlay) {
+        Overlays.editOverlay(this.tabletEntityID, {dimensions: {x: this.width, y: this.height, z: this.depth}});
+    } else {
+        Entities.editEntity(this.tabletEntityID, {dimensions: {x: this.width, y: this.height, z: this.depth}});
+    }
+
+    // update webOverlay
+    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+    var WEB_ENTITY_Y_OFFSET = 0.004;
+    Overlays.editOverlay(this.webOverlayID, {
+        localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        dpi: this.dpi
+    });
+
+    // update homeButton
+    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
+    Overlays.editOverlay(this.homeButtonID, {
+        localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
+        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor}
+    });
+};
+
 WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     if (this.tabletIsOverlay) {

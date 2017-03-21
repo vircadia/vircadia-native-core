@@ -24,6 +24,7 @@
     var preMakeTime = Date.now();
     var validCheckTime = Date.now();
     var debugTablet = false;
+    var tabletScalePercentage = 100.0;
     UIWebTablet = null;
 
     Script.include("../libraries/WebTablet.js");
@@ -48,26 +49,45 @@
         return true;
     }
 
+    function getTabletScalePercentageFromSettings() {
+        var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
+        var tabletScalePercentage = DEFAULT_TABLET_SCALE;
+        if (!toolbarMode) {
+            if (HMD.active) {
+                tabletScalePercentage = Settings.getValue("hmdTabletScale") || DEFAULT_TABLET_SCALE;
+            } else {
+                tabletScalePercentage = Settings.getValue("desktopTabletScale") || DEFAULT_TABLET_SCALE;
+            }
+        }
+        return tabletScalePercentage;
+    }
+
+    function updateTabletWidthFromSettings() {
+        var newTabletScalePercentage = getTabletScalePercentageFromSettings();
+        if (newTabletScalePercentage !== tabletScalePercentage && UIWebTablet) {
+            tabletScalePercentage = newTabletScalePercentage;
+            UIWebTablet.setWidth(DEFAULT_WIDTH * (tabletScalePercentage / 100));
+        }
+    }
+
+    function onHmdChanged() {
+        updateTabletWidthFromSettings();
+    }
 
     function rezTablet() {
         if (debugTablet) {
             print("TABLET rezzing");
         }
-        var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
-        var TABLET_SCALE = DEFAULT_TABLET_SCALE;
-        if (toolbarMode) {
-            TABLET_SCALE = Settings.getValue("desktopTabletScale") || DEFAULT_TABLET_SCALE;
-        } else {
-            TABLET_SCALE = Settings.getValue("hmdTabletScale") || DEFAULT_TABLET_SCALE;
-        }
 
+        tabletScalePercentage = getTabletScalePercentageFromSettings();
         UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml",
-                                    DEFAULT_WIDTH * (TABLET_SCALE / 100),
+                                    DEFAULT_WIDTH * (tabletScalePercentage / 100),
                                     null, activeHand, true);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;
         HMD.tabletScreenID = UIWebTablet.webOverlayID;
+        HMD.displayModeChanged.connect(onHmdChanged);
 
         tabletRezzed = true;
     }
@@ -166,6 +186,8 @@
             tablet.updateAudioBar(currentMicLevel);
         }
 
+        updateTabletWidthFromSettings();
+
         if (validCheckTime - now > MSECS_PER_SEC) {
             validCheckTime = now;
             if (tabletRezzed && UIWebTablet && !tabletIsValid()) {
@@ -180,6 +202,7 @@
             }
         }
 
+        // check for change in tablet scale.
 
         if (HMD.showTablet && !tabletShown && !toolbarMode) {
             UserActivityLogger.openedTablet(visibleToOthers);

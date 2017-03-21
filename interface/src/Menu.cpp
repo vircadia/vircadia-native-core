@@ -74,9 +74,6 @@ Menu::Menu() {
     // File > Help
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Help, 0, qApp, SLOT(showHelp()));
 
-    // File > About
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
-
     // File > Quit
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Quit, Qt::CTRL | Qt::Key_Q, qApp, SLOT(quit()), QAction::QuitRole);
 
@@ -118,11 +115,6 @@ Menu::Menu() {
     // Edit > Reload All Scripts... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
         scriptEngines.data(), SLOT(reloadAllScripts()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Scripts Editor... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ScriptEditor, Qt::ALT | Qt::Key_S,
-        dialogsManager.data(), SLOT(showScriptEditor()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     // Edit > Console... [advanced]
@@ -248,9 +240,6 @@ Menu::Menu() {
         UNSPECIFIED_POSITION, "Advanced"));
 
     viewMenu->addSeparator();
-
-    // View > Mini Mirror
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror, 0, false);
 
     // View > Center Player In View
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
@@ -719,14 +708,8 @@ Menu::Menu() {
     });
     essLogAction->setEnabled(nodeList->getThisNodeCanRez());
 
-    action = addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...");
-    connect(action, &QAction::triggered, [] {
-        auto scriptEngines = DependencyManager::get<ScriptEngines>();
-        QUrl defaultScriptsLoc = defaultScriptsLocation();
-        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
-        scriptEngines->loadScript(defaultScriptsLoc.toString());
-    });
-
+    action = addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...", Qt::NoButton,
+                                           qApp, SLOT(showScriptLogs()));
 
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);

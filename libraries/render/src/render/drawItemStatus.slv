@@ -75,7 +75,7 @@ void main(void) {
         vec4(1.0, 1.0, 0.0, 1.0)
     );
 
-    const vec2 ICON_PIXEL_SIZE = vec2(20, 20);
+    const vec2 ICON_PIXEL_SIZE = vec2(36, 36);
     const vec2 MARGIN_PIXEL_SIZE = vec2(2, 2);
     const vec2 ICON_GRID_SLOTS[MAX_NUM_ICONS] = vec2[MAX_NUM_ICONS](vec2(-1.5, 0.5),
                                                                     vec2(-0.5, 0.5),
@@ -114,7 +114,7 @@ void main(void) {
     varColor = vec4(paintRainbow(abs(iconStatus.y)), 1.0);
 
     // Pass the texcoord and the z texcoord is representing the texture icon
-    varTexcoord = vec3((quadPos.xy + 1.0) * 0.5, iconStatus.z);
+    varTexcoord = vec3( (quadPos.x + 1.0) * 0.5, (quadPos.y + 1.0) * -0.5, iconStatus.z);
 
     // Also changes the size of the notification
     vec2 iconScale = ICON_PIXEL_SIZE;

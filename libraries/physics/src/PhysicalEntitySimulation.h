@@ -56,7 +56,8 @@ public:
     void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
     void getObjectsToChange(VectorOfMotionStates& result);
 
-    void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
+    void handleDeactivatedMotionStates(const VectorOfMotionStates& motionStates);
+    void handleChangedMotionStates(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     EntityEditPacketSender* getPacketSender() { return _entityPacketSender; }
@@ -67,7 +68,7 @@ private:
     SetOfEntities _entitiesToAddToPhysics;
 
     SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
-    SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we need to send updates to entity-server
+    SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we may need to send updates to entity-server
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
 
