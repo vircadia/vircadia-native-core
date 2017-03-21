@@ -1,9 +1,6 @@
-var POINT_LIGHT_URL = "http://s3.amazonaws.com/hifi-public/images/tools/point-light.svg";
-var SPOT_LIGHT_URL = "http://s3.amazonaws.com/hifi-public/images/tools/spot-light.svg";
+/* globals EntityIconOverlayManager:true */
 
-LightOverlayManager = function() {
-    var self = this;
-
+EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
     var visible = false;
 
     // List of all created overlays
@@ -22,9 +19,16 @@ LightOverlayManager = function() {
         for (var id in entityIDs) {
             var entityID = entityIDs[id];
             var properties = Entities.getEntityProperties(entityID);
-            Overlays.editOverlay(entityOverlays[entityID], {
+            var overlayProperties = {
                 position: properties.position
-            });
+            };
+            if (getOverlayPropertiesFunc) {
+                var customProperties = getOverlayPropertiesFunc(entityID, properties);
+                for (var key in customProperties) {
+                    overlayProperties[key] = customProperties[key];
+                }
+            }
+            Overlays.editOverlay(entityOverlays[entityID], overlayProperties);
         }
     };
 
@@ -34,7 +38,7 @@ LightOverlayManager = function() {
 
         if (result.intersects) {
             for (var id in entityOverlays) {
-                if (result.overlayID == entityOverlays[id]) {
+                if (result.overlayID === entityOverlays[id]) {
                     result.entityID = entityIDs[id];
                     found = true;
                     break;
@@ -50,7 +54,7 @@ LightOverlayManager = function() {
     };
 
     this.setVisible = function(isVisible) {
-        if (visible != isVisible) {
+        if (visible !== isVisible) {
             visible = isVisible;
             for (var id in entityOverlays) {
                 Overlays.editOverlay(entityOverlays[id], {
@@ -62,12 +66,13 @@ LightOverlayManager = function() {
 
     // Allocate or get an unused overlay
     function getOverlay() {
-        if (unusedOverlays.length == 0) {
-            var overlay = Overlays.addOverlay("image3d", {});
+        var overlay;
+        if (unusedOverlays.length === 0) {
+            overlay = Overlays.addOverlay("image3d", {});
             allOverlays.push(overlay);
         } else {
-            var overlay = unusedOverlays.pop();
-        };
+            overlay = unusedOverlays.pop();
+        }
         return overlay;
     }
 
@@ -79,24 +84,32 @@ LightOverlayManager = function() {
     }
 
     function addEntity(entityID) {
-        var properties = Entities.getEntityProperties(entityID);
-        if (properties.type == "Light" && !(entityID in entityOverlays)) {
+        var properties = Entities.getEntityProperties(entityID, ['position', 'type']);
+        if (entityTypes.indexOf(properties.type) > -1 && !(entityID in entityOverlays)) {
             var overlay = getOverlay();
             entityOverlays[entityID] = overlay;
             entityIDs[entityID] = entityID;
-            Overlays.editOverlay(overlay, {
+            var overlayProperties = {
                 position: properties.position,
-                url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
                 rotation: Quat.fromPitchYawRollDegrees(0, 0, 270),
                 visible: visible,
                 alpha: 0.9,
                 scale: 0.5,
+                drawInFront: true,
+                isFacingAvatar: true,
                 color: {
                     red: 255,
                     green: 255,
                     blue: 255
                 }
-            });
+            };
+            if (getOverlayPropertiesFunc) {
+                var customProperties = getOverlayPropertiesFunc(entityID, properties);
+                for (var key in customProperties) {
+                    overlayProperties[key] = customProperties[key];
+                }
+            }
+            Overlays.editOverlay(overlay, overlayProperties);
         }
     }
 
