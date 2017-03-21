@@ -236,7 +236,7 @@ protected:
 
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
-    glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
+    glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FORWARD; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void measureMotionDerivatives(float deltaTime);
 

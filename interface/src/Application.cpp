@@ -2131,7 +2131,7 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("CameraUpdates");
 
         auto myAvatar = getMyAvatar();
-        boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FRONT;
+        boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
 
         if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
@@ -3954,7 +3954,7 @@ void Application::updateMyAvatarLookAtPosition() {
             auto lookingAtHead = static_pointer_cast<Avatar>(lookingAt)->getHead();
 
             const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
-            glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
+            glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
             glm::vec3 fromLookingAtToMe = glm::normalize(myAvatar->getHead()->getEyePosition()
                 - lookingAtHead->getEyePosition());
             float faceAngle = glm::angle(lookingAtFaceOrientation, fromLookingAtToMe);

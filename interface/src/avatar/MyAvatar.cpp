@@ -1068,7 +1068,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     _lookAtTargetAvatar.reset();
     _targetAvatarPosition = glm::vec3(0.0f);
 
-    glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
+    glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
     glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
 
     float smallestAngleTo = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES) / 2.0f;
@@ -1770,7 +1770,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     }
 
     // compute action input
-    glm::vec3 front = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FRONT;
+    glm::vec3 front = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FORWARD;
     glm::vec3 right = (getDriveKey(TRANSLATE_X)) * IDENTITY_RIGHT;
 
     glm::vec3 direction = front + right;
@@ -2053,7 +2053,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 
             // move the user a couple units away
             const float DISTANCE_TO_USER = 2.0f;
-            _goToPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
+            _goToPosition = newPosition - quatOrientation * IDENTITY_FORWARD * DISTANCE_TO_USER;
         }
 
         _goToOrientation = quatOrientation;
