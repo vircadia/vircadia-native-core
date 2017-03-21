@@ -292,13 +292,11 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 
                 results = entity->getProperties(desiredProperties);
 
-                // TODO: improve sitting points and naturalDimensions in the future,
-                //       for now we've included the old sitting points model behavior for entity types that are models
-                //        we've also added this hack for setting natural dimensions of models
+                // TODO: improve naturalDimensions in the future,
+                //       for now we've added this hack for setting natural dimensions of models
                 if (entity->getType() == EntityTypes::Model) {
                     const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
                     if (geometry) {
-                        results.setSittingPoints(geometry->sittingPoints);
                         Extents meshExtents = geometry->getUnscaledMeshExtents();
                         results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
                         results.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
