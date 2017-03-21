@@ -719,14 +719,8 @@ Menu::Menu() {
     });
     essLogAction->setEnabled(nodeList->getThisNodeCanRez());
 
-    action = addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...");
-    connect(action, &QAction::triggered, [] {
-        auto scriptEngines = DependencyManager::get<ScriptEngines>();
-        QUrl defaultScriptsLoc = defaultScriptsLocation();
-        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
-        scriptEngines->loadScript(defaultScriptsLoc.toString());
-    });
-
+    action = addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...", Qt::NoButton,
+                                           qApp, SLOT(showScriptLogs()));
 
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
