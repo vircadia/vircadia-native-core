@@ -596,7 +596,7 @@ Rectangle {
                     id: nameCard;
                     // Properties
                     profileUrl: (model && model.profileUrl) || "";
-                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2, model.isPresent);
+                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2, model ? model.isPresent : false);
                     displayName: styleData.value;
                     userName: model ? model.userName : "";
                     connectionStatus: model ? model.connection : "";
@@ -903,7 +903,7 @@ Rectangle {
             rowDelegate: Rectangle {
                 // Size
                 height: rowHeight;
-                color: rowColor(styleData.selected, styleData.alternate, model ? model.isPresent : true);
+                color: rowColor(styleData.selected, styleData.alternate, true);
             }
 
             // This Item refers to the contents of each Cell
@@ -916,7 +916,7 @@ Rectangle {
                     // Properties
                     visible: styleData.role === "userName";
                     profileUrl: (model && model.profileUrl) || "";
-                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2, model.isPresent);
+                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2, true);
                     displayName: "";
                     userName: model ? model.userName : "";
                     connectionStatus : model ? model.connection : "";
