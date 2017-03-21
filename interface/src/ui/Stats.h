@@ -77,7 +77,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioMixerOutPps, 0)
     STATS_PROPERTY(int, audioMixerKbps, 0)
     STATS_PROPERTY(int, audioMixerPps, 0)
-    STATS_PROPERTY(int, audioMicOutboundPPS, 0)
+    STATS_PROPERTY(int, audioOutboundPPS, 0)
     STATS_PROPERTY(int, audioSilentOutboundPPS, 0)
     STATS_PROPERTY(int, audioAudioInboundPPS, 0)
     STATS_PROPERTY(int, audioSilentInboundPPS, 0)
@@ -198,7 +198,7 @@ signals:
     void audioMixerOutPpsChanged();
     void audioMixerKbpsChanged();
     void audioMixerPpsChanged();
-    void audioMicOutboundPPSChanged();
+    void audioOutboundPPSChanged();
     void audioSilentOutboundPPSChanged();
     void audioAudioInboundPPSChanged();
     void audioSilentInboundPPSChanged();

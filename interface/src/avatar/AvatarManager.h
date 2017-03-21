@@ -70,7 +70,7 @@ public:
     void getObjectsToRemoveFromPhysics(VectorOfMotionStates& motionStates);
     void getObjectsToAddToPhysics(VectorOfMotionStates& motionStates);
     void getObjectsToChange(VectorOfMotionStates& motionStates);
-    void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
+    void handleChangedMotionStates(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     Q_INVOKABLE float getAvatarDataRate(const QUuid& sessionID, const QString& rateName = QString("")) const;

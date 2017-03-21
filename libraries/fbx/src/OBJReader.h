@@ -58,7 +58,7 @@ public:
     QByteArray specularTextureFilename;
     bool used { false };
     bool userSpecifiesUV { false };
-    OBJMaterial() : shininess(96.0f), opacity(1.0f), diffuseColor(1.0f), specularColor(1.0f) {}
+    OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f) {}
 };
 
 class OBJReader: public QObject { // QObject so we can make network requests.
