@@ -236,10 +236,10 @@ signals:
     void scriptEnding();
     void finished(const QString& fileNameString, ScriptEngine* engine);
     void cleanupMenuItem(const QString& menuItemString);
-    void printedMessage(const QString& message);
-    void errorMessage(const QString& message);
-    void warningMessage(const QString& message);
-    void infoMessage(const QString& message);
+    void printedMessage(const QString& message, const QString& scriptName);
+    void errorMessage(const QString& message, const QString& scriptName);
+    void warningMessage(const QString& message, const QString& scriptName);
+    void infoMessage(const QString& message, const QString& scriptName);
     void runningStateChanged();
     void loadScript(const QString& scriptName, bool isUserLoaded);
     void reloadScript(const QString& scriptName, bool isUserLoaded);
