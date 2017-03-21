@@ -90,7 +90,9 @@ Item {
             anchors {
                 top: parent.top
                 right: parent.right
+                rightMargin: 0
                 left: parent.left
+                leftMargin: 0
             }
 
             ToolbarButton {
@@ -102,7 +104,6 @@ Item {
                 }
                 anchors {
                     left: parent.left
-                    leftMargin: homeButton.width / 2
                     verticalCenter: parent.verticalCenter
                 }
             }
@@ -133,7 +134,9 @@ Item {
             anchors {
                 top: navBar.bottom
                 right: parent.right
+                rightMargin: 16
                 left: parent.left
+                leftMargin: 16
             }
 
             property int inputAreaHeight: 70
