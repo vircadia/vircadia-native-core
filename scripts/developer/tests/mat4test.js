@@ -143,10 +143,10 @@ function testInverse() {
 
 function testFront() {
     var test0 = IDENTITY;
-    assert(mat4FuzzyEqual({x: 0, y: 0, z: -1}, Mat4.getForward(test0)));
+    assert(mat4FuzzyEqual({x: 0, y: 0, z: -1}, Mat4.getFront(test0)));
 
     var test1 = Mat4.createFromScaleRotAndTrans(ONE_HALF, ROT_Y_180, ONE_TWO_THREE);
-    assert(mat4FuzzyEqual({x: 0, y: 0, z: 1}, Mat4.getForward(test1)));
+    assert(mat4FuzzyEqual({x: 0, y: 0, z: 1}, Mat4.getFront(test1)));
 }
 
 function testMat4() {
