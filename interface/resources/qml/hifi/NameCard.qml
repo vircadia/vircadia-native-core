@@ -41,6 +41,7 @@ Item {
     property bool isMyCard: false
     property bool selected: false
     property bool isAdmin: false
+    property bool isPresent: true
     property string imageMaskColor: pal.color;
     property string profilePicBorderColor: (connectionStatus == "connection" ? hifi.colors.indigoAccent : (connectionStatus == "friend" ? hifi.colors.greenHighlight : imageMaskColor))
 
@@ -236,7 +237,7 @@ Item {
             color: hifi.colors.darkGray;
             MouseArea {
                 anchors.fill: parent
-                enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "";
+                enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "" && isPresent;
                 hoverEnabled: enabled
                 onClicked: {
                     goToUserInDomain(thisNameCard.uuid);
@@ -296,7 +297,8 @@ Item {
             }
             MouseArea {
                 anchors.fill: parent
-                hoverEnabled: true
+                enabled: isPresent
+                hoverEnabled: enabled
                 onClicked: letterbox(hifi.glyphs.question,
                 "Domain Admin",
                 "This user is an admin on this domain. Admins can <b>Silence</b> and <b>Ban</b> other users at their discretion - so be extra nice!")
@@ -329,7 +331,7 @@ Item {
         color: hifi.colors.greenShadow;
         MouseArea {
             anchors.fill: parent
-            enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "";
+            enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "" && isPresent;
             hoverEnabled: enabled
             onClicked: {
                 goToUserInDomain(thisNameCard.uuid);
@@ -358,7 +360,7 @@ Item {
         // Style
         radius: 4
         color: "#c5c5c5"
-        visible: isMyCard || (selected && pal.activeTab == "nearbyTab")
+        visible: (isMyCard || (selected && pal.activeTab == "nearbyTab")) && isPresent
         // Rectangle for the zero-gain point on the VU meter
         Rectangle {
             id: vuMeterZeroGain
@@ -433,7 +435,7 @@ Item {
         anchors.verticalCenter: nameCardVUMeter.verticalCenter;
         anchors.left: nameCardVUMeter.left;
         // Properties
-        visible: !isMyCard && selected && pal.activeTab == "nearbyTab";
+        visible: !isMyCard && selected && pal.activeTab == "nearbyTab" && isPresent;
         value: Users.getAvatarGain(uuid)
         minimumValue: -60.0
         maximumValue: 20.0

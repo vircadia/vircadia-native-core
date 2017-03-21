@@ -479,7 +479,8 @@ function populateNearbyUserList(selectData, oldAudioData) {
             avgAudioLevel: (oldAudio && oldAudio.avgAudioLevel) || 0.0,
             admin: false,
             personalMute: !!id && Users.getPersonalMuteStatus(id), // expects proper boolean, not null
-            ignore: !!id && Users.getIgnoreStatus(id) // ditto
+            ignore: !!id && Users.getIgnoreStatus(id), // ditto
+            isPresent: true
         };
         if (id) {
             addAvatarNode(id); // No overlay for ourselves
@@ -852,8 +853,8 @@ function avatarAdded() {
     sendToQml({ method: 'palIsStale' });
 }
 
-function avatarRemoved() {
-    sendToQml({ method: 'palIsStale' });
+function avatarRemoved(avatarID) {
+    sendToQml({ method: 'palIsStale', params: [avatarID] });
 }
 
 function avatarSessionChanged() {

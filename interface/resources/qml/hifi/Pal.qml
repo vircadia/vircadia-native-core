@@ -36,7 +36,7 @@ Rectangle {
     property int locationColumnWidth: 170;
     property int nearbyNameCardWidth: nearbyTable.width - (iAmAdmin ? (actionButtonWidth * 4) : (actionButtonWidth * 2)) - 4 - hifi.dimensions.scrollbarBackgroundWidth;
     property int connectionsNameCardWidth: connectionsTable.width - locationColumnWidth - actionButtonWidth - 4 - hifi.dimensions.scrollbarBackgroundWidth;
-    property var myData: ({profileUrl: "", displayName: "", userName: "", audioLevel: 0.0, avgAudioLevel: 0.0, admin: true, placeName: "", connection: ""}); // valid dummy until set
+    property var myData: ({profileUrl: "", displayName: "", userName: "", audioLevel: 0.0, avgAudioLevel: 0.0, admin: true, placeName: "", connection: "", isPresent: true}); // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var nearbyUserModelData: []; // This simple list is essentially a mirror of the nearbyUserModel listModel without all the extra complexities.
     property var connectionsUserModelData: []; // This simple list is essentially a mirror of the connectionsUserModel listModel without all the extra complexities.
@@ -132,6 +132,7 @@ Rectangle {
                 audioLevel: myData.audioLevel;
                 avgAudioLevel: myData.avgAudioLevel;
                 isMyCard: true;
+                isPresent: true;
                 // Size
                 width: myCardWidth;
                 height: parent.height;
@@ -576,8 +577,9 @@ Rectangle {
             // This Rectangle refers to each Row in the nearbyTable.
             rowDelegate: Rectangle { // The only way I know to specify a row height.
                 // Size
-                height: styleData.selected ? rowHeight + 15 : rowHeight;
-                color: rowColor(styleData.selected, styleData.alternate);
+                height: rowHeight + (styleData.selected && model.isPresent ? 15 : 0);
+                color: rowColor(styleData.selected, styleData.alternate, model ? model.isPresent : true);
+                opacity: model.isPresent ? 1.0 : 0.6;
             }
 
             // This Item refers to the contents of each Cell
@@ -586,6 +588,7 @@ Rectangle {
                 property bool isCheckBox: styleData.role === "personalMute" || styleData.role === "ignore";
                 property bool isButton: styleData.role === "mute" || styleData.role === "kick";
                 property bool isAvgAudio: styleData.role === "avgAudioLevel";
+                opacity: model.isPresent ? 1.0 : 0.6;
 
                 // This NameCard refers to the cell that contains an avatar's
                 // DisplayName and UserName
@@ -593,7 +596,7 @@ Rectangle {
                     id: nameCard;
                     // Properties
                     profileUrl: (model && model.profileUrl) || "";
-                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2);
+                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2, model.isPresent);
                     displayName: styleData.value;
                     userName: model ? model.userName : "";
                     connectionStatus: model ? model.connection : "";
@@ -603,6 +606,7 @@ Rectangle {
                     uuid: model ? model.sessionId : "";
                     selected: styleData.selected;
                     isAdmin: model && model.admin;
+                    isPresent: model && model.isPresent;
                     // Size
                     width: nearbyNameCardWidth;
                     height: parent.height;
@@ -899,7 +903,7 @@ Rectangle {
             rowDelegate: Rectangle {
                 // Size
                 height: rowHeight;
-                color: rowColor(styleData.selected, styleData.alternate);
+                color: rowColor(styleData.selected, styleData.alternate, model ? model.isPresent : true);
             }
 
             // This Item refers to the contents of each Cell
@@ -912,7 +916,7 @@ Rectangle {
                     // Properties
                     visible: styleData.role === "userName";
                     profileUrl: (model && model.profileUrl) || "";
-                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2);
+                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2, model.isPresent);
                     displayName: "";
                     userName: model ? model.userName : "";
                     connectionStatus : model ? model.connection : "";
@@ -1155,8 +1159,8 @@ Rectangle {
         }
     }
 
-    function rowColor(selected, alternate) {
-        return selected ? hifi.colors.orangeHighlight : alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd;
+    function rowColor(selected, alternate, isPresent) {
+        return isPresent ? (selected ? hifi.colors.orangeHighlight : alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd) : hifi.colors.gray;
     }
     function findNearbySessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var data = optionalData || nearbyUserModelData, length = data.length;
@@ -1211,7 +1215,7 @@ Rectangle {
             } else if (userIndex < 0) {
                 // If we've already refreshed the PAL and the avatar still isn't present in the model...
                 if (alreadyRefreshed === true) {
-                    letterbox('', '', 'The last editor of this object is either you or not among this list of users.');
+                    letterbox('', '', 'The user you attempted to select is no longer available.');
                 } else {
                     pal.sendToScript({method: 'refresh', params: {selected: message.params}});
                 }
@@ -1283,6 +1287,14 @@ Rectangle {
             delete ignored[sessionID];
             break;
         case 'palIsStale':
+            if (message.params) {
+                var sessionID = message.params[0];
+                var userIndex = findNearbySessionIndex(sessionID);
+                if (userIndex != -1) {
+                    nearbyUserModel.setProperty(userIndex, "isPresent", false);
+                    nearbyUserModelData[userIndex].isPresent = false;
+                }
+            }
             reloadNearby.glyph = hifi.glyphs.alert;
             reloadNearby.color = 2;
             break;
