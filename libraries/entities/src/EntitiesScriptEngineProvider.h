@@ -15,11 +15,13 @@
 #define hifi_EntitiesScriptEngineProvider_h
 
 #include <QtCore/QString>
+#include <QFuture>
 #include "EntityItemID.h"
 
 class EntitiesScriptEngineProvider {
 public:
     virtual void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params = QStringList()) = 0;
+    virtual QFuture<QVariant> getLocalEntityScriptDetails(const EntityItemID& entityID) = 0;
 };
 
 #endif // hifi_EntitiesScriptEngineProvider_h

@@ -160,7 +160,7 @@ AudioClient::AudioClient() :
     _loopbackAudioOutput(NULL),
     _loopbackOutputDevice(NULL),
     _inputRingBuffer(0),
-    _localInjectorsStream(0),
+    _localInjectorsStream(0, 1),
     _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
     _isStereoInput(false),
     _outputStarveDetectionStartTimeMsec(0),
@@ -184,7 +184,6 @@ AudioClient::AudioClient() :
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_localInjectorsStream, _receivedAudioStream, this),
     _stats(&_receivedAudioStream),
-    _inputGate(),
     _positionGetter(DEFAULT_POSITION_GETTER),
     _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
     // avoid putting a lock in the device callback
@@ -971,14 +970,87 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     }
 }
 
-void AudioClient::handleAudioInput() {
+void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
+    if (_muted) {
+        _lastInputLoudness = 0.0f;
+        _timeSinceLastClip = 0.0f;
+    } else {
+        int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
+        int numSamples = audioBuffer.size() / sizeof(AudioConstants::SAMPLE_SIZE);
+        bool didClip = false;
+
+        bool shouldRemoveDCOffset = !_isPlayingBackRecording && !_isStereoInput;
+        if (shouldRemoveDCOffset) {
+            _noiseGate.removeDCOffset(samples, numSamples);
+        }
+
+        bool shouldNoiseGate = (_isPlayingBackRecording || !_isStereoInput) && _isNoiseGateEnabled;
+        if (shouldNoiseGate) {
+            _noiseGate.gateSamples(samples, numSamples);
+            _lastInputLoudness = _noiseGate.getLastLoudness();
+            didClip = _noiseGate.clippedInLastBlock();
+        } else {
+            float loudness = 0.0f;
+            for (int i = 0; i < numSamples; ++i) {
+                int16_t sample = std::abs(samples[i]);
+                loudness += (float)sample;
+                didClip = didClip ||
+                    (sample > (AudioConstants::MAX_SAMPLE_VALUE * AudioNoiseGate::CLIPPING_THRESHOLD));
+            }
+            _lastInputLoudness = fabs(loudness / numSamples);
+        }
+
+        if (didClip) {
+            _timeSinceLastClip = 0.0f;
+        } else if (_timeSinceLastClip >= 0.0f) {
+            _timeSinceLastClip += (float)numSamples / (float)AudioConstants::SAMPLE_RATE;
+        }
+
+        emit inputReceived({ audioBuffer.data(), numSamples });
+
+        if (_noiseGate.openedInLastBlock()) {
+            emit noiseGateOpened();
+        } else if (_noiseGate.closedInLastBlock()) {
+            emit noiseGateClosed();
+        }
+    }
+
+    // the codec needs a flush frame before sending silent packets, so
+    // do not send one if the gate closed in this block (eventually this can be crossfaded).
+    auto packetType = _shouldEchoToServer ?
+        PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
+    if (_lastInputLoudness == 0.0f && !_noiseGate.closedInLastBlock()) {
+        packetType = PacketType::SilentAudioFrame;
+        _silentOutbound.increment();
+    } else {
+        _audioOutbound.increment();
+    }
+
+    Transform audioTransform;
+    audioTransform.setTranslation(_positionGetter());
+    audioTransform.setRotation(_orientationGetter());
+
+    QByteArray encodedBuffer;
+    if (_encoder) {
+        _encoder->encode(audioBuffer, encodedBuffer);
+    } else {
+        encodedBuffer = audioBuffer;
+    }
+
+    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber,
+            audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
+            packetType, _selectedCodecName);
+    _stats.sentPacket();
+}
+
+void AudioClient::handleMicAudioInput() {
     if (!_inputDevice || _isPlayingBackRecording) {
         return;
     }
 
     // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
-    const int inputSamplesRequired = (_inputToNetworkResampler ? 
-                                      _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) : 
+    const int inputSamplesRequired = (_inputToNetworkResampler ?
+                                      _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) :
                                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) * _inputFormat.channelCount();
 
     const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
@@ -1001,126 +1073,27 @@ void AudioClient::handleAudioInput() {
     static int16_t networkAudioSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
 
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
-
-        if (!_muted) {
-
-
-            //  Increment the time since the last clip
-            if (_timeSinceLastClip >= 0.0f) {
-                _timeSinceLastClip += (float)numNetworkSamples / (float)AudioConstants::SAMPLE_RATE;
-            }
-
+        if (_muted) {
+            _inputRingBuffer.shiftReadPosition(inputSamplesRequired);
+        } else {
             _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
             possibleResampling(_inputToNetworkResampler,
                 inputAudioSamples.get(), networkAudioSamples,
                 inputSamplesRequired, numNetworkSamples,
                 _inputFormat.channelCount(), _desiredInputFormat.channelCount());
-
-            //  Remove DC offset
-            if (!_isStereoInput) {
-                _inputGate.removeDCOffset(networkAudioSamples, numNetworkSamples);
-            }
-
-            // only impose the noise gate and perform tone injection if we are sending mono audio
-            if (!_isStereoInput && _isNoiseGateEnabled) {
-                _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);
-
-                // if we performed the noise gate we can get values from it instead of enumerating the samples again
-                _lastInputLoudness = _inputGate.getLastLoudness();
-
-                if (_inputGate.clippedInLastBlock()) {
-                    _timeSinceLastClip = 0.0f;
-                }
-
-            } else {
-                float loudness = 0.0f;
-
-                for (int i = 0; i < numNetworkSamples; i++) {
-                    int thisSample = std::abs(networkAudioSamples[i]);
-                    loudness += (float)thisSample;
-
-                    if (thisSample > (AudioConstants::MAX_SAMPLE_VALUE * AudioNoiseGate::CLIPPING_THRESHOLD)) {
-                        _timeSinceLastClip = 0.0f;
-                    }
-                }
-
-                _lastInputLoudness = fabs(loudness / numNetworkSamples);
-            }
-
-            emit inputReceived({ reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes });
-
-            if (_inputGate.openedInLastBlock()) {
-                emit noiseGateOpened();
-            } else if (_inputGate.closedInLastBlock()) {
-                emit noiseGateClosed();
-            }
-
-        } else {
-            // our input loudness is 0, since we're muted
-            _lastInputLoudness = 0;
-            _timeSinceLastClip = 0.0f;
-
-            _inputRingBuffer.shiftReadPosition(inputSamplesRequired);
         }
-
-        auto packetType = _shouldEchoToServer ?
-            PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
-
-        // if the _inputGate closed in this last frame, then we don't actually want
-        // to send a silent packet, instead, we want to go ahead and encode and send
-        // the output from the input gate (eventually, this could be crossfaded)
-        // and allow the codec to properly encode down to silent/zero. If we still
-        // have _lastInputLoudness of 0 in our NEXT frame, we will send a silent packet
-        if (_lastInputLoudness == 0 && !_inputGate.closedInLastBlock()) {
-            packetType = PacketType::SilentAudioFrame;
-            _silentOutbound.increment();
-        } else {
-            _micAudioOutbound.increment();
-        }
-
-        Transform audioTransform;
-        audioTransform.setTranslation(_positionGetter());
-        audioTransform.setRotation(_orientationGetter());
-        // FIXME find a way to properly handle both playback audio and user audio concurrently
-
-        QByteArray decodedBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
-        QByteArray encodedBuffer;
-        if (_encoder) {
-            _encoder->encode(decodedBuffer, encodedBuffer);
-        } else {
-            encodedBuffer = decodedBuffer;
-        }
-
-        emitAudioPacket(encodedBuffer.constData(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber,
-            audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
-            packetType, _selectedCodecName);
-        _stats.sentPacket();
-
         int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * AudioConstants::SAMPLE_SIZE;
         float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
         _stats.updateInputMsUnplayed(msecsInInputRingBuffer);
+
+        QByteArray audioBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
+        handleAudioInput(audioBuffer);
     }
 }
 
-// FIXME - should this go through the noise gate and honor mute and echo?
 void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
-    Transform audioTransform;
-    audioTransform.setTranslation(_positionGetter());
-    audioTransform.setRotation(_orientationGetter());
-
-    QByteArray encodedBuffer;
-    if (_encoder) {
-        _encoder->encode(audio, encodedBuffer);
-    } else {
-        encodedBuffer = audio;
-    }
-
-    _micAudioOutbound.increment();
-
-    // FIXME check a flag to see if we should echo audio?
-    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber,
-                    audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
-                    PacketType::MicrophoneAudioWithEcho, _selectedCodecName);
+    QByteArray audioBuffer(audio);
+    handleAudioInput(audioBuffer);
 }
 
 void AudioClient::prepareLocalAudioInjectors() {
@@ -1434,7 +1407,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                 lock.unlock();
 
                 if (_inputDevice) {
-                    connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
+                    connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleMicAudioInput()));
                     supportedFormat = true;
                 } else {
                     qCDebug(audioclient) << "Error starting audio input -" <<  _audioInput->error();
@@ -1540,12 +1513,39 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
 
-            int osDefaultBufferSize = _audioOutput->bufferSize();
             int deviceChannelCount = _outputFormat.channelCount();
-            int deviceFrameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * deviceChannelCount * _outputFormat.sampleRate()) / _desiredOutputFormat.sampleRate();
-            int requestedSize = _sessionOutputBufferSizeFrames * deviceFrameSize * AudioConstants::SAMPLE_SIZE;
+            int frameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * deviceChannelCount * _outputFormat.sampleRate()) / _desiredOutputFormat.sampleRate();
+            int requestedSize = _sessionOutputBufferSizeFrames * frameSize * AudioConstants::SAMPLE_SIZE;
             _audioOutput->setBufferSize(requestedSize);
 
+            // initialize mix buffers on the _audioOutput thread to avoid races
+            connect(_audioOutput, &QAudioOutput::stateChanged, [&, frameSize, requestedSize](QAudio::State state) {
+                if (state == QAudio::ActiveState) {
+                    // restrict device callback to _outputPeriod samples
+                    _outputPeriod = (_audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE) * 2;
+                    _outputMixBuffer = new float[_outputPeriod];
+                    _outputScratchBuffer = new int16_t[_outputPeriod];
+
+                    // size local output mix buffer based on resampled network frame size
+                    _networkPeriod = _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
+                    _localOutputMixBuffer = new float[_networkPeriod];
+                    int localPeriod = _outputPeriod * 2;
+                    _localInjectorsStream.resizeForFrameSize(localPeriod);
+
+                    int bufferSize = _audioOutput->bufferSize();
+                    int bufferSamples = bufferSize / AudioConstants::SAMPLE_SIZE;
+                    int bufferFrames = bufferSamples / (float)frameSize;
+                    qCDebug(audioclient) << "frame (samples):" << frameSize;
+                    qCDebug(audioclient) << "buffer (frames):" << bufferFrames;
+                    qCDebug(audioclient) << "buffer (samples):" << bufferSamples;
+                    qCDebug(audioclient) << "buffer (bytes):" << bufferSize;
+                    qCDebug(audioclient) << "requested (bytes):" << requestedSize;
+                    qCDebug(audioclient) << "period (samples):" << _outputPeriod;
+                    qCDebug(audioclient) << "local buffer (samples):" << localPeriod;
+
+                    disconnect(_audioOutput, &QAudioOutput::stateChanged, 0, 0);
+                }
+            });
             connect(_audioOutput, &QAudioOutput::notify, this, &AudioClient::outputNotify);
 
             _audioOutputIODevice.start();
@@ -1554,18 +1554,6 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             Lock lock(_deviceMutex);
             _audioOutput->start(&_audioOutputIODevice);
             lock.unlock();
-
-            int periodSampleSize = _audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE;
-            // device callback is not restricted to periodSampleSize, so double the mix/scratch buffer sizes
-            _outputPeriod = periodSampleSize * 2;
-            _outputMixBuffer = new float[_outputPeriod];
-            _outputScratchBuffer = new int16_t[_outputPeriod];
-            _localOutputMixBuffer = new float[_outputPeriod];
-            _localInjectorsStream.resizeForFrameSize(_outputPeriod * 2);
-
-            qCDebug(audioclient) << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / AudioConstants::SAMPLE_SIZE / (float)deviceFrameSize <<
-                "requested bytes:" << requestedSize << "actual bytes:" << _audioOutput->bufferSize() <<
-                "os default:" << osDefaultBufferSize << "period size:" << _audioOutput->periodSize();
 
             // setup a loopback audio output device
             _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
