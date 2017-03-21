@@ -328,6 +328,7 @@
         controllerMapping.from(Controller.Standard.LeftGrip).to(leftHand.onGripPress);
         controllerMapping.from(Controller.Standard.RT).to(rightHand.onTriggerPress);
         controllerMapping.from(Controller.Standard.RightGrip).to(rightHand.onGripPress);
+        controllerMapping.from(Controller.Standard.B).to(onButtonClicked);
         Controller.enableMapping(CONTROLLER_MAPPING_NAME);
 
         // Connect handController outputs to paintBrush objects.
