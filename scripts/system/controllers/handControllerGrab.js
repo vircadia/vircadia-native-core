@@ -1018,6 +1018,16 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp) {
     }
 };
 
+function getControllerJointIndex(hand) {
+    if (HMD.isHandControllerAvailable()) {
+        return MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+                                      "_CONTROLLER_RIGHTHAND" :
+                                      "_CONTROLLER_LEFTHAND");
+    }
+    
+    return MyAvatar.getJointIndex("Head");    
+}
+
 // global EquipHotspotBuddy instance
 var equipHotspotBuddy = new EquipHotspotBuddy();
 
@@ -1029,9 +1039,7 @@ function MyController(hand) {
     this.homeButtonTouched = false;
     this.editTriggered = false;
 
-    this.controllerJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                       "_CONTROLLER_RIGHTHAND" :
-                                                       "_CONTROLLER_LEFTHAND");
+    this.controllerJointIndex = getControllerJointIndex(this.hand);
 
     // Until there is some reliable way to keep track of a "stack" of parentIDs, we'll have problems
     // when more than one avatar does parenting grabs on things.  This script tries to work
