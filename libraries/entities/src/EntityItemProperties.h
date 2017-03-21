@@ -22,7 +22,6 @@
 #include <QString>
 
 #include <AACube.h>
-#include <FBXReader.h> // for SittingPoint
 #include <NumericalConstants.h>
 #include <PropertyFlags.h>
 #include <OctreeConstants.h>
@@ -255,8 +254,6 @@ public:
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
 
-    void setSittingPoints(const QVector<SittingPoint>& sittingPoints);
-
     const glm::vec3& getNaturalDimensions() const { return _naturalDimensions; }
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
     
@@ -325,7 +322,6 @@ private:
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
-    QVector<SittingPoint> _sittingPoints;
     QVariantMap _textureNames;
     glm::vec3 _naturalDimensions;
     glm::vec3 _naturalPosition;

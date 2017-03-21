@@ -8,6 +8,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+
 #include "EntityScriptingInterface.h"
 
 #include <QFutureWatcher>
@@ -292,13 +296,11 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 
                 results = entity->getProperties(desiredProperties);
 
-                // TODO: improve sitting points and naturalDimensions in the future,
-                //       for now we've included the old sitting points model behavior for entity types that are models
-                //        we've also added this hack for setting natural dimensions of models
+                // TODO: improve naturalDimensions in the future,
+                //       for now we've added this hack for setting natural dimensions of models
                 if (entity->getType() == EntityTypes::Model) {
                     const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
                     if (geometry) {
-                        results.setSittingPoints(geometry->sittingPoints);
                         Extents meshExtents = geometry->getUnscaledMeshExtents();
                         results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
                         results.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
@@ -1041,13 +1043,20 @@ bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3
 void EntityScriptingInterface::voxelsToMesh(QUuid entityID, QScriptValue callback) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    polyVoxWorker(entityID, [callback](PolyVoxEntityItem& polyVoxEntity) mutable {
-        QScriptValue mesh;
-        polyVoxEntity.getMeshAsScriptValue(callback.engine(), mesh);
-        QScriptValueList args { mesh };
-        callback.call(QScriptValue(), args);
+    bool success { false };
+    QScriptValue mesh { false };
+
+    polyVoxWorker(entityID, [&](PolyVoxEntityItem& polyVoxEntity) mutable {
+        if (polyVoxEntity.getOnCount() == 0) {
+            success = true;
+        } else {
+            success = polyVoxEntity.getMeshAsScriptValue(callback.engine(), mesh);
+        }
         return true;
     });
+
+    QScriptValueList args { mesh, success };
+    callback.call(QScriptValue(), args);
 }
 
 bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::vec3>& points) {
@@ -1664,4 +1673,21 @@ bool EntityScriptingInterface::AABoxIntersectsCapsule(const glm::vec3& low, cons
     glm::vec3 penetration;
     AABox aaBox(low, dimensions);
     return aaBox.findCapsulePenetration(start, end, radius, penetration);
+}
+
+glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {
+    glm::mat4 result;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                glm::mat4 translation = glm::translate(entity->getPosition());
+                glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
+                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
+                                                        entity->getRegistrationPoint());
+                result = translation * rotation * registration;
+            }
+        });
+    }
+    return result;
 }

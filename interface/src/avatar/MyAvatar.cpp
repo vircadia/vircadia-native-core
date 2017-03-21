@@ -104,6 +104,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
+    _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", false),
     _hmdSensorMatrix(),
     _hmdSensorOrientation(),
     _hmdSensorPosition(),

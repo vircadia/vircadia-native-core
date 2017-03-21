@@ -20,6 +20,7 @@
 #include "MeshProxy.h"
 
 using MeshPointer = std::shared_ptr<model::Mesh>;
+class ScriptEngine;
 
 class ModelScriptingInterface : public QObject {
     Q_OBJECT
@@ -28,6 +29,11 @@ public:
     ModelScriptingInterface(QObject* parent);
 
     Q_INVOKABLE QString meshToOBJ(MeshProxyList in);
+    Q_INVOKABLE QScriptValue appendMeshes(MeshProxyList in);
+    Q_INVOKABLE QScriptValue transformMesh(glm::mat4 transform, MeshProxy* meshProxy);
+
+private:
+    ScriptEngine* _modelScriptEngine { nullptr };
 };
 
 QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in);
