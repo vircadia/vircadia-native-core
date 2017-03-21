@@ -158,7 +158,7 @@ CameraManager = function() {
         that.zoomDistance = INITIAL_ZOOM_DISTANCE;
         that.targetZoomDistance = that.zoomDistance + 3.0;
         var focalPoint = Vec3.sum(Camera.getPosition(),
-            Vec3.multiply(that.zoomDistance, Quat.getFront(Camera.getOrientation())));
+            Vec3.multiply(that.zoomDistance, Quat.getForward(Camera.getOrientation())));
 
         // Determine the correct yaw and pitch to keep the camera in the same location
         var dPos = Vec3.subtract(focalPoint, Camera.getPosition());
@@ -435,7 +435,7 @@ CameraManager = function() {
         });
         var q = Quat.multiply(yRot, xRot);
 
-        var pos = Vec3.multiply(Quat.getFront(q), that.zoomDistance);
+        var pos = Vec3.multiply(Quat.getForward(q), that.zoomDistance);
         Camera.setPosition(Vec3.sum(that.focalPoint, pos));
 
         yRot = Quat.angleAxis(that.yaw - 180, {

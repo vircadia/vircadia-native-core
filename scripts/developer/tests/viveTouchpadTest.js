@@ -24,8 +24,8 @@ var boxZAxis, boxYAxis;
 var prevThumbDown = false;
 
 function init() {
-    boxPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(Camera.getOrientation())));
-    var front = Quat.getFront(Camera.getOrientation());
+    boxPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getForward(Camera.getOrientation())));
+    var front = Quat.getForward(Camera.getOrientation());
     boxZAxis = Vec3.normalize(Vec3.cross(front, Y_AXIS));
     boxYAxis = Vec3.normalize(Vec3.cross(boxZAxis, front));
 

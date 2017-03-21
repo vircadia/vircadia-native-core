@@ -94,7 +94,7 @@
         },
 
         shootBall: function(gunProperties) {
-            var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, 180, 0)));
+            var forwardVec = Quat.getForward(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, 180, 0)));
             forwardVec = Vec3.normalize(forwardVec);
             forwardVec = Vec3.multiply(forwardVec, GUN_FORCE);
 
@@ -131,7 +131,7 @@
 
         getGunTipPosition: function(properties) {
             //the tip of the gun is going to be in a different place than the center, so we move in space relative to the model to find that position
-            var frontVector = Quat.getFront(properties.rotation);
+            var frontVector = Quat.getForward(properties.rotation);
             var frontOffset = Vec3.multiply(frontVector, GUN_TIP_FWD_OFFSET);
             var upVector = Quat.getUp(properties.rotation);
             var upOffset = Vec3.multiply(upVector, GUN_TIP_UP_OFFSET);

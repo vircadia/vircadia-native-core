@@ -78,7 +78,7 @@ function calcSpawnInfo(hand, height) {
             rotation: lookAtRot
         };
     } else {
-        var front = Quat.getFront(headRot);
+        var front = Quat.getForward(headRot);
         finalPosition = Vec3.sum(headPos, Vec3.multiply(0.6, front));
         var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, front, {x: 0, y: 1, z: 0});
         return {

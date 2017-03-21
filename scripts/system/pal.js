@@ -298,7 +298,7 @@ function populateUserList(selectData, oldAudioData) {
         verticalHalfAngle = filter && (frustum.fieldOfView / 2),
         horizontalHalfAngle = filter && (verticalHalfAngle * frustum.aspectRatio),
         orientation = filter && Camera.orientation,
-        front = filter && Quat.getFront(orientation),
+        front = filter && Quat.getForward(orientation),
         verticalAngleNormal = filter && Quat.getRight(orientation),
         horizontalAngleNormal = filter && Quat.getUp(orientation);
     avatars.forEach(function (id) { // sorting the identifiers is just an aid for debugging

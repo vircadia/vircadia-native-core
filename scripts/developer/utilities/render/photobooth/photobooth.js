@@ -9,7 +9,7 @@
     PhotoBooth.init = function () {
         var success = Clipboard.importEntities(PHOTOBOOTH_SETUP_JSON_URL);
         var frontFactor = 10;
-        var frontUnitVec = Vec3.normalize(Quat.getFront(MyAvatar.orientation));
+        var frontUnitVec = Vec3.normalize(Quat.getForward(MyAvatar.orientation));
         var frontOffset = Vec3.multiply(frontUnitVec,frontFactor);
         var rightFactor = 3;
         var rightUnitVec = Vec3.normalize(Quat.getRight(MyAvatar.orientation));

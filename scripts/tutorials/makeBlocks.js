@@ -34,7 +34,7 @@
 
     var SCRIPT_URL = Script.resolvePath("./entity_scripts/magneticBlock.js");
 
-    var frontVector = Quat.getFront(MyAvatar.orientation);
+    var frontVector = Quat.getForward(MyAvatar.orientation);
     frontVector.y += VERTICAL_OFFSET;
     for (var x = 0; x < COLUMNS; x++) {
         for (var y = 0; y < ROWS; y++) {

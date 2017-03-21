@@ -87,7 +87,7 @@ function moveCloserToCamera(positionAtHUD) {
     // we don't actually want to render at the slerped look at... instead, we want to render
     // slightly closer to the camera than that.
     var MOVE_CLOSER_TO_CAMERA_BY = -0.25;
-    var cameraFront = Quat.getFront(Camera.orientation);
+    var cameraFront = Quat.getForward(Camera.orientation);
     var closerToCamera = Vec3.multiply(cameraFront, MOVE_CLOSER_TO_CAMERA_BY); // slightly closer to camera
     var slightlyCloserPosition = Vec3.sum(positionAtHUD, closerToCamera);
 
