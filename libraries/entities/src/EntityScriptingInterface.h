@@ -331,6 +331,15 @@ public slots:
                                             const glm::vec3& start, const glm::vec3& end, float radius);
 
 
+    /**jsdoc
+     * Returns object to world transform, excluding scale
+     *
+     * @function Entities.getEntityTransform
+     * @param {EntityID} entityID The ID of the entity whose transform is to be returned
+     * @return {Mat4} Entity's object to world transform, excluding scale
+     */
+    Q_INVOKABLE glm::mat4 getEntityTransform(const QUuid& entityID);
+
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
