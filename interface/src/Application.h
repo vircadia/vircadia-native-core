@@ -408,6 +408,7 @@ public slots:
     void loadLODToolsDialog();
     void loadEntityStatisticsDialog();
     void loadDomainConnectionDialog();
+    void showScriptLogs();
 
 private slots:
     void showDesktop();
