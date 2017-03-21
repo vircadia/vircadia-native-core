@@ -32,12 +32,6 @@ const FRIENDING_SUCCESS_HAPTIC_STRENGTH = 1.0;
 const HAPTIC_DURATION = 20;
 const PARTICLE_RADIUS = 0.1;
 const PARTICLE_ANGLE_INCREMENT = 360/45; // 1hz
-const MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx";
-const TEXTURES = [
-    {"Texture": "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx/sphere-3-color.fbm/green-50pct-opaque-64.png"},
-    {"Texture": "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx/sphere-3-color.fbm/blue-50pct-opaque-64.png"},
-    {"Texture": "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx/sphere-3-color.fbm/red-50pct-opaque-64.png"}
-];
 const PARTICLE_EFFECT_PROPS = {
     "alpha": 0.8,
     "azimuthFinish": Math.PI,
@@ -100,7 +94,6 @@ var state = STATES.inactive;
 var friendingInterval;
 var waitingInterval;
 var makingFriendsTimeout;
-var overlay;
 var animHandlerId;
 var friendingId;
 var friendingHand;
@@ -199,15 +192,15 @@ function positionFractionallyTowards(posA, posB, frac) {
     return Vec3.sum(posA, Vec3.multiply(frac, Vec3.subtract(posB, posA)));
 }
 
-function deleteOverlay() {
-    if (overlay) {
-        overlay = Overlays.deleteOverlay(overlay);
-    }
-}
-
 function deleteParticleEffect() {
     if (particleEffect) {
         particleEffect = Entities.deleteEntity(particleEffect);
+    }
+}
+
+function deleteMakeFriendsParticleEffect() {
+    if (makingFriendsParticleEffect) {
+        makingFriendsParticleEffect = Entities.deleteEntity(makingFriendsParticleEffect);
     }
 }
 
@@ -231,15 +224,11 @@ function updateVisualization() {
         return;
     }
     if (state == STATES.inactive) {
-        deleteOverlay();
         deleteParticleEffect();
-        if (makingFriendsParticleEffect) {
-            makingFriendsParticleEffect = Entities.deleteEntity(makingFriendsParticleEffect);
-        }
+        deleteMakeFriendsParticleEffect();
         return;
     }
 
-    var textures = TEXTURES[state-1];
     var myHandPosition = getHandPosition(MyAvatar, currentHand);
     var otherHand;
     var otherOrientation;
@@ -256,28 +245,11 @@ function updateVisualization() {
     var d = Math.min(MAX_AVATAR_DISTANCE, Vec3.distance(wrist, myHandPosition));
     switch (state) {
         case STATES.waiting:
+            // no visualization while waiting
             deleteParticleEffect();
-            if (makingFriendsParticleEffect) {
-                makingFriendsParticleEffect = Entities.deleteEntity(makingFriendsParticleEffect);
-            }
-            var dimension = {x: d, y: d, z: d};
-            if (!overlay) {
-                waitingBallScale = (state == STATES.waiting ? 1.0/32.0 : 1.0);
-                var props =  {
-                    url: MODEL_URL,
-                    position: myHandPosition,
-                    dimensions: Vec3.multiply(waitingBallScale, dimension),
-                    textures: textures
-                };
-                overlay = Overlays.addOverlay("model", props);
-            } else {
-                waitingBallScale = Math.min(1.0, waitingBallScale * 1.1);
-                Overlays.editOverlay(overlay, {textures: textures});
-                Overlays.editOverlay(overlay, {dimensions: Vec3.multiply(waitingBallScale, dimension), position: myHandPosition});
-            }
+            deleteMakeFriendsParticleEffect();
             break;
         case STATES.friending:
-            deleteOverlay();
             var particleProps = {};
             // put the position between the 2 hands, if we have a friendingId.  This
             // helps define the plane in which the particles move.
@@ -723,8 +695,8 @@ Script.scriptEnding.connect(function () {
     Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
     debug("disconnecting updateVisualization");
     Script.update.disconnect(updateVisualization);
-    deleteOverlay();
     deleteParticleEffect();
+    deleteMakeFriendsParticleEffect();
 });
 
 }()); // END LOCAL_SCOPE
