@@ -37,7 +37,9 @@ public slots:
 
     glm::mat4 inverse(const glm::mat4& m) const;
 
-    glm::vec3 getFront(const glm::mat4& m) const;
+    // redundant, calls getForward which better describes the returned vector as a direction
+    glm::vec3 getFront(const glm::mat4& m) const { return getForward(m); }
+    glm::vec3 getForward(const glm::mat4& m) const;
     glm::vec3 getRight(const glm::mat4& m) const;
     glm::vec3 getUp(const glm::mat4& m) const;
 
