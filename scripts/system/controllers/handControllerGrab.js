@@ -3601,7 +3601,7 @@ function MyController(hand) {
 
         if (this.stylusTarget.entityID) {
             entityPropertiesCache.addEntity(this.stylusTarget.entityID);
-            this.stylusTarget = calcualteStylusTargetFromEntity(this.stylusTip, this.stylusTarget.entityID);
+            this.stylusTarget = calculateStylusTargetFromEntity(this.stylusTip, this.stylusTarget.entityID);
         } else if (this.stylusTarget.overlayID) {
             this.stylusTarget = calculateStylusTargetFromOverlay(this.stylusTip, this.stylusTarget.overlayID);
         }
