@@ -68,11 +68,6 @@ glm::quat Quat::inverse(const glm::quat& q) {
     return glm::inverse(q);
 }
 
-// redundant, calls getForward which better describes the returned vector as a direction
-glm::vec3 Quat::getFront(const glm::quat& orientation) {
-    return getForward(orientation);
-}
-
 glm::vec3 Quat::getForward(const glm::quat& orientation) {
     return orientation * Vectors::FRONT;
 }
