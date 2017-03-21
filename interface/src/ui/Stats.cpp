@@ -220,10 +220,10 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(audioMixerInPps, roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer)));
             STAT_UPDATE(audioMixerOutKbps, roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)));
             STAT_UPDATE(audioMixerOutPps, roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
-            STAT_UPDATE(audioMicOutboundPPS, audioClient->getMicAudioOutboundPPS());
-            STAT_UPDATE(audioSilentOutboundPPS, audioClient->getSilentOutboundPPS());
             STAT_UPDATE(audioAudioInboundPPS, audioClient->getAudioInboundPPS());
             STAT_UPDATE(audioSilentInboundPPS, audioClient->getSilentInboundPPS());
+            STAT_UPDATE(audioOutboundPPS, audioClient->getAudioOutboundPPS());
+            STAT_UPDATE(audioSilentOutboundPPS, audioClient->getSilentOutboundPPS());
         } else {
             STAT_UPDATE(audioMixerKbps, -1);
             STAT_UPDATE(audioMixerPps, -1);
@@ -231,7 +231,7 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(audioMixerInPps, -1);
             STAT_UPDATE(audioMixerOutKbps, -1);
             STAT_UPDATE(audioMixerOutPps, -1);
-            STAT_UPDATE(audioMicOutboundPPS, -1);
+            STAT_UPDATE(audioOutboundPPS, -1);
             STAT_UPDATE(audioSilentOutboundPPS, -1);
             STAT_UPDATE(audioAudioInboundPPS, -1);
             STAT_UPDATE(audioSilentInboundPPS, -1);
