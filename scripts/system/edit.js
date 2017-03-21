@@ -544,15 +544,7 @@ var toolBar = (function () {
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
         }
-        // Sets visibility of tool buttons, excluding the power button
-        toolBar.writeProperty("shown", active);
-        var visible = toolBar.readProperty("visible");
-        if (active && !visible) {
-            toolBar.writeProperty("shown", false);
-            toolBar.writeProperty("shown", true);
-        }
         entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
-        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
