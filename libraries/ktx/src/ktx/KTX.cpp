@@ -63,7 +63,7 @@ size_t Header::evalFaceSize(uint32_t level) const {
 }
 size_t Header::evalImageSize(uint32_t level) const {
     auto faceSize = evalFaceSize(level);
-    if (numberOfFaces == 6 && numberOfArrayElements == 0) {
+    if (numberOfFaces == NUM_CUBEMAPFACES && numberOfArrayElements == 0) {
         return faceSize;
     } else {
         return (getNumberOfSlices() * numberOfFaces * faceSize);

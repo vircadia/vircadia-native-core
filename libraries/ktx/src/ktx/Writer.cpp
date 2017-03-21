@@ -149,9 +149,9 @@ namespace ktx {
                         destImages.emplace_back(Image((uint32_t) imageSize, padding, currentPtr));
                         currentPtr += imageSize;
                     } else {
-                        Image::FaceBytes faceBytes(6);
+                        Image::FaceBytes faceBytes(NUM_CUBEMAPFACES);
                         auto faceSize = srcImages[l]._faceSize;
-                        for (int face = 0; face < 6; face++) {
+                        for (int face = 0; face < NUM_CUBEMAPFACES; face++) {
                              memcpy(currentPtr, srcImages[l]._faceBytes[face], faceSize);
                              faceBytes[face] = currentPtr;
                              currentPtr += faceSize;

@@ -113,7 +113,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
             } else {
                 header.setCube(texture.getWidth(), texture.getHeight());
             }
-            numFaces = 6;
+            numFaces = Texture::CUBE_FACE_COUNT;
             break;
         }
     default:
@@ -130,9 +130,9 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
             if (numFaces == 1) {
                 images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, mip->readData()));
             } else {
-                ktx::Image::FaceBytes cubeFaces(6);
+                ktx::Image::FaceBytes cubeFaces(Texture::CUBE_FACE_COUNT);
                 cubeFaces[0] = mip->readData();
-                for (int face = 1; face < 6; face++) {
+                for (uint32_t face = 1; face < Texture::CUBE_FACE_COUNT; face++) {
                     cubeFaces[face] = texture.accessStoredMipFace(level, face)->readData();
                 }
                 images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, cubeFaces));

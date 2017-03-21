@@ -151,10 +151,10 @@ namespace ktx {
             if ((currentPtr - srcBytes) + imageSize <= (srcSize)) {
                 auto padding = Header::evalPadding(imageSize);
 
-                if (numFaces == 6) {
-                    size_t faceSize = imageSize / 6;
-                    Image::FaceBytes faces(6);
-                    for (uint32_t face = 0; face < 6; face++) {
+                if (numFaces == NUM_CUBEMAPFACES) {
+                    size_t faceSize = imageSize / NUM_CUBEMAPFACES;
+                    Image::FaceBytes faces(NUM_CUBEMAPFACES);
+                    for (uint32_t face = 0; face < NUM_CUBEMAPFACES; face++) {
                         faces[face] = currentPtr;
                         currentPtr += faceSize;
                     }

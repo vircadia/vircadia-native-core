@@ -163,6 +163,7 @@ class Texture : public Resource {
     static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
 public:
+    static const uint32_t CUBE_FACE_COUNT { 6 };
     static uint32_t getTextureCPUCount();
     static Size getTextureCPUMemoryUsage();
     static uint32_t getTextureGPUCount();
