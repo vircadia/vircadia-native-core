@@ -166,7 +166,6 @@ namespace MenuOption {
     const QString RunningScripts = "Running Scripts...";
     const QString RunClientScriptTests = "Run Client Script Tests";
     const QString RunTimingTests = "Run Timing Tests";
-    const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString SendWrongDSConnectVersion = "Send wrong DS connect version";
     const QString SendWrongProtocolVersion = "Send wrong protocol version";

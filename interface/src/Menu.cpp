@@ -117,11 +117,6 @@ Menu::Menu() {
         scriptEngines.data(), SLOT(reloadAllScripts()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
-    // Edit > Scripts Editor... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ScriptEditor, Qt::ALT | Qt::Key_S,
-        dialogsManager.data(), SLOT(showScriptEditor()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
     // Edit > Console... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
         DependencyManager::get<StandAloneJSConsole>().data(),

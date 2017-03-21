@@ -2745,8 +2745,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_S:
                 if (isShifted && isMeta && !isOption) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
-                } else if (isOption && !isShifted && !isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::ScriptEditor);
                 } else if (!isOption && !isShifted && isMeta) {
                     takeSnapshot(true);
                 }
