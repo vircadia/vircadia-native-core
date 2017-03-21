@@ -343,11 +343,11 @@
                 break;
         }
     }
-    
+
     function locationChanged() {
         lastPage = location.href;
     }
-    
+
     // Load / unload.
     window.addEventListener("load", onLoad);  // More robust to Web site issues than using $(document).ready().
     window.addEventListener("hashchange", locationChanged);
