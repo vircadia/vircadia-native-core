@@ -1513,12 +1513,39 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
 
-            int osDefaultBufferSize = _audioOutput->bufferSize();
             int deviceChannelCount = _outputFormat.channelCount();
-            int deviceFrameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * deviceChannelCount * _outputFormat.sampleRate()) / _desiredOutputFormat.sampleRate();
-            int requestedSize = _sessionOutputBufferSizeFrames * deviceFrameSize * AudioConstants::SAMPLE_SIZE;
+            int frameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * deviceChannelCount * _outputFormat.sampleRate()) / _desiredOutputFormat.sampleRate();
+            int requestedSize = _sessionOutputBufferSizeFrames * frameSize * AudioConstants::SAMPLE_SIZE;
             _audioOutput->setBufferSize(requestedSize);
 
+            // initialize mix buffers on the _audioOutput thread to avoid races
+            connect(_audioOutput, &QAudioOutput::stateChanged, [&, frameSize, requestedSize](QAudio::State state) {
+                if (state == QAudio::ActiveState) {
+                    // restrict device callback to _outputPeriod samples
+                    _outputPeriod = (_audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE) * 2;
+                    _outputMixBuffer = new float[_outputPeriod];
+                    _outputScratchBuffer = new int16_t[_outputPeriod];
+
+                    // size local output mix buffer based on resampled network frame size
+                    _networkPeriod = _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
+                    _localOutputMixBuffer = new float[_networkPeriod];
+                    int localPeriod = _outputPeriod * 2;
+                    _localInjectorsStream.resizeForFrameSize(localPeriod);
+
+                    int bufferSize = _audioOutput->bufferSize();
+                    int bufferSamples = bufferSize / AudioConstants::SAMPLE_SIZE;
+                    int bufferFrames = bufferSamples / (float)frameSize;
+                    qCDebug(audioclient) << "frame (samples):" << frameSize;
+                    qCDebug(audioclient) << "buffer (frames):" << bufferFrames;
+                    qCDebug(audioclient) << "buffer (samples):" << bufferSamples;
+                    qCDebug(audioclient) << "buffer (bytes):" << bufferSize;
+                    qCDebug(audioclient) << "requested (bytes):" << requestedSize;
+                    qCDebug(audioclient) << "period (samples):" << _outputPeriod;
+                    qCDebug(audioclient) << "local buffer (samples):" << localPeriod;
+
+                    disconnect(_audioOutput, &QAudioOutput::stateChanged, 0, 0);
+                }
+            });
             connect(_audioOutput, &QAudioOutput::notify, this, &AudioClient::outputNotify);
 
             _audioOutputIODevice.start();
@@ -1527,18 +1554,6 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             Lock lock(_deviceMutex);
             _audioOutput->start(&_audioOutputIODevice);
             lock.unlock();
-
-            int periodSampleSize = _audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE;
-            // device callback is not restricted to periodSampleSize, so double the mix/scratch buffer sizes
-            _outputPeriod = periodSampleSize * 2;
-            _outputMixBuffer = new float[_outputPeriod];
-            _outputScratchBuffer = new int16_t[_outputPeriod];
-            _localOutputMixBuffer = new float[_outputPeriod];
-            _localInjectorsStream.resizeForFrameSize(_outputPeriod * 2);
-
-            qCDebug(audioclient) << "Output Buffer capacity in frames: " << _audioOutput->bufferSize() / AudioConstants::SAMPLE_SIZE / (float)deviceFrameSize <<
-                "requested bytes:" << requestedSize << "actual bytes:" << _audioOutput->bufferSize() <<
-                "os default:" << osDefaultBufferSize << "period size:" << _audioOutput->periodSize();
 
             // setup a loopback audio output device
             _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
