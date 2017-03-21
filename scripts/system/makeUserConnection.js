@@ -13,7 +13,7 @@
 
 const version = 0.1;
 const label = "makeUserConnection";
-const MAX_AVATAR_DISTANCE = 0.5;
+const MAX_AVATAR_DISTANCE = 0.2;
 const GRIP_MIN = 0.05;
 const MESSAGE_CHANNEL = "io.highfidelity.makeUserConnection";
 const STATES = {
@@ -25,13 +25,13 @@ const STATES = {
 const STATE_STRINGS = ["inactive", "waiting", "friending", "makingFriends"];
 const WAITING_INTERVAL = 100; // ms
 const FRIENDING_INTERVAL = 100; // ms
-const MAKING_FRIENDS_TIMEOUT = 1000; // ms
+const MAKING_FRIENDS_TIMEOUT = 3000; // ms
 const FRIENDING_TIME = 2000; // ms
 const FRIENDING_HAPTIC_STRENGTH = 0.5;
 const FRIENDING_SUCCESS_HAPTIC_STRENGTH = 1.0;
 const HAPTIC_DURATION = 20;
-const PARTICLE_RADIUS = 0.2;
-const PARTICLE_ANGLE_INCREMENT = 360/45;
+const PARTICLE_RADIUS = 0.1;
+const PARTICLE_ANGLE_INCREMENT = 360/45; // 1hz
 const MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx";
 const TEXTURES = [
     {"Texture": "http://hifi-content.s3.amazonaws.com/alan/dev/Test/sphere-3-color.fbx/sphere-3-color.fbm/green-50pct-opaque-64.png"},
@@ -42,7 +42,7 @@ const PARTICLE_EFFECT_PROPS = {
     "alpha": 0.8,
     "azimuthFinish": Math.PI,
     "azimuthStart": -1*Math.PI,
-    "emitRate": 220,
+    "emitRate": 500,
     "emitSpeed": 0.0,
     "emitterShouldTrail": 1,
     "isEmitting": 1,
@@ -51,13 +51,43 @@ const PARTICLE_EFFECT_PROPS = {
     "particleRadius": 0.003,
     "polarStart": 1,
     "polarFinish": 1,
-    "radiusFinish": 0.006,
-    "radiusStart": 0.001,
+    "radiusFinish": 0.008,
+    "radiusStart": 0.0025,
     "speedSpread": 0.025,
     "textures": "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle.png",
     "color": {"red": 255, "green": 255, "blue": 255},
     "colorFinish": {"red": 0, "green": 164, "blue": 255},
     "colorStart": {"red": 255, "green": 255, "blue": 255},
+    "emitOrientation": {"w": -0.71, "x":0.0, "y":0.0, "z": 0.71},
+    "emitAcceleration": {"x": 0.0, "y": 0.0, "z": 0.0},
+    "accelerationSpread": {"x": 0.0, "y": 0.0, "z": 0.0},
+    "dimensions": {"x":0.05, "y": 0.05, "z": 0.05},
+    "type": "ParticleEffect"
+};
+const MAKING_FRIENDS_PARTICLE_PROPS = {
+    "alpha": 0.07,
+    "alphaStart":0.011,
+    "alphaSpread": 0,
+    "alphaFinish": 0,
+    "azimuthFinish": Math.PI,
+    "azimuthStart": -1*Math.PI,
+    "emitRate": 2000,
+    "emitSpeed": 0.0,
+    "emitterShouldTrail": 1,
+    "isEmitting": 1,
+    "lifespan": 3.6,
+    "maxParticles": 4000,
+    "particleRadius": 0.048,
+    "polarStart": 0,
+    "polarFinish": 1,
+    "radiusFinish": 0.2,
+    "radiusStart": 0.04,
+    "speedSpread": 0.01,
+    "radiusSpread": 0.9,
+    "textures": "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle.png",
+    "color": {"red": 200, "green": 170, "blue": 255},
+    "colorFinish": {"red": 0, "green": 134, "blue": 255},
+    "colorStart": {"red": 185, "green": 222, "blue": 255},
     "emitOrientation": {"w": -0.71, "x":0.0, "y":0.0, "z": 0.71},
     "emitAcceleration": {"x": 0.0, "y": 0.0, "z": 0.0},
     "accelerationSpread": {"x": 0.0, "y": 0.0, "z": 0.0},
@@ -78,6 +108,9 @@ var waitingList = {};
 var particleEffect;
 var waitingBallScale;
 var particleRotationAngle = 0.0;
+var makingFriendsParticleEffect;
+var makingFriendsEmitRate = 2000;
+var particleEmitRate = 500;
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
@@ -178,6 +211,17 @@ function deleteParticleEffect() {
     }
 }
 
+function calcParticlePos(myHand, otherHand, otherOrientation, reset) {
+    if (reset) {
+        particleRotationAngle = 0.0;
+    }
+    var position = positionFractionallyTowards(myHand, otherHand, 0.5);
+    particleRotationAngle += PARTICLE_ANGLE_INCREMENT; // about 0.5 hz
+    var radius = Math.min(PARTICLE_RADIUS, PARTICLE_RADIUS * particleRotationAngle / 720);
+    var axis = Vec3.mix(Quat.getFront(MyAvatar.orientation), Quat.inverse(Quat.getFront(otherOrientation)), 0.5);
+    return Vec3.sum(position, Vec3.multiplyQbyV(Quat.angleAxis(particleRotationAngle, axis), {x: 0, y: radius, z: 0}));
+}
+
 // this is called frequently, but usually does nothing
 function updateVisualization() {
     // after making friends, if you are still holding the grip lets transition
@@ -189,57 +233,94 @@ function updateVisualization() {
     if (state == STATES.inactive) {
         deleteOverlay();
         deleteParticleEffect();
+        if (makingFriendsParticleEffect) {
+            makingFriendsParticleEffect = Entities.deleteEntity(makingFriendsParticleEffect);
+        }
         return;
     }
 
     var textures = TEXTURES[state-1];
     var myHandPosition = getHandPosition(MyAvatar, currentHand);
-    var position = myHandPosition;
     var otherHand;
+    var otherOrientation;
     if (friendingId) {
         var other = AvatarList.getAvatar(friendingId);
         if (other) {
+            otherOrientation = other.orientation;
             otherHand = getHandPosition(other, stringToHand(friendingHand));
         }
     }
     // scale the dimensions of the waiting/makingFriends ball to hand, capping
     // at MAX_AVATAR_DISTANCE if someone happens to be huge
     var wrist = MyAvatar.getJointPosition(MyAvatar.getJointIndex(handToString(currentHand)));
-    var d = Math.min(MAX_AVATAR_DISTANCE, Vec3.distance(wrist, position));
-    if (state != STATES.friending) {
-        deleteParticleEffect();
-        var dimension = {x: d, y: d, z: d};
-        if (!overlay) {
-            waitingBallScale = (state == STATES.waiting ? 1.0/32.0 : 1.0);
-            var props =  {
-                url: MODEL_URL,
-                position: myHandPosition,
-                dimensions: Vec3.multiply(waitingBallScale, dimension),
-                textures: textures
-            };
-            overlay = Overlays.addOverlay("model", props);
-        } else {
-            waitingBallScale = Math.min(1.0, waitingBallScale * 1.1);
-            Overlays.editOverlay(overlay, {textures: textures});
-            Overlays.editOverlay(overlay, {dimensions: Vec3.multiply(waitingBallScale, dimension), position: state == STATES.waiting ? myHandPosition : otherHand});
-        }
-    } else {
-        deleteOverlay();
-        var particleProps = {};
-        // put the position between the 2 hands, if we have a friendingId.  This
-        // helps define the plane in which the particles move.
-        position = positionFractionallyTowards(position, otherHand, 0.5);
-        particleProps.position = position;
-        // now manage the rest of the entity
-        if (!particleEffect) {
-            particleRotationAngle = 0.0;
-            particleProps = PARTICLE_EFFECT_PROPS;
-            particleEffect = Entities.addEntity(particleProps);
-        } else {
-            particleRotationAngle += PARTICLE_ANGLE_INCREMENT; // about 1 hz
-            particleProps.position = Vec3.sum(position, Vec3.multiplyQbyV(Quat.angleAxis(particleRotationAngle, Quat.getFront(MyAvatar.orientation)), {x:0, y:PARTICLE_RADIUS, z:0}));
-            Entities.editEntity(particleEffect, particleProps);
-        }
+    var d = Math.min(MAX_AVATAR_DISTANCE, Vec3.distance(wrist, myHandPosition));
+    switch (state) {
+        case STATES.waiting:
+            deleteParticleEffect();
+            if (makingFriendsParticleEffect) {
+                makingFriendsParticleEffect = Entities.deleteEntity(makingFriendsParticleEffect);
+            }
+            var dimension = {x: d, y: d, z: d};
+            if (!overlay) {
+                waitingBallScale = (state == STATES.waiting ? 1.0/32.0 : 1.0);
+                var props =  {
+                    url: MODEL_URL,
+                    position: myHandPosition,
+                    dimensions: Vec3.multiply(waitingBallScale, dimension),
+                    textures: textures
+                };
+                overlay = Overlays.addOverlay("model", props);
+            } else {
+                waitingBallScale = Math.min(1.0, waitingBallScale * 1.1);
+                Overlays.editOverlay(overlay, {textures: textures});
+                Overlays.editOverlay(overlay, {dimensions: Vec3.multiply(waitingBallScale, dimension), position: myHandPosition});
+            }
+            break;
+        case STATES.friending:
+            deleteOverlay();
+            var particleProps = {};
+            // put the position between the 2 hands, if we have a friendingId.  This
+            // helps define the plane in which the particles move.
+            positionFractionallyTowards(myHandPosition, otherHand, 0.5);
+            // now manage the rest of the entity
+            if (!particleEffect) {
+                particleRotationAngle = 0.0;
+                var position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
+                particleProps = PARTICLE_EFFECT_PROPS;
+                particleProps.isEmitting = 0;
+                particleProps.position = position;
+                particleEffect = Entities.addEntity(particleProps);
+            } else {
+                var position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
+                particleProps.position = position; //Vec3.sum(position, Vec3.multiplyQbyV(Quat.angleAxis(particleRotationAngle, axis), {x: 0, y: radius, z: 0}));
+                //particleProps.position = Vec3.sum(position, Vec3.multiplyQbyV(Quat.angleAxis(particleRotationAngle, Quat.getFront(MyAvatar.orientation)),{x: 0, y: radius, z: 0}));
+                particleProps.isEmitting = 1;
+                /*if (particleRotationAngle > 0.9 * 720) {
+                    particleProps.lifespan = 6;
+                    particleProps.isEmitting = 0;
+                }*/
+                Entities.editEntity(particleEffect, particleProps);
+            }
+            if (!makingFriendsParticleEffect) {
+                props = MAKING_FRIENDS_PARTICLE_PROPS;
+                makingFriendsEmitRate = 2000;
+                props.emitRate = makingFriendsEmitRate;
+                props.position = myHandPosition;
+                makingFriendsParticleEffect = Entities.addEntity(props);
+            } else {
+                makingFriendsEmitRate *= 0.5;
+                Entities.editEntity(makingFriendsParticleEffect, {emitRate: makingFriendsEmitRate, position: myHandPosition, isEmitting: 1});
+            }
+            break;
+        case STATES.makingFriends:
+            particleEmitRate *= 0.5;
+            Entities.editEntity(makingFriendsParticleEffect, {emitRate: 0, isEmitting: 0, position: myHandPosition});
+            var pos = calcParticlePos(myHandPosition, otherHand, otherOrientation);
+            Entities.editEntity(particleEffect, {position: position, emitRate: particleEmitRate});
+            break;
+        default:
+            debug("unexpected state", state);
+            break;
     }
 }
 
