@@ -1468,7 +1468,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     // Create the Material Library
     consolidateFBXMaterials(mapping);
 
-    // We can't scale allow the scaling of a given image to different sizes, because the hash used for the KTX cache is based on the original image
+    // We can't allow the scaling of a given image to different sizes, because the hash used for the KTX cache is based on the original image
     // Allowing scaling of the same image to different sizes would cause different KTX files to target the same cache key
 #if 0
     // HACK: until we get proper LOD management we're going to cap model textures
