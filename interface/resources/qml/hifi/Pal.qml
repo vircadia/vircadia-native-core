@@ -577,9 +577,8 @@ Rectangle {
             // This Rectangle refers to each Row in the nearbyTable.
             rowDelegate: Rectangle { // The only way I know to specify a row height.
                 // Size
-                height: rowHeight + (styleData.selected && model.isPresent ? 15 : 0);
-                color: rowColor(styleData.selected, styleData.alternate, model ? model.isPresent : true);
-                opacity: model.isPresent ? 1.0 : 0.6;
+                height: rowHeight + (styleData.selected ? 15 : 0);
+                color: rowColor(styleData.selected, styleData.alternate, true);
             }
 
             // This Item refers to the contents of each Cell
@@ -588,7 +587,7 @@ Rectangle {
                 property bool isCheckBox: styleData.role === "personalMute" || styleData.role === "ignore";
                 property bool isButton: styleData.role === "mute" || styleData.role === "kick";
                 property bool isAvgAudio: styleData.role === "avgAudioLevel";
-                opacity: model.isPresent ? 1.0 : 0.6;
+                opacity: model && model.isPresent ? 1.0 : 0.4;
 
                 // This NameCard refers to the cell that contains an avatar's
                 // DisplayName and UserName
@@ -629,6 +628,7 @@ Rectangle {
                     size: height;
                     anchors.verticalCenter: parent.verticalCenter;
                     anchors.horizontalCenter: parent.horizontalCenter;
+                    enabled: (model ? !model["ignore"] && model["isPresent"] : true);
                     onClicked: {
                         // cannot change mute status when ignoring
                         if (!model["ignore"]) {
@@ -641,7 +641,7 @@ Rectangle {
                     }
                 }
 
-                // This CheckBox belongs in the columns that contain the stateful action buttons ("Mute" & "Ignore" for now)
+                // This CheckBox belongs in the columns that contain the stateful action buttons ("Ignore" for now)
                 // KNOWN BUG with the Checkboxes: When clicking in the center of the sorting header, the checkbox
                 // will appear in the "hovered" state. Hovering over the checkbox will fix it.
                 // Clicking on the sides of the sorting header doesn't cause this problem.
@@ -652,8 +652,8 @@ Rectangle {
                     visible: isCheckBox;
                     anchors.centerIn: parent;
                     checked: model ? model[styleData.role] : false;
-                    // If this is a "Personal Mute" checkbox, disable the checkbox if the "Ignore" checkbox is checked.
-                    enabled: !(styleData.role === "personalMute" && (model ? model["ignore"] : true));
+                    // If this is an "Ignore" checkbox, disable the checkbox if user isn't present.
+                    enabled: styleData.role === "ignore" ? (model ? model["isPresent"] : true) : true;
                     boxSize: 24;
                     onClicked: {
                         var newValue = !model[styleData.role];
@@ -1194,7 +1194,6 @@ Rectangle {
                 }
             }
             sortModel();
-            reloadNearby.glyph = hifi.glyphs.reload;
             reloadNearby.color = 0;
             break;
         case 'connections':
@@ -1287,16 +1286,19 @@ Rectangle {
             delete ignored[sessionID];
             break;
         case 'palIsStale':
-            if (message.params) {
-                var sessionID = message.params[0];
-                var userIndex = findNearbySessionIndex(sessionID);
-                if (userIndex != -1) {
+            var sessionID = message.params[0];
+            var reason = message.params[1];
+            var userIndex = findNearbySessionIndex(sessionID);
+            if (userIndex != -1) {
+                if (!nearbyUserModelData[userIndex].ignore) {
                     nearbyUserModel.setProperty(userIndex, "isPresent", false);
                     nearbyUserModelData[userIndex].isPresent = false;
+                    nearbyTable.selection.deselect(userIndex);
+                    reloadNearby.color = 2;
                 }
+            } else {
+                reloadNearby.color = 2;
             }
-            reloadNearby.glyph = hifi.glyphs.alert;
-            reloadNearby.color = 2;
             break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
