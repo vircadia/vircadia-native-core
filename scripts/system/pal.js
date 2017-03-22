@@ -849,7 +849,7 @@ function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
 }
 
-function avatarAdded() {
+function avatarAdded(avatarID) {
     sendToQml({ method: 'palIsStale', params: [avatarID, 'avatarAdded'] });
 }
 
@@ -857,7 +857,7 @@ function avatarRemoved(avatarID) {
     sendToQml({ method: 'palIsStale', params: [avatarID, 'avatarRemoved'] });
 }
 
-function avatarSessionChanged() {
+function avatarSessionChanged(avatarID) {
     sendToQml({ method: 'palIsStale', params: [avatarID, 'avatarSessionChanged'] });
 }
 

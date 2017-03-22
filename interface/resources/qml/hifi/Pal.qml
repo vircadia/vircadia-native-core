@@ -578,7 +578,7 @@ Rectangle {
             rowDelegate: Rectangle { // The only way I know to specify a row height.
                 // Size
                 height: rowHeight + (styleData.selected ? 15 : 0);
-                color: rowColor(styleData.selected, styleData.alternate, true);
+                color: rowColor(styleData.selected, styleData.alternate);
             }
 
             // This Item refers to the contents of each Cell
@@ -595,7 +595,7 @@ Rectangle {
                     id: nameCard;
                     // Properties
                     profileUrl: (model && model.profileUrl) || "";
-                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2, model ? model.isPresent : false);
+                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2);
                     displayName: styleData.value;
                     userName: model ? model.userName : "";
                     connectionStatus: model ? model.connection : "";
@@ -903,7 +903,7 @@ Rectangle {
             rowDelegate: Rectangle {
                 // Size
                 height: rowHeight;
-                color: rowColor(styleData.selected, styleData.alternate, true);
+                color: rowColor(styleData.selected, styleData.alternate);
             }
 
             // This Item refers to the contents of each Cell
@@ -916,7 +916,7 @@ Rectangle {
                     // Properties
                     visible: styleData.role === "userName";
                     profileUrl: (model && model.profileUrl) || "";
-                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2, true);
+                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2);
                     displayName: "";
                     userName: model ? model.userName : "";
                     connectionStatus : model ? model.connection : "";
@@ -1159,8 +1159,8 @@ Rectangle {
         }
     }
 
-    function rowColor(selected, alternate, isPresent) {
-        return isPresent ? (selected ? hifi.colors.orangeHighlight : alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd) : hifi.colors.gray;
+    function rowColor(selected, alternate) {
+        return selected ? hifi.colors.orangeHighlight : alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd;
     }
     function findNearbySessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var data = optionalData || nearbyUserModelData, length = data.length;
@@ -1291,9 +1291,11 @@ Rectangle {
             var userIndex = findNearbySessionIndex(sessionID);
             if (userIndex != -1) {
                 if (!nearbyUserModelData[userIndex].ignore) {
-                    nearbyUserModel.setProperty(userIndex, "isPresent", false);
-                    nearbyUserModelData[userIndex].isPresent = false;
-                    nearbyTable.selection.deselect(userIndex);
+                    if (reason !== 'avatarAdded') {
+                        nearbyUserModel.setProperty(userIndex, "isPresent", false);
+                        nearbyUserModelData[userIndex].isPresent = false;
+                        nearbyTable.selection.deselect(userIndex);
+                    }
                     reloadNearby.color = 2;
                 }
             } else {
