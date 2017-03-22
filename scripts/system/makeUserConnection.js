@@ -25,13 +25,17 @@ const STATES = {
 const STATE_STRINGS = ["inactive", "waiting", "connecting", "makingConnection"];
 const WAITING_INTERVAL = 100; // ms
 const CONNECTING_INTERVAL = 100; // ms
-const MAKING_CONNECTION_TIMEOUT = 3000; // ms
-const CONNECTING_TIME = 2000; // ms
-const CONNECTING_HAPTIC_STRENGTH = 0.5;
-const CONNECTING_SUCCESS_HAPTIC_STRENGTH = 1.0;
-const HAPTIC_DURATION = 20;
+const MAKING_CONNECTION_TIMEOUT = 800; // ms
+const CONNECTING_TIME = 1600; // ms
 const PARTICLE_RADIUS = 0.1;
 const PARTICLE_ANGLE_INCREMENT = 360/45; // 1hz
+const HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/4beat_sweep.wav";
+const SUCCESSFUL_HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/3rdbeat_success_bell.wav";
+const HAPTIC_DATA = {
+    initial: { duration: 20, strength: 0.6},
+    background: { duration: 100, strength: 0.3 },
+    success: { duration: 60, strength: 1.0}
+};
 const PARTICLE_EFFECT_PROPS = {
     "alpha": 0.8,
     "azimuthFinish": Math.PI,
@@ -104,6 +108,10 @@ var particleRotationAngle = 0.0;
 var makingConnectionParticleEffect;
 var makingConnectionEmitRate = 2000;
 var particleEmitRate = 500;
+var handshakeInjector;
+var successfulHandshakeInjector;
+var handshakeSound;
+var successfulHandshakeSound;
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
@@ -256,19 +264,17 @@ function updateVisualization() {
             // now manage the rest of the entity
             if (!particleEffect) {
                 particleRotationAngle = 0.0;
-                var position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
                 particleProps = PARTICLE_EFFECT_PROPS;
                 particleProps.isEmitting = 0;
-                particleProps.position = position;
+                particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
                 particleEffect = Entities.addEntity(particleProps);
             } else {
-                var position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
-                particleProps.position = position;
+                particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
                 particleProps.isEmitting = 1;
                 Entities.editEntity(particleEffect, particleProps);
             }
             if (!makingConnectionParticleEffect) {
-                props = MAKING_CONNECTION_PARTICLE_PROPS;
+                var props = MAKING_CONNECTION_PARTICLE_PROPS;
                 makingConnectionEmitRate = 2000;
                 props.emitRate = makingConnectionEmitRate;
                 props.position = myHandPosition;
@@ -281,8 +287,7 @@ function updateVisualization() {
         case STATES.makingConnection:
             particleEmitRate *= 0.5;
             Entities.editEntity(makingConnectionParticleEffect, {emitRate: 0, isEmitting: 0, position: myHandPosition});
-            var pos = calcParticlePos(myHandPosition, otherHand, otherOrientation);
-            Entities.editEntity(particleEffect, {position: position, emitRate: particleEmitRate});
+            Entities.editEntity(particleEffect, {position: calcParticlePos(myHandPosition, otherHand, otherOrientation), emitRate: particleEmitRate});
             break;
         default:
             debug("unexpected state", state);
@@ -379,6 +384,9 @@ function endHandshake() {
     stopWaiting();
     stopConnecting();
     stopMakingConnection();
+    if (handshakeInjector) {
+        handshakeInjector.stop();
+    }
     // send done to let connection know you are not making connections now
     messageSend({
         key: "done"
@@ -461,13 +469,24 @@ function makeConnection(id) {
         key: "done",
         connectionId: id
     });
-    Controller.triggerHapticPulse(CONNECTING_SUCCESS_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
+
     state = STATES.makingConnection;
+
+    // continue the haptic background until the timeout fires.  When we make calls, we will have an interval
+    // probably, in which we do this.
+    Controller.triggerHapticPulse(HAPTIC_DATA.background.strength, MAKING_CONNECTION_TIMEOUT, handToHaptic(currentHand));
+
     // now that we made connection, reset everything
     makingFriendsTimeout = Script.setTimeout(function () {
             connectingId = undefined;
             connectingHand = undefined;
             makingConnectionTimeout = undefined;
+            if (!successfulHandshakeInjector) {
+                successfulHandshakeInjector = Audio.playSound(successfulHandshakeSound, {position: getHandPosition(MyAvatar, currentHand), volume: 0.5, localOnly: true});
+            } else {
+                successfulHandshakeInjector.restart();
+            }
+            Controller.triggerHapticPulse(HAPTIC_DATA.success.strength, HAPTIC_DATA.success.duration, handToHaptic(currentHand));
         }, MAKING_CONNECTION_TIMEOUT);
 }
 
@@ -482,7 +501,13 @@ function startConnecting(id, hand) {
     connectingId = id;
     connectingHand = hand;
     state = STATES.connecting;
-    Controller.triggerHapticPulse(CONNECTING_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
+
+    // play sound
+    if (!handshakeInjector) {
+        handshakeInjector = Audio.playSound(handshakeSound, {position: getHandPosition(MyAvatar, currentHand), volume: 0.5, localOnly: true});
+    } else {
+        handshakeInjector.restart();
+    }
 
     // send message that we are ing them
     messageSend({
@@ -490,9 +515,11 @@ function startConnecting(id, hand) {
         id: id,
         hand: handToString(currentHand)
     });
+    Controller.triggerHapticPulse(HAPTIC_DATA.initial.strength, HAPTIC_DATA.initial.duration, handToHaptic(currentHand));
 
     connectingInterval = Script.setInterval(function () {
         count += 1;
+        Controller.triggerHapticPulse(HAPTIC_DATA.background.strength, HAPTIC_DATA.background.duration, handToHaptic(currentHand));
         if (state != STATES.connecting) {
             debug("stopping connecting interval, state changed");
             stopConnecting();
@@ -680,6 +707,10 @@ connectionMapping.enable();
 
 // connect updateVisualization to update frequently
 Script.update.connect(updateVisualization);
+
+// load the sounds when the script loads
+handshakeSound = SoundCache.getSound(HANDSHAKE_SOUND_URL);
+successfulHandshakeSound = SoundCache.getSound(SUCCESSFUL_HANDSHAKE_SOUND_URL);
 
 Script.scriptEnding.connect(function () {
     debug("removing controller mappings");
