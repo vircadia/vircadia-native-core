@@ -39,7 +39,7 @@
     for (var x = 0; x < COLUMNS; x++) {
         for (var y = 0; y < ROWS; y++) {
 
-            var frontOffset = {
+            var forwardOffset = {
                 x: 0,
                 y: SIZE * y + SIZE,
                 z: SIZE * x + SIZE
