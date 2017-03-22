@@ -762,7 +762,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
         PROFILE_RANGE(render_gpu, "ProcessFace");
 
-        auto mipFormat = cubeTexture.accessStoredMipFace(0, face)->getFormat();
+        auto mipFormat = cubeTexture.getStoredMipFormat();
         auto numComponents = mipFormat.getScalarCount();
         int roffset { 0 };
         int goffset { 1 };
