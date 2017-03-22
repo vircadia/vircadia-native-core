@@ -8,8 +8,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* globals BoppoServer:true */
-
 (function() {
     var SFX_PREFIX = 'https://hifi-content.s3-us-west-1.amazonaws.com/caitlyn/production/elBoppo/sfx/';
     var CLOWN_LAUGHS = [
@@ -41,7 +39,7 @@
     var TICK_TOCK_FROM = 3; // seconds
     var COOLDOWN_TIME_MS = MILLISECONDS_PER_SECOND * 3;
 
-    BoppoServer = function() {
+    var createBoppoServer = function() {
         var _this,
             _isInitialized = false,
             _clownLaughs = [],
@@ -164,7 +162,7 @@
             }
         };
 
-        BoppoServer = function () {
+        var BoppoServer = function () {
             _this = this;
             _hits = 0;
             _boppoClownID = null;
@@ -301,5 +299,5 @@
         return new BoppoServer();
     };
 
-    return new BoppoServer();
+    return createBoppoServer();
 });

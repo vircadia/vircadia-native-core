@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* globals BoppoClownEntity:true LookAtTarget */
+/* globals LookAtTarget */
 
 (function() {
     var SFX_PREFIX = 'https://hifi-content.s3-us-west-1.amazonaws.com/caitlyn/production/elBoppo/sfx/';
@@ -21,7 +21,7 @@
 
     Script.include('lookAtEntity.js');
 
-    BoppoClownEntity = function() {
+    var createBoppoClownEntity = function() {
         var _this,
             _entityID,
             _boppoUserData,
@@ -38,7 +38,7 @@
             return {};
         };
 
-        BoppoClownEntity = function () {
+        var BoppoClownEntity = function () {
             _this = this;
             PUNCH_SOUNDS.forEach(function(punch) {
                 _punchSounds.push(SoundCache.getSound(SFX_PREFIX + punch));
@@ -76,5 +76,5 @@
         return new BoppoClownEntity();
     };
 
-    return new BoppoClownEntity();
+    return createBoppoClownEntity();
 });
