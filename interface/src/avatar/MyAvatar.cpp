@@ -1770,10 +1770,10 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     }
 
     // compute action input
-    glm::vec3 front = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FORWARD;
+    glm::vec3 forward = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FORWARD;
     glm::vec3 right = (getDriveKey(TRANSLATE_X)) * IDENTITY_RIGHT;
 
-    glm::vec3 direction = front + right;
+    glm::vec3 direction = forward + right;
     CharacterController::State state = _characterController.getState();
     if (state == CharacterController::State::Hover) {
         // we're flying --> support vertical motion
