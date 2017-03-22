@@ -340,6 +340,52 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
     _webSurface->setProxyWindow(proxyWindow);
 }
 
+#define USE_MOUSE_EVENTS
+
+#ifdef USE_MOUSE_EVENTS
+void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
+    if (!_webSurface) {
+        return;
+    }
+
+    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
+    QPointF windowPoint(windowPos.x, windowPos.y);
+
+    if (event.getType() == PointerEvent::Press) {
+        this->_pressed = true;
+    } else if (event.getType() == PointerEvent::Release) {
+        this->_pressed = false;
+    }
+
+
+    Qt::MouseButtons buttons = Qt::NoButton;
+    if (event.getButtons() & PointerEvent::PrimaryButton) {
+        buttons |= Qt::LeftButton;
+    }
+
+    QEvent::Type type;
+    Qt::MouseButton button = Qt::NoButton;
+    if (event.getButton() == PointerEvent::PrimaryButton) {
+        button = Qt::LeftButton;
+    }
+    switch (event.getType()) {
+        case PointerEvent::Press:
+            type = QEvent::MouseButtonPress;
+            break;
+        case PointerEvent::Release:
+            type = QEvent::MouseButtonRelease;
+            break;
+        case PointerEvent::Move:
+        default:
+            type = QEvent::MouseMove;
+            break;
+    }
+
+    QMouseEvent* mouseEvent = new QMouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+    QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+}
+
+#else
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     if (!_webSurface) {
         return;
@@ -395,6 +441,8 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
 
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
 }
+#endif
+
 
 void Web3DOverlay::setProperties(const QVariantMap& properties) {
     Billboard3DOverlay::setProperties(properties);
