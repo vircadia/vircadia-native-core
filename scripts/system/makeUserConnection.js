@@ -212,6 +212,12 @@ function deleteMakeConnectionParticleEffect() {
     }
 }
 
+function stopHandshakeSound() {
+    if (handshakeInjector) {
+        handshakeInjector.stop();
+    }
+}
+
 function calcParticlePos(myHand, otherHand, otherOrientation, reset) {
     if (reset) {
         particleRotationAngle = 0.0;
@@ -234,6 +240,7 @@ function updateVisualization() {
     if (state == STATES.inactive) {
         deleteParticleEffect();
         deleteMakeConnectionParticleEffect();
+        stopHandshakeSound();
         return;
     }
 
@@ -255,6 +262,7 @@ function updateVisualization() {
             // no visualization while waiting
             deleteParticleEffect();
             deleteMakeConnectionParticleEffect();
+            stopHandshakeSound();
             break;
         case STATES.connecting:
             var particleProps = {};
@@ -478,15 +486,13 @@ function makeConnection(id) {
 
     // now that we made connection, reset everything
     makingFriendsTimeout = Script.setTimeout(function () {
-            connectingId = undefined;
-            connectingHand = undefined;
-            makingConnectionTimeout = undefined;
             if (!successfulHandshakeInjector) {
                 successfulHandshakeInjector = Audio.playSound(successfulHandshakeSound, {position: getHandPosition(MyAvatar, currentHand), volume: 0.5, localOnly: true});
             } else {
                 successfulHandshakeInjector.restart();
             }
             Controller.triggerHapticPulse(HAPTIC_DATA.success.strength, HAPTIC_DATA.success.duration, handToHaptic(currentHand));
+            endHandshake();
         }, MAKING_CONNECTION_TIMEOUT);
 }
 
