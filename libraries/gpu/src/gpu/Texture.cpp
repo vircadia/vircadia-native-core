@@ -794,7 +794,16 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
         PROFILE_RANGE(render_gpu, "ProcessFace");
 
-        auto numComponents = cubeTexture.accessStoredMipFace(0,face)->getFormat().getScalarCount();
+        auto mipFormat = cubeTexture.accessStoredMipFace(0, face)->getFormat();
+        auto numComponents = mipFormat.getScalarCount();
+        int roffset { 0 };
+        int goffset { 1 };
+        int boffset { 2 };
+        if ((mipFormat.getSemantic() == gpu::BGRA) || (mipFormat.getSemantic() == gpu::SBGRA)) {
+            roffset = 2;
+            boffset = 0;
+        }
+
         auto data = cubeTexture.accessStoredMipFace(0,face)->readData();
         if (data == nullptr) {
             continue;
@@ -882,9 +891,9 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
                 for (int i = 0; i < stride; ++i) {
                     for (int j = 0; j < stride; ++j) {
                         int k = (int)(x + i - halfStride + (y + j - halfStride) * width) * numComponents;
-                        red += ColorUtils::sRGB8ToLinearFloat(data[k]);
-                        green += ColorUtils::sRGB8ToLinearFloat(data[k + 1]);
-                        blue += ColorUtils::sRGB8ToLinearFloat(data[k + 2]);
+                        red += ColorUtils::sRGB8ToLinearFloat(data[k + roffset]);
+                        green += ColorUtils::sRGB8ToLinearFloat(data[k + goffset]);
+                        blue += ColorUtils::sRGB8ToLinearFloat(data[k + boffset]);
                     }
                 }
                 glm::vec3 clr(red, green, blue);
@@ -911,8 +920,6 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
 
     // save result
     for(uint i=0; i < sqOrder; i++) {
-        // gamma Correct
-        // output[i] = linearTosRGB(glm::vec3(resultR[i], resultG[i], resultB[i]));
         output[i] = glm::vec3(resultR[i], resultG[i], resultB[i]);
     }
 
