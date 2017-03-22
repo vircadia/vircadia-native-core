@@ -6,10 +6,11 @@
         <title>Welcome to Interface</title>
 
         <style>
-            body {
+          body {
                 background: black;
                 width: 100%;
                 overflow-x: hidden;
+                overflow-y: hidden;
                 margin: 0;
                 padding: 0;
             }
@@ -18,7 +19,7 @@
                 position: absolute;
                 left: 70;
                 top: 118;
-                width: 297;
+                width: 160;
                 height: 80;
             }
 
@@ -26,7 +27,7 @@
                 position: absolute;
                 left: 367;
                 top: 118;
-                width: 267;
+                width: 160;
                 height: 80;
             }
 
@@ -34,12 +35,12 @@
                 position: absolute;
                 left: 634;
                 top: 118;
-                width: 297;
+                width: 160;
                 height: 80;
             }
 
             #image_area {
-                width: 1024;
+                width: 480;
                 height: 720;
                 margin: auto;
                 position: absolute;
@@ -117,7 +118,7 @@
 
     <body onload="load()">
         <div id="image_area">
-            <img id="main_image" src="img/controls-help-keyboard.png" width="1024px" height="720px"></img>
+            <img id="main_image" src="img/controls-help-keyboard.png" width="480px" height="720px"></img>
             <a href="#" id="kbm_button" onmousedown="showKbm()"></a>
             <a href="#" id="hand_controllers_button" onmousedown="showHandControllers()"></a>
             <a href="#" id="game_controller_button" onmousedown="showGamepad()"></a>
