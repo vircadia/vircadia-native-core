@@ -141,7 +141,7 @@ function testInverse() {
     assert(mat4FuzzyEqual(IDENTITY, Mat4.multiply(test2, Mat4.inverse(test2))));
 }
 
-function testFront() {
+function testForward() {
     var test0 = IDENTITY;
     assert(mat4FuzzyEqual({x: 0, y: 0, z: -1}, Mat4.getForward(test0)));
 
@@ -157,7 +157,7 @@ function testMat4() {
     testTransformPoint();
     testTransformVector();
     testInverse();
-    testFront();
+    testForward();
 
     print("MAT4 TEST complete! (" + (testCount - failureCount) + "/" + testCount + ") tests passed!");
 }
