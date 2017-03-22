@@ -12,6 +12,8 @@
         var forwardUnitVector = Vec3.normalize(Quat.getForward(MyAvatar.orientation));
         var forwardOffset = Vec3.multiply(forwardUnitVector,forwardFactor);
         var rightFactor = 3;
+        // TODO: rightUnitVec is unused and spawnLocation declaration is incorrect
+        var rightUnitVec = Vec3.normalize(Quat.getRight(MyAvatar.orientation));
         var spawnLocation = Vec3.sum(Vec3.sum(MyAvatar.position,forwardOffset),rightFactor);
         if (success) {
             this.pastedEntityIDs = Clipboard.pasteEntities(spawnLocation);
