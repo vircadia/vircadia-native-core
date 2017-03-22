@@ -19,16 +19,16 @@ const MESSAGE_CHANNEL = "io.highfidelity.makeUserConnection";
 const STATES = {
     inactive : 0,
     waiting: 1,
-    friending: 2,
-    makingFriends: 3
+    connecting: 2,
+    makingConnection: 3
 };
-const STATE_STRINGS = ["inactive", "waiting", "friending", "makingFriends"];
+const STATE_STRINGS = ["inactive", "waiting", "connecting", "makingConnection"];
 const WAITING_INTERVAL = 100; // ms
-const FRIENDING_INTERVAL = 100; // ms
-const MAKING_FRIENDS_TIMEOUT = 3000; // ms
-const FRIENDING_TIME = 2000; // ms
-const FRIENDING_HAPTIC_STRENGTH = 0.5;
-const FRIENDING_SUCCESS_HAPTIC_STRENGTH = 1.0;
+const CONNECTING_INTERVAL = 100; // ms
+const MAKING_CONNECTION_TIMEOUT = 3000; // ms
+const CONNECTING_TIME = 2000; // ms
+const CONNECTING_HAPTIC_STRENGTH = 0.5;
+const CONNECTING_SUCCESS_HAPTIC_STRENGTH = 1.0;
 const HAPTIC_DURATION = 20;
 const PARTICLE_RADIUS = 0.1;
 const PARTICLE_ANGLE_INCREMENT = 360/45; // 1hz
@@ -58,7 +58,7 @@ const PARTICLE_EFFECT_PROPS = {
     "dimensions": {"x":0.05, "y": 0.05, "z": 0.05},
     "type": "ParticleEffect"
 };
-const MAKING_FRIENDS_PARTICLE_PROPS = {
+const MAKING_CONNECTION_PARTICLE_PROPS = {
     "alpha": 0.07,
     "alphaStart":0.011,
     "alphaSpread": 0,
@@ -91,25 +91,25 @@ const MAKING_FRIENDS_PARTICLE_PROPS = {
 
 var currentHand;
 var state = STATES.inactive;
-var friendingInterval;
+var connectingInterval;
 var waitingInterval;
-var makingFriendsTimeout;
+var makingConnectionTimeout;
 var animHandlerId;
-var friendingId;
-var friendingHand;
+var connectingId;
+var connectingHand;
 var waitingList = {};
 var particleEffect;
 var waitingBallScale;
 var particleRotationAngle = 0.0;
-var makingFriendsParticleEffect;
-var makingFriendsEmitRate = 2000;
+var makingConnectionParticleEffect;
+var makingConnectionEmitRate = 2000;
 var particleEmitRate = 500;
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
     var versionString = "v" + version;
-    var friending = "[" + friendingId + "/" + friendingHand + "]";
-    print.apply(null, [].concat.apply([label, versionString, stateString, JSON.stringify(waitingList), friending], [].map.call(arguments, JSON.stringify)));
+    var connecting = "[" + connectingId + "/" + connectingHand + "]";
+    print.apply(null, [].concat.apply([label, versionString, stateString, JSON.stringify(waitingList), connecting], [].map.call(arguments, JSON.stringify)));
 }
 
 function handToString(hand) {
@@ -146,15 +146,15 @@ function stopWaiting() {
     }
 }
 
-function stopFriending() {
-    if (friendingInterval) {
-        friendingInterval = Script.clearInterval(friendingInterval);
+function stopConnecting() {
+    if (connectingInterval) {
+        connectingInterval = Script.clearInterval(connectingInterval);
     }
 }
 
-function stopMakingFriends() {
-    if (makingFriendsTimeout) {
-        makingFriendsTimeout = Script.clearTimeout(makingFriendsTimeout);
+function stopMakingConnection() {
+    if (makingConnectionTimeout) {
+        makingConnectionTimeout = Script.clearTimeout(makingConnectionTimeout);
     }
 }
 
@@ -198,9 +198,9 @@ function deleteParticleEffect() {
     }
 }
 
-function deleteMakeFriendsParticleEffect() {
-    if (makingFriendsParticleEffect) {
-        makingFriendsParticleEffect = Entities.deleteEntity(makingFriendsParticleEffect);
+function deleteMakeConnectionParticleEffect() {
+    if (makingConnectionParticleEffect) {
+        makingConnectionParticleEffect = Entities.deleteEntity(makingConnectionParticleEffect);
     }
 }
 
@@ -217,41 +217,40 @@ function calcParticlePos(myHand, otherHand, otherOrientation, reset) {
 
 // this is called frequently, but usually does nothing
 function updateVisualization() {
-    // after making friends, if you are still holding the grip lets transition
+    // after making connection, if you are still holding the grip lets transition
     // back to waiting
-    if (state == STATES.makingFriends && !friendingId) {
+    if (state == STATES.makingConnection && !connectingId) {
         startHandshake();
         return;
     }
     if (state == STATES.inactive) {
         deleteParticleEffect();
-        deleteMakeFriendsParticleEffect();
+        deleteMakeConnectionParticleEffect();
         return;
     }
 
     var myHandPosition = getHandPosition(MyAvatar, currentHand);
     var otherHand;
     var otherOrientation;
-    if (friendingId) {
-        var other = AvatarList.getAvatar(friendingId);
+    if (connectingId) {
+        var other = AvatarList.getAvatar(connectingId);
         if (other) {
             otherOrientation = other.orientation;
-            otherHand = getHandPosition(other, stringToHand(friendingHand));
+            otherHand = getHandPosition(other, stringToHand(connectingHand));
         }
     }
-    // scale the dimensions of the waiting/makingFriends ball to hand, capping
-    // at MAX_AVATAR_DISTANCE if someone happens to be huge
+
     var wrist = MyAvatar.getJointPosition(MyAvatar.getJointIndex(handToString(currentHand)));
     var d = Math.min(MAX_AVATAR_DISTANCE, Vec3.distance(wrist, myHandPosition));
     switch (state) {
         case STATES.waiting:
             // no visualization while waiting
             deleteParticleEffect();
-            deleteMakeFriendsParticleEffect();
+            deleteMakeConnectionParticleEffect();
             break;
-        case STATES.friending:
+        case STATES.connecting:
             var particleProps = {};
-            // put the position between the 2 hands, if we have a friendingId.  This
+            // put the position between the 2 hands, if we have a ingId.  This
             // helps define the plane in which the particles move.
             positionFractionallyTowards(myHandPosition, otherHand, 0.5);
             // now manage the rest of the entity
@@ -264,29 +263,24 @@ function updateVisualization() {
                 particleEffect = Entities.addEntity(particleProps);
             } else {
                 var position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
-                particleProps.position = position; //Vec3.sum(position, Vec3.multiplyQbyV(Quat.angleAxis(particleRotationAngle, axis), {x: 0, y: radius, z: 0}));
-                //particleProps.position = Vec3.sum(position, Vec3.multiplyQbyV(Quat.angleAxis(particleRotationAngle, Quat.getFront(MyAvatar.orientation)),{x: 0, y: radius, z: 0}));
+                particleProps.position = position;
                 particleProps.isEmitting = 1;
-                /*if (particleRotationAngle > 0.9 * 720) {
-                    particleProps.lifespan = 6;
-                    particleProps.isEmitting = 0;
-                }*/
                 Entities.editEntity(particleEffect, particleProps);
             }
-            if (!makingFriendsParticleEffect) {
-                props = MAKING_FRIENDS_PARTICLE_PROPS;
-                makingFriendsEmitRate = 2000;
-                props.emitRate = makingFriendsEmitRate;
+            if (!makingConnectionParticleEffect) {
+                props = MAKING_CONNECTION_PARTICLE_PROPS;
+                makingConnectionEmitRate = 2000;
+                props.emitRate = makingConnectionEmitRate;
                 props.position = myHandPosition;
-                makingFriendsParticleEffect = Entities.addEntity(props);
+                makingConnectionParticleEffect = Entities.addEntity(props);
             } else {
-                makingFriendsEmitRate *= 0.5;
-                Entities.editEntity(makingFriendsParticleEffect, {emitRate: makingFriendsEmitRate, position: myHandPosition, isEmitting: 1});
+                makingConnectionEmitRate *= 0.5;
+                Entities.editEntity(makingConnectionParticleEffect, {emitRate: makingConnectionEmitRate, position: myHandPosition, isEmitting: 1});
             }
             break;
-        case STATES.makingFriends:
+        case STATES.makingConnection:
             particleEmitRate *= 0.5;
-            Entities.editEntity(makingFriendsParticleEffect, {emitRate: 0, isEmitting: 0, position: myHandPosition});
+            Entities.editEntity(makingConnectionParticleEffect, {emitRate: 0, isEmitting: 0, position: myHandPosition});
             var pos = calcParticlePos(myHandPosition, otherHand, otherOrientation);
             Entities.editEntity(particleEffect, {position: position, emitRate: particleEmitRate});
             break;
@@ -329,10 +323,10 @@ function findNearestWaitingAvatar() {
 
 
 // As currently implemented, we select the closest waiting avatar (if close enough) and send
-// them a friendRequest.  If nobody is close enough we send a waiting message, and wait for a
-// friendRequest.  If the 2 people who want to connect are both somewhat out of range when they
-// initiate the shake, they will race to see who sends the friendRequest after noticing the
-// waiting message.  Either way, they will start friending eachother at that point.
+// them a connectionRequest.  If nobody is close enough we send a waiting message, and wait for a
+// connectionRequest.  If the 2 people who want to connect are both somewhat out of range when they
+// initiate the shake, they will race to see who sends the connectionRequest after noticing the
+// waiting message.  Either way, they will start connecting eachother at that point.
 function startHandshake(fromKeyboard) {
     if (fromKeyboard) {
         debug("adding animation");
@@ -344,21 +338,21 @@ function startHandshake(fromKeyboard) {
     }
     debug("starting handshake for", currentHand);
     state = STATES.waiting;
-    friendingId = undefined;
-    friendingHand = undefined;
+    connectingId = undefined;
+    connectingHand = undefined;
     // just in case
     stopWaiting();
-    stopFriending();
-    stopMakingFriends();
+    stopConnecting();
+    stopMakingConnection();
 
     var nearestAvatar = findNearestWaitingAvatar();
     if (nearestAvatar.avatar) {
-        friendingId = nearestAvatar.avatar;
-        friendingHand = handToString(nearestAvatar.hand);
-        debug("sending friendRequest to", friendingId);
+        connectingId = nearestAvatar.avatar;
+        connectingHand = handToString(nearestAvatar.hand);
+        debug("sending connectionRequest to", connectingId);
         messageSend({
-            key: "friendRequest",
-            id: friendingId,
+            key: "connectionRequest",
+            id: connectingId,
             hand: handToString(currentHand)
         });
     } else {
@@ -380,12 +374,12 @@ function endHandshake() {
     // as we ignore the key release event when inactive.  See updateTriggers
     // below.
     state = STATES.inactive;
-    friendingId = undefined;
-    friendingHand = undefined;
+    connectingId = undefined;
+    connectingHand = undefined;
     stopWaiting();
-    stopFriending();
-    stopMakingFriends();
-    // send done to let friend know you are not making friends now
+    stopConnecting();
+    stopMakingConnection();
+    // send done to let connection know you are not making connections now
     messageSend({
         key: "done"
     });
@@ -429,109 +423,109 @@ function messageSend(message) {
 function lookForWaitingAvatar() {
     // we started with nobody close enough, but maybe I've moved
     // or they did.  Note that 2 people doing this race, so stop
-    // as soon as you have a friendingId (which means you got their
+    // as soon as you have a connectingId (which means you got their
     // message before noticing they were in range in this loop)
 
     // just in case we reenter before stopping
     stopWaiting();
     debug("started looking for waiting avatars");
     waitingInterval = Script.setInterval(function () {
-        if (state == STATES.waiting && !friendingId) {
-            // find the closest in-range avatar, and send friend request
+        if (state == STATES.waiting && !connectingId) {
+            // find the closest in-range avatar, and send connection request
             // TODO: this is same code as in startHandshake - get this
             // cleaned up.
             var nearestAvatar = findNearestWaitingAvatar();
             if (nearestAvatar.avatar) {
-                friendingId = nearestAvatar.avatar;
-                friendingHand = handToString(nearestAvatar.hand);
-                debug("sending friendRequest to", friendingId);
+                connectingId = nearestAvatar.avatar;
+                connectingHand = handToString(nearestAvatar.hand);
+                debug("sending connectionRequest to", connectingId);
                 messageSend({
-                    key: "friendRequest",
-                    id: friendingId,
+                    key: "connectionRequest",
+                    id: connectingId,
                     hand: handToString(currentHand)
                 });
             }
         } else {
-            // something happened, stop looking for avatars to friend
+            // something happened, stop looking for avatars to connect
             stopWaiting();
             debug("stopped looking for waiting avatars");
         }
     }, WAITING_INTERVAL);
 }
 
-// this should be where we make the appropriate friend call.  For now just make the
+// this should be where we make the appropriate connection call.  For now just make the
 // visualization change.
-function makeFriends(id) {
-    // send done to let the friend know you have made friends.
+function makeConnection(id) {
+    // send done to let the connection know you have made connection.
     messageSend({
         key: "done",
-        friendId: id
+        connectionId: id
     });
-    Controller.triggerHapticPulse(FRIENDING_SUCCESS_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
-    state = STATES.makingFriends;
-    // now that we made friends, reset everything
+    Controller.triggerHapticPulse(CONNECTING_SUCCESS_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
+    state = STATES.makingConnection;
+    // now that we made connection, reset everything
     makingFriendsTimeout = Script.setTimeout(function () {
-            friendingId = undefined;
-            friendingHand = undefined;
-            makingFriendsTimeout = undefined;
-        }, MAKING_FRIENDS_TIMEOUT);
+            connectingId = undefined;
+            connectingHand = undefined;
+            makingConnectionTimeout = undefined;
+        }, MAKING_CONNECTION_TIMEOUT);
 }
 
-// we change states, start the friendingInterval where we check
+// we change states, start the connectionInterval where we check
 // to be sure the hand is still close enough.  If not, we terminate
 // the interval, go back to the waiting state.  If we make it
-// the entire FRIENDING_TIME, we make friends.
-function startFriending(id, hand) {
+// the entire CONNECTING_TIME, we make the connection.
+function startConnecting(id, hand) {
     var count = 0;
-    debug("friending", id, "hand", hand);
+    debug("connecting", id, "hand", hand);
     // do we need to do this?
-    friendingId = id;
-    friendingHand = hand;
-    state = STATES.friending;
-    Controller.triggerHapticPulse(FRIENDING_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
+    connectingId = id;
+    connectingHand = hand;
+    state = STATES.connecting;
+    Controller.triggerHapticPulse(CONNECTING_HAPTIC_STRENGTH, HAPTIC_DURATION, handToHaptic(currentHand));
 
-    // send message that we are friending them
+    // send message that we are ing them
     messageSend({
-        key: "friending",
+        key: "connecting",
         id: id,
         hand: handToString(currentHand)
     });
 
-    friendingInterval = Script.setInterval(function () {
+    connectingInterval = Script.setInterval(function () {
         count += 1;
-        if (state != STATES.friending) {
-            debug("stopping friending interval, state changed");
-            stopFriending();
+        if (state != STATES.connecting) {
+            debug("stopping connecting interval, state changed");
+            stopConnecting();
         } else if (!isNearby(id, hand)) {
             // gotta go back to waiting
             debug(id, "moved, back to waiting");
-            stopFriending();
+            stopConnecting();
             messageSend({
                 key: "done"
             });
             startHandshake();
-        } else if (count > FRIENDING_TIME/FRIENDING_INTERVAL) {
-            debug("made friends with " + id);
-            makeFriends(id);
-            stopFriending();
+        } else if (count > CONNECTING_TIME/CONNECTING_INTERVAL) {
+            debug("made connection with " + id);
+            makeConnection(id);
+            stopConnecting();
         }
-    }, FRIENDING_INTERVAL);
+    }, CONNECTING_INTERVAL);
 }
 /*
-A simple sequence diagram: NOTE that the FriendAck is somewhat
+A simple sequence diagram: NOTE that the ConnectionAck is somewhat
 vestigial, and probably should be removed shortly.
 
      Avatar A                       Avatar B
         |                               |
         |  <-----(waiting) ----- startHandshake
-   startHandshake -- (FriendRequest) -> |
+startHandshake - (connectionRequest) -> |
         |                               |
-        | <-------(FriendAck) --------- |
-        | <--------(friending) -- startFriending
-   startFriending -- (friending) --->   |
+        | <----(connectionAck) -------- |
+        | <-----(connecting) -- startConnecting
+ startConnecting ---(connecting) ---->  |
         |                               |
-        |                            friends
-     friends                            |
+        |                            connected
+   connected                            |
         | <---------  (done) ---------- |
         | ---------- (done) --------->  |
 */
@@ -554,81 +548,81 @@ function messageHandler(channel, messageString, senderID) {
         // remove it from the list
         waitingList[senderID] = message.hand;
         break;
-    case "friendRequest":
+    case "connectionRequest":
         delete waitingList[senderID];
-        if (state == STATES.waiting && message.id == MyAvatar.sessionUUID && (!friendingId || friendingId == senderID)) {
-            // you were waiting for a friend request, so send the ack.  Or, you and the other
-            // guy raced and both send friendRequests.  Handle that too
-            friendingId = senderID;
-            friendingHand = message.hand;
+        if (state == STATES.waiting && message.id == MyAvatar.sessionUUID && (!connectingId || connectingId == senderID)) {
+            // you were waiting for a connection request, so send the ack.  Or, you and the other
+            // guy raced and both send connectionRequests.  Handle that too
+            connectingId = senderID;
+            connectingHand = message.hand;
             messageSend({
-                key: "friendAck",
+                key: "connectionAck",
                 id: senderID,
                 hand: handToString(currentHand)
             });
         } else {
-            if (state == STATES.waiting && friendingId == senderID) {
-                // the person you are trying to friend sent a request to someone else.  See the
+            if (state == STATES.waiting && connectingId == senderID) {
+                // the person you are trying to connect sent a request to someone else.  See the
                 // if statement above.  So, don't cry, just start the handshake over again
                 startHandshake();
             }
         }
         break;
-    case "friendAck":
+    case "connectionAck":
         delete waitingList[senderID];
-        if (state == STATES.waiting && (!friendingId || friendingId == senderID)) {
+        if (state == STATES.waiting && (!connectingId || connectingId == senderID)) {
             if (message.id == MyAvatar.sessionUUID) {
-                // start friending...
-                friendingId = senderID;
-                friendingHand = message.hand;
+                // start connecting...
+                connectingId = senderID;
+                connectingHand = message.hand;
                 stopWaiting();
-                startFriending(senderID, message.hand);
+                startConnecting(senderID, message.hand);
             } else {
-                if (friendingId) {
-                    // this is for someone else (we lost race in friendRequest),
+                if (connectingId) {
+                    // this is for someone else (we lost race in connectionRequest),
                     // so lets start over
                     startHandshake();
                 }
             }
         }
-        // TODO: check to see if we are waiting for this but the person we are friending sent it to
+        // TODO: check to see if we are waiting for this but the person we are connecting sent it to
         // someone else, and try again
         break;
-    case "friending":
+    case "connecting":
         delete waitingList[senderID];
-        if (state == STATES.waiting && senderID == friendingId) {
+        if (state == STATES.waiting && senderID == connectingId) {
             // temporary logging
-            if (friendingHand != message.hand) {
-                debug("friending hand", friendingHand, "not same as friending hand in message", message.hand);
+            if (connectingHand != message.hand) {
+                debug("connecting hand", connectingHand, "not same as connecting hand in message", message.hand);
             }
-            friendingHand = message.hand;
+            connectingHand = message.hand;
             if (message.id != MyAvatar.sessionUUID) {
-                // the person we were trying to friend is friending someone else
+                // the person we were trying to connect is connecting to someone else
                 // so try again
                 startHandshake();
                 break;
             }
-            startFriending(senderID, message.hand);
+            startConnecting(senderID, message.hand);
         }
         break;
     case "done":
         delete waitingList[senderID];
-        if (state == STATES.friending && friendingId == senderID) {
-            // if they are done, and didn't friend us, terminate our
-            // friending
-            if (message.friendId !== MyAvatar.sessionUUID) {
-                stopFriending();
+        if (state == STATES.connecting && connectingId == senderID) {
+            // if they are done, and didn't connect us, terminate our
+            // connecting
+            if (message.connectionId !== MyAvatar.sessionUUID) {
+                stopConnecting();
                 // now just call startHandshake.  Should be ok to do so without a
                 // value for isKeyboard, as we should not change the animation
                 // state anyways (if any)
                 startHandshake();
             }
         } else {
-            // if waiting or inactive, lets clear the friending id. If in makingFriends,
-            // do nothing (so you see the red for a bit)
-            if (state != STATES.makingFriends && friendingId == senderID) {
-                friendingId = undefined;
-                friendingHand = undefined;
+            // if waiting or inactive, lets clear the connecting id. If in makingConnection,
+            // do nothing
+            if (state != STATES.makingConnection && connectingId == senderID) {
+                connectingId = undefined;
+                connectingHand = undefined;
                 if (state != STATES.inactive) {
                     startHandshake();
                 }
@@ -670,33 +664,33 @@ function keyReleaseEvent(event) {
     }
 }
 // map controller actions
-var friendsMapping = Controller.newMapping(Script.resolvePath('') + '-grip');
-friendsMapping.from(Controller.Standard.LeftGrip).peek().to(makeGripHandler(Controller.Standard.LeftHand));
-friendsMapping.from(Controller.Standard.RightGrip).peek().to(makeGripHandler(Controller.Standard.RightHand));
+var connectionMapping = Controller.newMapping(Script.resolvePath('') + '-grip');
+connectionMapping.from(Controller.Standard.LeftGrip).peek().to(makeGripHandler(Controller.Standard.LeftHand));
+connectionMapping.from(Controller.Standard.RightGrip).peek().to(makeGripHandler(Controller.Standard.RightHand));
 
 // setup keyboard initiation
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 
 // xbox controller cuz that's important
-friendsMapping.from(Controller.Standard.RB).peek().to(makeGripHandler(Controller.Standard.RightHand, true));
+connectionMapping.from(Controller.Standard.RB).peek().to(makeGripHandler(Controller.Standard.RightHand, true));
 
 // it is easy to forget this and waste a lot of time for nothing
-friendsMapping.enable();
+connectionMapping.enable();
 
 // connect updateVisualization to update frequently
 Script.update.connect(updateVisualization);
 
 Script.scriptEnding.connect(function () {
     debug("removing controller mappings");
-    friendsMapping.disable();
+    connectionMapping.disable();
     debug("removing key mappings");
     Controller.keyPressEvent.disconnect(keyPressEvent);
     Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
     debug("disconnecting updateVisualization");
     Script.update.disconnect(updateVisualization);
     deleteParticleEffect();
-    deleteMakeFriendsParticleEffect();
+    deleteMakeConnectionParticleEffect();
 });
 
 }()); // END LOCAL_SCOPE
