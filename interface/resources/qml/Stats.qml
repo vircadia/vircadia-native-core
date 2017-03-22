@@ -198,7 +198,7 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Audio Out Mic: " + root.audioMicOutboundPPS + " pps, " +
+                        text: "Audio Out Mic: " + root.audioOutboundPPS + " pps, " +
                             "Silent: " + root.audioSilentOutboundPPS + " pps";
                     }
                     StatText {
