@@ -62,8 +62,6 @@ BackendPointer GLBackend::createBackend() {
     INSTANCE = result.get();
     void* voidInstance = &(*result);
     qApp->setProperty(hifi::properties::gl::BACKEND, QVariant::fromValue(voidInstance));
-
-    gl::GLTexture::initTextureTransferHelper();
     return result;
 }
 
@@ -209,7 +207,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
         }
     }
 
-    { // Sync all the buffers
+    { // Sync all the transform states
         PROFILE_RANGE(render_gpu_gl_detail, "syncCPUTransform");
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
@@ -277,7 +275,7 @@ void GLBackend::renderPassDraw(const Batch& batch) {
                 updateInput();
                 updateTransform(batch);
                 updatePipeline();
-                
+
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
                 break;
@@ -623,6 +621,7 @@ void GLBackend::queueLambda(const std::function<void()> lambda) const {
 }
 
 void GLBackend::recycle() const {
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__)
     {
         std::list<std::function<void()>> lamdbasTrash;
         {
@@ -745,10 +744,6 @@ void GLBackend::recycle() const {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
         }
     }
-
-#ifndef THREADED_TEXTURE_TRANSFER
-    gl::GLTexture::_textureTransferHelper->process();
-#endif
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {

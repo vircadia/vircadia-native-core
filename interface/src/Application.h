@@ -51,6 +51,7 @@
 #include <RunningMarker.h>
 
 #include "avatar/MyAvatar.h"
+#include "BandwidthRecorder.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "ConnectionMonitor.h"
@@ -61,7 +62,6 @@
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
 #include "ui/ApplicationOverlay.h"
-#include "ui/BandwidthDialog.h"
 #include "ui/EntityScriptServerLogDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
@@ -72,6 +72,8 @@
 
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
+#include <ModelScriptingInterface.h>
+
 
 class OffscreenGLCanvas;
 class GLCanvas;
@@ -220,6 +222,8 @@ public:
     void setHmdTabletBecomesToolbarSetting(bool value);
     bool getTabletVisibleToOthersSetting() { return _tabletVisibleToOthersSetting.get(); }
     void setTabletVisibleToOthersSetting(bool value);
+    bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
+    void setPreferAvatarFingerOverStylus(bool value);
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
@@ -273,8 +277,6 @@ public:
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
     virtual void pushPostUpdateLambda(void* key, std::function<void()> func) override;
-
-    const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
     void updateMyAvatarLookAtPosition();
 
@@ -366,7 +368,6 @@ public slots:
     void calibrateEyeTracker5Points();
 #endif
 
-    void aboutApp();
     static void showHelp();
 
     void cycleCamera();
@@ -492,7 +493,7 @@ private:
 
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
-    void mouseDoublePressEvent(QMouseEvent* event) const;
+    void mouseDoublePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
 
     void touchBeginEvent(QTouchEvent* event);
@@ -555,8 +556,6 @@ private:
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};
     Camera _myCamera;                            // My view onto the world
-    Camera _mirrorCamera;                        // Camera for mirror view
-    QRect _mirrorViewRect;
 
     Setting::Handle<QString> _previousScriptLocation;
     Setting::Handle<float> _fieldOfView;
@@ -565,6 +564,7 @@ private:
     Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
     Setting::Handle<bool> _tabletVisibleToOthersSetting;
+    Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
 
     float _scaleMirror;

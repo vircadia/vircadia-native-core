@@ -28,8 +28,6 @@ class AvatarInputs : public QQuickItem {
     AI_PROPERTY(bool, audioMuted, false)
     AI_PROPERTY(bool, audioClipping, false)
     AI_PROPERTY(float, audioLevel, 0)
-    AI_PROPERTY(bool, mirrorVisible, false)
-    AI_PROPERTY(bool, mirrorZoomed, true)
     AI_PROPERTY(bool, isHMD, false)
     AI_PROPERTY(bool, showAudioTools, true)
 
@@ -44,8 +42,6 @@ signals:
     void audioMutedChanged();
     void audioClippingChanged();
     void audioLevelChanged();
-    void mirrorVisibleChanged();
-    void mirrorZoomedChanged();
     void isHMDChanged();
     void showAudioToolsChanged();
 
@@ -53,8 +49,6 @@ protected:
     Q_INVOKABLE void resetSensors();
     Q_INVOKABLE void toggleCameraMute();
     Q_INVOKABLE void toggleAudioMute();
-    Q_INVOKABLE void toggleZoom();
-    Q_INVOKABLE void closeMirror();
 
 private: 
     float _trailingAudioLoudness{ 0 };

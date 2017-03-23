@@ -329,7 +329,7 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
-    AvatarHashMap::handleRemovedAvatar(removedAvatar);
+    AvatarHashMap::handleRemovedAvatar(removedAvatar, removalReason);
 
     // removedAvatar is a shared pointer to an AvatarData but we need to get to the derived Avatar
     // class in this context so we can call methods that don't exist at the base class.
@@ -424,7 +424,7 @@ void AvatarManager::getObjectsToChange(VectorOfMotionStates& result) {
     }
 }
 
-void AvatarManager::handleOutgoingChanges(const VectorOfMotionStates& motionStates) {
+void AvatarManager::handleChangedMotionStates(const VectorOfMotionStates& motionStates) {
     // TODO: extract the MyAvatar results once we use a MotionState for it.
 }
 

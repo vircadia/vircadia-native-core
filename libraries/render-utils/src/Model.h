@@ -28,6 +28,7 @@
 #include <render/Scene.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
+#include <TriangleSet.h>
 
 #include "GeometryCache.h"
 #include "TextureCache.h"
@@ -95,7 +96,6 @@ public:
                     render::PendingChanges& pendingChanges,
                     render::Item::Status::Getters& statusGetters);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
-    void renderSetup(RenderArgs* args);
     bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }
@@ -250,6 +250,9 @@ public:
     uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
     const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItems; }
 
+    void renderDebugMeshBoxes(gpu::Batch& batch);
+
+
 public slots:
     void loadURLFinished(bool success);
 
@@ -265,15 +268,6 @@ protected:
 
     /// Returns the unscaled extents of the model's mesh
     Extents getUnscaledMeshExtents() const;
-
-    /// Returns the scaled equivalent of some extents in model space.
-    Extents calculateScaledOffsetExtents(const Extents& extents, glm::vec3 modelPosition, glm::quat modelOrientation) const;
-
-    /// Returns the world space equivalent of some box in model space.
-    AABox calculateScaledOffsetAABox(const AABox& box, glm::vec3 modelPosition, glm::quat modelOrientation) const;
-
-    /// Returns the scaled equivalent of a point in model space.
-    glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;
 
     /// Clear the joint states
     void clearJointState(int index);
@@ -293,9 +287,13 @@ protected:
 
     SpatiallyNestable* _spatiallyNestableOverride;
 
-    glm::vec3 _translation;
+    glm::vec3 _translation; // this is the translation in world coordinates to the model's registration point
     glm::quat _rotation;
     glm::vec3 _scale;
+
+    // For entity models this is the translation for the minimum extent of the model (in original mesh coordinate space)
+    // to the model's registration point. For avatar models this is the translation from the avatar's hips, as determined
+    // by the default pose, to the origin.
     glm::vec3 _offset;
 
     static float FAKE_DIMENSION_PLACEHOLDER;
@@ -331,13 +329,12 @@ protected:
 
     /// Allow sub classes to force invalidating the bboxes
     void invalidCalculatedMeshBoxes() {
-        _calculatedMeshBoxesValid = false;
-        _calculatedMeshPartBoxesValid = false;
-        _calculatedMeshTrianglesValid = false;
+        _triangleSetsValid = false;
     }
 
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
+
 
 protected:
 
@@ -357,17 +354,12 @@ protected:
     int _blendNumber;
     int _appliedBlendNumber;
 
-    QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes
-
-    bool _calculatedMeshPartBoxesValid;
-    QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
-    bool _calculatedMeshBoxesValid;
-
-    QVector< QVector<Triangle> > _calculatedMeshTriangles; // world coordinate triangles for all sub meshes
-    bool _calculatedMeshTrianglesValid;
     QMutex _mutex;
 
-    void recalculateMeshBoxes(bool pickAgainstTriangles = false);
+    bool _triangleSetsValid { false };
+    void calculateTriangleSets();
+    QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
+
 
     void createRenderItemSet();
     virtual void createVisibleRenderItemSet();
@@ -376,7 +368,6 @@ protected:
     bool _isWireframe;
 
     // debug rendering support
-    void renderDebugMeshBoxes(gpu::Batch& batch);
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
 

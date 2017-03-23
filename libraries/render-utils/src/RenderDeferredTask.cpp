@@ -75,7 +75,6 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
     const auto primaryFramebuffer = addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
-   // const auto fullFrameRangeTimer = addJob<BeginGPURangeTimer>("BeginRangeTimer");
     const auto opaqueRangeTimer = addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
 
     const auto prepareDeferredInputs = PrepareDeferred::Inputs(primaryFramebuffer, lightingModel).hasVarying();
@@ -154,20 +153,25 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
     addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
+    { // DEbug the bounds of the rendered items, still look at the zbuffer
+        addJob<DrawBounds>("DrawMetaBounds", metas);
+        addJob<DrawBounds>("DrawOpaqueBounds", opaques);
+        addJob<DrawBounds>("DrawTransparentBounds", transparents);
+    }
+
     // Overlays
     const auto overlayOpaquesInputs = DrawOverlay3D::Inputs(overlayOpaques, lightingModel).hasVarying();
     const auto overlayTransparentsInputs = DrawOverlay3D::Inputs(overlayTransparents, lightingModel).hasVarying();
     addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaquesInputs, true);
     addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparentsInputs, false);
 
+    { // DEbug the bounds of the rendered OVERLAY items, still look at the zbuffer
+        addJob<DrawBounds>("DrawOverlayOpaqueBounds", overlayOpaques);
+        addJob<DrawBounds>("DrawOverlayTransparentBounds", overlayTransparents);
+    }
     
-    // Debugging stages
+     // Debugging stages
     {
-
-
-        // Bounds do not draw on stencil buffer, so they must come last
-        addJob<DrawBounds>("DrawMetaBounds", metas);
-
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
@@ -190,7 +194,7 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
         {
             // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
             auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
-            auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
+            auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath, NetworkTexture::STRICT_TEXTURE);
             addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         }
     }
@@ -207,9 +211,6 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
 
     // Blit!
     addJob<Blit>("Blit", primaryFramebuffer);
-
- //   addJob<EndGPURangeTimer>("RangeTimer", fullFrameRangeTimer);
-
 }
 
 void BeginGPURangeTimer::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
@@ -258,8 +259,18 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
-        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+        // From the lighting model define a global shapKey ORED with individiual keys
+        ShapeKey::Builder keyBuilder;
+        if (lightingModel->isWireframeEnabled()) {
+            keyBuilder.withWireframe();
+        }
+        ShapeKey globalKey = keyBuilder.build();
+        args->_globalShapeKey = globalKey._flags.to_ulong();
+
+        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
+
         args->_batch = nullptr;
+        args->_globalShapeKey = 0;
     });
 
     config->setNumDrawn((int)inItems.size());
@@ -294,12 +305,21 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
+        // From the lighting model define a global shapKey ORED with individiual keys
+        ShapeKey::Builder keyBuilder;
+        if (lightingModel->isWireframeEnabled()) {
+            keyBuilder.withWireframe();
+        }
+        ShapeKey globalKey = keyBuilder.build();
+        args->_globalShapeKey = globalKey._flags.to_ulong();
+
         if (_stateSort) {
-            renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+            renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
         } else {
-            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
         }
         args->_batch = nullptr;
+        args->_globalShapeKey = 0;
     });
 
     config->setNumDrawn((int)inItems.size());

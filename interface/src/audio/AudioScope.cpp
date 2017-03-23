@@ -52,12 +52,14 @@ AudioScope::AudioScope() :
     connect(audioIO.data(), &AudioClient::inputReceived, this, &AudioScope::addInputToScope);
 }
 
-void AudioScope::toggle() {
-    _isEnabled = !_isEnabled;
-    if (_isEnabled) {
-        allocateScope();
-    } else {
-        freeScope();
+void AudioScope::setVisible(bool visible) {
+    if (_isEnabled != visible) {
+        _isEnabled = visible;
+        if (_isEnabled) {
+            allocateScope();
+        } else {
+            freeScope();
+        }
     }
 }
 

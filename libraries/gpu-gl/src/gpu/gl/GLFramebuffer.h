@@ -64,7 +64,7 @@ public:
 protected:
     GLenum _status { GL_FRAMEBUFFER_COMPLETE };
     virtual void update() = 0;
-    bool checkStatus(GLenum target) const;
+    bool checkStatus() const;
 
     GLFramebuffer(const std::weak_ptr<GLBackend>& backend, const Framebuffer& framebuffer, GLuint id) : GLObject(backend, framebuffer, id) {}
     ~GLFramebuffer();

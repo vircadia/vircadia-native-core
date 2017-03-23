@@ -106,6 +106,7 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
 
             sendMixPacket(node, *data, encodedBuffer);
         } else {
+            ++stats.sumListenersSilent;
             sendSilentPacket(node, *data);
         }
 
@@ -221,17 +222,19 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     stats.mixTime += mixTime.count();
 #endif
 
-    // use the per listener AudioLimiter to render the mixed data...
-    listenerData->audioLimiter.render(_mixSamples, _bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
-    // check for silent audio after the peak limiter has converted the samples
+    // check for silent audio before limiting
+    // limiting uses a dither and can only guarantee abs(sample) <= 1
     bool hasAudio = false;
     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-        if (_bufferSamples[i] != 0) {
+        if (_mixSamples[i] != 0.0f) {
             hasAudio = true;
             break;
         }
     }
+
+    // use the per listener AudioLimiter to render the mixed data
+    listenerData->audioLimiter.render(_mixSamples, _bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
     return hasAudio;
 }
 

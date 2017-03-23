@@ -80,16 +80,6 @@ int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, 
 
 static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 
-// FIXME - There is some old logic (unchanged as of 2/17/17) that randomly decides to send an identity
-// packet. That logic had the following comment about the constants it uses...
-//
-//         An 80% chance of sending a identity packet within a 5 second interval.
-//         assuming 60 htz update rate.
-//
-// Assuming the calculation of the constant is in fact correct for 80% and 60hz and 5 seconds (an assumption
-// that I have not verified) then the constant is definitely wrong now, since we send at 45hz.
-const float IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
-
 void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
     quint64 start = usecTimestampNow();
 
@@ -137,14 +127,18 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         // keep track of the number of other avatar frames skipped
         int numAvatarsWithSkippedFrames = 0;
 
-        // When this is true, the AvatarMixer will send Avatar data to a client about avatars that are not in the view frustrum
-        bool getsOutOfView = nodeData->getRequestsDomainListData();
-
-        // When this is true, the AvatarMixer will send Avatar data to a client about avatars that they've ignored
-        bool getsIgnoredByMe = getsOutOfView;
+        // When this is true, the AvatarMixer will send Avatar data to a client
+        // about avatars they've ignored or that are out of view
+        bool PALIsOpen = nodeData->getRequestsDomainListData();
 
         // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
-        bool getsAnyIgnored = getsIgnoredByMe && node->getCanKick();
+        bool getsAnyIgnored = PALIsOpen && node->getCanKick();
+
+        if (PALIsOpen) {
+            // Increase minimumBytesPerAvatar if the PAL is open
+            minimumBytesPerAvatar += sizeof(AvatarDataPacket::AvatarGlobalPosition) +
+                sizeof(AvatarDataPacket::AudioLoudness);
+        }
 
         // setup a PacketList for the avatarPackets
         auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
@@ -222,13 +216,14 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                     // or that has ignored the viewing node
                     if (!avatarNode->getLinkedData()
                         || avatarNode->getUUID() == node->getUUID()
-                        || (node->isIgnoringNodeWithID(avatarNode->getUUID()) && !getsIgnoredByMe)
+                        || (node->isIgnoringNodeWithID(avatarNode->getUUID()) && !PALIsOpen)
                         || (avatarNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
                         shouldIgnore = true;
                     } else {
 
                         // Check to see if the space bubble is enabled
-                        if (node->isIgnoreRadiusEnabled() || avatarNode->isIgnoreRadiusEnabled()) {
+                        // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
+                        if (node->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
 
                             // Define the scale of the box for the current other node
                             glm::vec3 otherNodeBoxScale = (avatarNodeData->getPosition() - avatarNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
@@ -306,16 +301,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 
             const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
 
-            // make sure we send out identity packets to and from new arrivals.
-            bool forceSend = !nodeData->checkAndSetHasReceivedFirstPacketsFrom(otherNode->getUUID());
-
-            // FIXME - this clause seems suspicious "... || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp ..."
-            if (!overBudget
-                && otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
-                && (forceSend
-                || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
-                || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
-
+            // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
+            // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
+            if (nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
                 identityBytesSent += sendIdentityPacket(otherNodeData, node);
             }
 
@@ -335,9 +323,9 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             if (overBudget) {
                 overBudgetAvatars++;
                 _stats.overBudgetAvatars++;
-                detail = AvatarData::NoData;
-            } else  if (!isInView && !getsOutOfView) {
-                detail = AvatarData::NoData;
+                detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::NoData;
+            } else if (!isInView) {
+                detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::NoData;
                 nodeData->incrementAvatarOutOfView();
             } else {
                 detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO

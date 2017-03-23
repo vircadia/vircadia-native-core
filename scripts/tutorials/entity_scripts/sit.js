@@ -2,31 +2,41 @@
     Script.include("/~/system/libraries/utils.js");
 
     var SETTING_KEY = "com.highfidelity.avatar.isSitting";
-    var ROLE = "fly";
     var ANIMATION_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
     var ANIMATION_FPS = 30;
     var ANIMATION_FIRST_FRAME = 1;
     var ANIMATION_LAST_FRAME = 10;
-    var RELEASE_KEYS = ['w', 'a', 's', 'd', 'UP', 'LEFT', 'DOWN', 'RIGHT'];
     var RELEASE_TIME = 500; // ms
     var RELEASE_DISTANCE = 0.2; // meters
-    var MAX_IK_ERROR = 20;
-    var DESKTOP_UI_CHECK_INTERVAL = 250;
+    var MAX_IK_ERROR = 30;
+    var IK_SETTLE_TIME = 250; // ms
+    var DESKTOP_UI_CHECK_INTERVAL = 100;
     var DESKTOP_MAX_DISTANCE = 5;
-    var SIT_DELAY = 25
+    var SIT_DELAY = 25;
+    var MAX_RESET_DISTANCE = 0.5; // meters
+    var OVERRIDEN_DRIVE_KEYS = [
+        DriveKeys.TRANSLATE_X,
+        DriveKeys.TRANSLATE_Y,
+        DriveKeys.TRANSLATE_Z,
+        DriveKeys.STEP_TRANSLATE_X,
+        DriveKeys.STEP_TRANSLATE_Y,
+        DriveKeys.STEP_TRANSLATE_Z,
+    ];
 
     this.entityID = null;
-    this.timers = {};
     this.animStateHandlerID = null;
+    this.interval = null;
+    this.sitDownSettlePeriod = null;
+    this.lastTimeNoDriveKeys = null;
 
     this.preload = function(entityID) {
         this.entityID = entityID;
     }
     this.unload = function() {
-        if (MyAvatar.sessionUUID === this.getSeatUser()) {
-            this.sitUp(this.entityID);
+        if (Settings.getValue(SETTING_KEY) === this.entityID) {
+            this.standUp();
         }
-        if (this.interval) {
+        if (this.interval !== null) {
             Script.clearInterval(this.interval);
             this.interval = null;
         }
@@ -34,42 +44,60 @@
     }
 
     this.setSeatUser = function(user) {
-        var userData = Entities.getEntityProperties(this.entityID, ["userData"]).userData;
-        userData = JSON.parse(userData);
+        try {
+            var userData = Entities.getEntityProperties(this.entityID, ["userData"]).userData;
+            userData = JSON.parse(userData);
 
-        if (user) {
-            userData.seat.user = user;
-        } else {
-            delete userData.seat.user;
+            if (user !== null) {
+                userData.seat.user = user;
+            } else {
+                delete userData.seat.user;
+            }
+
+            Entities.editEntity(this.entityID, {
+                userData: JSON.stringify(userData)
+            });
+        } catch (e) {
+            // Do Nothing
         }
-
-        Entities.editEntity(this.entityID, {
-            userData: JSON.stringify(userData)
-        });
     }
     this.getSeatUser = function() {
-        var properties = Entities.getEntityProperties(this.entityID, ["userData", "position"]);
-        var userData = JSON.parse(properties.userData);
+        try {
+            var properties = Entities.getEntityProperties(this.entityID, ["userData", "position"]);
+            var userData = JSON.parse(properties.userData);
 
-        if (userData.seat.user && userData.seat.user !== MyAvatar.sessionUUID) {
-            var avatar = AvatarList.getAvatar(userData.seat.user);
-            if (avatar && Vec3.distance(avatar.position, properties.position) > RELEASE_DISTANCE) {
-                return null;
+            // If MyAvatar return my uuid
+            if (userData.seat.user === MyAvatar.sessionUUID) {
+                return userData.seat.user;
             }
+
+
+            // If Avatar appears to be sitting
+            if (userData.seat.user) {
+                var avatar = AvatarList.getAvatar(userData.seat.user);
+                if (avatar &&  (Vec3.distance(avatar.position, properties.position) < RELEASE_DISTANCE)) {
+                    return userData.seat.user;
+                }
+            }
+        } catch (e) {
+            // Do nothing
         }
-        return userData.seat.user;
+
+        // Nobody on the seat
+        return null;
     }
 
+    // Is the seat used
     this.checkSeatForAvatar = function() {
         var seatUser = this.getSeatUser();
-        var avatarIdentifiers = AvatarList.getAvatarIdentifiers();
-        for (var i in avatarIdentifiers) {
-            var avatar = AvatarList.getAvatar(avatarIdentifiers[i]);
-            if (avatar && avatar.sessionUUID === seatUser) {
-                return true;
-            }
+
+        // If MyAvatar appears to be sitting
+        if (seatUser === MyAvatar.sessionUUID) {
+            var properties = Entities.getEntityProperties(this.entityID, ["position"]);
+            return Vec3.distance(MyAvatar.position, properties.position) < RELEASE_DISTANCE;
         }
-        return false;
+
+        return seatUser !== null;
     }
 
     this.sitDown = function() {
@@ -77,41 +105,53 @@
             print("Someone is already sitting in that chair.");
             return;
         }
+        print("Sitting down (" + this.entityID + ")");
 
-        this.setSeatUser(MyAvatar.sessionUUID);
+        var now = Date.now();
+        this.sitDownSettlePeriod = now + IK_SETTLE_TIME;
+        this.lastTimeNoDriveKeys = now;
 
         var previousValue = Settings.getValue(SETTING_KEY);
         Settings.setValue(SETTING_KEY, this.entityID);
+        this.setSeatUser(MyAvatar.sessionUUID);
         if (previousValue === "") {
             MyAvatar.characterControllerEnabled = false;
             MyAvatar.hmdLeanRecenterEnabled = false;
-            MyAvatar.overrideRoleAnimation(ROLE, ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
+            var ROLES = MyAvatar.getAnimationRoles();
+            for (i in ROLES) {
+                MyAvatar.overrideRoleAnimation(ROLES[i], ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
+            }
             MyAvatar.resetSensorsAndBody();
         }
 
-        var that = this;
-        Script.setTimeout(function() {
-            var properties = Entities.getEntityProperties(that.entityID, ["position", "rotation"]);
-            var index = MyAvatar.getJointIndex("Hips");
-            MyAvatar.pinJoint(index, properties.position, properties.rotation);
+        var properties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
+        var index = MyAvatar.getJointIndex("Hips");
+        MyAvatar.pinJoint(index, properties.position, properties.rotation);
 
-            that.animStateHandlerID = MyAvatar.addAnimationStateHandler(function(properties) {
-                return { headType: 0 };
-            }, ["headType"]);
-            Script.update.connect(that, that.update);
-            Controller.keyPressEvent.connect(that, that.keyPressed);
-            Controller.keyReleaseEvent.connect(that, that.keyReleased);
-            for (var i in RELEASE_KEYS) {
-                Controller.captureKeyEvents({ text: RELEASE_KEYS[i] });
-            }
-        }, SIT_DELAY);
+        this.animStateHandlerID = MyAvatar.addAnimationStateHandler(function(properties) {
+            return { headType: 0 };
+        }, ["headType"]);
+        Script.update.connect(this, this.update);
+        for (var i in OVERRIDEN_DRIVE_KEYS) {
+            MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
+        }
     }
 
-    this.sitUp = function() {
-        this.setSeatUser(null);
+    this.standUp = function() {
+        print("Standing up (" + this.entityID + ")");
+        MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
+        Script.update.disconnect(this, this.update);
+        for (var i in OVERRIDEN_DRIVE_KEYS) {
+            MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
+        }
 
+        this.setSeatUser(null);
         if (Settings.getValue(SETTING_KEY) === this.entityID) {
-            MyAvatar.restoreRoleAnimation(ROLE);
+            Settings.setValue(SETTING_KEY, "");
+            var ROLES = MyAvatar.getAnimationRoles();
+            for (i in ROLES) {
+                MyAvatar.restoreRoleAnimation(ROLES[i]);
+            }
             MyAvatar.characterControllerEnabled = true;
             MyAvatar.hmdLeanRecenterEnabled = true;
 
@@ -124,19 +164,10 @@
                 MyAvatar.bodyPitch = 0.0;
                 MyAvatar.bodyRoll = 0.0;
             }, SIT_DELAY);
-
-            Settings.setValue(SETTING_KEY, "");
-        }
-
-        MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
-        Script.update.disconnect(this, this.update);
-        Controller.keyPressEvent.disconnect(this, this.keyPressed);
-        Controller.keyReleaseEvent.disconnect(this, this.keyReleased);
-        for (var i in RELEASE_KEYS) {
-            Controller.releaseKeyEvents({ text: RELEASE_KEYS[i] });
         }
     }
 
+    // function called by teleport.js if it detects the appropriate userData
     this.sit = function () {
         this.sitDown();
     }
@@ -183,39 +214,52 @@
         }
     }
 
-
     this.update = function(dt) {
         if (MyAvatar.sessionUUID === this.getSeatUser()) {
-            var properties = Entities.getEntityProperties(this.entityID, ["position"]);
+            var properties = Entities.getEntityProperties(this.entityID);
             var avatarDistance = Vec3.distance(MyAvatar.position, properties.position);
             var ikError = MyAvatar.getIKErrorOnLastSolve();
-            if (avatarDistance > RELEASE_DISTANCE || ikError > MAX_IK_ERROR) {
+            var now = Date.now();
+            var shouldStandUp = false;
+
+            // Check if a drive key is pressed
+            var hasActiveDriveKey = false;
+            for (var i in OVERRIDEN_DRIVE_KEYS) {
+                if (MyAvatar.getRawDriveKey(OVERRIDEN_DRIVE_KEYS[i]) != 0.0) {
+                    hasActiveDriveKey = true;
+                    break;
+                }
+            }
+
+            // Only standup if user has been pushing a drive key for RELEASE_TIME
+            if (hasActiveDriveKey) {
+                var elapsed = now - this.lastTimeNoDriveKeys;
+                shouldStandUp = elapsed > RELEASE_TIME;
+            } else {
+                this.lastTimeNoDriveKeys = Date.now();
+            }
+
+            // Allow some time for the IK to settle
+            if (ikError > MAX_IK_ERROR && now > this.sitDownSettlePeriod) {
+                shouldStandUp = true;
+            }
+
+
+            if (shouldStandUp || avatarDistance > RELEASE_DISTANCE) {
                 print("IK error: " + ikError + ", distance from chair: " + avatarDistance);
-                this.sitUp(this.entityID);
+
+                // Move avatar in front of the chair to avoid getting stuck in collision hulls
+                if (avatarDistance < MAX_RESET_DISTANCE) {
+                    var offset = { x: 0, y: 1.0, z: -0.5 - properties.dimensions.z * properties.registrationPoint.z };
+                    var position = Vec3.sum(properties.position, Vec3.multiplyQbyV(properties.rotation, offset));
+                    MyAvatar.position = position;
+                    print("Moving Avatar in front of the chair.")
+                }
+
+                this.standUp();
             }
         }
     }
-    this.keyPressed = function(event) {
-        if (isInEditMode()) {
-            return;
-        }
-
-        if (RELEASE_KEYS.indexOf(event.text) !== -1) {
-            var that = this;
-            this.timers[event.text] = Script.setTimeout(function() {
-                that.sitUp();
-            }, RELEASE_TIME);
-        }
-    }
-    this.keyReleased = function(event) {
-        if (RELEASE_KEYS.indexOf(event.text) !== -1) {
-            if (this.timers[event.text]) {
-                Script.clearTimeout(this.timers[event.text]);
-                delete this.timers[event.text];
-            }
-        }
-    }
-
     this.canSitDesktop = function() {
         var properties = Entities.getEntityProperties(this.entityID, ["position"]);
         var distanceFromSeat = Vec3.distance(MyAvatar.position, properties.position);
@@ -223,7 +267,7 @@
     }
 
     this.hoverEnterEntity = function(event) {
-        if (isInEditMode() || (MyAvatar.sessionUUID === this.getSeatUser())) {
+        if (isInEditMode() || this.interval !== null) {
             return;
         }
 
@@ -239,18 +283,18 @@
         }, DESKTOP_UI_CHECK_INTERVAL);
     }
     this.hoverLeaveEntity = function(event) {
-        if (this.interval) {
+        if (this.interval !== null) {
             Script.clearInterval(this.interval);
             this.interval = null;
         }
         this.cleanupOverlay();
     }
 
-    this.clickDownOnEntity = function () {
-        if (isInEditMode() || (MyAvatar.sessionUUID === this.getSeatUser())) {
+    this.clickDownOnEntity = function (id, event) {
+        if (isInEditMode()) {
             return;
         }
-        if (this.canSitDesktop()) {
+        if (event.isPrimaryButton && this.canSitDesktop()) {
             this.sitDown();
         }
     }

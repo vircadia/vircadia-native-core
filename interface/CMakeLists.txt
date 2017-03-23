@@ -63,6 +63,17 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
+file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
+add_custom_target(qml SOURCES ${QML_SRC})
+
+if (UNIX)
+  install(
+  DIRECTORY "${CMAKE_SOURCE_DIR}/interface/resources/qml"
+  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/resources
+  COMPONENT ${CLIENT_COMPONENT}
+  )
+endif()
+
 # translation disabled until we strip out the line numbers
 # set(QM ${TARGET_NAME}_en.qm)
 # set(TS ${TARGET_NAME}_en.ts)
@@ -178,7 +189,7 @@ endif()
 
 # link required hifi libraries
 link_hifi_libraries(
-  shared octree gpu gl gpu-gl procedural model render
+  shared octree ktx gpu gl gpu-gl procedural model render
   recording fbx networking model-networking entities avatars
   audio audio-client animation script-engine physics
   render-utils entities-renderer ui auto-updater

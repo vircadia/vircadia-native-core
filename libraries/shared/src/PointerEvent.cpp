@@ -47,6 +47,9 @@ QScriptValue PointerEvent::toScriptValue(QScriptEngine* engine, const PointerEve
     case Press:
         obj.setProperty("type", "Press");
         break;
+    case DoublePress:
+        obj.setProperty("type", "DoublePress");
+        break;
     case Release:
         obj.setProperty("type", "Release");
         break;
@@ -128,6 +131,8 @@ void PointerEvent::fromScriptValue(const QScriptValue& object, PointerEvent& eve
         QString typeStr = type.isString() ? type.toString() : "Move";
         if (typeStr == "Press") {
             event._type = Press;
+        } else if (typeStr == "DoublePress") {
+            event._type = DoublePress;
         } else if (typeStr == "Release") {
             event._type = Release;
         } else {

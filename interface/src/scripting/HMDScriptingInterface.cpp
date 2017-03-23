@@ -81,6 +81,10 @@ void  HMDScriptingInterface::closeTablet() {
     _showTablet = false;
 }
 
+void HMDScriptingInterface::openTablet() {
+    _showTablet = true;
+}
+
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 hudIntersection;
     auto instance = DependencyManager::get<HMDScriptingInterface>();

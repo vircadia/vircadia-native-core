@@ -187,10 +187,15 @@ public:
     virtual void do_setStateScissorRect(const Batch& batch, size_t paramOffset) final;
 
     virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) = 0;
-    virtual GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) = 0;
+    virtual GLuint getTextureID(const TexturePointer& texture) final;
     virtual GLuint getBufferID(const Buffer& buffer) = 0;
     virtual GLuint getQueryID(const QueryPointer& query) = 0;
-    virtual bool isTextureReady(const TexturePointer& texture);
+
+    virtual GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) = 0;
+    virtual GLBuffer* syncGPUObject(const Buffer& buffer) = 0;
+    virtual GLTexture* syncGPUObject(const TexturePointer& texture);
+    virtual GLQuery* syncGPUObject(const Query& query) = 0;
+    //virtual bool isTextureReady(const TexturePointer& texture);
 
     virtual void releaseBuffer(GLuint id, Size size) const;
     virtual void releaseExternalTexture(GLuint id, const Texture::ExternalRecycler& recycler) const;
@@ -206,10 +211,6 @@ public:
 protected:
 
     void recycle() const override;
-    virtual GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) = 0;
-    virtual GLBuffer* syncGPUObject(const Buffer& buffer) = 0;
-    virtual GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) = 0;
-    virtual GLQuery* syncGPUObject(const Query& query) = 0;
 
     static const size_t INVALID_OFFSET = (size_t)-1;
     bool _inRenderTransferPass { false };

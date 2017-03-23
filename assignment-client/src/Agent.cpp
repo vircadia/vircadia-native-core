@@ -43,7 +43,6 @@
 #include <WebSocketServerClass.h>
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
-#include "avatars/ScriptableAvatar.h"
 #include "entities/AssignmentParentFinder.h"
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
@@ -88,9 +87,9 @@ void Agent::playAvatarSound(SharedSoundPointer sound) {
         QMetaObject::invokeMethod(this, "playAvatarSound", Q_ARG(SharedSoundPointer, sound));
         return;
     } else {
-        // TODO: seems to add occasional artifact in tests.  I believe it is 
+        // TODO: seems to add occasional artifact in tests.  I believe it is
         // correct to do this, but need to figure out for sure, so commenting this
-        // out until I verify.  
+        // out until I verify.
         // _numAvatarSoundSentBytes = 0;
         setAvatarSound(sound);
     }
@@ -105,7 +104,7 @@ void Agent::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNo
         if (message->getSize() > statsMessageLength) {
             // pull out the piggybacked packet and create a new QSharedPointer<NLPacket> for it
             int piggyBackedSizeWithHeader = message->getSize() - statsMessageLength;
-            
+
             auto buffer = std::unique_ptr<char[]>(new char[piggyBackedSizeWithHeader]);
             memcpy(buffer.get(), message->getRawMessage() + statsMessageLength, piggyBackedSizeWithHeader);
 
@@ -284,7 +283,7 @@ void Agent::selectAudioFormat(const QString& selectedCodecName) {
     for (auto& plugin : codecPlugins) {
         if (_selectedCodecName == plugin->getName()) {
             _codec = plugin;
-            _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO); 
+            _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO);
             _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
             qDebug() << "Selected Codec Plugin:" << _codec.get();
             break;
@@ -372,10 +371,25 @@ void Agent::executeScript() {
     using namespace recording;
     static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::getAudioFrameName());
     Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &scriptedAvatar](Frame::ConstPointer frame) {
-        const QByteArray& audio = frame->data;
         static quint16 audioSequenceNumber{ 0 };
-        Transform audioTransform;
 
+        QByteArray audio(frame->data);
+
+        if (_isNoiseGateEnabled) {
+            static int numSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+            _noiseGate.gateSamples(reinterpret_cast<int16_t*>(audio.data()), numSamples);
+        }
+
+        computeLoudness(&audio, scriptedAvatar);
+
+        // the codec needs a flush frame before sending silent packets, so
+        // do not send one if the gate closed in this block (eventually this can be crossfaded).
+        auto packetType = PacketType::MicrophoneAudioNoEcho;
+        if (scriptedAvatar->getAudioLoudness() == 0.0f && !_noiseGate.closedInLastBlock()) {
+            packetType = PacketType::SilentAudioFrame;
+        }
+
+        Transform audioTransform;
         auto headOrientation = scriptedAvatar->getHeadOrientation();
         audioTransform.setTranslation(scriptedAvatar->getPosition());
         audioTransform.setRotation(headOrientation);
@@ -386,9 +400,10 @@ void Agent::executeScript() {
         } else {
             encodedBuffer = audio;
         }
+
         AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber,
             audioTransform, scriptedAvatar->getPosition(), glm::vec3(0),
-            PacketType::MicrophoneAudioNoEcho, _selectedCodecName);
+            packetType, _selectedCodecName);
     });
 
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
@@ -424,16 +439,16 @@ void Agent::executeScript() {
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
     DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
-    
+
     // 100Hz timer for audio
     AvatarAudioTimer* audioTimerWorker = new AvatarAudioTimer();
     audioTimerWorker->moveToThread(&_avatarAudioTimerThread);
     connect(audioTimerWorker, &AvatarAudioTimer::avatarTick, this, &Agent::processAgentAvatarAudio);
     connect(this, &Agent::startAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::start);
     connect(this, &Agent::stopAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::stop);
-    connect(&_avatarAudioTimerThread, &QThread::finished, audioTimerWorker, &QObject::deleteLater); 
+    connect(&_avatarAudioTimerThread, &QThread::finished, audioTimerWorker, &QObject::deleteLater);
     _avatarAudioTimerThread.start();
-    
+
     // Agents should run at 45hz
     static const int AVATAR_DATA_HZ = 45;
     static const int AVATAR_DATA_IN_MSECS = MSECS_PER_SECOND / AVATAR_DATA_HZ;
@@ -456,14 +471,14 @@ QUuid Agent::getSessionUUID() const {
     return DependencyManager::get<NodeList>()->getSessionUUID();
 }
 
-void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) { 
+void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
     // this must happen on Agent's main thread
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setIsListeningToAudioStream", Q_ARG(bool, isListeningToAudioStream));
         return;
     }
     if (_isListeningToAudioStream) {
-        // have to tell just the audio mixer to KillAvatar. 
+        // have to tell just the audio mixer to KillAvatar.
 
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->eachMatchingNode(
@@ -479,7 +494,15 @@ void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
         });
 
     }
-    _isListeningToAudioStream = isListeningToAudioStream; 
+    _isListeningToAudioStream = isListeningToAudioStream;
+}
+
+void Agent::setIsNoiseGateEnabled(bool isNoiseGateEnabled) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setIsNoiseGateEnabled", Q_ARG(bool, isNoiseGateEnabled));
+        return;
+    }
+    _isNoiseGateEnabled = isNoiseGateEnabled;
 }
 
 void Agent::setIsAvatar(bool isAvatar) {
@@ -560,6 +583,7 @@ void Agent::processAgentAvatar() {
         nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
     }
 }
+
 void Agent::encodeFrameOfZeros(QByteArray& encodedZeros) {
     _flushEncoder = false;
     static const QByteArray zeros(AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL, 0);
@@ -568,6 +592,22 @@ void Agent::encodeFrameOfZeros(QByteArray& encodedZeros) {
     } else {
         encodedZeros = zeros;
     }
+}
+
+void Agent::computeLoudness(const QByteArray* decodedBuffer, QSharedPointer<ScriptableAvatar> scriptableAvatar) {
+    float loudness = 0.0f;
+    if (decodedBuffer) {
+        auto soundData = reinterpret_cast<const int16_t*>(decodedBuffer->constData());
+        int numFrames = decodedBuffer->size() / sizeof(int16_t);
+        // now iterate and come up with average
+        if (numFrames > 0) {
+            for(int i = 0; i < numFrames; i++) {
+                loudness += (float) std::abs(soundData[i]);
+            }
+            loudness /= numFrames;
+        }
+    }
+    scriptableAvatar->setAudioLoudness(loudness);
 }
 
 void Agent::processAgentAvatarAudio() {
@@ -619,6 +659,7 @@ void Agent::processAgentAvatarAudio() {
         audioPacket->seek(sizeof(quint16));
 
         if (silentFrame) {
+
             if (!_isListeningToAudioStream) {
                 // if we have a silent frame and we're not listening then just send nothing and break out of here
                 return;
@@ -626,7 +667,7 @@ void Agent::processAgentAvatarAudio() {
 
             // write the codec
             audioPacket->writeString(_selectedCodecName);
-            
+
             // write the number of silent samples so the audio-mixer can uphold timing
             audioPacket->writePrimitive(numAvailableSamples);
 
@@ -636,8 +677,11 @@ void Agent::processAgentAvatarAudio() {
             audioPacket->writePrimitive(headOrientation);
             audioPacket->writePrimitive(scriptedAvatar->getPosition());
             audioPacket->writePrimitive(glm::vec3(0));
+
+            // no matter what, the loudness should be set to 0
+            computeLoudness(nullptr, scriptedAvatar);
         } else if (nextSoundOutput) {
-            
+
             // write the codec
             audioPacket->writeString(_selectedCodecName);
 
@@ -654,6 +698,8 @@ void Agent::processAgentAvatarAudio() {
             QByteArray encodedBuffer;
             if (_flushEncoder) {
                 encodeFrameOfZeros(encodedBuffer);
+                // loudness is 0
+                computeLoudness(nullptr, scriptedAvatar);
             } else {
                 QByteArray decodedBuffer(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples*sizeof(int16_t));
                 if (_encoder) {
@@ -662,9 +708,14 @@ void Agent::processAgentAvatarAudio() {
                 } else {
                     encodedBuffer = decodedBuffer;
                 }
+                computeLoudness(&decodedBuffer, scriptedAvatar);
             }
             audioPacket->write(encodedBuffer.constData(), encodedBuffer.size());
         }
+
+        // we should never have both nextSoundOutput being null and silentFrame being false, but lets
+        // assert on it in case things above change in a bad way
+        assert(nextSoundOutput || silentFrame);
 
         // write audio packet to AudioMixer nodes
         auto nodeList = DependencyManager::get<NodeList>();

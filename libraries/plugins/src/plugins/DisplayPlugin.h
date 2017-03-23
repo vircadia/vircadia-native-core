@@ -139,7 +139,7 @@ public:
     /// By default, all HMDs are stereo
     virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
-    virtual float getTargetFrameRate() const { return 0.0f; }
+    virtual float getTargetFrameRate() const { return 1.0f; }
     virtual bool hasAsyncReprojection() const { return false; }
 
     /// Returns a boolean value indicating whether the display is currently visible 
@@ -189,6 +189,11 @@ public:
     virtual float renderRate() const { return -1.0f; }
     // Rate at which we present to the display device
     virtual float presentRate() const { return -1.0f; }
+    // Reset the present rate tracking (useful for if the target frame rate changes as in ASW for Oculus)
+    virtual void resetPresentRate() {}
+    // Return the present rate as fraction of the target present rate (hopefully 0.0 and 1.0)
+    virtual float normalizedPresentRate() const { return presentRate() / getTargetFrameRate(); }
+
     // Rate at which old frames are presented to the device display
     virtual float stutterRate() const { return -1.0f; }
     // Rate at which new frames are being presented to the display device

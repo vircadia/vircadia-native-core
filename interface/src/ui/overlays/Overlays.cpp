@@ -431,7 +431,9 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
                                                           thisFace, thisSurfaceNormal, thisExtraInfo)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
-                if (thisDistance < bestDistance && (!bestIsFront || isDrawInFront)) {
+                if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
+                    || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {
+
                     bestIsFront = isDrawInFront;
                     bestDistance = thisDistance;
                     result.intersects = true;
@@ -766,6 +768,26 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
         }
     }
     emit mousePressOffOverlay();
+    return false;
+}
+
+bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
+    if (rayPickResult.intersects) {
+        _currentClickingOnOverlayID = rayPickResult.overlayID;
+
+        // Only Web overlays can have focus.
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
+        if (thisOverlay) {
+            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Press);
+            emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
+            return true;
+        }
+    }
+    emit mouseDoublePressOffOverlay();
     return false;
 }
 

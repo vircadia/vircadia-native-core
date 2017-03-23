@@ -120,30 +120,41 @@ void ThreadSafeDynamicsWorld::synchronizeMotionState(btRigidBody* body) {
 void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
     BT_PROFILE("synchronizeMotionStates");
     _changedMotionStates.clear();
+
+    // NOTE: m_synchronizeAllMotionStates is 'false' by default for optimization.
+    // See PhysicsEngine::init() where we call _dynamicsWorld->setForceUpdateAllAabbs(false)
     if (m_synchronizeAllMotionStates) {
         //iterate  over all collision objects
         for (int i=0;i<m_collisionObjects.size();i++) {
             btCollisionObject* colObj = m_collisionObjects[i];
             btRigidBody* body = btRigidBody::upcast(colObj);
-            if (body) {
-                if (body->getMotionState()) {
-                    synchronizeMotionState(body);
-                    _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
-                }
+            if (body && body->getMotionState()) {
+                synchronizeMotionState(body);
+                _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
             }
         }
     } else  {
         //iterate over all active rigid bodies
+        // TODO? if this becomes a performance bottleneck we could derive our own SimulationIslandManager
+        // that remembers a list of objects deactivated last step
+        _activeStates.clear();
+        _deactivatedStates.clear();
         for (int i=0;i<m_nonStaticRigidBodies.size();i++) {
             btRigidBody* body = m_nonStaticRigidBodies[i];
-            if (body->isActive()) {
-                if (body->getMotionState()) {
+            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(body->getMotionState());
+            if (motionState) {
+                if (body->isActive()) {
                     synchronizeMotionState(body);
-                    _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
+                    _changedMotionStates.push_back(motionState);
+                    _activeStates.insert(motionState);
+                } else if (_lastActiveStates.find(motionState) != _lastActiveStates.end()) {
+                    // this object was active last frame but is no longer
+                    _deactivatedStates.push_back(motionState);
                 }
             }
         }
     }
+    _activeStates.swap(_lastActiveStates);
 }
 
 void ThreadSafeDynamicsWorld::saveKinematicState(btScalar timeStep) {
