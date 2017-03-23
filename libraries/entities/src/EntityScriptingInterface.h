@@ -266,7 +266,6 @@ public slots:
     Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
     Q_INVOKABLE bool setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition,
                                        const glm::vec3& cuboidSize, int value);
-    Q_INVOKABLE void voxelsToMesh(QUuid entityID, QScriptValue callback);
 
     Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<glm::vec3>& points);
     Q_INVOKABLE bool appendPoint(QUuid entityID, const glm::vec3& point);
@@ -330,6 +329,8 @@ public slots:
     Q_INVOKABLE bool AABoxIntersectsCapsule(const glm::vec3& low, const glm::vec3& dimensions,
                                             const glm::vec3& start, const glm::vec3& end, float radius);
 
+
+    Q_INVOKABLE void getMeshes(QUuid entityID, QScriptValue callback);
 
     /**jsdoc
      * Returns object to world transform, excluding scale

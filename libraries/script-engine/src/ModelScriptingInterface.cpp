@@ -18,30 +18,8 @@
 
 ModelScriptingInterface::ModelScriptingInterface(QObject* parent) : QObject(parent) {
     _modelScriptEngine = qobject_cast<ScriptEngine*>(parent);
-}
 
-QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in) {
-    return engine->newQObject(in, QScriptEngine::QtOwnership,
-                              QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
-}
-
-void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out) {
-    out = qobject_cast<MeshProxy*>(value.toQObject());
-}
-
-QScriptValue meshesToScriptValue(QScriptEngine* engine, const MeshProxyList &in) {
-    return engine->toScriptValue(in);
-}
-
-void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out) {
-    QScriptValueIterator itr(value);
-    while(itr.hasNext()) {
-        itr.next();
-        MeshProxy* meshProxy = qscriptvalue_cast<MeshProxyList::value_type>(itr.value());
-        if (meshProxy) {
-            out.append(meshProxy);
-        }
-    }
+    qScriptRegisterSequenceMetaType<QList<MeshProxy*>>(_modelScriptEngine);
 }
 
 QString ModelScriptingInterface::meshToOBJ(MeshProxyList in) {

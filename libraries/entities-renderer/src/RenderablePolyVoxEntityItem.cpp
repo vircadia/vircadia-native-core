@@ -1592,7 +1592,7 @@ void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     scene->enqueuePendingChanges(pendingChanges);
 }
 
-bool RenderablePolyVoxEntityItem::getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) {
+bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
     if (!updateDependents()) {
         return false;
     }
@@ -1615,8 +1615,8 @@ bool RenderablePolyVoxEntityItem::getMeshAsScriptValue(QScriptEngine *engine, QS
                 _mesh->map([=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
                            [=](glm::vec3 normal){ return glm::vec3(transform * glm::vec4(normal, 0.0f)); },
                            [&](uint32_t index){ return index; }));
-            result = meshToScriptValue(engine, meshProxy);
+            result << meshProxy;
         }
     });
-    return success;
+    return meshProxy;
 }

@@ -135,7 +135,6 @@ public:
     QByteArray volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const;
 
     void setMesh(model::MeshPointer mesh);
-    bool getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) override;
     void setCollisionPoints(ShapeInfo::PointCollection points, AABox box);
     PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData; }
 
@@ -146,6 +145,8 @@ public:
 
     // Transparent polyvox didn't seem to be working so disable for now
     bool isTransparent() override { return false; }
+
+    bool getMeshes(MeshProxyList& result) override;
 
 protected:
     virtual void locationChanged(bool tellPhysics = true) override;

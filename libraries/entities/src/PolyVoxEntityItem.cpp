@@ -242,7 +242,3 @@ const QByteArray PolyVoxEntityItem::getVoxelData() const {
     });
     return voxelDataCopy;
 }
-
-bool PolyVoxEntityItem::getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) {
-    return false;
-}

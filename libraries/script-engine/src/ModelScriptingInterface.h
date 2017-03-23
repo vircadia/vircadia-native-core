@@ -17,7 +17,7 @@
 #include <QScriptValue>
 #include <OBJWriter.h>
 #include <model/Geometry.h>
-#include "MeshProxy.h"
+#include <model/MeshProxy.h>
 
 using MeshPointer = std::shared_ptr<model::Mesh>;
 class ScriptEngine;
@@ -35,11 +35,5 @@ public:
 private:
     ScriptEngine* _modelScriptEngine { nullptr };
 };
-
-QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in);
-void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out);
-
-QScriptValue meshesToScriptValue(QScriptEngine* engine, const MeshProxyList &in);
-void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out);
 
 #endif // hifi_ModelScriptingInterface_h
