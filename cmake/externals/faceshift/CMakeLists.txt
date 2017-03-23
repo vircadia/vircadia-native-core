@@ -27,6 +27,8 @@ set(LIBRARY_RELEASE_PATH "lib/Release")
 if (WIN32)
   set(LIBRARY_PREFIX "")
   set(LIBRARY_EXT "lib")
+  # use RelWithDebInfo in release path when building RelWithDebInfo config on Windows
+  set(LIBRARY_RELEASE_PATH "$<$<CONFIG:RelWithDebInfo>:build/RelWithDebInfo>$<$<NOT:$<CONFIG:RelWithDebInfo>>:lib/Release>")
 elseif (APPLE)
   set(LIBRARY_EXT "a")
   set(LIBRARY_PREFIX "lib")
