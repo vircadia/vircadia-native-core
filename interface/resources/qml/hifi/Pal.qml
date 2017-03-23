@@ -299,8 +299,6 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: { 
-                        connectionsLoading.visible = false;
-                        connectionsLoading.visible = true;
                         if (activeTab != "connectionsTab") {
                             connectionsLoading.visible = false;
                             connectionsLoading.visible = true;
