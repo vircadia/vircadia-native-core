@@ -414,43 +414,33 @@ bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
     glm::ivec3 lowI = glm::clamp(low, glm::vec3(0.0f), _voxelVolumeSize);
     glm::ivec3 highI = glm::clamp(high, glm::vec3(0.0f), _voxelVolumeSize);
 
-    // This three-level for loop iterates over every voxel in the volume that might be in the sphere
-    // withWriteLock([&] {
-    //     for (int z = lowI.z; z < highI.z; z++) {
-    //         for (int y = lowI.y; y < highI.y; y++) {
-    //             for (int x = lowI.x; x < highI.x; x++) {
-    //                 // Store our current position as a vector...
-    //                 glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
-    //                 // convert to world coordinates
-    //                 glm::vec3 worldPos = glm::vec3(vtwMatrix * pos);
-    //                 // compute how far the current position is from the center of the volume
-    //                 float fDistToCenter = glm::distance(worldPos, centerWorldCoords);
-    //                 // If the current voxel is less than 'radius' units from the center then we set its value
-    //                 if (fDistToCenter <= radiusWorldCoords) {
-    //                     result |= setVoxelInternal(x, y, z, toValue);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // });
-
-
     glm::vec3 radials(radiusWorldCoords / voxelSize.x,
                       radiusWorldCoords / voxelSize.y,
                       radiusWorldCoords / voxelSize.z);
-    float minRadial = glm::min(radials.x, radials.y);
-    minRadial = glm::min(minRadial, radials.z);
 
     // This three-level for loop iterates over every voxel in the volume that might be in the sphere
     withWriteLock([&] {
         for (int z = lowI.z; z < highI.z; z++) {
             for (int y = lowI.y; y < highI.y; y++) {
                 for (int x = lowI.x; x < highI.x; x++) {
+
+                    // set voxels whose bounding-box touches the sphere
                     AABox voxelBox(glm::vec3(x - 0.5f, y - 0.5f, z - 0.5f), glm::vec3(1.0f, 1.0f, 1.0f));
-                    // if (voxelBox.touchesSphere(centerInVoxelCoords, minRadial)) {
                     if (voxelBox.touchesAAEllipsoid(centerInVoxelCoords, radials)) {
                         result |= setVoxelInternal(x, y, z, toValue);
                     }
+
+                    // TODO -- this version only sets voxels which have centers inside the sphere.  which is best?
+                    // // Store our current position as a vector...
+                    // glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
+                    // // convert to world coordinates
+                    // glm::vec3 worldPos = glm::vec3(vtwMatrix * pos);
+                    // // compute how far the current position is from the center of the volume
+                    // float fDistToCenter = glm::distance(worldPos, centerWorldCoords);
+                    // // If the current voxel is less than 'radius' units from the center then we set its value
+                    // if (fDistToCenter <= radiusWorldCoords) {
+                    //     result |= setVoxelInternal(x, y, z, toValue);
+                    // }
                 }
             }
         }
