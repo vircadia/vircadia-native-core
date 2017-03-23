@@ -200,15 +200,6 @@ function positionFractionallyTowards(posA, posB, frac) {
     return Vec3.sum(posA, Vec3.multiply(frac, Vec3.subtract(posB, posA)));
 }
 
-function fadeEffects() {
-    if (particleEffect) {
-        Entities.editEntity(particleEffect, {isEmitting: 0, lifespan: 1.0});
-    }
-    if(makingConnectionParticleEffect) {
-        Entities.editEntity(makingConnectionParticleEffect, {isEmitting: 0, lifespan: 1.5});
-    }
-}
-
 function deleteParticleEffect() {
     if (particleEffect) {
         particleEffect = Entities.deleteEntity(particleEffect);
@@ -241,8 +232,8 @@ function calcParticlePos(myHand, otherHand, otherOrientation, reset) {
 // this is called frequently, but usually does nothing
 function updateVisualization() {
     if (state == STATES.inactive) {
-        fadeEffects();
-        stopHandshakeSound();
+        deleteParticleEffect();
+        deleteMakeConnectionParticleEffect();
         return;
     }
 
@@ -384,6 +375,9 @@ function startHandshake(fromKeyboard) {
 
 function endHandshake() {
     debug("ending handshake for", currentHand);
+
+    deleteParticleEffect();
+    deleteMakeConnectionParticleEffect();
     currentHand = undefined;
     // note that setting the state to inactive should really
     // only be done here, unless we change how the triggering works,
@@ -495,7 +489,7 @@ function makeConnection(id) {
                 successfulHandshakeInjector.restart();
             }
             Controller.triggerHapticPulse(HAPTIC_DATA.success.strength, HAPTIC_DATA.success.duration, handToHaptic(currentHand));
-            endHandshake();
+            // don't change state (so animation continues while gripped)
         }, MAKING_CONNECTION_TIMEOUT);
 }
 
