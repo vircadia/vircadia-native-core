@@ -19,7 +19,7 @@ ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 if (APPLE)
   set(INSTALL_NAME_LIBRARY_DIR ${INSTALL_DIR}/lib)
-  
+
   ExternalProject_Add_Step(
     ${EXTERNAL_NAME}
     change-install-name-debug
@@ -29,7 +29,7 @@ if (APPLE)
     WORKING_DIRECTORY <SOURCE_DIR>
     LOG 1
   )
-  
+
   ExternalProject_Add_Step(
     ${EXTERNAL_NAME}
     change-install-name-release
@@ -59,7 +59,7 @@ endif ()
 
 if (WIN32)
   set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_DEBUG ${INSTALL_DIR}/PolyVoxCore/lib/Debug/PolyVoxCore.lib CACHE FILEPATH "polyvox core library")
-  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_RELEASE ${INSTALL_DIR}/PolyVoxCore/lib/Release/PolyVoxCore.lib CACHE FILEPATH "polyvox core library")
+  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_RELEASE "${INSTALL_DIR}/PolyVoxCore/lib/$<$<CONFIG:RelWithDebInfo>:RelWithDebInfo>$<$<NOT:$<CONFIG:RelWithDebInfo>>:Release>/PolyVoxCore.lib" CACHE FILEPATH "polyvox core library")
 #  set(${EXTERNAL_NAME_UPPER}_UTIL_LIBRARY ${INSTALL_DIR}/PolyVoxUtil/lib/PolyVoxUtil.lib CACHE FILEPATH "polyvox util library")
 elseif (APPLE)
   set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_DEBUG ${INSTALL_DIR}/lib/Debug/libPolyVoxCore.dylib CACHE FILEPATH "polyvox core library")
