@@ -5850,10 +5850,14 @@ void Application::showDialog(const QString& desktopURL, const QString& tabletURL
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    if (tablet->getToolbarMode() || (!hmd->getShouldShowTablet() && !isHMDMode())) {
+    if (tablet->getToolbarMode()) {
         DependencyManager::get<OffscreenUi>()->show(desktopURL, name);
     } else {
         tablet->pushOntoStack(tabletURL);
+        if (!hmd->getShouldShowTablet() && !isHMDMode()) {
+            hmd->openTablet();
+        }
+        
     }
 }
 
