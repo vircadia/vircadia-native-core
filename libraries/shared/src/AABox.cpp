@@ -436,6 +436,32 @@ glm::vec3 AABox::getClosestPointOnFace(const glm::vec4& origin, const glm::vec4&
     return getClosestPointOnFace(glm::vec3(origin), face);
 }
 
+bool AABox::touchesAAEllipsoid(const glm::vec3& center, glm::vec3 radials) const {
+    if (_corner.x - radials.x > center.x ||
+        _corner.y - radials.y > center.y ||
+        _corner.z - radials.z > center.z ||
+        _corner.x + _scale.x + radials.x < center.x ||
+        _corner.y + _scale.y + radials.y < center.y ||
+        _corner.z + _scale.z + radials.z < center.z) {
+        return false;
+    }
+
+    for (int i = 0; i < FACE_COUNT; i++) {
+        glm::vec3 closest = getClosestPointOnFace(center, (BoxFace)i) - center;
+        float x = closest.x;
+        float y = closest.y;
+        float z = closest.z;
+        float a = radials.x;
+        float b = radials.y;
+        float c = radials.z;
+        if (x*x/(a*a) + y*y/(b*b) + z*z/(c*c) < 1.0f) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 glm::vec4 AABox::getPlane(BoxFace face) const {
     switch (face) {
         case MIN_X_FACE: return glm::vec4(-1.0f, 0.0f, 0.0f, _corner.x);
