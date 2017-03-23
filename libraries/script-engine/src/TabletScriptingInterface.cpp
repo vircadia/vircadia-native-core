@@ -358,7 +358,7 @@ void TabletProxy::pushOntoStack(const QVariant& path) {
         if (stack) {
             QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
         } else {
-            qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot doesn't have child stack";
+            loadQMLSource(path);
         }
     } else if (_desktopWindow) {
         auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
