@@ -133,6 +133,7 @@ static const int SCALAR_COUNT[NUM_DIMENSIONS] = {
 enum Semantic {
     RAW = 0, // used as RAW memory
 
+    RED,
     RGB,
     RGBA,
     BGRA,
@@ -149,6 +150,7 @@ enum Semantic {
     STENCIL, // Stencil only buffer
     DEPTH_STENCIL, // Depth Stencil buffer
 
+    SRED,
     SRGB,
     SRGBA,
     SBGRA,
@@ -227,8 +229,12 @@ public:
         return getRaw() != right.getRaw();
     }
 
+    static const Element COLOR_R_8;
+    static const Element COLOR_SR_8;
     static const Element COLOR_RGBA_32;
     static const Element COLOR_SRGBA_32;
+    static const Element COLOR_BGRA_32;
+    static const Element COLOR_SBGRA_32;
     static const Element COLOR_R11G11B10;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;

@@ -38,6 +38,8 @@ using namespace std;
 
 static Stats* INSTANCE{ nullptr };
 
+QString getTextureMemoryPressureModeString();
+
 Stats* Stats::getInstance() {
     if (!INSTANCE) {
         Stats::registerType();
@@ -340,10 +342,12 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(glContextSwapchainMemory, (int)BYTES_TO_MB(gl::Context::getSwapchainMemoryUsage()));
 
     STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
+    STAT_UPDATE(texturePendingTransfers, (int)BYTES_TO_MB(gpu::Texture::getTextureTransferPendingSize()));
     STAT_UPDATE(gpuTextureMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUMemoryUsage()));
     STAT_UPDATE(gpuTextureVirtualMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUVirtualMemoryUsage()));
     STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUFramebufferMemoryUsage()));
     STAT_UPDATE(gpuTextureSparseMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUSparseMemoryUsage()));
+    STAT_UPDATE(gpuTextureMemoryPressureState, getTextureMemoryPressureModeString());
     STAT_UPDATE(gpuSparseTextureEnabled, gpuContext->getBackend()->isTextureManagementSparseEnabled() ? 1 : 0);
     STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory()));
     STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());

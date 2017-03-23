@@ -267,7 +267,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             }
             if (token == "map_Kd") {
                 currentMaterial.diffuseTextureFilename = filename;
-            } else {
+            } else if( token == "map_Ks" ) {
                 currentMaterial.specularTextureFilename = filename;
             }
         }
@@ -612,6 +612,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         if (!objMaterial.diffuseTextureFilename.isEmpty()) {
             fbxMaterial.albedoTexture.filename = objMaterial.diffuseTextureFilename;
         }
+		if (!objMaterial.specularTextureFilename.isEmpty()) {
+			fbxMaterial.specularTexture.filename = objMaterial.specularTextureFilename;
+		}
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
         modelMaterial->setAlbedo(fbxMaterial.diffuseColor);

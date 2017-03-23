@@ -17,8 +17,16 @@
 #include <QMetaType>
 #include <QUrl>
 
+#include <shared/Storage.h>
+
 #include "Forward.h"
 #include "Resource.h"
+
+namespace ktx {
+    class KTX;
+    using KTXUniquePointer = std::unique_ptr<KTX>;
+    struct Header;
+}
 
 namespace gpu {
 
@@ -135,8 +143,16 @@ public:
     uint8 getMinMip() const { return _desc._minMip; }
     uint8 getMaxMip() const { return _desc._maxMip; }
 
+    const Desc& getDesc() const { return _desc; }
 protected:
     Desc _desc;
+};
+
+enum class TextureUsageType {
+    RENDERBUFFER,       // Used as attachments to a framebuffer
+    RESOURCE,           // Resource textures, like materials... subject to memory manipulation
+    STRICT_RESOURCE,    // Resource textures not subject to manipulation, like the normal fitting texture
+    EXTERNAL,
 };
 
 class Texture : public Resource {
@@ -147,10 +163,12 @@ class Texture : public Resource {
     static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
 public:
+    static const uint32_t CUBE_FACE_COUNT { 6 };
     static uint32_t getTextureCPUCount();
     static Size getTextureCPUMemoryUsage();
     static uint32_t getTextureGPUCount();
     static uint32_t getTextureGPUSparseCount();
+    static Size getTextureTransferPendingSize();
     static Size getTextureGPUMemoryUsage();
     static Size getTextureGPUVirtualMemoryUsage();
     static Size getTextureGPUFramebufferMemoryUsage();
@@ -173,9 +191,9 @@ public:
             NORMAL,      // Texture is a normal map
             ALPHA,      // Texture has an alpha channel
             ALPHA_MASK,       // Texture alpha channel is a Mask 0/1
-            EXTERNAL,
             NUM_FLAGS,  
         };
+
         typedef std::bitset<NUM_FLAGS> Flags;
 
         // The key is the Flags
@@ -199,7 +217,6 @@ public:
             Builder& withNormal() { _flags.set(NORMAL); return (*this); }
             Builder& withAlpha() { _flags.set(ALPHA); return (*this); }
             Builder& withAlphaMask() { _flags.set(ALPHA_MASK); return (*this); }
-            Builder& withExternal() { _flags.set(EXTERNAL); return (*this); }
         };
         Usage(const Builder& builder) : Usage(builder._flags) {}
 
@@ -208,37 +225,12 @@ public:
 
         bool isAlpha() const { return _flags[ALPHA]; }
         bool isAlphaMask() const { return _flags[ALPHA_MASK]; }
-        bool isExternal() const { return _flags[EXTERNAL]; }
-
 
         bool operator==(const Usage& usage) { return (_flags == usage._flags); }
         bool operator!=(const Usage& usage) { return (_flags != usage._flags); }
     };
 
-    class Pixels {
-    public:
-        Pixels() {}
-        Pixels(const Pixels& pixels) = default;
-        Pixels(const Element& format, Size size, const Byte* bytes);
-        ~Pixels();
-
-        const Byte* readData() const { return _sysmem.readData(); }
-        Size getSize() const { return _sysmem.getSize(); }
-        Size resize(Size pSize);
-        Size setData(const Element& format, Size size, const Byte* bytes );
-        
-        const Element& getFormat() const { return _format; }
-        
-        void notifyGPULoaded();
-        
-    protected:
-        Element _format;
-        Sysmem _sysmem;
-        bool _isGPULoaded;
-        
-        friend class Texture;
-    };
-    typedef std::shared_ptr< Pixels > PixelsPointer;
+    using PixelsPointer = storage::StoragePointer;
 
     enum Type {
         TEX_1D = 0,
@@ -261,46 +253,78 @@ public:
         NUM_CUBE_FACES, // Not a valid vace index
     };
 
+
     class Storage {
     public:
         Storage() {}
         virtual ~Storage() {}
-        virtual void reset();
-        virtual PixelsPointer editMipFace(uint16 level, uint8 face = 0);
-        virtual const PixelsPointer getMipFace(uint16 level, uint8 face = 0) const;
-        virtual bool allocateMip(uint16 level);
-        virtual bool assignMipData(uint16 level, const Element& format, Size size, const Byte* bytes);
-        virtual bool assignMipFaceData(uint16 level, const Element& format, Size size, const Byte* bytes, uint8 face);
-        virtual bool isMipAvailable(uint16 level, uint8 face = 0) const;
 
+        virtual void reset() = 0;
+        virtual PixelsPointer getMipFace(uint16 level, uint8 face = 0) const = 0;
+        virtual void assignMipData(uint16 level, const storage::StoragePointer& storage) = 0;
+        virtual void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) = 0;
+        virtual bool isMipAvailable(uint16 level, uint8 face = 0) const = 0;
         Texture::Type getType() const { return _type; }
-        
+
         Stamp getStamp() const { return _stamp; }
         Stamp bumpStamp() { return ++_stamp; }
-    protected:
-        Stamp _stamp = 0;
-        Texture* _texture = nullptr; // Points to the parent texture (not owned)
-        Texture::Type _type = Texture::TEX_2D; // The type of texture is needed to know the number of faces to expect
-        std::vector<std::vector<PixelsPointer>> _mips; // an array of mips, each mip is an array of faces
 
+        void setFormat(const Element& format) { _format = format; }
+        const Element& getFormat() const { return _format; }
+
+    private:
+        Stamp _stamp { 0 };
+        Element _format;
+        Texture::Type _type { Texture::TEX_2D }; // The type of texture is needed to know the number of faces to expect
+        Texture* _texture { nullptr }; // Points to the parent texture (not owned)
         virtual void assignTexture(Texture* tex); // Texture storage is pointing to ONE corrresponding Texture.
         const Texture* getTexture() const { return _texture; }
- 
         friend class Texture;
-        
-        // THis should be only called by the Texture from the Backend to notify the storage that the specified mip face pixels
-        //  have been uploaded to the GPU memory. IT is possible for the storage to free the system memory then
-        virtual void notifyMipFaceGPULoaded(uint16 level, uint8 face) const;
     };
 
- 
+    class MemoryStorage : public Storage {
+    public:
+        void reset() override;
+        PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
+        void assignMipData(uint16 level, const storage::StoragePointer& storage) override;
+        void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) override;
+        bool isMipAvailable(uint16 level, uint8 face = 0) const override;
+
+    protected:
+        bool allocateMip(uint16 level);
+        std::vector<std::vector<PixelsPointer>> _mips; // an array of mips, each mip is an array of faces
+    };
+
+    class KtxStorage : public Storage {
+    public:
+        KtxStorage(ktx::KTXUniquePointer& ktxData);
+        PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
+        // By convention, all mip levels and faces MUST be populated when using KTX backing
+        bool isMipAvailable(uint16 level, uint8 face = 0) const override { return true; }
+
+        void assignMipData(uint16 level, const storage::StoragePointer& storage) override {
+            throw std::runtime_error("Invalid call");
+        }
+
+        void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) override {
+            throw std::runtime_error("Invalid call");
+        }
+        void reset() override { }
+
+    protected:
+        ktx::KTXUniquePointer _ktxData;
+        friend class Texture;
+    };
+
     static Texture* create1D(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
     static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
     static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler = Sampler());
     static Texture* createCube(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
-    static Texture* createExternal2D(const ExternalRecycler& recycler, const Sampler& sampler = Sampler());
+    static Texture* createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
+    static Texture* createStrict(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
+    static Texture* createExternal(const ExternalRecycler& recycler, const Sampler& sampler = Sampler());
 
-    Texture();
+    Texture(TextureUsageType usageType);
     Texture(const Texture& buf); // deep copy of the sysmem texture
     Texture& operator=(const Texture& buf); // deep copy of the sysmem texture
     ~Texture();
@@ -325,6 +349,7 @@ public:
 
     // Size and format
     Type getType() const { return _type; }
+    TextureUsageType getUsageType() const { return _usageType; }
 
     bool isColorRenderTarget() const;
     bool isDepthStencilRenderTarget() const;
@@ -347,7 +372,12 @@ public:
 
     uint32 getNumTexels() const { return _width * _height * _depth * getNumFaces(); }
 
-    uint16 getNumSlices() const { return _numSlices; }
+    // The texture is an array if the _numSlices is not 0.
+    // otherwise, if _numSLices is 0, then the texture is NOT an array
+    // The number of slices returned is 1 at the minimum (if not an array) or the actual _numSlices.
+    bool isArray() const { return _numSlices > 0; }
+    uint16 getNumSlices() const { return (isArray() ? _numSlices : 1); }
+
     uint16 getNumSamples() const { return _numSamples; }
 
 
@@ -429,17 +459,28 @@ public:
 
     // Managing Storage and mips
 
+    // Mip storage format is constant across all mips
+    void setStoredMipFormat(const Element& format);
+    const Element& getStoredMipFormat() const;
+
     // Manually allocate the mips down until the specified maxMip
     // this is just allocating the sysmem version of it
     // in case autoGen is on, this doesn't allocate
     // Explicitely assign mip data for a certain level
     // If Bytes is NULL then simply allocate the space so mip sysmem can be accessed
-    bool assignStoredMip(uint16 level, const Element& format, Size size, const Byte* bytes);
-    bool assignStoredMipFace(uint16 level, const Element& format, Size size, const Byte* bytes, uint8 face);
+
+    void assignStoredMip(uint16 level, Size size, const Byte* bytes);
+    void assignStoredMipFace(uint16 level, uint8 face, Size size, const Byte* bytes);
+
+    void assignStoredMip(uint16 level, storage::StoragePointer& storage);
+    void assignStoredMipFace(uint16 level, uint8 face, storage::StoragePointer& storage);
 
     // Access the the sub mips
     bool isStoredMipFaceAvailable(uint16 level, uint8 face = 0) const { return _storage->isMipAvailable(level, face); }
     const PixelsPointer accessStoredMipFace(uint16 level, uint8 face = 0) const { return _storage->getMipFace(level, face); }
+
+    void setStorage(std::unique_ptr<Storage>& newStorage);
+    void setKtxBacking(ktx::KTXUniquePointer& newBacking);
 
     // access sizes for the stored mips
     uint16 getStoredMipWidth(uint16 level) const;
@@ -464,8 +505,8 @@ public:
     const Sampler& getSampler() const { return _sampler; }
     Stamp getSamplerStamp() const { return _samplerStamp; }
 
-    // Only callable by the Backend
-    void notifyMipFaceGPULoaded(uint16 level, uint8 face = 0) const { return _storage->notifyMipFaceGPULoaded(level, face); }
+    void setFallbackTexture(const TexturePointer& fallback) { _fallback = fallback; }
+    TexturePointer getFallbackTexture() const { return _fallback.lock(); }
 
     void setExternalTexture(uint32 externalId, void* externalFence);
     void setExternalRecycler(const ExternalRecycler& recycler);
@@ -475,36 +516,45 @@ public:
 
     ExternalUpdates getUpdates() const;
 
+    // Textures can be serialized directly to  ktx data file, here is how
+    static ktx::KTXUniquePointer serialize(const Texture& texture);
+    static Texture* unserialize(const ktx::KTXUniquePointer& srcData, TextureUsageType usageType = TextureUsageType::RESOURCE, Usage usage = Usage(), const Sampler::Desc& sampler = Sampler::Desc());
+    static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
+    static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);
+
 protected:
+    const TextureUsageType _usageType;
+
     // Should only be accessed internally or by the backend sync function
     mutable Mutex _externalMutex;
     mutable std::list<ExternalIdAndFence> _externalUpdates;
     ExternalRecycler _externalRecycler;
 
 
+    std::weak_ptr<Texture> _fallback;
     // Not strictly necessary, but incredibly useful for debugging
     std::string _source;
     std::unique_ptr< Storage > _storage;
 
-    Stamp _stamp = 0;
+    Stamp _stamp { 0 };
 
     Sampler _sampler;
-    Stamp _samplerStamp;
+    Stamp _samplerStamp { 0 };
 
-    uint32 _size = 0;
+    uint32 _size { 0 };
     Element _texelFormat;
 
-    uint16 _width = 1;
-    uint16 _height = 1;
-    uint16 _depth = 1;
+    uint16 _width { 1 };
+    uint16 _height { 1 };
+    uint16 _depth { 1 };
 
-    uint16 _numSamples = 1;
-    uint16 _numSlices = 1;
+    uint16 _numSamples { 1 };
+    uint16 _numSlices { 0 }; // if _numSlices is 0, the texture is not an "Array", the getNumSlices reported is 1
 
     uint16 _maxMip { 0 };
     uint16 _minMip { 0 };
  
-    Type _type = TEX_1D;
+    Type _type { TEX_1D };
 
     Usage _usage;
 
@@ -513,7 +563,7 @@ protected:
     bool _isIrradianceValid = false;
     bool _defined = false;
    
-    static Texture* create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
+    static Texture* create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
 
     Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
 };
