@@ -536,12 +536,12 @@ protected:
     std::string _source;
     std::unique_ptr< Storage > _storage;
 
-    Stamp _stamp = 0;
+    Stamp _stamp { 0 };
 
     Sampler _sampler;
-    Stamp _samplerStamp;
+    Stamp _samplerStamp { 0 };
 
-    uint32 _size = 0;
+    uint32 _size { 0 };
     Element _texelFormat;
 
     uint16 _width { 1 };
@@ -554,7 +554,7 @@ protected:
     uint16 _maxMip { 0 };
     uint16 _minMip { 0 };
  
-    Type _type = TEX_1D;
+    Type _type { TEX_1D };
 
     Usage _usage;
 
