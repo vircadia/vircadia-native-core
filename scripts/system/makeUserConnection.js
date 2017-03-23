@@ -27,7 +27,7 @@ const WAITING_INTERVAL = 100; // ms
 const CONNECTING_INTERVAL = 100; // ms
 const MAKING_CONNECTION_TIMEOUT = 800; // ms
 const CONNECTING_TIME = 1600; // ms
-const PARTICLE_RADIUS = 0.1;
+const PARTICLE_RADIUS = 0.15;
 const PARTICLE_ANGLE_INCREMENT = 360/45; // 1hz
 const HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/4beat_sweep.wav";
 const SUCCESSFUL_HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/3rdbeat_success_bell.wav";
@@ -78,7 +78,7 @@ const MAKING_CONNECTION_PARTICLE_PROPS = {
     "particleRadius": 0.048,
     "polarStart": 0,
     "polarFinish": 1,
-    "radiusFinish": 0.2,
+    "radiusFinish": 0.3,
     "radiusStart": 0.04,
     "speedSpread": 0.01,
     "radiusSpread": 0.9,
@@ -200,6 +200,15 @@ function positionFractionallyTowards(posA, posB, frac) {
     return Vec3.sum(posA, Vec3.multiply(frac, Vec3.subtract(posB, posA)));
 }
 
+function fadeEffects() {
+    if (particleEffect) {
+        Entities.editEntity(particleEffect, {isEmitting: 0, lifespan: 1.0});
+    }
+    if(makingConnectionParticleEffect) {
+        Entities.editEntity(makingConnectionParticleEffect, {isEmitting: 0, lifespan: 1.5});
+    }
+}
+
 function deleteParticleEffect() {
     if (particleEffect) {
         particleEffect = Entities.deleteEntity(particleEffect);
@@ -224,22 +233,15 @@ function calcParticlePos(myHand, otherHand, otherOrientation, reset) {
     }
     var position = positionFractionallyTowards(myHand, otherHand, 0.5);
     particleRotationAngle += PARTICLE_ANGLE_INCREMENT; // about 0.5 hz
-    var radius = Math.min(PARTICLE_RADIUS, PARTICLE_RADIUS * particleRotationAngle / 720);
+    var radius = Math.min(PARTICLE_RADIUS, PARTICLE_RADIUS * particleRotationAngle / 360);
     var axis = Vec3.mix(Quat.getFront(MyAvatar.orientation), Quat.inverse(Quat.getFront(otherOrientation)), 0.5);
     return Vec3.sum(position, Vec3.multiplyQbyV(Quat.angleAxis(particleRotationAngle, axis), {x: 0, y: radius, z: 0}));
 }
 
 // this is called frequently, but usually does nothing
 function updateVisualization() {
-    // after making connection, if you are still holding the grip lets transition
-    // back to waiting
-    if (state == STATES.makingConnection && !connectingId) {
-        startHandshake();
-        return;
-    }
     if (state == STATES.inactive) {
-        deleteParticleEffect();
-        deleteMakeConnectionParticleEffect();
+        fadeEffects();
         stopHandshakeSound();
         return;
     }
@@ -272,6 +274,7 @@ function updateVisualization() {
             // now manage the rest of the entity
             if (!particleEffect) {
                 particleRotationAngle = 0.0;
+                particleEmitRate = 500;
                 particleProps = PARTICLE_EFFECT_PROPS;
                 particleProps.isEmitting = 0;
                 particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
@@ -293,7 +296,7 @@ function updateVisualization() {
             }
             break;
         case STATES.makingConnection:
-            particleEmitRate *= 0.5;
+            particleEmitRate = Math.max(50, particleEmitRate * 0.5);
             Entities.editEntity(makingConnectionParticleEffect, {emitRate: 0, isEmitting: 0, position: myHandPosition});
             Entities.editEntity(particleEffect, {position: calcParticlePos(myHandPosition, otherHand, otherOrientation), emitRate: particleEmitRate});
             break;
