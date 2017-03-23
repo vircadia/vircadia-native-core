@@ -274,8 +274,10 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 break;
 
             case gpu::DEPTH:
+                texel.format = GL_DEPTH_COMPONENT;
                 texel.internalFormat = GL_DEPTH_COMPONENT32;
                 break;
+
             case gpu::DEPTH_STENCIL:
                 texel.type = GL_UNSIGNED_INT_24_8;
                 texel.format = GL_DEPTH_STENCIL;
