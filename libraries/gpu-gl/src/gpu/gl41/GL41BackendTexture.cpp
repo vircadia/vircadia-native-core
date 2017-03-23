@@ -53,12 +53,12 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
     // FIXME internalize to GL41Texture 'sync' function
     if (object->isOutdated()) {
         object->withPreservedTexture([&] {
-            if (object->_contentStamp < texture.getDataStamp()) {
+            if (object->_contentStamp <= texture.getDataStamp()) {
                 // FIXME implement synchronous texture transfer here
                 object->syncContent();
             }
 
-            if (object->_samplerStamp < texture.getSamplerStamp()) {
+            if (object->_samplerStamp <= texture.getSamplerStamp()) {
                 object->syncSampler();
             }
         });
