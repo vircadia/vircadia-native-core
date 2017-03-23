@@ -153,43 +153,48 @@ Rectangle {
             margins: textPadding;
         }
     }
-    Row {
-        FiraSansRegular {
-            id: users;
-            visible: isConcurrency;
-            text: onlineUsers;
-            size: textSize;
-            color: messageColor;
-            anchors.verticalCenter: message.verticalCenter;
-        }
-        Image {
-            id: icon;
-            source: "../../images/snap-icon.svg"
-            width: 40;
-            height: 40;
-            visible: action === 'snapshot';
-        }
-        RalewayRegular {
-            id: message;
-            text: isConcurrency ? ((onlineUsers === 1) ? "person" : "people") : (drillDownToPlace ? "snapshots" : ("by " + userName));
-            size: textSizeSmall;
-            color: messageColor;
-            elide: Text.ElideRight; // requires a width to be specified`
-            width: root.width - textPadding
-                - (users.visible ? users.width + parent.spacing : 0)
-                - (icon.visible ? icon.width + parent.spacing : 0)
-                - (actionIcon.width + (2 * smallMargin));
+
+    Rectangle {
+        radius: 20
+        color: "transparent"
+        Row {
+            FiraSansRegular {
+                id: users;
+                visible: isConcurrency;
+                text: onlineUsers;
+                size: textSize;
+                color: messageColor;
+                anchors.verticalCenter: message.verticalCenter;
+            }
+            Image {
+                id: icon;
+                source: "../../images/snap-icon.svg"
+                width: 40;
+                height: 40;
+                visible: action === 'snapshot';
+            }
+            RalewayRegular {
+                id: message;
+                text: isConcurrency ? ((onlineUsers === 1) ? "person" : "people") : (drillDownToPlace ? "snapshots" : ("by " + userName));
+                size: textSizeSmall;
+                color: messageColor;
+                elide: Text.ElideRight; // requires a width to be specified`
+                width: root.width - textPadding
+                    - (users.visible ? users.width + parent.spacing : 0)
+                    - (icon.visible ? icon.width + parent.spacing : 0)
+                    - (actionIcon.width + (2 * smallMargin));
+                anchors {
+                    bottom: parent.bottom;
+                    bottomMargin: parent.spacing;
+                }
+            }
+            spacing: textPadding;
+            height: messageHeight;
             anchors {
                 bottom: parent.bottom;
-                bottomMargin: parent.spacing;
+                left: parent.left;
+                leftMargin: textPadding;
             }
-        }
-        spacing: textPadding;
-        height: messageHeight;
-        anchors {
-            bottom: parent.bottom;
-            left: parent.left;
-            leftMargin: textPadding;
         }
     }
     // These two can be supplied to provide hover behavior.

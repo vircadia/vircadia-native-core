@@ -28,7 +28,7 @@ Item {
     height: parent.height
 
     property var allStories: [];
-    property int cardWidth: 370;
+    property int cardWidth: 460;
     property int cardHeight: 320;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
 
@@ -86,7 +86,7 @@ Item {
             id: navBar
             width: 480
             height: 70
-
+            color: hifi.colors.white
             anchors {
                 top: parent.top
                 right: parent.right
@@ -201,22 +201,17 @@ Item {
                     }
                 }
             }
+
+            Rectangle {
+                anchors.fill: addressLine
+                color: hifiStyleConstants.colors.baseGray
+                opacity: 0.1
+            }
         }
         Rectangle {
             id: topBar
-            height: 90
-            gradient: Gradient {
-                GradientStop {
-                    position: 0
-                    color: "#2b2b2b"
-                    
-                }
-
-                GradientStop {
-                    position: 1
-                    color: "#1e1e1e"
-                }
-            }
+            height: 37
+            color: hifi.colors.white
 
             anchors.right: parent.right
             anchors.rightMargin: 0
@@ -227,14 +222,15 @@ Item {
             
             Row {
                 id: thing
-                spacing: 2 * hifi.layout.spacing
+                spacing: 5 * hifi.layout.spacing
 
                 anchors {
                     top: parent.top;
                     left: parent.left
+                    leftMargin: 25
                 }
 
-                TextButton {
+                TabletTextButton {
                     id: allTab;
                     text: "ALL";
                     property string includeActions: 'snapshot, concurrency';
@@ -242,7 +238,7 @@ Item {
                     action: tabSelect;
                 }
 
-                TextButton {
+                TabletTextButton {
                     id: placeTab;
                     text: "PLACES";
                     property string includeActions: 'concurrency';
@@ -251,7 +247,7 @@ Item {
                     
                 }
 
-                TextButton {
+                TabletTextButton {
                     id: snapTab;
                     text: "SNAP";
                     property string includeActions: 'snapshot';
@@ -264,20 +260,7 @@ Item {
 
         Rectangle {
             id: bgMain
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0
-                        color: "#2b2b2b"
-
-                    }
-                    
-                    GradientStop {
-                        position: 1
-                        color: "#0f212e"
-                    }
-                }
-
-            
+            color: hifi.colors.white
             anchors.bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom
             anchors.bottomMargin: 0
             anchors.right: parent.right
@@ -292,7 +275,7 @@ Item {
             ListView {
                 id: scroll
                 
-                property int stackedCardShadowHeight: 10;
+                property int stackedCardShadowHeight: 0;
                 clip: true
                 spacing: 14
                 anchors {
@@ -300,7 +283,9 @@ Item {
                     top: parent.top
                     left: parent.left
                     right: parent.right
-                    leftMargin: 50
+                    leftMargin: 10
+                    verticalCenter: parent.verticalCenter;
+                    horizontalCenter: parent.horizontalCenter;
                 }
                 model: suggestions
                 orientation: ListView.Vertical
