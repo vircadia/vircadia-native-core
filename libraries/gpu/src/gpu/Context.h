@@ -101,6 +101,7 @@ public:
     static void decrementTextureGPUCount();
     static void incrementTextureGPUSparseCount();
     static void decrementTextureGPUSparseCount();
+    static void updateTextureTransferPendingSize(Resource::Size prevObjectSize, Resource::Size newObjectSize);
     static void updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
     static void updateTextureGPUSparseMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
     static void updateTextureGPUVirtualMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
@@ -220,6 +221,7 @@ public:
     static uint32_t getTextureGPUSparseCount();
     static Size getFreeGPUMemory();
     static Size getUsedGPUMemory();
+    static Size getTextureTransferPendingSize();
     static Size getTextureGPUMemoryUsage();
     static Size getTextureGPUVirtualMemoryUsage();
     static Size getTextureGPUFramebufferMemoryUsage();
@@ -263,6 +265,7 @@ protected:
     static void decrementTextureGPUCount();
     static void incrementTextureGPUSparseCount();
     static void decrementTextureGPUSparseCount();
+    static void updateTextureTransferPendingSize(Size prevObjectSize, Size newObjectSize);
     static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
     static void updateTextureGPUSparseMemoryUsage(Size prevObjectSize, Size newObjectSize);
     static void updateTextureGPUVirtualMemoryUsage(Size prevObjectSize, Size newObjectSize);
@@ -279,6 +282,7 @@ protected:
 
     static std::atomic<uint32_t> _textureGPUCount;
     static std::atomic<uint32_t> _textureGPUSparseCount;
+    static std::atomic<Size> _textureTransferPendingSize;
     static std::atomic<Size> _textureGPUMemoryUsage;
     static std::atomic<Size> _textureGPUSparseMemoryUsage;
     static std::atomic<Size> _textureGPUVirtualMemoryUsage;

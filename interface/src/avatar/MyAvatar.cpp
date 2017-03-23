@@ -104,6 +104,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
+    _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", false),
     _hmdSensorMatrix(),
     _hmdSensorOrientation(),
     _hmdSensorPosition(),
@@ -119,9 +120,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     using namespace recording;
     _skeletonModel->flagAsCauterized();
 
-    for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
-        _driveKeys[i] = 0.0f;
-    }
+    clearDriveKeys();
 
     // Necessary to select the correct slot
     using SlotType = void(MyAvatar::*)(const glm::vec3&, bool, const glm::quat&, bool);
@@ -154,9 +153,12 @@ MyAvatar::MyAvatar(RigPointer rig) :
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 setRecordingBasis();
             }
+            _wasCharacterControllerEnabled = _characterController.isEnabled();
+            _characterController.setEnabled(false);
         } else {
             clearRecordingBasis();
             useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
+            _characterController.setEnabled(_wasCharacterControllerEnabled);
         }
 
         auto audioIO = DependencyManager::get<AudioClient>();
@@ -225,6 +227,21 @@ MyAvatar::MyAvatar(RigPointer rig) :
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
+}
+
+void MyAvatar::registerMetaTypes(QScriptEngine* engine) {
+    QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
+    engine->globalObject().setProperty("MyAvatar", value);
+
+    QScriptValue driveKeys = engine->newObject();
+    auto metaEnum = QMetaEnum::fromType<DriveKeys>();
+    for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
+        driveKeys.setProperty(metaEnum.key(i), metaEnum.value(i));
+    }
+    engine->globalObject().setProperty("DriveKeys", driveKeys);
+
+    qScriptRegisterMetaType(engine, audioListenModeToScriptValue, audioListenModeFromScriptValue);
+    qScriptRegisterMetaType(engine, driveKeysToScriptValue, driveKeysFromScriptValue);
 }
 
 void MyAvatar::setOrientationVar(const QVariant& newOrientationVar) {
@@ -459,7 +476,7 @@ void MyAvatar::simulate(float deltaTime) {
         // When there are no step values, we zero out the last step pulse.
         // This allows a user to do faster snapping by tapping a control
         for (int i = STEP_TRANSLATE_X; !stepAction && i <= STEP_YAW; ++i) {
-            if (_driveKeys[i] != 0.0f) {
+            if (getDriveKey((DriveKeys)i) != 0.0f) {
                 stepAction = true;
             }
         }
@@ -1652,7 +1669,7 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 void MyAvatar::updateOrientation(float deltaTime) {
 
     //  Smoothly rotate body with arrow keys
-    float targetSpeed = _driveKeys[YAW] * _yawSpeed;
+    float targetSpeed = getDriveKey(YAW) * _yawSpeed;
     if (targetSpeed != 0.0f) {
         const float ROTATION_RAMP_TIMESCALE = 0.1f;
         float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
@@ -1681,8 +1698,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
     // snap turn every half second.
-    if (_driveKeys[STEP_YAW] != 0.0f) {
-        totalBodyYaw += _driveKeys[STEP_YAW];
+    if (getDriveKey(STEP_YAW) != 0.0f) {
+        totalBodyYaw += getDriveKey(STEP_YAW);
     }
 
     // use head/HMD orientation to turn while flying
@@ -1719,7 +1736,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // update body orientation by movement inputs
     setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * _pitchSpeed * deltaTime);
+    getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
     if (qApp->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
@@ -1753,14 +1770,14 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     }
 
     // compute action input
-    glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
-    glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
+    glm::vec3 front = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FRONT;
+    glm::vec3 right = (getDriveKey(TRANSLATE_X)) * IDENTITY_RIGHT;
 
     glm::vec3 direction = front + right;
     CharacterController::State state = _characterController.getState();
     if (state == CharacterController::State::Hover) {
         // we're flying --> support vertical motion
-        glm::vec3 up = (_driveKeys[TRANSLATE_Y]) * IDENTITY_UP;
+        glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         direction += up;
     }
 
@@ -1799,7 +1816,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = MAX_WALKING_SPEED * direction;
     }
 
-    float boomChange = _driveKeys[ZOOM];
+    float boomChange = getDriveKey(ZOOM);
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 }
@@ -1830,11 +1847,11 @@ void MyAvatar::updatePosition(float deltaTime) {
     }
 
     // capture the head rotation, in sensor space, when the user first indicates they would like to move/fly.
-    if (!_hoverReferenceCameraFacingIsCaptured && (fabs(_driveKeys[TRANSLATE_Z]) > 0.1f || fabs(_driveKeys[TRANSLATE_X]) > 0.1f)) {
+    if (!_hoverReferenceCameraFacingIsCaptured && (fabs(getDriveKey(TRANSLATE_Z)) > 0.1f || fabs(getDriveKey(TRANSLATE_X)) > 0.1f)) {
         _hoverReferenceCameraFacingIsCaptured = true;
         // transform the camera facing vector into sensor space.
         _hoverReferenceCameraFacing = transformVectorFast(glm::inverse(_sensorToWorldMatrix), getHead()->getCameraOrientation() * Vectors::UNIT_Z);
-    } else if (_hoverReferenceCameraFacingIsCaptured && (fabs(_driveKeys[TRANSLATE_Z]) <= 0.1f && fabs(_driveKeys[TRANSLATE_X]) <= 0.1f)) {
+    } else if (_hoverReferenceCameraFacingIsCaptured && (fabs(getDriveKey(TRANSLATE_Z)) <= 0.1f && fabs(getDriveKey(TRANSLATE_X)) <= 0.1f)) {
         _hoverReferenceCameraFacingIsCaptured = false;
     }
 }
@@ -2090,14 +2107,58 @@ bool MyAvatar::getCharacterControllerEnabled() {
 }
 
 void MyAvatar::clearDriveKeys() {
-    for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
-        _driveKeys[i] = 0.0f;
+    _driveKeys.fill(0.0f);
+}
+
+void MyAvatar::setDriveKey(DriveKeys key, float val) {
+    try {
+        _driveKeys.at(key) = val;
+    } catch (const std::exception&) {
+        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
+    }
+}
+
+float MyAvatar::getDriveKey(DriveKeys key) const {
+    return isDriveKeyDisabled(key) ? 0.0f : getRawDriveKey(key);
+}
+
+float MyAvatar::getRawDriveKey(DriveKeys key) const {
+    try {
+        return _driveKeys.at(key);
+    } catch (const std::exception&) {
+        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
+        return 0.0f;
     }
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (_driveKeys[TRANSLATE_Y] > 0.0f) {
+    if (getDriveKey(TRANSLATE_Y) > 0.0f) {
         _characterController.jump();
+    }
+}
+
+void MyAvatar::disableDriveKey(DriveKeys key) {
+    try {
+        _disabledDriveKeys.set(key);
+    } catch (const std::exception&) {
+        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
+    }
+}
+
+void MyAvatar::enableDriveKey(DriveKeys key) {
+    try {
+        _disabledDriveKeys.reset(key);
+    } catch (const std::exception&) {
+        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
+    }
+}
+
+bool MyAvatar::isDriveKeyDisabled(DriveKeys key) const {
+    try {
+        return _disabledDriveKeys.test(key);
+    } catch (const std::exception&) {
+        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
+        return true;
     }
 }
 
@@ -2186,7 +2247,15 @@ QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioList
 }
 
 void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode) {
-    audioListenerMode = (AudioListenerMode)object.toUInt16();
+    audioListenerMode = static_cast<AudioListenerMode>(object.toUInt16());
+}
+
+QScriptValue driveKeysToScriptValue(QScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys) {
+    return driveKeys;
+}
+
+void driveKeysFromScriptValue(const QScriptValue& object, MyAvatar::DriveKeys& driveKeys) {
+    driveKeys = static_cast<MyAvatar::DriveKeys>(object.toUInt16());
 }
 
 
@@ -2379,7 +2448,7 @@ bool MyAvatar::didTeleport() {
 }
 
 bool MyAvatar::hasDriveInput() const {
-    return fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Y]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
+    return fabsf(getDriveKey(TRANSLATE_X)) > 0.0f || fabsf(getDriveKey(TRANSLATE_Y)) > 0.0f || fabsf(getDriveKey(TRANSLATE_Z)) > 0.0f;
 }
 
 void MyAvatar::setAway(bool value) {
@@ -2495,7 +2564,7 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
         return false;
     }
 
-    setPosition(position);
+    slamPosition(position);
     setOrientation(orientation);
 
     _rig->setMaxHipsOffsetLength(0.05f);

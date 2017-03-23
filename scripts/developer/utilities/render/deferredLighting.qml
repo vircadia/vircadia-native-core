@@ -25,7 +25,7 @@ Column {
                      "Lightmap:LightingModel:enableLightmap",
                      "Background:LightingModel:enableBackground",                      
                      "ssao:AmbientOcclusion:enabled",                      
-                     "Textures:LightingModel:enableMaterialTexturing",                      
+                     "Textures:LightingModel:enableMaterialTexturing"                     
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
@@ -45,6 +45,7 @@ Column {
                      "Diffuse:LightingModel:enableDiffuse",
                      "Specular:LightingModel:enableSpecular",
                      "Albedo:LightingModel:enableAlbedo",
+                     "Wireframe:LightingModel:enableWireframe"
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]

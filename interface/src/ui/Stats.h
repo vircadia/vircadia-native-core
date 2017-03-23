@@ -77,7 +77,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioMixerOutPps, 0)
     STATS_PROPERTY(int, audioMixerKbps, 0)
     STATS_PROPERTY(int, audioMixerPps, 0)
-    STATS_PROPERTY(int, audioMicOutboundPPS, 0)
+    STATS_PROPERTY(int, audioOutboundPPS, 0)
     STATS_PROPERTY(int, audioSilentOutboundPPS, 0)
     STATS_PROPERTY(int, audioAudioInboundPPS, 0)
     STATS_PROPERTY(int, audioSilentInboundPPS, 0)
@@ -117,11 +117,13 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuTexturesSparse, 0)
     STATS_PROPERTY(int, glContextSwapchainMemory, 0)
     STATS_PROPERTY(int, qmlTextureMemory, 0)
+    STATS_PROPERTY(int, texturePendingTransfers, 0)
     STATS_PROPERTY(int, gpuTextureMemory, 0)
     STATS_PROPERTY(int, gpuTextureVirtualMemory, 0)
     STATS_PROPERTY(int, gpuTextureFramebufferMemory, 0)
     STATS_PROPERTY(int, gpuTextureSparseMemory, 0)
     STATS_PROPERTY(int, gpuSparseTextureEnabled, 0)
+    STATS_PROPERTY(QString, gpuTextureMemoryPressureState, QString())
     STATS_PROPERTY(int, gpuFreeMemory, 0)
     STATS_PROPERTY(float, gpuFrameTime, 0)
     STATS_PROPERTY(float, batchFrameTime, 0)
@@ -198,7 +200,7 @@ signals:
     void audioMixerOutPpsChanged();
     void audioMixerKbpsChanged();
     void audioMixerPpsChanged();
-    void audioMicOutboundPPSChanged();
+    void audioOutboundPPSChanged();
     void audioSilentOutboundPPSChanged();
     void audioAudioInboundPPSChanged();
     void audioSilentInboundPPSChanged();
@@ -232,6 +234,7 @@ signals:
     void timingStatsChanged();
     void glContextSwapchainMemoryChanged();
     void qmlTextureMemoryChanged();
+    void texturePendingTransfersChanged();
     void gpuBuffersChanged();
     void gpuBufferMemoryChanged();
     void gpuTexturesChanged();
@@ -240,6 +243,7 @@ signals:
     void gpuTextureVirtualMemoryChanged();
     void gpuTextureFramebufferMemoryChanged();
     void gpuTextureSparseMemoryChanged();
+    void gpuTextureMemoryPressureStateChanged();
     void gpuSparseTextureEnabledChanged();
     void gpuFreeMemoryChanged();
     void gpuFrameTimeChanged();

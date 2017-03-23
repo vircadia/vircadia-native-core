@@ -61,6 +61,8 @@ public:
     virtual uint8_t getVoxel(int x, int y, int z) override;
     virtual bool setVoxel(int x, int y, int z, uint8_t toValue) override;
 
+    int getOnCount() const override { return _onCount; }
+
     void render(RenderArgs* args) override;
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -133,6 +135,7 @@ public:
     QByteArray volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const;
 
     void setMesh(model::MeshPointer mesh);
+    bool getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result) override;
     void setCollisionPoints(ShapeInfo::PointCollection points, AABox box);
     PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData; }
 
@@ -163,11 +166,12 @@ private:
     const int MATERIAL_GPU_SLOT = 3;
     render::ItemID _myItem{ render::Item::INVALID_ITEM_ID };
     static gpu::PipelinePointer _pipeline;
+    static gpu::PipelinePointer _wireframePipeline;
 
     ShapeInfo _shapeInfo;
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
-    bool _volDataDirty = false; // does getMesh need to be called?
+    bool _volDataDirty = false; // does recomputeMesh need to be called?
     int _onCount; // how many non-zero voxels are in _volData
 
     bool _neighborsNeedUpdate { false };
@@ -178,7 +182,7 @@ private:
     // these are run off the main thread
     void decompressVolumeData();
     void compressVolumeDataAndSendEditPacket();
-    virtual void getMesh() override; // recompute mesh
+    virtual void recomputeMesh() override; // recompute mesh
     void computeShapeInfoWorker();
 
     // these are cached lookups of _xNNeighborID, _yNNeighborID, _zNNeighborID, _xPNeighborID, _yPNeighborID, _zPNeighborID
@@ -191,6 +195,7 @@ private:
     void cacheNeighbors();
     void copyUpperEdgesFromNeighbors();
     void bonkNeighbors();
+    bool updateDependents();
 };
 
 bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,

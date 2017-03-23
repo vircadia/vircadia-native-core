@@ -1,0 +1,9 @@
+{
+    "name": "Example JSON Module",
+    "last-modified": 1485789862,
+    "config": {
+        "title": "My Title",
+        "width": 800,
+        "height": 600
+    }
+}

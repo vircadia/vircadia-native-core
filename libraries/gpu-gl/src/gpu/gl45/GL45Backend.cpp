@@ -18,6 +18,12 @@ Q_LOGGING_CATEGORY(gpugl45logging, "hifi.gpu.gl45")
 using namespace gpu;
 using namespace gpu::gl45;
 
+void GL45Backend::recycle() const {
+    Parent::recycle();
+    GL45VariableAllocationTexture::manageMemory();
+    GL45VariableAllocationTexture::_frameTexturesCreated = 0;
+}
+
 void GL45Backend::do_draw(const Batch& batch, size_t paramOffset) {
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];
@@ -162,9 +168,4 @@ void GL45Backend::do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOf
     _stats._DSNumDrawcalls += commandCount;
     _stats._DSNumAPIDrawcalls++;
     (void)CHECK_GL_ERROR();
-}
-
-void GL45Backend::recycle() const {
-    Parent::recycle();
-    derezTextures();
 }

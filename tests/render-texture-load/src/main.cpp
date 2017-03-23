@@ -48,6 +48,7 @@
 #include <gpu/gl/GLTexture.h>
 #include <gpu/StandardShaderLib.h>
 
+#include <GenericThread.h>
 #include <AddressManager.h>
 #include <NodeList.h>
 #include <TextureCache.h>

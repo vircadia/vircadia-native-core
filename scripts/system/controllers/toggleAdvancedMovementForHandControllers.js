@@ -17,15 +17,14 @@ var mappingName, basicMapping, isChecked;
 
 var TURN_RATE = 1000;
 var MENU_ITEM_NAME = "Advanced Movement For Hand Controllers";
-var SETTINGS_KEY = 'advancedMovementForHandControllersIsChecked';
 var isDisabled = false;
-var previousSetting = Settings.getValue(SETTINGS_KEY);
-if (previousSetting === '' || previousSetting === false || previousSetting === 'false') {
+var previousSetting = MyAvatar.useAdvancedMovementControls;
+if (previousSetting === false) {
     previousSetting = false;
     isChecked = false;
 }
 
-if (previousSetting === true || previousSetting === 'true') {
+if (previousSetting === true) {
     previousSetting = true;
     isChecked = true;
 }
@@ -37,7 +36,6 @@ function addAdvancedMovementItemToSettingsMenu() {
         isCheckable: true,
         isChecked: previousSetting
     });
-
 }
 
 function rotate180() {
@@ -72,7 +70,6 @@ function registerBasicMapping() {
         }
         return;
     });
-    basicMapping.from(Controller.Standard.LX).to(Controller.Standard.RX);
     basicMapping.from(Controller.Standard.RY).to(function(value) {
         if (isDisabled) {
             return;
@@ -112,10 +109,10 @@ function menuItemEvent(menuItem) {
     if (menuItem == MENU_ITEM_NAME) {
         isChecked = Menu.isOptionChecked(MENU_ITEM_NAME);
         if (isChecked === true) {
-            Settings.setValue(SETTINGS_KEY, true);
+            MyAvatar.useAdvancedMovementControls = true;
             disableMappings();
         } else if (isChecked === false) {
-            Settings.setValue(SETTINGS_KEY, false);
+            MyAvatar.useAdvancedMovementControls = false;
             enableMappings();
         }
     }

@@ -38,6 +38,8 @@ using namespace std;
 
 static Stats* INSTANCE{ nullptr };
 
+QString getTextureMemoryPressureModeString();
+
 Stats* Stats::getInstance() {
     if (!INSTANCE) {
         Stats::registerType();
@@ -220,10 +222,10 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(audioMixerInPps, roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer)));
             STAT_UPDATE(audioMixerOutKbps, roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)));
             STAT_UPDATE(audioMixerOutPps, roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
-            STAT_UPDATE(audioMicOutboundPPS, audioClient->getMicAudioOutboundPPS());
-            STAT_UPDATE(audioSilentOutboundPPS, audioClient->getSilentOutboundPPS());
             STAT_UPDATE(audioAudioInboundPPS, audioClient->getAudioInboundPPS());
             STAT_UPDATE(audioSilentInboundPPS, audioClient->getSilentInboundPPS());
+            STAT_UPDATE(audioOutboundPPS, audioClient->getAudioOutboundPPS());
+            STAT_UPDATE(audioSilentOutboundPPS, audioClient->getSilentOutboundPPS());
         } else {
             STAT_UPDATE(audioMixerKbps, -1);
             STAT_UPDATE(audioMixerPps, -1);
@@ -231,7 +233,7 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(audioMixerInPps, -1);
             STAT_UPDATE(audioMixerOutKbps, -1);
             STAT_UPDATE(audioMixerOutPps, -1);
-            STAT_UPDATE(audioMicOutboundPPS, -1);
+            STAT_UPDATE(audioOutboundPPS, -1);
             STAT_UPDATE(audioSilentOutboundPPS, -1);
             STAT_UPDATE(audioAudioInboundPPS, -1);
             STAT_UPDATE(audioSilentInboundPPS, -1);
@@ -340,10 +342,12 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(glContextSwapchainMemory, (int)BYTES_TO_MB(gl::Context::getSwapchainMemoryUsage()));
 
     STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
+    STAT_UPDATE(texturePendingTransfers, (int)BYTES_TO_MB(gpu::Texture::getTextureTransferPendingSize()));
     STAT_UPDATE(gpuTextureMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUMemoryUsage()));
     STAT_UPDATE(gpuTextureVirtualMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUVirtualMemoryUsage()));
     STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUFramebufferMemoryUsage()));
     STAT_UPDATE(gpuTextureSparseMemory, (int)BYTES_TO_MB(gpu::Texture::getTextureGPUSparseMemoryUsage()));
+    STAT_UPDATE(gpuTextureMemoryPressureState, getTextureMemoryPressureModeString());
     STAT_UPDATE(gpuSparseTextureEnabled, gpuContext->getBackend()->isTextureManagementSparseEnabled() ? 1 : 0);
     STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory()));
     STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());

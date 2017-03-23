@@ -49,10 +49,12 @@ public:
                     GL_COLOR_ATTACHMENT15 };
 
                 int unit = 0;
+                auto backend = _backend.lock();
                 for (auto& b : _gpuObject.getRenderBuffers()) {
                     surface = b._texture;
                     if (surface) {
-                        gltexture = gl::GLTexture::sync<GL45Backend::GL45Texture>(*_backend.lock().get(), surface, false); // Grab the gltexture and don't transfer
+                        Q_ASSERT(TextureUsageType::RENDERBUFFER == surface->getUsageType());
+                        gltexture = backend->syncGPUObject(surface);
                     } else {
                         gltexture = nullptr;
                     }
@@ -78,8 +80,10 @@ public:
 
         if (_gpuObject.getDepthStamp() != _depthStamp) {
             auto surface = _gpuObject.getDepthStencilBuffer();
+            auto backend = _backend.lock();
             if (_gpuObject.hasDepthStencil() && surface) {
-                gltexture = gl::GLTexture::sync<GL45Backend::GL45Texture>(*_backend.lock().get(), surface, false); // Grab the gltexture and don't transfer
+                Q_ASSERT(TextureUsageType::RENDERBUFFER == surface->getUsageType());
+                gltexture = backend->syncGPUObject(surface);
             }
 
             if (gltexture) {
@@ -102,7 +106,7 @@ public:
         _status = glCheckNamedFramebufferStatus(_id, GL_DRAW_FRAMEBUFFER);
 
         // restore the current framebuffer
-        checkStatus(GL_DRAW_FRAMEBUFFER);
+        checkStatus();
     }
 
 

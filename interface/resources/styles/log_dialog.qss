@@ -1,6 +1,6 @@
 
 QPlainTextEdit {
-    font-family: Inconsolata, Lucida Console, Andale Mono, Monaco;
+    font-family: Inconsolata, Consolas, Courier New, monospace;
     font-size: 16px;
     padding-left: 28px;
     padding-top: 7px;
@@ -11,7 +11,7 @@ QPlainTextEdit {
 }
 
 QLineEdit {
-    font-family: Inconsolata, Lucida Console, Andale Mono, Monaco;
+    font-family: Inconsolata, Consolas, Courier New, monospace;
     padding-left: 7px;
     background-color: #CCCCCC;
     border-width: 0;

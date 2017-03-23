@@ -28,17 +28,23 @@ const int SEARCH_BUTTON_LEFT = 25;
 const int SEARCH_BUTTON_WIDTH = 20;
 const int SEARCH_TOGGLE_BUTTON_WIDTH = 50;
 const int SEARCH_TEXT_WIDTH = 240;
+const int TIME_STAMP_LENGTH = 16;
+const int FONT_WEIGHT = 75;
 const QColor HIGHLIGHT_COLOR = QColor("#3366CC");
+const QColor BOLD_COLOR = QColor("#445c8c");
+const QString BOLD_PATTERN = "\\[\\d*\\/.*:\\d*:\\d*\\]";
 
-class KeywordHighlighter : public QSyntaxHighlighter {
+class Highlighter : public QSyntaxHighlighter {
 public:
-    KeywordHighlighter(QTextDocument* parent = nullptr);
+    Highlighter(QTextDocument* parent = nullptr);
+    void setBold(int indexToBold);
     QString keyword;
 
 protected:
     void highlightBlock(const QString& text) override;
 
 private:
+    QTextCharFormat boldFormat;
     QTextCharFormat keywordFormat;
     
 };
@@ -89,7 +95,7 @@ void BaseLogDialog::initControls() {
     _leftPad += SEARCH_TOGGLE_BUTTON_WIDTH + BUTTON_MARGIN;
     _searchPrevButton->show();
     connect(_searchPrevButton, SIGNAL(clicked()), SLOT(toggleSearchPrev()));
-    
+
     _searchNextButton = new QPushButton(this);
     _searchNextButton->setObjectName("searchNextButton");
     _searchNextButton->setGeometry(_leftPad, ELEMENT_MARGIN, SEARCH_TOGGLE_BUTTON_WIDTH, ELEMENT_HEIGHT);
@@ -101,9 +107,8 @@ void BaseLogDialog::initControls() {
     _logTextBox = new QPlainTextEdit(this);
     _logTextBox->setReadOnly(true);
     _logTextBox->show();
-    _highlighter = new KeywordHighlighter(_logTextBox->document());
+    _highlighter = new Highlighter(_logTextBox->document());
     connect(_logTextBox, SIGNAL(selectionChanged()), SLOT(updateSelection()));
-
 }
 
 void BaseLogDialog::showEvent(QShowEvent* event)  {
@@ -116,7 +121,9 @@ void BaseLogDialog::resizeEvent(QResizeEvent* event) {
 
 void BaseLogDialog::appendLogLine(QString logLine) {
     if (logLine.contains(_searchTerm, Qt::CaseInsensitive)) {
+        int indexToBold = _logTextBox->document()->characterCount();
         _logTextBox->appendPlainText(logLine.trimmed());
+        _highlighter->setBold(indexToBold);
     }
 }
 
@@ -128,7 +135,7 @@ void BaseLogDialog::handleSearchTextChanged(QString searchText) {
     if (searchText.isEmpty()) {
         return;
     }
-    
+
     QTextCursor cursor = _logTextBox->textCursor();
     if (cursor.hasSelection()) {
         QString selectedTerm = cursor.selectedText();
@@ -136,16 +143,16 @@ void BaseLogDialog::handleSearchTextChanged(QString searchText) {
           return;
         }
     }
-    
+
     cursor.setPosition(0, QTextCursor::MoveAnchor);
     _logTextBox->setTextCursor(cursor);
     bool foundTerm = _logTextBox->find(searchText);
-    
+
     if (!foundTerm) {
         cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
         _logTextBox->setTextCursor(cursor);
     }
-    
+
     _searchTerm = searchText;
     _highlighter->keyword = searchText;
     _highlighter->rehighlight();
@@ -175,6 +182,7 @@ void BaseLogDialog::showLogData() {
     _logTextBox->clear();
     _logTextBox->appendPlainText(getCurrentLog());
     _logTextBox->ensureCursorVisible();
+    _highlighter->rehighlight();
 }
 
 void BaseLogDialog::updateSelection() {
@@ -187,20 +195,36 @@ void BaseLogDialog::updateSelection() {
     }
 }
 
-KeywordHighlighter::KeywordHighlighter(QTextDocument* parent) : QSyntaxHighlighter(parent) {
+Highlighter::Highlighter(QTextDocument* parent) : QSyntaxHighlighter(parent) {
+    boldFormat.setFontWeight(FONT_WEIGHT);
+    boldFormat.setForeground(BOLD_COLOR);
     keywordFormat.setForeground(HIGHLIGHT_COLOR);
 }
 
-void KeywordHighlighter::highlightBlock(const QString& text) {
+void Highlighter::highlightBlock(const QString& text) {
+    QRegExp expression(BOLD_PATTERN);
+
+    int index = text.indexOf(expression, 0);
+
+    while (index >= 0) {
+        int length = expression.matchedLength();
+        setFormat(index, length, boldFormat);
+        index = text.indexOf(expression, index + length);
+    }
+
     if (keyword.isNull() || keyword.isEmpty()) {
         return;
     }
 
-    int index = text.indexOf(keyword, 0, Qt::CaseInsensitive);
+    index = text.indexOf(keyword, 0, Qt::CaseInsensitive);
     int length = keyword.length();
 
     while (index >= 0) {
         setFormat(index, length, keywordFormat);
         index = text.indexOf(keyword, index + length, Qt::CaseInsensitive);
     }
+}
+
+void Highlighter::setBold(int indexToBold) {
+    setFormat(indexToBold, TIME_STAMP_LENGTH, boldFormat);
 }
