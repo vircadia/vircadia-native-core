@@ -1,20 +1,24 @@
 var soundFiles = ["C2.wav", "D2.wav", "E2.wav", "F2.wav", "G2.wav", "A2.wav", "B2.wav", "C3.wav"];
-var diffuseFile = "http://mpassets.highfidelity.com/3fd92e5e-93cf-4bc1-b2f1-c6bae5629814-v1/xylotex_bar";
+var keyModelURL = Script.resolvePath("xyloKey_2_a_e.fbx");
+var keyScriptURL = Script.resolvePath("xylophoneKey.js");
+var TEXBLACK = Script.resolvePath("xylotex_bar_black.png");
+var malletModelURL = Script.resolvePath("Mallet2-2pc.fbx");
 var center = MyAvatar.position;
 var fwd = {x:0, y:0, z:-1};
 
 var xyloFramePos = Vec3.sum(center, Vec3.multiply(fwd, 0.8));
 var xyloFrameID = Entities.addEntity( {
 	name: "Xylophone",
-		type: "Model",
-	 	modelURL: "http://mpassets.highfidelity.com/3fd92e5e-93cf-4bc1-b2f1-c6bae5629814-v1/xylophoneFrameWithWave.fbx",
-		position: xyloFramePos,
-		rotation: Quat.fromVec3Radians({x:0, y:Math.PI, z:0}),
-		shapeType: "static-mesh",
+	type: "Model",
+ 	modelURL: Script.resolvePath("xylophoneFrameWithWave.fbx"),
+	position: xyloFramePos,
+	rotation: Quat.fromVec3Radians({x:0, y:Math.PI, z:0}),
+	shapeType: "static-mesh",
 });
 
 center.y += (0.45); //key Y offset from frame
 var keyPos;
+var keyRot;
 for (i=1, len=soundFiles.length; i<=len; i++) {
 
 	keyRot = Quat.fromVec3Radians({x:0, y:(0.9 - (i*0.2)), z:0});
@@ -25,18 +29,18 @@ for (i=1, len=soundFiles.length; i<=len; i++) {
 	};
 
 	var td = {
-		"file4": (diffuseFile + i + ".png"), 
-		"file5": (diffuseFile + "_black.png")
+		"file4": Script.resolvePath("xylotex_bar" + i + ".png"), 
+		"file5": TEXBLACK
 	};
 
 	var keyID = Entities.addEntity( {
 		name: ("XyloKey" + i),
 		type: "Model",
-	 	modelURL: "http://mpassets.highfidelity.com/3fd92e5e-93cf-4bc1-b2f1-c6bae5629814-v1/xyloKey_2_a_e.fbx",
+	 	modelURL: keyModelURL,
 		position: keyPos,
 		rotation: keyRot,
 		shapeType: "static-mesh",
-	 	script: "http://mpassets.highfidelity.com/3fd92e5e-93cf-4bc1-b2f1-c6bae5629814-v1/xylophoneKey.js",
+	 	script: keyScriptURL,
 	 	textures: JSON.stringify(td),
 		userData: JSON.stringify(ud),
 		parentID: xyloFrameID,
@@ -55,8 +59,7 @@ if (intersection.intersects && (intersection.distance < 10)) {
 		Entities.editEntity(xyloFrameID, {position: xyloFramePos});
 		rezMallets();
 	}, 2000); //timeout (ms)
-}
-else {
+} else {
 	print("No surface detected.");
 	rezMallets();
 }
@@ -65,7 +68,7 @@ function rezMallets() {
 	var malletProps = {
 		name: "Xylophone Mallet",
 		type: "Model",
-		modelURL: "http://mpassets.highfidelity.com/3fd92e5e-93cf-4bc1-b2f1-c6bae5629814-v1/Mallet2-2pc.fbx",
+		modelURL: malletModelURL,
 		collidesWith: "static,dynamic,kinematic,",
 		collisionMask: 7,
 		collisionsWillMove: 1,
