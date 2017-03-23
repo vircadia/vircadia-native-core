@@ -234,6 +234,8 @@ function updateVisualization() {
     if (state == STATES.inactive) {
         deleteParticleEffect();
         deleteMakeConnectionParticleEffect();
+        // this should always be true if inactive, but just in case:
+        currentHand = undefined;
         return;
     }
 
@@ -414,6 +416,7 @@ function updateTriggers(value, fromKeyboard, hand) {
     // ok now, we are either initiating or quitting...
     var isGripping = value > GRIP_MIN;
     if (isGripping) {
+        debug("updateTriggers called - gripping", handToString(hand));
         if (state != STATES.inactive) {
             return;
         } else {
@@ -421,6 +424,7 @@ function updateTriggers(value, fromKeyboard, hand) {
         }
     } else {
         // TODO: should we end handshake even when inactive?  Ponder
+        debug("updateTriggers called -- no longer gripping", handToString(hand));
         if (state != STATES.inactive) {
             endHandshake();
         } else {
