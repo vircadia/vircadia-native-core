@@ -14,12 +14,56 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-bool GLBackend::isTextureReady(const TexturePointer& texture) {
-    // DO not transfer the texture, this call is expected for rendering texture
-    GLTexture* object = syncGPUObject(texture, true);
-    return object && object->isReady();
+
+GLuint GLBackend::getTextureID(const TexturePointer& texture) {
+    GLTexture* object = syncGPUObject(texture);
+
+    if (!object) {
+        return 0;
+    }
+
+    return object->_id;
 }
 
+GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePointer) {
+    const Texture& texture = *texturePointer;
+    // Special case external textures
+    if (TextureUsageType::EXTERNAL == texture.getUsageType()) {
+        Texture::ExternalUpdates updates = texture.getUpdates();
+        if (!updates.empty()) {
+            Texture::ExternalRecycler recycler = texture.getExternalRecycler();
+            Q_ASSERT(recycler);
+            // Discard any superfluous updates
+            while (updates.size() > 1) {
+                const auto& update = updates.front();
+                // Superfluous updates will never have been read, but we want to ensure the previous 
+                // writes to them are complete before they're written again, so return them with the 
+                // same fences they arrived with.  This can happen on any thread because no GL context 
+                // work is involved
+                recycler(update.first, update.second);
+                updates.pop_front();
+            }
+
+            // The last texture remaining is the one we'll use to create the GLTexture
+            const auto& update = updates.front();
+            // Check for a fence, and if it exists, inject a wait into the command stream, then destroy the fence
+            if (update.second) {
+                GLsync fence = static_cast<GLsync>(update.second);
+                glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+                glDeleteSync(fence);
+            }
+
+            // Create the new texture object (replaces any previous texture object)
+            new GLExternalTexture(shared_from_this(), texture, update.first);
+        }
+
+        // Return the texture object (if any) associated with the texture, without extensive logic
+        // (external textures are 
+        return Backend::getGPUObject<GLTexture>(texture);
+    }
+
+    return nullptr;
+}
 
 void GLBackend::do_generateTextureMips(const Batch& batch, size_t paramOffset) {
     TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
@@ -28,7 +72,7 @@ void GLBackend::do_generateTextureMips(const Batch& batch, size_t paramOffset) {
     }
 
     // DO not transfer the texture, this call is expected for rendering texture
-    GLTexture* object = syncGPUObject(resourceTexture, false);
+    GLTexture* object = syncGPUObject(resourceTexture);
     if (!object) {
         return;
     }

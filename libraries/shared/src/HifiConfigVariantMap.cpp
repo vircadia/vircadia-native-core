@@ -21,7 +21,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QVariant>
 
-#include "ServerPathUtils.h"
+#include "PathUtils.h"
 #include "SharedLogging.h"
 
 QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringList& argumentList) {
@@ -127,7 +127,7 @@ void HifiConfigVariantMap::loadConfig(const QStringList& argumentList) {
         _userConfigFilename = argumentList[userConfigIndex + 1];
     } else {
         // we weren't passed a user config path
-        _userConfigFilename = ServerPathUtils::getDataFilePath(USER_CONFIG_FILE_NAME);
+        _userConfigFilename = PathUtils::getAppDataFilePath(USER_CONFIG_FILE_NAME);
 
         // as of 1/19/2016 this path was moved so we attempt a migration for first run post migration here
 
@@ -153,7 +153,7 @@ void HifiConfigVariantMap::loadConfig(const QStringList& argumentList) {
                 // we have the old file and not the new file - time to copy the file
 
                 // make the destination directory if it doesn't exist
-                auto dataDirectory = ServerPathUtils::getDataDirectory();
+                auto dataDirectory = PathUtils::getAppDataPath();
                 if (QDir().mkpath(dataDirectory)) {
                     if (oldConfigFile.copy(_userConfigFilename)) {
                         qCDebug(shared) << "Migrated config file from" << oldConfigFilename << "to" << _userConfigFilename;
