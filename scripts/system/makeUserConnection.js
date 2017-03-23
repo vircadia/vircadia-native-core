@@ -688,12 +688,12 @@ function makeGripHandler(hand, animate) {
 }
 
 function keyPressEvent(event) {
-    if ((event.text === "x") && !event.isAutoRepeat) {
+    if ((event.text === "x") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && !event.isControl && !event.isAlt) {
         updateTriggers(1.0, true, Controller.Standard.RightHand);
     }
 }
 function keyReleaseEvent(event) {
-    if ((event.text === "x") && !event.isAutoRepeat) {
+    if ((event.text === "x") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && !event.isControl && !event.isAlt) {
         updateTriggers(0.0, true, Controller.Standard.RightHand);
     }
 }
