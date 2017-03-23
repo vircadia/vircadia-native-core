@@ -301,6 +301,8 @@ Rectangle {
                     anchors.fill: parent;
                     onClicked: { 
                         if (activeTab != "connectionsTab") {
+                            connectionsLoading.visible = false;
+                            connectionsLoading.visible = true;
                             pal.sendToScript({method: 'refreshConnections'});
                         }
                         activeTab = "connectionsTab";
