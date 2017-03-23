@@ -1452,7 +1452,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         scriptEngines->loadScript(testScript, false);
     } else {
         // Get sandbox content set version, if available
-        auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
+        auto acDirPath = PathUtils::getAppDataPath() + "../../" + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
         auto contentVersionPath = acDirPath + "content-version.txt";
         qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
         auto contentVersion = 0;
