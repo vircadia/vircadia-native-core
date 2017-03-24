@@ -19,7 +19,7 @@
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         icon: "icons/tablet-icons/snap-i.svg",
-        text: "TOP MODEL"
+        text: "PHOTOBOOTH"
     });
 
     function onClicked() {
@@ -89,7 +89,8 @@
     PhotoBooth.init = function () {
         var success = Clipboard.importEntities(PHOTOBOOTH_SETUP_JSON_URL);
         var frontFactor = 10;
-        var frontUnitVec = Vec3.normalize(Quat.getFront(MyAvatar.orientation));
+        // getForward is preffered as getFront function is deprecated
+        var frontUnitVec = (typeof Quat.getForward === "undefined") ? Vec3.normalize(Quat.getFront(MyAvatar.orientation)) : Vec3.normalize(Quat.getForward(MyAvatar.orientation));
         var frontOffset = Vec3.multiply(frontUnitVec,frontFactor);
         var rightFactor = 3;
         var rightUnitVec = Vec3.normalize(Quat.getRight(MyAvatar.orientation));
