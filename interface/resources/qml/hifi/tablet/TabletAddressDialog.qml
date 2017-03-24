@@ -1,7 +1,7 @@
 //
 //  TabletAddressDialog.qml
 //
-//  Created by Dante Ruiz on 2016/07/16
+//  Created by Dante Ruiz on 2017/03/16
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -9,7 +9,8 @@
 //
 
 import Hifi 1.0
-import QtQuick 2.4
+import QtQuick 2.5
+import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
 import "../../controls"
 import "../../styles"
@@ -19,11 +20,11 @@ import "../toolbars"
 import "../../styles-uit" as HifiStyles
 import "../../controls-uit" as HifiControls
 
-Item {
+StackView {
     id: root
     HifiConstants { id: hifi }
     HifiStyles.HifiConstants { id: hifiStyleConstants }
-    
+    initialItem: addressBarDialog
     width: parent.width
     height: parent.height
 
@@ -32,7 +33,7 @@ Item {
     property int cardHeight: 320;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
 
-
+    Component { id: tabletStoryCard; TabletStoryCard {} }
     Component.onCompleted: {
         fillDestinations();
         updateLocationText();
@@ -42,7 +43,7 @@ Item {
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
     }
-
+    
     function center() {
         // Explicitly center in order to avoid warnings at shutdown
         anchors.centerIn = parent;
@@ -54,6 +55,9 @@ Item {
     }
     function goCard(targetString) {
         if (0 !== targetString.indexOf('hifi://')) {
+            var card = tabletStoryCard.createObject();
+            card.setUrl(addressBarDialog.metaverseServerUrl + targetString);
+            root.push(card);
             return;
         }
         addressLine.text = targetString;
@@ -86,7 +90,7 @@ Item {
             id: navBar
             width: 480
             height: 70
-            color: hifi.colors.white
+            color: hifiStyleConstants.colors.white
             anchors {
                 top: parent.top
                 right: parent.right
@@ -194,7 +198,7 @@ Item {
                     anchors.fill: parent
                     onClicked: {
                         isCursorVisible = true;
-                        //parent.cursorVisible = true;
+                        parent.cursorVisible = true;
                         parent.forceActiveFocus();
                         addressBarDialog.keyboardEnabled = HMD.active
                         tabletRoot.playButtonClickSound();
@@ -204,14 +208,14 @@ Item {
 
             Rectangle {
                 anchors.fill: addressLine
-                color: hifiStyleConstants.colors.baseGray
+                color: hifiStyleConstants.colors.lightGray
                 opacity: 0.1
             }
         }
         Rectangle {
             id: topBar
             height: 37
-            color: hifi.colors.white
+            color: hifiStyleConstants.colors.white
 
             anchors.right: parent.right
             anchors.rightMargin: 0
@@ -260,7 +264,7 @@ Item {
 
         Rectangle {
             id: bgMain
-            color: hifi.colors.white
+            color: hifiStyleConstants.colors.white
             anchors.bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom
             anchors.bottomMargin: 0
             anchors.right: parent.right
