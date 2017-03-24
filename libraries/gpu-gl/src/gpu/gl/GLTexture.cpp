@@ -8,7 +8,7 @@
 
 #include "GLTexture.h"
 
-#include <NumericalConstants.h>
+//#include <NumericalConstants.h>
 
 #include "GLBackend.h"
 
