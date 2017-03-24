@@ -15,26 +15,18 @@
                 padding: 0;
             }
 
-            #kbm_button {
+            #left_button {
                 position: absolute;
                 left: 70;
-                top: 118;
+                top: 70;
                 width: 160;
                 height: 80;
             }
 
-            #hand_controllers_button {
+            #right_button {
                 position: absolute;
                 left: 367;
-                top: 118;
-                width: 160;
-                height: 80;
-            }
-
-            #game_controller_button {
-                position: absolute;
-                left: 634;
-                top: 118;
+                top: 70;
                 width: 160;
                 height: 80;
             }
@@ -49,9 +41,11 @@
         </style>
         <script>
             var handControllerImageURL = null;
+            var index = 0;
+            var count = 4;
 
             function showKbm() {
-                document.getElementById("main_image").setAttribute("src", "img/controls-help-keyboard.png");
+                document.getElementById("main_image").setAttribute("src", "img/tablet-help-keyboard.jpg");
             }
 
             function showHandControllers() {
@@ -59,7 +53,39 @@
             }
 
             function showGamepad() {
-                document.getElementById("main_image").setAttribute("src", "img/controls-help-gamepad.png");
+                document.getElementById("main_image").setAttribute("src", "img/tablet-help-gamepad.jpg");
+            }
+
+            function cycleRight() {
+                index = (index + count + 1) % count;
+                chooseIcon();
+            }
+
+            function cycleLeft() {
+                index = (index + count - 1) % count;
+                chooseIcon();
+            }
+
+            function chooseIcon() {
+                switch (index) 
+                {
+                    case 0:
+                        handControllerImageURL = "img/tablet-help-keyboard.jpg";
+                        showHandControllers();
+                        break;
+                    case 1:
+                        handControllerImageURL = "img/tablet-help-vive.jpg";
+                        showHandControllers();
+                        break;
+                    case 2:
+                        showGamepad();
+                        break;
+                    case 3:
+                        showKbm();
+                        break;
+
+                    default:
+                }
             }
 
             // This is not meant to be a complete or hardened query string parser - it only
@@ -91,17 +117,20 @@
 
                 switch (params.handControllerName) {
                     case "oculus":
-                        handControllerImageURL = "img/controls-help-oculus.png";
+                        handControllerImageURL = "img/tablet-help-oculus.jpg";
+                        index = 0;
                         break;
 
                     case "vive":
                     default:
-                        handControllerImageURL = "img/controls-help-vive.png";
+                        handControllerImageURL = "img/tablet-help-vive.jpg";
+                        index = 1;
                 }
 
                 switch (params.defaultTab) {
                     case "gamepad":
                         showGamepad();
+                        index = 2;
                         break;
 
                     case "handControllers":
@@ -111,6 +140,7 @@
                     case "kbm":
                     default:
                         showKbm();
+                        index = 3;
                 }
             }
         </script>
@@ -118,10 +148,9 @@
 
     <body onload="load()">
         <div id="image_area">
-            <img id="main_image" src="img/controls-help-keyboard.png" width="480px" height="720px"></img>
-            <a href="#" id="kbm_button" onmousedown="showKbm()"></a>
-            <a href="#" id="hand_controllers_button" onmousedown="showHandControllers()"></a>
-            <a href="#" id="game_controller_button" onmousedown="showGamepad()"></a>
+            <img id="main_image" src="img/tablet-help-keyboard.jpg" width="480px" height="720px"></img>
+            <a href="#" id="left_button" onmousedown="cycleLeft()"></a>
+            <a href="#" id="right_button" onmousedown="cycleRight()"></a>
         </div>
     </body>
 
