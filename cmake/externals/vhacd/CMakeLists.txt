@@ -26,8 +26,12 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 if (WIN32)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/Debug/VHACD_LIB.lib CACHE FILEPATH "Path to V-HACD debug library")
 
-  # use generator expression to ensure the library is found when building RelWithDebInfo in VS
-  set(_LIB_FOLDER "$<$<CONFIG:RelWithDebInfo>:build/src/VHACD_Lib/RelWithDebInfo>$<$<NOT:$<CONFIG:RelWithDebInfo>>:lib/Release>")
+  # use generator expression to ensure the correct library is found when building different configurations in VS
+  set(_LIB_FOLDER """
+    $<$<CONFIG:RelWithDebInfo>:build/src/VHACD_Lib/RelWithDebInfo>
+    $<$<CONFIG:MinSizeRel>:build/src/VHACD_Lib/MinSizeRel>
+    $<$<OR:$<CONFIG:Release>,$<CONFIG:Debug>>:lib/Release>
+  """)
 
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/${_LIB_FOLDER}/VHACD_LIB.lib CACHE FILEPATH "Path to V-HACD release library")
 else ()
