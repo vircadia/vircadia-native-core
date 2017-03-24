@@ -30,20 +30,18 @@ const QString& PathUtils::resourcesPath() {
     return staticResourcePath;
 }
 
-QString PathUtils::getAppDataPath() {
-    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/";
-}
+QString PathUtils::getRootDataDirectory() {
+    auto dataPath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
 
-QString PathUtils::getAppLocalDataPath() {
-    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/";
-}
+#ifdef Q_OS_WIN
+    dataPath += "/AppData/Roaming/";
+#elif defined(Q_OS_OSX)
+    dataPath += "/Library/Application Support/";
+#else
+    dataPath += "/.local/share/";
+#endif
 
-QString PathUtils::getAppDataFilePath(const QString& filename) {
-    return QDir(getAppDataPath()).absoluteFilePath(filename);
-}
-
-QString PathUtils::getAppLocalDataFilePath(const QString& filename) {
-    return QDir(getAppLocalDataPath()).absoluteFilePath(filename);
+    return dataPath;
 }
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {

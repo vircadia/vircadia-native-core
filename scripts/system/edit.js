@@ -33,27 +33,13 @@ Script.include([
     "libraries/gridTool.js",
     "libraries/entityList.js",
     "particle_explorer/particleExplorerTool.js",
-    "libraries/entityIconOverlayManager.js"
+    "libraries/lightOverlayManager.js"
 ]);
 
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
 
-const PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
-const POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
-const SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
-entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
-    var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
-    if (properties.type === 'Light') {
-        return {
-            url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
-        }
-    } else {
-        return {
-            url: PARTICLE_SYSTEM_URL,
-        }
-    }
-});
+var lightOverlayManager = new LightOverlayManager();
 
 var cameraManager = new CameraManager();
 
@@ -67,45 +53,7 @@ var entityListTool = new EntityListTool();
 
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
-    entityIconOverlayManager.updatePositions();
-
-    // Update particle explorer
-    var needToDestroyParticleExplorer = false;
-    if (selectionManager.selections.length === 1) {
-        var selectedEntityID = selectionManager.selections[0];
-        if (selectedEntityID === selectedParticleEntityID) {
-            return;
-        }
-        var type = Entities.getEntityProperties(selectedEntityID, "type").type;
-        if (type === "ParticleEffect") {
-            // Destroy the old particles web view first
-            particleExplorerTool.destroyWebView();
-            particleExplorerTool.createWebView();
-            var properties = Entities.getEntityProperties(selectedEntityID);
-            var particleData = {
-                messageType: "particle_settings",
-                currentProperties: properties
-            };
-            selectedParticleEntityID = selectedEntityID;
-            particleExplorerTool.setActiveParticleEntity(selectedParticleEntityID);
-
-            particleExplorerTool.webView.webEventReceived.connect(function (data) {
-                data = JSON.parse(data);
-                if (data.messageType === "page_loaded") {
-                    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-                }
-            });
-        } else {
-            needToDestroyParticleExplorer = true;
-        }
-    } else {
-        needToDestroyParticleExplorer = true;
-    }
-
-    if (needToDestroyParticleExplorer && selectedParticleEntityID !== null) {
-        selectedParticleEntityID = null;
-        particleExplorerTool.destroyWebView();
-    }
+    lightOverlayManager.updatePositions();
 });
 
 const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
@@ -134,13 +82,13 @@ var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
-var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Edit Mode";
+var MENU_SHOW_LIGHTS_IN_EDIT_MODE = "Show Lights in Edit Mode";
 var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Edit Mode";
 
 var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
-var SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "showLightsAndParticlesInEditMode";
+var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
 
 
@@ -558,7 +506,7 @@ var toolBar = (function () {
             toolBar.writeProperty("shown", false);
             toolBar.writeProperty("shown", true);
         }
-        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
+        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
@@ -623,8 +571,8 @@ function findClickedEntity(event) {
     }
 
     var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
-    var iconResult = entityIconOverlayManager.findRayIntersection(pickRay);
-    iconResult.accurate = true;
+    var lightResult = lightOverlayManager.findRayIntersection(pickRay);
+    lightResult.accurate = true;
 
     if (pickZones) {
         Entities.setZonesArePickable(false);
@@ -632,12 +580,18 @@ function findClickedEntity(event) {
 
     var result;
 
-    if (iconResult.intersects) {
-        result = iconResult;
-    } else if (entityResult.intersects) {
-        result = entityResult;
-    } else {
+    if (!entityResult.intersects && !lightResult.intersects) {
         return null;
+    } else if (entityResult.intersects && !lightResult.intersects) {
+        result = entityResult;
+    } else if (!entityResult.intersects && lightResult.intersects) {
+        result = lightResult;
+    } else {
+        if (entityResult.distance < lightResult.distance) {
+            result = entityResult;
+        } else {
+            result = lightResult;
+        }
     }
 
     if (!result.accurate) {
@@ -991,18 +945,18 @@ function setupModelMenus() {
     });
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
+        menuItemName: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
         afterItem: MENU_EASE_ON_FOCUS,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) !== "false",
+        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) === "true",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE,
-        afterItem: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
+        afterItem: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false",
+        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) === "true",
         grouping: "Advanced"
     });
 
@@ -1033,7 +987,7 @@ function cleanupModelMenus() {
 
     Menu.removeMenuItem("Edit", MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem("Edit", MENU_EASE_ON_FOCUS);
-    Menu.removeMenuItem("Edit", MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE);
+    Menu.removeMenuItem("Edit", MENU_SHOW_LIGHTS_IN_EDIT_MODE);
     Menu.removeMenuItem("Edit", MENU_SHOW_ZONES_IN_EDIT_MODE);
 }
 
@@ -1041,7 +995,7 @@ Script.scriptEnding.connect(function () {
     toolBar.setActive(false);
     Settings.setValue(SETTING_AUTO_FOCUS_ON_SELECT, Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT));
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-    Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
+    Settings.setValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
     Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
 
     progressDialog.cleanup();
@@ -1230,7 +1184,7 @@ function parentSelectedEntities() {
 }
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
-        selectedParticleEntityID = null;
+        selectedParticleEntity = 0;
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
@@ -1329,8 +1283,8 @@ function handeMenuEvent(menuItem) {
         selectAllEtitiesInCurrentSelectionBox(false);
     } else if (menuItem === "Select All Entities Touching Box") {
         selectAllEtitiesInCurrentSelectionBox(true);
-    } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
-        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
+    } else if (menuItem === MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
+        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
@@ -2005,13 +1959,43 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
 var particleExplorerTool = new ParticleExplorerTool();
-var selectedParticleEntityID = null;
+var selectedParticleEntity = 0;
 entityListTool.webView.webEventReceived.connect(function (data) {
     data = JSON.parse(data);
-    if (data.type === 'parent') {
+    if(data.type === 'parent') {
         parentSelectedEntities();
     } else if(data.type === 'unparent') {
         unparentSelectedEntities();
+    } else if (data.type === "selectionUpdate") {
+        var ids = data.entityIds;
+        if (ids.length === 1) {
+            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
+                if (JSON.stringify(selectedParticleEntity) === JSON.stringify(ids[0])) {
+                    // This particle entity is already selected, so return
+                    return;
+                }
+                // Destroy the old particles web view first
+                particleExplorerTool.destroyWebView();
+                particleExplorerTool.createWebView();
+                var properties = Entities.getEntityProperties(ids[0]);
+                var particleData = {
+                    messageType: "particle_settings",
+                    currentProperties: properties
+                };
+                selectedParticleEntity = ids[0];
+                particleExplorerTool.setActiveParticleEntity(ids[0]);
+
+                particleExplorerTool.webView.webEventReceived.connect(function (data) {
+                    data = JSON.parse(data);
+                    if (data.messageType === "page_loaded") {
+                        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+                    }
+                });
+            } else {
+                selectedParticleEntity = 0;
+                particleExplorerTool.destroyWebView();
+            }
+        }
     }
 });
 

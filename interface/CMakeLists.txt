@@ -189,7 +189,7 @@ endif()
 
 # link required hifi libraries
 link_hifi_libraries(
-  shared octree ktx gpu gl gpu-gl procedural model render
+  shared octree gpu gl gpu-gl procedural model render
   recording fbx networking model-networking entities avatars
   audio audio-client animation script-engine physics
   render-utils entities-renderer ui auto-updater

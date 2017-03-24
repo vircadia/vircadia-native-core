@@ -12,6 +12,7 @@
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UUID.h"
+#include "ServerPathUtils.h"
 
 #include <QtCore/QDataStream>
 

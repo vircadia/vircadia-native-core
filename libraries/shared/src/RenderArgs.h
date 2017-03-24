@@ -122,7 +122,6 @@ public:
     gpu::Batch* _batch = nullptr;
 
     std::shared_ptr<gpu::Texture> _whiteTexture;
-    uint32_t _globalShapeKey { 0 };
     bool _enableTexturing { true };
 
     RenderDetails _details;

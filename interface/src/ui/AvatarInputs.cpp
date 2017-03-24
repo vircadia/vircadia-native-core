@@ -20,6 +20,10 @@ HIFI_QML_DEF(AvatarInputs)
 
 
 static AvatarInputs* INSTANCE{ nullptr };
+static const char SETTINGS_GROUP_NAME[] = "Rear View Tools";
+static const char ZOOM_LEVEL_SETTINGS[] = "ZoomLevel";
+
+static Setting::Handle<int> rearViewZoomLevel(QStringList() << SETTINGS_GROUP_NAME << ZOOM_LEVEL_SETTINGS, 0);
 
 AvatarInputs* AvatarInputs::getInstance() {
     if (!INSTANCE) {
@@ -32,6 +36,8 @@ AvatarInputs* AvatarInputs::getInstance() {
 
 AvatarInputs::AvatarInputs(QQuickItem* parent) :  QQuickItem(parent) {
     INSTANCE = this;
+    int zoomSetting = rearViewZoomLevel.get();
+    _mirrorZoomed = zoomSetting == 0;
 }
 
 #define AI_UPDATE(name, src) \
@@ -56,6 +62,8 @@ void AvatarInputs::update() {
     if (!Menu::getInstance()) {
         return;
     }
+    AI_UPDATE(mirrorVisible, Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror) && !qApp->isHMDMode()
+        && !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror));
     AI_UPDATE(cameraEnabled, !Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking));
     AI_UPDATE(cameraMuted, Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking));
     AI_UPDATE(isHMD, qApp->isHMDMode());
@@ -113,4 +121,16 @@ void AvatarInputs::toggleAudioMute() {
 
 void AvatarInputs::resetSensors() {
     qApp->resetSensors();
+}
+
+void AvatarInputs::toggleZoom() {
+    _mirrorZoomed = !_mirrorZoomed;
+    rearViewZoomLevel.set(_mirrorZoomed ? 0 : 1);
+    emit mirrorZoomedChanged();
+}
+
+void AvatarInputs::closeMirror() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
+        Menu::getInstance()->triggerOption(MenuOption::MiniMirror);
+    }
 }

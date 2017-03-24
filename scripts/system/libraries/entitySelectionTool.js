@@ -1032,12 +1032,10 @@ SelectionDisplay = (function() {
                     var pickRay = controllerComputePickRay();
                     if (pickRay) {
                         var entityIntersection = Entities.findRayIntersection(pickRay, true);
-                        var iconIntersection = entityIconOverlayManager.findRayIntersection(pickRay);
-                        var overlayIntersection = Overlays.findRayIntersection(pickRay);
 
-                        if (iconIntersection.intersects) {
-                            selectionManager.setSelections([iconIntersection.entityID]);
-                        } else if (entityIntersection.intersects &&
+
+                        var overlayIntersection = Overlays.findRayIntersection(pickRay);
+                        if (entityIntersection.intersects &&
                             (!overlayIntersection.intersects || (entityIntersection.distance < overlayIntersection.distance))) {
 
                             if (HMD.tabletID === entityIntersection.entityID) {

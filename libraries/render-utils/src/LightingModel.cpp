@@ -133,7 +133,6 @@ void LightingModel::setSpotLight(bool enable) {
 bool LightingModel::isSpotLightEnabled() const {
     return (bool)_parametersBuffer.get<Parameters>().enableSpotLight;
 }
-
 void LightingModel::setShowLightContour(bool enable) {
     if (enable != isShowLightContourEnabled()) {
         _parametersBuffer.edit<Parameters>().showLightContour = (float)enable;
@@ -143,14 +142,6 @@ bool LightingModel::isShowLightContourEnabled() const {
     return (bool)_parametersBuffer.get<Parameters>().showLightContour;
 }
 
-void LightingModel::setWireframe(bool enable) {
-    if (enable != isWireframeEnabled()) {
-        _parametersBuffer.edit<Parameters>().enableWireframe = (float)enable;
-    }
-}
-bool LightingModel::isWireframeEnabled() const {
-    return (bool)_parametersBuffer.get<Parameters>().enableWireframe;
-}
 MakeLightingModel::MakeLightingModel() {
     _lightingModel = std::make_shared<LightingModel>();
 }
@@ -176,7 +167,6 @@ void MakeLightingModel::configure(const Config& config) {
     _lightingModel->setSpotLight(config.enableSpotLight);
 
     _lightingModel->setShowLightContour(config.showLightContour);
-    _lightingModel->setWireframe(config.enableWireframe);
 }
 
 void MakeLightingModel::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, LightingModelPointer& lightingModel) {

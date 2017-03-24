@@ -198,7 +198,7 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Audio Out Mic: " + root.audioOutboundPPS + " pps, " +
+                        text: "Audio Out Mic: " + root.audioMicOutboundPPS + " pps, " +
                             "Silent: " + root.audioSilentOutboundPPS + " pps";
                     }
                     StatText {
@@ -266,7 +266,7 @@ Item {
                         text: "GPU Textures: ";
                     }
                     StatText {
-                        text: "  Pressure State: " + root.gpuTextureMemoryPressureState;
+                        text: "  Sparse Enabled: " + (0 == root.gpuSparseTextureEnabled ? "false" : "true");
                     }
                     StatText {
                         text: "  Count: " + root.gpuTextures;
@@ -278,10 +278,14 @@ Item {
                         text: "  Decimated: " + root.decimatedTextureCount;
                     }
                     StatText {
-                        text: "  Pending Transfer: " + root.texturePendingTransfers + " MB";
+                        text: "  Sparse Count: " + root.gpuTexturesSparse;
+                        visible: 0 != root.gpuSparseTextureEnabled;
                     }
                     StatText {
-                        text: "  Resource Memory: " + root.gpuTextureMemory + " MB";
+                        text: "  Virtual Memory: " + root.gpuTextureVirtualMemory + " MB";
+                    }
+                    StatText {
+                        text: "  Commited Memory: " + root.gpuTextureMemory + " MB";
                     }
                     StatText {
                         text: "  Framebuffer Memory: " + root.gpuTextureFramebufferMemory + " MB";
