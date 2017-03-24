@@ -59,7 +59,7 @@ endif ()
 
 if (WIN32)
   set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_DEBUG ${INSTALL_DIR}/PolyVoxCore/lib/Debug/PolyVoxCore.lib CACHE FILEPATH "polyvox core library")
-  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_RELEASE "${INSTALL_DIR}/PolyVoxCore/lib/$<$<CONFIG:RelWithDebInfo>:RelWithDebInfo>$<$<NOT:$<CONFIG:RelWithDebInfo>>:Release>/PolyVoxCore.lib" CACHE FILEPATH "polyvox core library")
+  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_RELEASE "${INSTALL_DIR}/PolyVoxCore/lib/$<CONFIG>/PolyVoxCore.lib" CACHE FILEPATH "polyvox core library")
 #  set(${EXTERNAL_NAME_UPPER}_UTIL_LIBRARY ${INSTALL_DIR}/PolyVoxUtil/lib/PolyVoxUtil.lib CACHE FILEPATH "polyvox util library")
 elseif (APPLE)
   set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_DEBUG ${INSTALL_DIR}/lib/Debug/libPolyVoxCore.dylib CACHE FILEPATH "polyvox core library")
