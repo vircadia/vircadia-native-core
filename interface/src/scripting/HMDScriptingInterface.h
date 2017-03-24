@@ -80,6 +80,7 @@ public:
 
 signals:
     bool shouldShowHandControllersChanged();
+    void mountedChanged();
 
 public:
     HMDScriptingInterface();
