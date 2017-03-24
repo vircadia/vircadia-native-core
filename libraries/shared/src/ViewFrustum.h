@@ -153,7 +153,7 @@ private:
     glm::quat _orientation; // orientation in world-frame
 
     // calculated from orientation
-    glm::vec3 _direction = IDENTITY_FRONT;
+    glm::vec3 _direction = IDENTITY_FORWARD;
     glm::vec3 _up = IDENTITY_UP;
     glm::vec3 _right = IDENTITY_RIGHT;
 

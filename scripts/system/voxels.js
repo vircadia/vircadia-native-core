@@ -253,7 +253,7 @@ function addTerrainBlock() {
     if (alreadyThere) {
         // there is already a terrain block under MyAvatar.
         // try in front of the avatar.
-        facingPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(8.0, Quat.getFront(Camera.getOrientation())));
+        facingPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(8.0, Quat.getForward(Camera.getOrientation())));
         facingPosition = Vec3.sum(facingPosition, {
             x: 8,
             y: 8,

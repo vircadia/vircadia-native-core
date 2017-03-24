@@ -558,15 +558,15 @@ static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState) {
 
-    glm::vec3 front = worldRotation * IDENTITY_FRONT;
+    glm::vec3 forward = worldRotation * IDENTITY_FORWARD;
     glm::vec3 workingVelocity = worldVelocity;
 
     {
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
 
-        float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
+        float forwardSpeed = glm::dot(localVel, IDENTITY_FORWARD);
         float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
-        float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
+        float turningSpeed = glm::orientedAngle(forward, _lastForward, IDENTITY_UP) / deltaTime;
 
         // filter speeds using a simple moving average.
         _averageForwardSpeed.updateAverage(forwardSpeed);
@@ -852,7 +852,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         _lastEnableInverseKinematics = _enableInverseKinematics;
     }
 
-    _lastFront = front;
+    _lastForward = forward;
     _lastPosition = worldPosition;
     _lastVelocity = workingVelocity;
 }

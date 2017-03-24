@@ -996,7 +996,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
         }
         bool shouldLoad = entity->shouldPreloadScript() && _entitiesScriptEngine;
         QString scriptUrl = entity->getScript();
-        if ((unloadFirst && shouldLoad) || scriptUrl.isEmpty()) {
+        if (shouldLoad && (unloadFirst || scriptUrl.isEmpty())) {
             _entitiesScriptEngine->unloadEntityScript(entityID);
             entity->scriptHasUnloaded();
         }
