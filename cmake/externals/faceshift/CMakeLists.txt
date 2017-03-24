@@ -28,11 +28,9 @@ if (WIN32)
   set(LIBRARY_PREFIX "")
   set(LIBRARY_EXT "lib")
   # use selected configuration in release path when building on Windows
-  set(LIBRARY_RELEASE_PATH """
-    $<$<CONFIG:RelWithDebInfo>:build/RelWithDebInfo>
-    $<$<CONFIG:MinSizeRel>:build/MinSizeRel>
-    $<$<OR:<$<CONFIG:Release>,$<CONFIG:Debug>>:lib/Release>
-  """)
+  set(LIBRARY_RELEASE_PATH "$<$<CONFIG:RelWithDebInfo>:build/RelWithDebInfo>")
+  set(LIBRARY_RELEASE_PATH "${LIBRARY_RELEASE_PATH}$<$<CONFIG:MinSizeRel>:build/MinSizeRel>")
+  set(LIBRARY_RELEASE_PATH "${LIBRARY_RELEASE_PATH}$<$<OR:$<CONFIG:Release>,$<CONFIG:Debug>>:lib/Release>")
 elseif (APPLE)
   set(LIBRARY_EXT "a")
   set(LIBRARY_PREFIX "lib")
