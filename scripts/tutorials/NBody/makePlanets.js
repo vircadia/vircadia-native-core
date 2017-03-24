@@ -53,7 +53,7 @@ var deleteButton = toolBar.addOverlay("image", {
 });
 
 function inFrontOfMe(distance) {
-    return Vec3.sum(Camera.getPosition(), Vec3.multiply(distance, Quat.getFront(Camera.getOrientation())));
+    return Vec3.sum(Camera.getPosition(), Vec3.multiply(distance, Quat.getForward(Camera.getOrientation())));
 }
 
 function onButtonClick() {

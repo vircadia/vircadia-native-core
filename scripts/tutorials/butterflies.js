@@ -44,8 +44,8 @@ var FIXED_LOCATION = false;
 
 if (!FIXED_LOCATION) {
     var flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
-                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
-                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
+                        Vec3.multiply(Quat.getForward(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
+                        Vec3.multiply(Quat.getForward(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
 } else {
     var flockPosition = { x: 4999.6, y: 4986.5, z: 5003.5 };
 }
@@ -119,7 +119,7 @@ function updateButterflies(deltaTime) {
                     var HORIZ_SCALE = 0.50;
                     var VERT_SCALE = 0.50;
                     var newHeading = Math.random() * 360.0;  
-                    var newVelocity = Vec3.multiply(HORIZ_SCALE, Quat.getFront(Quat.fromPitchYawRollDegrees(0.0, newHeading, 0.0))); 
+                    var newVelocity = Vec3.multiply(HORIZ_SCALE, Quat.getForward(Quat.fromPitchYawRollDegrees(0.0, newHeading, 0.0))); 
                     newVelocity.y = (Math.random() + 0.5) * VERT_SCALE;
                     Entities.editEntity(butterflies[i], { rotation: Quat.fromPitchYawRollDegrees(-80 + Math.random() * 20, newHeading, (Math.random() - 0.5) * 10), 
                                                     velocity: newVelocity } );
