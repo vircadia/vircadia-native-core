@@ -72,7 +72,7 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
     incrementTextureGPUCount();
     withPreservedTexture([&] {
         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        auto numMips = _gpuObject.evalNumMips();
+        auto numMips = _gpuObject.getNumMipLevels();
         for (uint16_t mipLevel = 0; mipLevel < numMips; ++mipLevel) {
             // Get the mip level dimensions, accounting for the downgrade level
             Vec3u dimensions = _gpuObject.evalMipDimensions(mipLevel);

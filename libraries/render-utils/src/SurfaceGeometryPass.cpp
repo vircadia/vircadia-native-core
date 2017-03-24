@@ -83,7 +83,7 @@ void LinearDepthFramebuffer::allocate() {
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
     _halfLinearDepthTexture->autoGenerateMips(5);
 
-    _halfNormalTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB), _halfFrameSize.x, _halfFrameSize.y,
+    _halfNormalTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _halfFrameSize.x, _halfFrameSize.y,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
 
     _downsampleFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("halfLinearDepth"));

@@ -418,8 +418,8 @@ public:
 
     uint32 evalTotalSize(uint16 startingMip = 0) const {
         uint32 size = 0;
-        uint16 minMipLevel = std::max(minMip(), startingMip);
-        uint16 maxMipLevel = maxMip();
+        uint16 minMipLevel = std::max(getMinMip(), startingMip);
+        uint16 maxMipLevel = getMaxMip();
         for (uint16 l = minMipLevel; l <= maxMipLevel; l++) {
             size += evalMipSize(l);
         }
@@ -429,12 +429,9 @@ public:
     // max mip is in the range [ 0 if no sub mips, log2(max(width, height, depth))]
     // if autoGenerateMip is on => will provide the maxMIp level specified
     // else provide the deepest mip level provided through assignMip
-    uint16 maxMip() const { return _maxMip; }
-
-    uint16 minMip() const { return _minMip; }
-    
-    uint16 mipLevels() const { return _maxMip + 1; }
-    
+    uint16 getMaxMip() const { return _maxMip; }
+    uint16 getMinMip() const { return _minMip; }
+    uint16 getNumMipLevels() const { return _maxMip + 1; }
     uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
 
     const std::string& source() const { return _source; }
