@@ -70,7 +70,7 @@ if (DEFINED BULLET_LIB_EXT)
 
     if (WIN32)
       # on windows, we might end up with a library that ends with RelWithDebInfo if Visual Studio is building for that configuration
-      set(${EXTERNAL_NAME_UPPER}_${_LIB_VAR_NAME}_RELEASE "${BULLET_LIB_DIR}/${LIB_PREFIX}${_LIB_NAME}$<$<CONFIG:RelWithDebInfo>:_RelWithDebugInfo>.${BULLET_LIB_EXT}" CACHE FILEPATH "${_LIB_NAME} release library location")
+      set(${EXTERNAL_NAME_UPPER}_${_LIB_VAR_NAME}_RELEASE "${BULLET_LIB_DIR}/${LIB_PREFIX}${_LIB_NAME}$<$<CONFIG:RelWithDebInfo>:_RelWithDebugInfo>$<$<CONFIG:MinSizeRel>:_MinsizeRel>.${BULLET_LIB_EXT}" CACHE FILEPATH "${_LIB_NAME} release library location")
 
       set(${EXTERNAL_NAME_UPPER}_${_LIB_VAR_NAME}_DEBUG ${BULLET_LIB_DIR}/${LIB_PREFIX}${_LIB_NAME}_Debug.${BULLET_LIB_EXT} CACHE FILEPATH "${_LIB_NAME} debug library location")
     else ()
