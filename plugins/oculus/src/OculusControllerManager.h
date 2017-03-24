@@ -91,6 +91,8 @@ private:
         friend class OculusControllerManager;
     };
 
+    void checkForConnectedDevices();
+
     ovrSession _session { nullptr };
     ovrInputState _inputState {};
     RemoteDevice::Pointer _remote;

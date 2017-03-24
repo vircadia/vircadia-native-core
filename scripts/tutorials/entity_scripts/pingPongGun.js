@@ -94,9 +94,9 @@
         },
 
         shootBall: function(gunProperties) {
-            var forwardVec = Quat.getFront(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, 180, 0)));
-            forwardVec = Vec3.normalize(forwardVec);
-            forwardVec = Vec3.multiply(forwardVec, GUN_FORCE);
+            var forwardVector = Quat.getForward(Quat.multiply(gunProperties.rotation, Quat.fromPitchYawRollDegrees(0, 180, 0)));
+            forwardVector = Vec3.normalize(forwardVector);
+            forwardVector = Vec3.multiply(forwardVector, GUN_FORCE);
 
             var properties = {
                 name: 'Tutorial Ping Pong Ball',
@@ -111,7 +111,7 @@
                 rotation: gunProperties.rotation,
                 position: this.getGunTipPosition(gunProperties),
                 gravity: PING_PONG_GUN_GRAVITY,
-                velocity: forwardVec,
+                velocity: forwardVector,
                 lifetime: 10
             };
 
@@ -131,12 +131,12 @@
 
         getGunTipPosition: function(properties) {
             //the tip of the gun is going to be in a different place than the center, so we move in space relative to the model to find that position
-            var frontVector = Quat.getFront(properties.rotation);
-            var frontOffset = Vec3.multiply(frontVector, GUN_TIP_FWD_OFFSET);
+            var forwardVector = Quat.getForward(properties.rotation);
+            var forwardOffset = Vec3.multiply(forwardVector, GUN_TIP_FWD_OFFSET);
             var upVector = Quat.getUp(properties.rotation);
             var upOffset = Vec3.multiply(upVector, GUN_TIP_UP_OFFSET);
 
-            var gunTipPosition = Vec3.sum(properties.position, frontOffset);
+            var gunTipPosition = Vec3.sum(properties.position, forwardOffset);
             gunTipPosition = Vec3.sum(gunTipPosition, upOffset);
 
             return gunTipPosition;
