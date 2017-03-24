@@ -38,6 +38,7 @@
                 '#marketplace-navigation input#back-button { position: absolute; left: 20px; margin-top: 12px; padding-left: 0; padding-right: 5px; }' +
                 '#marketplace-navigation input#all-markets { position: absolute; right: 20px; margin-top: 12px; padding-left: 15px; padding-right: 15px; }' +
                 '#marketplace-navigation .right { position: absolute; right: 20px; }' +
+                '::-webkit-scrollbar { width: 0px; background: transparent; }' +
             '</style>'
         );
 
