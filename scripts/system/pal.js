@@ -298,7 +298,7 @@ function populateUserList(selectData, oldAudioData) {
         verticalHalfAngle = filter && (frustum.fieldOfView / 2),
         horizontalHalfAngle = filter && (verticalHalfAngle * frustum.aspectRatio),
         orientation = filter && Camera.orientation,
-        front = filter && Quat.getFront(orientation),
+        forward = filter && Quat.getForward(orientation),
         verticalAngleNormal = filter && Quat.getRight(orientation),
         horizontalAngleNormal = filter && Quat.getUp(orientation);
     avatars.forEach(function (id) { // sorting the identifiers is just an aid for debugging
@@ -316,8 +316,8 @@ function populateUserList(selectData, oldAudioData) {
             return;
         }
         var normal = id && filter && Vec3.normalize(Vec3.subtract(avatar.position, myPosition));
-        var horizontal = normal && angleBetweenVectorsInPlane(normal, front, horizontalAngleNormal);
-        var vertical = normal && angleBetweenVectorsInPlane(normal, front, verticalAngleNormal);
+        var horizontal = normal && angleBetweenVectorsInPlane(normal, forward, horizontalAngleNormal);
+        var vertical = normal && angleBetweenVectorsInPlane(normal, forward, verticalAngleNormal);
         if (id && filter && ((Math.abs(horizontal) > horizontalHalfAngle) || (Math.abs(vertical) > verticalHalfAngle))) {
             return;
         }

@@ -12,7 +12,7 @@ var UPDATE_HZ = 60; // standard script update rate
 var UPDATE_INTERVAL = 1000/UPDATE_HZ; // standard script update interval
 var UPDATE_WORK_EFFORT = 0; // 1000 is light work, 1000000 ~= 30ms
 
-var basePosition = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
+var basePosition = Vec3.sum(Camera.getPosition(), Quat.getForward(Camera.getOrientation()));
 
 var timerBox = Entities.addEntity(
   { type: "Box",

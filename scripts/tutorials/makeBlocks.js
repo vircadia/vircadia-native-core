@@ -34,12 +34,12 @@
 
     var SCRIPT_URL = Script.resolvePath("./entity_scripts/magneticBlock.js");
 
-    var frontVector = Quat.getFront(MyAvatar.orientation);
-    frontVector.y += VERTICAL_OFFSET;
+    var forwardVector = Quat.getForward(MyAvatar.orientation);
+    forwardVector.y += VERTICAL_OFFSET;
     for (var x = 0; x < COLUMNS; x++) {
         for (var y = 0; y < ROWS; y++) {
 
-            var frontOffset = {
+            var forwardOffset = {
                 x: 0,
                 y: SIZE * y + SIZE,
                 z: SIZE * x + SIZE
@@ -61,7 +61,7 @@
                         cloneLimit: 9999
                     }
                 }),
-                position: Vec3.sum(MyAvatar.position, Vec3.sum(frontOffset, frontVector)),
+                position: Vec3.sum(MyAvatar.position, Vec3.sum(forwardOffset, forwardVector)),
                 color: newColor(),
                 script: SCRIPT_URL
             });
