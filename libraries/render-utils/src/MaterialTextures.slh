@@ -64,7 +64,7 @@ float fetchRoughnessMap(vec2 uv) {
 uniform sampler2D normalMap;
 vec3 fetchNormalMap(vec2 uv) {
     // unpack normal, swizzle to get into hifi tangent space with Y axis pointing out
-    return normalize(texture(normalMap, uv).xzy -vec3(0.5, 0.5, 0.5));
+    return normalize(texture(normalMap, uv).rbg -vec3(0.5, 0.5, 0.5));
 }
 <@endif@>
 

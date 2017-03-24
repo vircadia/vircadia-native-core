@@ -19,11 +19,6 @@ void registerAudioMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, soundSharedPointerToScriptValue, soundSharedPointerFromScriptValue);
 }
 
-AudioScriptingInterface& AudioScriptingInterface::getInstance() {
-    static AudioScriptingInterface staticInstance;
-    return staticInstance;
-}
-
 AudioScriptingInterface::AudioScriptingInterface() :
     _localAudioInterface(NULL)
 {

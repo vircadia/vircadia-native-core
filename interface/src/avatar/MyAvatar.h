@@ -12,6 +12,8 @@
 #ifndef hifi_MyAvatar_h
 #define hifi_MyAvatar_h
 
+#include <bitset>
+
 #include <glm/glm.hpp>
 
 #include <SettingHandle.h>
@@ -28,20 +30,6 @@
 
 class AvatarActionHold;
 class ModelItemID;
-
-enum DriveKeys {
-    TRANSLATE_X = 0,
-    TRANSLATE_Y,
-    TRANSLATE_Z,
-    YAW,
-    STEP_TRANSLATE_X,
-    STEP_TRANSLATE_Y,
-    STEP_TRANSLATE_Z,
-    STEP_YAW,
-    PITCH,
-    ZOOM,
-    MAX_DRIVE_KEYS
-};
 
 enum eyeContactTarget {
     LEFT_EYE,
@@ -86,10 +74,28 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
+    Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
 
 public:
+    enum DriveKeys {
+        TRANSLATE_X = 0,
+        TRANSLATE_Y,
+        TRANSLATE_Z,
+        YAW,
+        STEP_TRANSLATE_X,
+        STEP_TRANSLATE_Y,
+        STEP_TRANSLATE_Z,
+        STEP_YAW,
+        PITCH,
+        ZOOM,
+        MAX_DRIVE_KEYS
+    };
+    Q_ENUM(DriveKeys)
+
     explicit MyAvatar(RigPointer rig);
     ~MyAvatar();
+
+    void registerMetaTypes(QScriptEngine* engine);
 
     virtual void simulateAttachments(float deltaTime) override;
 
@@ -171,6 +177,10 @@ public:
     Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
 
+    bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
+    void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
+        { _useAdvancedMovementControls.set(useAdvancedMovementControls); }
+
     // get/set avatar data
     void saveData();
     void loadData();
@@ -180,8 +190,14 @@ public:
 
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
-    void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
+    void setDriveKey(DriveKeys key, float val);
+    float getDriveKey(DriveKeys key) const;
+    Q_INVOKABLE float getRawDriveKey(DriveKeys key) const;
     void relayDriveKeysToCharacterController();
+
+    Q_INVOKABLE void disableDriveKey(DriveKeys key);
+    Q_INVOKABLE void enableDriveKey(DriveKeys key);
+    Q_INVOKABLE bool isDriveKeyDisabled(DriveKeys key) const;
 
     eyeContactTarget getEyeContactTarget();
 
@@ -352,7 +368,6 @@ private:
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }
-    bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
@@ -388,7 +403,9 @@ private:
     void clampScaleChangeToDomainLimits(float desiredScale);
     glm::mat4 computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const;
 
-    float _driveKeys[MAX_DRIVE_KEYS];
+    std::array<float, MAX_DRIVE_KEYS> _driveKeys;
+    std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
+
     bool _wasPushing;
     bool _isPushing;
     bool _isBeingPushed;
@@ -411,6 +428,7 @@ private:
     SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
+    bool _wasCharacterControllerEnabled { true };
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
@@ -423,6 +441,7 @@ private:
     glm::vec3 _trackedHeadPosition;
 
     Setting::Handle<float> _realWorldFieldOfView;
+    Setting::Handle<bool> _useAdvancedMovementControls;
 
     // private methods
     void updateOrientation(float deltaTime);
@@ -539,5 +558,8 @@ private:
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
 void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode);
+
+QScriptValue driveKeysToScriptValue(QScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys);
+void driveKeysFromScriptValue(const QScriptValue& object, MyAvatar::DriveKeys& driveKeys);
 
 #endif // hifi_MyAvatar_h

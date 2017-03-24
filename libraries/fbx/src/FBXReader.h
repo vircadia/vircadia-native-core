@@ -265,24 +265,6 @@ public:
 Q_DECLARE_METATYPE(FBXAnimationFrame)
 Q_DECLARE_METATYPE(QVector<FBXAnimationFrame>)
 
-/// A point where an avatar can sit
-class SittingPoint {
-public:
-    QString name;
-    glm::vec3 position; // relative postion
-    glm::quat rotation; // relative orientation
-};
-
-inline bool operator==(const SittingPoint& lhs, const SittingPoint& rhs)
-{
-    return (lhs.name == rhs.name) && (lhs.position == rhs.position) && (lhs.rotation == rhs.rotation);
-}
-
-inline bool operator!=(const SittingPoint& lhs, const SittingPoint& rhs)
-{
-    return (lhs.name != rhs.name) || (lhs.position != rhs.position) || (lhs.rotation != rhs.rotation);
-}
-
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
 public:
@@ -319,8 +301,6 @@ public:
     QVector<int> humanIKJointIndices;
     
     glm::vec3 palmDirection;
-    
-    QVector<SittingPoint> sittingPoints;
     
     glm::vec3 neckPivot;
     

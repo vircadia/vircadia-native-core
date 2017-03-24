@@ -49,13 +49,6 @@ EntityItemProperties::EntityItemProperties(EntityPropertyFlags desiredProperties
 
 }
 
-void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sittingPoints) {
-    _sittingPoints.clear();
-    foreach (SittingPoint sitPoint, sittingPoints) {
-        _sittingPoints.append(sitPoint);
-    }
-}
-
 void EntityItemProperties::calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max) {
     glm::vec3 halfDimension = (max - min) / 2.0f;
     _naturalPosition = max - halfDimension;
@@ -544,20 +537,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NORMALS, normals);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
-    }
-
-    // Sitting properties support
-    if (!skipDefaults && !strictSemantics) {
-        QScriptValue sittingPoints = engine->newObject();
-        for (int i = 0; i < _sittingPoints.size(); ++i) {
-            QScriptValue sittingPoint = engine->newObject();
-            sittingPoint.setProperty("name", _sittingPoints.at(i).name);
-            sittingPoint.setProperty("position", vec3toScriptValue(engine, _sittingPoints.at(i).position));
-            sittingPoint.setProperty("rotation", quatToScriptValue(engine, _sittingPoints.at(i).rotation));
-            sittingPoints.setProperty(i, sittingPoint);
-        }
-        sittingPoints.setProperty("length", _sittingPoints.size());
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(sittingPoints, sittingPoints); // gettable, but not settable
     }
 
     if (!skipDefaults && !strictSemantics) {

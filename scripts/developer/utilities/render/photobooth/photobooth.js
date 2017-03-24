@@ -8,12 +8,13 @@
     var PhotoBooth = {};
     PhotoBooth.init = function () {
         var success = Clipboard.importEntities(PHOTOBOOTH_SETUP_JSON_URL);
-        var frontFactor = 10;
-        var frontUnitVec = Vec3.normalize(Quat.getFront(MyAvatar.orientation));
-        var frontOffset = Vec3.multiply(frontUnitVec,frontFactor);
+        var forwardFactor = 10;
+        var forwardUnitVector = Vec3.normalize(Quat.getForward(MyAvatar.orientation));
+        var forwardOffset = Vec3.multiply(forwardUnitVector,forwardFactor);
         var rightFactor = 3;
+        // TODO: rightUnitVec is unused and spawnLocation declaration is incorrect
         var rightUnitVec = Vec3.normalize(Quat.getRight(MyAvatar.orientation));
-        var spawnLocation = Vec3.sum(Vec3.sum(MyAvatar.position,frontOffset),rightFactor);
+        var spawnLocation = Vec3.sum(Vec3.sum(MyAvatar.position,forwardOffset),rightFactor);
         if (success) {
             this.pastedEntityIDs = Clipboard.pasteEntities(spawnLocation);
             this.processPastedEntities();

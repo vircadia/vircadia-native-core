@@ -46,6 +46,10 @@ public:
     ShapeKey() : _flags{ 0 } {}
     ShapeKey(const Flags& flags) : _flags{flags} {}
 
+    friend ShapeKey operator&(const ShapeKey& _Left, const ShapeKey& _Right) { return ShapeKey(_Left._flags & _Right._flags); }
+    friend ShapeKey operator|(const ShapeKey& _Left, const ShapeKey& _Right) { return ShapeKey(_Left._flags | _Right._flags); }
+    friend ShapeKey operator^(const ShapeKey& _Left, const ShapeKey& _Right) { return ShapeKey(_Left._flags ^ _Right._flags); }
+
     class Builder {
     public:
         Builder() {}
@@ -144,7 +148,7 @@ public:
     bool isSkinned() const { return _flags[SKINNED]; }
     bool isDepthOnly() const { return _flags[DEPTH_ONLY]; }
     bool isDepthBiased() const { return _flags[DEPTH_BIAS]; }
-    bool isWireFrame() const { return _flags[WIREFRAME]; }
+    bool isWireframe() const { return _flags[WIREFRAME]; }
     bool isCullFace() const { return !_flags[NO_CULL_FACE]; }
 
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
@@ -180,7 +184,7 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
                 << "isSkinned:" << key.isSkinned()
                 << "isDepthOnly:" << key.isDepthOnly()
                 << "isDepthBiased:" << key.isDepthBiased()
-                << "isWireFrame:" << key.isWireFrame()
+                << "isWireframe:" << key.isWireframe()
                 << "isCullFace:" << key.isCullFace()
                 << "]";
         }

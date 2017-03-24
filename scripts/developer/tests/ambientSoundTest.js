@@ -4,7 +4,7 @@ var uuid = Entities.addEntity({
     shape: "Icosahedron",
     dimensions: Vec3.HALF,
     script: Script.resolvePath('../../tutorials/entity_scripts/ambientSound.js'),
-    position: Vec3.sum(Vec3.multiply(5, Quat.getFront(MyAvatar.orientation)), MyAvatar.position),
+    position: Vec3.sum(Vec3.multiply(5, Quat.getForward(MyAvatar.orientation)), MyAvatar.position),
     userData: JSON.stringify({
         soundURL: WAVE,
         maxVolume: 0.1,
