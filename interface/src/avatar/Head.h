@@ -58,14 +58,14 @@ public:
     const glm::vec3& getSaccade() const { return _saccade; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
-    glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
+    glm::vec3 getForwardDirection() const { return getOrientation() * IDENTITY_FORWARD; }
 
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
 
     const glm::vec3& getRightEyePosition() const { return _rightEyePosition; }
     const glm::vec3& getLeftEyePosition() const { return _leftEyePosition; }
-    glm::vec3 getRightEarPosition() const { return _rightEyePosition + (getRightDirection() * EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
-    glm::vec3 getLeftEarPosition() const { return _leftEyePosition + (getRightDirection() * -EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
+    glm::vec3 getRightEarPosition() const { return _rightEyePosition + (getRightDirection() * EYE_EAR_GAP) + (getForwardDirection() * -EYE_EAR_GAP); }
+    glm::vec3 getLeftEarPosition() const { return _leftEyePosition + (getRightDirection() * -EYE_EAR_GAP) + (getForwardDirection() * -EYE_EAR_GAP); }
     glm::vec3 getMouthPosition() const { return _eyePosition - getUpDirection() * glm::length(_rightEyePosition - _leftEyePosition); }
 
     bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)

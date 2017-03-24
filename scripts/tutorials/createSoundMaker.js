@@ -13,7 +13,7 @@ var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,
     y: 0.5,
     z: 0
-}), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
+}), Vec3.multiply(1, Quat.getForward(Camera.getOrientation())));
 
 function makeBell() {
     var soundMakerProperties = {

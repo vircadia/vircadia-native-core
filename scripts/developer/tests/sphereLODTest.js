@@ -15,7 +15,7 @@ MyAvatar.orientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 orientation = Quat.safeEulerAngles(MyAvatar.orientation);
 orientation.x = 0;
 orientation = Quat.fromVec3Degrees(orientation);
-var tablePosition = Vec3.sum(MyAvatar.position, Quat.getFront(orientation));
+var tablePosition = Vec3.sum(MyAvatar.position, Quat.getForward(orientation));
 tablePosition.y += 0.5;
 
 

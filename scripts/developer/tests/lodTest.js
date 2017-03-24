@@ -19,7 +19,7 @@ var WIDTH = MAX_DIM * NUM_SPHERES;
 var entities = [];
 var right = Quat.getRight(Camera.orientation);
 // Starting position will be 30 meters in front of the camera
-var position = Vec3.sum(Camera.position, Vec3.multiply(30, Quat.getFront(Camera.orientation)));
+var position = Vec3.sum(Camera.position, Vec3.multiply(30, Quat.getForward(Camera.orientation)));
 position = Vec3.sum(position, Vec3.multiply(-WIDTH/2, right));
 
 for (var i = 0; i < NUM_SPHERES; ++i) {
