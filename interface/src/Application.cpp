@@ -691,7 +691,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         usleep(USECS_PER_MSEC * 50); // 20hz
     }
 
-    _bookmarks = new Bookmarks();  // Before setting up the menu
+    _locationBookmarks = new LocationBookmarks();  // Before setting up the menu
+    _avatarBookmarks = new AvatarBookmarks();
 
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);

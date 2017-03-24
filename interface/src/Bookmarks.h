@@ -27,25 +27,21 @@ class Bookmarks: public QObject {
 public:
     Bookmarks();
 
-    void setupMenus(Menu* menubar, MenuWrapper* menu);
-
+    virtual void setupMenus(Menu* menubar, MenuWrapper* menu);
     QString addressForBookmark(const QString& name) const;
 
-    static const QString HOME_BOOKMARK;
+public slots:
+    virtual void addBookmark() = 0;
 
-private slots:
-    void bookmarkLocation();
-    void setHomeLocation();
-    void teleportToBookmark();
+protected slots:
     void deleteBookmark();
     
-private:
-    QVariantMap _bookmarks;  // { name: address, ... }
+protected:
+    QVariantMap _bookmarks;  // { name: url, ... }
     
     QPointer<MenuWrapper> _bookmarksMenu;
     QPointer<QAction> _deleteBookmarksAction;
 
-    const QString BOOKMARKS_FILENAME = "bookmarks.json";
     QString _bookmarksFilename;
     
     void insert(const QString& name, const QString& address);  // Overwrites any existing entry with same name.
@@ -56,8 +52,8 @@ private:
     void persistToFile();
 
     void enableMenuItems(bool enabled);
-    void addLocationToMenu(Menu* menubar, QString& name, QString& address);
-    void removeLocationFromMenu(Menu* menubar, QString& name);
+    virtual void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) = 0;
+    void removeBookmarkFromMenu(Menu* menubar, const QString& name);
 };
 
 #endif // hifi_Bookmarks_h

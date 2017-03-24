@@ -52,7 +52,7 @@ void AddressBarDialog::loadAddress(const QString& address, bool fromSuggestions)
 
 void AddressBarDialog::loadHome() {
     qDebug() << "Called LoadHome";
-    QString homeLocation = qApp->getBookmarks()->addressForBookmark(Bookmarks::HOME_BOOKMARK);
+    QString homeLocation = qApp->getLocationBookmarks()->addressForBookmark(LocationBookmarks::HOME_BOOKMARK);
     const QString DEFAULT_HOME_LOCATION = "localhost";
     if (homeLocation == "") {
         homeLocation = DEFAULT_HOME_LOCATION;

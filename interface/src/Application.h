@@ -52,7 +52,8 @@
 
 #include "avatar/MyAvatar.h"
 #include "BandwidthRecorder.h"
-#include "Bookmarks.h"
+#include "LocationBookmarks.h"
+#include "AvatarBookmarks.h"
 #include "Camera.h"
 #include "ConnectionMonitor.h"
 #include "gpu/Context.h"
@@ -263,7 +264,8 @@ public:
     glm::mat4 getEyeProjection(int eye) const;
 
     QRect getDesirableApplicationGeometry() const;
-    Bookmarks* getBookmarks() const { return _bookmarks; }
+    LocationBookmarks* getLocationBookmarks() const { return _locationBookmarks; }
+    AvatarBookmarks* getAvatarBookmarks() const { return _avatarBookmarks; }
 
     virtual bool canAcceptURL(const QString& url) const override;
     virtual bool acceptURL(const QString& url, bool defaultUpload = false) override;
@@ -596,7 +598,8 @@ private:
 
     bool _aboutToQuit;
 
-    Bookmarks* _bookmarks;
+    QPointer<LocationBookmarks> _locationBookmarks;
+    QPointer<AvatarBookmarks> _avatarBookmarks;
 
     bool _notifiedPacketVersionMismatchThisDomain;
 

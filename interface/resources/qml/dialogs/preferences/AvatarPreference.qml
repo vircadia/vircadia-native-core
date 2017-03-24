@@ -15,8 +15,9 @@ import "../../controls-uit"
 
 Preference {
     id: root
+    objectName: "avatarPreferencesRoot"
+    signal bookmarkAvatarSignal()
     property alias text: dataTextField.text
-    property alias buttonText: button.text
     property alias placeholderText: dataTextField.placeholderText
     property var browser;
     height: control.height + hifi.dimensions.controlInterlineHeight
@@ -58,7 +59,7 @@ Preference {
             right: parent.right
             bottom: parent.bottom
         }
-        height: Math.max(dataTextField.controlHeight, button.height)
+        height: dataTextField.controlHeight + bookmarkAvatarButton.height + hifi.dimensions.contentSpacing.y
 
         TextField {
             id: dataTextField
@@ -67,19 +68,33 @@ Preference {
             label: root.label
             anchors {
                 left: parent.left
-                right: button.left
-                rightMargin: hifi.dimensions.contentSpacing.x
-                bottom: parent.bottom
+                right: parent.right
+                bottom: bookmarkAvatarButton.top
+                bottomMargin: hifi.dimensions.contentSpacing.y
             }
             colorScheme: hifi.colorSchemes.dark
         }
 
         Button {
-            id: button
-            text: "Browse"
+            id: bookmarkAvatarButton
+            text: "Bookmark Avatar"
+            width: 140
             anchors {
-                right: parent.right
-                verticalCenter: dataTextField.verticalCenter
+                left: parent.left
+                bottom: parent.bottom
+                rightMargin: hifi.dimensions.contentSpacing.x
+            }
+            onClicked: root.bookmarkAvatarSignal()
+        }
+
+        Button {
+            id: browseAvatarsButton
+            text: "Browse Avatars"
+            width: 140
+            anchors {
+                left: bookmarkAvatarButton.right
+                bottom: parent.bottom
+                leftMargin: hifi.dimensions.contentSpacing.x
             }
             onClicked: {
                 // Load dialog via OffscreenUi so that JavaScript EventBridge is available.
@@ -89,5 +104,6 @@ Preference {
                 });
             }
         }
+
     }
 }

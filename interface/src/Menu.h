@@ -47,10 +47,11 @@ namespace MenuOption {
     const QString AudioTools = "Show Level Meter";
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
+    const QString AvatarBookmarks = "Avatar Bookmarks";
     const QString Back = "Back";
     const QString BinaryEyelidControl = "Binary Eyelid Control";
+    const QString BookmarkAvatar = "Bookmark Avatar";
     const QString BookmarkLocation = "Bookmark Location";
-    const QString Bookmarks = "Bookmarks";
     const QString CalibrateCamera = "Calibrate Camera";
     const QString CameraEntityMode = "Entity Mode";
     const QString CenterPlayerInView = "Center Player In View";
@@ -78,6 +79,7 @@ namespace MenuOption {
     const QString DeadlockInterface = "Deadlock Interface";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DefaultSkybox = "Default Skybox";
+    const QString DeleteAvatarBookmark = "Delete Avatar Bookmark...";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableEyelidAdjustment = "Disable Eyelid Adjustment";
@@ -89,6 +91,7 @@ namespace MenuOption {
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayDebugTimingDetails = "Display Timing Details";
+    const QString LocationBookmarks = "Bookmarks";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";

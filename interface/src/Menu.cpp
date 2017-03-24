@@ -194,6 +194,8 @@ Menu::Menu() {
         0, // QML Qt::Key_Apostrophe,
         qApp, SLOT(resetSensors()));
 
+    // Avatar > AvatarBookmarks related menus -- Note: the AvatarBookmarks class adds its own submenus here.
+    qApp->getAvatarBookmarks()->setupMenus(this, avatarMenu);
 
     // Display menu ----------------------------------
     // FIXME - this is not yet matching Alan's spec because it doesn't have
@@ -256,8 +258,8 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::AddressBar, Qt::CTRL | Qt::Key_L,
         dialogsManager.data(), SLOT(toggleAddressBar()));
 
-    // Navigate > Bookmark related menus -- Note: the Bookmark class adds its own submenus here.
-    qApp->getBookmarks()->setupMenus(this, navigateMenu);
+    // Navigate > LocationBookmarks related menus -- Note: the LocationBookmarks class adds its own submenus here.
+    qApp->getLocationBookmarks()->setupMenus(this, navigateMenu);
 
     // Navigate > Copy Address [advanced]
     auto addressManager = DependencyManager::get<AddressManager>();
