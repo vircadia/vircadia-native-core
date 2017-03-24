@@ -1634,8 +1634,12 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         glm::mat4 inverseModelTransform = glm::inverse(modelTransform);
         if (clusterIDs.size() > 1) {
             // this is a multi-mesh joint
-            extracted.mesh.clusterIndices.resize(extracted.mesh.vertices.size());
-            extracted.mesh.clusterWeights.resize(extracted.mesh.vertices.size());
+            const int WEIGHTS_PER_VERTEX = 4;
+            int numClusterIndices = extracted.mesh.vertices.size() * WEIGHTS_PER_VERTEX;
+            extracted.mesh.clusterIndices.fill(0, numClusterIndices);
+            QVector<float> weightAccumulators;
+            weightAccumulators.fill(0.0f, numClusterIndices);
+
             for (int i = 0; i < clusterIDs.size(); i++) {
                 QString clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
@@ -1665,45 +1669,59 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     float weight = cluster.weights.at(j);
                     for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
                             it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
+                        int newIndex = it.value();
 
                         // remember vertices with at least 1/4 weight
                         const float EXPANSION_WEIGHT_THRESHOLD = 0.99f;
                         if (weight > EXPANSION_WEIGHT_THRESHOLD) {
                             // transform to joint-frame and save for later
-                            const glm::mat4 vertexTransform = meshToJoint * glm::translate(extracted.mesh.vertices.at(it.value()));
+                            const glm::mat4 vertexTransform = meshToJoint * glm::translate(extracted.mesh.vertices.at(newIndex));
                             points.push_back(extractTranslation(vertexTransform) * clusterScale);
                         }
 
                         // look for an unused slot in the weights vector
-                        glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
+                        int weightIndex = newIndex * WEIGHTS_PER_VERTEX;
                         int lowestIndex = -1;
                         float lowestWeight = FLT_MAX;
                         int k = 0;
-                        for (; k < 4; k++) {
-                            if (weights[k] == 0.0f) {
-                                extracted.mesh.clusterIndices[it.value()][k] = i;
-                                weights[k] = weight;
+                        for (; k < WEIGHTS_PER_VERTEX; k++) {
+                            if (weightAccumulators[weightIndex + k] == 0.0f) {
+                                extracted.mesh.clusterIndices[weightIndex + k] = i;
+                                weightAccumulators[weightIndex + k] = weight;
                                 break;
                             }
-                            if (weights[k] < lowestWeight) {
+                            if (weightAccumulators[weightIndex + k] < lowestWeight) {
                                 lowestIndex = k;
-                                lowestWeight = weights[k];
+                                lowestWeight = weightAccumulators[weightIndex + k];
                             }
                         }
-                        if (k == 4 && weight > lowestWeight) {
+                        if (k == WEIGHTS_PER_VERTEX && weight > lowestWeight) {
                             // no space for an additional weight; we must replace the lowest
-                            weights[lowestIndex] = weight;
-                            extracted.mesh.clusterIndices[it.value()][lowestIndex] = i;
+                            weightAccumulators[weightIndex + lowestIndex] = weight;
+                            extracted.mesh.clusterIndices[weightIndex + lowestIndex] = i;
                         }
                     }
                 }
             }
-            // normalize the weights if they don't add up to one
-            for (int i = 0; i < extracted.mesh.clusterWeights.size(); i++) {
-                glm::vec4& weights = extracted.mesh.clusterWeights[i];
-                float total = weights.x + weights.y + weights.z + weights.w;
-                if (total != 1.0f && total != 0.0f) {
-                    weights /= total;
+
+            // now that we've accumulated the most relevant weights for each vertex
+            // normalize and compress to 8-bits
+            extracted.mesh.clusterWeights.fill(0, numClusterIndices);
+            int numVertices = extracted.mesh.vertices.size();
+            for (int i = 0; i < numVertices; ++i) {
+                int j = i * WEIGHTS_PER_VERTEX;
+
+                // normalize weights into uint8_t
+                float totalWeight = weightAccumulators[j];
+                for (int k = j + 1; k < j + WEIGHTS_PER_VERTEX; ++k) {
+                    totalWeight += weightAccumulators[k];
+                }
+                if (totalWeight > 0.0f) {
+                    const float ALMOST_HALF = 0.499f;
+                    float weightScalingFactor = (float)(UINT8_MAX) / totalWeight;
+                    for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
+                        extracted.mesh.clusterWeights[k] = (uint8_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
+                    }
                 }
             }
         } else {
