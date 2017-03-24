@@ -20,6 +20,8 @@
 #include <PerfStat.h>
 #include <PathUtils.h>
 
+#include <OVR_CAPI.h>
+
 #include "OculusHelpers.h"
 
 Q_DECLARE_LOGGING_CATEGORY(oculus)
@@ -42,26 +44,33 @@ bool OculusControllerManager::activate() {
     }
     Q_ASSERT(_session);
 
-    // register with UserInputMapper
-    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    checkForConnectedDevices();
+
+    return true;
+}
+
+void OculusControllerManager::checkForConnectedDevices() {
+    if (_touch && _remote) {
+        return;
+    }
 
     unsigned int controllerConnected = ovr_GetConnectedControllerTypes(_session);
 
-    if ((controllerConnected & ovrControllerType_Remote) == ovrControllerType_Remote) {
+    if (!_remote && (controllerConnected & ovrControllerType_Remote) == ovrControllerType_Remote) {
         if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Remote, &_inputState))) {
+            auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
             _remote = std::make_shared<RemoteDevice>(*this);
             userInputMapper->registerDevice(_remote);
         }
     }
 
-    if ((controllerConnected & ovrControllerType_Touch) != 0) {
+    if (!_touch && (controllerConnected & ovrControllerType_Touch) != 0) {
         if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
+            auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
             _touch = std::make_shared<TouchDevice>(*this);
             userInputMapper->registerDevice(_touch);
         }
     }
-
-    return true;
 }
 
 void OculusControllerManager::deactivate() {
@@ -84,6 +93,8 @@ void OculusControllerManager::deactivate() {
 
 void OculusControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     PerformanceTimer perfTimer("OculusControllerManager::TouchDevice::update");
+
+    checkForConnectedDevices();
 
     if (_touch) {
         if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
