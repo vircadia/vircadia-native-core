@@ -812,6 +812,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         auto& meshes = _model->getGeometry()->getMeshes();
         int32_t numMeshes = (int32_t)(meshes.size());
 
+        const int MAX_ALLOWED_MESH_COUNT = 500;
+        if (numMeshes > MAX_ALLOWED_MESH_COUNT) {
+            // too many will cause the deadlock timer to throw...
+            shapeInfo.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
+            return;
+        }
+
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
         if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
