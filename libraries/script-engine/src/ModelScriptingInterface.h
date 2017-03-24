@@ -18,6 +18,7 @@
 #include <OBJWriter.h>
 #include <model/Geometry.h>
 #include <model/MeshProxy.h>
+#include <model/MeshFace.h>
 
 using MeshPointer = std::shared_ptr<model::Mesh>;
 class ScriptEngine;
@@ -31,6 +32,9 @@ public:
     Q_INVOKABLE QString meshToOBJ(MeshProxyList in);
     Q_INVOKABLE QScriptValue appendMeshes(MeshProxyList in);
     Q_INVOKABLE QScriptValue transformMesh(glm::mat4 transform, MeshProxy* meshProxy);
+    Q_INVOKABLE QScriptValue newMesh(const QVector<glm::vec3>& vertices,
+                                     const QVector<glm::vec3>& normals,
+                                     const QVector<MeshFace>& faces);
 
 private:
     ScriptEngine* _modelScriptEngine { nullptr };
