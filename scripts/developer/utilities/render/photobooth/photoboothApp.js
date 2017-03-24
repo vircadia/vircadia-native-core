@@ -2,7 +2,7 @@
 //  photobooth.js
 //  scripts/developer/utilities/render/photobooth
 //
-//  Created by Howard Stearns on 2 Nov 2016
+//  Created by Faye Li on 2 Nov 2016
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -93,7 +93,8 @@
         var frontOffset = Vec3.multiply(frontUnitVec,frontFactor);
         var rightFactor = 3;
         var rightUnitVec = Vec3.normalize(Quat.getRight(MyAvatar.orientation));
-        var spawnLocation = Vec3.sum(Vec3.sum(MyAvatar.position,frontOffset),rightFactor);
+        var rightOffset = Vec3.multiply(rightUnitVec,rightFactor);
+        var spawnLocation = Vec3.sum(Vec3.sum(MyAvatar.position,frontOffset),rightOffset);
         if (success) {
             this.pastedEntityIDs = Clipboard.pasteEntities(spawnLocation);
             this.processPastedEntities();
