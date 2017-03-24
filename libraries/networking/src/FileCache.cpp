@@ -67,9 +67,9 @@ void FileCache::initialize() {
 
         // load persisted files
         foreach(QString filename, files) {
-            const Key key = filename.section('.', 0, 1).toStdString();
+            const Key key = filename.section('.', 0, 0).toStdString();
             const std::string filepath = dir.filePath(filename).toStdString();
-            const size_t length = std::ifstream(filepath, std::ios::binary | std::ios::ate).tellg();
+            const size_t length = QFileInfo(filepath.c_str()).size();
             addFile(Metadata(key, length), filepath);
         }
 
