@@ -57,7 +57,7 @@
         // Position yourself facing in the direction you were originally facing, but with a 
         // point on the ground *away* meters from *position* and in front of you.
 
-        var offset = Quat.getFront(MyAvatar.orientation);
+        var offset = Quat.getForward(MyAvatar.orientation);
         offset.y = 0.0;
         offset = Vec3.multiply(-away, Vec3.normalize(offset));
         var newAvatarPosition = Vec3.sum(position, offset);
@@ -72,7 +72,7 @@
     }
 
     function inFrontOfMe() {
-        return Vec3.sum(MyAvatar.position, Vec3.multiply(BALL_DROP_DISTANCE, Quat.getFront(MyAvatar.orientation)));
+        return Vec3.sum(MyAvatar.position, Vec3.multiply(BALL_DROP_DISTANCE, Quat.getForward(MyAvatar.orientation)));
     }
 
     function avatarHalfHeight() {

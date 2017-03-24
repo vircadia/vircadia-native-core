@@ -14,7 +14,7 @@ macro(SYMLINK_OR_COPY_DIRECTORY_BESIDE_TARGET _SHOULD_SYMLINK _DIRECTORY _DESTIN
   # remove the current directory
   add_custom_command(
     TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E remove_directory $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory "$<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}"
   )
 
   if (${_SHOULD_SYMLINK})
@@ -48,8 +48,8 @@ macro(SYMLINK_OR_COPY_DIRECTORY_BESIDE_TARGET _SHOULD_SYMLINK _DIRECTORY _DESTIN
     # copy the directory
     add_custom_command(
       TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_directory ${_DIRECTORY}
-        $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}
+      COMMAND ${CMAKE_COMMAND} -E copy_directory "${_DIRECTORY}"
+        "$<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}"
     )
   endif ()
   # glob everything in this directory - add a custom command to copy any files

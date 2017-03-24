@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(Camera.getOrientation())));
+var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getForward(Camera.getOrientation())));
 var SCRIPT_URL = "http://hifi-production.s3.amazonaws.com/tutorials/entity_scripts/pistol.js";
 var MODEL_URL = "http://hifi-production.s3.amazonaws.com/tutorials/pistol/gun.fbx";
 var COLLISION_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/tutorials/pistol/drop.wav'

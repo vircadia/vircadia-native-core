@@ -65,8 +65,8 @@ glm::quat HeadData::getOrientation() const {
 void HeadData::setOrientation(const glm::quat& orientation) {
     // rotate body about vertical axis
     glm::quat bodyOrientation = _owningAvatar->getOrientation();
-    glm::vec3 newFront = glm::inverse(bodyOrientation) * (orientation * IDENTITY_FRONT);
-    bodyOrientation = bodyOrientation * glm::angleAxis(atan2f(-newFront.x, -newFront.z), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 newForward = glm::inverse(bodyOrientation) * (orientation * IDENTITY_FORWARD);
+    bodyOrientation = bodyOrientation * glm::angleAxis(atan2f(-newForward.x, -newForward.z), glm::vec3(0.0f, 1.0f, 0.0f));
     _owningAvatar->setOrientation(bodyOrientation);
 
     // the rest goes to the head
