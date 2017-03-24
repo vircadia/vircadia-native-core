@@ -23,14 +23,25 @@
     });
 
     function onClicked() {
-        tablet.gotoWebScreen(PHOTOBOOTH_WINDOW_HTML_URL);
-        // Initialise the photobooth if it wasn't created already
-        if (!photoboothCreated) {
+        if (photoboothCreated) {
+            tablet.gotoHomeScreen();
+            PhotoBooth.destroy();
+        } else {
+            tablet.gotoWebScreen(PHOTOBOOTH_WINDOW_HTML_URL);
             PhotoBooth.init();
-            photoboothCreated = true;
         }
-
     }
+
+    function onScreenChanged() {
+        if (photoboothCreated) {
+            tablet.gotoHomeScreen();
+            PhotoBooth.destroy();
+            button.editProperties({isActive: false});
+        } else {
+            button.editProperties({isActive: true});
+        }
+    }
+    tablet.screenChanged.connect(onScreenChanged);
     button.clicked.connect(onClicked);
     tablet.webEventReceived.connect(onWebEventReceived);
 
@@ -87,6 +98,7 @@
     }
 
     PhotoBooth.init = function () {
+        photoboothCreated = true;
         var success = Clipboard.importEntities(PHOTOBOOTH_SETUP_JSON_URL);
         var frontFactor = 10;
         // getForward is preffered as getFront function is deprecated
