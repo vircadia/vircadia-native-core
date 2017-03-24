@@ -2517,7 +2517,7 @@ SelectionDisplay = (function() {
         onBegin: function(event) {
             pickRay = generalComputePickRay(event.x, event.y);
 
-            upDownPickNormal = Quat.getFront(lastCameraOrientation);
+            upDownPickNormal = Quat.getForward(lastCameraOrientation);
             // Remove y component so the y-axis lies along the plane we picking on - this will
             // give movements that follow the mouse.
             upDownPickNormal.y = 0;

@@ -268,7 +268,7 @@ void Head::applyEyelidOffset(glm::quat headOrientation) {
         return;
     }
 
-    glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FRONT, getLookAtPosition() - _eyePosition);
+    glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FORWARD, getLookAtPosition() - _eyePosition);
     eyeRotation = eyeRotation * glm::angleAxis(safeEulerAngles(headOrientation).y, IDENTITY_UP);  // Rotation w.r.t. head
     float eyePitch = safeEulerAngles(eyeRotation).x;
 
@@ -375,7 +375,7 @@ glm::quat Head::getCameraOrientation() const {
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
     glm::quat orientation = getOrientation();
     glm::vec3 lookAtDelta = _lookAtPosition - eyePosition;
-    return rotationBetween(orientation * IDENTITY_FRONT, lookAtDelta + glm::length(lookAtDelta) * _saccade) * orientation;
+    return rotationBetween(orientation * IDENTITY_FORWARD, lookAtDelta + glm::length(lookAtDelta) * _saccade) * orientation;
 }
 
 void Head::setFinalPitch(float finalPitch) {
