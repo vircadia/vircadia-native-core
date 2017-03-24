@@ -16,6 +16,7 @@
 #include <AudioConstants.h>
 #include <AudioInjectorManager.h>
 #include <ClientServerUtils.h>
+#include <EntityNodeData.h>
 #include <EntityScriptingInterface.h>
 #include <LogHandler.h>
 #include <MessagesClient.h>
@@ -56,6 +57,8 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     ResourceManager::init();
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
+
+    DependencyManager::set<AudioScriptingInterface>();
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
@@ -264,8 +267,14 @@ void EntityScriptServer::run() {
     
     // setup the JSON filter that asks for entities with a non-default serverScripts property
     QJsonObject queryJSONParameters;
-    static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
-    queryJSONParameters[SERVER_SCRIPTS_PROPERTY] = EntityQueryFilterSymbol::NonDefault;
+    queryJSONParameters[EntityJSONQueryProperties::SERVER_SCRIPTS_PROPERTY] = EntityQueryFilterSymbol::NonDefault;
+
+    QJsonObject queryFlags;
+
+    queryFlags[EntityJSONQueryProperties::INCLUDE_ANCESTORS_PROPERTY] = true;
+    queryFlags[EntityJSONQueryProperties::INCLUDE_DESCENDANTS_PROPERTY] = true;
+
+    queryJSONParameters[EntityJSONQueryProperties::FLAGS_PROPERTY] = queryFlags;
     
     // setup the JSON parameters so that OctreeQuery does not use a frustum and uses our JSON filter
     _entityViewer.getOctreeQuery().setUsesFrustum(false);
@@ -317,16 +326,27 @@ void EntityScriptServer::nodeActivated(SharedNodePointer activatedNode) {
 void EntityScriptServer::nodeKilled(SharedNodePointer killedNode) {
     switch (killedNode->getType()) {
         case NodeType::EntityServer: {
-            if (!_shuttingDown) {
-                if (_entitiesScriptEngine) {
-                    _entitiesScriptEngine->unloadAllEntityScripts();
-                    _entitiesScriptEngine->stop();
+            // Before we clear, make sure this was our only entity server.
+            // Otherwise we're assuming that we have "trading" entity servers
+            // (an old one going away and a new one coming onboard)
+            // and that we shouldn't clear here because we're still doing work.
+            bool hasAnotherEntityServer = false;
+            auto nodeList = DependencyManager::get<NodeList>();
+
+            nodeList->eachNodeBreakable([&hasAnotherEntityServer, &killedNode](const SharedNodePointer& node){
+                if (node->getType() == NodeType::EntityServer && node->getUUID() != killedNode->getUUID()) {
+                    // we're talking to > 1 entity servers, we know we won't clear
+                    hasAnotherEntityServer = true;
+                    return false;
                 }
 
-                resetEntitiesScriptEngine();
+                return true;
+            });
 
-                _entityViewer.clear();
+            if (!hasAnotherEntityServer) {
+                clear();
             }
+            
             break;
         }
         case NodeType::Agent: {
@@ -395,8 +415,9 @@ void EntityScriptServer::selectAudioFormat(const QString& selectedCodecName) {
 }
 
 void EntityScriptServer::resetEntitiesScriptEngine() {
-    auto engineName = QString("Entities %1").arg(++_entitiesScriptEngineCount);
-    auto newEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(ScriptEngine::ENTITY_SERVER_SCRIPT, NO_SCRIPT, engineName));
+    auto engineName = QString("about:Entities %1").arg(++_entitiesScriptEngineCount);
+    auto newEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(ScriptEngine::ENTITY_SERVER_SCRIPT, NO_SCRIPT, engineName),
+                                                  &ScriptEngine::deleteLater);
 
     auto webSocketServerConstructorValue = newEngine->newFunction(WebSocketServerClass::constructor);
     newEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
@@ -412,6 +433,7 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
 
     connect(newEngine.data(), &ScriptEngine::update, this, [this] {
         _entityViewer.queryOctree();
+        _entityViewer.getTree()->update();
     });
 
 
@@ -432,12 +454,12 @@ void EntityScriptServer::clear() {
         _entitiesScriptEngine->stop();
     }
 
+    _entityViewer.clear();
+
     // reset the engine
     if (!_shuttingDown) {
         resetEntitiesScriptEngine();
     }
-
-    _entityViewer.clear();
 }
 
 void EntityScriptServer::shutdownScriptEngine() {
@@ -455,13 +477,13 @@ void EntityScriptServer::addingEntity(const EntityItemID& entityID) {
 
 void EntityScriptServer::deletingEntity(const EntityItemID& entityID) {
     if (_entityViewer.getTree() && !_shuttingDown && _entitiesScriptEngine) {
-        _entitiesScriptEngine->unloadEntityScript(entityID);
+        _entitiesScriptEngine->unloadEntityScript(entityID, true);
     }
 }
 
 void EntityScriptServer::entityServerScriptChanging(const EntityItemID& entityID, const bool reload) {
     if (_entityViewer.getTree() && !_shuttingDown) {
-        _entitiesScriptEngine->unloadEntityScript(entityID);
+        _entitiesScriptEngine->unloadEntityScript(entityID, true);
         checkAndCallPreload(entityID, reload);
     }
 }
@@ -477,7 +499,7 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, const
             if (!scriptUrl.isEmpty()) {
                 scriptUrl = ResourceManager::normalizeURL(scriptUrl);
                 qCDebug(entity_script_server) << "Loading entity server script" << scriptUrl << "for" << entityID;
-                ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
+                _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
             }
         }
     }

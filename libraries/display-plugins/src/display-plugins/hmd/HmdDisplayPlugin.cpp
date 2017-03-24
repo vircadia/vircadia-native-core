@@ -296,33 +296,32 @@ void HmdDisplayPlugin::internalPresent() {
         image = image.convertToFormat(QImage::Format_RGBA8888);
         if (!_previewTexture) {
             _previewTexture.reset(
-                gpu::Texture::create2D(
+                gpu::Texture::createStrict(
                 gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
                 image.width(), image.height(),
                 gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
             _previewTexture->setSource("HMD Preview Texture");
             _previewTexture->setUsage(gpu::Texture::Usage::Builder().withColor().build());
-            _previewTexture->assignStoredMip(0, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), image.byteCount(), image.constBits());
+            _previewTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
+            _previewTexture->assignStoredMip(0, image.byteCount(), image.constBits());
             _previewTexture->autoGenerateMips(-1);
         }
         
-        if (getGLBackend()->isTextureReady(_previewTexture)) {
-            auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
+        auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
 
-            render([&](gpu::Batch& batch) {
-                batch.enableStereo(false);
-                batch.resetViewTransform();
-                batch.setFramebuffer(gpu::FramebufferPointer());
-                batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-                batch.setStateScissorRect(viewport);
-                batch.setViewportTransform(viewport);
-                batch.setResourceTexture(0, _previewTexture);
-                batch.setPipeline(_presentPipeline);
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
-            });
-            _clearPreviewFlag = false;
-            swapBuffers();
-        }
+        render([&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.resetViewTransform();
+            batch.setFramebuffer(gpu::FramebufferPointer());
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+            batch.setStateScissorRect(viewport);
+            batch.setViewportTransform(viewport);
+            batch.setResourceTexture(0, _previewTexture);
+            batch.setPipeline(_presentPipeline);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+        _clearPreviewFlag = false;
+        swapBuffers();
     }
     postPreview();
 

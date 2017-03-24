@@ -45,11 +45,13 @@
 #include <AudioReverb.h>
 #include <AudioLimiter.h>
 #include <AudioConstants.h>
+#include <AudioNoiseGate.h>
+
+#include <shared/RateCounter.h>
 
 #include <plugins/CodecPlugin.h>
 
 #include "AudioIOStats.h"
-#include "AudioNoiseGate.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -94,6 +96,8 @@ public:
     using AudioPositionGetter = std::function<glm::vec3()>;
     using AudioOrientationGetter = std::function<glm::quat()>;
 
+    using RecursiveMutex = std::recursive_mutex;
+    using RecursiveLock = std::unique_lock<RecursiveMutex>;
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
 
@@ -119,10 +123,17 @@ public:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
 
+    Q_INVOKABLE QString getSelectedAudioFormat() const { return _selectedCodecName; }
+    Q_INVOKABLE bool getNoiseGateOpen() const { return _noiseGate.isOpen(); }
+    Q_INVOKABLE float getSilentInboundPPS() const { return _silentInbound.rate(); }
+    Q_INVOKABLE float getAudioInboundPPS() const { return _audioInbound.rate(); }
+    Q_INVOKABLE float getSilentOutboundPPS() const { return _silentOutbound.rate(); }
+    Q_INVOKABLE float getAudioOutboundPPS() const { return _audioOutbound.rate(); }
+
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
 
-    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _inputGate.getMeasuredFloor(), 0.0f); }
+    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGate.getMeasuredFloor(), 0.0f); }
 
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
@@ -144,6 +155,8 @@ public:
 
     void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
+
+    void setIsPlayingBackRecording(bool isPlayingBackRecording) { _isPlayingBackRecording = isPlayingBackRecording; }
 
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
 
@@ -167,7 +180,7 @@ public slots:
     void handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec);
 
     void sendDownstreamAudioStatsPacket() { _stats.publish(); }
-    void handleAudioInput();
+    void handleMicAudioInput();
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
@@ -214,6 +227,8 @@ signals:
     void inputReceived(const QByteArray& inputSamples);
     void outputBytesToNetwork(int numBytes);
     void inputBytesFromNetwork(int numBytes);
+    void noiseGateOpened();
+    void noiseGateClosed();
 
     void changeDevice(const QAudioDeviceInfo& outputDeviceInfo);
     void deviceChanged();
@@ -235,6 +250,7 @@ protected:
 
 private:
     void outputFormatChanged();
+    void handleAudioInput(QByteArray& audioBuffer);
     bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
@@ -324,11 +340,12 @@ private:
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
 
     // for local audio (used by audio injectors thread)
+    int _networkPeriod { 0 };
     float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
     float* _localOutputMixBuffer { NULL };
     AudioInjectorsThread _localAudioThread;
-    Mutex _localAudioMutex;
+    RecursiveMutex _localAudioMutex;
 
     // for output audio (used by this thread)
     int _outputPeriod { 0 };
@@ -356,7 +373,7 @@ private:
 
     AudioIOStats _stats;
 
-    AudioNoiseGate _inputGate;
+    AudioNoiseGate _noiseGate;
 
     AudioPositionGetter _positionGetter;
     AudioOrientationGetter _orientationGetter;
@@ -367,15 +384,22 @@ private:
     QVector<QString> _inputDevices;
     QVector<QString> _outputDevices;
 
-    bool _hasReceivedFirstPacket = false;
+    bool _hasReceivedFirstPacket { false };
 
     QVector<AudioInjector*> _activeLocalAudioInjectors;
+
+    bool _isPlayingBackRecording { false };
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
     Encoder* _encoder { nullptr }; // for outbound mic stream
 
     QThread* _checkDevicesThread { nullptr };
+
+    RateCounter<> _silentOutbound;
+    RateCounter<> _audioOutbound;
+    RateCounter<> _silentInbound;
+    RateCounter<> _audioInbound;
 };
 
 

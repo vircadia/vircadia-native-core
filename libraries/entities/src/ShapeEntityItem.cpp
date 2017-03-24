@@ -163,7 +163,7 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 // This value specifes how the shape should be treated by physics calculations.  
 // For now, all polys will act as spheres
 ShapeType ShapeEntityItem::getShapeType() const {
-    return (_shape == entity::Shape::Cube) ? SHAPE_TYPE_BOX : SHAPE_TYPE_SPHERE;
+    return (_shape == entity::Shape::Cube) ? SHAPE_TYPE_BOX : SHAPE_TYPE_ELLIPSOID;
 }
 
 void ShapeEntityItem::setColor(const rgbColor& value) {

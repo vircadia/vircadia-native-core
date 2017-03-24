@@ -45,10 +45,18 @@ SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID, bool& s
         success = true;
         return parent;
     }
-
     if (parentID == AVATAR_SELF_ID) {
         success = true;
         return avatarManager->getMyAvatar();
+    }
+
+    // search overlays
+    auto& overlays = qApp->getOverlays();
+    auto overlay = overlays.getOverlay(parentID);
+    parent = std::dynamic_pointer_cast<SpatiallyNestable>(overlay); // this will return nullptr for non-3d overlays
+    if (!parent.expired()) {
+        success = true;
+        return parent;
     }
 
     success = false;

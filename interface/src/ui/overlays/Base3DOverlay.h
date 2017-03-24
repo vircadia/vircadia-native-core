@@ -23,6 +23,9 @@ public:
     Base3DOverlay();
     Base3DOverlay(const Base3DOverlay* base3DOverlay);
 
+    virtual OverlayID getOverlayID() const override { return OverlayID(getID().toString()); }
+    void setOverlayID(OverlayID overlayID) override { setID(overlayID); }
+
     // getters
     virtual bool is3D() const override { return true; }
 
@@ -35,6 +38,7 @@ public:
     bool getIsSolidLine() const { return !_isDashedLine; }
     bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
     bool getDrawInFront() const { return _drawInFront; }
+    bool getIsGrabbable() const { return _isGrabbable; }
 
     virtual bool isAA() const { return _isAA; }
 
@@ -44,6 +48,7 @@ public:
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
     void setDrawInFront(bool value) { _drawInFront = value; }
     void setIsAA(bool value) { _isAA = value; }
+    void setIsGrabbable(bool value) { _isGrabbable = value; }
 
     virtual AABox getBounds() const override = 0;
 
@@ -68,6 +73,7 @@ protected:
     bool _ignoreRayIntersection;
     bool _drawInFront;
     bool _isAA;
+    bool _isGrabbable { false };
 };
 
 #endif // hifi_Base3DOverlay_h

@@ -15,6 +15,13 @@
 #include <SharedUtil.h> // for xColor
 #include <render/Scene.h>
 
+class OverlayID : public QUuid {
+public:
+    OverlayID() : QUuid() {}
+    OverlayID(QString v) : QUuid(v) {}
+    OverlayID(QUuid v) : QUuid(v) {}
+};
+
 class Overlay : public QObject {
     Q_OBJECT
 
@@ -32,8 +39,8 @@ public:
     Overlay(const Overlay* overlay);
     ~Overlay();
 
-    unsigned int getOverlayID() { return _overlayID; }
-    void setOverlayID(unsigned int overlayID) { _overlayID = overlayID; }
+    virtual OverlayID getOverlayID() const { return _overlayID; }
+    virtual void setOverlayID(OverlayID overlayID) { _overlayID = overlayID; }
 
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
@@ -84,12 +91,13 @@ public:
     render::ItemID getRenderItemID() const { return _renderItemID; }
     void setRenderItemID(render::ItemID renderItemID) { _renderItemID = renderItemID; }
 
+    unsigned int getStackOrder() const { return _stackOrder; }
+    void setStackOrder(unsigned int stackOrder) { _stackOrder = stackOrder; }
+
 protected:
     float updatePulse();
 
     render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
-
-    unsigned int _overlayID; // what Overlays.cpp knows this instance as
 
     bool _isLoaded;
     float _alpha;
@@ -107,15 +115,25 @@ protected:
     xColor _color;
     bool _visible; // should the overlay be drawn at all
     Anchor _anchor;
+
+    unsigned int _stackOrder { 0 };
+
+private:
+    OverlayID _overlayID; // only used for non-3d overlays
 };
 
 namespace render {
-   template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay); 
+   template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay);
    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
    template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
 }
 
- 
+Q_DECLARE_METATYPE(OverlayID);
+Q_DECLARE_METATYPE(QVector<OverlayID>);
+QScriptValue OverlayIDtoScriptValue(QScriptEngine* engine, const OverlayID& id);
+void OverlayIDfromScriptValue(const QScriptValue& object, OverlayID& id);
+QVector<OverlayID> qVectorOverlayIDFromScriptValue(const QScriptValue& array);
+
 #endif // hifi_Overlay_h

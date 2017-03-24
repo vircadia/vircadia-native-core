@@ -29,7 +29,7 @@
 #include "OctreeQueryNode.h"
 #include "OctreeServerConsts.h"
 #include <QtCore/QStandardPaths>
-#include <ServerPathUtils.h>
+#include <PathUtils.h>
 #include <QtCore/QDir>
 
 int OctreeServer::_clientCount = 0;
@@ -279,8 +279,7 @@ OctreeServer::~OctreeServer() {
 
 void OctreeServer::initHTTPManager(int port) {
     // setup the embedded web server
-
-    QString documentRoot = QString("%1/web").arg(ServerPathUtils::getDataDirectory());
+    QString documentRoot = QString("%1/web").arg(PathUtils::getAppDataPath());
 
     // setup an httpManager with us as the request handler and the parent
     _httpManager = new HTTPManager(QHostAddress::AnyIPv4, port, documentRoot, this, this);
@@ -872,8 +871,12 @@ void OctreeServer::parsePayload() {
     }
 }
 
+OctreeServer::UniqueSendThread OctreeServer::newSendThread(const SharedNodePointer& node) {
+    return std::unique_ptr<OctreeSendThread>(new OctreeSendThread(this, node));
+}
+
 OctreeServer::UniqueSendThread OctreeServer::createSendThread(const SharedNodePointer& node) {
-    auto sendThread = std::unique_ptr<OctreeSendThread>(new OctreeSendThread(this, node));
+    auto sendThread = newSendThread(node);
     
     // we want to be notified when the thread finishes
     connect(sendThread.get(), &GenericThread::finished, this, &OctreeServer::removeSendThread);
@@ -1175,7 +1178,7 @@ void OctreeServer::domainSettingsRequestComplete() {
         if (persistPath.isRelative()) {
             // if the domain settings passed us a relative path, make an absolute path that is relative to the
             // default data directory
-            persistAbsoluteFilePath = QDir(ServerPathUtils::getDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
+            persistAbsoluteFilePath = QDir(PathUtils::getAppDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
         }
 
         static const QString ENTITY_PERSIST_EXTENSION = ".json.gz";
@@ -1241,7 +1244,7 @@ void OctreeServer::domainSettingsRequestComplete() {
             QDir backupDirectory { _backupDirectoryPath };
             QString absoluteBackupDirectory;
             if (backupDirectory.isRelative()) {
-                absoluteBackupDirectory = QDir(ServerPathUtils::getDataFilePath("entities/")).absoluteFilePath(_backupDirectoryPath);
+                absoluteBackupDirectory = QDir(PathUtils::getAppDataFilePath("entities/")).absoluteFilePath(_backupDirectoryPath);
                 absoluteBackupDirectory = QDir(absoluteBackupDirectory).absolutePath();
             } else {
                 absoluteBackupDirectory = backupDirectory.absolutePath();

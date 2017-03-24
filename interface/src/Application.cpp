@@ -170,12 +170,15 @@
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 #include "ui/UpdateDialog.h"
+#include "ui/overlays/Overlays.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 
 #include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
+#include <EntityScriptClient.h>
+#include <ModelScriptingInterface.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -212,18 +215,10 @@ static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 
-static const int MIRROR_VIEW_TOP_PADDING = 5;
-static const int MIRROR_VIEW_LEFT_PADDING = 10;
-static const int MIRROR_VIEW_WIDTH = 265;
-static const int MIRROR_VIEW_HEIGHT = 215;
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
-static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
-static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
-static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
-static const QString INFO_WELCOME_PATH = "html/interface-welcome.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 static const QString INFO_HELP_PATH = "html/help.html";
 
@@ -422,6 +417,7 @@ static const QString STATE_CAMERA_THIRD_PERSON = "CameraThirdPerson";
 static const QString STATE_CAMERA_ENTITY = "CameraEntity";
 static const QString STATE_CAMERA_INDEPENDENT = "CameraIndependent";
 static const QString STATE_SNAP_TURN = "SnapTurn";
+static const QString STATE_ADVANCED_MOVEMENT_CONTROLS = "AdvancedMovement";
 static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
@@ -512,7 +508,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
                     STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
-                    STATE_SNAP_TURN, STATE_GROUNDED, STATE_NAV_FOCUSED } });
+                    STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED } });
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
@@ -528,7 +524,7 @@ bool setupEssentials(int& argc, char** argv) {
 // to take care of highlighting keyboard focused items, rather than
 // continuing to overburden Application.cpp
 std::shared_ptr<Cube3DOverlay> _keyboardFocusHighlight{ nullptr };
-int _keyboardFocusHighlightID{ -1 };
+OverlayID _keyboardFocusHighlightID{ UNKNOWN_OVERLAY_ID };
 
 
 // FIXME hack access to the internal share context for the Chromium helper
@@ -545,6 +541,10 @@ Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
 const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 100.0f;
 const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
+const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
+const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
+const bool DEFAULT_TABLET_VISIBLE_TO_OTHERS = false;
+const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
     QApplication(argc, argv),
@@ -560,11 +560,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _entityClipboardRenderer(false, this, this),
     _entityClipboard(new EntityTree()),
     _lastQueriedTime(usecTimestampNow()),
-    _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
     _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
     _hmdTabletScale("hmdTabletScale", DEFAULT_HMD_TABLET_SCALE_PERCENT),
     _desktopTabletScale("desktopTabletScale", DEFAULT_DESKTOP_TABLET_SCALE_PERCENT),
+    _desktopTabletBecomesToolbarSetting("desktopTabletBecomesToolbar", DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR),
+    _hmdTabletBecomesToolbarSetting("hmdTabletBecomesToolbar", DEFAULT_HMD_TABLET_BECOMES_TOOLBAR),
+    _tabletVisibleToOthersSetting("tabletVisibleToOthers", DEFAULT_TABLET_VISIBLE_TO_OTHERS),
+    _preferAvatarFingerOverStylusSetting("preferAvatarFingerOverStylus", DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _scaleMirror(1.0f),
     _rotateMirror(0.0f),
@@ -599,6 +602,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     }
 
+    // make sure the debug draw singleton is initialized on the main thread.
+    DebugDraw::getInstance().removeMarker("");
 
     _runningMarker.startRunningMarker();
 
@@ -735,23 +740,24 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
+    auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface>();
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
-    connect(audioIO.data(), &AudioClient::mutedByMixer, &audioScriptingInterface, &AudioScriptingInterface::mutedByMixer);
-    connect(audioIO.data(), &AudioClient::receivedFirstPacket, &audioScriptingInterface, &AudioScriptingInterface::receivedFirstPacket);
-    connect(audioIO.data(), &AudioClient::disconnected, &audioScriptingInterface, &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
+    connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
     connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
         auto audioClient = DependencyManager::get<AudioClient>();
+        auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
         auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
         float distance = glm::distance(myAvatarPosition, position);
         bool shouldMute = !audioClient->isMuted() && (distance < radius);
 
         if (shouldMute) {
             audioClient->toggleMute();
-            AudioScriptingInterface::getInstance().environmentMuted();
+            audioScriptingInterface->environmentMuted();
         }
     });
 
@@ -776,6 +782,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
+        getOverlays().deleteOverlay(getTabletScreenID());
+        getOverlays().deleteOverlay(getTabletHomeButtonID());
+        getOverlays().deleteOverlay(getTabletFrameID());
+    });
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
 
     // We could clear ATP assets only when changing domains, but it's possible that the domain you are connected
@@ -831,6 +842,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
+    connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
 
     // Save avatar location immediately after a teleport.
     connect(myAvatar.get(), &MyAvatar::positionGoneTo,
@@ -1112,6 +1124,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _applicationStateDevice->setInputVariant(STATE_SNAP_TURN, []() -> float {
         return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
     });
+    _applicationStateDevice->setInputVariant(STATE_ADVANCED_MOVEMENT_CONTROLS, []() -> float {
+        return qApp->getMyAvatar()->useAdvancedMovementControls() ? 1 : 0;
+    });
+
     _applicationStateDevice->setInputVariant(STATE_GROUNDED, []() -> float {
         return qApp->getMyAvatar()->getCharacterController()->onGround() ? 1 : 0;
     });
@@ -1166,7 +1182,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the local loopback interface for local sounds
     AudioInjector::setLocalAudioInterface(audioIO.data());
-    AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
+    audioScriptingInterface->setLocalAudioInterface(audioIO.data());
+    connect(audioIO.data(), &AudioClient::noiseGateOpened, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateOpened);
+    connect(audioIO.data(), &AudioClient::noiseGateClosed, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateClosed);
+    connect(audioIO.data(), &AudioClient::inputReceived, audioScriptingInterface.data(), &AudioScriptingInterface::inputReceived);
+
 
     this->installEventFilter(this);
 
@@ -1210,6 +1230,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         if (entity && entity->wantsKeyboardFocus()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
             setKeyboardFocusEntity(entityItemID);
+        } else {
+            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         }
     });
 
@@ -1227,12 +1249,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
 
-    connect(overlays, &Overlays::mousePressOnOverlay, [=](unsigned int overlayID, const PointerEvent& event) {
+    connect(overlays, &Overlays::mousePressOnOverlay, [=](OverlayID overlayID, const PointerEvent& event) {
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         setKeyboardFocusOverlay(overlayID);
     });
 
-    connect(overlays, &Overlays::overlayDeleted, [=](unsigned int overlayID) {
+    connect(overlays, &Overlays::overlayDeleted, [=](OverlayID overlayID) {
         if (overlayID == _keyboardFocusedOverlay.get()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         }
@@ -1422,7 +1444,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         scriptEngines->loadScript(testScript, false);
     } else {
         // Get sandbox content set version, if available
-        auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
+        auto acDirPath = PathUtils::getAppDataPath() + "../../" + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
         auto contentVersionPath = acDirPath + "content-version.txt";
         qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
         auto contentVersion = 0;
@@ -1537,6 +1559,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
     connect(&domainHandler, &DomainHandler::hostnameChanged, this, &Application::addAssetToWorldMessageClose);
+
+    updateSystemTabletMode();
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -1682,9 +1706,9 @@ void Application::cleanupBeforeQuit() {
     _applicationStateDevice.reset();
 
     {
-        if (_keyboardFocusHighlightID > 0) {
+        if (_keyboardFocusHighlightID != UNKNOWN_OVERLAY_ID) {
             getOverlays().deleteOverlay(_keyboardFocusHighlightID);
-            _keyboardFocusHighlightID = -1;
+            _keyboardFocusHighlightID = UNKNOWN_OVERLAY_ID;
         }
         _keyboardFocusHighlight = nullptr;
     }
@@ -1926,8 +1950,10 @@ void Application::initializeUi() {
     // For some reason there is already an "Application" object in the QML context,
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("ApplicationInterface", this);
-    rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
+    rootContext->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
     rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
+    rootContext->setContextProperty("AudioScope", DependencyManager::get<AudioScope>().data());
+
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     _fileDownload = new FileScriptingInterface(engine);
@@ -2092,21 +2118,6 @@ void Application::paintGL() {
         batch.resetStages();
     });
 
-    auto inputs = AvatarInputs::getInstance();
-    if (inputs->mirrorVisible()) {
-        PerformanceTimer perfTimer("Mirror");
-
-        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-        renderArgs._blitFramebuffer = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
-
-        _mirrorViewRect.moveTo(inputs->x(), inputs->y());
-
-        renderRearViewMirror(&renderArgs, _mirrorViewRect, inputs->mirrorZoomed());
-
-        renderArgs._blitFramebuffer.reset();
-        renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-    }
-
     {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
@@ -2121,7 +2132,7 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("CameraUpdates");
 
         auto myAvatar = getMyAvatar();
-        boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FRONT;
+        boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
 
         if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
@@ -2330,13 +2341,28 @@ void Application::setDesktopTabletScale(float desktopTabletScale) {
     _desktopTabletScale.set(desktopTabletScale);
 }
 
+void Application::setDesktopTabletBecomesToolbarSetting(bool value) {
+    _desktopTabletBecomesToolbarSetting.set(value);
+    updateSystemTabletMode();
+}
+
+void Application::setHmdTabletBecomesToolbarSetting(bool value) {
+    _hmdTabletBecomesToolbarSetting.set(value);
+    updateSystemTabletMode();
+}
+
+void Application::setTabletVisibleToOthersSetting(bool value) {
+    _tabletVisibleToOthersSetting.set(value);
+    updateSystemTabletMode();
+}
+
+void Application::setPreferAvatarFingerOverStylus(bool value) {
+    _preferAvatarFingerOverStylusSetting.set(value);
+}
+
 void Application::setSettingConstrainToolbarPosition(bool setting) {
     _constrainToolbarPosition.set(setting);
     DependencyManager::get<OffscreenUi>()->setConstrainToolbarToCenterX(setting);
-}
-
-void Application::aboutApp() {
-    InfoView::show(INFO_WELCOME_PATH);
 }
 
 void Application::showHelp() {
@@ -2720,8 +2746,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_S:
                 if (isShifted && isMeta && !isOption) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
-                } else if (isOption && !isShifted && !isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::ScriptEditor);
                 } else if (!isOption && !isShifted && isMeta) {
                     takeSnapshot(true);
                 }
@@ -2840,56 +2864,56 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 #endif
 
-            case Qt::Key_H:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::MiniMirror);
-                } else {
-                    // whenever switching to/from full screen mirror from the keyboard, remember
-                    // the state you were in before full screen mirror, and return to that.
-                    auto previousMode = _myCamera.getMode();
-                    if (previousMode != CAMERA_MODE_MIRROR) {
-                        switch (previousMode) {
-                            case CAMERA_MODE_FIRST_PERSON:
-                                _returnFromFullScreenMirrorTo = MenuOption::FirstPerson;
-                                break;
-                            case CAMERA_MODE_THIRD_PERSON:
-                                _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
-                                break;
+            case Qt::Key_H: {
+                // whenever switching to/from full screen mirror from the keyboard, remember
+                // the state you were in before full screen mirror, and return to that.
+                auto previousMode = _myCamera.getMode();
+                if (previousMode != CAMERA_MODE_MIRROR) {
+                    switch (previousMode) {
+                    case CAMERA_MODE_FIRST_PERSON:
+                        _returnFromFullScreenMirrorTo = MenuOption::FirstPerson;
+                        break;
+                    case CAMERA_MODE_THIRD_PERSON:
+                        _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
+                        break;
 
-                            // FIXME - it's not clear that these modes make sense to return to...
-                            case CAMERA_MODE_INDEPENDENT:
-                                _returnFromFullScreenMirrorTo = MenuOption::IndependentMode;
-                                break;
-                            case CAMERA_MODE_ENTITY:
-                                _returnFromFullScreenMirrorTo = MenuOption::CameraEntityMode;
-                                break;
+                        // FIXME - it's not clear that these modes make sense to return to...
+                    case CAMERA_MODE_INDEPENDENT:
+                        _returnFromFullScreenMirrorTo = MenuOption::IndependentMode;
+                        break;
+                    case CAMERA_MODE_ENTITY:
+                        _returnFromFullScreenMirrorTo = MenuOption::CameraEntityMode;
+                        break;
 
-                            default:
-                                _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
-                                break;
-                        }
+                    default:
+                        _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
+                        break;
                     }
+                }
 
-                    bool isMirrorChecked = Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
-                    Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !isMirrorChecked);
-                    if (isMirrorChecked) {
+                bool isMirrorChecked = Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
+                Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !isMirrorChecked);
+                if (isMirrorChecked) {
 
-                        // if we got here without coming in from a non-Full Screen mirror case, then our
-                        // _returnFromFullScreenMirrorTo is unknown. In that case we'll go to the old
-                        // behavior of returning to ThirdPerson
-                        if (_returnFromFullScreenMirrorTo.isEmpty()) {
-                            _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
-                        }
-                        Menu::getInstance()->setIsOptionChecked(_returnFromFullScreenMirrorTo, true);
+                    // if we got here without coming in from a non-Full Screen mirror case, then our
+                    // _returnFromFullScreenMirrorTo is unknown. In that case we'll go to the old
+                    // behavior of returning to ThirdPerson
+                    if (_returnFromFullScreenMirrorTo.isEmpty()) {
+                        _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
                     }
+                    Menu::getInstance()->setIsOptionChecked(_returnFromFullScreenMirrorTo, true);
+                }
+                cameraMenuChanged();
+                break;
+            }
+
+            case Qt::Key_P: {
+                if (!(isShifted || isMeta || isOption)) {
+                    bool isFirstPersonChecked = Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson);
+                    Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, !isFirstPersonChecked);
+                    Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, isFirstPersonChecked);
                     cameraMenuChanged();
                 }
-                break;
-            case Qt::Key_P: {
-                bool isFirstPersonChecked = Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson);
-                Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, !isFirstPersonChecked);
-                Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, isFirstPersonChecked);
-                cameraMenuChanged();
                 break;
             }
 
@@ -3071,10 +3095,11 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         buttons, event->modifiers());
 
     if (compositor.getReticleVisible() || !isHMDMode() || !compositor.getReticleOverDesktop() ||
-        getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y()))) {
+        getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y())) != UNKNOWN_OVERLAY_ID) {
         getOverlays().mouseMoveEvent(&mappedEvent);
         getEntities()->mouseMoveEvent(&mappedEvent);
     }
+
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -3107,7 +3132,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
     if (!_aboutToQuit) {
         getOverlays().mousePressEvent(&mappedEvent);
-
         if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
             getEntities()->mousePressEvent(&mappedEvent);
         }
@@ -3134,7 +3158,23 @@ void Application::mousePressEvent(QMouseEvent* event) {
     }
 }
 
-void Application::mouseDoublePressEvent(QMouseEvent* event) const {
+void Application::mouseDoublePressEvent(QMouseEvent* event) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QMouseEvent mappedEvent(event->type(),
+        transformedPos,
+        event->screenPos(), event->button(),
+        event->buttons(), event->modifiers());
+
+    if (!_aboutToQuit) {
+        getOverlays().mouseDoublePressEvent(&mappedEvent);
+        if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
+            getEntities()->mouseDoublePressEvent(&mappedEvent);
+        }
+    }
+
+
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
@@ -3411,7 +3451,7 @@ void Application::idle(float nsecsElapsed) {
 #ifdef Q_OS_WIN
     static std::once_flag once;
     std::call_once(once, [] {
-        initCpuUsage(); 
+        initCpuUsage();
     });
 
     vec3 kernelUserAndSystem;
@@ -3781,8 +3821,6 @@ void Application::init() {
     DependencyManager::get<AvatarManager>()->init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
 
-    _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
-
     _timerStart.start();
     _lastTimeUpdated.start();
 
@@ -3917,7 +3955,7 @@ void Application::updateMyAvatarLookAtPosition() {
             auto lookingAtHead = static_pointer_cast<Avatar>(lookingAt)->getHead();
 
             const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
-            glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
+            glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
             glm::vec3 fromLookingAtToMe = glm::normalize(myAvatar->getHead()->getEyePosition()
                 - lookingAtHead->getEyePosition());
             float faceAngle = glm::angle(lookingAtFaceOrientation, fromLookingAtToMe);
@@ -4090,7 +4128,7 @@ void Application::rotationModeChanged() const {
 
 void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions) {
     // Create focus
-    if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
+    if (_keyboardFocusHighlightID == UNKNOWN_OVERLAY_ID || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
         _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
         _keyboardFocusHighlight->setAlpha(1.0f);
         _keyboardFocusHighlight->setBorderSize(1.0f);
@@ -4152,11 +4190,11 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
     }
 }
 
-unsigned int Application::getKeyboardFocusOverlay() {
+OverlayID Application::getKeyboardFocusOverlay() {
     return _keyboardFocusedOverlay.get();
 }
 
-void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
+void Application::setKeyboardFocusOverlay(OverlayID overlayID) {
     if (overlayID != _keyboardFocusedOverlay.get()) {
         _keyboardFocusedOverlay.set(overlayID);
 
@@ -4195,12 +4233,6 @@ void Application::updateDialogs(float deltaTime) const {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
     auto dialogsManager = DependencyManager::get<DialogsManager>();
-
-    // Update bandwidth dialog, if any
-    BandwidthDialog* bandwidthDialog = dialogsManager->getBandwidthDialog();
-    if (bandwidthDialog) {
-        bandwidthDialog->update();
-    }
 
     QPointer<OctreeStatsDialog> octreeStatsDialog = dialogsManager->getOctreeStatsDialog();
     if (octreeStatsDialog) {
@@ -4325,16 +4357,16 @@ void Application::update(float deltaTime) {
     myAvatar->clearDriveKeys();
     if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
         if (!_controllerScriptingInterface->areActionsCaptured()) {
-            myAvatar->setDriveKeys(TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
-            myAvatar->setDriveKeys(TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
-            myAvatar->setDriveKeys(TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
+            myAvatar->setDriveKey(MyAvatar::TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
+            myAvatar->setDriveKey(MyAvatar::TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
+            myAvatar->setDriveKey(MyAvatar::TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
             if (deltaTime > FLT_EPSILON) {
-                myAvatar->setDriveKeys(PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
-                myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
-                myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
+                myAvatar->setDriveKey(MyAvatar::PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
+                myAvatar->setDriveKey(MyAvatar::YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
+                myAvatar->setDriveKey(MyAvatar::STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
             }
         }
-        myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
+        myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
 
     controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
@@ -4405,9 +4437,12 @@ void Application::update(float deltaTime) {
 
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
-                    const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
-                    _entitySimulation->handleOutgoingChanges(outgoingChanges);
-                    avatarManager->handleOutgoingChanges(outgoingChanges);
+                    const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
+                    _entitySimulation->handleDeactivatedMotionStates(deactivations);
+
+                    const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
+                    _entitySimulation->handleChangedMotionStates(outgoingChanges);
+                    avatarManager->handleChangedMotionStates(outgoingChanges);
                 });
 
                 if (!_aboutToQuit) {
@@ -5064,58 +5099,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     activeRenderingThread = nullptr;
 }
 
-void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed) {
-    auto originalViewport = renderArgs->_viewport;
-    // Grab current viewport to reset it at the end
-
-    float aspect = (float)region.width() / region.height();
-    float fov = MIRROR_FIELD_OF_VIEW;
-
-    auto myAvatar = getMyAvatar();
-
-    // bool eyeRelativeCamera = false;
-    if (!isZoomed) {
-        _mirrorCamera.setPosition(myAvatar->getChestPosition() +
-                                  myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * myAvatar->getScale());
-
-    } else { // HEAD zoom level
-        // FIXME note that the positioning of the camera relative to the avatar can suffer limited
-        // precision as the user's position moves further away from the origin.  Thus at
-        // /1e7,1e7,1e7 (well outside the buildable volume) the mirror camera veers and sways
-        // wildly as you rotate your avatar because the floating point values are becoming
-        // larger, squeezing out the available digits of precision you have available at the
-        // human scale for camera positioning.
-
-        // Previously there was a hack to correct this using the mechanism of repositioning
-        // the avatar at the origin of the world for the purposes of rendering the mirror,
-        // but it resulted in failing to render the avatar's head model in the mirror view
-        // when in first person mode.  Presumably this was because of some missed culling logic
-        // that was not accounted for in the hack.
-
-        // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further
-        // investigated in order to adapt the technique while fixing the head rendering issue,
-        // but the complexity of the hack suggests that a better approach
-        _mirrorCamera.setPosition(myAvatar->getDefaultEyePosition() +
-                                    myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * myAvatar->getScale());
-    }
-    _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-    _mirrorCamera.setOrientation(myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
-
-
-    // set the bounds of rear mirror view
-    // the region is in device independent coordinates; must convert to device
-    float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
-    int width = region.width() * ratio;
-    int height = region.height() * ratio;
-    gpu::Vec4i viewport = gpu::Vec4i(0, 0, width, height);
-    renderArgs->_viewport = viewport;
-
-    // render rear mirror view
-    displaySide(renderArgs, _mirrorCamera, true);
-
-    renderArgs->_viewport =  originalViewport;
-}
-
 void Application::resetSensors(bool andReload) {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
@@ -5152,6 +5135,7 @@ void Application::updateWindowTitle() const {
 #endif
     _window->setWindowTitle(title);
 }
+
 void Application::clearDomainOctreeDetails() {
 
     // if we're about to quit, we really don't need to do any of these things...
@@ -5181,6 +5165,12 @@ void Application::clearDomainOctreeDetails() {
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
     _recentlyClearedDomain = true;
+
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    DependencyManager::get<AnimationCache>()->clearUnusedResources();
+    DependencyManager::get<ModelCache>()->clearUnusedResources();
+    DependencyManager::get<SoundCache>()->clearUnusedResources();
+    DependencyManager::get<TextureCache>()->clearUnusedResources();
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -5438,8 +5428,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Rates", new RatesScriptingInterface(this));
 
     // hook our avatar and avatar hash map object into this script engine
-    scriptEngine->registerGlobalObject("MyAvatar", getMyAvatar().get());
-    qScriptRegisterMetaType(scriptEngine, audioListenModeToScriptValue, audioListenModeFromScriptValue);
+    getMyAvatar()->registerMetaTypes(scriptEngine);
 
     scriptEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarManager>().data());
 
@@ -5462,6 +5451,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
 
+    DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(DependencyManager::get<ToolbarScriptingInterface>().data());
+
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     qScriptRegisterMetaType(scriptEngine, CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
@@ -5478,6 +5469,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
+    scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -5526,6 +5518,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
+
+    qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine, &ScriptEngine::printedMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);
@@ -6679,6 +6673,12 @@ void Application::updateDisplayMode() {
     }
 
     emit activeDisplayPluginChanged();
+    
+    if (_displayPlugin->isHmd()) {
+        qCDebug(interfaceapp) << "Entering into HMD Mode";
+    } else {
+        qCDebug(interfaceapp) << "Entering into Desktop Mode";
+    }
 
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
@@ -6854,7 +6854,30 @@ void Application::updateThreadPoolCount() const {
     QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
 }
 
+void Application::updateSystemTabletMode() {
+    if (isHMDMode()) {
+        DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
+    } else {
+        DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
+    }
+}
+
 void Application::toggleMuteAudio() {
     auto menu = Menu::getInstance();
     menu->setIsOptionChecked(MenuOption::MuteAudio, !menu->isOptionChecked(MenuOption::MuteAudio));
+}
+
+OverlayID Application::getTabletScreenID() const {
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    return HMD->getCurrentTabletScreenID();
+}
+
+OverlayID Application::getTabletHomeButtonID() const {
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    return HMD->getCurrentHomeButtonID();
+}
+
+QUuid Application::getTabletFrameID() const {
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    return HMD->getCurrentTabletFrameID();
 }

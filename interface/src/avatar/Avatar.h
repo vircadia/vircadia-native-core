@@ -178,11 +178,12 @@ public:
     uint64_t getLastRenderUpdateTime() const { return _lastRenderUpdateTime; }
     void setLastRenderUpdateTime(uint64_t time) { _lastRenderUpdateTime = time; }
 
-    bool shouldDie() const;
     void animateScaleChanges(float deltaTime);
     void setTargetScale(float targetScale) override;
 
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
+
+    bool hasNewJointData() const { return _hasNewJointData; }
 
 public slots:
 
@@ -235,7 +236,6 @@ protected:
 
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
-    glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void measureMotionDerivatives(float deltaTime);
 

@@ -33,7 +33,7 @@ var BUTTON_SIZE = 32;
 var PADDING = 3;
 var BOTTOM_PADDING = 50;
 //a helper library for creating toolbars
-Script.include("http://hifi-production.s3.amazonaws.com/tutorials/dice/toolBars.js");
+Script.include("/~/system/libraries/toolBars.js");
 
 var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.toolbars-dice", function(screenSize) {
   return {
@@ -127,8 +127,8 @@ function mousePressEvent(event) {
     deleteDice();
   } else if (clickedOverlay == diceButton) {
     var HOW_HARD = 2.0;
-    var position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
-    var velocity = Vec3.multiply(HOW_HARD, Quat.getFront(Camera.getOrientation()));
+    var position = Vec3.sum(Camera.getPosition(), Quat.getForward(Camera.getOrientation()));
+    var velocity = Vec3.multiply(HOW_HARD, Quat.getForward(Camera.getOrientation()));
     shootDice(position, velocity);
     madeSound = false;
   }

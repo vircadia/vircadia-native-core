@@ -20,7 +20,8 @@ public:
 
     QString getPreferredAudioInDevice() const override;
     QString getPreferredAudioOutDevice() const override;
-    
+    float getTargetFrameRate() const override;
+
     virtual QJsonObject getHardwareStats() const;
 
 protected:
@@ -39,6 +40,7 @@ private:
     gpu::FramebufferPointer _outputFramebuffer;
     bool _customized { false };
 
+    std::atomic_bool _aswActive;
     std::atomic_int _compositorDroppedFrames;
     std::atomic_int _appDroppedFrames;
     std::atomic_int _longSubmits;

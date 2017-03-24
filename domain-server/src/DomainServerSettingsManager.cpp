@@ -29,7 +29,8 @@
 #include <NLPacketList.h>
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
-
+#include <AvatarData.h> //for KillAvatarReason
+#include <FingerprintUtils.h>
 #include "DomainServerNodeData.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
@@ -245,10 +246,13 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 _agentPermissions[editorKey]->set(NodePermissions::Permission::canAdjustLocks);
             }
 
-            QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
-            permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get();
+            std::list<std::unordered_map<NodePermissionsKey, NodePermissionsPointer>> permissionsSets{
+                _standardAgentPermissions.get(),
+                _agentPermissions.get()
+            };
             foreach (auto permissionsSet, permissionsSets) {
-                foreach (NodePermissionsKey userKey, permissionsSet.keys()) {
+                for (auto entry : permissionsSet) {
+                    const auto& userKey = entry.first;
                     if (onlyEditorsAreRezzers) {
                         if (permissionsSet[userKey]->can(NodePermissions::Permission::canAdjustLocks)) {
                             permissionsSet[userKey]->set(NodePermissions::Permission::canRezPermanentEntities);
@@ -299,7 +303,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 }
 
 QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
-
     static const QString DESCRIPTORS{ "descriptors" };
 
     auto& settingsMap = getSettingsMap();
@@ -439,7 +442,7 @@ bool DomainServerSettingsManager::unpackPermissionsForKeypath(const QString& key
     foreach (QVariant permsHash, permissionsList) {
         NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
         QString id = perms->getID();
-        
+
         NodePermissionsKey idKey = perms->getKey();
 
         if (mapPointer->contains(idKey)) {
@@ -484,7 +487,7 @@ void DomainServerSettingsManager::unpackPermissions() {
             // make sure that this permission row is for a non-empty hardware
             if (perms->getKey().first.isEmpty()) {
                 _macPermissions.remove(perms->getKey());
-                
+
                 // we removed a row from the MAC permissions, we'll need a re-pack
                 needPack = true;
             }
@@ -555,7 +558,7 @@ void DomainServerSettingsManager::unpackPermissions() {
     QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
     permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get()
                     << _groupPermissions.get() << _groupForbiddens.get()
-                    << _ipPermissions.get() << _macPermissions.get() 
+                    << _ipPermissions.get() << _macPermissions.get()
                     << _machineFingerprintPermissions.get();
 
     foreach (auto permissionSet, permissionsSets) {
@@ -668,66 +671,70 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                     // ensure that the connect permission is clear
                     userPermissions->clear(NodePermissions::Permission::canConnectToDomain);
                 } else {
-                    // otherwise we apply the kick to the IP from active socket for this node and the MAC address
-
-                    // remove connect permissions for the IP (falling back to the public socket if not yet active)
-                    auto& kickAddress = matchingNode->getActiveSocket()
-                        ? matchingNode->getActiveSocket()->getAddress()
-                        : matchingNode->getPublicSocket().getAddress();
-                    
-                    // probably isLoopback covers it, as whenever I try to ban an agent on same machine as the domain-server
-                    // it is always 127.0.0.1, but looking at the public and local addresses just to be sure
-                    // TODO: soon we will have feedback (in the form of a message to the client) after we kick.  When we
-                    // do, we will have a success flag, and perhaps a reason for failure.  For now, just don't do it.  
-                    if (kickAddress == limitedNodeList->getPublicSockAddr().getAddress() ||
-                        kickAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
-                        kickAddress.isLoopback() ) {
-                        qWarning() << "attempt to kick node running on same machine as domain server, ignoring KickRequest";
-                        return;
-                    }
-                    NodePermissionsKey ipAddressKey(kickAddress.toString(), QUuid());
-
-                    // check if there were already permissions for the IP
-                    bool hadIPPermissions = hasPermissionsForIP(kickAddress);
-
-                    // grab or create permissions for the given IP address
-                    auto ipPermissions = _ipPermissions[ipAddressKey];
-
-                    if (!hadIPPermissions || ipPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
-                        newPermissions = true;
-
-                        ipPermissions->clear(NodePermissions::Permission::canConnectToDomain);
-                    }
-
-                    // potentially remove connect permissions for the MAC address and machine fingerprint
+                    // remove connect permissions for the machine fingerprint
                     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
                     if (nodeData) {
-                        // mac address first
-                        NodePermissionsKey macAddressKey(nodeData->getHardwareAddress(), 0);
+                        // get this machine's fingerprint
+                        auto domainServerFingerprint = FingerprintUtils::getMachineFingerprint();
 
-                        bool hadMACPermissions = hasPermissionsForMAC(nodeData->getHardwareAddress());
-
-                        auto macPermissions = _macPermissions[macAddressKey];
-
-                        if (!hadMACPermissions || macPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
-                            newPermissions = true;
-
-                            macPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+                        if (nodeData->getMachineFingerprint() == domainServerFingerprint) {
+                            qWarning() << "attempt to kick node running on same machine as domain server (by fingerprint), ignoring KickRequest";
+                            return;
                         }
-
-                        // now for machine fingerprint
                         NodePermissionsKey machineFingerprintKey(nodeData->getMachineFingerprint().toString(), 0);
-                        
+
+                        // check if there were already permissions for the fingerprint
                         bool hadFingerprintPermissions = hasPermissionsForMachineFingerprint(nodeData->getMachineFingerprint());
-                        
+
+                        // grab or create permissions for the given fingerprint
                         auto fingerprintPermissions = _machineFingerprintPermissions[machineFingerprintKey];
-                        
+
+                        // write them
                         if (!hadFingerprintPermissions || fingerprintPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
                             newPermissions = true;
                             fingerprintPermissions->clear(NodePermissions::Permission::canConnectToDomain);
                         }
+                    } else {
+                        // if no node data, all we can do is IP address
+                        auto& kickAddress = matchingNode->getActiveSocket()
+                            ? matchingNode->getActiveSocket()->getAddress()
+                            : matchingNode->getPublicSocket().getAddress();
+
+                        // probably isLoopback covers it, as whenever I try to ban an agent on same machine as the domain-server
+                        // it is always 127.0.0.1, but looking at the public and local addresses just to be sure
+                        // TODO: soon we will have feedback (in the form of a message to the client) after we kick.  When we
+                        // do, we will have a success flag, and perhaps a reason for failure.  For now, just don't do it.
+                        if (kickAddress == limitedNodeList->getPublicSockAddr().getAddress() ||
+                                kickAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
+                                kickAddress.isLoopback() ) {
+                            qWarning() << "attempt to kick node running on same machine as domain server, ignoring KickRequest";
+                            return;
+                        }
+
+
+                        NodePermissionsKey ipAddressKey(kickAddress.toString(), QUuid());
+
+                        // check if there were already permissions for the IP
+                        bool hadIPPermissions = hasPermissionsForIP(kickAddress);
+
+                        // grab or create permissions for the given IP address
+                        auto ipPermissions = _ipPermissions[ipAddressKey];
+
+                        if (!hadIPPermissions || ipPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
+                            newPermissions = true;
+
+                            ipPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+                        }
                     }
                 }
+
+                // if we are here, then we kicked them, so send the KillAvatar message
+                auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
+                packet->write(nodeUUID.toRfc4122());
+                packet->writePrimitive(KillAvatarReason::NoReason);
+
+                // send to avatar mixer, it sends the kill to everyone else
+                limitedNodeList->broadcastToNodes(std::move(packet), NodeSet() << NodeType::AvatarMixer);
 
                 if (newPermissions) {
                     qDebug() << "Removing connect permission for node" << uuidStringWithoutCurlyBraces(matchingNode->getUUID())
@@ -735,9 +742,12 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
 
                     // we've changed permissions, time to store them to disk and emit our signal to say they have changed
                     packPermissions();
-                } else {
-                    emit updateNodePermissions();
                 }
+
+                // we emit this no matter what -- though if this isn't a new permission probably 2 people are racing to kick and this
+                // person lost the race.  No matter, just be sure this is called as otherwise it takes like 10s for the person being banned
+                // to go away
+                emit updateNodePermissions();
 
             } else {
                 qWarning() << "Node kick request received for unknown node. Refusing to process.";
@@ -1347,18 +1357,12 @@ QStringList DomainServerSettingsManager::getAllKnownGroupNames() {
     // extract all the group names from the group-permissions and group-forbiddens settings
     QSet<QString> result;
 
-    QHashIterator<NodePermissionsKey, NodePermissionsPointer> i(_groupPermissions.get());
-    while (i.hasNext()) {
-        i.next();
-        NodePermissionsKey key = i.key();
-        result += key.first;
+    for (const auto& entry : _groupPermissions.get()) {
+        result += entry.first.first;
     }
 
-    QHashIterator<NodePermissionsKey, NodePermissionsPointer> j(_groupForbiddens.get());
-    while (j.hasNext()) {
-        j.next();
-        NodePermissionsKey key = j.key();
-        result += key.first;
+    for (const auto& entry : _groupForbiddens.get()) {
+        result += entry.first.first;
     }
 
     return result.toList();
@@ -1369,20 +1373,17 @@ bool DomainServerSettingsManager::setGroupID(const QString& groupName, const QUu
     _groupIDs[groupName.toLower()] = groupID;
     _groupNames[groupID] = groupName;
 
-    QHashIterator<NodePermissionsKey, NodePermissionsPointer> i(_groupPermissions.get());
-    while (i.hasNext()) {
-        i.next();
-        NodePermissionsPointer perms = i.value();
+
+    for (const auto& entry : _groupPermissions.get()) {
+        auto& perms = entry.second;
         if (perms->getID().toLower() == groupName.toLower() && !perms->isGroup()) {
             changed = true;
             perms->setGroupID(groupID);
         }
     }
 
-    QHashIterator<NodePermissionsKey, NodePermissionsPointer> j(_groupForbiddens.get());
-    while (j.hasNext()) {
-        j.next();
-        NodePermissionsPointer perms = j.value();
+    for (const auto& entry : _groupForbiddens.get()) {
+        auto& perms = entry.second;
         if (perms->getID().toLower() == groupName.toLower() && !perms->isGroup()) {
             changed = true;
             perms->setGroupID(groupID);

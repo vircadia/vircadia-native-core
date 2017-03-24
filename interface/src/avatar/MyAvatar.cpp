@@ -104,6 +104,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
+    _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", false),
     _hmdSensorMatrix(),
     _hmdSensorOrientation(),
     _hmdSensorPosition(),
@@ -119,9 +120,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     using namespace recording;
     _skeletonModel->flagAsCauterized();
 
-    for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
-        _driveKeys[i] = 0.0f;
-    }
+    clearDriveKeys();
 
     // Necessary to select the correct slot
     using SlotType = void(MyAvatar::*)(const glm::vec3&, bool, const glm::quat&, bool);
@@ -148,13 +147,25 @@ MyAvatar::MyAvatar(RigPointer rig) :
     auto player = DependencyManager::get<Deck>();
     auto recorder = DependencyManager::get<Recorder>();
     connect(player.data(), &Deck::playbackStateChanged, [=] {
-        if (player->isPlaying()) {
+        bool isPlaying = player->isPlaying();
+        if (isPlaying) {
             auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 setRecordingBasis();
             }
+            _wasCharacterControllerEnabled = _characterController.isEnabled();
+            _characterController.setEnabled(false);
         } else {
             clearRecordingBasis();
+            useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
+            _characterController.setEnabled(_wasCharacterControllerEnabled);
+        }
+
+        auto audioIO = DependencyManager::get<AudioClient>();
+        audioIO->setIsPlayingBackRecording(isPlaying);
+
+        if (_rig) {
+            _rig->setEnableAnimations(!isPlaying);
         }
     });
 
@@ -180,8 +191,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
 
         if (recordingInterface->getPlayerUseSkeletonModel() && dummyAvatar.getSkeletonModelURL().isValid() &&
             (dummyAvatar.getSkeletonModelURL() != getSkeletonModelURL())) {
-            // FIXME
-            //myAvatar->useFullAvatarURL()
+
+            setSkeletonModelURL(dummyAvatar.getSkeletonModelURL());
         }
 
         if (recordingInterface->getPlayerUseDisplayName() && dummyAvatar.getDisplayName() != getDisplayName()) {
@@ -204,6 +215,11 @@ MyAvatar::MyAvatar(RigPointer rig) :
             // head orientation
             _headData->setLookAtPosition(headData->getLookAtPosition());
         }
+
+        auto jointData = dummyAvatar.getRawJointData();
+        if (jointData.length() > 0 && _rig) {
+            _rig->copyJointsFromJointData(jointData);
+        }
     });
 
     connect(rig.get(), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
@@ -211,6 +227,21 @@ MyAvatar::MyAvatar(RigPointer rig) :
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
+}
+
+void MyAvatar::registerMetaTypes(QScriptEngine* engine) {
+    QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
+    engine->globalObject().setProperty("MyAvatar", value);
+
+    QScriptValue driveKeys = engine->newObject();
+    auto metaEnum = QMetaEnum::fromType<DriveKeys>();
+    for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
+        driveKeys.setProperty(metaEnum.key(i), metaEnum.value(i));
+    }
+    engine->globalObject().setProperty("DriveKeys", driveKeys);
+
+    qScriptRegisterMetaType(engine, audioListenModeToScriptValue, audioListenModeFromScriptValue);
+    qScriptRegisterMetaType(engine, driveKeysToScriptValue, driveKeysFromScriptValue);
 }
 
 void MyAvatar::setOrientationVar(const QVariant& newOrientationVar) {
@@ -227,8 +258,7 @@ void MyAvatar::simulateAttachments(float deltaTime) {
     // don't update attachments here, do it in harvestResultsFromPhysicsSimulation()
 }
 
-QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-                        bool distanceAdjust, glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut) {
+QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
     CameraMode mode = qApp->getCamera()->getMode();
     _globalPosition = getPosition();
     _globalBoundingBoxDimensions.x = _characterController.getCapsuleRadius();
@@ -239,12 +269,17 @@ QByteArray MyAvatar::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTi
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = getPosition();
         setPosition(getSkeletonPosition());
-        QByteArray array = AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
+        QByteArray array = AvatarData::toByteArrayStateful(dataDetail);
         // copy the correct position back
         setPosition(oldPosition);
         return array;
     }
-    return AvatarData::toByteArray(dataDetail, lastSentTime, lastSentJointData, distanceAdjust, viewerPosition, sentJointDataOut);
+    return AvatarData::toByteArrayStateful(dataDetail);
+}
+
+void MyAvatar::resetSensorsAndBody() {
+    qApp->getActiveDisplayPlugin()->resetSensors();
+    reset(true, false, true);
 }
 
 void MyAvatar::centerBody() {
@@ -441,7 +476,7 @@ void MyAvatar::simulate(float deltaTime) {
         // When there are no step values, we zero out the last step pulse.
         // This allows a user to do faster snapping by tapping a control
         for (int i = STEP_TRANSLATE_X; !stepAction && i <= STEP_YAW; ++i) {
-            if (_driveKeys[i] != 0.0f) {
+            if (getDriveKey((DriveKeys)i) != 0.0f) {
                 stepAction = true;
             }
         }
@@ -472,7 +507,9 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
-        _rig->copyJointsIntoJointData(_jointData);
+        if (_rigEnabled) {
+            _rig->copyJointsIntoJointData(_jointData);
+        }
     }
 
     {
@@ -808,7 +845,7 @@ void MyAvatar::saveData() {
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     _avatarEntitiesLock.withReadLock([&] {
         for (auto entityID : _avatarEntityData.keys()) {
-            if (hmdInterface->getCurrentTableUIID() == entityID) {
+            if (hmdInterface->getCurrentTabletFrameID() == entityID) {
                 // don't persist the tablet between domains / sessions
                 continue;
             }
@@ -1031,7 +1068,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     _lookAtTargetAvatar.reset();
     _targetAvatarPosition = glm::vec3(0.0f);
 
-    glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
+    glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
     glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
 
     float smallestAngleTo = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES) / 2.0f;
@@ -1632,7 +1669,7 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 void MyAvatar::updateOrientation(float deltaTime) {
 
     //  Smoothly rotate body with arrow keys
-    float targetSpeed = _driveKeys[YAW] * _yawSpeed;
+    float targetSpeed = getDriveKey(YAW) * _yawSpeed;
     if (targetSpeed != 0.0f) {
         const float ROTATION_RAMP_TIMESCALE = 0.1f;
         float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
@@ -1661,8 +1698,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
     // snap turn every half second.
-    if (_driveKeys[STEP_YAW] != 0.0f) {
-        totalBodyYaw += _driveKeys[STEP_YAW];
+    if (getDriveKey(STEP_YAW) != 0.0f) {
+        totalBodyYaw += getDriveKey(STEP_YAW);
     }
 
     // use head/HMD orientation to turn while flying
@@ -1699,7 +1736,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // update body orientation by movement inputs
     setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * _pitchSpeed * deltaTime);
+    getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
     if (qApp->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
@@ -1733,14 +1770,14 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     }
 
     // compute action input
-    glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
-    glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
+    glm::vec3 forward = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FORWARD;
+    glm::vec3 right = (getDriveKey(TRANSLATE_X)) * IDENTITY_RIGHT;
 
-    glm::vec3 direction = front + right;
+    glm::vec3 direction = forward + right;
     CharacterController::State state = _characterController.getState();
     if (state == CharacterController::State::Hover) {
         // we're flying --> support vertical motion
-        glm::vec3 up = (_driveKeys[TRANSLATE_Y]) * IDENTITY_UP;
+        glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         direction += up;
     }
 
@@ -1779,7 +1816,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = MAX_WALKING_SPEED * direction;
     }
 
-    float boomChange = _driveKeys[ZOOM];
+    float boomChange = getDriveKey(ZOOM);
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 }
@@ -1810,11 +1847,11 @@ void MyAvatar::updatePosition(float deltaTime) {
     }
 
     // capture the head rotation, in sensor space, when the user first indicates they would like to move/fly.
-    if (!_hoverReferenceCameraFacingIsCaptured && (fabs(_driveKeys[TRANSLATE_Z]) > 0.1f || fabs(_driveKeys[TRANSLATE_X]) > 0.1f)) {
+    if (!_hoverReferenceCameraFacingIsCaptured && (fabs(getDriveKey(TRANSLATE_Z)) > 0.1f || fabs(getDriveKey(TRANSLATE_X)) > 0.1f)) {
         _hoverReferenceCameraFacingIsCaptured = true;
         // transform the camera facing vector into sensor space.
         _hoverReferenceCameraFacing = transformVectorFast(glm::inverse(_sensorToWorldMatrix), getHead()->getCameraOrientation() * Vectors::UNIT_Z);
-    } else if (_hoverReferenceCameraFacingIsCaptured && (fabs(_driveKeys[TRANSLATE_Z]) <= 0.1f && fabs(_driveKeys[TRANSLATE_X]) <= 0.1f)) {
+    } else if (_hoverReferenceCameraFacingIsCaptured && (fabs(getDriveKey(TRANSLATE_Z)) <= 0.1f && fabs(getDriveKey(TRANSLATE_X)) <= 0.1f)) {
         _hoverReferenceCameraFacingIsCaptured = false;
     }
 }
@@ -2016,7 +2053,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 
             // move the user a couple units away
             const float DISTANCE_TO_USER = 2.0f;
-            _goToPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
+            _goToPosition = newPosition - quatOrientation * IDENTITY_FORWARD * DISTANCE_TO_USER;
         }
 
         _goToOrientation = quatOrientation;
@@ -2070,14 +2107,58 @@ bool MyAvatar::getCharacterControllerEnabled() {
 }
 
 void MyAvatar::clearDriveKeys() {
-    for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
-        _driveKeys[i] = 0.0f;
+    _driveKeys.fill(0.0f);
+}
+
+void MyAvatar::setDriveKey(DriveKeys key, float val) {
+    try {
+        _driveKeys.at(key) = val;
+    } catch (const std::exception&) {
+        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
+    }
+}
+
+float MyAvatar::getDriveKey(DriveKeys key) const {
+    return isDriveKeyDisabled(key) ? 0.0f : getRawDriveKey(key);
+}
+
+float MyAvatar::getRawDriveKey(DriveKeys key) const {
+    try {
+        return _driveKeys.at(key);
+    } catch (const std::exception&) {
+        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
+        return 0.0f;
     }
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (_driveKeys[TRANSLATE_Y] > 0.0f) {
+    if (getDriveKey(TRANSLATE_Y) > 0.0f) {
         _characterController.jump();
+    }
+}
+
+void MyAvatar::disableDriveKey(DriveKeys key) {
+    try {
+        _disabledDriveKeys.set(key);
+    } catch (const std::exception&) {
+        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
+    }
+}
+
+void MyAvatar::enableDriveKey(DriveKeys key) {
+    try {
+        _disabledDriveKeys.reset(key);
+    } catch (const std::exception&) {
+        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
+    }
+}
+
+bool MyAvatar::isDriveKeyDisabled(DriveKeys key) const {
+    try {
+        return _disabledDriveKeys.test(key);
+    } catch (const std::exception&) {
+        qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
+        return true;
     }
 }
 
@@ -2166,7 +2247,15 @@ QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioList
 }
 
 void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode) {
-    audioListenerMode = (AudioListenerMode)object.toUInt16();
+    audioListenerMode = static_cast<AudioListenerMode>(object.toUInt16());
+}
+
+QScriptValue driveKeysToScriptValue(QScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys) {
+    return driveKeys;
+}
+
+void driveKeysFromScriptValue(const QScriptValue& object, MyAvatar::DriveKeys& driveKeys) {
+    driveKeys = static_cast<MyAvatar::DriveKeys>(object.toUInt16());
 }
 
 
@@ -2359,7 +2448,7 @@ bool MyAvatar::didTeleport() {
 }
 
 bool MyAvatar::hasDriveInput() const {
-    return fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Y]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
+    return fabsf(getDriveKey(TRANSLATE_X)) > 0.0f || fabsf(getDriveKey(TRANSLATE_Y)) > 0.0f || fabsf(getDriveKey(TRANSLATE_Z)) > 0.0f;
 }
 
 void MyAvatar::setAway(bool value) {
@@ -2395,6 +2484,10 @@ glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& c
 }
 
 glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
+    if (index < 0) {
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
+    }
+
     switch (index) {
         case CONTROLLER_LEFTHAND_INDEX: {
             return getLeftHandControllerPoseInAvatarFrame().getRotation();
@@ -2428,6 +2521,10 @@ glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
 }
 
 glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    if (index < 0) {
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
+    }
+
     switch (index) {
         case CONTROLLER_LEFTHAND_INDEX: {
             return getLeftHandControllerPoseInAvatarFrame().getTranslation();
@@ -2458,6 +2555,45 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);
         }
     }
+}
+
+bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& orientation) {
+    auto hipsIndex = getJointIndex("Hips");
+    if (index != hipsIndex) {
+        qWarning() << "Pinning is only supported for the hips joint at the moment.";
+        return false;
+    }
+
+    slamPosition(position);
+    setOrientation(orientation);
+
+    _rig->setMaxHipsOffsetLength(0.05f);
+
+    auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
+    if (it == _pinnedJoints.end()) {
+        _pinnedJoints.push_back(index);
+    }
+
+    return true;
+}
+
+bool MyAvatar::clearPinOnJoint(int index) {
+    auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
+    if (it != _pinnedJoints.end()) {
+        _pinnedJoints.erase(it);
+
+        auto hipsIndex = getJointIndex("Hips");
+        if (index == hipsIndex) {
+            _rig->setMaxHipsOffsetLength(FLT_MAX);
+        }
+
+        return true;
+    }
+    return false;
+}
+
+float MyAvatar::getIKErrorOnLastSolve() const {
+    return _rig->getIKErrorOnLastSolve();
 }
 
 // thread-safe

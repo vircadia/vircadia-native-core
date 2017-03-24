@@ -21,7 +21,7 @@ class UserActivityLoggerScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
     Q_INVOKABLE void enabledEdit();
-    Q_INVOKABLE void openedTablet();
+    Q_INVOKABLE void openedTablet(bool visibleToOthers);
     Q_INVOKABLE void closedTablet();
     Q_INVOKABLE void openedMarketplace();
     Q_INVOKABLE void toggledAway(bool isAway);

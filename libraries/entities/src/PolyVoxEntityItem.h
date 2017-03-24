@@ -57,6 +57,8 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void setVoxelData(QByteArray voxelData);
     virtual const QByteArray getVoxelData() const;
 
+    virtual int getOnCount() const { return 0; }
+
     enum PolyVoxSurfaceStyle {
         SURFACE_MARCHING_CUBES,
         SURFACE_CUBIC,
@@ -86,6 +88,8 @@ class PolyVoxEntityItem : public EntityItem {
 
     // coords are in world-space
     virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue) { return false; }
+    virtual bool setCapsule(glm::vec3 startWorldCoords, glm::vec3 endWorldCoords,
+                            float radiusWorldCoords, uint8_t toValue) { return false; }
     virtual bool setAll(uint8_t toValue) { return false; }
     virtual bool setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int value) { return false; }
 
@@ -129,7 +133,9 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void rebakeMesh() {};
 
     void setVoxelDataDirty(bool value) { withWriteLock([&] { _voxelDataDirty = value; }); }
-    virtual void getMesh() {}; // recompute mesh
+    virtual void recomputeMesh() {};
+
+    virtual bool getMeshAsScriptValue(QScriptEngine *engine, QScriptValue& result);
 
  protected:
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes

@@ -331,6 +331,12 @@ Grabber.prototype.pressEvent = function(event) {
     }
 
     var pickRay = Camera.computePickRay(event.x, event.y);
+
+    var overlayResult = Overlays.findRayIntersection(pickRay, true, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    if (overlayResult.intersects) {
+        return;
+    }
+
     var pickResults = Entities.findRayIntersection(pickRay, true); // accurate picking
     if (!pickResults.intersects) {
         // didn't click on anything
@@ -457,7 +463,7 @@ Grabber.prototype.moveEvent = function(event) {
         var orientation = Camera.getOrientation();
         var dragOffset = Vec3.multiply(drag.x, Quat.getRight(orientation));
         dragOffset = Vec3.sum(dragOffset, Vec3.multiply(-drag.y, Quat.getUp(orientation)));
-        var axis = Vec3.cross(dragOffset, Quat.getFront(orientation));
+        var axis = Vec3.cross(dragOffset, Quat.getForward(orientation));
         axis = Vec3.normalize(axis);
         var ROTATE_STRENGTH = 0.4; // magic number tuned by hand
         var angle = ROTATE_STRENGTH * Math.sqrt((drag.x * drag.x) + (drag.y * drag.y));
@@ -481,7 +487,7 @@ Grabber.prototype.moveEvent = function(event) {
         
         if (this.mode === "verticalCylinder") {
             // for this mode we recompute the plane based on current Camera
-            var planeNormal = Quat.getFront(Camera.getOrientation());
+            var planeNormal = Quat.getForward(Camera.getOrientation());
             planeNormal.y = 0;
             planeNormal = Vec3.normalize(planeNormal);
             var pointOnCylinder = Vec3.multiply(planeNormal, this.xzDistanceToGrab);

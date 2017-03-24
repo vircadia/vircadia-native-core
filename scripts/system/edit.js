@@ -33,13 +33,27 @@ Script.include([
     "libraries/gridTool.js",
     "libraries/entityList.js",
     "particle_explorer/particleExplorerTool.js",
-    "libraries/lightOverlayManager.js"
+    "libraries/entityIconOverlayManager.js"
 ]);
 
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
 
-var lightOverlayManager = new LightOverlayManager();
+const PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
+const POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
+const SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
+entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
+    var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
+    if (properties.type === 'Light') {
+        return {
+            url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
+        }
+    } else {
+        return {
+            url: PARTICLE_SYSTEM_URL,
+        }
+    }
+});
 
 var cameraManager = new CameraManager();
 
@@ -53,9 +67,48 @@ var entityListTool = new EntityListTool();
 
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
-    lightOverlayManager.updatePositions();
+    entityIconOverlayManager.updatePositions();
+
+    // Update particle explorer
+    var needToDestroyParticleExplorer = false;
+    if (selectionManager.selections.length === 1) {
+        var selectedEntityID = selectionManager.selections[0];
+        if (selectedEntityID === selectedParticleEntityID) {
+            return;
+        }
+        var type = Entities.getEntityProperties(selectedEntityID, "type").type;
+        if (type === "ParticleEffect") {
+            // Destroy the old particles web view first
+            particleExplorerTool.destroyWebView();
+            particleExplorerTool.createWebView();
+            var properties = Entities.getEntityProperties(selectedEntityID);
+            var particleData = {
+                messageType: "particle_settings",
+                currentProperties: properties
+            };
+            selectedParticleEntityID = selectedEntityID;
+            particleExplorerTool.setActiveParticleEntity(selectedParticleEntityID);
+
+            particleExplorerTool.webView.webEventReceived.connect(function (data) {
+                data = JSON.parse(data);
+                if (data.messageType === "page_loaded") {
+                    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+                }
+            });
+        } else {
+            needToDestroyParticleExplorer = true;
+        }
+    } else {
+        needToDestroyParticleExplorer = true;
+    }
+
+    if (needToDestroyParticleExplorer && selectedParticleEntityID !== null) {
+        selectedParticleEntityID = null;
+        particleExplorerTool.destroyWebView();
+    }
 });
 
+const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
 var epsilon = 0.001;
@@ -81,13 +134,13 @@ var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
-var MENU_SHOW_LIGHTS_IN_EDIT_MODE = "Show Lights in Edit Mode";
+var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Edit Mode";
 var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Edit Mode";
 
 var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
-var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
+var SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "showLightsAndParticlesInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
 
 
@@ -505,7 +558,7 @@ var toolBar = (function () {
             toolBar.writeProperty("shown", false);
             toolBar.writeProperty("shown", true);
         }
-        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
+        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
@@ -564,9 +617,14 @@ function findClickedEntity(event) {
 
     var pickRay = Camera.computePickRay(event.x, event.y);
 
+    var overlayResult = Overlays.findRayIntersection(pickRay, true, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    if (overlayResult.intersects) {
+        return null;
+    }
+
     var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
-    var lightResult = lightOverlayManager.findRayIntersection(pickRay);
-    lightResult.accurate = true;
+    var iconResult = entityIconOverlayManager.findRayIntersection(pickRay);
+    iconResult.accurate = true;
 
     if (pickZones) {
         Entities.setZonesArePickable(false);
@@ -574,18 +632,12 @@ function findClickedEntity(event) {
 
     var result;
 
-    if (!entityResult.intersects && !lightResult.intersects) {
-        return null;
-    } else if (entityResult.intersects && !lightResult.intersects) {
+    if (iconResult.intersects) {
+        result = iconResult;
+    } else if (entityResult.intersects) {
         result = entityResult;
-    } else if (!entityResult.intersects && lightResult.intersects) {
-        result = lightResult;
     } else {
-        if (entityResult.distance < lightResult.distance) {
-            result = entityResult;
-        } else {
-            result = lightResult;
-        }
+        return null;
     }
 
     if (!result.accurate) {
@@ -764,7 +816,7 @@ function mouseClickEvent(event) {
             if (0 < x && sizeOK) {
                 selectedEntityID = foundEntity;
                 orientation = MyAvatar.orientation;
-                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+                intersection = rayPlaneIntersection(pickRay, P, Quat.getForward(orientation));
 
 
                 if (!event.isShifted) {
@@ -838,7 +890,6 @@ function setupModelMenus() {
         });
         modelMenuAddedDelete = true;
     }
-
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Entity List...",
@@ -846,11 +897,25 @@ function setupModelMenus() {
         afterItem: "Entities",
         grouping: "Advanced"
     });
+
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Parent Entity to Last",
+        afterItem: "Entity List...",
+        grouping: "Advanced"
+    });
+
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Unparent Entity",
+        afterItem: "Parent Entity to Last",
+        grouping: "Advanced"
+    });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Allow Selecting of Large Models",
         shortcutKey: "CTRL+META+L",
-        afterItem: "Entity List...",
+        afterItem: "Unparent Entity",
         isCheckable: true,
         isChecked: true,
         grouping: "Advanced"
@@ -926,18 +991,18 @@ function setupModelMenus() {
     });
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
+        menuItemName: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
         afterItem: MENU_EASE_ON_FOCUS,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) === "true",
+        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) !== "false",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE,
-        afterItem: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
+        afterItem: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) === "true",
+        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false",
         grouping: "Advanced"
     });
 
@@ -953,6 +1018,8 @@ function cleanupModelMenus() {
         Menu.removeMenuItem("Edit", "Delete");
     }
 
+    Menu.removeMenuItem("Edit", "Parent Entity to Last");
+    Menu.removeMenuItem("Edit", "Unparent Entity");
     Menu.removeMenuItem("Edit", "Entity List...");
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
@@ -966,7 +1033,7 @@ function cleanupModelMenus() {
 
     Menu.removeMenuItem("Edit", MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem("Edit", MENU_EASE_ON_FOCUS);
-    Menu.removeMenuItem("Edit", MENU_SHOW_LIGHTS_IN_EDIT_MODE);
+    Menu.removeMenuItem("Edit", MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE);
     Menu.removeMenuItem("Edit", MENU_SHOW_ZONES_IN_EDIT_MODE);
 }
 
@@ -974,7 +1041,7 @@ Script.scriptEnding.connect(function () {
     toolBar.setActive(false);
     Settings.setValue(SETTING_AUTO_FOCUS_ON_SELECT, Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT));
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-    Settings.setValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
+    Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
 
     progressDialog.cleanup();
@@ -985,6 +1052,9 @@ Script.scriptEnding.connect(function () {
 
     Overlays.deleteOverlay(importingSVOImageOverlay);
     Overlays.deleteOverlay(importingSVOTextOverlay);
+
+    Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
+    Controller.keyPressEvent.disconnect(keyPressEvent);
 });
 
 var lastOrientation = null;
@@ -1096,10 +1166,71 @@ function recursiveDelete(entities, childrenList) {
         Entities.deleteEntity(entityID);
     }
 }
+function unparentSelectedEntities() {
+    if (SelectionManager.hasSelection()) {
+        var selectedEntities = selectionManager.selections;
+        var parentCheck = false;
 
+        if (selectedEntities.length < 1) {
+            Window.notifyEditError("You must have an entity selected inorder to unparent it.");
+            return;
+        }
+        selectedEntities.forEach(function (id, index) {
+            var parentId = Entities.getEntityProperties(id, ["parentID"]).parentID;
+            if (parentId !== null && parentId.length > 0 && parentId !== "{00000000-0000-0000-0000-000000000000}") {
+                parentCheck = true;
+            }
+            Entities.editEntity(id, {parentID: null})
+            return true;
+        });
+        if (parentCheck) {
+            if (selectedEntities.length > 1) {
+                Window.notify("Entities unparented");
+            } else {
+                Window.notify("Entity unparented");
+            }
+        } else {
+            if (selectedEntities.length > 1) {
+                Window.notify("Selected Entities have no parents");
+            } else {
+                Window.notify("Selected Entity does not have a parent");
+            }
+        }
+    } else {
+        Window.notifyEditError("You have nothing selected to unparent");
+    }
+}
+function parentSelectedEntities() {
+    if (SelectionManager.hasSelection()) {
+        var selectedEntities = selectionManager.selections;
+        if (selectedEntities.length <= 1) {
+            Window.notifyEditError("You must have multiple entities selected in order to parent them");
+            return;
+        }
+        var parentCheck = false;
+        var lastEntityId = selectedEntities[selectedEntities.length-1];
+        selectedEntities.forEach(function (id, index) {
+            if (lastEntityId !== id) {
+                var parentId = Entities.getEntityProperties(id, ["parentID"]).parentID;
+                if (parentId !== lastEntityId) {
+                    parentCheck = true;
+                }
+                Entities.editEntity(id, {parentID: lastEntityId})
+            }
+        });
+
+        if(parentCheck) {
+            Window.notify("Entities parented");
+        }else {
+            Window.notify("Entities are already parented to last");
+        }
+    } else {
+        Window.notifyEditError("You have nothing selected to parent");
+    }
+}
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
-        selectedParticleEntity = 0;
+        selectedParticleEntityID = null;
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
@@ -1159,6 +1290,10 @@ function handeMenuEvent(menuItem) {
         Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem === "Delete") {
         deleteSelectedEntities();
+    } else if (menuItem === "Parent Entity to Last") {
+        parentSelectedEntities();
+    } else if (menuItem === "Unparent Entity") {
+        unparentSelectedEntities();
     } else if (menuItem === "Export Entities") {
         if (!selectionManager.hasSelection()) {
             Window.notifyEditError("No entities have been selected.");
@@ -1194,8 +1329,8 @@ function handeMenuEvent(menuItem) {
         selectAllEtitiesInCurrentSelectionBox(false);
     } else if (menuItem === "Select All Entities Touching Box") {
         selectAllEtitiesInCurrentSelectionBox(true);
-    } else if (menuItem === MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
-        lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
+    } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
+        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
@@ -1203,12 +1338,12 @@ function handeMenuEvent(menuItem) {
 }
 function getPositionToCreateEntity() {
     var HALF_TREE_SCALE = 16384;
-    var direction = Quat.getFront(MyAvatar.orientation);
+    var direction = Quat.getForward(MyAvatar.orientation);
     var distance = 1;
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
 
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), distance))
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), distance))
     }
     position.y += 0.5;
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
@@ -1220,13 +1355,13 @@ function getPositionToCreateEntity() {
 function getPositionToImportEntity() {
     var dimensions = Clipboard.getContentsDimensions();
     var HALF_TREE_SCALE = 16384;
-    var direction = Quat.getFront(MyAvatar.orientation);
+    var direction = Quat.getForward(MyAvatar.orientation);
     var longest = 1;
     longest = Math.sqrt(Math.pow(dimensions.x, 2) + Math.pow(dimensions.z, 2));
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, longest));
 
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), longest))
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), longest))
     }
 
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
@@ -1284,13 +1419,12 @@ Window.svoImportRequested.connect(importSVO);
 
 Menu.menuItemEvent.connect(handeMenuEvent);
 
-Controller.keyPressEvent.connect(function (event) {
+var keyPressEvent = function (event) {
     if (isActive) {
         cameraManager.keyPressEvent(event);
     }
-});
-
-Controller.keyReleaseEvent.connect(function (event) {
+};
+var keyReleaseEvent = function (event) {
     if (isActive) {
         cameraManager.keyReleaseEvent(event);
     }
@@ -1324,8 +1458,16 @@ Controller.keyReleaseEvent.connect(function (event) {
             });
             grid.setPosition(newPosition);
         }
+    } else if (event.key === KEY_P && event.isControl && !event.isAutoRepeat ) {
+        if (event.isShifted) {
+            unparentSelectedEntities();
+        } else {
+            parentSelectedEntities();
+        }
     }
-});
+};
+Controller.keyReleaseEvent.connect(keyReleaseEvent);
+Controller.keyPressEvent.connect(keyPressEvent);
 
 function recursiveAdd(newParentID, parentData) {
     var children = parentData.children;
@@ -1575,6 +1717,10 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
+        } else if(data.type === 'parent') {
+            parentSelectedEntities();
+        } else if(data.type === 'unparent') {
+            unparentSelectedEntities();
         } else if(data.type === 'saveUserData'){
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
@@ -1832,6 +1978,9 @@ var PopupMenu = function () {
         for (var i = 0; i < overlays.length; i++) {
             Overlays.deleteOverlay(overlays[i]);
         }
+        Controller.mousePressEvent.disconnect(self.mousePressEvent);
+        Controller.mouseMoveEvent.disconnect(self.mouseMoveEvent);
+        Controller.mouseReleaseEvent.disconnect(self.mouseReleaseEvent);
     }
 
     Controller.mousePressEvent.connect(self.mousePressEvent);
@@ -1856,39 +2005,13 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
 var particleExplorerTool = new ParticleExplorerTool();
-var selectedParticleEntity = 0;
+var selectedParticleEntityID = null;
 entityListTool.webView.webEventReceived.connect(function (data) {
     data = JSON.parse(data);
-    if (data.type === "selectionUpdate") {
-        var ids = data.entityIds;
-        if (ids.length === 1) {
-            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
-                if (JSON.stringify(selectedParticleEntity) === JSON.stringify(ids[0])) {
-                    // This particle entity is already selected, so return
-                    return;
-                }
-                // Destroy the old particles web view first
-                particleExplorerTool.destroyWebView();
-                particleExplorerTool.createWebView();
-                var properties = Entities.getEntityProperties(ids[0]);
-                var particleData = {
-                    messageType: "particle_settings",
-                    currentProperties: properties
-                };
-                selectedParticleEntity = ids[0];
-                particleExplorerTool.setActiveParticleEntity(ids[0]);
-
-                particleExplorerTool.webView.webEventReceived.connect(function (data) {
-                    data = JSON.parse(data);
-                    if (data.messageType === "page_loaded") {
-                        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-                    }
-                });
-            } else {
-                selectedParticleEntity = 0;
-                particleExplorerTool.destroyWebView();
-            }
-        }
+    if (data.type === 'parent') {
+        parentSelectedEntities();
+    } else if(data.type === 'unparent') {
+        unparentSelectedEntities();
     }
 });
 

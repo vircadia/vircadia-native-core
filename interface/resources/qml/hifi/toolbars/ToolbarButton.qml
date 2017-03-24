@@ -11,10 +11,31 @@ StateImage {
     property int imageOnOut: 0
     property int imageOnIn: 2
 
+    property string text: ""
+    property string hoverText: button.text
+    property string activeText: button.text
+    property string activeHoverText: button.activeText
+
+    property string icon: "icons/tablet-icons/blank.svg"
+    property string hoverIcon: button.icon
+    property string activeIcon: button.icon
+    property string activeHoverIcon: button.activeIcon
+
+    property int sortOrder: 100
+    property int stableSortOrder: 0
+
     signal clicked()
 
     function changeProperty(key, value) {
         button[key] = value;
+    }
+
+    function urlHelper(src) {
+        if (src.match(/\bhttp/)) {
+            return src;
+        } else {
+            return "../../../" + src;
+        }
     }
 
     function updateState() {
@@ -38,7 +59,7 @@ StateImage {
         running: false
         onTriggered: button.clicked();
     }
-    
+
     MouseArea {
         id: mouseArea
         hoverEnabled: true
@@ -52,6 +73,29 @@ StateImage {
             button.isEntered = false;
             updateState();
         }
+    }
+
+    Image {
+        id: icon
+        width: 28
+        height: 28
+        anchors.bottom: caption.top
+        anchors.bottomMargin: 0
+        anchors.horizontalCenter: parent.horizontalCenter
+        fillMode: Image.Stretch
+        source: urlHelper(button.isActive ? (button.isEntered ? button.activeHoverIcon : button.activeIcon) : (button.isEntered ? button.hoverIcon : button.icon))
+    }
+
+    Text {
+        id: caption
+        color: button.isActive ? "#000000" : "#ffffff"
+        text: button.isActive ? (button.isEntered ? button.activeHoverText : button.activeText) : (button.isEntered ? button.hoverText : button.text)
+        font.bold: false
+        font.pixelSize: 9
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 5
+        anchors.horizontalCenter: parent.horizontalCenter
+        horizontalAlignment: Text.AlignHCenter
     }
 }
 

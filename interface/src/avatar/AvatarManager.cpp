@@ -85,7 +85,7 @@ AvatarManager::AvatarManager(QObject* parent) :
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
     connect(nodeList.data(), &NodeList::ignoredNode, this, [=](const QUuid& nodeID, bool enabled) {
         if (enabled) {
-            removeAvatar(nodeID);
+            removeAvatar(nodeID, KillAvatarReason::AvatarIgnored);
         }
     });
 }
@@ -148,16 +148,6 @@ float AvatarManager::getAvatarSimulationRate(const QUuid& sessionID, const QStri
 }
 
 
-
-class AvatarPriority {
-public:
-    AvatarPriority(AvatarSharedPointer a, float p) : avatar(a), priority(p) {}
-    AvatarSharedPointer avatar;
-    float priority;
-    // NOTE: we invert the less-than operator to sort high priorities to front
-    bool operator<(const AvatarPriority& other) const { return priority > other.priority; }
-};
-
 void AvatarManager::updateOtherAvatars(float deltaTime) {
     // lock the hash for read to check the size
     QReadLocker lock(&_hashLock);
@@ -167,72 +157,48 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     lock.unlock();
 
     PerformanceTimer perfTimer("otherAvatars");
-    uint64_t startTime = usecTimestampNow();
 
     auto avatarMap = getHashCopy();
     QList<AvatarSharedPointer> avatarList = avatarMap.values();
     ViewFrustum cameraView;
     qApp->copyDisplayViewFrustum(cameraView);
-    glm::vec3 frustumCenter = cameraView.getPosition();
-
-    const float OUT_OF_VIEW_PENALTY = -10.0;
 
     std::priority_queue<AvatarPriority> sortedAvatars;
-    {
-        PROFILE_RANGE(simulation, "sort");
-        for (int32_t i = 0; i < avatarList.size(); ++i) {
-            const auto& avatar = std::static_pointer_cast<Avatar>(avatarList.at(i));
-            if (avatar == _myAvatar || !avatar->isInitialized()) {
+    AvatarData::sortAvatars(avatarList, cameraView, sortedAvatars,
+
+        [](AvatarSharedPointer avatar)->uint64_t{
+            return std::static_pointer_cast<Avatar>(avatar)->getLastRenderUpdateTime();
+        },
+
+        [](AvatarSharedPointer avatar)->float{
+            return std::static_pointer_cast<Avatar>(avatar)->getBoundingRadius();
+        },
+
+        [this](AvatarSharedPointer avatar)->bool{
+            const auto& castedAvatar = std::static_pointer_cast<Avatar>(avatar);
+            if (castedAvatar == _myAvatar || !castedAvatar->isInitialized()) {
                 // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
                 // DO NOT update or fade out uninitialized Avatars
-                continue;
+                return true; // ignore it
             }
             if (avatar->shouldDie()) {
                 removeAvatar(avatar->getID());
-                continue;
+                return true; // ignore it
             }
             if (avatar->isDead()) {
-                continue;
+                return true; // ignore it
             }
 
-            // priority = weighted linear combination of:
-            //   (a) apparentSize
-            //   (b) proximity to center of view
-            //   (c) time since last update
-            //   (d) TIME_PENALTY to help recently updated entries sort toward back
-            glm::vec3 avatarPosition = avatar->getPosition();
-            glm::vec3 offset = avatarPosition - frustumCenter;
-            float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
-            float radius = avatar->getBoundingRadius();
-            const glm::vec3& forward = cameraView.getDirection();
-            float apparentSize = radius / distance;
-            float cosineAngle = glm::length(offset - glm::dot(offset, forward) * forward) / distance;
-            const float TIME_PENALTY = 0.080f; // seconds
-            float age = (float)(startTime - avatar->getLastRenderUpdateTime()) / (float)(USECS_PER_SECOND) - TIME_PENALTY;
-            // NOTE: we are adding values of different units to get a single measure of "priority".
-            // Thus we multiply each component by a conversion "weight" that scales its units
-            // relative to the others.  These weights are pure magic tuning and are hard coded in the
-            // relation below: (hint: unitary weights are not explicityly shown)
-            float priority = apparentSize + 0.25f * cosineAngle + age;
-
-            // decrement priority of avatars outside keyhole
-            if (distance > cameraView.getCenterRadius()) {
-                if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
-                    priority += OUT_OF_VIEW_PENALTY;
-                }
-            }
-            sortedAvatars.push(AvatarPriority(avatar, priority));
-        }
-    }
+            return false;
+        });
 
     render::PendingChanges pendingChanges;
-    const uint64_t RENDER_UPDATE_BUDGET = 1500; // usec
-    const uint64_t MAX_UPDATE_BUDGET = 2000; // usec
-    uint64_t renderExpiry = startTime + RENDER_UPDATE_BUDGET;
-    uint64_t maxExpiry = startTime + MAX_UPDATE_BUDGET;
+    uint64_t startTime = usecTimestampNow();
+    const uint64_t UPDATE_BUDGET = 2000; // usec
+    uint64_t updateExpiry = startTime + UPDATE_BUDGET;
 
-    int fullySimulatedAvatars = 0;
-    int partiallySimulatedAvatars = 0;
+    int numAvatarsUpdated = 0;
+    int numAVatarsNotUpdated = 0;
     while (!sortedAvatars.empty()) {
         const AvatarPriority& sortData = sortedAvatars.top();
         const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
@@ -253,33 +219,49 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         }
         avatar->animateScaleChanges(deltaTime);
 
+        const float OUT_OF_VIEW_THRESHOLD = 0.5f * AvatarData::OUT_OF_VIEW_PENALTY;
         uint64_t now = usecTimestampNow();
-        if (now < renderExpiry) {
+        if (now < updateExpiry) {
             // we're within budget
-            const float OUT_OF_VIEW_THRESHOLD = 0.5f * OUT_OF_VIEW_PENALTY;
             bool inView = sortData.priority > OUT_OF_VIEW_THRESHOLD;
+            if (inView && avatar->hasNewJointData()) {
+                numAvatarsUpdated++;
+            }
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(pendingChanges);
             avatar->setLastRenderUpdateTime(startTime);
-            fullySimulatedAvatars++;
-        } else if (now < maxExpiry) {
-            // we've spent most of our time budget, but we still simulate() the avatar as it if were out of view
-            // --> some avatars may freeze until their priority trickles up
-            const bool inView = false;
-            avatar->simulate(deltaTime, inView);
-            partiallySimulatedAvatars++;
         } else {
-            // we've spent ALL of our time budget --> bail on the rest of the avatar updates
+            // we've spent our full time budget --> bail on the rest of the avatar updates
+            // --> more avatars may freeze until their priority trickles up
             // --> some scale or fade animations may glitch
             // --> some avatar velocity measurements may be a little off
+
+            // no time simulate, but we take the time to count how many were tragically missed
+            bool inView = sortData.priority > OUT_OF_VIEW_THRESHOLD;
+            if (!inView) {
+                break;
+            }
+            if (inView && avatar->hasNewJointData()) {
+                numAVatarsNotUpdated++;
+            }
+            sortedAvatars.pop();
+            while (inView && !sortedAvatars.empty()) {
+                const AvatarPriority& newSortData = sortedAvatars.top();
+                const auto& newAvatar = std::static_pointer_cast<Avatar>(newSortData.avatar);
+                inView = newSortData.priority > OUT_OF_VIEW_THRESHOLD;
+                if (inView && newAvatar->hasNewJointData()) {
+                    numAVatarsNotUpdated++;
+                }
+                sortedAvatars.pop();
+            }
             break;
         }
         sortedAvatars.pop();
     }
 
     _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
-    _fullySimulatedAvatars = fullySimulatedAvatars;
-    _partiallySimulatedAvatars = partiallySimulatedAvatars;
+    _numAvatarsUpdated = numAvatarsUpdated;
+    _numAvatarsNotUpdated = numAVatarsNotUpdated;
     qApp->getMain3DScene()->enqueuePendingChanges(pendingChanges);
 
     simulateAvatarFades(deltaTime);
@@ -347,7 +329,7 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
-    AvatarHashMap::handleRemovedAvatar(removedAvatar);
+    AvatarHashMap::handleRemovedAvatar(removedAvatar, removalReason);
 
     // removedAvatar is a shared pointer to an AvatarData but we need to get to the derived Avatar
     // class in this context so we can call methods that don't exist at the base class.
@@ -442,7 +424,7 @@ void AvatarManager::getObjectsToChange(VectorOfMotionStates& result) {
     }
 }
 
-void AvatarManager::handleOutgoingChanges(const VectorOfMotionStates& motionStates) {
+void AvatarManager::handleChangedMotionStates(const VectorOfMotionStates& motionStates) {
     // TODO: extract the MyAvatar results once we use a MotionState for it.
 }
 
@@ -592,4 +574,45 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
     }
 
     return result;
+}
+
+// HACK
+float AvatarManager::getAvatarSortCoefficient(const QString& name) {
+    if (name == "size") {
+        return AvatarData::_avatarSortCoefficientSize;
+    } else if (name == "center") {
+        return AvatarData::_avatarSortCoefficientCenter;
+    } else if (name == "age") {
+        return AvatarData::_avatarSortCoefficientAge;
+    }
+    return 0.0f;
+}
+
+// HACK
+void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptValue& value) {
+    bool somethingChanged = false;
+    if (value.isNumber()) {
+        float numericalValue = (float)value.toNumber();
+        if (name == "size") {
+            AvatarData::_avatarSortCoefficientSize = numericalValue;
+            somethingChanged = true;
+        } else if (name == "center") {
+            AvatarData::_avatarSortCoefficientCenter = numericalValue;
+            somethingChanged = true;
+        } else if (name == "age") {
+            AvatarData::_avatarSortCoefficientAge = numericalValue;
+            somethingChanged = true;
+        }
+    }
+    if (somethingChanged) {
+        size_t packetSize = sizeof(AvatarData::_avatarSortCoefficientSize) + 
+                            sizeof(AvatarData::_avatarSortCoefficientCenter) +
+                            sizeof(AvatarData::_avatarSortCoefficientAge);
+
+        auto packet = NLPacket::create(PacketType::AdjustAvatarSorting, packetSize);
+        packet->writePrimitive(AvatarData::_avatarSortCoefficientSize);
+        packet->writePrimitive(AvatarData::_avatarSortCoefficientCenter);
+        packet->writePrimitive(AvatarData::_avatarSortCoefficientAge);
+        DependencyManager::get<NodeList>()->broadcastToNodes(std::move(packet), NodeSet() << NodeType::AvatarMixer);
+    }
 }

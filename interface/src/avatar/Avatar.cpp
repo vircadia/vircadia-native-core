@@ -334,11 +334,6 @@ void Avatar::updateAvatarEntities() {
     setAvatarEntityDataChanged(false);
 }
 
-bool Avatar::shouldDie() const {
-    const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
-    return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS;
-}
-
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
 
@@ -353,10 +348,11 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView && _hasNewJointData) {
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
+            glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
+            _skeletonModel->getRig()->computeExternalPoses(rootTransform);
             _jointDataSimulationRate.increment();
 
             _skeletonModel->simulate(deltaTime, true);
-            _skeletonModelSimulationRate.increment();
 
             locationChanged(); // joints changed, so if there are any children, update them.
             _hasNewJointData = false;
@@ -372,8 +368,8 @@ void Avatar::simulate(float deltaTime, bool inView) {
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
-            _skeletonModelSimulationRate.increment();
         }
+        _skeletonModelSimulationRate.increment();
     }
 
     // update animation for display name fade in/out
@@ -938,6 +934,10 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
+    if (index < 0) {
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
+    }
+
     switch(index) {
         case SENSOR_TO_WORLD_MATRIX_INDEX: {
             glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
@@ -974,6 +974,10 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
 }
 
 glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    if (index < 0) {
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
+    }
+
     switch(index) {
         case SENSOR_TO_WORLD_MATRIX_INDEX: {
             glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
