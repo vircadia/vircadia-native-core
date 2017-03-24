@@ -61,28 +61,29 @@ var switchedAudioInputToHMD = false;
 var switchedAudioOutputToHMD = false;
 var previousSelectedInputAudioDevice = "";
 var previousSelectedOutputAudioDevice = "";
+var menuConnected = false;
 
 /****************************************
     BEGIN FUNCTION DEFINITIONS
 ****************************************/
 function setupAudioMenus() {
+    if (menuConnected) {
+        Menu.menuItemEvent.disconnect(menuItemEvent);
+        menuConnected = false;
+    }
     removeAudioMenus();
 
     /* Setup audio input devices */
     Menu.addSeparator("Audio", "Input Audio Device");
-    var inputDeviceSetting = Settings.getValue(INPUT_DEVICE_SETTING);
     var inputDevices = AudioDevice.getInputDevices();
+    print("selectAudioDevice: Audio input devices: " + inputDevices);
     var selectedInputDevice = AudioDevice.getInputDevice();
+    var inputDeviceSetting = Settings.getValue(INPUT_DEVICE_SETTING);
     if (inputDevices.indexOf(inputDeviceSetting) != -1 && selectedInputDevice != inputDeviceSetting) {
-        print ("Audio input device SETTING does not match Input AudioDevice. Attempting to change Input AudioDevice...")
-        if (AudioDevice.setInputDevice(inputDeviceSetting)) {
-            selectedInputDevice = inputDeviceSetting;
-        } else {
-            print("Error setting audio input device!")
-        }
+        print("selectAudioDevice: Input Setting & Device mismatch! Input SETTING:", inputDeviceSetting, "Input DEVICE IN USE:", selectedInputDevice);
+        switchAudioDevice(true, inputDeviceSetting);
     }
-    print("Audio input devices: " + inputDevices);
-    for(var i = 0; i < inputDevices.length; i++) {
+    for (var i = 0; i < inputDevices.length; i++) {
         var thisDeviceSelected = (inputDevices[i] == selectedInputDevice);
         var menuItem = "Use " + inputDevices[i] + " for Input";
         Menu.addMenuItem({
@@ -99,18 +100,14 @@ function setupAudioMenus() {
 
     /* Setup audio output devices */
     Menu.addSeparator("Audio", "Output Audio Device");
-    var outputDeviceSetting = Settings.getValue(OUTPUT_DEVICE_SETTING);
     var outputDevices = AudioDevice.getOutputDevices();
+    print("selectAudioDevice: Audio output devices: " + outputDevices);
     var selectedOutputDevice = AudioDevice.getOutputDevice();
+    var outputDeviceSetting = Settings.getValue(OUTPUT_DEVICE_SETTING);
     if (outputDevices.indexOf(outputDeviceSetting) != -1 && selectedOutputDevice != outputDeviceSetting) {
-        print("Audio output device SETTING does not match Output AudioDevice. Attempting to change Output AudioDevice...")
-        if (AudioDevice.setOutputDevice(outputDeviceSetting)) {
-            selectedOutputDevice = outputDeviceSetting;
-        } else {
-            print("Error setting audio output device!")
-        }
+        print("selectAudioDevice: Output Setting & Device mismatch! Output SETTING:", outputDeviceSetting, "Output DEVICE IN USE:", selectedOutputDevice);
+        switchAudioDevice(false, outputDeviceSetting);
     }
-    print("Audio output devices: " + outputDevices);
     for (var i = 0; i < outputDevices.length; i++) {
         var thisDeviceSelected = (outputDevices[i] == selectedOutputDevice);
         var menuItem = "Use " + outputDevices[i] + " for Output";
@@ -124,6 +121,10 @@ function setupAudioMenus() {
         if (thisDeviceSelected) {
             selectedOutputMenu = menuItem;
         }
+    }
+    if (!menuConnected) {
+        Menu.menuItemEvent.connect(menuItemEvent);
+        menuConnected = true;
     }
 }
 
@@ -141,51 +142,77 @@ function removeAudioMenus() {
 }
 
 function onDevicechanged() {
-    print("System audio device changed. Removing and replacing Audio Menus...");
+    print("selectAudioDevice: System audio device changed. Removing and replacing Audio Menus...");
     setupAudioMenus();
 }
 
 function menuItemEvent(menuItem) {
+    if (menuConnected) {
+        Menu.menuItemEvent.disconnect(menuItemEvent);
+        menuConnected = false;
+    }
     if (menuItem.startsWith("Use ")) {
         if (menuItem.endsWith(" for Input")) {
             var selectedDevice = menuItem.trimStartsWith("Use ").trimEndsWith(" for Input");
-            print("User selected a new Audio Input Device: " + selectedDevice);
-            Menu.menuItemEvent.disconnect(menuItemEvent);
-            Menu.setIsOptionChecked(selectedInputMenu, false);
-            selectedInputMenu = menuItem;
-            Menu.setIsOptionChecked(selectedInputMenu, true);
-            if (AudioDevice.setInputDevice(selectedDevice)) {
-                Settings.setValue(INPUT_DEVICE_SETTING, selectedDevice);
-            } else {
-                print("Error setting audio input device!")
-            }
-            Menu.menuItemEvent.connect(menuItemEvent);
+            print("selectAudioDevice: User selected a new Audio Input Device: " + selectedDevice);
+            switchAudioDevice(true, selectedDevice);
         } else if (menuItem.endsWith(" for Output")) {
             var selectedDevice = menuItem.trimStartsWith("Use ").trimEndsWith(" for Output");
-            print("User selected a new Audio Output Device: " + selectedDevice);
-            Menu.menuItemEvent.disconnect(menuItemEvent);
-            Menu.setIsOptionChecked(selectedOutputMenu, false);
-            selectedOutputMenu = menuItem;
-            Menu.setIsOptionChecked(selectedOutputMenu, true);
-            if (AudioDevice.setOutputDevice(selectedDevice)) {
-                Settings.setValue(OUTPUT_DEVICE_SETTING, selectedDevice);
-            } else {
-                print("Error setting audio output device!")
-            }
-            Menu.menuItemEvent.connect(menuItemEvent);
+            print("selectAudioDevice: User selected a new Audio Output Device: " + selectedDevice);
+            switchAudioDevice(false, selectedDevice);
+        } else {
+            print("selectAudioDevice: Invalid Audio menuItem! Doesn't end with 'for Input' or 'for Output'")
         }
+    } else {
+        print("selectAudioDevice: Invalid Audio menuItem! Doesn't start with 'Use '")
+    }
+    if (!menuConnected) {
+        Menu.menuItemEvent.connect(menuItemEvent);
+        menuConnected = true;
+    }
+}
+
+function switchAudioDevice(isInput, device) {
+    if (menuConnected) {
+        Menu.menuItemEvent.disconnect(menuItemEvent);
+        menuConnected = false;
+    }
+    if (isInput) {
+        print("selectAudioDevice: Switching audio INPUT device to:", device);
+        if (AudioDevice.setInputDevice(device)) {
+            Menu.setIsOptionChecked(selectedInputMenu, false);
+            selectedInputMenu = "Use " + device + " for Input";
+            Menu.setIsOptionChecked(selectedInputMenu, true);
+            Settings.setValue(INPUT_DEVICE_SETTING, device);
+        } else {
+            print("selectAudioDevice: Error setting audio input device!")
+        }
+    } else {
+        print("selectAudioDevice: Switching audio OUTPUT device to:", device);
+        if (AudioDevice.setOutputDevice(device)) {
+            Menu.setIsOptionChecked(selectedOutputMenu, false);
+            selectedOutputMenu = "Use " + device + " for Output";
+            Menu.setIsOptionChecked(selectedOutputMenu, true);
+            Settings.setValue(OUTPUT_DEVICE_SETTING, device);
+        } else {
+            print("selectAudioDevice: Error setting audio output device!")
+        }
+    }
+    if (!menuConnected) {
+        Menu.menuItemEvent.connect(menuItemEvent);
+        menuConnected = true;
     }
 }
 
 function restoreAudio() {
     if (switchedAudioInputToHMD) {
-        print("Switching back from HMD preferred audio input to: " + previousSelectedInputAudioDevice);
-        menuItemEvent("Use " + previousSelectedInputAudioDevice + " for Input");
+        print("selectAudioDevice: Switching back from HMD preferred audio input to: " + previousSelectedInputAudioDevice);
+        switchAudioDevice(true, previousSelectedInputAudioDevice);
         switchedAudioInputToHMD = false;
     }
     if (switchedAudioOutputToHMD) {
-        print("Switching back from HMD preferred audio output to: " + previousSelectedOutputAudioDevice);
-        menuItemEvent("Use " + previousSelectedOutputAudioDevice + " for Output");
+        print("selectAudioDevice: Switching back from HMD preferred audio output to: " + previousSelectedOutputAudioDevice);
+        switchAudioDevice(false, previousSelectedOutputAudioDevice);
         switchedAudioOutputToHMD = false;
     }
 }
@@ -193,39 +220,38 @@ function restoreAudio() {
 function checkHMDAudio() {
     // HMD Active state is changing; handle switching
     if (HMD.active != wasHmdActive) {
-        print("HMD Active state changed!");
+        print("selectAudioDevice: HMD Active state changed!");
 
         // We're putting the HMD on; switch to those devices
         if (HMD.active) {
-            print("HMD is now Active.");
+            print("selectAudioDevice: HMD is now Active.");
             var hmdPreferredAudioInput = HMD.preferredAudioInput();
             var hmdPreferredAudioOutput = HMD.preferredAudioOutput();
-            print("hmdPreferredAudioInput: " + hmdPreferredAudioInput);
-            print("hmdPreferredAudioOutput: " + hmdPreferredAudioOutput);
-
+            print("selectAudioDevice: hmdPreferredAudioInput: " + hmdPreferredAudioInput);
+            print("selectAudioDevice: hmdPreferredAudioOutput: " + hmdPreferredAudioOutput);
 
             if (hmdPreferredAudioInput !== "") {
-                print("HMD has preferred audio input device.");
+                print("selectAudioDevice: HMD has preferred audio input device.");
                 previousSelectedInputAudioDevice = Settings.getValue(INPUT_DEVICE_SETTING);
-                print("previousSelectedInputAudioDevice: " + previousSelectedInputAudioDevice);
+                print("selectAudioDevice: previousSelectedInputAudioDevice: " + previousSelectedInputAudioDevice);
                 if (hmdPreferredAudioInput != previousSelectedInputAudioDevice) {
-                    print("Switching Audio Input device to HMD preferred device: " + hmdPreferredAudioInput);
+                    print("selectAudioDevice: Switching Audio Input device to HMD preferred device: " + hmdPreferredAudioInput);
                     switchedAudioInputToHMD = true;
-                    menuItemEvent("Use " + hmdPreferredAudioInput + " for Input");
+                    switchAudioDevice(true, hmdPreferredAudioInput);
                 }
             }
             if (hmdPreferredAudioOutput !== "") {
-                print("HMD has preferred audio output device.");
+                print("selectAudioDevice: HMD has preferred audio output device.");
                 previousSelectedOutputAudioDevice = Settings.getValue(OUTPUT_DEVICE_SETTING);
-                print("previousSelectedOutputAudioDevice: " + previousSelectedOutputAudioDevice);
+                print("selectAudioDevice: previousSelectedOutputAudioDevice: " + previousSelectedOutputAudioDevice);
                 if (hmdPreferredAudioOutput != previousSelectedOutputAudioDevice) {
-                    print("Switching Audio Output device to HMD preferred device: " + hmdPreferredAudioOutput);
+                    print("selectAudioDevice: Switching Audio Output device to HMD preferred device: " + hmdPreferredAudioOutput);
                     switchedAudioOutputToHMD = true;
-                    menuItemEvent("Use " + hmdPreferredAudioOutput + " for Output");
+                    switchAudioDevice(false, hmdPreferredAudioOutput);
                 }
             }
         } else {
-            print("HMD no longer active. Restoring audio I/O devices...");
+            print("selectAudioDevice: HMD no longer active. Restoring audio I/O devices...");
             restoreAudio();
         }
     }
@@ -240,15 +266,17 @@ function checkHMDAudio() {
 ****************************************/
 // Have a small delay before the menus get setup so the audio devices can switch to the last selected ones
 Script.setTimeout(function () {
-    print("Connecting deviceChanged() and displayModeChanged()");
+    print("selectAudioDevice: Connecting deviceChanged() and displayModeChanged()");
     AudioDevice.deviceChanged.connect(onDevicechanged);
     HMD.displayModeChanged.connect(checkHMDAudio);
-    print("Setting up Audio > Devices menu for the first time");
+    print("selectAudioDevice: Setting up Audio > Devices menu for the first time");
     setupAudioMenus();
-}, 2000);
+    checkHMDAudio();
+}, 5000);
 
-print("Connecting menuItemEvent() and scriptEnding()");
+print("selectAudioDevice: Connecting menuItemEvent() and scriptEnding()");
 Menu.menuItemEvent.connect(menuItemEvent);
+menuConnected = true;
 Script.scriptEnding.connect(function () {
     restoreAudio();
     removeAudioMenus();
