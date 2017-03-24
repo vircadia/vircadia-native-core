@@ -812,7 +812,7 @@ function mouseClickEvent(event) {
             if (0 < x && sizeOK) {
                 selectedEntityID = foundEntity;
                 orientation = MyAvatar.orientation;
-                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+                intersection = rayPlaneIntersection(pickRay, P, Quat.getForward(orientation));
 
                 if (event.isShifted) {
                     particleExplorerTool.destroyWebView();
@@ -1340,12 +1340,12 @@ function handeMenuEvent(menuItem) {
 }
 function getPositionToCreateEntity() {
     var HALF_TREE_SCALE = 16384;
-    var direction = Quat.getFront(MyAvatar.orientation);
+    var direction = Quat.getForward(MyAvatar.orientation);
     var distance = 1;
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
 
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), distance));
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), distance));
     }
     position.y += 0.5;
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
@@ -1357,13 +1357,13 @@ function getPositionToCreateEntity() {
 function getPositionToImportEntity() {
     var dimensions = Clipboard.getContentsDimensions();
     var HALF_TREE_SCALE = 16384;
-    var direction = Quat.getFront(MyAvatar.orientation);
+    var direction = Quat.getForward(MyAvatar.orientation);
     var longest = 1;
     longest = Math.sqrt(Math.pow(dimensions.x, 2) + Math.pow(dimensions.z, 2));
     var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, longest));
 
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), longest));
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), longest));
     }
 
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {

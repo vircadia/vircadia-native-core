@@ -23,6 +23,8 @@
 #include <ResourceCache.h>
 #include <model/TextureMap.h>
 
+#include "KTXCache.h"
+
 const int ABSOLUTE_MAX_TEXTURE_NUM_PIXELS = 8192 * 8192;
 
 namespace gpu {
@@ -43,6 +45,7 @@ class NetworkTexture : public Resource, public Texture {
 public:
      enum Type {
         DEFAULT_TEXTURE,
+        STRICT_TEXTURE,
         ALBEDO_TEXTURE,
         NORMAL_TEXTURE,
         BUMP_TEXTURE,
@@ -63,7 +66,6 @@ public:
     using TextureLoaderFunc = std::function<TextureLoader>;
 
     NetworkTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels);
-    NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content);
 
     QString getType() const override { return "NetworkTexture"; }
 
@@ -74,12 +76,12 @@ public:
     Type getTextureType() const { return _type;  }
 
     TextureLoaderFunc getTextureLoader() const;
+    gpu::TexturePointer getFallbackTexture() const;
 
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
 protected:
-
     virtual bool isCacheable() const override { return _loaded; }
 
     virtual void downloadFinished(const QByteArray& data) override;
@@ -88,8 +90,12 @@ protected:
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
 private:
+    friend class KTXReader;
+    friend class ImageReader;
+
     Type _type;
     TextureLoaderFunc _textureLoader { [](const QImage&, const std::string&){ return nullptr; } };
+    KTXFilePointer _file;
     int _originalWidth { 0 };
     int _originalHeight { 0 };
     int _width { 0 };
@@ -131,6 +137,10 @@ public:
     NetworkTexturePointer getTexture(const QUrl& url, Type type = Type::DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
+
+    gpu::TexturePointer getTextureByHash(const std::string& hash);
+    gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
+
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
@@ -139,9 +149,19 @@ protected:
         const void* extra) override;
 
 private:
+    friend class ImageReader;
+    friend class NetworkTexture;
+    friend class DilatableNetworkTexture;
+
     TextureCache();
     virtual ~TextureCache();
-    friend class DilatableNetworkTexture;
+
+    static const std::string KTX_DIRNAME;
+    static const std::string KTX_EXT;
+    KTXCache _ktxCache;
+    // Map from image hashes to texture weak pointers
+    std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
+    std::mutex _texturesByHashesMutex;
 
     gpu::TexturePointer _permutationNormalTexture;
     gpu::TexturePointer _whiteTexture;
