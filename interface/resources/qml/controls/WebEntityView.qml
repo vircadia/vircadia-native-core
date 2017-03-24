@@ -18,5 +18,5 @@ WebView {
         storageName: "qmlWebEngine"
     }
     
-    urlTag: "?noDowload=true";
+    urlTag: "?noDownload=true";
 }

@@ -15,17 +15,21 @@
 
 #include <AccountManager.h>
 
-bool static isAuthableHighFidelityURL(const QUrl& url) {
-    static const QStringList HF_HOSTS = {
-        "highfidelity.com", "highfidelity.io",
-        "metaverse.highfidelity.com", "metaverse.highfidelity.io"
-    };
+namespace {
 
-    return url.scheme() == "https" && HF_HOSTS.contains(url.host());
-}
+     bool isAuthableHighFidelityURL(const QUrl& url) {
+         static const QStringList HF_HOSTS = {
+             "highfidelity.com", "highfidelity.io",
+             "metaverse.highfidelity.com", "metaverse.highfidelity.io"
+         };
 
-bool static isScript(const QString filename) {
-    return filename.contains(".js", Qt::CaseInsensitive);
+         return url.scheme() == "https" && HF_HOSTS.contains(url.host());
+     }
+
+     bool isScript(const QString filename) {
+         return filename.contains(".js", Qt::CaseInsensitive);
+     }
+
 }
 
 void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info) {

@@ -219,7 +219,7 @@ static const QString FST_EXTENSION  = ".fst";
 static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
-static const QString WEB_VIEW_TAG = "?noDowload=true";
+static const QString WEB_VIEW_TAG = "?noDownload=true";
 
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 

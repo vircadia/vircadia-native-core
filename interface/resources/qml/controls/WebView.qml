@@ -70,7 +70,7 @@ Item {
             worldId: WebEngineScript.MainWorld
         }
         
-        property string urlTag: "?noDowload=false";
+        property string urlTag: "?noDownload=false";
 
         userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
