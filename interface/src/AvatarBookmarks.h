@@ -20,16 +20,16 @@ class AvatarBookmarks: public Bookmarks {
 public:
     AvatarBookmarks();
 
-    virtual void setupMenus(Menu* menubar, MenuWrapper* menu) override;
+    void setupMenus(Menu* menubar, MenuWrapper* menu) override;
 
 public slots:
-    virtual void addBookmark() override;
+    void addBookmark();
 
 protected:
-    virtual void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) override;
+    void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) override;
 
 private slots:
-void changeToBookmarkedAvatar();
+    void changeToBookmarkedAvatar();
 
 private:
     const QString AvatarBookmarks_FILENAME = "avatarbookmarks.json";

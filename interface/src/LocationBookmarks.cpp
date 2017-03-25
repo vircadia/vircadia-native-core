@@ -76,26 +76,7 @@ void LocationBookmarks::addBookmark() {
 
     auto addressManager = DependencyManager::get<AddressManager>();
     QString bookmarkAddress = addressManager->currentAddress().toString();
-
-    Menu* menubar = Menu::getInstance();
-    if (contains(bookmarkName)) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto duplicateBookmarkMessage = offscreenUi->createMessageBox(OffscreenUi::ICON_WARNING, "Duplicate Bookmark",
-            "The bookmark name you entered already exists in your list.",
-            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
-        duplicateBookmarkMessage->setProperty("informativeText", "Would you like to overwrite it?");
-
-        auto result = offscreenUi->waitForMessageBoxResult(duplicateBookmarkMessage);
-        if (result != QMessageBox::Yes) {
-            return;
-        }
-        removeBookmarkFromMenu(menubar, bookmarkName);
-    }
-
-    addBookmarkToMenu(menubar, bookmarkName, bookmarkAddress);
-    insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
-
-    enableMenuItems(true);
+    Bookmarks::addBookmark(bookmarkName, bookmarkAddress);
 }
 
 void LocationBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) {

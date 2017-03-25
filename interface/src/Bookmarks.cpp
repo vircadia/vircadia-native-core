@@ -66,6 +66,28 @@ void Bookmarks::deleteBookmark() {
     }
 }
 
+void Bookmarks::addBookmark(const QString& bookmarkName, const QString& bookmarkAddress) {
+    Menu* menubar = Menu::getInstance();
+    if (contains(bookmarkName)) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto duplicateBookmarkMessage = offscreenUi->createMessageBox(OffscreenUi::ICON_WARNING, "Duplicate Bookmark",
+            "The bookmark name you entered already exists in your list.",
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        duplicateBookmarkMessage->setProperty("informativeText", "Would you like to overwrite it?");
+
+        auto result = offscreenUi->waitForMessageBoxResult(duplicateBookmarkMessage);
+        if (result != QMessageBox::Yes) {
+            return;
+        }
+        removeBookmarkFromMenu(menubar, bookmarkName);
+    }
+
+    addBookmarkToMenu(menubar, bookmarkName, bookmarkAddress);
+    insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
+
+    enableMenuItems(true);
+}
+
 void Bookmarks::insert(const QString& name, const QString& address) {
     _bookmarks.insert(name, address);
 

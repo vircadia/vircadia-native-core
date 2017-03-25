@@ -31,7 +31,7 @@ public:
     QString addressForBookmark(const QString& name) const;
 
 public slots:
-    virtual void addBookmark() = 0;
+    virtual void addBookmark(const QString& bookmarkName, const QString& bookmarkAddress);
 
 protected slots:
     void deleteBookmark();

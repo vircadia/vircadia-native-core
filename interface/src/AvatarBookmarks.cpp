@@ -46,7 +46,7 @@ void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     // the OffscreenUi doesn't seem available this early to recurse through to find the root object where the signal is declared
     // I've added a delay for now
 
-    // The OffscreenUi also doesn't create the object till it is shown first, so I'm forcing it to show so the object exists
+    // The OffscreenUi also doesn't create the object until it is shown first, so I'm forcing it to show so the object exists
     QTimer::singleShot(2000, [&] {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         offscreenUi->show(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), "AvatarPreferencesDialog");
@@ -68,7 +68,7 @@ void AvatarBookmarks::changeToBookmarkedAvatar() {
 void AvatarBookmarks::addBookmark() {
     // TODO:  if you press the Bookmark Avatar button in the dialog it seems to maintain focus.
     // Clicking afterwards results in multiple calls
-    //  hide enforced till cause is determined 
+    //  hide enforced until cause is determined 
     DependencyManager::get<OffscreenUi>()->hide(QString("AvatarPreferencesDialog"));
 
     bool ok = false;
@@ -84,26 +84,7 @@ void AvatarBookmarks::addBookmark() {
 
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     const QString& bookmarkAddress = myAvatar->getSkeletonModelURL().toString();
-
-    Menu* menubar = Menu::getInstance();
-    if (contains(bookmarkName)) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto duplicateBookmarkMessage = offscreenUi->createMessageBox(OffscreenUi::ICON_WARNING, "Duplicate Bookmark",
-            "The bookmark name you entered already exists in your list.",
-            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
-        duplicateBookmarkMessage->setProperty("informativeText", "Would you like to overwrite it?");
-
-        auto result = offscreenUi->waitForMessageBoxResult(duplicateBookmarkMessage);
-        if (result != QMessageBox::Yes) {
-            return;
-        }
-        removeBookmarkFromMenu(menubar, bookmarkName);
-    }
-
-    addBookmarkToMenu(menubar, bookmarkName, bookmarkAddress);
-    insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
-
-    enableMenuItems(true);
+    Bookmarks::addBookmark(bookmarkName, bookmarkAddress);
 }
 
 void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) {
