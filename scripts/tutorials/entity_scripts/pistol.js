@@ -69,7 +69,7 @@
             var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
             this.position = gunProps.position;
             this.rotation = gunProps.rotation;
-            this.firingDirection = Quat.getFront(this.rotation);
+            this.firingDirection = Quat.getForward(this.rotation);
             var upVec = Quat.getUp(this.rotation);
             this.barrelPoint = Vec3.sum(this.position, Vec3.multiply(upVec, this.laserOffsets.y));
             this.laserTip = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.laserLength));

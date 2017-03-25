@@ -20,9 +20,9 @@ orientation = Quat.safeEulerAngles(orientation);
 orientation.x = 0;
 orientation = Quat.fromVec3Degrees(orientation);
 
-var centerUp = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
+var centerUp = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getForward(orientation)));
 centerUp.y += 0.5;
-var centerDown = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
+var centerDown = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getForward(orientation)));
 centerDown.y -= 0.5;
 
 var ENTITY_SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/uniformTest.fs";

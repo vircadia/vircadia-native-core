@@ -14,6 +14,7 @@ Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
 Script.include(Script.resolvePath("../libraries/Xform.js"));
 
+var VEC3_ZERO = {x: 0, y: 0, z: 0};
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
 var DEFAULT_DPI = 34;
@@ -22,6 +23,7 @@ var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
 var SENSOR_TO_ROOM_MATRIX = -2;
 var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
+var ROT_IDENT = {x: 0, y: 0, z: 0, w: 1};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
 var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
@@ -51,40 +53,34 @@ function calcSpawnInfo(hand, height) {
 
     if (HMD.active && hand !== NO_HANDS) {
         var handController = getControllerWorldLocation(hand, true);
-        var controllerPosition = handController.position;
 
-        // base of the tablet is slightly above controller position
-        var TABLET_BASE_DISPLACEMENT = {x: 0, y: 0.1, z: 0};
-        var tabletBase = Vec3.sum(controllerPosition, TABLET_BASE_DISPLACEMENT);
-
-        var d = Vec3.subtract(headPos, tabletBase);
-        var theta = Math.acos(d.y / Vec3.length(d));
-        d.y = 0;
-        if (Vec3.length(d) < 0.0001) {
-            d = {x: 1, y: 0, z: 0};
-        } else {
-            d = Vec3.normalize(d);
+        var TABLET_UP_OFFSET = 0.1;
+        var TABLET_FORWARD_OFFSET = 0.1;
+        var normal = Vec3.multiplyQbyV(handController.rotation, {x: 0, y: -1, z: 0});
+        var pitch = Math.asin(normal.y);
+        var MAX_PITCH = Math.PI / 4;
+        if (pitch < -MAX_PITCH) {
+            pitch = -MAX_PITCH;
+        } else if (pitch > MAX_PITCH) {
+            pitch = MAX_PITCH;
         }
-        var w = Vec3.normalize(Vec3.cross(Y_AXIS, d));
-        var ANGLE_OFFSET = 25;
-        var q = Quat.angleAxis(theta * (180 / Math.PI) - (90 - ANGLE_OFFSET), w);
-        var u = Vec3.multiplyQbyV(q, d);
 
-        // use u to compute a full lookAt quaternion.
-        var lookAtRot = Quat.lookAt(tabletBase, Vec3.sum(tabletBase, u), Y_AXIS);
-        var yDisplacement = (height / 2);
-        var zDisplacement = 0.05;
-        var tabletOffset = Vec3.multiplyQbyV(lookAtRot, {x: 0, y: yDisplacement, z: zDisplacement});
-        finalPosition = Vec3.sum(tabletBase, tabletOffset);
+        // rebuild normal from pitch and heading.
+        var heading = Math.atan2(normal.z, normal.x);
+        normal = {x: Math.cos(heading), y: Math.sin(pitch), z: Math.sin(heading)};
+
+        var position = Vec3.sum(handController.position, {x: 0, y: TABLET_UP_OFFSET, z: 0});
+        var rotation = Quat.lookAt({x: 0, y: 0, z: 0}, normal, Y_AXIS);
+        var offset = Vec3.multiplyQbyV(rotation, {x: 0, y: height / 2, z: TABLET_FORWARD_OFFSET});
 
         return {
-            position: finalPosition,
-            rotation: lookAtRot
+            position: Vec3.sum(offset, position),
+            rotation: rotation
         };
     } else {
-        var front = Quat.getFront(headRot);
-        finalPosition = Vec3.sum(headPos, Vec3.multiply(0.6, front));
-        var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, front, {x: 0, y: 1, z: 0});
+        var forward = Quat.getForward(headRot);
+        finalPosition = Vec3.sum(headPos, Vec3.multiply(0.6, forward));
+        var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, {x: 0, y: 1, z: 0});
         return {
             position: finalPosition,
             rotation: Quat.multiply(orientation, {x: 0, y: 1, z: 0, w: 0})

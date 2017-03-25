@@ -8,7 +8,6 @@ Item {
     objectName: "tabletRoot"
     property string username: "Unknown user"
     property var eventBridge;
-
     property var rootMenu;
     property var openModal: null;
     property var openMessage: null;

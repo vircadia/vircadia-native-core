@@ -40,18 +40,28 @@ public:
 
     class GL41Texture : public GLTexture {
         using Parent = GLTexture;
-        GLuint allocate();
-    public:
-        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, GLuint externalId);
-        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, bool transferrable);
+        static GLuint allocate();
 
-    protected:
-        void transferMip(uint16_t mipLevel, uint8_t face) const;
-        void startTransfer() override;
-        void allocateStorage() const override;
-        void updateSize() const override;
-        void syncSampler() const override;
+    public:
+        ~GL41Texture();
+
+    private:
+        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer);
+
         void generateMips() const override;
+        uint32 size() const override;
+
+        friend class GL41Backend;
+        const Stamp _storageStamp;
+        mutable Stamp _contentStamp { 0 };
+        mutable Stamp _samplerStamp { 0 };
+        const uint32 _size;
+
+
+        bool isOutdated() const;
+        void withPreservedTexture(std::function<void()> f) const;
+        void syncContent() const;
+        void syncSampler() const;
     };
 
 
@@ -62,8 +72,7 @@ protected:
     GLuint getBufferID(const Buffer& buffer) override;
     GLBuffer* syncGPUObject(const Buffer& buffer) override;
 
-    GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) override;
-    GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) override;
+    GLTexture* syncGPUObject(const TexturePointer& texture) override;
 
     GLuint getQueryID(const QueryPointer& query) override;
     GLQuery* syncGPUObject(const Query& query) override;

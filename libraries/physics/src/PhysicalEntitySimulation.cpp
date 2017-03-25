@@ -208,6 +208,7 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
         assert(!entity->getPhysicsInfo());
         if (entity->isDead()) {
             prepareEntityForDelete(entity);
+            entityItr = _entitiesToAddToPhysics.erase(entityItr);
         } else if (!entity->shouldBePhysical()) {
             // this entity should no longer be on the internal _entitiesToAddToPhysics
             entityItr = _entitiesToAddToPhysics.erase(entityItr);
