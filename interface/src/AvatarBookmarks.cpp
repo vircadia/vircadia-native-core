@@ -16,6 +16,7 @@
 
 #include <Application.h>
 #include <OffscreenUi.h>
+#include <QQmlContext>
 
 #include "MainWindow.h"
 #include "Menu.h"
@@ -46,15 +47,9 @@ void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     // the OffscreenUi doesn't seem available this early to recurse through to find the root object where the signal is declared
     // I've added a delay for now
 
-    // The OffscreenUi also doesn't create the object until it is shown first, so I'm forcing it to show so the object exists
-    QTimer::singleShot(2000, [&] {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->show(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), "AvatarPreferencesDialog");
-        auto bookmarkAvatarButton = offscreenUi->getRootItem()->findChild<QQuickItem*>("avatarPreferencesRoot");
-        if (bookmarkAvatarButton) {
-            QObject::connect(bookmarkAvatarButton, SIGNAL(bookmarkAvatarSignal()), this, SLOT(addBookmark()));
-        }
-    });
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto context = offscreenUi->getRootContext();
+    context->setContextProperty("avatarBookmarks", this);
 }
 
 void AvatarBookmarks::changeToBookmarkedAvatar() {
