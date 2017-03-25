@@ -35,6 +35,8 @@ StackView {
 
     Component { id: tabletStoryCard; TabletStoryCard {} }
     Component.onCompleted: {
+        root.currentItem.focus = true;
+        root.currentItem.forceActiveFocus();
         fillDestinations();
         updateLocationText();
         root.parentChanged.connect(center);
@@ -199,6 +201,7 @@ StackView {
                     onClicked: {
                         isCursorVisible = true;
                         parent.cursorVisible = true;
+                        parent.focus = true;
                         parent.forceActiveFocus();
                         addressBarDialog.keyboardEnabled = HMD.active
                         tabletRoot.playButtonClickSound();
