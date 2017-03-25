@@ -75,7 +75,7 @@ Preference {
             colorScheme: hifi.colorSchemes.dark
         }
 
-        Button {
+        QueuedButton {
             id: bookmarkAvatarButton
             text: "Bookmark Avatar"
             width: 140
@@ -84,7 +84,7 @@ Preference {
                 bottom: parent.bottom
                 rightMargin: hifi.dimensions.contentSpacing.x
             }
-            onQueuedClicked: avatarBookmarks.addBookmark()
+            onClickedQueued: avatarBookmarks.addBookmark()
         }
 
         Button {

@@ -219,18 +219,18 @@ ScrollingWindow {
             Row {
                 spacing: hifi.dimensions.contentSpacing.x
 
-                HifiControls.Button {
+                HifiControls.QueuedButton {
                     text: "from URL"
                     color: hifi.buttons.black
                     height: 26
-                    onQueuedClicked: ApplicationInterface.loadScriptURLDialog()
+                    onClickedQueued: ApplicationInterface.loadScriptURLDialog()
                 }
 
-                HifiControls.Button {
+                HifiControls.QueuedButton {
                     text: "from Disk"
                     color: hifi.buttons.black
                     height: 26
-                    onQueuedClicked: ApplicationInterface.loadDialog()
+                    onClickedQueued: ApplicationInterface.loadDialog()
                 }
 
                 HifiControls.Button {

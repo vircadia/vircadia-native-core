@@ -23,33 +23,8 @@ Original.Button {
 
     HifiConstants { id: hifi }
 
-    // FIXME: THIS WORKAROUND MIGRATED/CONSOLIDATED FROM RUNNINGSCRIPTS.QML
-
-    // For some reason trigginer an API that enters
-    // an internal event loop directly from the button clicked
-    // trigger below causes the appliction to behave oddly.
-    // Most likely because the button onClicked handling is never
-    // completed until the function returns.
-    // FIXME find a better way of handling the input dialogs that
-    // doesn't trigger this.
-
-    // NOTE: dialogs that need to use this workaround can connect via
-    //    onQueuedClicked: ...
-    // instead of:
-    //    onClicked: ...
-
-    onClicked: fromTimer.running = true
-    signal queuedClicked()
-    Timer {
-        id: fromTimer
-        interval: 5
-        repeat: false
-        running: false
-        onTriggered: { console.info('onQueuedClicked->onTriggered'); queuedClicked() }
-    }
-    onQueuedClicked: console.info('HifiControls.Button -- please define onClicked: or onQueuedClicked:')
-
     style: ButtonStyle {
+
         background: Rectangle {
             radius: hifi.buttons.radius
 
