@@ -12,4 +12,3 @@
 #include "ScriptEngineLogging.h"
 
 Q_LOGGING_CATEGORY(scriptengine, "hifi.scriptengine")
-Q_LOGGING_CATEGORY(scriptengine_module, "hifi.scriptengine.module")

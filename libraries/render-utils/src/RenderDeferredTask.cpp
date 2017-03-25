@@ -194,7 +194,7 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
         {
             // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
             auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
-            auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath, NetworkTexture::STRICT_TEXTURE);
+            auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
             addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         }
     }
@@ -259,18 +259,8 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
-        // From the lighting model define a global shapKey ORED with individiual keys
-        ShapeKey::Builder keyBuilder;
-        if (lightingModel->isWireframeEnabled()) {
-            keyBuilder.withWireframe();
-        }
-        ShapeKey globalKey = keyBuilder.build();
-        args->_globalShapeKey = globalKey._flags.to_ulong();
-
-        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
-
+        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         args->_batch = nullptr;
-        args->_globalShapeKey = 0;
     });
 
     config->setNumDrawn((int)inItems.size());
@@ -305,21 +295,12 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
-        // From the lighting model define a global shapKey ORED with individiual keys
-        ShapeKey::Builder keyBuilder;
-        if (lightingModel->isWireframeEnabled()) {
-            keyBuilder.withWireframe();
-        }
-        ShapeKey globalKey = keyBuilder.build();
-        args->_globalShapeKey = globalKey._flags.to_ulong();
-
         if (_stateSort) {
-            renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
+            renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         } else {
-            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
+            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         }
         args->_batch = nullptr;
-        args->_globalShapeKey = 0;
     });
 
     config->setNumDrawn((int)inItems.size());

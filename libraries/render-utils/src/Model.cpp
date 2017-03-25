@@ -176,11 +176,11 @@ void Model::setOffset(const glm::vec3& offset) {
 }
 
 void Model::calculateTextureInfo() {
-    if (!_hasCalculatedTextureInfo && isLoaded() && getGeometry()->areTexturesLoaded() && !_modelMeshRenderItemsMap.isEmpty()) {
+    if (!_hasCalculatedTextureInfo && isLoaded() && getGeometry()->areTexturesLoaded() && !_modelMeshRenderItems.isEmpty()) {
         size_t textureSize = 0;
         int textureCount = 0;
         bool allTexturesLoaded = true;
-        foreach(auto renderItem, _modelMeshRenderItems) {
+        foreach(auto renderItem, _modelMeshRenderItemsSet) {
             auto meshPart = renderItem.get();
             textureSize += meshPart->getMaterialTextureSize();
             textureCount += meshPart->getMaterialTextureCount();
@@ -227,16 +227,12 @@ void Model::updateRenderItems() {
             return;
         }
 
-        // lazy update of cluster matrices used for rendering.
-        // We need to update them here so we can correctly update the bounding box.
-        self->updateClusterMatrices();
-
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::PendingChanges pendingChanges;
-        foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
+        foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter](ModelMeshPartPayload& data) {
                 if (data._model && data._model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
@@ -244,12 +240,12 @@ void Model::updateRenderItems() {
                         Transform modelTransform = data._model->getTransform();
                         modelTransform.setScale(glm::vec3(1.0f));
 
-                        const Model::MeshState& state = data._model->getMeshState(data._meshIndex);
-                        Transform renderTransform = modelTransform;
-                        if (state.clusterMatrices.size() == 1) {
-                            renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
-                        }
-                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
+                        // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
+                        data._model->updateClusterMatrices();
+
+                        // update the model transform and bounding box for this render item.
+                        const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
+                        data.updateTransformForSkinnedMesh(modelTransform, state.clusterMatrices);
                     }
                 }
             });
@@ -259,7 +255,7 @@ void Model::updateRenderItems() {
         Transform collisionMeshOffset;
         collisionMeshOffset.setIdentity();
         Transform modelTransform = self->getTransform();
-		foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
+        foreach (auto itemID, self->_collisionRenderItems.keys()) {
             pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
                 data.updateTransform(modelTransform, collisionMeshOffset);
@@ -539,11 +535,11 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
         _isVisible = newValue;
 
         render::PendingChanges pendingChanges;
-        foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-            pendingChanges.resetItem(item, _modelMeshRenderItemsMap[item]);
+        foreach (auto item, _modelMeshRenderItems.keys()) {
+            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
         }
-		foreach(auto item, _collisionRenderItemsMap.keys()) {
-			pendingChanges.resetItem(item, _collisionRenderItemsMap[item]);
+        foreach (auto item, _collisionRenderItems.keys()) {
+            pendingChanges.resetItem(item, _collisionRenderItems[item]);
         }
         scene->enqueuePendingChanges(pendingChanges);
     }
@@ -555,11 +551,11 @@ void Model::setLayeredInFront(bool layered, std::shared_ptr<render::Scene> scene
         _isLayeredInFront = layered;
 
         render::PendingChanges pendingChanges;
-        foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            pendingChanges.resetItem(item, _modelMeshRenderItemsMap[item]);
+        foreach(auto item, _modelMeshRenderItems.keys()) {
+            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
         }
-		foreach(auto item, _collisionRenderItemsMap.keys()) {
-			pendingChanges.resetItem(item, _collisionRenderItemsMap[item]);
+        foreach(auto item, _collisionRenderItems.keys()) {
+            pendingChanges.resetItem(item, _collisionRenderItems[item]);
         }
         scene->enqueuePendingChanges(pendingChanges);
     }
@@ -576,39 +572,39 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
     bool somethingAdded = false;
     if (_collisionGeometry) {
         if (_collisionRenderItems.empty()) {
-            foreach (auto renderItem, _collisionRenderItems) {
+            foreach (auto renderItem, _collisionRenderItemsSet) {
                 auto item = scene->allocateID();
                 auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-				if (_collisionRenderItems.empty() && statusGetters.size()) {
+                if (statusGetters.size()) {
                     renderPayload->addStatusGetters(statusGetters);
                 }
                 pendingChanges.resetItem(item, renderPayload);
-				_collisionRenderItemsMap.insert(item, renderPayload);
+                _collisionRenderItems.insert(item, renderPayload);
             }
             somethingAdded = !_collisionRenderItems.empty();
         }
     } else {
-        if (_modelMeshRenderItemsMap.empty()) {
+        if (_modelMeshRenderItems.empty()) {
 
             bool hasTransparent = false;
             size_t verticesCount = 0;
-            foreach(auto renderItem, _modelMeshRenderItems) {
+            foreach(auto renderItem, _modelMeshRenderItemsSet) {
                 auto item = scene->allocateID();
                 auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-				if (_modelMeshRenderItemsMap.empty() && statusGetters.size()) {
+                if (statusGetters.size()) {
                     renderPayload->addStatusGetters(statusGetters);
                 }
                 pendingChanges.resetItem(item, renderPayload);
 
                 hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
                 verticesCount += renderItem.get()->getVerticesCount();
-                _modelMeshRenderItemsMap.insert(item, renderPayload);
+                _modelMeshRenderItems.insert(item, renderPayload);
                 _modelMeshRenderItemIDs.emplace_back(item);
             }
-            somethingAdded = !_modelMeshRenderItemsMap.empty();
+            somethingAdded = !_modelMeshRenderItems.empty();
 
             _renderInfoVertexCount = verticesCount;
-            _renderInfoDrawCalls = _modelMeshRenderItemsMap.count();
+            _renderInfoDrawCalls = _modelMeshRenderItems.count();
             _renderInfoHasTransparent = hasTransparent;
         }
     }
@@ -623,18 +619,18 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 }
 
 void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    foreach (auto item, _modelMeshRenderItemsMap.keys()) {
+    foreach (auto item, _modelMeshRenderItems.keys()) {
         pendingChanges.removeItem(item);
     }
     _modelMeshRenderItemIDs.clear();
-    _modelMeshRenderItemsMap.clear();
     _modelMeshRenderItems.clear();
+    _modelMeshRenderItemsSet.clear();
 
-	foreach(auto item, _collisionRenderItemsMap.keys()) {
+    foreach (auto item, _collisionRenderItems.keys()) {
         pendingChanges.removeItem(item);
     }
     _collisionRenderItems.clear();
-    _collisionRenderItems.clear();
+    _collisionRenderItemsSet.clear();
     _addedToScene = false;
 
     _renderInfoVertexCount = 0;
@@ -1052,8 +1048,8 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 }
 
 void Model::computeMeshPartLocalBounds() {
-    for (auto& part : _modelMeshRenderItems) {
-        assert(part->_meshIndex < _modelMeshRenderItems.size());
+	for (auto& part : _modelMeshRenderItemsSet) {
+        assert(part->_meshIndex < _modelMeshRenderItemsSet.size());
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
         part->computeAdjustedLocalBound(state.clusterMatrices);
     }
@@ -1167,7 +1163,7 @@ AABox Model::getRenderableMeshBound() const {
     } else {
         // Build a bound using the last known bound from all the renderItems.
         AABox totalBound;
-        for (auto& renderItem : _modelMeshRenderItems) {
+        for (auto& renderItem : _modelMeshRenderItemsSet) {
             totalBound += renderItem->getBound();
         }
         return totalBound;
@@ -1180,11 +1176,11 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
 
 void Model::createRenderItemSet() {
     if (_collisionGeometry) {
-        if (_collisionRenderItems.empty()) {
+        if (_collisionRenderItemsSet.empty()) {
             createCollisionRenderItemSet();
         }
     } else {
-        if (_modelMeshRenderItems.empty()) {
+        if (_modelMeshRenderItemsSet.empty()) {
             createVisibleRenderItemSet();
         }
     }
@@ -1201,9 +1197,9 @@ void Model::createVisibleRenderItemSet() {
     }
 
     // We should not have any existing renderItems if we enter this section of code
-    Q_ASSERT(_modelMeshRenderItems.isEmpty());
+    Q_ASSERT(_modelMeshRenderItemsSet.isEmpty());
 
-    _modelMeshRenderItems.clear();
+    _modelMeshRenderItemsSet.clear();
 
     Transform transform;
     transform.setTranslation(_translation);
@@ -1225,7 +1221,7 @@ void Model::createVisibleRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
+            _modelMeshRenderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
             shapeID++;
         }
     }
@@ -1241,7 +1237,7 @@ void Model::createCollisionRenderItemSet() {
     const auto& meshes = _collisionGeometry->getMeshes();
 
     // We should not have any existing renderItems if we enter this section of code
-    Q_ASSERT(_collisionRenderItems.isEmpty());
+    Q_ASSERT(_collisionRenderItemsSet.isEmpty());
 
     Transform identity;
     identity.setIdentity();
@@ -1262,7 +1258,7 @@ void Model::createCollisionRenderItemSet() {
             model::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
             auto payload = std::make_shared<MeshPartPayload>(mesh, partIndex, material);
             payload->updateTransform(identity, offset);
-            _collisionRenderItems << payload;
+            _collisionRenderItemsSet << payload;
         }
     }
 }
@@ -1283,28 +1279,28 @@ bool Model::initWhenReady(render::ScenePointer scene) {
 
     bool addedPendingChanges = false;
     if (_collisionGeometry) {
-        foreach (auto renderItem, _collisionRenderItems) {
+        foreach (auto renderItem, _collisionRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-            _collisionRenderItemsMap.insert(item, renderPayload);
+            _collisionRenderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
         }
         addedPendingChanges = !_collisionRenderItems.empty();
     } else {
         bool hasTransparent = false;
         size_t verticesCount = 0;
-        foreach (auto renderItem, _modelMeshRenderItems) {
+        foreach (auto renderItem, _modelMeshRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
 
             hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
             verticesCount += renderItem.get()->getVerticesCount();
-            _modelMeshRenderItemsMap.insert(item, renderPayload);
+            _modelMeshRenderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
         }
-        addedPendingChanges = !_modelMeshRenderItemsMap.empty();
+        addedPendingChanges = !_modelMeshRenderItems.empty();
         _renderInfoVertexCount = verticesCount;
-        _renderInfoDrawCalls = _modelMeshRenderItemsMap.count();
+        _renderInfoDrawCalls = _modelMeshRenderItems.count();
         _renderInfoHasTransparent = hasTransparent;
     }
     _addedToScene = addedPendingChanges;

@@ -146,7 +146,6 @@ void EntityTreeRenderer::clear() {
 
 void EntityTreeRenderer::reloadEntityScripts() {
     _entitiesScriptEngine->unloadAllEntityScripts();
-    _entitiesScriptEngine->resetModuleCache();
     foreach(auto entity, _entitiesInScene) {
         if (!entity->getScript().isEmpty()) {
             _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
@@ -941,7 +940,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     if (_tree && !_shuttingDown && _entitiesScriptEngine) {
-        _entitiesScriptEngine->unloadEntityScript(entityID, true);
+        _entitiesScriptEngine->unloadEntityScript(entityID);
     }
 
     forceRecheckEntities(); // reset our state to force checking our inside/outsideness of entities
@@ -996,7 +995,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
         }
         bool shouldLoad = entity->shouldPreloadScript() && _entitiesScriptEngine;
         QString scriptUrl = entity->getScript();
-        if (shouldLoad && (unloadFirst || scriptUrl.isEmpty())) {
+        if ((unloadFirst && shouldLoad) || scriptUrl.isEmpty()) {
             _entitiesScriptEngine->unloadEntityScript(entityID);
             entity->scriptHasUnloaded();
         }

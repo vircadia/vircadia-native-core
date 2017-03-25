@@ -14,20 +14,18 @@
 
 #include <AbstractAudioInterface.h>
 #include <AudioInjector.h>
-#include <DependencyManager.h>
 #include <Sound.h>
 
 class ScriptAudioInjector;
 
-class AudioScriptingInterface : public QObject, public Dependency {
+class AudioScriptingInterface : public QObject {
     Q_OBJECT
-    SINGLETON_DEPENDENCY
-
 public:
+    static AudioScriptingInterface& getInstance();
+
     void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
 
 protected:
-
     // this method is protected to stop C++ callers from calling, but invokable from script
     Q_INVOKABLE ScriptAudioInjector* playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
 
@@ -44,7 +42,6 @@ signals:
 
 private:
     AudioScriptingInterface();
-
     AbstractAudioInterface* _localAudioInterface;
 };
 

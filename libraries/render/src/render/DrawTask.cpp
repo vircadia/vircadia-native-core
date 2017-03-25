@@ -39,9 +39,9 @@ void render::renderItems(const SceneContextPointer& sceneContext, const RenderCo
     }
 }
 
-void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, const Item& item, const ShapeKey& globalKey) {
+void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, const Item& item) {
     assert(item.getKey().isShape());
-    auto key = item.getShapeKey() | globalKey;
+    const auto& key = item.getShapeKey();
     if (key.isValid() && !key.hasOwnPipeline()) {
         args->_pipeline = shapeContext->pickPipeline(args, key);
         if (args->_pipeline) {
@@ -56,7 +56,7 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
 }
 
 void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
-    const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems, const ShapeKey& globalKey) {
+                          const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
     
@@ -66,12 +66,12 @@ void render::renderShapes(const SceneContextPointer& sceneContext, const RenderC
     }
     for (auto i = 0; i < numItemsToDraw; ++i) {
         auto& item = scene->getItem(inItems[i].id);
-        renderShape(args, shapeContext, item, globalKey);
+        renderShape(args, shapeContext, item);
     }
 }
 
 void render::renderStateSortShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
-    const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems, const ShapeKey& globalKey) {
+    const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
 
@@ -91,7 +91,7 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
 
         {
             assert(item.getKey().isShape());
-            auto key = item.getShapeKey() | globalKey;
+            const auto key = item.getShapeKey();
             if (key.isValid() && !key.hasOwnPipeline()) {
                 auto& bucket = sortedShapes[key];
                 if (bucket.empty()) {

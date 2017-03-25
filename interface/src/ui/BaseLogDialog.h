@@ -23,7 +23,7 @@ const int BUTTON_MARGIN = 8;
 class QPushButton;
 class QLineEdit;
 class QPlainTextEdit;
-class Highlighter;
+class KeywordHighlighter;
 
 class BaseLogDialog : public QDialog {
     Q_OBJECT
@@ -56,7 +56,7 @@ private:
     QPushButton* _searchPrevButton { nullptr };
     QPushButton* _searchNextButton { nullptr };
     QString _searchTerm;
-    Highlighter* _highlighter { nullptr };
+    KeywordHighlighter* _highlighter { nullptr };
     
     void initControls();
     void showLogData();

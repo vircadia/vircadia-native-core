@@ -431,9 +431,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
                                                           thisFace, thisSurfaceNormal, thisExtraInfo)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
-                if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
-                    || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {
-
+                if (thisDistance < bestDistance && (!bestIsFront || isDrawInFront)) {
                     bestIsFront = isDrawInFront;
                     bestDistance = thisDistance;
                     result.intersects = true;

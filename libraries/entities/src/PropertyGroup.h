@@ -14,10 +14,8 @@
 
 #include <QtScript/QScriptEngine>
 
-#include <OctreeElement.h>
-
+//#include "EntityItemProperties.h"
 #include "EntityPropertyFlags.h"
-
 
 class EntityItemProperties;
 class EncodeBitstreamParams;
@@ -25,6 +23,31 @@ class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
+
+#include <OctreeElement.h>
+
+/*
+#include <stdint.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtx/extented_min_max.hpp>
+
+#include <QtCore/QObject>
+#include <QVector>
+#include <QString>
+
+#include <AACube.h>
+#include <FBXReader.h> // for SittingPoint
+#include <PropertyFlags.h>
+#include <OctreeConstants.h>
+#include <ShapeInfo.h>
+
+#include "EntityItemID.h"
+#include "PropertyGroupMacros.h"
+#include "EntityTypes.h"
+*/
+
+//typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 
 
 class PropertyGroup {

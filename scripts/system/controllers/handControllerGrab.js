@@ -1481,7 +1481,7 @@ function MyController(hand) {
         var pickRay = {
             origin: PICK_WITH_HAND_RAY ? worldHandPosition : Camera.position,
             direction: PICK_WITH_HAND_RAY ? Quat.getUp(worldHandRotation) : Vec3.mix(Quat.getUp(worldHandRotation),
-                Quat.getForward(Camera.orientation),
+                Quat.getFront(Camera.orientation),
                 HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
         };

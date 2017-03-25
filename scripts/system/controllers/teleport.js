@@ -85,7 +85,6 @@ function Trigger(hand) {
 }
 
 var coolInTimeout = null;
-var ignoredEntities = [];
 
 var TELEPORTER_STATES = {
     IDLE: 'idle',
@@ -240,11 +239,11 @@ function Teleporter() {
         //    We might hit an invisible entity that is not a seat, so we need to do a second pass.
         //  * In the second pass we pick against visible entities only.
         //
-        var intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity].concat(ignoredEntities), false, true);
+        var intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity], false, true);
 
         var teleportLocationType = getTeleportTargetType(intersection);
         if (teleportLocationType === TARGET.INVISIBLE) {
-            intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity].concat(ignoredEntities), true, true);
+            intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity], true, true);
             teleportLocationType = getTeleportTargetType(intersection);
         }
 
@@ -514,7 +513,7 @@ function cleanup() {
 Script.scriptEnding.connect(cleanup);
 
 var isDisabled = false;
-var handleTeleportMessages = function(channel, message, sender) {
+var handleHandMessages = function(channel, message, sender) {
     var data;
     if (sender === MyAvatar.sessionUUID) {
         if (channel === 'Hifi-Teleport-Disabler') {
@@ -530,20 +529,12 @@ var handleTeleportMessages = function(channel, message, sender) {
             if (message === 'none') {
                 isDisabled = false;
             }
-        } else if (channel === 'Hifi-Teleport-Ignore-Add' && !Uuid.isNull(message) && ignoredEntities.indexOf(message) === -1) {
-            ignoredEntities.push(message);
-        } else if (channel === 'Hifi-Teleport-Ignore-Remove' && !Uuid.isNull(message)) {
-            var removeIndex = ignoredEntities.indexOf(message);
-            if (removeIndex > -1) {
-                ignoredEntities.splice(removeIndex, 1);
-            }
+
         }
     }
 }
 
 Messages.subscribe('Hifi-Teleport-Disabler');
-Messages.subscribe('Hifi-Teleport-Ignore-Add');
-Messages.subscribe('Hifi-Teleport-Ignore-Remove');
-Messages.messageReceived.connect(handleTeleportMessages);
+Messages.messageReceived.connect(handleHandMessages);
 
 }()); // END LOCAL_SCOPE

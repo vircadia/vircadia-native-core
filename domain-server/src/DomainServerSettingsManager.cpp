@@ -246,13 +246,10 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 _agentPermissions[editorKey]->set(NodePermissions::Permission::canAdjustLocks);
             }
 
-            std::list<std::unordered_map<NodePermissionsKey, NodePermissionsPointer>> permissionsSets{
-                _standardAgentPermissions.get(),
-                _agentPermissions.get()
-            };
+            QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
+            permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get();
             foreach (auto permissionsSet, permissionsSets) {
-                for (auto entry : permissionsSet) {
-                    const auto& userKey = entry.first;
+                foreach (NodePermissionsKey userKey, permissionsSet.keys()) {
                     if (onlyEditorsAreRezzers) {
                         if (permissionsSet[userKey]->can(NodePermissions::Permission::canAdjustLocks)) {
                             permissionsSet[userKey]->set(NodePermissions::Permission::canRezPermanentEntities);
@@ -303,6 +300,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 }
 
 QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
+
     static const QString DESCRIPTORS{ "descriptors" };
 
     auto& settingsMap = getSettingsMap();
@@ -1357,12 +1355,18 @@ QStringList DomainServerSettingsManager::getAllKnownGroupNames() {
     // extract all the group names from the group-permissions and group-forbiddens settings
     QSet<QString> result;
 
-    for (const auto& entry : _groupPermissions.get()) {
-        result += entry.first.first;
+    QHashIterator<NodePermissionsKey, NodePermissionsPointer> i(_groupPermissions.get());
+    while (i.hasNext()) {
+        i.next();
+        NodePermissionsKey key = i.key();
+        result += key.first;
     }
 
-    for (const auto& entry : _groupForbiddens.get()) {
-        result += entry.first.first;
+    QHashIterator<NodePermissionsKey, NodePermissionsPointer> j(_groupForbiddens.get());
+    while (j.hasNext()) {
+        j.next();
+        NodePermissionsKey key = j.key();
+        result += key.first;
     }
 
     return result.toList();
@@ -1373,17 +1377,20 @@ bool DomainServerSettingsManager::setGroupID(const QString& groupName, const QUu
     _groupIDs[groupName.toLower()] = groupID;
     _groupNames[groupID] = groupName;
 
-
-    for (const auto& entry : _groupPermissions.get()) {
-        auto& perms = entry.second;
+    QHashIterator<NodePermissionsKey, NodePermissionsPointer> i(_groupPermissions.get());
+    while (i.hasNext()) {
+        i.next();
+        NodePermissionsPointer perms = i.value();
         if (perms->getID().toLower() == groupName.toLower() && !perms->isGroup()) {
             changed = true;
             perms->setGroupID(groupID);
         }
     }
 
-    for (const auto& entry : _groupForbiddens.get()) {
-        auto& perms = entry.second;
+    QHashIterator<NodePermissionsKey, NodePermissionsPointer> j(_groupForbiddens.get());
+    while (j.hasNext()) {
+        j.next();
+        NodePermissionsPointer perms = j.value();
         if (perms->getID().toLower() == groupName.toLower() && !perms->isGroup()) {
             changed = true;
             perms->setGroupID(groupID);

@@ -472,7 +472,7 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
     return _collisionEvents;
 }
 
-const VectorOfMotionStates& PhysicsEngine::getChangedMotionStates() {
+const VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
     BT_PROFILE("copyOutgoingChanges");
     // Bullet will not deactivate static objects (it doesn't expect them to be active)
     // so we must deactivate them ourselves

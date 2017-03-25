@@ -24,7 +24,7 @@
 #include <QtCore/QString>
 
 #include <SharedUtil.h>
-#include <PathUtils.h>
+#include <ServerPathUtils.h>
 
 #include "NetworkLogging.h"
 #include "NodeType.h"
@@ -162,7 +162,7 @@ void AssetServer::completeSetup() {
     if (assetsPath.isRelative()) {
         // if the domain settings passed us a relative path, make an absolute path that is relative to the
         // default data directory
-        absoluteFilePath = PathUtils::getAppDataFilePath("assets/" + assetsPathString);
+        absoluteFilePath = ServerPathUtils::getDataFilePath("assets/" + assetsPathString);
     }
 
     _resourcesDirectory = QDir(absoluteFilePath);

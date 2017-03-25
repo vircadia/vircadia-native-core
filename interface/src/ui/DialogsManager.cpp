@@ -19,13 +19,16 @@
 #include <PathUtils.h>
 
 #include "AddressBarDialog.h"
+#include "CachesSizeDialog.h"
 #include "ConnectionFailureDialog.h"
+#include "DiskCacheEditor.h"
 #include "DomainConnectionDialog.h"
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
+#include "ScriptEditorWindow.h"
 #include "UpdateDialog.h"
 
 template<typename T>
@@ -64,6 +67,11 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
     }
 }
 
+void DialogsManager::toggleDiskCacheEditor() {
+    maybeCreateDialog(_diskCacheEditor);
+    _diskCacheEditor->toggle();
+}
+
 void DialogsManager::toggleLoginDialog() {
     LoginDialog::toggleAction();
 }
@@ -87,6 +95,16 @@ void DialogsManager::octreeStatsDetails() {
         _octreeStatsDialog->show();
     }
     _octreeStatsDialog->raise();
+}
+
+void DialogsManager::cachesSizeDialog() {
+    if (!_cachesSizeDialog) {
+        maybeCreateDialog(_cachesSizeDialog);
+
+        connect(_cachesSizeDialog, SIGNAL(closed()), _cachesSizeDialog, SLOT(deleteLater()));
+        _cachesSizeDialog->show();
+    }
+    _cachesSizeDialog->raise();
 }
 
 void DialogsManager::lodTools() {
@@ -117,6 +135,12 @@ void DialogsManager::hmdToolsClosed() {
     if (_hmdToolsDialog) {
         _hmdToolsDialog->hide();
     }
+}
+
+void DialogsManager::showScriptEditor() {
+    maybeCreateDialog(_scriptEditor);
+    _scriptEditor->show();
+    _scriptEditor->raise();
 }
 
 void DialogsManager::showTestingResults() {

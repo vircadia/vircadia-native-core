@@ -248,7 +248,7 @@ public:
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
 
     uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
-    const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
+    const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItems; }
 
     void renderDebugMeshBoxes(gpu::Batch& batch);
 
@@ -373,11 +373,11 @@ protected:
 
     static AbstractViewStateInterface* _viewState;
 
-    QVector<std::shared_ptr<MeshPartPayload>> _collisionRenderItems;
-    QMap<render::ItemID, render::PayloadPointer> _collisionRenderItemsMap;
+    QSet<std::shared_ptr<MeshPartPayload>> _collisionRenderItemsSet;
+    QMap<render::ItemID, render::PayloadPointer> _collisionRenderItems;
 
-	QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
-	QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
+    QSet<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItemsSet;
+    QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItems;
 
     render::ItemIDs _modelMeshRenderItemIDs;
 

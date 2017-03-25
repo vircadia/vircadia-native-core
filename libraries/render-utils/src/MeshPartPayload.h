@@ -89,9 +89,8 @@ public:
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
-    void updateTransformForSkinnedMesh(const Transform& renderTransform,
-            const Transform& boundTransform,
-            const gpu::BufferPointer& buffer);
+    void updateTransformForSkinnedMesh(const Transform& transform,
+            const QVector<glm::mat4>& clusterMatrices);
 
     float computeFadeAlpha() const;
 
@@ -109,7 +108,6 @@ public:
 
     void computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices);
 
-    gpu::BufferPointer _clusterBuffer;
     Model* _model;
 
     int _meshIndex;

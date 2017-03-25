@@ -160,7 +160,6 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
                     visible: false
                 });
     this.spacing = [];
-    this.onMove = null;
     
     this.addTool = function(properties, selectable, selected) {
         if (direction == ToolBar.HORIZONTAL) {
@@ -255,9 +254,6 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
                 y: y - ToolBar.SPACING
             });
         }
-        if (this.onMove !== null) {
-            this.onMove(x, y, dx, dy);
-        };
     }
 
     this.setAlpha = function(alpha, tool) {
