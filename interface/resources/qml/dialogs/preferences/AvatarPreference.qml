@@ -15,8 +15,6 @@ import "../../controls-uit"
 
 Preference {
     id: root
-    objectName: "avatarPreferencesRoot"
-    signal bookmarkAvatarSignal()
     property alias text: dataTextField.text
     property alias placeholderText: dataTextField.placeholderText
     property var browser;
