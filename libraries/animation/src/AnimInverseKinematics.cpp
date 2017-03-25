@@ -450,13 +450,13 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 glm::mat4 geomTargetMat = createMatFromQuatAndPos(target.getRotation(), target.getTranslation());
                 glm::mat4 avatarTargetMat = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat;
 
-                std::string name = "ikTarget" + std::to_string(target.getIndex());
+                QString name = QString("ikTarget%1").arg(target.getIndex());
                 DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
             }
         } else if (context.getEnableDebugDrawIKTargets() != _previousEnableDebugIKTargets) {
             // remove markers if they were added last frame.
             for (auto& target : targets) {
-                std::string name = "ikTarget" + std::to_string(target.getIndex());
+                QString name = QString("ikTarget%1").arg(target.getIndex());
                 DebugDraw::getInstance().removeMyAvatarMarker(name);
             }
         }
