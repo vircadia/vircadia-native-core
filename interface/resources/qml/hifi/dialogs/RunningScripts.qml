@@ -223,37 +223,14 @@ ScrollingWindow {
                     text: "from URL"
                     color: hifi.buttons.black
                     height: 26
-                    onClicked: fromUrlTimer.running = true
-
-                    // For some reason trigginer an API that enters
-                    // an internal event loop directly from the button clicked
-                    // trigger below causes the appliction to behave oddly.
-                    // Most likely because the button onClicked handling is never
-                    // completed until the function returns.
-                    // FIXME find a better way of handling the input dialogs that
-                    // doesn't trigger this.
-                    Timer {
-                        id: fromUrlTimer
-                        interval: 5
-                        repeat: false
-                        running: false
-                        onTriggered: ApplicationInterface.loadScriptURLDialog();
-                    }
+                    onQueuedClicked: ApplicationInterface.loadScriptURLDialog()
                 }
 
                 HifiControls.Button {
                     text: "from Disk"
                     color: hifi.buttons.black
                     height: 26
-                    onClicked: fromDiskTimer.running = true
-
-                    Timer {
-                        id: fromDiskTimer
-                        interval: 5
-                        repeat: false
-                        running: false
-                        onTriggered: ApplicationInterface.loadDialog();
-                    }
+                    onQueuedClicked: ApplicationInterface.loadDialog()
                 }
 
                 HifiControls.Button {

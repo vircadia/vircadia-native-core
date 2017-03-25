@@ -84,7 +84,7 @@ Preference {
                 bottom: parent.bottom
                 rightMargin: hifi.dimensions.contentSpacing.x
             }
-            onClicked: { console.info('calling avatarBookmarks.addBookmark'); avatarBookmarks.addBookmark() }
+            onQueuedClicked: avatarBookmarks.addBookmark()
         }
 
         Button {
