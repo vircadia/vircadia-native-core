@@ -33,26 +33,28 @@ public:
 public slots:
     virtual void addBookmark(const QString& bookmarkName, const QString& bookmarkAddress);
 
-protected slots:
-    void deleteBookmark();
-    
 protected:
+    virtual void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) = 0;
+    void enableMenuItems(bool enabled);
+    void readFromFile();
+    void insert(const QString& name, const QString& address);  // Overwrites any existing entry with same name.
+    void sortActions(MenuWrapper* menuWrapper);
+
     QVariantMap _bookmarks;  // { name: url, ... }
-    
     QPointer<MenuWrapper> _bookmarksMenu;
     QPointer<QAction> _deleteBookmarksAction;
-
     QString _bookmarksFilename;
-    
-    void insert(const QString& name, const QString& address);  // Overwrites any existing entry with same name.
+
+protected slots:
+    void deleteBookmark();
+
+private:
     void remove(const QString& name);
     bool contains(const QString& name) const;
+    static bool sortOrder(QAction* a, QAction* b);
 
-    void readFromFile();
     void persistToFile();
 
-    void enableMenuItems(bool enabled);
-    virtual void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) = 0;
     void removeBookmarkFromMenu(Menu* menubar, const QString& name);
 };
 

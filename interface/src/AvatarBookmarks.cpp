@@ -13,15 +13,14 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QStandardPaths>
+#include <QQmlContext>
 
 #include <Application.h>
 #include <OffscreenUi.h>
-#include <QQmlContext>
+#include <avatar/AvatarManager.h>
 
 #include "MainWindow.h"
 #include "Menu.h"
-
-#include <avatar/AvatarManager.h>
 
 #include "AvatarBookmarks.h"
 #include <QtQuick/QQuickWindow>
@@ -41,12 +40,6 @@ void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
 
     Bookmarks::setupMenus(menubar, menu);
 
-    // connect bookmarkAvatarButton in AvatarPreferencesDialog.qml
-
-    // TODO: attempt at connecting to bookmarkAvatarSignal in AvatarPreferencesDialog.qml
-    // the OffscreenUi doesn't seem available this early to recurse through to find the root object where the signal is declared
-    // I've added a delay for now
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto context = offscreenUi->getRootContext();
     context->setContextProperty("avatarBookmarks", this);
@@ -61,11 +54,6 @@ void AvatarBookmarks::changeToBookmarkedAvatar() {
 }
 
 void AvatarBookmarks::addBookmark() {
-    // TODO:  if you press the Bookmark Avatar button in the dialog it seems to maintain focus.
-    // Clicking afterwards results in multiple calls
-    //  hide enforced until cause is determined 
-    DependencyManager::get<OffscreenUi>()->hide(QString("AvatarPreferencesDialog"));
-
     bool ok = false;
     auto bookmarkName = OffscreenUi::getText(OffscreenUi::ICON_PLACEMARK, "Bookmark Avatar", "Name", QString(), &ok);
     if (!ok) {
@@ -87,6 +75,6 @@ void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, cons
     changeAction->setData(address);
     connect(changeAction, SIGNAL(triggered()), this, SLOT(changeToBookmarkedAvatar()));
 
-    menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction,
-        name, 0, QAction::NoRole);
+    menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction, name, 0, QAction::NoRole);
+    Bookmarks::sortActions(_bookmarksMenu);
 }

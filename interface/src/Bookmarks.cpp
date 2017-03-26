@@ -24,7 +24,6 @@
 
 #include "Bookmarks.h"
 
-
 Bookmarks::Bookmarks() {
 }
 
@@ -84,7 +83,6 @@ void Bookmarks::addBookmark(const QString& bookmarkName, const QString& bookmark
 
     addBookmarkToMenu(menubar, bookmarkName, bookmarkAddress);
     insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
-
     enableMenuItems(true);
 }
 
@@ -112,6 +110,21 @@ void Bookmarks::remove(const QString& name) {
 
 bool Bookmarks::contains(const QString& name) const {
     return _bookmarks.contains(name);
+}
+
+bool Bookmarks::sortOrder(QAction* a, QAction* b) {
+    return a->text().toLower() < b->text().toLower();
+}
+
+void Bookmarks::sortActions(MenuWrapper* menuWrapper) {
+    QList<QAction*> tmpActions = menuWrapper->actions();
+    qSort(tmpActions.begin(), tmpActions.end(), sortOrder);
+    for (QAction* action : menuWrapper->actions()) {
+        menuWrapper->removeAction(action);
+    }
+    for (QAction* action : tmpActions) {
+        menuWrapper->addAction(action);
+    }
 }
 
 QString Bookmarks::addressForBookmark(const QString& name) const {

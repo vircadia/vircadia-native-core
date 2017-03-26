@@ -40,20 +40,15 @@ void LocationBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     _bookmarksMenu = menu->addMenu(MenuOption::LocationBookmarks);
     _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark);
     QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
-    
+
     Bookmarks::setupMenus(menubar, menu);
 }
 
 void LocationBookmarks::setHomeLocation() {
-    Menu* menubar = Menu::getInstance();
-    QString bookmarkName = HOME_BOOKMARK;
     auto addressManager = DependencyManager::get<AddressManager>();
     QString bookmarkAddress = addressManager->currentAddress().toString();
-
-    addBookmarkToMenu(menubar, bookmarkName, bookmarkAddress);
-    insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
-
-    enableMenuItems(true);
+    Bookmarks::addBookmark(HOME_BOOKMARK, bookmarkAddress);
+    Bookmarks::sortActions(_bookmarksMenu);
 }
 
 void LocationBookmarks::teleportToBookmark() {
@@ -83,7 +78,7 @@ void LocationBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, co
     QAction* teleportAction = _bookmarksMenu->newAction();
     teleportAction->setData(address);
     connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
-    
-    menubar->addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction,
-                                           name, 0, QAction::NoRole);
+
+    menubar->addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, name, 0, QAction::NoRole);
+    Bookmarks::sortActions(_bookmarksMenu);
 }

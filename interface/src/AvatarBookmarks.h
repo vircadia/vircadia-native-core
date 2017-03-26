@@ -28,11 +28,11 @@ public slots:
 protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) override;
 
-private slots:
-    void changeToBookmarkedAvatar();
-
 private:
     const QString AvatarBookmarks_FILENAME = "avatarbookmarks.json";
+
+private slots:
+    void changeToBookmarkedAvatar();
 };
 
 #endif // hifi_AvatarBookmarks_h

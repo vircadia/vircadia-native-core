@@ -29,12 +29,12 @@ public slots:
 protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) override;
 
+private:
+    const QString LocationBookmarks_FILENAME = "bookmarks.json";
+
 private slots:
     void setHomeLocation();
     void teleportToBookmark();
-    
-private:
-    const QString LocationBookmarks_FILENAME = "bookmarks.json";
 };
 
 #endif // hifi_LocationBookmarks_h
