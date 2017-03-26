@@ -260,7 +260,7 @@ void Web3DOverlay::render(RenderArgs* args) {
 
     if (!_texture) {
         auto webSurface = _webSurface;
-        _texture = gpu::TexturePointer(gpu::Texture::createExternal2D(OffscreenQmlSurface::getDiscardLambda()));
+        _texture = gpu::TexturePointer(gpu::Texture::createExternal(OffscreenQmlSurface::getDiscardLambda()));
         _texture->setSource(__FUNCTION__);
     }
     OffscreenQmlSurface::TextureAndFence newTextureAndFence;

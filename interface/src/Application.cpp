@@ -741,23 +741,24 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
+    auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface>();
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
-    connect(audioIO.data(), &AudioClient::mutedByMixer, &audioScriptingInterface, &AudioScriptingInterface::mutedByMixer);
-    connect(audioIO.data(), &AudioClient::receivedFirstPacket, &audioScriptingInterface, &AudioScriptingInterface::receivedFirstPacket);
-    connect(audioIO.data(), &AudioClient::disconnected, &audioScriptingInterface, &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
+    connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
     connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
         auto audioClient = DependencyManager::get<AudioClient>();
+        auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
         auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
         float distance = glm::distance(myAvatarPosition, position);
         bool shouldMute = !audioClient->isMuted() && (distance < radius);
 
         if (shouldMute) {
             audioClient->toggleMute();
-            AudioScriptingInterface::getInstance().environmentMuted();
+            audioScriptingInterface->environmentMuted();
         }
     });
 
@@ -1182,10 +1183,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the local loopback interface for local sounds
     AudioInjector::setLocalAudioInterface(audioIO.data());
-    AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
-    connect(audioIO.data(), &AudioClient::noiseGateOpened, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::noiseGateOpened);
-    connect(audioIO.data(), &AudioClient::noiseGateClosed, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::noiseGateClosed);
-    connect(audioIO.data(), &AudioClient::inputReceived, &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::inputReceived);
+    audioScriptingInterface->setLocalAudioInterface(audioIO.data());
+    connect(audioIO.data(), &AudioClient::noiseGateOpened, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateOpened);
+    connect(audioIO.data(), &AudioClient::noiseGateClosed, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateClosed);
+    connect(audioIO.data(), &AudioClient::inputReceived, audioScriptingInterface.data(), &AudioScriptingInterface::inputReceived);
 
 
     this->installEventFilter(this);
@@ -1444,7 +1445,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         scriptEngines->loadScript(testScript, false);
     } else {
         // Get sandbox content set version, if available
-        auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
+        auto acDirPath = PathUtils::getAppDataPath() + "../../" + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
         auto contentVersionPath = acDirPath + "content-version.txt";
         qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
         auto contentVersion = 0;
@@ -1950,7 +1951,7 @@ void Application::initializeUi() {
     // For some reason there is already an "Application" object in the QML context,
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("ApplicationInterface", this);
-    rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
+    rootContext->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
     rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     rootContext->setContextProperty("AudioScope", DependencyManager::get<AudioScope>().data());
 
@@ -2132,7 +2133,7 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("CameraUpdates");
 
         auto myAvatar = getMyAvatar();
-        boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FRONT;
+        boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
 
         if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
@@ -3955,7 +3956,7 @@ void Application::updateMyAvatarLookAtPosition() {
             auto lookingAtHead = static_pointer_cast<Avatar>(lookingAt)->getHead();
 
             const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
-            glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
+            glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
             glm::vec3 fromLookingAtToMe = glm::normalize(myAvatar->getHead()->getEyePosition()
                 - lookingAtHead->getEyePosition());
             float faceAngle = glm::angle(lookingAtFaceOrientation, fromLookingAtToMe);

@@ -15,7 +15,7 @@ var orientation = MyAvatar.orientation;
 orientation = Quat.safeEulerAngles(orientation);
 orientation.x = 0;
 orientation = Quat.fromVec3Degrees(orientation);
-var center = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(2, Quat.getFront(orientation)));
+var center = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(2, Quat.getForward(orientation)));
 
 var CLUB_MODEL = "http://hifi-production.s3.amazonaws.com/tutorials/golfClub/putter_VR.fbx";
 var CLUB_COLLISION_HULL = "http://hifi-production.s3.amazonaws.com/tutorials/golfClub/club_collision_hull.obj";

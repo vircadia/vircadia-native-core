@@ -21,13 +21,12 @@ GLFramebuffer::~GLFramebuffer() {
     } 
 }
 
-bool GLFramebuffer::checkStatus(GLenum target) const {
-    bool result = false;
+bool GLFramebuffer::checkStatus() const {
     switch (_status) {
     case GL_FRAMEBUFFER_COMPLETE:
         // Success !
-        result = true;
-        break;
+        return true;
+
     case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
         qCWarning(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT.";
         break;
@@ -44,5 +43,5 @@ bool GLFramebuffer::checkStatus(GLenum target) const {
         qCWarning(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_UNSUPPORTED.";
         break;
     }
-    return result;
+    return false;
 }

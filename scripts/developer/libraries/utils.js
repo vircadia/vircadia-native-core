@@ -311,3 +311,6 @@ clamp = function(val, min, max){
      return Math.max(min, Math.min(max, val))
  } 
 
+easeIn = function(t) {
+    return Math.pow(t / 1, 5);
+}

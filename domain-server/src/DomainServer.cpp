@@ -38,7 +38,7 @@
 #include <ShutdownEventListener.h>
 #include <UUID.h>
 #include <LogHandler.h>
-#include <ServerPathUtils.h>
+#include <PathUtils.h>
 #include <NumericalConstants.h>
 
 #include "DomainServerNodeData.h"
@@ -1618,7 +1618,7 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
 QDir pathForAssignmentScriptsDirectory() {
     static const QString SCRIPTS_DIRECTORY_NAME = "/scripts/";
 
-    QDir directory(ServerPathUtils::getDataDirectory() + SCRIPTS_DIRECTORY_NAME);
+    QDir directory(PathUtils::getAppDataPath() + SCRIPTS_DIRECTORY_NAME);
     if (!directory.exists()) {
         directory.mkpath(".");
         qInfo() << "Created path to " << directory.path();

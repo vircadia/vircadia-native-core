@@ -206,7 +206,7 @@ ScrollingWindow {
                     print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
                 } else if (url) {
                     var name = assetProxyModel.data(treeView.selection.currentIndex);
-                    var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(MyAvatar.orientation)));
+                    var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation)));
                     var gravity;
                     if (dynamic) {
                         // Create a vector <0, -10, 0>.  { x: 0, y: -10, z: 0 } won't work because Qt is dumb and this is a

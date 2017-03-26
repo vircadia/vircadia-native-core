@@ -46,7 +46,7 @@ public:
 
     void updateModelBounds();
     virtual void render(RenderArgs* args) override;
-    virtual bool supportsDetailedRayIntersection() const override { return true; }
+    virtual bool supportsDetailedRayIntersection() const override;
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
