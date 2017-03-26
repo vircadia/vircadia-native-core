@@ -7,5 +7,6 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
 # link in the shared libraries
 link_hifi_libraries(render-utils gl gpu gpu-gl shared)
+target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
 package_libraries_for_deployment()

@@ -30,6 +30,8 @@ project(hifi)
 add_definitions(-DGLM_FORCE_RADIANS)
 set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
+find_package( Threads )
+
 if (WIN32)
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
 
