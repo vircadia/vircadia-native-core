@@ -61,22 +61,26 @@ Preference {
 
         TextField {
             id: dataTextField
+            label: root.label
             placeholderText: root.placeholderText
             text: preference.value
-            label: root.label
+            colorScheme: dataTextField.acceptableInput ? hifi.colorSchemes.dark : hifi.colorSchemes.light
+            validator: RegExpValidator {
+                regExp: /.*\.(?:fst).*\?*/ig
+            }
             anchors {
                 left: parent.left
                 right: parent.right
                 bottom: bookmarkAvatarButton.top
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
-            colorScheme: hifi.colorSchemes.dark
         }
 
         QueuedButton {
             id: bookmarkAvatarButton
             text: "Bookmark Avatar"
             width: 140
+            visible: dataTextField.acceptableInput
             anchors {
                 left: parent.left
                 bottom: parent.bottom
@@ -90,9 +94,9 @@ Preference {
             text: "Browse Avatars"
             width: 140
             anchors {
-                left: bookmarkAvatarButton.right
+                left: dataTextField.acceptableInput ? bookmarkAvatarButton.right : parent.left
                 bottom: parent.bottom
-                leftMargin: hifi.dimensions.contentSpacing.x
+                leftMargin: dataTextField.acceptableInput ? hifi.dimensions.contentSpacing.x : 0
             }
             onClicked: {
                 // Load dialog via OffscreenUi so that JavaScript EventBridge is available.

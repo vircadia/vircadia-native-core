@@ -26,7 +26,7 @@
 #include <QtQuick/QQuickWindow>
 
 AvatarBookmarks::AvatarBookmarks() {
-    _bookmarksFilename = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + AvatarBookmarks_FILENAME;
+    _bookmarksFilename = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + AVATARBOOKMARKS_FILENAME;
     readFromFile();
 }
 

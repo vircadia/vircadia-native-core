@@ -29,7 +29,7 @@ protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) override;
 
 private:
-    const QString AvatarBookmarks_FILENAME = "avatarbookmarks.json";
+    const QString AVATARBOOKMARKS_FILENAME = "avatarbookmarks.json";
 
 private slots:
     void changeToBookmarkedAvatar();

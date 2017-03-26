@@ -30,7 +30,7 @@ protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) override;
 
 private:
-    const QString LocationBookmarks_FILENAME = "bookmarks.json";
+    const QString LOCATIONBOOKMARKS_FILENAME = "bookmarks.json";
 
 private slots:
     void setHomeLocation();
