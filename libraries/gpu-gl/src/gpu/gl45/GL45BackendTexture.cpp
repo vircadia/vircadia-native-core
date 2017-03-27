@@ -186,8 +186,10 @@ GL45FixedAllocationTexture::~GL45FixedAllocationTexture() {
 void GL45FixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto dimensions = _gpuObject.getDimensions();
-    const auto mips = _gpuObject.evalNumMips();
+    const auto mips = _gpuObject.getNumMipLevels();
+
     glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
+    glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
 }
 
 void GL45FixedAllocationTexture::syncSampler() const {
@@ -214,7 +216,7 @@ GL45AttachmentTexture::~GL45AttachmentTexture() {
 using GL45StrictResourceTexture = GL45Backend::GL45StrictResourceTexture;
 
 GL45StrictResourceTexture::GL45StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45FixedAllocationTexture(backend, texture) {
-    auto mipLevels = _gpuObject.evalNumMips();
+    auto mipLevels = _gpuObject.getNumMipLevels();
     for (uint16_t sourceMip = 0; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip;
         size_t maxFace = GLTexture::getFaceCount(_target);
