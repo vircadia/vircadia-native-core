@@ -8,10 +8,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
+body {
+    padding-top: 0;
+}
 
 .snapshot-container {
     width: 100%;
-    padding-top: 3px;
 }
 
 #snapshot-images > img {
@@ -23,9 +25,15 @@
     text-align: center;
 }
 
+.snapsection:first-child {
+    padding-top: 0;
+    text-align: left;
+}
+
 .title {
-    text-transform: uppercase;
-    font-size: 12px;
+    font-size: 18px;
+    position: relative;
+    top: 12px;
 }
 
 .prompt {
