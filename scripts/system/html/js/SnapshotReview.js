@@ -43,7 +43,13 @@ function addImage(data) {
 function handleShareButtons(shareMsg) {
     var openFeed = document.getElementById('openFeed');
     openFeed.checked = shareMsg.openFeedAfterShare;
-    openFeed.onchange = function () { EventBridge.emitWebEvent(openFeed.checked ? 'setOpenFeedTrue' : 'setOpenFeedFalse'); };
+    openFeed.onchange = function () {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "snapshot",
+            action: (openFeed.checked ? "setOpenFeedTrue" : "setOpenFeedFalse")
+        }));
+    };
+
     if (!shareMsg.canShare) {
         // this means you may or may not be logged in, but can't share
         // because you are not in a public place.
@@ -57,25 +63,42 @@ window.onload = function () {
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
+            message = JSON.parse(message);
+            if (message.type !== "snapshot") {
+                return;
+            }
+
             // last element of list contains a bool for whether or not we can share stuff
-            var shareMsg = message.pop();
+            var shareMsg = message.action.pop();
             handleShareButtons(shareMsg);
             
             // rest are image paths which we add
-            useCheckboxes = message.length > 1;
-            message.forEach(addImage);
+            useCheckboxes = message.action.length > 1;
+            message.action.forEach(addImage);
         });
-        EventBridge.emitWebEvent('ready');
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "snapshot",
+            action: "ready"
+        }));
     });
 
 };
 // beware of bug: Cannot send objects at top level. (Nested in arrays is fine.)
 function shareSelected() {
-    EventBridge.emitWebEvent(paths);
-};
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "snapshot",
+        action: paths
+    }));
+}
 function doNotShare() {
-    EventBridge.emitWebEvent([]);
-};
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "snapshot",
+        action: []
+    }));
+}
 function snapshotSettings() {
-    EventBridge.emitWebEvent("openSettings");
-};
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "snapshot",
+        action: "openSettings"
+    }));
+}

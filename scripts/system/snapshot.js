@@ -47,11 +47,19 @@ function confirmShare(data) {
         // 2. Although we currently use a single image, we would like to take snapshot, a selfie, a 360 etc. all at the
         //    same time, show the user all of them, and have the user deselect any that they do not want to share.
         //    So we'll ultimately be receiving a set of objects, perhaps with different post processing for each.
+        message = JSON.parse(message);
+        if (message.type !== "snapshot") {
+            return;
+        }
+
         var isLoggedIn;
         var needsLogin = false;
-        switch (message) {
-        case 'ready':
-            tablet.emitScriptEvent(data); // Send it.
+        switch (message.action) {
+        case 'ready':  // Send it.
+            tablet.emitScriptEvent(JSON.stringify({
+                type: "snapshot",
+                action: data
+            })); 
             outstanding = 0;
             break;
         case 'openSettings':
@@ -67,7 +75,7 @@ function confirmShare(data) {
             tablet.webEventReceived.disconnect(onMessage);
             HMD.closeTablet();
             isLoggedIn = Account.isLoggedIn();
-            message.forEach(function (submessage) {
+            message.action.forEach(function (submessage) {
                 if (submessage.share && !isLoggedIn) {
                     needsLogin = true;
                     submessage.share = false;
