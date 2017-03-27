@@ -422,17 +422,12 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     int colorsSize = fbxMesh.colors.size() * sizeof(glm::vec3);
     int texCoordsSize = fbxMesh.texCoords.size() * sizeof(glm::vec2);
     int texCoords1Size = fbxMesh.texCoords1.size() * sizeof(glm::vec2);
-#define UNFORTUNATE_HACK
-#ifdef UNFORTUNATE_HACK
-    // HACK: store clusterIndices in floats rather than short integers
-    int clusterIndicesSize = fbxMesh.clusterIndices.size() * sizeof(float);
-#else // UNFORTUNATE_HACK
+
     int clusterIndicesSize = fbxMesh.clusterIndices.size() * sizeof(uint8_t);
     if (fbxMesh.clusters.size() > UINT8_MAX) {
         // we need 16 bits instead of just 8 for clusterIndices
         clusterIndicesSize *= 2;
     }
-#endif // UNFORTUNATE_HACK
     int clusterWeightsSize = fbxMesh.clusterWeights.size() * sizeof(uint8_t);
 
     int normalsOffset = 0;
@@ -452,17 +447,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     attribBuffer->setSubData(colorsOffset, colorsSize, (gpu::Byte*) fbxMesh.colors.constData());
     attribBuffer->setSubData(texCoordsOffset, texCoordsSize, (gpu::Byte*) fbxMesh.texCoords.constData());
     attribBuffer->setSubData(texCoords1Offset, texCoords1Size, (gpu::Byte*) fbxMesh.texCoords1.constData());
-#ifdef UNFORTUNATE_HACK
-    // HACK: copy clusterIndices back into floats to appease render pipeline
-    QVector<float> clusterIndices;
-    int32_t numIndices = fbxMesh.clusterIndices.size();
-    clusterIndices.resize(numIndices);
-    for (int32_t i = 0; i < numIndices; ++i) {
-        assert(fbxMesh.clusterIndices[i] <= UINT8_MAX);
-        clusterIndices[i] = (float)(fbxMesh.clusterIndices[i]);
-    }
-    attribBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (gpu::Byte*) clusterIndices.constData());
-#else // UNFORTUNATE_HACK
+
     if (fbxMesh.clusters.size() < UINT8_MAX) {
         // yay! we can fit the clusterIndices within 8-bits
         int32_t numIndices = fbxMesh.clusterIndices.size();
@@ -476,7 +461,6 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     } else {
         attribBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (gpu::Byte*) fbxMesh.clusterIndices.constData());
     }
-#endif // UNFORTUNATE_HACK
     attribBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (gpu::Byte*) fbxMesh.clusterWeights.constData());
 
     if (normalsSize) {
@@ -509,14 +493,6 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
                             gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
     }
 
-#ifdef UNFORTUNATE_HACK
-    // HACK: cluster indices are submitted to render pipeline in FLOAT format
-    if (clusterIndicesSize) {
-        mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
-                          model::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
-                                            gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW)));
-    }
-#else // UNFORTUNATE_HACK
     if (clusterIndicesSize) {
         if (fbxMesh.clusters.size() < UINT8_MAX) {
             mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
@@ -528,7 +504,6 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
                                                  gpu::Element(gpu::VEC4, gpu::UINT16, gpu::XYZW)));
         }
     }
-#endif // UNFORTUNATE_HACK
     if (clusterWeightsSize) {
         mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
                           model::BufferView(attribBuffer, clusterWeightsOffset, clusterWeightsSize,
