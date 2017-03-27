@@ -1663,7 +1663,7 @@ void EntityScriptingInterface::getMeshes(QUuid entityID, QScriptValue callback) 
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::getMeshes no entity with ID" << entityID;
-        QScriptValueList args { false, false };
+        QScriptValueList args { callback.engine()->undefinedValue(), false };
         callback.call(QScriptValue(), args);
         return;
     }

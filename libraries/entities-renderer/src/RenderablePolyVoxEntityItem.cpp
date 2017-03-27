@@ -446,7 +446,6 @@ bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
         }
     });
 
-
     if (result) {
         compressVolumeDataAndSendEditPacket();
     }
@@ -773,6 +772,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
                          0,
                          sizeof(PolyVox::PositionMaterialNormal));
 
+    // TODO -- should we be setting this?
     // batch.setInputBuffer(gpu::Stream::NORMAL, mesh->getVertexBuffer()._buffer,
     //                      12,
     //                      sizeof(PolyVox::PositionMaterialNormal));
