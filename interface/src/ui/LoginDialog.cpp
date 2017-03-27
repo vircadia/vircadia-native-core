@@ -48,7 +48,6 @@ void LoginDialog::showWithSelection()
         LoginDialog::show();
     } else {
         static const QUrl url("../../dialogs/TabletLoginDialog.qml");
-        qDebug() << "[DR] -> Push login onto the tablet";
         tablet->initialScreen(url);
         if (!hmd->getShouldShowTablet()) {
             hmd->openTablet();
