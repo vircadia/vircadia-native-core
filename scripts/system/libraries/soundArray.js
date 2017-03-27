@@ -36,7 +36,7 @@ SoundArray = function(audioOptions, autoUpdateAudioPosition) {
     };
     this.updateAudioPosition = function() {
         var position = MyAvatar.position;
-        var forwardVector = Quat.getFront(MyAvatar.orientation);
+        var forwardVector = Quat.getForward(MyAvatar.orientation);
         this.audioOptions.position = Vec3.sum(position, forwardVector);
     };
 };

@@ -42,8 +42,7 @@ Item {
     property bool selected: false
     property bool isAdmin: false
     property bool isPresent: true
-    property string imageMaskColor: pal.color;
-    property string profilePicBorderColor: (connectionStatus == "connection" ? hifi.colors.indigoAccent : (connectionStatus == "friend" ? hifi.colors.greenHighlight : imageMaskColor))
+    property string profilePicBorderColor: (connectionStatus == "connection" ? hifi.colors.indigoAccent : (connectionStatus == "friend" ? hifi.colors.greenHighlight : "transparent"))
 
     Item {
         id: avatarImage
@@ -61,24 +60,24 @@ Item {
             mipmap: true;
             // Anchors
             anchors.fill: parent
+            layer.enabled: true
+            layer.effect: OpacityMask {
+                maskSource: Item {
+                    width: userImage.width;
+                    height: userImage.height;
+                    Rectangle {
+                        anchors.centerIn: parent;
+                        width: userImage.width; // This works because userImage is square
+                        height: width;
+                        radius: width;
+                    }
+                }
+            }
         }
         AnimatedImage {
             source: "../../icons/profilePicLoading.gif"
             anchors.fill: parent;
             visible: userImage.status != Image.Ready;
-        }
-        // Circular mask
-        Rectangle {
-            id: avatarImageMask;
-            visible: avatarImage.visible;
-            anchors.verticalCenter: avatarImage.verticalCenter;
-            anchors.horizontalCenter: avatarImage.horizontalCenter;
-            width: avatarImage.width * 2;
-            height: avatarImage.height * 2;
-            color: "transparent"
-            radius: avatarImage.height;
-            border.color: imageMaskColor;
-            border.width: avatarImage.height/2;
         }
         StateImage {
             id: infoHoverImage;

@@ -2,7 +2,7 @@
   orientation = Quat.safeEulerAngles(orientation);
   orientation.x = 0;
   orientation = Quat.fromVec3Degrees(orientation);
-  var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
+  var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getForward(orientation)));
 
   // Math.random ensures no caching of script
   var SCRIPT_URL = Script.resolvePath("batonSoundTestEntityScript.js")

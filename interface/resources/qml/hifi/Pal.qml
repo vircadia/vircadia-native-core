@@ -126,7 +126,6 @@ Rectangle {
                 id: myCard;
                 // Properties
                 profileUrl: myData.profileUrl;
-                imageMaskColor: pal.color;
                 displayName: myData.displayName;
                 userName: myData.userName;
                 audioLevel: myData.audioLevel;
@@ -301,12 +300,11 @@ Rectangle {
                     anchors.fill: parent;
                     onClicked: { 
                         if (activeTab != "connectionsTab") {
+                            connectionsLoading.visible = false;
+                            connectionsLoading.visible = true;
                             pal.sendToScript({method: 'refreshConnections'});
                         }
                         activeTab = "connectionsTab";
-                        connectionsLoading.visible = false;
-                        connectionsLoading.visible = true;
-                        connectionsRefreshProblemText.visible = false;
                     }
                 }
 
@@ -587,7 +585,7 @@ Rectangle {
                 property bool isCheckBox: styleData.role === "personalMute" || styleData.role === "ignore";
                 property bool isButton: styleData.role === "mute" || styleData.role === "kick";
                 property bool isAvgAudio: styleData.role === "avgAudioLevel";
-                opacity: model && model.isPresent ? 1.0 : 0.4;
+                opacity: !isButton ? (model && model.isPresent ? 1.0 : 0.4) : 1.0; // Admin actions shouldn't turn gray
 
                 // This NameCard refers to the cell that contains an avatar's
                 // DisplayName and UserName
@@ -595,7 +593,6 @@ Rectangle {
                     id: nameCard;
                     // Properties
                     profileUrl: (model && model.profileUrl) || "";
-                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2);
                     displayName: styleData.value;
                     userName: model ? model.userName : "";
                     connectionStatus: model ? model.connection : "";
@@ -916,7 +913,6 @@ Rectangle {
                     // Properties
                     visible: styleData.role === "userName";
                     profileUrl: (model && model.profileUrl) || "";
-                    imageMaskColor: rowColor(styleData.selected, styleData.row % 2);
                     displayName: "";
                     userName: model ? model.userName : "";
                     connectionStatus : model ? model.connection : "";
