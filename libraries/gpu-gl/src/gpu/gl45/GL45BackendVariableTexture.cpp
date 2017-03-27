@@ -461,10 +461,10 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
     _allocatedMip = allocatedMip;
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto dimensions = _gpuObject.evalMipDimensions(_allocatedMip);
-    const auto totalMips = _gpuObject.evalNumMips();
+    const auto totalMips = _gpuObject.getNumMipLevels();
     const auto mips = totalMips - _allocatedMip;
     glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
-    auto mipLevels = _gpuObject.evalNumMips();
+    auto mipLevels = _gpuObject.getNumMipLevels();
     _size = 0;
     for (uint16_t mip = _allocatedMip; mip < mipLevels; ++mip) {
         _size += _gpuObject.evalMipSize(mip);
@@ -474,7 +474,7 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
 }
 
 void GL45ResourceTexture::copyMipsFromTexture() {
-    auto mipLevels = _gpuObject.evalNumMips();
+    auto mipLevels = _gpuObject.getNumMipLevels();
     size_t maxFace = GLTexture::getFaceCount(_target);
     for (uint16_t sourceMip = _populatedMip; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip - _allocatedMip;
@@ -499,7 +499,7 @@ void GL45ResourceTexture::promote() {
     uint16_t oldAllocatedMip = _allocatedMip;
     // allocate storage for new level
     allocateStorage(_allocatedMip - std::min<uint16_t>(_allocatedMip, 2));
-    uint16_t mips = _gpuObject.evalNumMips();
+    uint16_t mips = _gpuObject.getNumMipLevels();
     // copy pre-existing mips
     for (uint16_t mip = _populatedMip; mip < mips; ++mip) {
         auto mipDimensions = _gpuObject.evalMipDimensions(mip);
@@ -532,7 +532,7 @@ void GL45ResourceTexture::demote() {
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
-    uint16_t mips = _gpuObject.evalNumMips();
+    uint16_t mips = _gpuObject.getNumMipLevels();
     // copy pre-existing mips
     for (uint16_t mip = _populatedMip; mip < mips; ++mip) {
         auto mipDimensions = _gpuObject.evalMipDimensions(mip);
