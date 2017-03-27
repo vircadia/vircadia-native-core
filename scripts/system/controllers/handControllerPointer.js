@@ -174,7 +174,7 @@ function calculateRayUICollisionPoint(position, direction) {
     // interect HUD plane, 1m in front of camera, using formula:
     //   scale = hudNormal dot (hudPoint - position) / hudNormal dot direction
     //   intersection = postion + scale*direction
-    var hudNormal = Quat.getFront(Camera.getOrientation());
+    var hudNormal = Quat.getForward(Camera.getOrientation());
     var hudPoint = Vec3.sum(Camera.getPosition(), hudNormal); // must also scale if PLANAR_PERPENDICULAR_HUD_DISTANCE!=1
     var denominator = Vec3.dot(hudNormal, direction);
     if (denominator === 0) {

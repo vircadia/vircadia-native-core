@@ -127,8 +127,8 @@ function mousePressEvent(event) {
     deleteDice();
   } else if (clickedOverlay == diceButton) {
     var HOW_HARD = 2.0;
-    var position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
-    var velocity = Vec3.multiply(HOW_HARD, Quat.getFront(Camera.getOrientation()));
+    var position = Vec3.sum(Camera.getPosition(), Quat.getForward(Camera.getOrientation()));
+    var velocity = Vec3.multiply(HOW_HARD, Quat.getForward(Camera.getOrientation()));
     shootDice(position, velocity);
     madeSound = false;
   }

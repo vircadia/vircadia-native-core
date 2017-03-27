@@ -65,7 +65,8 @@ public:
     bool hasOutgoingChanges() const { return _hasOutgoingChanges; }
 
     /// \return reference to list of changed MotionStates.  The list is only valid until beginning of next simulation loop.
-    const VectorOfMotionStates& getOutgoingChanges();
+    const VectorOfMotionStates& getChangedMotionStates();
+    const VectorOfMotionStates& getDeactivatedMotionStates() const { return _dynamicsWorld->getDeactivatedMotionStates(); }
 
     /// \return reference to list of Collision events.  The list is only valid until beginning of next simulation loop.
     const CollisionEvents& getCollisionEvents();

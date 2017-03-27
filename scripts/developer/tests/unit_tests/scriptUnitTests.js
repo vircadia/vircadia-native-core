@@ -15,10 +15,20 @@ describe('Script', function () {
     // characterization tests
     // initially these are just to capture how the app works currently
     var testCases = {
+        // special relative resolves
                                 '': filename,
                                '.': dirname,
                               '..': parentdir,
+
+        // local file "magic" tilde path expansion
+            '/~/defaultScripts.js': ScriptDiscoveryService.defaultScriptsPath + '/defaultScripts.js',
+
+        // these schemes appear to always get resolved to empty URLs
+                      'qrc://test': '',
                 'about:Entities 1': '',
+            'ftp://host:port/path': '',
+         'data:text/html;text,foo': '',
+
                       'Entities 1': dirname + 'Entities 1',
                        './file.js': dirname + 'file.js',
                         'c:/temp/': 'file:///c:/temp/',
@@ -31,6 +41,12 @@ describe('Script', function () {
            '/~/libraries/utils.js': 'file:///~/libraries/utils.js',
                    '/temp/file.js': 'file:///temp/file.js',
                              '/~/': 'file:///~/',
+
+        // these schemes appear to always get resolved to the same URL again
+         'http://highfidelity.com': 'http://highfidelity.com',
+               'atp:/highfidelity': 'atp:/highfidelity',
+        'atp:c2d7e3a48cadf9ba75e4f8d9f4d80e75276774880405a093fdee36543aa04f':
+          'atp:c2d7e3a48cadf9ba75e4f8d9f4d80e75276774880405a093fdee36543aa04f',
     };
     describe('resolvePath', function () {
         Object.keys(testCases).forEach(function(input) {
@@ -42,7 +58,7 @@ describe('Script', function () {
 
     describe('include', function () {
         var old_cache_buster;
-        var cache_buster = '#' + +new Date;
+        var cache_buster = '#' + new Date().getTime().toString(36);
         beforeAll(function() {
             old_cache_buster = Settings.getValue('cache_buster');
             Settings.setValue('cache_buster', cache_buster);

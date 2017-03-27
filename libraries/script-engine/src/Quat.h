@@ -45,7 +45,9 @@ public slots:
     glm::quat fromPitchYawRollDegrees(float pitch, float yaw, float roll); // degrees
     glm::quat fromPitchYawRollRadians(float pitch, float yaw, float roll); // radians
     glm::quat inverse(const glm::quat& q);
-    glm::vec3 getFront(const glm::quat& orientation);
+    // redundant, calls getForward which better describes the returned vector as a direction
+    glm::vec3 getFront(const glm::quat& orientation) { return getForward(orientation); }
+    glm::vec3 getForward(const glm::quat& orientation);
     glm::vec3 getRight(const glm::quat& orientation);
     glm::vec3 getUp(const glm::quat& orientation);
     glm::vec3 safeEulerAngles(const glm::quat& orientation); // degrees

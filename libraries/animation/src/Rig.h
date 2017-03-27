@@ -267,7 +267,7 @@ protected:
     int _rightElbowJointIndex { -1 };
     int _rightShoulderJointIndex { -1 };
 
-    glm::vec3 _lastFront;
+    glm::vec3 _lastForward;
     glm::vec3 _lastPosition;
     glm::vec3 _lastVelocity;
 
