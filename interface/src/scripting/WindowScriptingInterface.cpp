@@ -235,6 +235,14 @@ void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& hr
     qApp->shareSnapshot(path, href);
 }
 
+void WindowScriptingInterface::makeConnection(bool success, const QString& userNameOrError) {
+    if (success) {
+        emit connectionAdded(userNameOrError);
+    } else {
+        emit connectionError(userNameOrError);
+    }
+}
+
 bool WindowScriptingInterface::isPhysicsEnabled() {
     return qApp->isPhysicsEnabled();
 }
@@ -255,7 +263,7 @@ int WindowScriptingInterface::openMessageBox(QString title, QString text, int bu
 }
 
 int WindowScriptingInterface::createMessageBox(QString title, QString text, int buttons, int defaultButton) {
-    auto messageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, title, text, 
+    auto messageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, title, text,
         static_cast<QFlags<QMessageBox::StandardButton>>(buttons), static_cast<QMessageBox::StandardButton>(defaultButton));
     connect(messageBox, SIGNAL(selected(int)), this, SLOT(onMessageBoxSelected(int)));
 

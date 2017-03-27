@@ -271,7 +271,8 @@ function updateVisualization() {
                 particleProps = PARTICLE_EFFECT_PROPS;
                 particleProps.isEmitting = 0;
                 particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
-                particleEffect = Entities.addEntity(particleProps);
+                particleProps.parentID = MyAvatar.sessionUUID;
+                particleEffect = Entities.addEntity(particleProps, true);
             } else {
                 particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
                 particleProps.isEmitting = 1;
@@ -279,10 +280,11 @@ function updateVisualization() {
             }
             if (!makingConnectionParticleEffect) {
                 var props = MAKING_CONNECTION_PARTICLE_PROPS;
+                props.parentID = MyAvatar.sessionUUID;
                 makingConnectionEmitRate = 2000;
                 props.emitRate = makingConnectionEmitRate;
                 props.position = myHandPosition;
-                makingConnectionParticleEffect = Entities.addEntity(props);
+                makingConnectionParticleEffect = Entities.addEntity(props, true);
             } else {
                 makingConnectionEmitRate *= 0.5;
                 Entities.editEntity(makingConnectionParticleEffect, {emitRate: makingConnectionEmitRate, position: myHandPosition, isEmitting: 1});
@@ -485,7 +487,6 @@ function makeConnection(id) {
     // probably, in which we do this.
     Controller.triggerHapticPulse(HAPTIC_DATA.background.strength, MAKING_CONNECTION_TIMEOUT, handToHaptic(currentHand));
 
-    // now that we made connection, reset everything
     makingFriendsTimeout = Script.setTimeout(function () {
             if (!successfulHandshakeInjector) {
                 successfulHandshakeInjector = Audio.playSound(successfulHandshakeSound, {position: getHandPosition(MyAvatar, currentHand), volume: 0.5, localOnly: true});
@@ -494,6 +495,8 @@ function makeConnection(id) {
             }
             Controller.triggerHapticPulse(HAPTIC_DATA.success.strength, HAPTIC_DATA.success.duration, handToHaptic(currentHand));
             // don't change state (so animation continues while gripped)
+            // but do send a notification, by calling the slot that emits the signal for it
+            Window.makeConnection(true, "otherGuy"); // this is successful, unsucessful would be false, errorString
         }, MAKING_CONNECTION_TIMEOUT);
 }
 
