@@ -88,11 +88,13 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_parent._gpuObject.getTexelFormat(), _parent._gpuObject.getStoredMipFormat());
     format = texelFormat.format;
     type = texelFormat.type;
+    auto mipSize = _parent._gpuObject.getStoredMipFaceSize(sourceMip, face);
+
 
     if (0 == lines) {
+        _transferSize = mipSize;
         _bufferingLambda = [=] {
             auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
-            _transferSize = mipData->getSize();
             _buffer.resize(_transferSize);
             memcpy(&_buffer[0], mipData->readData(), _transferSize);
             _bufferingCompleted = true;
@@ -100,13 +102,12 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
 
     } else {
         transferDimensions.y = lines;
+        auto dimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
+        auto bytesPerLine = (uint32_t)mipSize / dimensions.y;
+        auto sourceOffset = bytesPerLine * lineOffset;
+        _transferSize = bytesPerLine * lines;
         _bufferingLambda = [=] {
             auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
-            auto dimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
-            auto mipSize = mipData->getSize();
-            auto bytesPerLine = (uint32_t)mipSize / dimensions.y;
-            _transferSize = bytesPerLine * lines;
-            auto sourceOffset = bytesPerLine * lineOffset;
             _buffer.resize(_transferSize);
             memcpy(&_buffer[0], mipData->readData() + sourceOffset, _transferSize);
             _bufferingCompleted = true;
