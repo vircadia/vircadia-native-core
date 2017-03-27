@@ -36,30 +36,27 @@ function showFeedWindow() {
     DialogsManager.showFeed();
 }
 
-var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
-
 var outstanding;
-function confirmShare(data) {
-    tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
-    function onMessage(message) {
-        // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
-        // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
-        // 2. Although we currently use a single image, we would like to take snapshot, a selfie, a 360 etc. all at the
-        //    same time, show the user all of them, and have the user deselect any that they do not want to share.
-        //    So we'll ultimately be receiving a set of objects, perhaps with different post processing for each.
-        message = JSON.parse(message);
-        if (message.type !== "snapshot") {
-            return;
-        }
+var readyData;
+function onMessage(message) {
+    // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
+    // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
+    // 2. Although we currently use a single image, we would like to take snapshot, a selfie, a 360 etc. all at the
+    //    same time, show the user all of them, and have the user deselect any that they do not want to share.
+    //    So we'll ultimately be receiving a set of objects, perhaps with different post processing for each.
+    message = JSON.parse(message);
+    if (message.type !== "snapshot") {
+        return;
+    }
 
-        var isLoggedIn;
-        var needsLogin = false;
-        switch (message.action) {
+    var isLoggedIn;
+    var needsLogin = false;
+    switch (message.action) {
         case 'ready':  // Send it.
             tablet.emitScriptEvent(JSON.stringify({
                 type: "snapshot",
-                action: data
-            })); 
+                action: readyData
+            }));
             outstanding = 0;
             break;
         case 'openSettings':
@@ -72,7 +69,7 @@ function confirmShare(data) {
             Settings.setValue('openFeedAfterShare', true);
             break;
         default:
-            tablet.webEventReceived.disconnect(onMessage);
+            //tablet.webEventReceived.disconnect(onMessage);  // <<< It's probably this that's missing?!
             HMD.closeTablet();
             tablet.gotoHomeScreen();
             isLoggedIn = Account.isLoggedIn();
@@ -90,15 +87,22 @@ function confirmShare(data) {
                 }
             });
             if (!outstanding && shouldOpenFeedAfterShare()) {
-                showFeedWindow();
+                //showFeedWindow();
             }
             if (needsLogin) { // after the possible feed, so that the login is on top
                 Account.checkAndSignalForAccessToken();
             }
-        }
     }
+}
+
+var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
+var isInSnapshotReview = false;
+function confirmShare(data) {
+    tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
+    readyData = data;
     tablet.webEventReceived.connect(onMessage);
     HMD.openTablet();
+    isInSnapshotReview = true;
 }
 
 function snapshotShared(errorMessage) {
@@ -214,10 +218,18 @@ function processingGif() {
     }
 }
 
+function onTabletScreenChanged(type, url) {
+    if (isInSnapshotReview) {
+        tablet.webEventReceived.disconnect(onMessage);
+        isInSnapshotReview = false;
+    }
+}
+
 button.clicked.connect(onClicked);
 buttonConnected = true;
 Window.snapshotShared.connect(snapshotShared);
 Window.processingGif.connect(processingGif);
+tablet.screenChanged.connect(onTabletScreenChanged);
 
 Script.scriptEnding.connect(function () {
     if (buttonConnected) {
@@ -229,6 +241,7 @@ Script.scriptEnding.connect(function () {
     }
     Window.snapshotShared.disconnect(snapshotShared);
     Window.processingGif.disconnect(processingGif);
+    tablet.screenChanged.disconnect(onTabletScreenChanged);
 });
 
 }()); // END LOCAL_SCOPE
