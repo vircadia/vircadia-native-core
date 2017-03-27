@@ -97,6 +97,8 @@ public:
     bool getToolbarMode() const { return _toolbarMode; }
     void setToolbarMode(bool toolbarMode);
 
+    void initialScreen(const QVariant& url);
+
     /**jsdoc
      * transition to the home screen
      * @function TabletProxy#gotoHomeScreen
@@ -213,6 +215,8 @@ protected:
     void addButtonsToToolbar();
     void removeButtonsFromToolbar();
 
+    bool _initialScreen { false };
+    QVariant _initialPath { "" }; 
     QString _name;
     std::mutex _mutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;

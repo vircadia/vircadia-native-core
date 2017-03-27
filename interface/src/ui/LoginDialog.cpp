@@ -47,11 +47,11 @@ void LoginDialog::showWithSelection()
     if (tablet->getToolbarMode()) {
         LoginDialog::show();
     } else {
-        if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
-            LoginDialog::show();
-        } else {
-            static const QUrl url("../../dialogs/TabletLoginDialog.qml");
-            tablet->pushOntoStack(url);
+        static const QUrl url("../../dialogs/TabletLoginDialog.qml");
+        qDebug() << "[DR] -> Push login onto the tablet";
+        tablet->initialScreen(url);
+        if (!hmd->getShouldShowTablet()) {
+            hmd->openTablet();
         }
     }
 }
