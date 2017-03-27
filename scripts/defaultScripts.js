@@ -21,7 +21,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/snapshot.js",
     "system/help.js",
     "system/pal.js", // "system/mod.js", // older UX, if you prefer
-    "system/goto.js",
+    "system/tablet-goto.js",
     "system/marketplaces/marketplaces.js",
     "system/edit.js",
     "system/tablet-users.js",
