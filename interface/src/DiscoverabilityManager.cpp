@@ -40,9 +40,10 @@ void DiscoverabilityManager::updateLocation() {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto addressManager = DependencyManager::get<AddressManager>();
     auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    bool discoverable = (_mode.get() != Discoverability::None);
 
 
-    if (_mode.get() != Discoverability::None && accountManager->isLoggedIn()) {
+    if (accountManager->isLoggedIn()) {
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
 
@@ -54,7 +55,7 @@ void DiscoverabilityManager::updateLocation() {
         locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
 
         const QString CONNECTED_KEY_IN_LOCATION = "connected";
-        locationObject.insert(CONNECTED_KEY_IN_LOCATION, domainHandler.isConnected());
+        locationObject.insert(CONNECTED_KEY_IN_LOCATION, discoverable && domainHandler.isConnected());
 
         if (!addressManager->getRootPlaceID().isNull()) {
             const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
@@ -140,13 +141,7 @@ void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discov
         // update the setting to the new value
         _mode.set(static_cast<int>(discoverabilityMode));
         
-        if (static_cast<int>(_mode.get()) == Discoverability::None) {
-            // if we just got set to no discoverability, make sure that we delete our location in DB
-            removeLocation();
-        } else {
-            // we have a discoverability mode that says we should send a location, do that right away
-            updateLocation();
-        }
+        updateLocation();  // update right away
 
         emit discoverabilityModeChanged(discoverabilityMode);
     }
