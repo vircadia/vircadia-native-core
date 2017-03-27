@@ -45,7 +45,7 @@ StackView {
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
     }
-    
+
     function center() {
         // Explicitly center in order to avoid warnings at shutdown
         anchors.centerIn = parent;

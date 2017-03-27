@@ -33,12 +33,6 @@ Rectangle {
         }
     }
 
-    /*Rectangle {
-        anchors.fill: parent
-        border.width: 3
-        border.color: clickArea.containMouse ? highlightColor : "transparent"
-        color: "transparent"
-    }*/
         
     Rectangle {
         id: indicator
