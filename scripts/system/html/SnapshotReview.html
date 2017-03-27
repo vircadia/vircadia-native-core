@@ -9,38 +9,36 @@
 
 <body>
     <div class="snapshot-container">
-        <div class="snapshot-column-left">
-            <div class="snapsection">
-                <label class="title">Snapshot successfully saved!</label>
-            </div>
-            <hr />
-            <div class="snapsection">
-                <div id="sharing">
-                    <div class="prompt">Would you like to share your pics in the Snapshots feed?</div>
-                    <div class="button">
-                        <span class="compound-button">
-                            <input type="button" class="blue" id="share" value="Share in Feed" onclick="shareSelected()" />
-                            <span class="glyph"></span>
-                        </span>
-                    </div>
-                </div>
+        <div class="snapsection">
+            <label class="title">Snapshot successfully saved!</label>
+        </div>
+        <hr />
+        <div id="snapshot-images">
+        </div>
+        <div class="snapsection">
+            <div id="sharing">
+                <div class="prompt">Would you like to share your pics in the Snapshots feed?</div>
                 <div class="button">
-                    <input type="button" class="black" id="close" value="Don't Share" onclick="doNotShare()" />
+                    <span class="compound-button">
+                        <input type="button" class="blue" id="share" value="Share in Feed" onclick="shareSelected()" />
+                        <span class="glyph"></span>
+                    </span>
                 </div>
             </div>
-            <hr />
-            <div class="snapsection">
-                <span class="setting">
-                    <input type="button" class="glyph naked" id="snapshotSettings" value="@" onclick="snapshotSettings()" />
-                    <label for="snapshotSettings">Snapshot settings</label>
-                </span>
-                <span class="setting checkbox">
-                    <input id="openFeed" type="checkbox" checked />
-                    <label for="openFeed">Open feed after</label>
-                </span>
+            <div class="button">
+                <input type="button" class="black" id="close" value="Don't Share" onclick="doNotShare()" />
             </div>
         </div>
-        <div id="snapshot-images" class="snapshot-column-right">
+        <hr />
+        <div class="snapsection">
+            <span class="setting">
+                <input type="button" class="glyph naked" id="snapshotSettings" value="@" onclick="snapshotSettings()" />
+                <label for="snapshotSettings">Snapshot settings</label>
+            </span>
+            <span class="setting checkbox">
+                <input id="openFeed" type="checkbox" checked />
+                <label for="openFeed">Open feed after</label>
+            </span>
         </div>
     </div>
 </body>

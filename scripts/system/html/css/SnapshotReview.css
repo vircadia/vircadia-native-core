@@ -14,51 +14,12 @@
     padding-top: 3px;
 }
 
-.snapshot-column-left {
-    width: 320px;
-    position: absolute;
-    padding-top: 8px;
-}
-
-.snapshot-column-right {
-    margin-left: 342px;
-}
-
-.snapshot-column-right > div > img {
+#snapshot-images > img {
     width: 100%;
 }
 
-@media (max-width: 768px) {
-    .snapshot-column-left {
-        position: initial;
-        width: 100%;
-    }
-    .snapshot-column-right {
-        margin-left: 0;
-        width: 100%;
-    }
-    .snapshot-column-right > div > img {
-        margin-top: 18px !important;
-    }
-}
-
-.snapshot-column-right > div {
-    position: relative;
-    padding: 2px;
-}
-
-.snapshot-column-right > div > img {
-    border: 2px solid #575757;
-    margin: -2px;
-}
-
-hr {
-    padding-left: 0;
-    padding-right: 0;
-    margin: 21px 0;
-}
-
 .snapsection {
+    padding-top: 21px;
     text-align: center;
 }
 
