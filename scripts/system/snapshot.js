@@ -40,7 +40,7 @@ var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
 
 var outstanding;
 function confirmShare(data) {
-    var dialog = new OverlayWebWindow('Snapshot Review', SNAPSHOT_REVIEW_URL, 800, 520);
+    tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
     function onMessage(message) {
         // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
         // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
@@ -51,7 +51,7 @@ function confirmShare(data) {
         var needsLogin = false;
         switch (message) {
         case 'ready':
-            dialog.emitScriptEvent(data); // Send it.
+            tablet.emitScriptEvent(data); // Send it.
             outstanding = 0;
             break;
         case 'openSettings':
@@ -64,8 +64,8 @@ function confirmShare(data) {
             Settings.setValue('openFeedAfterShare', true);
             break;
         default:
-            dialog.webEventReceived.disconnect(onMessage);
-            dialog.close();
+            tablet.webEventReceived.disconnect(onMessage);
+            HMD.closeTablet();
             isLoggedIn = Account.isLoggedIn();
             message.forEach(function (submessage) {
                 if (submessage.share && !isLoggedIn) {
@@ -88,8 +88,8 @@ function confirmShare(data) {
             }
         }
     }
-    dialog.webEventReceived.connect(onMessage);
-    dialog.raise();
+    tablet.webEventReceived.connect(onMessage);
+    HMD.openTablet();
 }
 
 function snapshotShared(errorMessage) {
