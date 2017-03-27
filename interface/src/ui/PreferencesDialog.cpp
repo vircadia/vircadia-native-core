@@ -103,6 +103,7 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "HMD Tablet Becomes Toolbar", getter, setter));
     }
     // TODO
+    // Note: If this code is added back, you must remove the line "setTabletVisibleToOthersSetting(false)" from Application::loadSettings()
     /*{
         auto getter = []()->bool { return qApp->getTabletVisibleToOthersSetting(); };
         auto setter = [](bool value) { qApp->setTabletVisibleToOthersSetting(value); };

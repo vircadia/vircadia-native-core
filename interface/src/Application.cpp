@@ -2000,7 +2000,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
 
-    // Caches
+    
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
     rootContext->setContextProperty("TextureCache", DependencyManager::get<TextureCache>().data());
     rootContext->setContextProperty("ModelCache", DependencyManager::get<ModelCache>().data());
@@ -3788,7 +3788,7 @@ void Application::loadSettings() {
     }
 
     getMyAvatar()->loadData();
-
+    setTabletVisibleToOthersSetting(false);
     _settingsLoaded = true;
 }
 
