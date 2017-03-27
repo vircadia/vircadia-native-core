@@ -62,6 +62,7 @@ Agent::Agent(ReceivedMessage& message) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<AnimationCache>();
     DependencyManager::set<AudioScriptingInterface>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<recording::Deck>();
@@ -419,6 +420,7 @@ void Agent::executeScript() {
     _scriptEngine->registerGlobalObject("Agent", this);
 
     _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
+    _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
 
     QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
     _scriptEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
