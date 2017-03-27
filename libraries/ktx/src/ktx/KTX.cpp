@@ -167,6 +167,17 @@ size_t KTXDescriptor::getMipFaceTexelsSize(uint16_t mip, uint8_t face) const {
     return result;
 }
 
+size_t KTXDescriptor::getMipFaceTexelsOffset(uint16_t mip, uint8_t face) const {
+    size_t result { 0 };
+    if (mip < images.size()) {
+        const auto& faces = images[mip];
+        if (face < faces._numFaces) {
+            result = faces._faceOffsets[face];
+        }
+    }
+    return result;
+}
+
 ImageDescriptor Image::toImageDescriptor(const Byte* baseAddress) const {
     FaceOffsets offsets;
     offsets.resize(_faceBytes.size());
@@ -194,15 +205,6 @@ KTXDescriptor KTX::toDescriptor() const {
         newDescriptors.emplace_back(_images[i].toImageDescriptor(storageStart));
     }
     return { this->_header, this->_keyValues, newDescriptors };
-}
-
-std::unique_ptr<KTX> KTXDescriptor::toKTX(const ktx::StoragePointer& storage) const {
-    Images newImages;
-    for (size_t i = 0; i < images.size(); ++i) {
-        newImages.emplace_back(images[i].toImage(storage));
-    }
-
-    return std::unique_ptr<KTX>(new KTX { storage, header, keyValues, newImages });
 }
 
 KTX::KTX(const StoragePointer& storage, const Header& header, const KeyValues& keyValues, const Images& images)

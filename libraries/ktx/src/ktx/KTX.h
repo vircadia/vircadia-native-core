@@ -461,7 +461,7 @@ namespace ktx {
         const KeyValues keyValues;
         const ImageDescriptors images;
         size_t getMipFaceTexelsSize(uint16_t mip = 0, uint8_t face = 0) const;
-        std::unique_ptr<KTX> toKTX(const ktx::StoragePointer& storage) const;
+        size_t getMipFaceTexelsOffset(uint16_t mip = 0, uint8_t face = 0) const;
     };
 
     class KTX {

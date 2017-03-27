@@ -431,7 +431,6 @@ void GL45VariableAllocationTexture::executeNextTransfer(const TexturePointer& cu
         _currentTransferTexture = currentTexture;
         if (_pendingTransfers.front()->tryTransfer()) {
             _pendingTransfers.pop();
-            _currentTransferTexture->finishTransfer();
             _currentTransferTexture.reset();
         }
     }
@@ -456,7 +455,7 @@ GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend
     _memoryPressureStateStale = true;
     copyMipsFromTexture();
     syncSampler();
-	_gpuObject.finishTransfer();
+
 }
 
 void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {

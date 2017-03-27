@@ -43,9 +43,11 @@ struct GPUKTXPayload {
 std::string GPUKTXPayload::KEY { "hifi.gpu" };
 
 KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
-    ktx::StoragePointer storage { new storage::FileStorage(_filename.c_str()) };
-    auto ktxPointer = ktx::KTX::create(storage);
-    _ktxDescriptor.reset(new ktx::KTXDescriptor(ktxPointer->toDescriptor()));
+    {
+        ktx::StoragePointer storage { new storage::FileStorage(_filename.c_str()) };
+        auto ktxPointer = ktx::KTX::create(storage);
+        _ktxDescriptor.reset(new ktx::KTXDescriptor(ktxPointer->toDescriptor()));
+    }
 
     // now that we know the ktx, let's get the header info to configure this Texture::Storage:
     Format mipFormat = Format::COLOR_BGRA_32;
@@ -56,11 +58,13 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
 }
 
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
-    if (!_ktxData) {
-        ktx::StoragePointer storage { new storage::FileStorage(_filename.c_str()) };
-        _ktxData = _ktxDescriptor->toKTX(storage);
+    storage::StoragePointer result;
+    auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
+    auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
+    if (faceSize != 0 && faceOffset != 0) {
+        result = std::make_shared<storage::FileStorage>(_filename.c_str())->createView(faceSize, faceOffset)->toMemoryStorage();
     }
-    return _ktxData->getMipFaceTexelsData(level, face);
+    return result;
 }
 
 Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
@@ -180,11 +184,9 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     return ktxBuffer;
 }
 
-Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
-    if (!srcData) {
-        return nullptr;
-    }
-    const auto& header = srcData->getHeader();
+Texture* Texture::unserialize(const std::string& ktxfile, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
+    ktx::KTXDescriptor descriptor { ktx::KTX::create(ktx::StoragePointer { new storage::FileStorage(ktxfile.c_str()) })->toDescriptor() };
+    const auto& header = descriptor.header;
 
     Format mipFormat = Format::COLOR_BGRA_32;
     Format texelFormat = Format::COLOR_SRGBA_32;
@@ -212,7 +214,7 @@ Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData, TextureUsage
     
     // If found, use the 
     GPUKTXPayload gpuktxKeyValue;
-    bool isGPUKTXPayload = GPUKTXPayload::findInKeyValues(srcData->_keyValues, gpuktxKeyValue);
+    bool isGPUKTXPayload = GPUKTXPayload::findInKeyValues(descriptor.keyValues, gpuktxKeyValue);
 
     auto tex = Texture::create( (isGPUKTXPayload ? gpuktxKeyValue._usageType : usageType),
                                 type,
@@ -228,14 +230,7 @@ Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData, TextureUsage
 
     // Assing the mips availables
     tex->setStoredMipFormat(mipFormat);
-    uint16_t level = 0;
-    for (auto& image : srcData->_images) {
-        for (uint32_t face = 0; face < image._numFaces; face++) {
-            tex->assignStoredMipFace(level, face, image._faceSize, image._faceBytes[face]);
-        }
-        level++;
-    }
-
+    tex->setKtxBacking(ktxfile);
     return tex;
 }
 

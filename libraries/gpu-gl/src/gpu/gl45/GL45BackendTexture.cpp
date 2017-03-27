@@ -222,7 +222,6 @@ GL45StrictResourceTexture::GL45StrictResourceTexture(const std::weak_ptr<GLBacke
             copyMipFaceFromTexture(sourceMip, targetMip, face);
         }
     }
-    _gpuObject.finishTransfer();
     if (texture.isAutogenerateMips()) {
         generateMips();
     }

@@ -267,7 +267,6 @@ public:
         virtual void assignMipData(uint16 level, const storage::StoragePointer& storage) = 0;
         virtual void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) = 0;
         virtual bool isMipAvailable(uint16 level, uint8 face = 0) const = 0;
-        virtual void releaseTempResources() const {}
         Texture::Type getType() const { return _type; }
 
         Stamp getStamp() const { return _stamp; }
@@ -316,12 +315,10 @@ public:
             throw std::runtime_error("Invalid call");
         }
         void reset() override { }
-        void releaseTempResources() const override { _ktxData.release(); }
 
     protected:
         std::string _filename;
         ktx::KTXDescriptorPointer _ktxDescriptor;
-        mutable ktx::KTXUniquePointer _ktxData;
         friend class Texture;
     };
 
@@ -526,11 +523,9 @@ public:
 
     ExternalUpdates getUpdates() const;
 
-    void finishTransfer() const;
-
     // Textures can be serialized directly to  ktx data file, here is how
     static ktx::KTXUniquePointer serialize(const Texture& texture);
-    static Texture* unserialize(const ktx::KTXUniquePointer& srcData, TextureUsageType usageType = TextureUsageType::RESOURCE, Usage usage = Usage(), const Sampler::Desc& sampler = Sampler::Desc());
+    static Texture* unserialize(const std::string& ktxFile, TextureUsageType usageType = TextureUsageType::RESOURCE, Usage usage = Usage(), const Sampler::Desc& sampler = Sampler::Desc());
     static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
     static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);
 

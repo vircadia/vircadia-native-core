@@ -482,43 +482,39 @@ uint16 Texture::autoGenerateMips(uint16 maxMip) {
 }
 
 uint16 Texture::getStoredMipWidth(uint16 level) const {
-    PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->getSize()) {
-        return evalMipWidth(level);
+    if (!isStoredMipFaceAvailable(level)) {
+        return 0;
     }
-    return 0;
+    return evalMipWidth(level);
 }
 
 uint16 Texture::getStoredMipHeight(uint16 level) const {
-    PixelsPointer mip = accessStoredMipFace(level);
-    if (mip && mip->getSize()) {
-        return evalMipHeight(level);
+    if (!isStoredMipFaceAvailable(level)) {
+        return 0;
     }
-    return 0;
+    return evalMipHeight(level);
 }
 
 uint16 Texture::getStoredMipDepth(uint16 level) const {
-    PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->getSize()) {
-        return evalMipDepth(level);
+    if (!isStoredMipFaceAvailable(level)) {
+        return 0;
     }
-    return 0;
+    return evalMipDepth(level);
 }
 
 uint32 Texture::getStoredMipNumTexels(uint16 level) const {
-    PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->getSize()) {
-        return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level);
+    if (!isStoredMipFaceAvailable(level)) {
+        return 0;
     }
-    return 0;
+    return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level);
 }
 
 uint32 Texture::getStoredMipSize(uint16 level) const {
-    PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->getSize()) {
-        return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getTexelFormat().getSize();
+    if (!isStoredMipFaceAvailable(level)) {
+        return 0;
     }
-    return 0;
+
+    return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getTexelFormat().getSize();
 }
 
 gpu::Resource::Size Texture::getStoredSize() const {
@@ -983,10 +979,4 @@ Texture::ExternalUpdates Texture::getUpdates() const {
 
 void Texture::setStorage(std::unique_ptr<Storage>& newStorage) {
     _storage.swap(newStorage);
-}
-
-void Texture::finishTransfer() const {
-    if (_storage) {
-        _storage->releaseTempResources();
-    }
 }
