@@ -74,6 +74,7 @@ function confirmShare(data) {
         default:
             tablet.webEventReceived.disconnect(onMessage);
             HMD.closeTablet();
+            tablet.gotoHomeScreen();
             isLoggedIn = Account.isLoggedIn();
             message.action.forEach(function (submessage) {
                 if (submessage.share && !isLoggedIn) {
