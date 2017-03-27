@@ -42,30 +42,33 @@ struct GPUKTXPayload {
 
 std::string GPUKTXPayload::KEY { "hifi.gpu" };
 
-KtxStorage::KtxStorage(ktx::KTXUniquePointer& ktxData) {
+KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
+    ktx::StoragePointer storage { new storage::FileStorage(_filename.c_str()) };
+    auto ktxPointer = ktx::KTX::create(storage);
+    _ktxDescriptor.reset(new ktx::KTXDescriptor(ktxPointer->toDescriptor()));
 
-    // if the source ktx is valid let's config this KtxStorage correctly
-    if (ktxData && ktxData->getHeader()) {
-
-        // now that we know the ktx, let's get the header info to configure this Texture::Storage:
-        Format mipFormat = Format::COLOR_BGRA_32;
-        Format texelFormat = Format::COLOR_SRGBA_32;
-        if (Texture::evalTextureFormat(*ktxData->getHeader(), mipFormat, texelFormat)) {
-            _format = mipFormat;
-        }
-
-
+    // now that we know the ktx, let's get the header info to configure this Texture::Storage:
+    Format mipFormat = Format::COLOR_BGRA_32;
+    Format texelFormat = Format::COLOR_SRGBA_32;
+    if (Texture::evalTextureFormat(_ktxDescriptor->header, mipFormat, texelFormat)) {
+        _format = mipFormat;
     }
-
-    _ktxData.reset(ktxData.release());
 }
 
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
+    if (!_ktxData) {
+        ktx::StoragePointer storage { new storage::FileStorage(_filename.c_str()) };
+        _ktxData = _ktxDescriptor->toKTX(storage);
+    }
     return _ktxData->getMipFaceTexelsData(level, face);
 }
 
-void Texture::setKtxBacking(ktx::KTXUniquePointer& ktxBacking) {
-    auto newBacking = std::unique_ptr<Storage>(new KtxStorage(ktxBacking));
+Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
+    return _ktxDescriptor->getMipFaceTexelsSize(level, face);
+}
+
+void Texture::setKtxBacking(const std::string& filename) {
+    auto newBacking = std::unique_ptr<Storage>(new KtxStorage(filename));
     setStorage(newBacking);
 }
 
@@ -181,7 +184,7 @@ Texture* Texture::unserialize(const ktx::KTXUniquePointer& srcData, TextureUsage
     if (!srcData) {
         return nullptr;
     }
-    const auto& header = *srcData->getHeader();
+    const auto& header = srcData->getHeader();
 
     Format mipFormat = Format::COLOR_BGRA_32;
     Format texelFormat = Format::COLOR_SRGBA_32;

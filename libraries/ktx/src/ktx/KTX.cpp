@@ -108,47 +108,39 @@ KTX::~KTX() {
 
 void KTX::resetStorage(const StoragePointer& storage) {
     _storage = storage;
+    if (_storage->size() >= sizeof(Header)) {
+        memcpy(&_header, _storage->data(), sizeof(Header));
+    }
 }
 
-const Header* KTX::getHeader() const {
-    if (!_storage) {
-        return nullptr;
-    } 
-    return reinterpret_cast<const Header*>(_storage->data());
+const Header& KTX::getHeader() const {
+    return _header;
 }
 
 
 size_t KTX::getKeyValueDataSize() const {
-    if (_storage) {
-        return getHeader()->bytesOfKeyValueData;
-    } else {
-        return 0;
-    }
+    return _header.bytesOfKeyValueData;
 }
 
 size_t KTX::getTexelsDataSize() const {
-    if (_storage) {
-        //return  _storage->size() - (sizeof(Header) + getKeyValueDataSize());
-        return  (_storage->data() + _storage->size()) - getTexelsData();
-    } else {
+    if (!_storage) {
         return 0;
     }
+    return  (_storage->data() + _storage->size()) - getTexelsData();
 }
 
 const Byte* KTX::getKeyValueData() const {
-    if (_storage) {
-        return (_storage->data() + sizeof(Header));
-    } else {
+    if (!_storage) {
         return nullptr;
     }
+    return (_storage->data() + sizeof(Header));
 }
 
 const Byte* KTX::getTexelsData() const {
-    if (_storage) {
-        return (_storage->data() + sizeof(Header) + getKeyValueDataSize());
-    } else {
+    if (!_storage) {
         return nullptr;
     }
+    return (_storage->data() + sizeof(Header) + getKeyValueDataSize());
 }
 
 storage::StoragePointer KTX::getMipFaceTexelsData(uint16_t mip, uint8_t face) const {
@@ -163,3 +155,55 @@ storage::StoragePointer KTX::getMipFaceTexelsData(uint16_t mip, uint8_t face) co
     }
     return result;
 }
+
+size_t KTXDescriptor::getMipFaceTexelsSize(uint16_t mip, uint8_t face) const {
+    size_t result { 0 };
+    if (mip < images.size()) {
+        const auto& faces = images[mip];
+        if (face < faces._numFaces) {
+            result = faces._faceSize;
+        }
+    }
+    return result;
+}
+
+ImageDescriptor Image::toImageDescriptor(const Byte* baseAddress) const {
+    FaceOffsets offsets;
+    offsets.resize(_faceBytes.size());
+    for (size_t face = 0; face < _numFaces; ++face) {
+        offsets[face] = _faceBytes[face] - baseAddress;
+    }
+    // Note, implicit cast of *this to const ImageHeader&
+    return ImageDescriptor(*this, offsets);
+}
+
+Image ImageDescriptor::toImage(const ktx::StoragePointer& storage) const {
+    FaceBytes faces;
+    faces.resize(_faceOffsets.size());
+    for (size_t face = 0; face < _numFaces; ++face) {
+        faces[face] = storage->data() + _faceOffsets[face];
+    }
+    // Note, implicit cast of *this to const ImageHeader&
+    return Image(*this, faces);
+}
+
+KTXDescriptor KTX::toDescriptor() const {
+    ImageDescriptors newDescriptors;
+    auto storageStart = _storage ? _storage->data() : nullptr;
+    for (size_t i = 0; i < _images.size(); ++i) {
+        newDescriptors.emplace_back(_images[i].toImageDescriptor(storageStart));
+    }
+    return { this->_header, this->_keyValues, newDescriptors };
+}
+
+std::unique_ptr<KTX> KTXDescriptor::toKTX(const ktx::StoragePointer& storage) const {
+    Images newImages;
+    for (size_t i = 0; i < images.size(); ++i) {
+        newImages.emplace_back(images[i].toImage(storage));
+    }
+
+    return std::unique_ptr<KTX>(new KTX { storage, header, keyValues, newImages });
+}
+
+KTX::KTX(const StoragePointer& storage, const Header& header, const KeyValues& keyValues, const Images& images)
+    : _storage(storage), _header(header), _keyValues(keyValues), _images(images) { }

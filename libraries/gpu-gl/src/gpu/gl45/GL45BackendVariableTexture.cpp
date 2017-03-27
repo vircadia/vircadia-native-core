@@ -85,14 +85,14 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
     auto transferDimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
     GLenum format;
     GLenum type;
-    auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_parent._gpuObject.getTexelFormat(), _parent._gpuObject.getStoredMipFormat());
     format = texelFormat.format;
     type = texelFormat.type;
 
     if (0 == lines) {
-        _transferSize = mipData->getSize();
         _bufferingLambda = [=] {
+            auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
+            _transferSize = mipData->getSize();
             _buffer.resize(_transferSize);
             memcpy(&_buffer[0], mipData->readData(), _transferSize);
             _bufferingCompleted = true;
@@ -100,12 +100,13 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
 
     } else {
         transferDimensions.y = lines;
-        auto dimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
-        auto mipSize = mipData->getSize();
-        auto bytesPerLine = (uint32_t)mipSize / dimensions.y;
-        _transferSize = bytesPerLine * lines;
-        auto sourceOffset = bytesPerLine * lineOffset;
         _bufferingLambda = [=] {
+            auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
+            auto dimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
+            auto mipSize = mipData->getSize();
+            auto bytesPerLine = (uint32_t)mipSize / dimensions.y;
+            _transferSize = bytesPerLine * lines;
+            auto sourceOffset = bytesPerLine * lineOffset;
             _buffer.resize(_transferSize);
             memcpy(&_buffer[0], mipData->readData() + sourceOffset, _transferSize);
             _bufferingCompleted = true;
@@ -430,6 +431,7 @@ void GL45VariableAllocationTexture::executeNextTransfer(const TexturePointer& cu
         _currentTransferTexture = currentTexture;
         if (_pendingTransfers.front()->tryTransfer()) {
             _pendingTransfers.pop();
+            _currentTransferTexture->finishTransfer();
             _currentTransferTexture.reset();
         }
     }
@@ -454,7 +456,7 @@ GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend
     _memoryPressureStateStale = true;
     copyMipsFromTexture();
     syncSampler();
-
+	_gpuObject.finishTransfer();
 }
 
 void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
@@ -585,10 +587,10 @@ void GL45ResourceTexture::populateTransferQueue() {
 
             // break down the transfers into chunks so that no single transfer is 
             // consuming more than X bandwidth
-            auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
+            auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
             const auto lines = mipDimensions.y;
-            auto bytesPerLine = (uint32_t)mipData->getSize() / lines;
-            Q_ASSERT(0 == (mipData->getSize() % lines));
+            auto bytesPerLine = mipSize / lines;
+            Q_ASSERT(0 == (mipSize % lines));
             uint32_t linesPerTransfer = (uint32_t)(MAX_TRANSFER_SIZE / bytesPerLine);
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {

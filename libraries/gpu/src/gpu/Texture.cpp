@@ -149,6 +149,10 @@ PixelsPointer MemoryStorage::getMipFace(uint16 level, uint8 face) const {
     return PixelsPointer();
 }
 
+Size MemoryStorage::getMipFaceSize(uint16 level, uint8 face) const {
+    return getMipFace(level, face)->getSize();
+}
+
 bool MemoryStorage::isMipAvailable(uint16 level, uint8 face) const {
     PixelsPointer mipFace = getMipFace(level, face);
     return (mipFace && mipFace->getSize());
@@ -979,4 +983,10 @@ Texture::ExternalUpdates Texture::getUpdates() const {
 
 void Texture::setStorage(std::unique_ptr<Storage>& newStorage) {
     _storage.swap(newStorage);
+}
+
+void Texture::finishTransfer() const {
+    if (_storage) {
+        _storage->releaseTempResources();
+    }
 }
