@@ -690,6 +690,8 @@ bool RenderablePolyVoxEntityItem::updateDependents() {
             _voxelDataDirty = false;
         } else if (_volDataDirty) {
             _volDataDirty = false;
+        } else {
+            _meshReady = true;
         }
     });
     if (voxelDataDirty) {
@@ -707,7 +709,9 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     assert(getType() == EntityTypes::PolyVox);
     Q_ASSERT(args->_batch);
 
-    updateDependents();
+    if (_voxelDataDirty || _volDataDirty) {
+        updateDependents();
+    }
 
     model::MeshPointer mesh;
     glm::vec3 voxelVolumeSize;
@@ -768,6 +772,11 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer()._buffer,
                          0,
                          sizeof(PolyVox::PositionMaterialNormal));
+
+    // batch.setInputBuffer(gpu::Stream::NORMAL, mesh->getVertexBuffer()._buffer,
+    //                      12,
+    //                      sizeof(PolyVox::PositionMaterialNormal));
+
 
     batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
 
@@ -1287,23 +1296,26 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
         auto indexBuffer = std::make_shared<gpu::Buffer>(vecIndices.size() * sizeof(uint32_t),
                                                          (gpu::Byte*)vecIndices.data());
         auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
-        gpu::BufferView indexBufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
+        gpu::BufferView indexBufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::INDEX));
         mesh->setIndexBuffer(indexBufferView);
 
-        const std::vector<PolyVox::PositionMaterialNormal>& vecVertices = polyVoxMesh.getVertices();
+        const std::vector<PolyVox::PositionMaterialNormal>& vecVertices = polyVoxMesh.getRawVertexData();
         auto vertexBuffer = std::make_shared<gpu::Buffer>(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
                                                           (gpu::Byte*)vecVertices.data());
         auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
         gpu::BufferView vertexBufferView(vertexBufferPtr, 0,
                                          vertexBufferPtr->getSize(),
                                          sizeof(PolyVox::PositionMaterialNormal),
-                                         gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
+                                         gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
         mesh->setVertexBuffer(vertexBufferView);
+
+
         mesh->addAttribute(gpu::Stream::NORMAL,
-                           gpu::BufferView(vertexBufferPtr, sizeof(float) * 3,
-                                           vertexBufferPtr->getSize() ,
+                           gpu::BufferView(vertexBufferPtr,
+                                           sizeof(float) * 3, // polyvox mesh is packed: position, normal, material
+                                           vertexBufferPtr->getSize(),
                                            sizeof(PolyVox::PositionMaterialNormal),
-                                           gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+                                           gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
 
         std::vector<model::Mesh::Part> parts;
         parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
@@ -1626,10 +1638,10 @@ bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
             // the mesh will be in voxel-space.  transform it into object-space
             meshProxy = new MeshProxy(
                 _mesh->map([=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
-                           [=](glm::vec3 normal){ return glm::vec3(transform * glm::vec4(normal, 0.0f)); },
+                           [=](glm::vec3 normal){ return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
                            [&](uint32_t index){ return index; }));
             result << meshProxy;
         }
     });
-    return meshProxy;
+    return success;
 }

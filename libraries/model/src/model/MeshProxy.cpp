@@ -26,14 +26,8 @@ QScriptValue meshesToScriptValue(QScriptEngine* engine, const MeshProxyList &in)
     QScriptValue result = engine->newArray();
     int i = 0;
     foreach (MeshProxy* const meshProxy, in) {
-        qDebug() << "meshesToScriptValue adding mesh: " << (void*)meshProxy;
-        // result.setProperty(i++, QScriptValue(engine, meshProxy));
         result.setProperty(i++, meshToScriptValue(engine, meshProxy));
-        // result.setProperty(QString::number(i++), QScriptValue(meshProxy));
-        // result[i] = QScriptValue(meshProxy);
-        // result << QScriptValue(meshProxy);
     }
-    // result.setProperty("length", i);
     return result;
 }
 
