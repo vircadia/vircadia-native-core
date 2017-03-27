@@ -31,7 +31,8 @@ Item {
 
     Component { id: customInputDialogBuilder; TabletCustomQueryDialog { } }
     function customInputDialog(properties) {
-        return customInputDialogBuilder.createObject(tabletRoot, properties);
+        openModal = customInputDialogBuilder.createObject(tabletRoot, properties);
+        return openModal;
     }
 
     Component { id: fileDialogBuilder; TabletFileDialog { } }
