@@ -15,34 +15,19 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-if (typeof String.prototype.startsWith != 'function') {
-    String.prototype.startsWith = function (str){
-        return this.slice(0, str.length) == str;
-    };
-}
-
-if (typeof String.prototype.endsWith != 'function') {
-    String.prototype.endsWith = function (str){
-        return this.slice(-str.length) == str;
-    };
-}
-
-if (typeof String.prototype.trimStartsWith != 'function') {
-    String.prototype.trimStartsWith = function (str){
-        if (this.startsWith(str)) {
-            return this.substr(str.length);
-        }
-        return this;
-    };
-}
-
-if (typeof String.prototype.trimEndsWith != 'function') {
-    String.prototype.trimEndsWith = function (str){
-        if (this.endsWith(str)) {
-            return this.substr(0,this.length - str.length);
-        }
-        return this;
-    };
+const INPUT = "Input";
+const OUTPUT = "Output";
+function parseMenuItem(item) {
+	const USE = "Use ";
+	const FOR_INPUT = " for " + INPUT;
+	const FOR_OUTPUT = " for " + OUTPUT;
+	if (item.slice(0, USE.length) == USE) {
+		if (item.slice(-FOR_INPUT.length) == FOR_INPUT) {
+			return { device: item.slice(USE.length, -FOR_INPUT.length), mode: INPUT };
+		} else if (item.slice(-FOR_OUTPUT.length) == FOR_OUTPUT) {
+			return { device: item.slice(USE.length, -FOR_OUTPUT.length), mode: OUTPUT };
+		}
+	}
 }
 
 //
@@ -146,45 +131,44 @@ function onDevicechanged() {
 function switchAudioDevice(audioDeviceMenuString) {
     Menu.menuItemEvent.disconnect(switchAudioDevice);
 
-    if (audioDeviceMenuString.startsWith("Use ")) {
-        if (audioDeviceMenuString.endsWith(" for Input")) {
-            var selectedDevice = audioDeviceMenuString.trimStartsWith("Use ").trimEndsWith(" for Input");
-            var currentInputDevice = AudioDevice.getInputDevice();
-            if (selectedDevice != currentInputDevice) {
-                debug("Switching audio INPUT device from " + currentInputDevice + " to " + selectedDevice);
-                Menu.setIsOptionChecked("Use " + currentInputDevice + " for Input", false);
-                if (AudioDevice.setInputDevice(selectedDevice)) {
-                    Settings.setValue(INPUT_DEVICE_SETTING, selectedDevice);
-                    Menu.setIsOptionChecked(audioDeviceMenuString, true);
-                } else {
-                    debug("Error setting audio input device!")
-                    Menu.setIsOptionChecked(audioDeviceMenuString, false);
-                }
-            } else {
-                debug("Selected input device is the same as the current input device!")
+    var selection = parseMenuItem(audioDeviceMenuString);
+    if (!selection) {
+        debug("Invalid Audio audioDeviceMenuString! Doesn't end with 'for Input' or 'for Output'")
+    } else if (selection.mode == INPUT) {
+        var selectedDevice = selection.device;
+        var currentInputDevice = AudioDevice.getInputDevice();
+        if (selectedDevice != currentInputDevice) {
+            debug("Switching audio INPUT device from " + currentInputDevice + " to " + selectedDevice);
+            Menu.setIsOptionChecked("Use " + currentInputDevice + " for Input", false);
+            if (AudioDevice.setInputDevice(selectedDevice)) {
+                Settings.setValue(INPUT_DEVICE_SETTING, selectedDevice);
                 Menu.setIsOptionChecked(audioDeviceMenuString, true);
-                AudioDevice.setInputDevice(selectedDevice); // Still try to force-set the device (in case the user's trying to forcefully debug an issue)
-            }
-        } else if (audioDeviceMenuString.endsWith(" for Output")) {
-            var selectedDevice = audioDeviceMenuString.trimStartsWith("Use ").trimEndsWith(" for Output");
-            var currentOutputDevice = AudioDevice.getOutputDevice();
-            if (selectedDevice != currentOutputDevice) {
-                debug("Switching audio OUTPUT device from " + currentOutputDevice + " to " + selectedDevice);
-                Menu.setIsOptionChecked("Use " + currentOutputDevice + " for Output", false);
-                if (AudioDevice.setOutputDevice(selectedDevice)) {
-                    Settings.setValue(OUTPUT_DEVICE_SETTING, selectedDevice);
-                    Menu.setIsOptionChecked(audioDeviceMenuString, true);
-                } else {
-                    debug("Error setting audio output device!")
-                    Menu.setIsOptionChecked(audioDeviceMenuString, false);
-                }
             } else {
-                debug("Selected output device is the same as the current output device!")
-                Menu.setIsOptionChecked(audioDeviceMenuString, true);
-                AudioDevice.setOutputDevice(selectedDevice); // Still try to force-set the device (in case the user's trying to forcefully debug an issue)
+                debug("Error setting audio input device!")
+                Menu.setIsOptionChecked(audioDeviceMenuString, false);
             }
         } else {
-            debug("Invalid Audio audioDeviceMenuString! Doesn't end with 'for Input' or 'for Output'")
+            debug("Selected input device is the same as the current input device!")
+            Menu.setIsOptionChecked(audioDeviceMenuString, true);
+            AudioDevice.setInputDevice(selectedDevice); // Still try to force-set the device (in case the user's trying to forcefully debug an issue)
+        }
+    } else if (selection.mode == OUTPUT) {
+        var selectedDevice = selection.device;
+        var currentOutputDevice = AudioDevice.getOutputDevice();
+        if (selectedDevice != currentOutputDevice) {
+            debug("Switching audio OUTPUT device from " + currentOutputDevice + " to " + selectedDevice);
+            Menu.setIsOptionChecked("Use " + currentOutputDevice + " for Output", false);
+            if (AudioDevice.setOutputDevice(selectedDevice)) {
+                Settings.setValue(OUTPUT_DEVICE_SETTING, selectedDevice);
+                Menu.setIsOptionChecked(audioDeviceMenuString, true);
+            } else {
+                debug("Error setting audio output device!")
+                Menu.setIsOptionChecked(audioDeviceMenuString, false);
+            }
+        } else {
+            debug("Selected output device is the same as the current output device!")
+            Menu.setIsOptionChecked(audioDeviceMenuString, true);
+            AudioDevice.setOutputDevice(selectedDevice); // Still try to force-set the device (in case the user's trying to forcefully debug an issue)
         }
     }
 
