@@ -129,6 +129,11 @@ function onDevicechanged() {
 }
 
 function switchAudioDevice(audioDeviceMenuString) {
+    // if the device is not plugged in, short-circuit
+    if (!~audioDevicesList.indexOf(audioDeviceMenuString)) {
+        return;
+    }
+
     Menu.menuItemEvent.disconnect(switchAudioDevice);
 
     var selection = parseMenuItem(audioDeviceMenuString);
