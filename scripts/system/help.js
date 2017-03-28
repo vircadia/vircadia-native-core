@@ -56,7 +56,7 @@
     }, POLL_RATE);
 
     Script.scriptEnding.connect(function () {
-        if (onUserScreen) {
+        if (onHelpScreen) {
             tablet.gotoHomeScreen();
         }
         button.clicked.disconnect(onClicked);
