@@ -726,9 +726,7 @@ function calculateStylusTargetFromOverlay(stylusTip, overlayID) {
     var invRot = Quat.inverse(overlayRotation);
     var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, overlayPosition));
     var dpi = Overlays.getProperty(overlayID, "dpi");
-    if (dpi === undefined) {
-        return;
-    }
+
     var dimensions;
     if (dpi) {
         // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
