@@ -407,43 +407,69 @@ namespace ktx {
     };
     using KeyValues = KeyValue::KeyValues;
 
-
-    struct Image {
+    struct ImageHeader {
+        using FaceOffsets = std::vector<size_t>;
         using FaceBytes = std::vector<const Byte*>;
-
-        uint32_t _numFaces{ 1 };
-        uint32_t _imageSize;
-        uint32_t _faceSize;
-        uint32_t _padding;
-        FaceBytes _faceBytes;
-        
-
-        Image(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
-            _numFaces(1),
-            _imageSize(imageSize),
+        const uint32_t _numFaces;
+        const uint32_t _imageSize;
+        const uint32_t _faceSize;
+        const uint32_t _padding;
+        ImageHeader(bool cube, uint32_t imageSize, uint32_t padding) : 
+            _numFaces(cube ? NUM_CUBEMAPFACES : 1),
+            _imageSize(imageSize * _numFaces),
             _faceSize(imageSize),
-            _padding(padding),
-            _faceBytes(1, bytes) {}
+            _padding(padding) {
+        }
+    };
 
+    struct Image;
+
+    struct ImageDescriptor : public ImageHeader {
+        const FaceOffsets _faceOffsets;
+        ImageDescriptor(const ImageHeader& header, const FaceOffsets& offsets) : ImageHeader(header), _faceOffsets(offsets) {}
+        Image toImage(const ktx::StoragePointer& storage) const;
+    };
+
+    using ImageDescriptors = std::vector<ImageDescriptor>;
+
+    struct Image : public ImageHeader {
+        FaceBytes _faceBytes;
+        Image(const ImageHeader& header, const FaceBytes& faces) : ImageHeader(header), _faceBytes(faces) {}
+        Image(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
+            ImageHeader(false, imageSize, padding),
+            _faceBytes(1, bytes) {}
         Image(uint32_t pageSize, uint32_t padding, const FaceBytes& cubeFaceBytes) :
-            _numFaces(NUM_CUBEMAPFACES),
-            _imageSize(pageSize * NUM_CUBEMAPFACES),
-            _faceSize(pageSize),
-            _padding(padding)
+            ImageHeader(true, pageSize, padding)
             {
                 if (cubeFaceBytes.size() == NUM_CUBEMAPFACES) {
                     _faceBytes = cubeFaceBytes;
                 }
             }
+
+        ImageDescriptor toImageDescriptor(const Byte* baseAddress) const;
     };
+
     using Images = std::vector<Image>;
+
+    class KTX;
+
+    // A KTX descriptor is a lightweight container for all the information about a serialized KTX file, but without the 
+    // actual image / face data available.
+    struct KTXDescriptor {
+        KTXDescriptor(const Header& header, const KeyValues& keyValues, const ImageDescriptors& imageDescriptors) : header(header), keyValues(keyValues), images(imageDescriptors) {}
+        const Header header;
+        const KeyValues keyValues;
+        const ImageDescriptors images;
+        size_t getMipFaceTexelsSize(uint16_t mip = 0, uint8_t face = 0) const;
+        size_t getMipFaceTexelsOffset(uint16_t mip = 0, uint8_t face = 0) const;
+    };
 
     class KTX {
         void resetStorage(const StoragePointer& src);
 
         KTX();
+        KTX(const StoragePointer& storage, const Header& header, const KeyValues& keyValues, const Images& images);
     public:
-
         ~KTX();
 
         // Define a KTX object manually to write it somewhere (in a file on disk?)
@@ -475,18 +501,23 @@ namespace ktx {
         static Images parseImages(const Header& header, size_t srcSize, const Byte* srcBytes);
 
         // Access raw pointers to the main sections of the KTX
-        const Header* getHeader() const;
+        const Header& getHeader() const;
+
         const Byte* getKeyValueData() const;
         const Byte* getTexelsData() const;
         storage::StoragePointer getMipFaceTexelsData(uint16_t mip = 0, uint8_t face = 0) const;
         const StoragePointer& getStorage() const { return _storage; }
 
+        KTXDescriptor toDescriptor() const;
         size_t getKeyValueDataSize() const;
         size_t getTexelsDataSize() const;
 
+        Header _header;
         StoragePointer _storage;
         KeyValues _keyValues;
         Images _images;
+
+        friend struct KTXDescriptor;
     };
 
 }

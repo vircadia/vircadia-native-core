@@ -111,38 +111,40 @@ int main(int argc, char** argv) {
         outFile.close();
     }
 
-    auto ktxFile = ktx::KTX::create(std::shared_ptr<storage::Storage>(new storage::FileStorage(TEST_IMAGE_KTX)));
     {
-        const auto& memStorage = ktxMemory->getStorage();
-        const auto& fileStorage = ktxFile->getStorage();
-        Q_ASSERT(memStorage->size() == fileStorage->size());
-        Q_ASSERT(memStorage->data() != fileStorage->data());
-        Q_ASSERT(0 == memcmp(memStorage->data(), fileStorage->data(), memStorage->size()));
-        Q_ASSERT(ktxFile->_images.size() == ktxMemory->_images.size());
-        auto imageCount = ktxFile->_images.size();
-        auto startMemory = ktxMemory->_storage->data();
-        auto startFile = ktxFile->_storage->data();
-        for (size_t i = 0; i < imageCount; ++i) {
-            auto memImages = ktxMemory->_images[i];
-            auto fileImages = ktxFile->_images[i];
-            Q_ASSERT(memImages._padding == fileImages._padding);
-            Q_ASSERT(memImages._numFaces == fileImages._numFaces);
-            Q_ASSERT(memImages._imageSize == fileImages._imageSize);
-            Q_ASSERT(memImages._faceSize == fileImages._faceSize);
-            Q_ASSERT(memImages._faceBytes.size() == memImages._numFaces);
-            Q_ASSERT(fileImages._faceBytes.size() == fileImages._numFaces);
-            auto faceCount = fileImages._numFaces;
-            for (uint32_t face = 0; face < faceCount; ++face) {
-                auto memFace = memImages._faceBytes[face];
-                auto memOffset = memFace - startMemory;
-                auto fileFace = fileImages._faceBytes[face];
-                auto fileOffset = fileFace - startFile;
-                Q_ASSERT(memOffset % 4 == 0);
-                Q_ASSERT(memOffset == fileOffset);
+        auto ktxFile = ktx::KTX::create(std::shared_ptr<storage::Storage>(new storage::FileStorage(TEST_IMAGE_KTX)));
+        {
+            const auto& memStorage = ktxMemory->getStorage();
+            const auto& fileStorage = ktxFile->getStorage();
+            Q_ASSERT(memStorage->size() == fileStorage->size());
+            Q_ASSERT(memStorage->data() != fileStorage->data());
+            Q_ASSERT(0 == memcmp(memStorage->data(), fileStorage->data(), memStorage->size()));
+            Q_ASSERT(ktxFile->_images.size() == ktxMemory->_images.size());
+            auto imageCount = ktxFile->_images.size();
+            auto startMemory = ktxMemory->_storage->data();
+            auto startFile = ktxFile->_storage->data();
+            for (size_t i = 0; i < imageCount; ++i) {
+                auto memImages = ktxMemory->_images[i];
+                auto fileImages = ktxFile->_images[i];
+                Q_ASSERT(memImages._padding == fileImages._padding);
+                Q_ASSERT(memImages._numFaces == fileImages._numFaces);
+                Q_ASSERT(memImages._imageSize == fileImages._imageSize);
+                Q_ASSERT(memImages._faceSize == fileImages._faceSize);
+                Q_ASSERT(memImages._faceBytes.size() == memImages._numFaces);
+                Q_ASSERT(fileImages._faceBytes.size() == fileImages._numFaces);
+                auto faceCount = fileImages._numFaces;
+                for (uint32_t face = 0; face < faceCount; ++face) {
+                    auto memFace = memImages._faceBytes[face];
+                    auto memOffset = memFace - startMemory;
+                    auto fileFace = fileImages._faceBytes[face];
+                    auto fileOffset = fileFace - startFile;
+                    Q_ASSERT(memOffset % 4 == 0);
+                    Q_ASSERT(memOffset == fileOffset);
+                }
             }
         }
     }
-    testTexture->setKtxBacking(ktxFile);
+    testTexture->setKtxBacking(TEST_IMAGE_KTX.toStdString());
     return 0;
 }
 
