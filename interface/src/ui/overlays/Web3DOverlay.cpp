@@ -237,10 +237,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         std::weak_ptr<Web3DOverlay> weakSelf = std::dynamic_pointer_cast<Web3DOverlay>(qApp->getOverlays().getOverlay(selfOverlayID));
         auto forwardPointerEvent = [=](OverlayID overlayID, const PointerEvent& event) {
             auto self = weakSelf.lock();
-            if (!self) {
-                return;
-            }
-            if (overlayID == selfOverlayID) {
+            if (self && overlayID == selfOverlayID) {
                 self->handlePointerEvent(event);
             }
         };
@@ -254,22 +251,9 @@ void Web3DOverlay::render(RenderArgs* args) {
                 return;
             }
             if (self->_pressed && overlayID == selfOverlayID) {
-                // If the user mouses off the overlay while the button is down, simulate a touch end.
-                QTouchEvent::TouchPoint point;
-                point.setId(event.getID());
-                point.setState(Qt::TouchPointReleased);
-                glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
-                QPointF windowPoint(windowPos.x, windowPos.y);
-                point.setScenePos(windowPoint);
-                point.setPos(windowPoint);
-                QList<QTouchEvent::TouchPoint> touchPoints;
-                touchPoints.push_back(point);
-                QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr, Qt::NoModifier, Qt::TouchPointReleased,
-                    touchPoints);
-                touchEvent->setWindow(self->_webSurface->getWindow());
-                touchEvent->setDevice(&_touchDevice);
-                touchEvent->setTarget(self->_webSurface->getRootItem());
-                QCoreApplication::postEvent(self->_webSurface->getWindow(), touchEvent);
+                PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
+                                      event.getButton(), event.getButtons(), event.getKeyboardModifiers());
+                forwardPointerEvent(overlayID, event);
             }
         }, Qt::DirectConnection);
 
@@ -346,6 +330,14 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
 }
 
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
+    if (_inputMode == Touch) {
+        handlePointerEventAsTouch(event);
+    } else {
+        handlePointerEventAsMouse(event);
+    }
+}
+
+void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     if (!_webSurface) {
         return;
     }
@@ -353,16 +345,16 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
 
-    if (event.getType() == PointerEvent::Move) {
+    if (event.getButtons() == PointerEvent::NoButtons && event.getType() == PointerEvent::Move) {
         // Forward a mouse move event to the Web surface.
-        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton,
-            Qt::NoButton, Qt::NoModifier);
+        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
         QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+        return;
     }
 
-    if (event.getType() == PointerEvent::Press) {
+    if (event.getType() == PointerEvent::Press && event.getButton() == PointerEvent::PrimaryButton) {
         this->_pressed = true;
-    } else if (event.getType() == PointerEvent::Release) {
+    } else if (event.getType() == PointerEvent::Release && event.getButton() == PointerEvent::PrimaryButton) {
         this->_pressed = false;
     }
 
@@ -399,6 +391,47 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     touchEvent->setTouchPointStates(touchPointState);
 
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
+}
+
+void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
+    if (!_webSurface) {
+        return;
+    }
+
+    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
+    QPointF windowPoint(windowPos.x, windowPos.y);
+
+    if (event.getType() == PointerEvent::Press) {
+        this->_pressed = true;
+    } else if (event.getType() == PointerEvent::Release) {
+        this->_pressed = false;
+    }
+
+    Qt::MouseButtons buttons = Qt::NoButton;
+    if (event.getButtons() & PointerEvent::PrimaryButton) {
+        buttons |= Qt::LeftButton;
+    }
+
+    QEvent::Type type;
+    Qt::MouseButton button = Qt::NoButton;
+    if (event.getButton() == PointerEvent::PrimaryButton) {
+        button = Qt::LeftButton;
+    }
+    switch (event.getType()) {
+        case PointerEvent::Press:
+            type = QEvent::MouseButtonPress;
+            break;
+        case PointerEvent::Release:
+            type = QEvent::MouseButtonRelease;
+            break;
+        case PointerEvent::Move:
+        default:
+            type = QEvent::MouseMove;
+            break;
+    }
+
+    QMouseEvent* mouseEvent = new QMouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+    QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
 }
 
 void Web3DOverlay::setProperties(const QVariantMap& properties) {
@@ -443,6 +476,16 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
     if (showKeyboardFocusHighlight.isValid()) {
         _showKeyboardFocusHighlight = showKeyboardFocusHighlight.toBool();
     }
+
+    auto inputModeValue = properties["inputMode"];
+    if (inputModeValue.isValid()) {
+        QString inputModeStr = inputModeValue.toString();
+        if (inputModeStr == "Mouse") {
+            _inputMode = Mouse;
+        } else {
+            _inputMode = Touch;
+        }
+    }
 }
 
 QVariant Web3DOverlay::getProperty(const QString& property) {
@@ -463,6 +506,14 @@ QVariant Web3DOverlay::getProperty(const QString& property) {
     }
     if (property == "showKeyboardFocusHighlight") {
         return _showKeyboardFocusHighlight;
+    }
+
+    if (property == "inputMode") {
+        if (_inputMode == Mouse) {
+            return QVariant("Mouse");
+        } else {
+            return QVariant("Touch");
+        }
     }
     return Billboard3DOverlay::getProperty(property);
 }

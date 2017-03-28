@@ -3467,7 +3467,7 @@ function MyController(hand) {
         if (intersectInfo) {
             var pointerEvent = {
                 type: "Press",
-                id: HARDWARE_MOUSE_ID,
+                id: this.hand + 1,
                 pos2D: projectOntoOverlayXYPlane(this.grabbedOverlay, intersectInfo.point),
                 pos3D: intersectInfo.point,
                 normal: intersectInfo.normal,
@@ -3516,7 +3516,7 @@ function MyController(hand) {
             if (this.deadspotExpired) {
                 pointerEvent = {
                     type: "Release",
-                    id: HARDWARE_MOUSE_ID,
+                    id: this.hand + 1,
                     pos2D: pos2D,
                     pos3D: pos3D,
                     normal: intersectInfo.normal,
@@ -3560,7 +3560,7 @@ function MyController(hand) {
 
             var pointerEvent = {
                 type: "Move",
-                id: HARDWARE_MOUSE_ID,
+                id: this.hand + 1,
                 pos2D: pos2D,
                 pos3D: pos3D,
                 normal: intersectInfo.normal,
