@@ -208,4 +208,5 @@ KTXDescriptor KTX::toDescriptor() const {
 }
 
 KTX::KTX(const StoragePointer& storage, const Header& header, const KeyValues& keyValues, const Images& images)
-    : _storage(storage), _header(header), _keyValues(keyValues), _images(images) { }
+    : _header(header), _storage(storage), _keyValues(keyValues), _images(images) {
+}
