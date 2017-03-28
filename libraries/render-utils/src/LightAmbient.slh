@@ -39,7 +39,7 @@ vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, vec3 fragEyeDir, vec3 f
             <@if supportAmbientMap@>
         {
             float levels = getLightAmbientMapNumMips(ambient);
-            float lod = min(floor((roughness)* levels), levels);
+            float lod = min(((roughness)* levels), levels);
             specularLight = evalSkyboxLight(direction, lod).xyz;
         }
     <@endif@>
