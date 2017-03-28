@@ -382,7 +382,10 @@ function MyController(hand) {
 
                 var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, DEFAULT_GRABBABLE_DATA);
 
-                if (intersection.properties.name == "Grab Debug Entity") {
+                var properties = Entites.getEntityProperties(intersection.entityID, ["locked", "name"]);
+
+
+                if (properties.name == "Grab Debug Entity") {
                     continue;
                 }
 
@@ -399,7 +402,7 @@ function MyController(hand) {
                         this.grabbedEntity = intersection.entityID;
                         this.setState(STATE_NEAR_TRIGGER);
                         return;
-                    } else if (!intersection.properties.locked) {
+                    } else if (!properties.locked) {
                         var ownerObj = getEntityCustomData('ownerKey', intersection.entityID, null);
                         
                         if (ownerObj == null || ownerObj.ownerID === MyAvatar.sessionUUID) {    //I can only grab new or already mine items
