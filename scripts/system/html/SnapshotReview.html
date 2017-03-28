@@ -8,16 +8,17 @@
 </head>
 
 <body>
-    <div class="snapshot-container">
-        <div class="snapsection">
-            <label class="title">Snap</label>
-        </div>
-        <hr />
+    <div class="snapsection title">
+        <label>Snap</label>
+    </div>
+    <hr />
+    <div id="snapshot-pane">
         <div id="snapshot-images">
         </div>
-        <div class="snapsection">
+    </div>
+    <div id="snapshot-controls">
+        <div class="snapsection" id="snap-buttons">
             <div id="sharing">
-                <div class="prompt">Would you like to share your pics in the Snapshots feed?</div>
                 <div class="button">
                     <span class="compound-button">
                         <input type="button" class="blue" id="share" value="Share in Feed" onclick="shareSelected()" />
@@ -30,7 +31,7 @@
             </div>
         </div>
         <hr />
-        <div class="snapsection">
+        <div class="snapsection" id="snap-settings">
             <span class="setting">
                 <input type="button" class="glyph naked" id="snapshotSettings" value="@" onclick="snapshotSettings()" />
                 <label for="snapshotSettings">Snapshot settings</label>

@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var paths = [], idCounter = 0, useCheckboxes;
+var paths = [], idCounter = 0, imageCount;
 function addImage(data) {
     if (!data.localPath) {
         return;
@@ -19,11 +19,16 @@ function addImage(data) {
         input = document.createElement("INPUT"),
         label = document.createElement("LABEL"),
         img = document.createElement("IMG"),
+        div2 = document.createElement("DIV"),
         id = "p" + idCounter++;
     function toggle() { data.share = input.checked; }
+    div.style.height = "" + Math.floor(100 / imageCount) + "%";
+    if (imageCount > 1) {
+        img.setAttribute("class", "multiple");
+    }
     img.src = data.localPath;
     div.appendChild(img);
-    if (useCheckboxes) { // I'd rather use css, but the included stylesheet is quite particular.
+    if (imageCount > 1) { // I'd rather use css, but the included stylesheet is quite particular.
         // Our stylesheet(?) requires input.id to match label.for. Otherwise input doesn't display the check state.
         label.setAttribute('for', id); // cannot do label.for =
         input.id = id;
@@ -31,9 +36,10 @@ function addImage(data) {
         input.checked = (id === "p0");
         data.share = input.checked;
         input.addEventListener('change', toggle);
-        div.class = "property checkbox";
-        div.appendChild(input);
-        div.appendChild(label);
+        div2.setAttribute("class", "property checkbox");
+        div2.appendChild(input);
+        div2.appendChild(label);
+        div.appendChild(div2);
     } else {
         data.share = true;
     }
@@ -73,7 +79,7 @@ window.onload = function () {
             handleShareButtons(shareMsg);
             
             // rest are image paths which we add
-            useCheckboxes = message.action.length > 1;
+            imageCount = message.action.length;
             message.action.forEach(addImage);
         });
         EventBridge.emitWebEvent(JSON.stringify({
