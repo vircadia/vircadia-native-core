@@ -429,16 +429,6 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
 
 WebTablet.prototype.onHmdChanged = function () {
 
-    if (HMD.active) {
-        Controller.mousePressEvent.disconnect(this.myMousePressEvent);
-        Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
-        Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
-    } else {
-        Controller.mousePressEvent.connect(this.myMousePressEvent);
-        Controller.mouseMoveEvent.connect(this.myMouseMoveEvent);
-        Controller.mouseReleaseEvent.connect(this.myMouseReleaseEvent);
-    }
-
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
