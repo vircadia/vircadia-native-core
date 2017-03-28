@@ -456,7 +456,7 @@ protected:
             return;
         }
         auto texture = _textures[_currentTextureIndex];
-        texture->setMinMip(texture->minMip() + 1);
+        texture->setMinMip(texture->getMinMip() + 1);
     }
 
     void loadTexture() {
