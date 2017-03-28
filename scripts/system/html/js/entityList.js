@@ -39,7 +39,7 @@ function loaded() {
       elFilter = document.getElementById("filter");
       elInView = document.getElementById("in-view")
       elRadius = document.getElementById("radius");
-      elTeleport = document.getElementById("teleport");
+      elExport = document.getElementById("export");
       elPal = document.getElementById("pal");
       elEntityTable = document.getElementById("entity-table");
       elInfoToggle = document.getElementById("info-toggle");
@@ -273,8 +273,8 @@ function loaded() {
       elToggleVisible.onclick = function () {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
       }
-      elTeleport.onclick = function () {
-          EventBridge.emitWebEvent(JSON.stringify({ type: 'teleport' }));
+      elExport.onclick = function() {
+          EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
       }
       elPal.onclick = function () {
           EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
@@ -338,10 +338,10 @@ function loaded() {
                   }
               } else if (data.type == "update") {
                   var newEntities = data.entities;
-                  if (newEntities.length == 0) {
+                  if (newEntities && newEntities.length == 0) {
                       elNoEntitiesMessage.style.display = "block";
                       elFooter.firstChild.nodeValue = "0 entities found";
-                  } else {
+                  } else if (newEntities) {
                       elNoEntitiesMessage.style.display = "none";
                       for (var i = 0; i < newEntities.length; i++) {
                           var id = newEntities[i].id;

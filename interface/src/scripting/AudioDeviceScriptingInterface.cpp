@@ -18,6 +18,21 @@ AudioDeviceScriptingInterface* AudioDeviceScriptingInterface::getInstance() {
     return &sharedInstance;
 }
 
+QStringList AudioDeviceScriptingInterface::inputAudioDevices() const
+{
+    return DependencyManager::get<AudioClient>()->getDeviceNames(QAudio::AudioInput).toList();;
+}
+
+QStringList AudioDeviceScriptingInterface::outputAudioDevices() const
+{
+    return DependencyManager::get<AudioClient>()->getDeviceNames(QAudio::AudioOutput).toList();;
+}
+
+bool AudioDeviceScriptingInterface::muted()
+{
+    return getMuted();
+}
+
 AudioDeviceScriptingInterface::AudioDeviceScriptingInterface() {
     connect(DependencyManager::get<AudioClient>().data(), &AudioClient::muteToggled,
             this, &AudioDeviceScriptingInterface::muteToggled);
@@ -31,7 +46,6 @@ bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {
                               Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(bool, result),
                               Q_ARG(const QString&, deviceName));
-
     return result;
 }
 
@@ -41,7 +55,6 @@ bool AudioDeviceScriptingInterface::setOutputDevice(const QString& deviceName) {
                               Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(bool, result),
                               Q_ARG(const QString&, deviceName));
-
     return result;
 }
 
@@ -69,7 +82,6 @@ QVector<QString> AudioDeviceScriptingInterface::getOutputDevices() {
     return DependencyManager::get<AudioClient>()->getDeviceNames(QAudio::AudioOutput);
 }
 
-
 float AudioDeviceScriptingInterface::getInputVolume() {
     return DependencyManager::get<AudioClient>()->getInputVolume();
 }
@@ -88,6 +100,17 @@ void AudioDeviceScriptingInterface::setReverbOptions(const AudioEffectOptions* o
 
 void AudioDeviceScriptingInterface::toggleMute() {
     DependencyManager::get<AudioClient>()->toggleMute();
+}
+
+void AudioDeviceScriptingInterface::setMuted(bool muted)
+{
+    bool lMuted = getMuted();
+    if (lMuted == muted)
+        return;
+
+    toggleMute();
+    lMuted = getMuted();
+    emit mutedChanged(lMuted);
 }
 
 bool AudioDeviceScriptingInterface::getMuted() {

@@ -145,7 +145,7 @@ Item {
             }
         }
 
-        TabletComboBox {
+        ComboBox {
             id: pathSelector
            anchors {
                 top: parent.top
