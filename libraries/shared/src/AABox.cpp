@@ -436,7 +436,7 @@ glm::vec3 AABox::getClosestPointOnFace(const glm::vec4& origin, const glm::vec4&
     return getClosestPointOnFace(glm::vec3(origin), face);
 }
 
-bool AABox::touchesAAEllipsoid(const glm::vec3& center, glm::vec3 radials) const {
+bool AABox::touchesAAEllipsoid(const glm::vec3& center, const glm::vec3& radials) const {
     // handle case where ellipsoid's alix-aligned box doesn't touch this AABox
     if (_corner.x - radials.x > center.x ||
         _corner.y - radials.y > center.y ||
