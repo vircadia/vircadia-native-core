@@ -250,6 +250,15 @@ static QString getUsername() {
     }
 }
 
+void TabletProxy::initialScreen(const QVariant& url) {
+    if (getQmlTablet()) {
+        pushOntoStack(url);
+    } else {
+        _initialScreen = true;
+        _initialPath = url;
+    }
+}
+
 bool TabletProxy::isMessageDialogOpen() {
     if (_qmlTabletRoot) {
         QVariant result;
@@ -299,6 +308,11 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
                 QMetaObject::invokeMethod(_qmlTabletRoot, "setUsername", Q_ARG(const QVariant&, QVariant(getUsername())));
             }
         });
+
+        if (_initialScreen) {
+            pushOntoStack(_initialPath);
+            _initialScreen = false;
+        }
     } else {
         removeButtonsFromHomeScreen();
         _state = State::Uninitialized;

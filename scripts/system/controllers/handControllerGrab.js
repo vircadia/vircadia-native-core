@@ -28,7 +28,7 @@ Script.include("/~/system/libraries/controllers.js");
 //
 
 var WANT_DEBUG = false;
-var WANT_DEBUG_STATE = true;
+var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
 var FORCE_IGNORE_IK = false;
@@ -670,12 +670,12 @@ function sendTouchMoveEventToStylusTarget(hand, stylusTarget) {
     }
 }
 
+// will return undefined if entity does not exist.
 function calculateStylusTargetFromEntity(stylusTip, entityID) {
     var props = entityPropertiesCache.getProps(entityID);
-
-    // entity could have been deleted.
-    if (props === undefined) {
-        return undefined;
+    if (props.rotation === undefined) {
+        // if rotation is missing from props object, then this entity has probably been deleted.
+        return;
     }
 
     // project stylus tip onto entity plane.
@@ -706,16 +706,18 @@ function calculateStylusTargetFromEntity(stylusTip, entityID) {
     };
 }
 
+// will return undefined if overlayID does not exist.
 function calculateStylusTargetFromOverlay(stylusTip, overlayID) {
     var overlayPosition = Overlays.getProperty(overlayID, "position");
-
-    // overlay could have been deleted.
     if (overlayPosition === undefined) {
-        return undefined;
+        return;
     }
 
     // project stylusTip onto overlay plane.
     var overlayRotation = Overlays.getProperty(overlayID, "rotation");
+    if (overlayRotation === undefined) {
+        return;
+    }
     var normal = Vec3.multiplyQbyV(overlayRotation, {x: 0, y: 0, z: 1});
     var distance = Vec3.dot(Vec3.subtract(stylusTip.position, overlayPosition), normal);
     var position = Vec3.subtract(stylusTip.position, Vec3.multiply(normal, distance));
@@ -724,16 +726,26 @@ function calculateStylusTargetFromOverlay(stylusTip, overlayID) {
     var invRot = Quat.inverse(overlayRotation);
     var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, overlayPosition));
     var dpi = Overlays.getProperty(overlayID, "dpi");
+
     var dimensions;
     if (dpi) {
         // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
         var resolution = Overlays.getProperty(overlayID, "resolution");
+        if (resolution === undefined) {
+            return;
+        }
         resolution.z = 1;  // Circumvent divide-by-zero.
         var scale = Overlays.getProperty(overlayID, "dimensions");
+        if (scale === undefined) {
+            return;
+        }
         scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
         dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
     } else {
         dimensions = Overlays.getProperty(overlayID, "dimensions");
+        if (dimensions === undefined) {
+            return;
+        }
         if (!dimensions.z) {
             dimensions.z = 0.01;    // sometimes overlay dimensions are 2D, not 3D.
         }
@@ -1631,22 +1643,31 @@ function MyController(hand) {
         var stylusTargets = [];
         var candidateEntities = Entities.findEntities(tipPosition, WEB_DISPLAY_STYLUS_DISTANCE);
         entityPropertiesCache.addEntities(candidateEntities);
-        var i, props;
+        var i, props, stylusTarget;
         for (i = 0; i < candidateEntities.length; i++) {
             props = entityPropertiesCache.getProps(candidateEntities[i]);
             if (props && (props.type === "Web" || this.isTablet(candidateEntities[i]))) {
-                stylusTargets.push(calculateStylusTargetFromEntity(this.stylusTip, candidateEntities[i]));
+                stylusTarget = calculateStylusTargetFromEntity(this.stylusTip, candidateEntities[i]);
+                if (stylusTarget) {
+                    stylusTargets.push(stylusTarget);
+                }
             }
         }
 
         // add the tabletScreen, if it is valid
         if (HMD.tabletScreenID && HMD.tabletScreenID !== NULL_UUID && Overlays.getProperty(HMD.tabletScreenID, "visible")) {
-            stylusTargets.push(calculateStylusTargetFromOverlay(this.stylusTip, HMD.tabletScreenID));
+            stylusTarget = calculateStylusTargetFromOverlay(this.stylusTip, HMD.tabletScreenID);
+            if (stylusTarget) {
+                stylusTargets.push(stylusTarget);
+            }
         }
 
         // add the tablet home button.
         if (HMD.homeButtonID && HMD.homeButtonID !== NULL_UUID && Overlays.getProperty(HMD.homeButtonID, "visible")) {
-            stylusTargets.push(calculateStylusTargetFromOverlay(this.stylusTip, HMD.homeButtonID));
+            stylusTarget = calculateStylusTargetFromOverlay(this.stylusTip, HMD.homeButtonID);
+            if (stylusTarget) {
+                stylusTargets.push(stylusTarget);
+            }
         }
 
         var TABLET_MIN_HOVER_DISTANCE = 0.01;
@@ -3581,6 +3602,10 @@ function MyController(hand) {
     };
 
     this.stylusTouchingExit = function () {
+
+        if (this.stylusTarget === undefined) {
+            return;
+        }
 
         // special case to handle home button.
         if (this.stylusTarget.overlayID === HMD.homeButtonID) {

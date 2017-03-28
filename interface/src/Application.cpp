@@ -3788,7 +3788,7 @@ void Application::loadSettings() {
     }
 
     getMyAvatar()->loadData();
-
+    setTabletVisibleToOthersSetting(false);
     _settingsLoaded = true;
 }
 
