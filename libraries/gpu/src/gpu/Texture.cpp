@@ -149,10 +149,6 @@ PixelsPointer MemoryStorage::getMipFace(uint16 level, uint8 face) const {
     return PixelsPointer();
 }
 
-Size MemoryStorage::getMipFaceSize(uint16 level, uint8 face) const {
-    return getMipFace(level, face)->getSize();
-}
-
 bool MemoryStorage::isMipAvailable(uint16 level, uint8 face) const {
     PixelsPointer mipFace = getMipFace(level, face);
     return (mipFace && mipFace->getSize());
@@ -482,39 +478,43 @@ uint16 Texture::autoGenerateMips(uint16 maxMip) {
 }
 
 uint16 Texture::getStoredMipWidth(uint16 level) const {
-    if (!isStoredMipFaceAvailable(level)) {
-        return 0;
+    PixelsPointer mipFace = accessStoredMipFace(level);
+    if (mipFace && mipFace->getSize()) {
+        return evalMipWidth(level);
     }
-    return evalMipWidth(level);
+    return 0;
 }
 
 uint16 Texture::getStoredMipHeight(uint16 level) const {
-    if (!isStoredMipFaceAvailable(level)) {
-        return 0;
+    PixelsPointer mip = accessStoredMipFace(level);
+    if (mip && mip->getSize()) {
+        return evalMipHeight(level);
     }
-    return evalMipHeight(level);
+    return 0;
 }
 
 uint16 Texture::getStoredMipDepth(uint16 level) const {
-    if (!isStoredMipFaceAvailable(level)) {
-        return 0;
+    PixelsPointer mipFace = accessStoredMipFace(level);
+    if (mipFace && mipFace->getSize()) {
+        return evalMipDepth(level);
     }
-    return evalMipDepth(level);
+    return 0;
 }
 
 uint32 Texture::getStoredMipNumTexels(uint16 level) const {
-    if (!isStoredMipFaceAvailable(level)) {
-        return 0;
+    PixelsPointer mipFace = accessStoredMipFace(level);
+    if (mipFace && mipFace->getSize()) {
+        return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level);
     }
-    return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level);
+    return 0;
 }
 
 uint32 Texture::getStoredMipSize(uint16 level) const {
-    if (!isStoredMipFaceAvailable(level)) {
-        return 0;
+    PixelsPointer mipFace = accessStoredMipFace(level);
+    if (mipFace && mipFace->getSize()) {
+        return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getTexelFormat().getSize();
     }
-
-    return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getTexelFormat().getSize();
+    return 0;
 }
 
 gpu::Resource::Size Texture::getStoredSize() const {
