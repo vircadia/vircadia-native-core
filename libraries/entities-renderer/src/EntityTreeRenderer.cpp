@@ -1045,7 +1045,7 @@ void EntityTreeRenderer::playEntityCollisionSound(EntityItemPointer entity, cons
 
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
-    const float stretchFactor = log(1.0f + (minAACube.getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
+    const float stretchFactor = logf(1.0f + (minAACube.getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / logf(2.0f);
     AudioInjector::playSound(collisionSound, volume, stretchFactor, collision.contactPoint);
 }
 

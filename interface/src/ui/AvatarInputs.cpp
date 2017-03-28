@@ -56,7 +56,7 @@ AvatarInputs::AvatarInputs(QQuickItem* parent) :  QQuickItem(parent) {
 #define AI_UPDATE_FLOAT(name, src, epsilon) \
     { \
         float val = src; \
-        if (fabs(_##name - val) >= epsilon) { \
+        if (fabsf(_##name - val) >= epsilon) { \
             _##name = val; \
             emit name##Changed(); \
         } \
@@ -93,7 +93,7 @@ void AvatarInputs::update() {
     if (audioLevel > 1.0f) {
         audioLevel = 1.0;
     }
-    AI_UPDATE_FLOAT(audioLevel, audioLevel, 0.01);
+    AI_UPDATE_FLOAT(audioLevel, audioLevel, 0.01f);
     AI_UPDATE(audioClipping, ((audioIO->getTimeSinceLastClip() > 0.0f) && (audioIO->getTimeSinceLastClip() < 1.0f)));
     AI_UPDATE(audioMuted, audioIO->isMuted());
 

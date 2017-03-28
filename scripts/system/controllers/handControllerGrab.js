@@ -1181,7 +1181,7 @@ function MyController(hand) {
 
         this.updateStylusTip();
 
-        var DEFAULT_USE_FINGER_AS_STYLUS = false;
+        var DEFAULT_USE_FINGER_AS_STYLUS = true;
         var USE_FINGER_AS_STYLUS = Settings.getValue("preferAvatarFingerOverStylus");
         if (USE_FINGER_AS_STYLUS === "") {
             USE_FINGER_AS_STYLUS = DEFAULT_USE_FINGER_AS_STYLUS;
