@@ -14,6 +14,7 @@
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QQmlContext>
+//#include <QQmlEngine>
 
 #include <Application.h>
 #include <OffscreenUi.h>
@@ -39,7 +40,7 @@ void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
 
     Bookmarks::setupMenus(menubar, menu);
-
+    Bookmarks::sortActions(menubar, _bookmarksMenu);
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto context = offscreenUi->getRootContext();
     context->setContextProperty("avatarBookmarks", this);
@@ -74,7 +75,16 @@ void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, cons
     QAction* changeAction = _bookmarksMenu->newAction();
     changeAction->setData(address);
     connect(changeAction, SIGNAL(triggered()), this, SLOT(changeToBookmarkedAvatar()));
+    if (!_isMenuSorted) {
+        menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction, name, 0, QAction::NoRole);
+    } else {
+        //  TODO: this is aggressive but all other alternative have proved less fruitful so far.
+        //  having experimented with various pointer types, It is possible the issues are deeper routed in the MenuWrapper/Menu  Qt/QML architecture
+        // further research did not produce better results
 
-    menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction, name, 0, QAction::NoRole);
-    Bookmarks::sortActions(_bookmarksMenu);
+        //menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction, name, 0, QAction::NoRole, 
+        //Bookmarks::getMenuItemLocation(_bookmarksMenu->actions(), name));
+        menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction, name, 0, QAction::NoRole);
+        Bookmarks::sortActions(menubar, _bookmarksMenu);
+    }
 }

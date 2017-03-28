@@ -24,7 +24,9 @@
 
 #include "Bookmarks.h"
 
-Bookmarks::Bookmarks() {
+Bookmarks::Bookmarks() :
+_isMenuSorted(false)
+{
 }
 
 void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
@@ -113,18 +115,38 @@ bool Bookmarks::contains(const QString& name) const {
 }
 
 bool Bookmarks::sortOrder(QAction* a, QAction* b) {
-    return a->text().toLower() < b->text().toLower();
+    return a->text().toLower().localeAwareCompare(b->text().toLower()) < 0;
 }
 
-void Bookmarks::sortActions(MenuWrapper* menuWrapper) {
-    QList<QAction*> tmpActions = menuWrapper->actions();
-    qSort(tmpActions.begin(), tmpActions.end(), sortOrder);
+//  TODO: inconsistent naming?
+void Bookmarks::sortActions(Menu* menubar, MenuWrapper* menuWrapper) {
+    QList<QAction*> actions = menuWrapper->actions();
+    qSort(actions.begin(), actions.end(), sortOrder);
     for (QAction* action : menuWrapper->actions()) {
         menuWrapper->removeAction(action);
+        //removeBookmarkFromMenu(menubar, action->text());
     }
-    for (QAction* action : tmpActions) {
+    for (QAction* action : actions) {
         menuWrapper->addAction(action);
+//        for (int i = 0; i <  _bookmarks.size() ; i++) {
+//            if (_bookmarks.keys().at(i) == action->text()) {
+//                addBookmarkToMenu(menubar, action->text(), _bookmarks.values().at(i).toString());
+//            }
+//        }
     }
+    _isMenuSorted = true;
+}
+
+int Bookmarks::getMenuItemLocation(QList<QAction*> actions, const QString& name) const {
+    int menuItemLocation = 0;
+    for (QAction* action : actions) {
+        if (name.toLower().localeAwareCompare(action->text().toLower()) < 0) {
+            menuItemLocation = actions.indexOf(action);
+            break;
+
+        }
+    }
+    return menuItemLocation;
 }
 
 QString Bookmarks::addressForBookmark(const QString& name) const {

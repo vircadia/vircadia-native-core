@@ -13,6 +13,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QStandardPaths>
+//#include <QQmlEngine>
 
 #include <AddressManager.h>
 #include <Application.h>
@@ -42,13 +43,13 @@ void LocationBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
 
     Bookmarks::setupMenus(menubar, menu);
+    Bookmarks::sortActions(menubar, _bookmarksMenu);
 }
 
 void LocationBookmarks::setHomeLocation() {
     auto addressManager = DependencyManager::get<AddressManager>();
     QString bookmarkAddress = addressManager->currentAddress().toString();
     Bookmarks::addBookmark(HOME_BOOKMARK, bookmarkAddress);
-    Bookmarks::sortActions(_bookmarksMenu);
 }
 
 void LocationBookmarks::teleportToBookmark() {
@@ -78,7 +79,16 @@ void LocationBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, co
     QAction* teleportAction = _bookmarksMenu->newAction();
     teleportAction->setData(address);
     connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
+    if (!_isMenuSorted) {
+        menubar->addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, name, 0, QAction::NoRole);
+    } else {
+        //  TODO: this is aggressive but all other alternative have proved less fruitful so far.
+        //  having experimented with various pointer types, It is possible the issues are deeper routed in the MenuWrapper/Menu  Qt/QML architecture
+        // further research did not produce better results
 
-    menubar->addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, name, 0, QAction::NoRole);
-    Bookmarks::sortActions(_bookmarksMenu);
+        //menubar->addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, name, 0, QAction::NoRole, 
+        //Bookmarks::getMenuItemLocation(_bookmarksMenu->actions(), name));
+       menubar->addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, name, 0, QAction::NoRole);
+       Bookmarks::sortActions(menubar, _bookmarksMenu);
+    }
 }

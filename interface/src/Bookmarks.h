@@ -38,12 +38,15 @@ protected:
     void enableMenuItems(bool enabled);
     void readFromFile();
     void insert(const QString& name, const QString& address);  // Overwrites any existing entry with same name.
-    void sortActions(MenuWrapper* menuWrapper);
+    void sortActions(Menu* menubar, MenuWrapper* menu);
+    int getMenuItemLocation(QList<QAction*> actions, const QString& name) const;
 
     QVariantMap _bookmarks;  // { name: url, ... }
+    //QSharedPointer<MenuWrapper> _bookmarksMenu;
     QPointer<MenuWrapper> _bookmarksMenu;
     QPointer<QAction> _deleteBookmarksAction;
     QString _bookmarksFilename;
+    bool _isMenuSorted;
 
 protected slots:
     void deleteBookmark();
