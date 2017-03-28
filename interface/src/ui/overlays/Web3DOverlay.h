@@ -40,6 +40,8 @@ public:
     QObject* getEventHandler();
     void setProxyWindow(QWindow* proxyWindow);
     void handlePointerEvent(const PointerEvent& event);
+    void handlePointerEventAsTouch(const PointerEvent& event);
+    void handlePointerEventAsMouse(const PointerEvent& event);
 
     // setters
     void setURL(const QString& url);
@@ -55,6 +57,11 @@ public:
 
     virtual Web3DOverlay* createClone() const override;
 
+    enum InputMode {
+        Touch,
+        Mouse
+    };
+
 public slots:
     void emitScriptEvent(const QVariant& scriptMessage);
 
@@ -63,6 +70,7 @@ signals:
     void webEventReceived(const QVariant& message);
 
 private:
+    InputMode _inputMode { Touch };
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     QMetaObject::Connection _connection;
     gpu::TexturePointer _texture;

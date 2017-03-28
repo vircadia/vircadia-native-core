@@ -31,7 +31,8 @@ public:
         Press,       // A button has just been pressed
         DoublePress, // A button has just been double pressed
         Release,     // A button has just been released
-        Move         // The pointer has just moved
+        Move,         // The pointer has just moved
+        NumEventTypes
     };
 
     PointerEvent();
@@ -67,6 +68,8 @@ private:
     uint32_t _buttons { NoButtons }; // the current state of all the buttons.
     Qt::KeyboardModifiers _keyboardModifiers; // set of keys held when event was generated
 };
+
+QDebug& operator<<(QDebug& dbg, const PointerEvent& p);
 
 Q_DECLARE_METATYPE(PointerEvent)
 
