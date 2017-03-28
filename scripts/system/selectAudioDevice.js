@@ -154,6 +154,7 @@ function switchAudioDevice(audioDeviceMenuString) {
             }
         } else {
             debug("Selected input device is the same as the current input device!")
+            Settings.setValue(INPUT_DEVICE_SETTING, selectedDevice);
             Menu.setIsOptionChecked(audioDeviceMenuString, true);
             AudioDevice.setInputDevice(selectedDevice); // Still try to force-set the device (in case the user's trying to forcefully debug an issue)
         }
@@ -172,6 +173,7 @@ function switchAudioDevice(audioDeviceMenuString) {
             }
         } else {
             debug("Selected output device is the same as the current output device!")
+            Settings.setValue(OUTPUT_DEVICE_SETTING, selectedDevice);
             Menu.setIsOptionChecked(audioDeviceMenuString, true);
             AudioDevice.setOutputDevice(selectedDevice); // Still try to force-set the device (in case the user's trying to forcefully debug an issue)
         }
