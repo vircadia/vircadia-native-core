@@ -16,7 +16,7 @@
 #include <QScriptValueIterator>
 #include <QtScript/QScriptValue>
 
-#include "Geometry.h"
+#include <model/Geometry.h>
 
 using MeshPointer = std::shared_ptr<model::Mesh>;
 

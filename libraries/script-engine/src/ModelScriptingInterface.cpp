@@ -12,7 +12,7 @@
 #include <QScriptEngine>
 #include <QScriptValueIterator>
 #include <QtScript/QScriptValue>
-#include <model/MeshFace.h>
+#include <model-networking/MeshFace.h>
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
 #include "ModelScriptingInterface.h"

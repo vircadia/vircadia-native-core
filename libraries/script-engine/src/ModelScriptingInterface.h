@@ -17,8 +17,8 @@
 #include <QScriptValue>
 #include <OBJWriter.h>
 #include <model/Geometry.h>
-#include <model/MeshProxy.h>
-#include <model/MeshFace.h>
+#include <model-networking/MeshProxy.h>
+#include <model-networking/MeshFace.h>
 
 using MeshPointer = std::shared_ptr<model::Mesh>;
 class ScriptEngine;

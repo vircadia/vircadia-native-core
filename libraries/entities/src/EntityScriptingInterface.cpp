@@ -21,7 +21,7 @@
 #include <VariantMapToScriptValue.h>
 #include <SharedUtil.h>
 #include <SpatialParentFinder.h>
-#include <model/MeshProxy.h>
+#include <model-networking/MeshProxy.h>
 
 #include "EntitiesLogging.h"
 #include "EntityActionFactoryInterface.h"
