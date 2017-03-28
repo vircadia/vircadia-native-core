@@ -145,7 +145,7 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
     unsigned char* resultVertexData = new unsigned char[vertexSize];
     unsigned char* vertexDataCursor = resultVertexData;
 
-    for (gpu::BufferView::Index i = 0; i < numVertices; i ++) {
+    for (gpu::BufferView::Index i = 0; i < numVertices; i++) {
         glm::vec3 pos = vertexFunc(vertexBufferView.get<glm::vec3>(i));
         memcpy(vertexDataCursor, &pos, sizeof(pos));
         vertexDataCursor += sizeof(pos);
@@ -159,7 +159,7 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
     unsigned char* resultNormalData = new unsigned char[normalSize];
     unsigned char* normalDataCursor = resultNormalData;
 
-    for (gpu::BufferView::Index i = 0; i < numNormals; i ++) {
+    for (gpu::BufferView::Index i = 0; i < numNormals; i++) {
         glm::vec3 normal = normalFunc(normalsBufferView.get<glm::vec3>(i));
         memcpy(normalDataCursor, &normal, sizeof(normal));
         normalDataCursor += sizeof(normal);
@@ -173,7 +173,7 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
     unsigned char* resultIndexData = new unsigned char[indexSize];
     unsigned char* indexDataCursor = resultIndexData;
 
-    for (gpu::BufferView::Index i = 0; i < numIndexes; i ++) {
+    for (gpu::BufferView::Index i = 0; i < numIndexes; i++) {
         uint32_t index = indexFunc(indexBufferView.get<uint32_t>(i));
         memcpy(indexDataCursor, &index, sizeof(index));
         indexDataCursor += sizeof(index);
@@ -217,19 +217,18 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
 void Mesh::forEach(std::function<void(glm::vec3)> vertexFunc,
                    std::function<void(glm::vec3)> normalFunc,
                    std::function<void(uint32_t)> indexFunc) {
-    int attributeTypeNormal = gpu::Stream::InputSlot::NORMAL; // libraries/gpu/src/gpu/Stream.h
-
     // vertex data
     const gpu::BufferView& vertexBufferView = getVertexBuffer();
     gpu::BufferView::Index numVertices = (gpu::BufferView::Index)getNumVertices();
-    for (gpu::BufferView::Index i = 0; i < numVertices; i ++) {
+    for (gpu::BufferView::Index i = 0; i < numVertices; i++) {
         vertexFunc(vertexBufferView.get<glm::vec3>(i));
     }
 
     // normal data
+    int attributeTypeNormal = gpu::Stream::InputSlot::NORMAL; // libraries/gpu/src/gpu/Stream.h
     const gpu::BufferView& normalsBufferView = getAttributeBuffer(attributeTypeNormal);
-    gpu::BufferView::Index numNormals =  (gpu::BufferView::Index) normalsBufferView.getNumElements();
-    for (gpu::BufferView::Index i = 0; i < numNormals; i ++) {
+    gpu::BufferView::Index numNormals =  (gpu::BufferView::Index)normalsBufferView.getNumElements();
+    for (gpu::BufferView::Index i = 0; i < numNormals; i++) {
         normalFunc(normalsBufferView.get<glm::vec3>(i));
     }
     // TODO -- other attributes
@@ -237,7 +236,7 @@ void Mesh::forEach(std::function<void(glm::vec3)> vertexFunc,
     // face data
     const gpu::BufferView& indexBufferView = getIndexBuffer();
     gpu::BufferView::Index numIndexes = (gpu::BufferView::Index)getNumIndices();
-    for (gpu::BufferView::Index i = 0; i < numIndexes; i ++) {
+    for (gpu::BufferView::Index i = 0; i < numIndexes; i++) {
         indexFunc(indexBufferView.get<uint32_t>(i));
     }
 }

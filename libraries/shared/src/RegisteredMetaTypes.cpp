@@ -43,6 +43,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, qVectorQuatToScriptValue, qVectorQuatFromScriptValue);
     qScriptRegisterMetaType(engine, qVectorBoolToScriptValue, qVectorBoolFromScriptValue);
     qScriptRegisterMetaType(engine, qVectorFloatToScriptValue, qVectorFloatFromScriptValue);
+    qScriptRegisterMetaType(engine, qVectorIntToScriptValue, qVectorIntFromScriptValue);
     qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, qRectToScriptValue, qRectFromScriptValue);
@@ -386,6 +387,15 @@ QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<floa
     return array;
 }
 
+QScriptValue qVectorIntToScriptValue(QScriptEngine* engine, const QVector<uint32_t>& vector) {
+    QScriptValue array = engine->newArray();
+    for (int i = 0; i < vector.size(); i++) {
+        int num = vector.at(i);
+        array.setProperty(i, QScriptValue(num));
+    }
+    return array;
+}
+
 void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vector) {
     int length = array.property("length").toInteger();
     
@@ -393,6 +403,15 @@ void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vect
         vector << array.property(i).toVariant().toFloat();
     }
 }
+
+void qVectorIntFromScriptValue(const QScriptValue& array, QVector<uint32_t>& vector) {
+    int length = array.property("length").toInteger();
+
+    for (int i = 0; i < length; i++) {
+        vector << array.property(i).toVariant().toInt();
+    }
+}
+
 //
 QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array){
     QVector<glm::vec3> newVector;

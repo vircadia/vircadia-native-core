@@ -40,12 +40,16 @@ static QString formatFloat(double n) {
 }
 
 bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
+    int attributeTypeNormal = gpu::Stream::InputSlot::NORMAL; // libraries/gpu/src/gpu/Stream.h
+
     // each mesh's vertices are numbered from zero.  We're combining all their vertices into one list here,
     // so keep track of the start index for each mesh.
     QList<int> meshVertexStartOffset;
+    QList<int> meshNormalStartOffset;
     int currentVertexStartOffset = 0;
+    int currentNormalStartOffset = 0;
 
-    // write out all vertices
+    // write out vertices
     foreach (const MeshPointer& mesh, meshes) {
         meshVertexStartOffset.append(currentVertexStartOffset);
         const gpu::BufferView& vertexBuffer = mesh->getVertexBuffer();
@@ -64,10 +68,28 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
     }
     out << "\n";
 
+    // write out normals
+    bool haveNormals = true;
+    foreach (const MeshPointer& mesh, meshes) {
+        meshNormalStartOffset.append(currentNormalStartOffset);
+        const gpu::BufferView& normalsBufferView = mesh->getAttributeBuffer(attributeTypeNormal);
+        gpu::BufferView::Index numNormals = (gpu::BufferView::Index)normalsBufferView.getNumElements();
+        for (gpu::BufferView::Index i = 0; i < numNormals; i++) {
+            glm::vec3 normal = normalsBufferView.get<glm::vec3>(i);
+            out << "vn ";
+            out << formatFloat(normal[0]) << " ";
+            out << formatFloat(normal[1]) << " ";
+            out << formatFloat(normal[2]) << "\n";
+        }
+        currentNormalStartOffset += numNormals;
+    }
+    out << "\n";
+
     // write out faces
     int nth = 0;
     foreach (const MeshPointer& mesh, meshes) {
         currentVertexStartOffset = meshVertexStartOffset.takeFirst();
+        currentNormalStartOffset = meshNormalStartOffset.takeFirst();
 
         const gpu::BufferView& partBuffer = mesh->getPartBuffer();
         const gpu::BufferView& indexBuffer = mesh->getIndexBuffer();
@@ -104,9 +126,15 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
                 indexCount++;
 
                 out << "f ";
-                out << currentVertexStartOffset + index0 + 1 << " ";
-                out << currentVertexStartOffset + index1 + 1 << " ";
-                out << currentVertexStartOffset + index2 + 1 << "\n";
+                if (haveNormals) {
+                    out << currentVertexStartOffset + index0 + 1 << "//" << currentVertexStartOffset + index0 + 1 << " ";
+                    out << currentVertexStartOffset + index1 + 1 << "//" << currentVertexStartOffset + index1 + 1 << " ";
+                    out << currentVertexStartOffset + index2 + 1 << "//" << currentVertexStartOffset + index2 + 1 << "\n";
+                } else {
+                    out << currentVertexStartOffset + index0 + 1 << " ";
+                    out << currentVertexStartOffset + index1 + 1 << " ";
+                    out << currentVertexStartOffset + index2 + 1 << "\n";
+                }
             }
             out << "\n";
         }
