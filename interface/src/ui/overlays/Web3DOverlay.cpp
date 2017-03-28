@@ -17,6 +17,7 @@
 #include <QtGui/QOpenGLContext>
 #include <QtQuick/QQuickItem>
 #include <QtQml/QQmlContext>
+#include <QtQml/QQmlEngine>
 
 #include <AbstractViewStateInterface.h>
 #include <gpu/Batch.h>
@@ -196,6 +197,10 @@ void Web3DOverlay::loadSourceURL() {
 
             _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
+
+            // mark the TabletProxy object as cpp ownership.
+            QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
+            _webSurface->getRootContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
 
             // Override min fps for tablet UI, for silky smooth scrolling
             setMaxFPS(90);
