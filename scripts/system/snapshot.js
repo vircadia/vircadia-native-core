@@ -60,7 +60,12 @@ function onMessage(message) {
             outstanding = 0;
             break;
         case 'openSettings':
-            Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
+            if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
+                    || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
+                Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "General Preferences");
+            } else {
+                tablet.loadQMLSource("TabletGeneralPreferences.qml");
+            }
             break;
         case 'setOpenFeedFalse':
             Settings.setValue('openFeedAfterShare', false);
