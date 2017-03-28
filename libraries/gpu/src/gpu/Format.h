@@ -75,12 +75,12 @@ static const bool TYPE_IS_INTEGER[NUM_TYPES] = {
     true,
 
     // Normalized values
-    true,
-    true,
-    true,
-    true,
-    true,
-    true
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
 };
 
 // Dimension of an Element

@@ -14,6 +14,8 @@
 #include <NumericalConstants.h>
 #include <SharedUtil.h>
 #include <shared/NsightHelpers.h>
+#include <DebugDraw.h>
+#include "Rig.h"
 
 #include "ElbowConstraint.h"
 #include "SwingTwistConstraint.h"
@@ -378,14 +380,14 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
 }
 
 //virtual
-const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) {
+const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimNode::Triggers& triggersOut) {
     // don't call this function, call overlay() instead
     assert(false);
     return _relativePoses;
 }
 
 //virtual
-const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
 
     const float MAX_OVERLAY_DT = 1.0f / 30.0f; // what to clamp delta-time to in AnimInverseKinematics::overlay
     if (dt > MAX_OVERLAY_DT) {
@@ -438,6 +440,28 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             PROFILE_RANGE_EX(simulation_animation, "ik/computeTargets", 0xffff00ff, 0);
             computeTargets(animVars, targets, underPoses);
         }
+
+        // debug render ik targets
+        if (context.getEnableDebugDrawIKTargets()) {
+            const vec4 WHITE(1.0f);
+            glm::mat4 rigToAvatarMat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
+
+            for (auto& target : targets) {
+                glm::mat4 geomTargetMat = createMatFromQuatAndPos(target.getRotation(), target.getTranslation());
+                glm::mat4 avatarTargetMat = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat;
+
+                QString name = QString("ikTarget%1").arg(target.getIndex());
+                DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
+            }
+        } else if (context.getEnableDebugDrawIKTargets() != _previousEnableDebugIKTargets) {
+            // remove markers if they were added last frame.
+            for (auto& target : targets) {
+                QString name = QString("ikTarget%1").arg(target.getIndex());
+                DebugDraw::getInstance().removeMyAvatarMarker(name);
+            }
+        }
+
+        _previousEnableDebugIKTargets = context.getEnableDebugDrawIKTargets();
 
         if (targets.empty()) {
             // no IK targets but still need to enforce constraints
