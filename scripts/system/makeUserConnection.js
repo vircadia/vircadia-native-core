@@ -11,10 +11,9 @@
 //
 (function() { // BEGIN LOCAL_SCOPE
 
-const version = 0.1;
 const label = "makeUserConnection";
-const MAX_AVATAR_DISTANCE = 0.2;
-const GRIP_MIN = 0.05;
+const MAX_AVATAR_DISTANCE = 0.2; // m
+const GRIP_MIN = 0.05; // goes from 0-1, so 5% pressed is pressed
 const MESSAGE_CHANNEL = "io.highfidelity.makeUserConnection";
 const STATES = {
     inactive : 0,
@@ -27,14 +26,14 @@ const WAITING_INTERVAL = 100; // ms
 const CONNECTING_INTERVAL = 100; // ms
 const MAKING_CONNECTION_TIMEOUT = 800; // ms
 const CONNECTING_TIME = 1600; // ms
-const PARTICLE_RADIUS = 0.15;
+const PARTICLE_RADIUS = 0.15; // m
 const PARTICLE_ANGLE_INCREMENT = 360/45; // 1hz
 const HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/4beat_sweep.wav";
 const SUCCESSFUL_HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/3rdbeat_success_bell.wav";
 const HAPTIC_DATA = {
-    initial: { duration: 20, strength: 0.6},
-    background: { duration: 100, strength: 0.3 },
-    success: { duration: 60, strength: 1.0}
+    initial: { duration: 20, strength: 0.6}, // duration is in ms
+    background: { duration: 100, strength: 0.3 }, // duration is in ms
+    success: { duration: 60, strength: 1.0} // duration is in ms
 };
 const PARTICLE_EFFECT_PROPS = {
     "alpha": 0.8,
@@ -115,9 +114,8 @@ var successfulHandshakeSound;
 
 function debug() {
     var stateString = "<" + STATE_STRINGS[state] + ">";
-    var versionString = "v" + version;
     var connecting = "[" + connectingId + "/" + connectingHand + "]";
-    print.apply(null, [].concat.apply([label, versionString, stateString, JSON.stringify(waitingList), connecting], [].map.call(arguments, JSON.stringify)));
+    print.apply(null, [].concat.apply([label, stateString, JSON.stringify(waitingList), connecting], [].map.call(arguments, JSON.stringify)));
 }
 
 function handToString(hand) {
@@ -126,6 +124,7 @@ function handToString(hand) {
     } else if (hand === Controller.Standard.LeftHand) {
         return "LeftHand";
     }
+    debug("handToString called without valid hand!");
     return "";
 }
 
@@ -145,6 +144,7 @@ function handToHaptic(hand) {
     } else if (hand === Controller.Standard.LeftHand) {
         return 0;
     }
+    debug("handToHaptic called without a valid hand!");
     return -1;
 }
 
@@ -261,7 +261,7 @@ function updateVisualization() {
             break;
         case STATES.connecting:
             var particleProps = {};
-            // put the position between the 2 hands, if we have a ingId.  This
+            // put the position between the 2 hands, if we have a connectingId.  This
             // helps define the plane in which the particles move.
             positionFractionallyTowards(myHandPosition, otherHand, 0.5);
             // now manage the rest of the entity
@@ -451,8 +451,6 @@ function lookForWaitingAvatar() {
     waitingInterval = Script.setInterval(function () {
         if (state == STATES.waiting && !connectingId) {
             // find the closest in-range avatar, and send connection request
-            // TODO: this is same code as in startHandshake - get this
-            // cleaned up.
             var nearestAvatar = findNearestWaitingAvatar();
             if (nearestAvatar.avatar) {
                 connectingId = nearestAvatar.avatar;
@@ -519,7 +517,7 @@ function startConnecting(id, hand) {
         handshakeInjector.restart();
     }
 
-    // send message that we are ing them
+    // send message that we are connecting with them
     messageSend({
         key: "connecting",
         id: id,
