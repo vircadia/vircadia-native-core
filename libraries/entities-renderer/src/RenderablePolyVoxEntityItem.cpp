@@ -404,6 +404,9 @@ bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
     float smallestDimensionSize = voxelSize.x;
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.z);
+    if (smallestDimensionSize <= 0.0f) {
+        return false;
+    }
 
     glm::vec3 maxRadiusInVoxelCoords = glm::vec3(radiusWorldCoords / smallestDimensionSize);
     glm::vec3 centerInVoxelCoords = wtvMatrix * glm::vec4(centerWorldCoords, 1.0f);
@@ -1310,6 +1313,7 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
         mesh->setVertexBuffer(vertexBufferView);
 
 
+        // TODO -- use 3-byte normals rather than 3-float normals
         mesh->addAttribute(gpu::Stream::NORMAL,
                            gpu::BufferView(vertexBufferPtr,
                                            sizeof(float) * 3, // polyvox mesh is packed: position, normal, material
