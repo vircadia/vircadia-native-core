@@ -60,7 +60,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
 
     // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
     QJsonObject jsonObject = jsonProperties.object();
-    if(jsonObject.contains("parentID")) {
+    if (jsonObject.contains("parentID")) {
         if (QUuid(jsonObject["parentID"].toString()) == _myAvatar->getID()) {
             jsonObject["parentID"] = AVATAR_SELF_ID.toString();
         }
