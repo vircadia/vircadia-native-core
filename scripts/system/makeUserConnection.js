@@ -118,6 +118,59 @@ function debug() {
     print.apply(null, [].concat.apply([label, stateString, JSON.stringify(waitingList), connecting], [].map.call(arguments, JSON.stringify)));
 }
 
+function cleanId(guidWithCurlyBraces) {
+    return guidWithCurlyBraces.slice(1, -1);
+}
+function request(options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
+    var httpRequest = new XMLHttpRequest(), key;
+    // QT bug: apparently doesn't handle onload. Workaround using readyState.
+    httpRequest.onreadystatechange = function () {
+        var READY_STATE_DONE = 4;
+        var HTTP_OK = 200;
+        if (httpRequest.readyState >= READY_STATE_DONE) {
+            var error = (httpRequest.status !== HTTP_OK) && httpRequest.status.toString() + ':' + httpRequest.statusText,
+                response = !error && httpRequest.responseText,
+                contentType = !error && httpRequest.getResponseHeader('content-type');
+            if (!error && contentType.indexOf('application/json') === 0) { // ignoring charset, etc.
+                try {
+                    response = JSON.parse(response);
+                } catch (e) {
+                    error = e;
+                }
+            }
+            callback(error, response);
+        }
+    };
+    if (typeof options === 'string') {
+        options = {uri: options};
+    }
+    if (options.url) {
+        options.uri = options.url;
+    }
+    if (!options.method) {
+        options.method = 'GET';
+    }
+    if (options.body && (options.method === 'GET')) { // add query parameters
+        var params = [], appender = (-1 === options.uri.search('?')) ? '?' : '&';
+        for (key in options.body) {
+            params.push(key + '=' + options.body[key]);
+        }
+        options.uri += appender + params.join('&');
+        delete options.body;
+    }
+    if (options.json) {
+        options.headers = options.headers || {};
+        options.headers["Content-type"] = "application/json";
+        options.body = JSON.stringify(options.body);
+    }
+    debug("FIXME final options to send", options);
+    for (key in options.headers || {}) {
+        httpRequest.setRequestHeader(key, options.headers[key]);
+    }
+    httpRequest.open(options.method, options.uri, true);
+    httpRequest.send(options.body);
+}
+
 function handToString(hand) {
     if (hand === Controller.Standard.RightHand) {
         return "RightHand";
@@ -215,6 +268,7 @@ function deleteMakeConnectionParticleEffect() {
 function stopHandshakeSound() {
     if (handshakeInjector) {
         handshakeInjector.stop();
+        handshakeInjector = null;
     }
 }
 
@@ -393,9 +447,7 @@ function endHandshake() {
     stopWaiting();
     stopConnecting();
     stopMakingConnection();
-    if (handshakeInjector) {
-        handshakeInjector.stop();
-    }
+    stopHandshakeSound();
     // send done to let connection know you are not making connections now
     messageSend({
         key: "done"
@@ -470,6 +522,63 @@ function lookForWaitingAvatar() {
     }, WAITING_INTERVAL);
 }
 
+/* There is a mini-state machine after entering STATES.makingConnection.
+   We make a request (which might immediately succeed, fail, or neither.
+   If we immediately fail, we tell the user.
+   Otherwise, we wait MAKING_CONNECTION_TIMEOUT. At that time, we poll until success or fail.
+ */
+var result, requestBody, pollCount = 0, requestUrl = location.metaverseServerUrl + '/api/v1/user/connection_request';
+function connectionRequestCompleted() { // Final result is in. Do effects.
+    if (result.status === 'success') { // set earlier
+        if (!successfulHandshakeInjector) {
+            successfulHandshakeInjector = Audio.playSound(successfulHandshakeSound, {position: getHandPosition(MyAvatar, currentHand), volume: 0.5, localOnly: true});
+        } else {
+            successfulHandshakeInjector.restart();
+        }
+        Controller.triggerHapticPulse(HAPTIC_DATA.success.strength, HAPTIC_DATA.success.duration, handToHaptic(currentHand));
+        // don't change state (so animation continues while gripped)
+        // but do send a notification, by calling the slot that emits the signal for it
+        Window.makeConnection(true, result.connection.new_connection ? "You and " + result.connection.username + " are now connected!" : result.connection.username);
+        return;
+    } // failed
+    endHandshake();
+    debug("failing with result data", result);
+    // IWBNI we also did some fail sound/visual effect.
+    Window.makeConnection(false, result.connection);
+}
+function handleConnectionResponseAndMaybeRepeat(error, response) {
+    // If response is 'pending', set a short timeout to try again.
+    // If we fail other than pending, set result and immediately call connectionRequestCompleted.
+    // If we succceed, set result and call connectionRequestCompleted immediately (if we've been polling), and otherwise on a timeout.
+    if (response && (response.connection === 'pending')) {
+        debug(response, 'pollLimit', pollLimit);
+        if (pollCount++ >= 5) { // server will expire, but let's not wait that long.
+            result = {status: 'error', connection: 'expired'};
+            connectionRequestCompleted();
+        } else {
+            Script.setTimeout(function () {
+                request({
+                    uri: requestUrl,
+                    json: true,
+                    body: requestBody
+                }, handleConnectionResponseAndMaybeRepeat);
+            }, 200);
+        }
+    } else if (error || (response.status !== 'success')) {
+        debug('server fail', error, response.status);
+        result = error ? {status: 'error', connection: error} : response;
+        connectionRequestCompleted();
+    } else {
+        debug('server success', result);
+        result = response;
+        if (pollCount++) {
+            connectionRequestCompleted();
+        } else { // Wait for other guy, so that final succcess is at roughly the same time.
+            Script.setTimeout(connectionRequestCompleted, MAKING_CONNECTION_TIMEOUT);
+        }
+    }
+}
+
 // this should be where we make the appropriate connection call.  For now just make the
 // visualization change.
 function makeConnection(id) {
@@ -484,18 +593,15 @@ function makeConnection(id) {
     // continue the haptic background until the timeout fires.  When we make calls, we will have an interval
     // probably, in which we do this.
     Controller.triggerHapticPulse(HAPTIC_DATA.background.strength, MAKING_CONNECTION_TIMEOUT, handToHaptic(currentHand));
-
-    makingFriendsTimeout = Script.setTimeout(function () {
-            if (!successfulHandshakeInjector) {
-                successfulHandshakeInjector = Audio.playSound(successfulHandshakeSound, {position: getHandPosition(MyAvatar, currentHand), volume: 0.5, localOnly: true});
-            } else {
-                successfulHandshakeInjector.restart();
-            }
-            Controller.triggerHapticPulse(HAPTIC_DATA.success.strength, HAPTIC_DATA.success.duration, handToHaptic(currentHand));
-            // don't change state (so animation continues while gripped)
-            // but do send a notification, by calling the slot that emits the signal for it
-            Window.makeConnection(true, "otherGuy"); // this is successful, unsucessful would be false, errorString
-        }, MAKING_CONNECTION_TIMEOUT);
+    requestBody = {node_id: cleanId(MyAvatar.sessionUUID), proposed_node_id: cleanId(id)}; // for use when repeating
+    // This will immediately set response if successfull (e.g., the other guy got his request in first), or immediate failure,
+    // and will otherwise poll (using the requestBody we just set).
+    request({ //
+        uri: requestUrl,
+        method: 'POST',
+        json: true,
+        body: {user_connection_request: requestbody}
+    }, handleConnectionResponseAndMaybeRepeat);
 }
 
 // we change states, start the connectionInterval where we check
