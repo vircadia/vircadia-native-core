@@ -49,7 +49,7 @@ private:
     bool _stop { false };
 };
 
-// Slave pool for audio mixers
+// Slave pool for avatar mixers
 //   AvatarMixerSlavePool is not thread-safe! It should be instantiated and used from a single thread.
 class AvatarMixerSlavePool {
     using Queue = tbb::concurrent_queue<SharedNodePointer>;
