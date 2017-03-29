@@ -100,7 +100,7 @@ void ScriptableAvatar::update(float deltatime) {
             const float frameFraction = glm::fract(currentFrame);
             std::vector<AnimPose> poses = _animSkeleton->getRelativeDefaultPoses();
 
-            float UNIT_SCALE = 0.01f;
+            const float UNIT_SCALE = 0.01f;
 
             for (int i = 0; i < animationJointNames.size(); i++) {
                 const QString& name = animationJointNames[i];
