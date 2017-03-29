@@ -150,7 +150,7 @@ Item {
             FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
             font.family: firaSansSemiBold.name
             font.pixelSize: displayNameTextPixelSize
-            selectionColor: hifi.colors.blueHighlight
+            selectionColor: hifi.colors.blueAccent
             selectedTextColor: "black"
             // Text Positioning
             verticalAlignment: TextInput.AlignVCenter
@@ -248,7 +248,7 @@ Item {
                 }
                 onExited: {
                     displayNameText.color = hifi.colors.darkGray
-                    userNameText.color = hifi.colors.greenShadow;
+                    userNameText.color = hifi.colors.blueAccent;
                 }
             }
         }
@@ -327,7 +327,7 @@ Item {
         // Text Positioning
         verticalAlignment: Text.AlignBottom
         // Style
-        color: hifi.colors.greenShadow;
+        color: hifi.colors.blueAccent;
         MouseArea {
             anchors.fill: parent
             enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "" && isPresent;
@@ -342,7 +342,7 @@ Item {
             }
             onExited: {
                 displayNameText.color = hifi.colors.darkGray;
-                userNameText.color = hifi.colors.greenShadow;
+                userNameText.color = hifi.colors.blueAccent;
             }
         }
     }

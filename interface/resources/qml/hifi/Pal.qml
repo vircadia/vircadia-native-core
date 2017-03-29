@@ -107,7 +107,7 @@ Rectangle {
         width: pal.width - 10;
         height: pal.height - 10;
         // Style
-        color: pal.color;
+        color: "white";
         // Anchors
         anchors.centerIn: pal;
 
@@ -209,11 +209,10 @@ Rectangle {
             // Anchors
             anchors {
                 top: parent.top;
-                topMargin: 2;
                 horizontalCenter: parent.horizontalCenter;
             }
             width: parent.width;
-            height: 35 - anchors.topMargin;
+            height: 50;
             Rectangle {
                 id: nearbyTabSelector;
                 // Anchors
@@ -223,7 +222,7 @@ Rectangle {
                 }
                 width: parent.width/2;
                 height: parent.height;
-                color: activeTab == "nearbyTab" ? pal.color : "#CCCCCC";
+                color: activeTab == "nearbyTab" ? palContainer.color : "#CCCCCC";
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: {
@@ -231,6 +230,7 @@ Rectangle {
                             refreshNearbyWithFilter();
                         }
                         activeTab = "nearbyTab";
+                        connectionsHelpText.color = hifi.colors.baseGray;
                     }
                 }
 
@@ -249,7 +249,7 @@ Rectangle {
                         anchors.fill: parent;
                         // Style
                         font.capitalization: Font.AllUppercase;
-                        color: hifi.colors.redHighlight;
+                        color: activeTab === "nearbyTab" ? hifi.colors.blueAccent : hifi.colors.baseGray;
                         // Alignment
                         horizontalAlignment: Text.AlignHLeft;
                         verticalAlignment: Text.AlignVCenter;
@@ -295,7 +295,7 @@ Rectangle {
                 }
                 width: parent.width/2;
                 height: parent.height;
-                color: activeTab == "connectionsTab" ? pal.color : "#CCCCCC";
+                color: activeTab == "connectionsTab" ? palContainer.color : "#CCCCCC";
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: { 
@@ -305,6 +305,7 @@ Rectangle {
                             pal.sendToScript({method: 'refreshConnections'});
                         }
                         activeTab = "connectionsTab";
+                        connectionsHelpText.color = hifi.colors.blueAccent;
                     }
                 }
 
@@ -342,7 +343,7 @@ Rectangle {
                         anchors.fill: parent;
                         // Style
                         font.capitalization: Font.AllUppercase;
-                        color: hifi.colors.redHighlight;
+                        color: activeTab === "connectionsTab" ? hifi.colors.blueAccent : hifi.colors.baseGray;
                         // Alignment
                         horizontalAlignment: Text.AlignHLeft;
                         verticalAlignment: Text.AlignVCenter;
@@ -366,7 +367,7 @@ Rectangle {
                             text: "[?]";
                             size: connectionsTabSelectorText.size + 6;
                             font.capitalization: Font.AllUppercase;
-                            color: hifi.colors.redHighlight;
+                            color: connectionsTabSelectorText.color;
                             horizontalAlignment: Text.AlignHCenter;
                             verticalAlignment: Text.AlignVCenter;
                             anchors.fill: parent;
@@ -374,86 +375,18 @@ Rectangle {
                         MouseArea {
                             anchors.fill: parent;
                             hoverEnabled: true;
+                            enabled: activeTab === "connectionsTab";
                             onClicked: letterbox(hifi.glyphs.question,
                                                  "Connections and Friends",
                                                  "<font color='purple'>Purple borders around profile pictures are <b>Connections</b>.</font><br>" +
                                                  "When your availability is set to Everyone, Connections can see your username and location.<br><br>" +
                                                  "<font color='green'>Green borders around profile pictures are <b>Friends</b>.</font><br>" +
                                                  "When your availability is set to Friends, only Friends can see your username and location.");
-                            onEntered: connectionsHelpText.color = hifi.colors.redAccent;
-                            onExited: connectionsHelpText.color = hifi.colors.redHighlight;
+                            onEntered: connectionsHelpText.color = hifi.colors.blueHighlight;
+                            onExited: connectionsHelpText.color = hifi.colors.blueAccent;
                         }
                     }
                 }
-            }
-        }
-        Item {
-            id: tabBorders;
-            anchors.fill: parent;
-            property var color: hifi.colors.lightGray;
-            property int borderWeight: 3;
-            // Left border
-            Rectangle {
-                color: parent.color;
-                anchors {
-                    left: parent.left;
-                    bottom: parent.bottom;
-                }
-                width: parent.borderWeight;
-                height: parent.height - (activeTab == "nearbyTab" ? 0 : tabSelectorContainer.height);
-            }
-            // Right border
-            Rectangle {
-                color: parent.color;
-                anchors {
-                    right: parent.right;
-                    bottom: parent.bottom;
-                }
-                width: parent.borderWeight;
-                height: parent.height - (activeTab == "nearbyTab" ? tabSelectorContainer.height : 0);
-            }
-            // Bottom border
-            Rectangle {
-                color: parent.color;
-                anchors {
-                    bottom: parent.bottom;
-                    left: parent.left;
-                    right: parent.right;
-                }
-                height: parent.borderWeight;
-            }
-            // Border between buttons
-            Rectangle {
-                color: parent.color;
-                anchors {
-                    horizontalCenter: parent.horizontalCenter;
-                    top: parent.top;
-                }
-                width: parent.borderWeight;
-                height: tabSelectorContainer.height + width;
-            }
-            // Border above selected tab
-            Rectangle {
-                color: parent.color;
-                anchors {
-                    top: parent.top;
-                    left: parent.left;
-                    leftMargin: activeTab == "nearbyTab" ? 0 : parent.width/2;
-                }
-                width: parent.width/2;
-                height: parent.borderWeight;
-            }
-            // Border below unselected tab
-            Rectangle {
-                color: parent.color;
-                anchors {
-                    top: parent.top;
-                    topMargin: tabSelectorContainer.height;
-                    left: parent.left;
-                    leftMargin: activeTab == "nearbyTab" ? parent.width/2 : 0;
-                }
-                width: parent.width/2;
-                height: parent.borderWeight;
             }
         }
         
@@ -798,7 +731,7 @@ Rectangle {
     *****************************************/
     Rectangle {
         id: connectionsTab;
-        color: "#E3E3E3";
+        color: palContainer.color;
         // Anchors
         anchors {
             top: tabSelectorContainer.bottom;
@@ -940,7 +873,8 @@ Rectangle {
                     // Text Positioning
                     verticalAlignment: Text.AlignVCenter
                     // Style
-                    color: hifi.colors.darkGray;
+                    color: hifi.colors.blueAccent;
+                    font.underline: true;
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: enabled
@@ -950,7 +884,7 @@ Rectangle {
                             UserActivityLogger.palAction("go_to_user", model.userName);
                         }
                         onEntered: connectionsLocationData.color = hifi.colors.blueHighlight;
-                        onExited: connectionsLocationData.color = hifi.colors.darkGray;
+                        onExited: connectionsLocationData.color = hifi.colors.blueAccent;
                     }
                 }
 
