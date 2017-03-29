@@ -441,7 +441,12 @@ function getTeleportTargetType(intersection) {
     var props = Entities.getEntityProperties(intersection.entityID, ['userData', 'visible']);
     var data = parseJSON(props.userData);
     if (data !== undefined && data.seat !== undefined) {
-        return TARGET.SEAT;
+        var avatarUuid = Uuid.fromString(data.seat.user);
+        if (Uuid.isNull(avatarUuid) || !AvatarList.getAvatar(avatarUuid)) {
+            return TARGET.SEAT;
+        } else {
+            return TARGET.INVALID;
+        }
     }
 
     if (!props.visible) {

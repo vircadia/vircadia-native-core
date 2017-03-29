@@ -36,7 +36,7 @@ Slider {
 
             Rectangle {
                 width: parent.height - 2
-                height: slider.value * slider.width - 1
+                height: slider.value * (slider.width/(slider.maximumValue - slider.minimumValue)) - 1
                 radius: height / 2
                 anchors {
                     top: parent.top
