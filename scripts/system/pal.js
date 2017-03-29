@@ -690,6 +690,7 @@ function startup() {
     tablet.fromQml.connect(fromQml);
     button.clicked.connect(onTabletButtonClicked);
     tablet.screenChanged.connect(onTabletScreenChanged);
+    tablet.tabletShownChanged.connect(tabletVisibilityChanged);
     Users.usernameFromIDReply.connect(usernameFromIDReply);
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
@@ -721,6 +722,14 @@ function off() {
     triggerPressMapping.disable(); // see above
     removeOverlays();
     Users.requestsDomainListData = false;
+}
+
+function tabletVisibilityChanged() {
+    if (tablet.tabletShown) {
+        onTabletButtonClicked();
+    } else {
+        off();
+    }
 }
 
 var onPalScreen = false;
@@ -868,6 +877,7 @@ function shutdown() {
     button.clicked.disconnect(onTabletButtonClicked);
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
+    tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);

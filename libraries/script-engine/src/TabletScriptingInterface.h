@@ -85,6 +85,7 @@ class TabletProxy : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
     Q_PROPERTY(bool toolbarMode READ getToolbarMode WRITE setToolbarMode)
+    Q_PROPERTY(bool tabletShown MEMBER _tabletShown NOTIFY tabletShownChanged)
 public:
     TabletProxy(QString name);
 
@@ -206,6 +207,13 @@ signals:
      */
     void screenChanged(QVariant type, QVariant url);
 
+    /** jsdoc
+    * Signaled when the tablet becomes visible or becomes invisible
+    * @function TabletProxy#isTabletShownChanged
+    * @returns {Signal}
+    */
+    void tabletShownChanged();
+
 protected slots:
     void addButtonsToHomeScreen();
     void desktopWindowClosed();
@@ -224,6 +232,7 @@ protected:
     QObject* _qmlOffscreenSurface { nullptr };
     QmlWindowClass* _desktopWindow { nullptr };
     bool _toolbarMode { false };
+    bool _tabletShown { false };
 
     enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
