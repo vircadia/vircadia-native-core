@@ -345,8 +345,8 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     PROFILE_RANGE(resource_parse, "createNormalTextureFromBumpImage");
     QImage image = processSourceImage(srcImage, false);
 
-    if (image.format() != QImage::Format_RGB888) {
-        image = image.convertToFormat(QImage::Format_RGB888);
+    if (image.format() != QImage::Format_Grayscale8) {
+        image = image.convertToFormat(QImage::Format_Grayscale8);
     }
 
     // PR 5540 by AlessandroSigna integrated here as a specialized TextureLoader for bumpmaps
@@ -395,7 +395,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
             glm::normalize(v);
 
             // convert to rgb from the value obtained computing the filter
-            QRgb qRgbValue = qRgba(mapComponent(v.x), mapComponent(v.y), mapComponent(v.z), 1.0);
+            QRgb qRgbValue = qRgba(mapComponent(v.z), mapComponent(v.y), mapComponent(v.x), 1.0);
             result.setPixel(i, j, qRgbValue);
         }
     }
