@@ -1,8 +1,18 @@
+//
+//  xylophoneKey.js
+//
+//  Created by Patrick Gosch on 03/28/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 (function() {
     Script.include(Script.resolvePath("pUtils.js"));
-    const TIMEOUT = 150;
-    const TEXGRAY = Script.resolvePath("xylotex_bar_gray.png");
-    const TEXBLACK = Script.resolvePath("xylotex_bar_black.png");
+    var TIMEOUT = 150;
+    var TEXGRAY = Script.resolvePath("xylotex_bar_gray.png");
+    var TEXBLACK = Script.resolvePath("xylotex_bar_black.png");
     var _this;
 
     function XylophoneKey() {
@@ -43,7 +53,7 @@
                 var newPos = Vec3.sum(_this.homePos, {x:0,y:-0.025,z:0});
                 Entities.editEntity(_this.entityID, {position: newPos});
                 _this.timeout();
-            };
+            }
         },
 
         timeout: function() {
@@ -53,7 +63,7 @@
                 _this.isWaiting = false;
             }, TIMEOUT);
         },
-    }
+    };
 
     return new XylophoneKey();
 
