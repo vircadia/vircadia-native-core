@@ -59,7 +59,9 @@ QString GlobalServicesScriptingInterface::findableByString(Discoverability::Mode
         return "none";
     } else if (discoverabilityMode == Discoverability::Friends) {
         return "friends";
-    } else if (discoverabilityMode == Discoverability::All) {
+    } else if (discoverabilityMode == Discoverability::Connections) {
+        return "connections";
+   } else if (discoverabilityMode == Discoverability::All) {
         return "all";
     } else {
         qDebug() << "GlobalServices findableByString called with an unrecognized value.";
@@ -80,6 +82,8 @@ void GlobalServicesScriptingInterface::setFindableBy(const QString& discoverabil
         discoverabilityManager->setDiscoverabilityMode(Discoverability::None);
     } else if (discoverabilityMode.toLower() == "friends") {
         discoverabilityManager->setDiscoverabilityMode(Discoverability::Friends);
+    } else if (discoverabilityMode.toLower() == "connections") {
+        discoverabilityManager->setDiscoverabilityMode(Discoverability::Connections);
     } else if (discoverabilityMode.toLower() == "all") {
         discoverabilityManager->setDiscoverabilityMode(Discoverability::All);
     } else {

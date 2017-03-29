@@ -19,6 +19,7 @@ namespace Discoverability {
     enum Mode {
         None,
         Friends,
+        Connections,
         All
     };
 }
