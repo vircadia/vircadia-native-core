@@ -398,7 +398,7 @@ void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
                     if (SUCCEEDED(hr)) {
                         auto jointCount = _countof(joints);
                         if (_debug) {
-                            qDebug() << __FUNCTION__ << "nBodyCount:" << nBodyCount << "body:" << i << "jointCount:" << jointCount;
+                            qDebug() << __FUNCTION__ << "nBodyCount:" << bodyCount << "body:" << i << "jointCount:" << jointCount;
                         }
                         
                         for (int j = 0; j < jointCount; ++j) {
@@ -419,7 +419,7 @@ void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
                                 qDebug() << __FUNCTION__ << "joint[" << j << "]:" << jointName
                                         << "position:" << jointPosition
                                         << "orientation:" << jointOrientation
-                                        << "isTracked:" << joints[j].TrackingState != TrackingState_NotTracked;
+                                        << "isTracked:" << (joints[j].TrackingState != TrackingState_NotTracked);
                             }
 
                             // filling in the _joints data...
