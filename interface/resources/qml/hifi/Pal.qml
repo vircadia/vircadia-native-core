@@ -977,6 +977,78 @@ Rectangle {
                 }
             }
         }
+        
+        // "Make a Connection" instructions
+        Rectangle {
+            id: connectionInstructions;
+            visible: connectionsTable.rowCount === 0 && !connectionsLoading.visible;
+            anchors.fill: connectionsTable;
+            anchors.topMargin: hifi.dimensions.tableHeaderHeight;
+            color: "white";
+
+            RalewayRegular {
+                id: makeAConnectionText;
+                // Properties
+                text: "Make a Connection";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 60;
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                // Text Size
+                size: 24;
+                // Text Positioning
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter;
+                // Style
+                color: hifi.colors.darkGray;
+            }
+
+            Image {
+                id: connectionImage;
+                source: "../../icons/connection.svg";
+                width: 150;
+                height: 150;
+                mipmap: true;
+                // Anchors
+                anchors.top: makeAConnectionText.bottom;
+                anchors.topMargin: 15;
+                anchors.horizontalCenter: parent.horizontalCenter;
+            }
+
+            FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
+            Text {
+                id: connectionHelpText;
+                // Anchors
+                anchors.top: connectionImage.bottom;
+                anchors.topMargin: 15;
+                anchors.left: parent.left
+                anchors.leftMargin: 40;
+                anchors.right: parent.right
+                anchors.rightMargin: 10;
+                // Text alignment
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHLeft
+                // Style
+                font.pixelSize: 18;
+                font.family: ralewayRegular.name
+                color: hifi.colors.darkGray
+                wrapMode: Text.WordWrap
+                textFormat: Text.StyledText;
+                // Text
+                text: HMD.active ?
+                "<b>When you meet someone you want to remember later, you can <font color='purple'>connect</font> with a handshake:</b><br><br>" +
+                "1. Put your hand out onto their hand and squeeze your controller's grip button on its side.<br>" +
+                "2. Once the other person puts their hand onto yours, you'll see your connection form.<br>" +
+                "3. After about 3 seconds, you're connected!"
+                :
+                "<b>When you meet someone you want to remember later, you can <font color='purple'>connect</font> with a handshake:</b><br><br>" +
+                "1. Press and hold the 'x' key to extend your arm.<br>" +
+                "2. Once the other person puts their hand onto yours, you'll see your connection form.<br>" +
+                "3. After about 3 seconds, you're connected!";
+            }
+
+        }
     } // "Connections" Tab
     } // palTabContainer
 

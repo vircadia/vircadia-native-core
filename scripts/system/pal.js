@@ -690,7 +690,6 @@ function startup() {
     tablet.fromQml.connect(fromQml);
     button.clicked.connect(onTabletButtonClicked);
     tablet.screenChanged.connect(onTabletScreenChanged);
-    tablet.tabletShownChanged.connect(tabletVisibilityChanged);
     Users.usernameFromIDReply.connect(usernameFromIDReply);
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
@@ -713,6 +712,7 @@ function off() {
         Script.update.disconnect(updateOverlays);
         Controller.mousePressEvent.disconnect(handleMouseEvent);
         Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+        tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
         isWired = false;
     }
     if (audioTimer) {
@@ -725,10 +725,8 @@ function off() {
 }
 
 function tabletVisibilityChanged() {
-    if (tablet.tabletShown) {
-        onTabletButtonClicked();
-    } else {
-        off();
+    if (!tablet.tabletShown) {
+        tablet.gotoHomeScreen();
     }
 }
 
@@ -742,6 +740,7 @@ function onTabletButtonClicked() {
     } else {
         shouldActivateButton = true;
         tablet.loadQMLSource("../Pal.qml");
+        tablet.tabletShownChanged.connect(tabletVisibilityChanged);
         onPalScreen = true;
         Users.requestsDomainListData = true;
         populateNearbyUserList();
@@ -877,7 +876,6 @@ function shutdown() {
     button.clicked.disconnect(onTabletButtonClicked);
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
-    tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
     Users.usernameFromIDReply.disconnect(usernameFromIDReply);
     Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
