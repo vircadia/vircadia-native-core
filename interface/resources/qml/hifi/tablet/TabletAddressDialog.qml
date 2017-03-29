@@ -137,12 +137,11 @@ StackView {
             id: addressBar
             width: 480
             height: 70
+            color: hifiStyleConstants.colors.white
             anchors {
                 top: navBar.bottom
                 right: parent.right
-                rightMargin: 16
                 left: parent.left
-                leftMargin: 16
             }
 
             property int inputAreaHeight: 70
@@ -174,8 +173,8 @@ StackView {
                     bottom: parent.bottom
                     left: parent.left
                     right: parent.right
-                    leftMargin: 0
-                    rightMargin: 0
+                    leftMargin: 16
+                    rightMargin: 16
                     topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
                     bottomMargin: parent.inputAreaStep
                 }

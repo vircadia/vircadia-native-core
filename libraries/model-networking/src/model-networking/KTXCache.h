@@ -39,9 +39,6 @@ protected:
 class KTXFile : public cache::File {
     Q_OBJECT
 
-public:
-    std::unique_ptr<ktx::KTX> getKTX() const;
-
 protected:
     friend class KTXCache;
 

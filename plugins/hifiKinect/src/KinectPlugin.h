@@ -89,6 +89,7 @@ protected:
     static const char* KINECT_ID_STRING;
 
     bool _enabled { false };
+    bool _debug { false };
     mutable bool _initialized { false };
 
     // copy of data directly from the KinectDataReader SDK
