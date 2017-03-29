@@ -131,6 +131,7 @@ function request(options, callback) { // cb(error, responseOfCorrectContentType)
             var error = (httpRequest.status !== HTTP_OK) && httpRequest.status.toString() + ':' + httpRequest.statusText,
                 response = !error && httpRequest.responseText,
                 contentType = !error && httpRequest.getResponseHeader('content-type');
+            debug('FIXME REMOVE: server response', options, error, response, contentType);
             if (!error && contentType.indexOf('application/json') === 0) { // ignoring charset, etc.
                 try {
                     response = JSON.parse(response);
@@ -163,7 +164,7 @@ function request(options, callback) { // cb(error, responseOfCorrectContentType)
         options.headers["Content-type"] = "application/json";
         options.body = JSON.stringify(options.body);
     }
-    debug("FIXME final options to send", options);
+    debug("FIXME REMOVE: final options to send", options);
     for (key in options.headers || {}) {
         httpRequest.setRequestHeader(key, options.headers[key]);
     }
@@ -546,23 +547,24 @@ function connectionRequestCompleted() { // Final result is in. Do effects.
     // IWBNI we also did some fail sound/visual effect.
     Window.makeConnection(false, result.connection);
 }
+var POLL_INTERVAL_MS = 200, POLL_LIMIT = 5;
 function handleConnectionResponseAndMaybeRepeat(error, response) {
     // If response is 'pending', set a short timeout to try again.
     // If we fail other than pending, set result and immediately call connectionRequestCompleted.
     // If we succceed, set result and call connectionRequestCompleted immediately (if we've been polling), and otherwise on a timeout.
     if (response && (response.connection === 'pending')) {
-        debug(response, 'pollLimit', pollLimit);
-        if (pollCount++ >= 5) { // server will expire, but let's not wait that long.
+        debug(response, 'pollCount', pollCount);
+        if (pollCount++ >= POLL_LIMIT) { // server will expire, but let's not wait that long.
             result = {status: 'error', connection: 'expired'};
             connectionRequestCompleted();
-        } else {
+        } else { // poll
             Script.setTimeout(function () {
                 request({
                     uri: requestUrl,
-                    json: true,
+                    // N.B.: server gives bad request if we specify json content type, so don't do that.
                     body: requestBody
                 }, handleConnectionResponseAndMaybeRepeat);
-            }, 200);
+            }, POLL_INTERVAL_MS);
         }
     } else if (error || (response.status !== 'success')) {
         debug('server fail', error, response.status);
@@ -600,7 +602,7 @@ function makeConnection(id) {
         uri: requestUrl,
         method: 'POST',
         json: true,
-        body: {user_connection_request: requestbody}
+        body: {user_connection_request: requestBody}
     }, handleConnectionResponseAndMaybeRepeat);
 }
 
