@@ -77,8 +77,8 @@ void DiscoverabilityManager::updateLocation() {
         const QString NETWORK_ADDRESS_PORT_IN_LOCATION = "network_port";
         locationObject.insert(NETWORK_ADDRESS_PORT_IN_LOCATION, domainSockAddr.getPort());
 
-        const QString FRIENDS_ONLY_KEY_IN_LOCATION = "friends_only";
-        locationObject.insert(FRIENDS_ONLY_KEY_IN_LOCATION, (_mode.get() == Discoverability::Friends));
+        const QString AVAILABILITY_KEY_IN_LOCATION = "availability";
+        locationObject.insert(AVAILABILITY_KEY_IN_LOCATION, findableByString(static_cast<Discoverability::Mode>(_mode.get())));
 
         JSONCallbackParameters callbackParameters;
         callbackParameters.jsonCallbackReceiver = this;
@@ -140,12 +140,28 @@ void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discov
         
         // update the setting to the new value
         _mode.set(static_cast<int>(discoverabilityMode));
-        
         updateLocation();  // update right away
 
         emit discoverabilityModeChanged(discoverabilityMode);
     }
 }
+
+
+QString DiscoverabilityManager::findableByString(Discoverability::Mode discoverabilityMode) {
+    if (discoverabilityMode == Discoverability::None) {
+        return "none";
+    } else if (discoverabilityMode == Discoverability::Friends) {
+        return "friends";
+    } else if (discoverabilityMode == Discoverability::Connections) {
+        return "connections";
+    } else if (discoverabilityMode == Discoverability::All) {
+        return "all";
+    } else {
+        qDebug() << "GlobalServices findableByString called with an unrecognized value.";
+        return "";
+    }
+}
+
 
 void DiscoverabilityManager::setVisibility() {
     Menu* menu = Menu::getInstance();

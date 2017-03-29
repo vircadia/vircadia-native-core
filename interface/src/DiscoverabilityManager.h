@@ -43,6 +43,9 @@ public slots:
 signals:
     void discoverabilityModeChanged(Discoverability::Mode discoverabilityMode);
 
+public:
+    static QString findableByString(Discoverability::Mode discoverabilityMode);
+
 private slots:
     void handleHeartbeatResponse(QNetworkReply& requestReply);
     
