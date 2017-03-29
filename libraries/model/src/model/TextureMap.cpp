@@ -10,6 +10,8 @@
 //
 #include "TextureMap.h"
 
+#include <nvtt/nvtt.h>
+
 #include <ktx/KTX.h>
 
 #include <QImage>
@@ -222,6 +224,20 @@ void generateMips(gpu::Texture* texture, QImage& image, bool fastResize) {
         }
     }
 
+    int w = 0, h = 0;
+    void* data = 0;
+    nvtt::InputOptions inputOptions;
+    inputOptions.setTextureLayout(nvtt::TextureType_2D, w, h);
+    inputOptions.setMipmapData(data, w, h);
+
+    nvtt::OutputOptions outputOptions;
+    outputOptions.setFileName("output.dds");
+
+    nvtt::CompressionOptions compressionOptions;
+    compressionOptions.setFormat(nvtt::Format_DXT1);
+
+    nvtt::Compressor compressor;
+    //compressor.process(inputOptions, compressionOptions, outputOptions);
 #else
     texture->autoGenerateMips(-1);
 #endif
