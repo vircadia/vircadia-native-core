@@ -228,7 +228,8 @@ void KinectPlugin::init() {
     {
         auto getter = [this]()->bool { return _enabled; };
         auto setter = [this](bool value) { 
-            _enabled = value; saveSettings(); 
+            _enabled = value; 
+            saveSettings(); 
             if (!_enabled) {
                 auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
                 userInputMapper->withLock([&, this]() {
@@ -240,9 +241,10 @@ void KinectPlugin::init() {
         preferences->addPreference(preference);
     }
     {
-        auto debugGetter = [this]()->bool { return _enabled; };
+        auto debugGetter = [this]()->bool { return _debug; };
         auto debugSetter = [this](bool value) {
-            _debug = value; saveSettings();
+            _debug = value;
+            saveSettings();
         };
         auto preference = new CheckPreference(KINECT_PLUGIN, "Extra Debugging", debugGetter, debugSetter);
         preferences->addPreference(preference);
@@ -573,8 +575,8 @@ void KinectPlugin::loadSettings() {
     QString idString = getID();
     settings.beginGroup(idString);
     {
-        // enabled
         _enabled = settings.value("enabled", QVariant(DEFAULT_ENABLED)).toBool();
+        _debug = settings.value("extraDebug", QVariant(DEFAULT_ENABLED)).toBool();
     }
     settings.endGroup();
 }
