@@ -123,8 +123,6 @@ function removeAudioMenus() {
 function onDevicechanged() {
     debug("System audio devices changed. Removing and replacing Audio Menus...");
     setupAudioMenus();
-    AudioDevice.setOutputDevice(AudioDevice.getOutputDevice());
-    AudioDevice.setInputDevice(AudioDevice.getInputDevice());
     checkDeviceMismatch();
 }
 
