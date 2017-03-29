@@ -24,10 +24,16 @@ mapping.from(Controller.Hardware.Kinect.RightFoot).debug(true).to(function(pose)
 function init() {
     var t = 0;
     var propList = [
-        "leftHandType", "leftHandPosition", "leftHandRotation", "rightHandType", "rightHandPosition", "rightHandPosition",
-        "leftFootType", "leftFootPosition", "leftFootRotation", "rightFootType", "rightFootPosition", "rightFootPosition"
+        "leftHandType", "leftHandPosition", "leftHandRotation", "rightHandType", "rightHandPosition", "rightHandRotation",
+        "leftFootType", "leftFootPosition", "leftFootRotation", "rightFootType", "rightFootPosition", "rightFootRotation"
     ];
     handlerId = MyAvatar.addAnimationStateHandler(function (props) {
+
+        Vec3.print("recentRightHand.translation:", recentRightHand.translation);
+        Vec3.print("recentLeftHand.translation:", recentLeftHand.translation);
+        Vec3.print("recentRightFoot.translation:", recentRightFoot.translation);
+        Vec3.print("recentLeftFoot.translation:", recentLeftFoot.translation);
+
         return {
 
             rightHandType: ikTypes["RotationAndPosition"],
