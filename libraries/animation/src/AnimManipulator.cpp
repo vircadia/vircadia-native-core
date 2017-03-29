@@ -22,11 +22,11 @@ AnimManipulator::~AnimManipulator() {
 
 }
 
-const AnimPoseVec& AnimManipulator::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
-    return overlay(animVars, context, dt, triggersOut, _skeleton->getRelativeBindPoses());
+const AnimPoseVec& AnimManipulator::evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) {
+    return overlay(animVars, dt, triggersOut, _skeleton->getRelativeBindPoses());
 }
 
-const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
     _alpha = animVars.lookup(_alphaVar, _alpha);
 
     _poses = underPoses;

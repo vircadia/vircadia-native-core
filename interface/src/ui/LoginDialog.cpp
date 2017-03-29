@@ -24,10 +24,6 @@
 #include "DependencyManager.h"
 #include "Menu.h"
 
-#include "Application.h"
-#include "TabletScriptingInterface.h"
-#include "scripting/HMDScriptingInterface.h"
-
 HIFI_QML_DEF(LoginDialog)
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
@@ -35,24 +31,7 @@ LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     connect(accountManager.data(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
     connect(accountManager.data(), &AccountManager::loginFailed,
-            this, &LoginDialog::handleLoginFailed);
-}
-
-void LoginDialog::showWithSelection()
-{
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-    auto hmd = DependencyManager::get<HMDScriptingInterface>();
-
-    if (tablet->getToolbarMode()) {
-        LoginDialog::show();
-    } else {
-        static const QUrl url("../../dialogs/TabletLoginDialog.qml");
-        tablet->initialScreen(url);
-        if (!hmd->getShouldShowTablet()) {
-            hmd->openTablet();
-        }
-    }
+        this, &LoginDialog::handleLoginFailed);
 }
 
 void LoginDialog::toggleAction() {
@@ -72,7 +51,7 @@ void LoginDialog::toggleAction() {
         // change the menu item to login
         loginAction->setText("Login / Sign Up");
         connection = connect(loginAction, &QAction::triggered, [] {
-            LoginDialog::showWithSelection();
+            LoginDialog::show();
         });
     }
 }
@@ -162,23 +141,9 @@ void LoginDialog::createAccountFromStream(QString username) {
 }
 
 void LoginDialog::openUrl(const QString& url) const {
-
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-    auto hmd = DependencyManager::get<HMDScriptingInterface>();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-
-    if (tablet->getToolbarMode()) {
-        auto browser = offscreenUi->load("Browser.qml");
-        browser->setProperty("url", url);
-    } else {
-        if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
-            auto browser = offscreenUi->load("Browser.qml");
-            browser->setProperty("url", url);
-        } else {
-            tablet->gotoWebScreen(url);
-        }
-    }
+    auto browser = offscreenUi->load("Browser.qml");
+    browser->setProperty("url", url);
 }
 
 void LoginDialog::linkCompleted(QNetworkReply& reply) {

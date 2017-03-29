@@ -21,28 +21,18 @@ import "../../../controls-uit" as HifiControls
 
 Item {
     id: dialog
-    width: parent.width
-    height: parent.height
+    width: 480
+    height: 720
 
     HifiConstants { id: hifi }
     property var sections: []
     property var showCategories: []
-
-    property bool keyboardEnabled: false
-    property bool keyboardRaised: false
-    property bool punctuationMode: false
-
-    property var tablet;
   
     function saveAll() {
-        dialog.forceActiveFocus();  // Accept any text box edits in progress.
-
         for (var i = 0; i < sections.length; ++i) {
             var section = sections[i];
             section.saveAll();
         }
-
-        closeDialog();
     }
 
     function restoreAll() {
@@ -50,25 +40,29 @@ Item {
             var section = sections[i];
             section.restoreAll();
         }
-
-        closeDialog();
     }
-
-    function closeDialog() {
-        Tablet.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
-    }
-
+    
     Rectangle {
         id: main
+        height: parent.height - 40
         anchors {
             top: parent.top
             bottom: footer.top
             left: parent.left
             right: parent.right
         }
-
-        color: hifi.colors.baseGray
-
+        gradient: Gradient {
+            GradientStop {
+                position: 0
+                color: "#2b2b2b"
+                
+            }
+            
+            GradientStop {
+                position: 1
+                color: "#0f212e"
+            }
+        }
         Flickable {
             id: scrollView
             width: parent.width
@@ -116,7 +110,9 @@ Item {
                     }
 
                     scrollView.contentHeight = scrollView.getSectionsHeight();
+
                 }
+               
 
                 Column {
                     id: prefControls
@@ -135,39 +131,32 @@ Item {
         }
     }
 
-    MouseArea {
-        // Defocuses the current control so that the HMD keyboard gets hidden.
-        // Created under the footer so that the non-button part of the footer can defocus a control.
-        id: mouseArea
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-            bottom: keyboard.top
-        }
-        propagateComposedEvents: true
-        acceptedButtons: Qt.AllButtons
-        onPressed: {
-            parent.forceActiveFocus();
-            mouse.accepted = false;
-        }
-    }
-
     Rectangle {
         id: footer
         height: 40
 
         anchors {
-            bottom: keyboard.top
+            top: main.bottom
+            bottom: parent.bottom
             left: parent.left
             right: parent.right
         }
+        gradient: Gradient {
+            GradientStop {
+                position: 0
+                color: "#2b2b2b"
+                
+            }
             
-        color: hifi.colors.baseGray
+            GradientStop {
+                position: 1
+                color: "#0f212e"
+            }
+        }
 
         Row {
             anchors {
-                verticalCenter: parent.verticalCenter
+                top: parent,top
                 right: parent.right
                 rightMargin: hifi.dimensions.contentMargin.x
             }
@@ -176,39 +165,15 @@ Item {
             HifiControls.Button {
                 text: "Save changes"
                 color: hifi.buttons.blue
-                onClicked: dialog.saveAll()
+                onClicked: root.saveAll()
             }
 
             HifiControls.Button {
                 text: "Cancel"
                 color: hifi.buttons.white
-                onClicked: dialog.restoreAll()
+                onClicked: root.restoreAll()
             }
         }
     }
-
-    HifiControls.Keyboard {
-        id: keyboard
-        raised: parent.keyboardEnabled && parent.keyboardRaised
-        numeric: parent.punctuationMode
-        anchors {
-            bottom: parent.bottom
-            left: parent.left
-            right: parent.right
-        }
-    }
-
-    Component.onCompleted: {
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        keyboardEnabled = HMD.active;
-    }
-
-    onKeyboardRaisedChanged: {
-        if (keyboardEnabled && keyboardRaised) {
-            var delta = mouseArea.mouseY - (dialog.height - footer.height - keyboard.raisedHeight -hifi.dimensions.controlLineHeight);
-            if (delta > 0) {
-                scrollView.contentY += delta;
-            }
-        }
-    }
+    
 }

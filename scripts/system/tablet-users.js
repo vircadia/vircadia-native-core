@@ -67,12 +67,9 @@
     }
 
     function onWebEventReceived(event) {
+        print("Script received a web event, its type is " + typeof event);
         if (typeof event === "string") {
-            try {
-                event = JSON.parse(event);
-            } catch(e) {
-                return;
-            }
+            event = JSON.parse(event);
         }
         if (event.type === "ready") {
             // send username to html

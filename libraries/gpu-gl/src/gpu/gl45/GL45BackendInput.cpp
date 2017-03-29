@@ -61,11 +61,8 @@ void GL45Backend::updateInput() {
                             _input._attributeActivation.set(attriNum);
                             glEnableVertexAttribArray(attriNum);
                         }
-                        if (attrib._element.isInteger()) {
-                            glVertexAttribIFormat(attriNum, count, type, offset + locNum * perLocationSize);
-                        } else {
-                            glVertexAttribFormat(attriNum, count, type, isNormalized, offset + locNum * perLocationSize);
-                        }
+                        glVertexAttribFormat(attriNum, count, type, isNormalized, offset + locNum * perLocationSize);
+                        // TODO: Support properly the IAttrib version
                         glVertexAttribBinding(attriNum, attrib._channel);
                     }
 

@@ -1,5 +1,5 @@
 //
-//  GeneralPreferencesDialog.qml
+//  PreferencesDialog.qml
 //
 //  Created by Bradley Austin Davis on 24 Jan 2016
 //  Copyright 2015 High Fidelity, Inc.

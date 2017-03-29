@@ -250,27 +250,6 @@ static QString getUsername() {
     }
 }
 
-void TabletProxy::initialScreen(const QVariant& url) {
-    if (getQmlTablet()) {
-        pushOntoStack(url);
-    } else {
-        _initialScreen = true;
-        _initialPath = url;
-    }
-}
-
-bool TabletProxy::isMessageDialogOpen() {
-    if (_qmlTabletRoot) {
-        QVariant result;
-        QMetaObject::invokeMethod(_qmlTabletRoot, "isDialogOpen",Qt::DirectConnection,
-                                  Q_RETURN_ARG(QVariant, result));
-
-        return result.toBool();
-    }
-
-    return false;
-}
-
 void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     std::lock_guard<std::mutex> guard(_mutex);
     _qmlOffscreenSurface = qmlOffscreenSurface;
@@ -296,8 +275,7 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
         }
 
-        // force to the tablet to go to the homescreen
-        loadHomeScreen(true);
+        gotoHomeScreen();
 
         QMetaObject::invokeMethod(_qmlTabletRoot, "setUsername", Q_ARG(const QVariant&, QVariant(getUsername())));
 
@@ -308,11 +286,6 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
                 QMetaObject::invokeMethod(_qmlTabletRoot, "setUsername", Q_ARG(const QVariant&, QVariant(getUsername())));
             }
         });
-
-        if (_initialScreen) {
-            pushOntoStack(_initialPath);
-            _initialScreen = false;
-        }
     } else {
         removeButtonsFromHomeScreen();
         _state = State::Uninitialized;
@@ -320,9 +293,6 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
     }
 }
 
-void TabletProxy::gotoHomeScreen() {
-    loadHomeScreen(false);
-}
 void TabletProxy::gotoMenuScreen(const QString& submenu) {
 
     QObject* root = nullptr;
@@ -361,53 +331,11 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
             emit screenChanged(QVariant("QML"), path);
             QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
-    } else {
-        qCDebug(scriptengine) << "tablet cannot load QML because _qmlTabletRoot is null";
     }
 }
 
-void TabletProxy::pushOntoStack(const QVariant& path) {
-    if (_qmlTabletRoot) {
-        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
-        } else {
-            loadQMLSource(path);
-        }
-    } else if (_desktopWindow) {
-        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
-        } else {
-            qCDebug(scriptengine) << "tablet cannot push QML because _desktopWindow doesn't have child stack";
-        }
-    } else {
-        qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
-    }
-}
-
-void TabletProxy::popFromStack() {
-    if (_qmlTabletRoot) {
-        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "popSource");
-        } else {
-            qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot doesn't have child stack";
-        }
-    } else if (_desktopWindow) {
-        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "popSource");
-        } else { 
-            qCDebug(scriptengine) << "tablet cannot pop QML because _desktopWindow doesn't have child stack";
-        }
-    } else {
-        qCDebug(scriptengine) << "tablet cannot pop QML because _qmlTabletRoot or _desktopWindow is null";
-    }
-}
-
-void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
-    if ((_state != State::Home && _state != State::Uninitialized) || forceOntoHomeScreen) {
+void TabletProxy::gotoHomeScreen() {
+    if (_state != State::Home) {
         if (!_toolbarMode && _qmlTabletRoot) {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
             QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()), Qt::DirectConnection);
@@ -632,7 +560,7 @@ QQuickItem* TabletProxy::getQmlTablet() const {
 }
 
 QQuickItem* TabletProxy::getQmlMenu() const {
-    if (!_qmlTabletRoot) {
+     if (!_qmlTabletRoot) {
         return nullptr;
     }
 

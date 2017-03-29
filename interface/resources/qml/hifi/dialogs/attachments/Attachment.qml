@@ -6,7 +6,6 @@ import Qt.labs.settings 1.0
 
 import "."
 import ".."
-import "../../tablet"
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControls
 import "../../../windows"
@@ -18,23 +17,9 @@ Item {
 
     HifiConstants { id: hifi }
 
-    signal selectAttachment();
     signal deleteAttachment(var attachment);
     signal updateAttachment();
     property bool completed: false;
-
-    function doSelectAttachment(control, focus) {
-        if (focus) {
-            selectAttachment();
-
-            // Refocus control after possibly changing focus to attachment.
-            if (control.setControlFocus !== undefined) {
-                control.setControlFocus();
-            } else {
-                control.focus = true;
-            }
-        }
-    }
 
     Rectangle { color: hifi.colors.baseGray; anchors.fill: parent; radius: 4 }
 
@@ -65,7 +50,6 @@ Item {
                         updateAttachment();
                     }
                 }
-                onFocusChanged: doSelectAttachment(this, focus);
             }
             HifiControls.Button {
                 id: modelChooserButton;
@@ -77,37 +61,17 @@ Item {
                     id: modelBrowserBuilder;
                     ModelBrowserDialog {}
                 }
-                Component {
-                    id: tabletModelBrowserBuilder;
-                    TabletModelBrowserDialog {}
-                }
 
                 onClicked: {
-                    var browser;
-                    if (typeof desktop !== "undefined") {
-                        browser = modelBrowserBuilder.createObject(desktop);
-                        browser.selected.connect(function(newModelUrl){
-                            modelUrl.text = newModelUrl;
-                        });
-                    } else {
-                        browser = tabletModelBrowserBuilder.createObject(tabletRoot);
-                        browser.selected.connect(function(newModelUrl){
-                            modelUrl.text = newModelUrl;
-                            tabletRoot.openModal = null;
-                        });
-                        browser.canceled.connect(function() {
-                            tabletRoot.openModal = null;
-                        });
-
-                        // Make dialog modal.
-                        tabletRoot.openModal = browser;
-                    }
+                    var browser = modelBrowserBuilder.createObject(desktop);
+                    browser.selected.connect(function(newModelUrl){
+                        modelUrl.text = newModelUrl;
+                    })
                 }
             }
         }
 
         Item {
-            z: 1000
             height: jointChooser.height + jointLabel.height + 4
             anchors { left: parent.left; right: parent.right; }
             HifiControls.Label {
@@ -118,7 +82,6 @@ Item {
             }
             HifiControls.ComboBox {
                 id: jointChooser;
-                dropdownHeight: (typeof desktop !== "undefined") ? 480 : 206
                 anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
                 colorScheme: hifi.colorSchemes.dark
                 currentIndex: attachment ? model.indexOf(attachment.jointName) : -1
@@ -128,7 +91,6 @@ Item {
                         updateAttachment();
                     }
                 }
-                onFocusChanged: doSelectAttachment(this, focus);
             }
         }
 
@@ -146,7 +108,6 @@ Item {
                         updateAttachment();
                     }
                 }
-                onControlFocusChanged: doSelectAttachment(this, controlFocus);
             }
         }
 
@@ -164,7 +125,6 @@ Item {
                         updateAttachment();
                     }
                 }
-                onControlFocusChanged: doSelectAttachment(this, controlFocus);
             }
         }
 
@@ -193,7 +153,6 @@ Item {
                             updateAttachment();
                         }
                     }
-                    onFocusChanged: doSelectAttachment(this, focus);
                 }
             }
 
@@ -219,7 +178,6 @@ Item {
                             updateAttachment();
                         }
                     }
-                    onFocusChanged: doSelectAttachment(this, focus);
                 }
             }
         }

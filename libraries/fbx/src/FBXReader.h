@@ -202,7 +202,7 @@ public:
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
 class FBXMesh {
 public:
-
+    
     QVector<FBXMeshPart> parts;
     
     QVector<glm::vec3> vertices;
@@ -211,14 +211,16 @@ public:
     QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
     QVector<glm::vec2> texCoords1;
-    QVector<uint16_t> clusterIndices;
-    QVector<uint8_t> clusterWeights;
-
+    QVector<glm::vec4> clusterIndices;
+    QVector<glm::vec4> clusterWeights;
+    
     QVector<FBXCluster> clusters;
 
     Extents meshExtents;
     glm::mat4 modelTransform;
 
+    bool isEye;
+    
     QVector<FBXBlendshape> blendshapes;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file

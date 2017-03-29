@@ -15,36 +15,8 @@ Item {
     property real stepSize: 1
     property real maximumValue: 99
     property real minimumValue: 0
-    property bool controlFocus: false;  // True if one of the ordinate controls has focus.
-    property var controlFocusControl: undefined
 
     signal valueChanged();
-
-    function setControlFocus() {
-        if (controlFocusControl) {
-            controlFocusControl.focus = true;
-            // The controlFocus value is updated via onFocusChanged.
-        }
-    }
-
-    function setFocus(control, focus) {
-        if (focus) {
-            controlFocusControl = control;
-            setControlFocusTrue.start();  // After any subsequent false from previous control.
-        } else {
-            controlFocus = false;
-        }
-    }
-
-    Timer {
-        id: setControlFocusTrue
-        interval: 50
-        repeat: false
-        running: false
-        onTriggered: {
-            controlFocus = true;
-        }
-    }
 
     HifiConstants { id: hifi }
 
@@ -66,7 +38,6 @@ Item {
                 root.valueChanged();
             }
         }
-        onFocusChanged: setFocus(this, focus);
     }
 
     HifiControls.SpinBox {
@@ -87,7 +58,6 @@ Item {
                 root.valueChanged();
             }
         }
-        onFocusChanged: setFocus(this, focus);
     }
 
     HifiControls.SpinBox {
@@ -108,6 +78,6 @@ Item {
                 root.valueChanged();
             }
         }
-        onFocusChanged: setFocus(this, focus);
     }
 }
+

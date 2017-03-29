@@ -24,8 +24,8 @@ void main(void) {
     // Gather 2 by 2 quads from texture
 
     // Try different filters for Z
-    //vec4 Zeyes = textureGather(linearDepthMap, varTexCoord0, 0);
-    //float Zeye = min(min(Zeyes.x, Zeyes.y), min(Zeyes.z, Zeyes.w));
+//    vec4 Zeyes = textureGather(linearDepthMap, varTexCoord0, 0);
+  //  float Zeye = min(min(Zeyes.x, Zeyes.y), min(Zeyes.z, Zeyes.w));
     float Zeye = texture(linearDepthMap, varTexCoord0).x;
 
     vec4 rawNormalsX = textureGather(normalMap, varTexCoord0, 0);

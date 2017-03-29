@@ -159,7 +159,6 @@ Item {
         readonly property vector2d menuPadding: Qt.vector2d(14, 102)
         readonly property real scrollbarBackgroundWidth: 18
         readonly property real scrollbarHandleWidth: scrollbarBackgroundWidth - 2
-        readonly property real tabletMenuHeader: 90
     }
 
     Item {

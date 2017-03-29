@@ -1,22 +1,13 @@
-"use strict";
-
-//  entityList.js
-//
-//  Copyright 2014 High Fidelity, Inc.
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
-
-/* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
-   cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
+var ENTITY_LIST_HTML_URL = Script.resolvePath('../html/entityList.html');
 
 EntityListTool = function(opts) {
     var that = {};
 
-    var webView = null;
-    webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    webView.setVisible = function(value) {};
+    var url = ENTITY_LIST_HTML_URL;
+    var webView = new OverlayWebWindow({
+        title: 'Entity List',  source: url,  toolWindow: true   
+    });
+
 
     var filterInView = false;
     var searchRadius = 100;
@@ -34,7 +25,7 @@ EntityListTool = function(opts) {
 
     that.toggleVisible = function() {
         that.setVisible(!visible);
-    };
+    }
 
     selectionManager.addEventListener(function() {
         var selectedIDs = [];
@@ -53,7 +44,7 @@ EntityListTool = function(opts) {
     that.clearEntityList = function () {
         var data = {
             type: 'clearEntityList'
-        };
+        }
         webView.emitScriptEvent(JSON.stringify(data));
     };
 
@@ -95,8 +86,8 @@ EntityListTool = function(opts) {
         }
 
         var selectedIDs = [];
-        for (var j = 0; j < selectionManager.selections.length; j++) {
-            selectedIDs.push(selectionManager.selections[j].id);
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            selectedIDs.push(selectionManager.selections[i].id);
         }
 
         var data = {
@@ -105,7 +96,7 @@ EntityListTool = function(opts) {
             selectedIDs: selectedIDs,
         };
         webView.emitScriptEvent(JSON.stringify(data));
-    };
+    }
 
     webView.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
@@ -127,18 +118,6 @@ EntityListTool = function(opts) {
         } else if (data.type == "teleport") {
             if (selectionManager.hasSelection()) {
                 MyAvatar.position = selectionManager.worldPosition;
-            }
-        } else if (data.type == "export") {
-            if (!selectionManager.hasSelection()) {
-                Window.notifyEditError("No entities have been selected.");
-            } else {
-                var filename = Window.save("Select Where to Save", "", "*.json");
-                if (filename) {
-                    var success = Clipboard.exportEntities(filename, selectionManager.selections);
-                    if (!success) {
-                        Window.notifyEditError("Export failed.");
-                    }
-                }
             }
         } else if (data.type == "pal") {
             var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.
@@ -170,11 +149,11 @@ EntityListTool = function(opts) {
         }
     });
 
-    // webView.visibleChanged.connect(function () {
-    //     if (webView.visible) {
-    //         that.sendUpdate();
-    //     }
-    // });
+    webView.visibleChanged.connect(function () {
+        if (webView.visible) {
+            that.sendUpdate();
+        }
+    });
 
     return that;
 };

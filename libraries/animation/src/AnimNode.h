@@ -20,7 +20,6 @@
 
 #include "AnimSkeleton.h"
 #include "AnimVariant.h"
-#include "AnimContext.h"
 
 class QJsonObject;
 
@@ -73,10 +72,9 @@ public:
 
     AnimSkeleton::ConstPointer getSkeleton() const { return _skeleton; }
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) = 0;
-    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut,
-                                       const AnimPoseVec& underPoses) {
-        return evaluate(animVars, context, dt, triggersOut);
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) = 0;
+    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+        return evaluate(animVars, dt, triggersOut);
     }
 
     void setCurrentFrame(float frame);

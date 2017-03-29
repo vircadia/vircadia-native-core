@@ -58,6 +58,7 @@ public:
     bool intersects;
     bool accurate;
     QUuid entityID;
+    EntityItemProperties properties;
     float distance;
     BoxFace face;
     glm::vec3 intersection;
@@ -265,6 +266,7 @@ public slots:
     Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
     Q_INVOKABLE bool setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition,
                                        const glm::vec3& cuboidSize, int value);
+    Q_INVOKABLE void voxelsToMesh(QUuid entityID, QScriptValue callback);
 
     Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<glm::vec3>& points);
     Q_INVOKABLE bool appendPoint(QUuid entityID, const glm::vec3& point);
@@ -329,8 +331,6 @@ public slots:
                                             const glm::vec3& start, const glm::vec3& end, float radius);
 
 
-    Q_INVOKABLE void getMeshes(QUuid entityID, QScriptValue callback);
-
     /**jsdoc
      * Returns object to world transform, excluding scale
      *
@@ -339,16 +339,6 @@ public slots:
      * @return {Mat4} Entity's object to world transform, excluding scale
      */
     Q_INVOKABLE glm::mat4 getEntityTransform(const QUuid& entityID);
-
-
-    /**jsdoc
-     * Returns object to world transform, excluding scale
-     *
-     * @function Entities.getEntityLocalTransform
-     * @param {EntityID} entityID The ID of the entity whose local transform is to be returned
-     * @return {Mat4} Entity's object to parent transform, excluding scale
-     */
-    Q_INVOKABLE glm::mat4 getEntityLocalTransform(const QUuid& entityID);
 
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);

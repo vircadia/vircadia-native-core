@@ -333,8 +333,6 @@ public slots:
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
 
-    void showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const;
-
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
     void addAssetToWorldFromURLRequestFinished();
@@ -402,10 +400,6 @@ public slots:
     void addAssetToWorldMessageClose();
 
     Q_INVOKABLE void toggleMuteAudio();
-    void loadLODToolsDialog();
-    void loadEntityStatisticsDialog();
-    void loadDomainConnectionDialog();
-    void showScriptLogs();
 
 private slots:
     void showDesktop();

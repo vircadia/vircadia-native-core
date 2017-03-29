@@ -190,10 +190,7 @@ function controller(side) {
       direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition))
     };
     var intersection = getRayIntersection(pickRay, true);
-
-    var isDynamic = Entites.getEntityProperties(intersection.entityID, "dynamic").dynamic;
-
-    if (intersection.intersects && isDynamic) {
+    if (intersection.intersects && intersection.properties.dynamic) {
       this.laserWasHovered = true;
       if (this.triggerHeld && !this.grabbing) {
         this.grab(intersection.entityID);

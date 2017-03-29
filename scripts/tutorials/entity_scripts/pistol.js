@@ -151,9 +151,8 @@
                         });
                     }, randFloat(10, 200));
                 }
-                var isDynamic = Entities.getEntityProperties(intersection.entityID, "dynamic").dynamic;
-                if (isDynamic === 1) {
-                    // Any dynamic entity can be shot
+                if (intersection.properties.dynamic === 1) {
+                    // Any dynaic entity can be shot
                     Entities.editEntity(intersection.entityID, {
                         velocity: Vec3.multiply(this.firingDirection, this.bulletForce)
                     });
@@ -348,7 +347,7 @@
             this.laser = Overlays.addOverlay("line3d", {
                 start: ZERO_VECTOR,
                 end: ZERO_VECTOR,
-                color: { red: 255, green: 0, blue: 0},
+                color: COLORS.RED,
                 alpha: 1,
                 visible: true,
                 lineWidth: 2

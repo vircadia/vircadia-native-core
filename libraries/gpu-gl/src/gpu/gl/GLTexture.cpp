@@ -8,6 +8,8 @@
 
 #include "GLTexture.h"
 
+#include <NumericalConstants.h>
+
 #include "GLBackend.h"
 
 using namespace gpu;

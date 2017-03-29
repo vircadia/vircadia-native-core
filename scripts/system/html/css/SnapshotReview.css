@@ -8,81 +8,63 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
-body {
-    padding-top: 0;
-    padding-bottom: 14px;
+
+.snapshot-container {
+    width: 100%;
+    padding-top: 3px;
+}
+
+.snapshot-column-left {
+    width: 320px;
+    position: absolute;
+    padding-top: 8px;
+}
+
+.snapshot-column-right {
+    margin-left: 342px;
+}
+
+.snapshot-column-right > div > img {
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .snapshot-column-left {
+        position: initial;
+        width: 100%;
+    }
+    .snapshot-column-right {
+        margin-left: 0;
+        width: 100%;
+    }
+    .snapshot-column-right > div > img {
+        margin-top: 18px !important;
+    }
+}
+
+.snapshot-column-right > div {
+    position: relative;
+    padding: 2px;
+}
+
+.snapshot-column-right > div > img {
+    border: 2px solid #575757;
+    margin: -2px;
+}
+
+hr {
+    padding-left: 0;
+    padding-right: 0;
+    margin: 21px 0;
 }
 
 .snapsection {
-    padding-top: 14px;
     text-align: center;
 }
 
-.snapsection.title {
-    padding-top: 0;
-    text-align: left;
-}
-
-.title label {
-    font-size: 18px;
-    position: relative;
-    top: 12px;
-}
-
-#snapshot-pane {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    box-sizing: border-box;
-    padding-top: 56px;
-    padding-bottom: 175px;
-}
-
-#snapshot-images {
-    height: 100%;
-    width: 100%;
-    position: relative;
-}
-
-#snapshot-images > div {
-    position: relative;
-    text-align: center;
-}
-
-#snapshot-images img {
-    max-width: 100%;
-    max-height: 100%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    vertical-align: middle;
-}
-
-#snapshot-images div.property {
-    margin-top: 0;
-    position: absolute;
-    top: 50%;
-    left: 7px;
-    transform: translate(0%, -50%);
-}
-
-#snapshot-images img {
-    box-sizing: border-box;
-    padding: 0 7px 0 7px;
-}
-
-#snapshot-images img.multiple {
-    padding-left: 28px;
-}
-
-#snapshot-controls {
-    width: 100%;
-    position: absolute;
-    left: 0;
-    bottom: 14px;
+.title {
+    text-transform: uppercase;
+    font-size: 12px;
 }
 
 .prompt {

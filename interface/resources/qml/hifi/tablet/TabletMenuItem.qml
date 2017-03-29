@@ -32,7 +32,8 @@ Item {
         anchors {
             left: parent.left
             leftMargin: hifi.dimensions.menuPadding.x + 15
-            verticalCenter: label.verticalCenter
+            top: label.top
+            topMargin: 0
         }
         width: 20
         visible: source.visible && source.type === 1 && source.checkable
@@ -50,8 +51,6 @@ Item {
     RalewaySemiBold {
         id: label
         size: 20
-        //wrap will work only if width is set
-        width: parent.width - (check.width + check.anchors.leftMargin) - tail.width
         font.capitalization: isSubMenu ? Font.MixedCase : Font.AllUppercase
         anchors.left: check.right
         anchors.verticalCenter: parent.verticalCenter
@@ -59,7 +58,6 @@ Item {
         color: source.enabled ? hifi.colors.baseGrayShadow : hifi.colors.baseGrayShadow50
         enabled: source.visible && (source.type !== 0 ? source.enabled : false)
         visible: source.visible
-        wrapMode: Text.WordWrap
     }
 
     Item {

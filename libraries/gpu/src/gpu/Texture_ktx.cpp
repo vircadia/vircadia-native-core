@@ -121,7 +121,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     }
 
     // Number level of mips coming
-    header.numberOfMipmapLevels = texture.getNumMipLevels();
+    header.numberOfMipmapLevels = texture.maxMip() + 1;
 
     ktx::Images images;
     for (uint32_t level = 0; level < header.numberOfMipmapLevels; level++) {

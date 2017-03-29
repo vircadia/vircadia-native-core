@@ -343,8 +343,7 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    var isDynamic = Entities.getEntityProperties(pickResults.entityID, "dynamic").dynamic;
-    if (!isDynamic) {
+    if (!pickResults.properties.dynamic) {
         // only grab dynamic objects
         return;
     }

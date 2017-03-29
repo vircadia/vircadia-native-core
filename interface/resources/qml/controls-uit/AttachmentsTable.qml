@@ -120,7 +120,7 @@ TableView {
     }
 
     rowDelegate: Rectangle {
-        height: hifi.dimensions.tableRowHeight
+        height: (styleData.selected ? 1.2 : 1) * hifi.dimensions.tableRowHeight
         color: styleData.selected
                ? hifi.colors.primaryHighlight
                : tableView.isLightColorScheme

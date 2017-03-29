@@ -20,8 +20,6 @@
 #include <AssetClient.h>
 #include <QSortFilterProxyModel>
 
-#include "DependencyManager.h"
-
 
 class AssetMappingModel : public QStandardItemModel {
     Q_OBJECT
@@ -41,12 +39,10 @@ private:
     QHash<QString, QStandardItem*> _pathToItemMap;
 };
 
-Q_DECLARE_METATYPE(AssetMappingModel*)
+Q_DECLARE_METATYPE(AssetMappingModel*);
 
-class AssetMappingsScriptingInterface : public QObject, public Dependency {
+class AssetMappingsScriptingInterface : public QObject {
     Q_OBJECT
-    SINGLETON_DEPENDENCY
-
     Q_PROPERTY(AssetMappingModel* mappingModel READ getAssetMappingModel CONSTANT)
     Q_PROPERTY(QAbstractProxyModel* proxyModel READ getProxyModel CONSTANT)
 public:

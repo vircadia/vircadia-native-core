@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var paths = [], idCounter = 0, imageCount;
+var paths = [], idCounter = 0, useCheckboxes;
 function addImage(data) {
     if (!data.localPath) {
         return;
@@ -19,16 +19,11 @@ function addImage(data) {
         input = document.createElement("INPUT"),
         label = document.createElement("LABEL"),
         img = document.createElement("IMG"),
-        div2 = document.createElement("DIV"),
         id = "p" + idCounter++;
     function toggle() { data.share = input.checked; }
-    div.style.height = "" + Math.floor(100 / imageCount) + "%";
-    if (imageCount > 1) {
-        img.setAttribute("class", "multiple");
-    }
     img.src = data.localPath;
     div.appendChild(img);
-    if (imageCount > 1) { // I'd rather use css, but the included stylesheet is quite particular.
+    if (useCheckboxes) { // I'd rather use css, but the included stylesheet is quite particular.
         // Our stylesheet(?) requires input.id to match label.for. Otherwise input doesn't display the check state.
         label.setAttribute('for', id); // cannot do label.for =
         input.id = id;
@@ -36,10 +31,9 @@ function addImage(data) {
         input.checked = (id === "p0");
         data.share = input.checked;
         input.addEventListener('change', toggle);
-        div2.setAttribute("class", "property checkbox");
-        div2.appendChild(input);
-        div2.appendChild(label);
-        div.appendChild(div2);
+        div.class = "property checkbox";
+        div.appendChild(input);
+        div.appendChild(label);
     } else {
         data.share = true;
     }
@@ -49,13 +43,7 @@ function addImage(data) {
 function handleShareButtons(shareMsg) {
     var openFeed = document.getElementById('openFeed');
     openFeed.checked = shareMsg.openFeedAfterShare;
-    openFeed.onchange = function () {
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: "snapshot",
-            action: (openFeed.checked ? "setOpenFeedTrue" : "setOpenFeedFalse")
-        }));
-    };
-
+    openFeed.onchange = function () { EventBridge.emitWebEvent(openFeed.checked ? 'setOpenFeedTrue' : 'setOpenFeedFalse'); };
     if (!shareMsg.canShare) {
         // this means you may or may not be logged in, but can't share
         // because you are not in a public place.
@@ -69,42 +57,25 @@ window.onload = function () {
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
-            message = JSON.parse(message);
-            if (message.type !== "snapshot") {
-                return;
-            }
-
             // last element of list contains a bool for whether or not we can share stuff
-            var shareMsg = message.action.pop();
+            var shareMsg = message.pop();
             handleShareButtons(shareMsg);
             
             // rest are image paths which we add
-            imageCount = message.action.length;
-            message.action.forEach(addImage);
+            useCheckboxes = message.length > 1;
+            message.forEach(addImage);
         });
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: "snapshot",
-            action: "ready"
-        }));
+        EventBridge.emitWebEvent('ready');
     });
 
 };
 // beware of bug: Cannot send objects at top level. (Nested in arrays is fine.)
 function shareSelected() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: "snapshot",
-        action: paths
-    }));
-}
+    EventBridge.emitWebEvent(paths);
+};
 function doNotShare() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: "snapshot",
-        action: []
-    }));
-}
+    EventBridge.emitWebEvent([]);
+};
 function snapshotSettings() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: "snapshot",
-        action: "openSettings"
-    }));
-}
+    EventBridge.emitWebEvent("openSettings");
+};

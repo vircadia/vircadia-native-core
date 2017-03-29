@@ -1,7 +1,7 @@
 //
 //  MessageDialog.qml
 //
-//  Created by Dante Ruiz  on 13 Feb 2017
+//  Created by Bradley Austin Davis on 18 Jan 2016
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -18,12 +18,18 @@ Item {
     anchors.fill: parent
     objectName: "tabletMenuHandlerItem"
 
-    StackView {
+    MouseArea {
+        id: menuRoot;
+        objectName: "tabletMenuHandlerMouseArea"
         anchors.fill: parent
-        id: d
-        objectName: "stack"
-        initialItem: topMenu
+        enabled: d.topMenu !== null
+        onClicked: {
+            d.clearMenus();
+        }
+    }
 
+    QtObject {
+        id: d
         property var menuStack: []
         property var topMenu: null;
         property var modelMaker: Component { ListModel { } }
@@ -45,24 +51,6 @@ Item {
             onTriggered: {
                 menuItem.trigger(); // Now trigger the item.
             }
-        }
-
-        function pushSource(path) {
-            d.push(Qt.resolvedUrl(path));
-            d.currentItem.eventBridge = tabletMenu.eventBridge
-            d.currentItem.sendToScript.connect(tabletMenu.sendToScript);
-            d.currentItem.focus = true;
-            d.currentItem.forceActiveFocus();
-            breadcrumbText.text = d.currentItem.title;
-            if (typeof bgNavBar !== "undefined") {
-                d.currentItem.y = bgNavBar.height;
-                d.currentItem.height -= bgNavBar.height;
-            }
-        }
-
-        function popSource() {
-            console.log("trying to pop page");
-            d.pop();
         }
 
         function toModel(items) {
@@ -88,18 +76,22 @@ Item {
         }
 
         function popMenu() {
-            if (d.depth) {
-                d.pop();
+            if (menuStack.length) {
+                menuStack.pop().destroy();
             }
-            if (d.depth) {
-                topMenu = d.currentItem;
+            if (menuStack.length) {
+                topMenu = menuStack[menuStack.length - 1];
                 topMenu.focus = true;
                 topMenu.forceActiveFocus();
                 // show current menu level on nav bar
-                if (topMenu.objectName === "" || d.depth === 1) {
+                if (topMenu.objectName === "") {
                     breadcrumbText.text = "Menu";
                 } else {
-                    breadcrumbText.text = topMenu.objectName;
+                    if (menuStack.length === 1) {
+                        breadcrumbText.text = "Menu";
+                    } else {
+                        breadcrumbText.text = topMenu.objectName;
+                    }
                 }
             } else {
                 breadcrumbText.text = "Menu";
@@ -108,14 +100,16 @@ Item {
         }
 
         function pushMenu(newMenu) {
-            d.push({ item:newMenu, destroyOnPop: true});
+            menuStack.push(newMenu);
             topMenu = newMenu;
             topMenu.focus = true;
             topMenu.forceActiveFocus();
         }
 
         function clearMenus() {
-            d.clear()
+            while (menuStack.length) {
+                popMenu()
+            }
         }
 
         function clampMenuPosition(menu) {
@@ -133,7 +127,7 @@ Item {
             }
         }
 
-        function buildMenu(items) {
+        function buildMenu(items, targetPosition) {
             var model = toModel(items);
             // Menus must be childed to desktop for Z-ordering
             var newMenu = menuViewMaker.createObject(tabletMenu, { model: model, isSubMenu: topMenu !== null });
@@ -164,13 +158,13 @@ Item {
 
     }
 
-    function popup(items) {
+    function popup(parent, items) {
         d.clearMenus();
-        d.buildMenu(items);
+        d.buildMenu(items, point);
     }
 
     function closeLastMenu() {
-        if (d.depth > 1) {
+        if (d.menuStack.length > 1) {
             d.popMenu();
             return true;
         }

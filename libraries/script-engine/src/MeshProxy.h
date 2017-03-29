@@ -1,6 +1,6 @@
 //
 //  MeshProxy.h
-//  libraries/model/src/model/
+//  libraries/script-engine/src
 //
 //  Created by Seth Alves on 2017-1-27.
 //  Copyright 2017 High Fidelity, Inc.
@@ -11,10 +11,6 @@
 
 #ifndef hifi_MeshProxy_h
 #define hifi_MeshProxy_h
-
-#include <QScriptEngine>
-#include <QScriptValueIterator>
-#include <QtScript/QScriptValue>
 
 #include <model/Geometry.h>
 
@@ -41,12 +37,5 @@ Q_DECLARE_METATYPE(MeshProxy*);
 
 class MeshProxyList : public QList<MeshProxy*> {}; // typedef and using fight with the Qt macros/templates, do this instead
 Q_DECLARE_METATYPE(MeshProxyList);
-
-
-QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in);
-void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out);
-
-QScriptValue meshesToScriptValue(QScriptEngine* engine, const MeshProxyList &in);
-void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out);
 
 #endif // hifi_MeshProxy_h

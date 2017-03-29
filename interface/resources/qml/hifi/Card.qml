@@ -129,7 +129,7 @@ Rectangle {
     property int dropSamples: 9;
     property int dropSpread: 0;
     DropShadow {
-        visible: true;
+        visible: showPlace && (desktop ? desktop.gradientsSupported : false)
         source: place;
         anchors.fill: place;
         horizontalOffset: dropHorizontalOffset;
@@ -139,12 +139,12 @@ Rectangle {
         color: hifi.colors.black;
         spread: dropSpread;
     }
-    RalewayLight {
+    RalewaySemiBold {
         id: place;
         visible: showPlace;
         text: placeName;
         color: hifi.colors.white;
-        size: 38;
+        size: textSize;
         elide: Text.ElideRight; // requires constrained width
         anchors {
             top: parent.top;
@@ -153,8 +153,7 @@ Rectangle {
             margins: textPadding;
         }
     }
-
-       Row {
+    Row {
         FiraSansRegular {
             id: users;
             visible: isConcurrency;
@@ -216,12 +215,6 @@ Rectangle {
             right: parent.right;
             margins: smallMargin;
         }
-    }
-    DropShadow {
-        anchors.fill: actionIcon
-        radius: 8.0
-        color: "#80000000"
-        source: actionIcon
     }
     MouseArea {
         id: messageArea;

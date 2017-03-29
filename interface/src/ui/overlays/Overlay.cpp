@@ -100,9 +100,6 @@ void Overlay::setProperties(const QVariantMap& properties) {
 }
 
 QVariant Overlay::getProperty(const QString& property) {
-    if (property == "type") {
-        return QVariant(getType());
-    }
     if (property == "color") {
         return xColorToVariant(_color);
     }

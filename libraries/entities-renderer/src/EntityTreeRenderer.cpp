@@ -608,6 +608,7 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
             (void**)&intersectedEntity, lockType, &result.accurate);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
+            result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);
             result.entity = intersectedEntity;
         }
@@ -703,9 +704,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
 
-        auto entity = getTree()->findEntityByEntityItemID(rayPickResult.entityID);
-        auto properties = entity->getProperties();
-        QString urlString = properties.getHref();
+        QString urlString = rayPickResult.properties.getHref();
         QUrl url = QUrl(urlString, QUrl::StrictMode);
         if (url.isValid() && !url.isEmpty()){
             DependencyManager::get<AddressManager>()->handleLookupString(urlString);
@@ -715,8 +714,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
         PointerEvent pointerEvent(PointerEvent::Press, MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
-                                  toPointerButton(*event), toPointerButtons(*event),
-                                  Qt::NoModifier); // TODO -- check for modifier keys?
+                                  toPointerButton(*event), toPointerButtons(*event));
 
         emit mousePressOnEntity(rayPickResult.entityID, pointerEvent);
 
@@ -752,11 +750,17 @@ void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mouseDoublePressEvent over entity:" << rayPickResult.entityID;
 
+        QString urlString = rayPickResult.properties.getHref();
+        QUrl url = QUrl(urlString, QUrl::StrictMode);
+        if (url.isValid() && !url.isEmpty()){
+            DependencyManager::get<AddressManager>()->handleLookupString(urlString);
+        }
+
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
         PointerEvent pointerEvent(PointerEvent::Press, MOUSE_POINTER_ID,
             pos2D, rayPickResult.intersection,
             rayPickResult.surfaceNormal, ray.direction,
-            toPointerButton(*event), toPointerButtons(*event), Qt::NoModifier);
+            toPointerButton(*event), toPointerButtons(*event));
 
         emit mouseDoublePressOnEntity(rayPickResult.entityID, pointerEvent);
 
@@ -796,8 +800,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
         PointerEvent pointerEvent(PointerEvent::Release, MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
-                                  toPointerButton(*event), toPointerButtons(*event),
-                                  Qt::NoModifier); // TODO -- check for modifier keys?
+                                  toPointerButton(*event), toPointerButtons(*event));
 
         emit mouseReleaseOnEntity(rayPickResult.entityID, pointerEvent);
         if (_entitiesScriptEngine) {
@@ -817,8 +820,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
         PointerEvent pointerEvent(PointerEvent::Release, MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
-                                  toPointerButton(*event), toPointerButtons(*event),
-                                  Qt::NoModifier); // TODO -- check for modifier keys?
+                                  toPointerButton(*event), toPointerButtons(*event));
 
         emit clickReleaseOnEntity(_currentClickingOnEntityID, pointerEvent);
         if (_entitiesScriptEngine) {
@@ -848,8 +850,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
-                                  toPointerButton(*event), toPointerButtons(*event),
-                                  Qt::NoModifier); // TODO -- check for modifier keys?
+                                  toPointerButton(*event), toPointerButtons(*event));
 
         emit mouseMoveOnEntity(rayPickResult.entityID, pointerEvent);
 
@@ -869,8 +870,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
             PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
                                       pos2D, rayPickResult.intersection,
                                       rayPickResult.surfaceNormal, ray.direction,
-                                      toPointerButton(*event), toPointerButtons(*event),
-                                      Qt::NoModifier); // TODO -- check for modifier keys?
+                                      toPointerButton(*event), toPointerButtons(*event));
 
             emit hoverLeaveEntity(_currentHoverOverEntityID, pointerEvent);
             if (_entitiesScriptEngine) {
@@ -911,8 +911,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
             PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
-                                      toPointerButton(*event), toPointerButtons(*event),
-                                      Qt::NoModifier); // TODO -- check for modifier keys?
+                                  toPointerButton(*event), toPointerButtons(*event));
 
             emit hoverLeaveEntity(_currentHoverOverEntityID, pointerEvent);
             if (_entitiesScriptEngine) {
@@ -931,8 +930,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
-                                  toPointerButton(*event), toPointerButtons(*event),
-                                  Qt::NoModifier); // TODO -- check for modifier keys?
+                                  toPointerButton(*event), toPointerButtons(*event));
 
         emit holdingClickOnEntity(_currentClickingOnEntityID, pointerEvent);
         if (_entitiesScriptEngine) {
@@ -1045,7 +1043,7 @@ void EntityTreeRenderer::playEntityCollisionSound(EntityItemPointer entity, cons
 
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
-    const float stretchFactor = logf(1.0f + (minAACube.getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / logf(2.0f);
+    const float stretchFactor = log(1.0f + (minAACube.getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
     AudioInjector::playSound(collisionSound, volume, stretchFactor, collision.contactPoint);
 }
 

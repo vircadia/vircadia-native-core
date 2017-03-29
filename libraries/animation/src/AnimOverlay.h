@@ -43,7 +43,7 @@ public:
     AnimOverlay(const QString& id, BoneSet boneSet, float alpha);
     virtual ~AnimOverlay() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
 
     void setBoneSetVar(const QString& boneSetVar) { _boneSetVar = boneSetVar; }
     void setAlphaVar(const QString& alphaVar) { _alphaVar = alphaVar; }
