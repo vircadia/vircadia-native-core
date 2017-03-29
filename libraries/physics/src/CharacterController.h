@@ -1,6 +1,6 @@
 //
 //  CharacterControllerInterface.h
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2015.10.21
 //  Copyright 2015 High Fidelity, Inc.
