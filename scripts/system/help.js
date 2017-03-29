@@ -13,8 +13,10 @@
 /* globals Tablet, Script, HMD, Controller, Menu */
 
 (function() { // BEGIN LOCAL_SCOPE
-
+    
+    var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
     var buttonName = "HELP";
+    var onHelpScreen = false;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         icon: "icons/tablet-icons/help-i.svg",
@@ -25,18 +27,24 @@
 
     var enabled = false;
     function onClicked() {
-        if (enabled) {
-            Menu.closeInfoView('InfoView_html/help.html');
-            enabled = !enabled;
-            button.editProperties({isActive: enabled});
+        if (onHelpScreen) {
+            tablet.gotoHomeScreen();
         } else {
+            var tabletEntity = HMD.tabletID;
+            if (tabletEntity) {
+                Entities.editEntity(tabletEntity, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
+            }
             Menu.triggerOption('Help...');
-            enabled = !enabled;
-            button.editProperties({isActive: enabled});
+            onHelpScreen = true;
         }
     }
 
+    function onScreenChanged(type, url) {
+        onHelpScreen = false;
+    }
+
     button.clicked.connect(onClicked);
+    tablet.screenChanged.connect(onScreenChanged);
 
     var POLL_RATE = 500;
     var interval = Script.setInterval(function () {
@@ -48,8 +56,8 @@
     }, POLL_RATE);
 
     Script.scriptEnding.connect(function () {
-        if (enabled) {
-             Menu.closeInfoView('InfoView_html/help.html');
+        if (onHelpScreen) {
+            tablet.gotoHomeScreen();
         }
         button.clicked.disconnect(onClicked);
         Script.clearInterval(interval);

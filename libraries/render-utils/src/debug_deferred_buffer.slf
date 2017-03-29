@@ -13,6 +13,8 @@
 //
 
 <@include DeferredBufferRead.slh@>
+<@include gpu/Color.slh@>
+<$declareColorWheel()$>
 
 uniform sampler2D linearDepthMap;
 uniform sampler2D halfLinearDepthMap;
