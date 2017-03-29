@@ -29,17 +29,18 @@ function init() {
     ];
     handlerId = MyAvatar.addAnimationStateHandler(function (props) {
         return {
-            rightHandType: ikTypes["HipsRelativeRotationAndPosition"],
+
+            rightHandType: ikTypes["RotationAndPosition"],
             rightHandPosition: recentRightHand.translation,
             rightHandRotation: recentRightHand.rotation,
-            leftHandType: ikTypes["HipsRelativeRotationAndPosition"],
+            leftHandType: ikTypes["RotationAndPosition"],
             leftHandPosition: recentLeftHand.translation,
             leftHandRotation: recentLeftHand.rotation,
 
-            rightFootType: ikTypes["HipsRelativeRotationAndPosition"],
+            rightFootType: ikTypes["RotationAndPosition"],
             rightFootPosition: recentRightFoot.translation,
             rightFootRotation: recentRightFoot.rotation,
-            leftFootType: ikTypes["HipsRelativeRotationAndPosition"],
+            leftFootType: ikTypes["RotationAndPosition"],
             leftFootPosition: recentLeftFoot.translation,
             leftFootRotation: recentLeftFoot.rotation,
 
