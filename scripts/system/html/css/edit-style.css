@@ -871,6 +871,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     float: right;
     margin-right: 0;
     background-color: #ff0000;
+    min-width: 90px;
 }
 
 #entity-list {

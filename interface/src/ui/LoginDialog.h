@@ -27,6 +27,7 @@ public:
 
     LoginDialog(QQuickItem* parent = nullptr);
 
+    static void showWithSelection();
 signals:
     void handleLoginCompleted();
     void handleLoginFailed();

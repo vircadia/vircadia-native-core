@@ -14,7 +14,7 @@ import QtQuick.Controls.Styles 1.4
 
 Text {
     id: root
-    FontLoader { id: ralewayBold; source: "../../fonts/Raleway-Bold.ttf"; }
+    FontLoader { id: ralewayBold; source: pathToFonts + "fonts/Raleway-Bold.ttf"; }
     property real size: 32
     font.pixelSize: size
     verticalAlignment: Text.AlignVCenter

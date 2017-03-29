@@ -11,7 +11,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Inputs.slh@>
 <@include model/Material.slh@>
 <@include DeferredBufferWrite.slh@>
 

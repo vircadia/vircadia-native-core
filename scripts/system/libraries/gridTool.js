@@ -228,10 +228,9 @@ GridTool = function(opts) {
     var verticalGrid = opts.verticalGrid;
     var listeners = [];
 
-    var url = GRID_CONTROLS_HTML_URL;
-    var webView = new OverlayWebWindow({
-        title: 'Grid',  source: url,  toolWindow: true
-    });
+    var webView = null;
+    webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    webView.setVisible = function(value) {};
 
     horizontalGrid.addListener(function(data) {
         webView.emitScriptEvent(JSON.stringify(data));
