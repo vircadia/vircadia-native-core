@@ -239,6 +239,14 @@ void KinectPlugin::init() {
         auto preference = new CheckPreference(KINECT_PLUGIN, "Enabled", getter, setter);
         preferences->addPreference(preference);
     }
+    {
+        auto debugGetter = [this]()->bool { return _enabled; };
+        auto debugSetter = [this](bool value) {
+            _debug = value; saveSettings();
+        };
+        auto preference = new CheckPreference(KINECT_PLUGIN, "Extra Debugging", debugGetter, debugSetter);
+        preferences->addPreference(preference);
+    }
 }
 
 bool KinectPlugin::isSupported() const {
@@ -389,9 +397,11 @@ void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
 
                     if (SUCCEEDED(hr)) {
                         auto jointCount = _countof(joints);
-                        //qDebug() << __FUNCTION__ << "nBodyCount:" << nBodyCount << "body:" << i << "jointCount:" << jointCount;
+                        if (_debug) {
+                            qDebug() << __FUNCTION__ << "nBodyCount:" << nBodyCount << "body:" << i << "jointCount:" << jointCount;
+                        }
+                        
                         for (int j = 0; j < jointCount; ++j) {
-                            //QString jointName = kinectJointNames[joints[j].JointType];
 
                             glm::vec3 jointPosition { joints[j].Position.X,
                                                       joints[j].Position.Y,
@@ -403,6 +413,14 @@ void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
                                                          jointOrientations[j].Orientation.x,
                                                          jointOrientations[j].Orientation.y,
                                                          jointOrientations[j].Orientation.z };
+
+                            if (_debug) {
+                                QString jointName = kinectJointNames[joints[j].JointType];
+                                qDebug() << __FUNCTION__ << "joint[" << j << "]:" << jointName
+                                        << "position:" << jointPosition
+                                        << "orientation:" << jointOrientation
+                                        << "isTracked:" << joints[j].TrackingState != TrackingState_NotTracked;
+                            }
 
                             // filling in the _joints data...
                             if (joints[j].TrackingState != TrackingState_NotTracked) {
@@ -545,6 +563,7 @@ void KinectPlugin::saveSettings() const {
     settings.beginGroup(idString);
     {
         settings.setValue(QString("enabled"), _enabled);
+        settings.setValue(QString("extraDebug"), _debug);
     }
     settings.endGroup();
 }
