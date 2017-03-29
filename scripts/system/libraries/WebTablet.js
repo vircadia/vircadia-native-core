@@ -135,6 +135,14 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         }
     };
 
+    this.getTabletTextureResolution = function() {
+        if (this.landscape) {
+            return { x: TABLET_TEXTURE_RESOLUTION.x * 2, y: TABLET_TEXTURE_RESOLUTION.y };
+        } else {
+            return TABLET_TEXTURE_RESOLUTION;
+        }
+    };
+
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(hand, true, tabletProperties);
     if (location) {
@@ -158,7 +166,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         url: url,
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: Quat.angleAxis(180, Y_AXIS),
-        resolution: TABLET_TEXTURE_RESOLUTION,
+        resolution: this.getTabletTextureResolution(),
         dpi: this.dpi,
         color: { red: 255, green: 255, blue: 255 },
         alpha: 1.0,
@@ -206,7 +214,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
             return;
         }
         this.landscape = newLandscapeValue;
-        Overlays.editOverlay(this.tabletEntityID, this.getDimensions());
+        Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
+        Overlays.editOverlay(this.webOverlayID, { resolution: this.getTabletTextureResolution() });
     };
 
     this.state = "idle";
@@ -350,15 +359,15 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
 
     // clamp window pos so 2d tablet is not off-screen.
     var TABLET_TEXEL_PADDING = {x: 60, y: 90};
-    var X_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((TABLET_TEXTURE_RESOLUTION.x / 2) + TABLET_TEXEL_PADDING.x);
-    var Y_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((TABLET_TEXTURE_RESOLUTION.y / 2) + TABLET_TEXEL_PADDING.y);
+    var X_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((this.getTabletTextureResolution().x / 2) + TABLET_TEXEL_PADDING.x);
+    var Y_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((this.getTabletTextureResolution().y / 2) + TABLET_TEXEL_PADDING.y);
     windowPos.x = clamp(windowPos.x, X_CLAMP, Window.innerWidth - X_CLAMP);
     windowPos.y = clamp(windowPos.y, Y_CLAMP, Window.innerHeight - Y_CLAMP);
 
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
     var MAX_PADDING_FACTOR = 2.2;
-    var PADDING_FACTOR = Math.min(Window.innerHeight / TABLET_TEXTURE_RESOLUTION.y, MAX_PADDING_FACTOR);
-    var TABLET_HEIGHT = (TABLET_TEXTURE_RESOLUTION.y / this.dpi) * INCHES_TO_METERS;
+    var PADDING_FACTOR = Math.min(Window.innerHeight / this.getTabletTextureResolution().y, MAX_PADDING_FACTOR);
+    var TABLET_HEIGHT = (this.getTabletTextureResolution().y / this.dpi) * INCHES_TO_METERS;
     var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
 
     // calcualte distance from camera
