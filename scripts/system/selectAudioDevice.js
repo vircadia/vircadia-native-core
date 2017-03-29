@@ -42,6 +42,7 @@ var switchedAudioInputToHMD = false;
 var switchedAudioOutputToHMD = false;
 var previousSelectedInputAudioDevice = "";
 var previousSelectedOutputAudioDevice = "";
+var skipMenuEvents = true;
 
 //
 // BEGIN FUNCTION DEFINITIONS
@@ -54,7 +55,9 @@ function debug() {
 
 
 function setupAudioMenus() {
-    Menu.menuItemEvent.disconnect(switchAudioDevice);
+    // menu events can be triggered asynchronously; skip them for 200ms to avoid recursion and false switches
+    skipMenuEvents = true;
+    Script.setTimeout(function() { skipMenuEvents = false; }, 200);
 
     removeAudioMenus();
 
@@ -85,8 +88,6 @@ function setupAudioMenus() {
         });
         audioDevicesList.push(audioDeviceMenuString);
     }
-
-    Menu.menuItemEvent.connect(switchAudioDevice);
 }
 
 function checkDeviceMismatch() {
@@ -126,19 +127,30 @@ function onDevicechanged() {
     checkDeviceMismatch();
 }
 
+function onMenuEvent(audioDeviceMenuString) {
+    if (!skipMenuEvents) {
+        switchAudioDevice(audioDeviceMenuString);
+    }
+}
+
 function switchAudioDevice(audioDeviceMenuString) {
     // if the device is not plugged in, short-circuit
     if (!~audioDevicesList.indexOf(audioDeviceMenuString)) {
         return;
     }
 
-    Menu.menuItemEvent.disconnect(switchAudioDevice);
-
     var selection = parseMenuItem(audioDeviceMenuString);
     if (!selection) {
-        debug("Invalid Audio audioDeviceMenuString! Doesn't end with 'for Input' or 'for Output'")
-    } else if (selection.mode == INPUT) {
-        var selectedDevice = selection.device;
+        debug("Invalid Audio audioDeviceMenuString! Doesn't end with 'for Input' or 'for Output'");
+        return;
+    }
+
+    // menu events can be triggered asynchronously; skip them for 200ms to avoid recursion and false switches
+    skipMenuEvents = true;
+    Script.setTimeout(function() { skipMenuEvents = false; }, 200);
+
+    var selectedDevice = selection.device;
+    if (selection.mode == INPUT) {
         var currentInputDevice = AudioDevice.getInputDevice();
         if (selectedDevice != currentInputDevice) {
             debug("Switching audio INPUT device from " + currentInputDevice + " to " + selectedDevice);
@@ -157,7 +169,6 @@ function switchAudioDevice(audioDeviceMenuString) {
             AudioDevice.setInputDevice(selectedDevice); // Still try to force-set the device (in case the user's trying to forcefully debug an issue)
         }
     } else if (selection.mode == OUTPUT) {
-        var selectedDevice = selection.device;
         var currentOutputDevice = AudioDevice.getOutputDevice();
         if (selectedDevice != currentOutputDevice) {
             debug("Switching audio OUTPUT device from " + currentOutputDevice + " to " + selectedDevice);
@@ -176,8 +187,6 @@ function switchAudioDevice(audioDeviceMenuString) {
             AudioDevice.setOutputDevice(selectedDevice); // Still try to force-set the device (in case the user's trying to forcefully debug an issue)
         }
     }
-
-    Menu.menuItemEvent.connect(switchAudioDevice);
 }
 
 function restoreAudio() {
@@ -234,6 +243,7 @@ function checkHMDAudio() {
     }
     wasHmdActive = HMD.active;
 }
+
 //
 // END FUNCTION DEFINITIONS
 //
@@ -246,7 +256,7 @@ Script.setTimeout(function () {
     debug("Connecting deviceChanged(), displayModeChanged(), and switchAudioDevice()...");
     AudioDevice.deviceChanged.connect(onDevicechanged);
     HMD.displayModeChanged.connect(checkHMDAudio);
-    Menu.menuItemEvent.connect(switchAudioDevice);
+    Menu.menuItemEvent.connect(onMenuEvent);
     debug("Setting up Audio I/O menu for the first time...");
     setupAudioMenus();
     checkDeviceMismatch();
@@ -258,7 +268,7 @@ debug("Connecting scriptEnding()");
 Script.scriptEnding.connect(function () {
     restoreAudio();
     removeAudioMenus();
-    Menu.menuItemEvent.disconnect(switchAudioDevice);
+    Menu.menuItemEvent.disconnect(onMenuEvent);
     HMD.displayModeChanged.disconnect(checkHMDAudio);
     AudioDevice.deviceChanged.disconnect(onDevicechanged);
 });
