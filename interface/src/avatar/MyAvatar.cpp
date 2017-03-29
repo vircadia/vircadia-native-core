@@ -491,6 +491,11 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("skeleton");
+
+        if (_rig) {
+            _rig->setEnableDebugDrawIKTargets(_enableDebugDrawIKTargets);
+        }
+
         _skeletonModel->simulate(deltaTime);
     }
 
@@ -914,6 +919,10 @@ void MyAvatar::setEnableDebugDrawSensorToWorldMatrix(bool isEnabled) {
     if (!isEnabled) {
         DebugDraw::getInstance().removeMarker("sensorToWorldMatrix");
     }
+}
+
+void MyAvatar::setEnableDebugDrawIKTargets(bool isEnabled) {
+    _enableDebugDrawIKTargets = isEnabled;
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {

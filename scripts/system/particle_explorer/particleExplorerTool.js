@@ -18,26 +18,21 @@ ParticleExplorerTool = function() {
     var that = {};
 
     that.createWebView = function() {
-        var url = PARTICLE_EXPLORER_HTML_URL;
-        that.webView = new OverlayWebWindow({
-            title: 'Particle Explorer',
-            source: url,
-            toolWindow: true
-        });
-
-        that.webView.setVisible(true);
+        that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        that.webView.setVisible = function(value) {};
         that.webView.webEventReceived.connect(that.webEventReceived);        
     }
-
 
     that.destroyWebView = function() {
         if (!that.webView) {
             return;
         }
-
-        that.webView.close();
-        that.webView = null;
         that.activeParticleEntity = 0;
+
+        var messageData = {
+            messageType: "particle_close"
+        };
+        that.webView.emitScriptEvent(JSON.stringify(messageData));
     }
 
     that.webEventReceived = function(data) {
@@ -51,8 +46,5 @@ ParticleExplorerTool = function() {
         that.activeParticleEntity = id;
     }
 
-
     return that;
-
-
 };

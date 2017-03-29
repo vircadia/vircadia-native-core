@@ -38,7 +38,6 @@ function mouseMoveEvent(event) {
     
     if (intersection.intersects) {
         print("intersection entityID=" + intersection.entityID);
-        print("intersection properties.modelURL=" + intersection.properties.modelURL);
         print("intersection face=" + intersection.face);
         print("intersection distance=" + intersection.distance);
         print("intersection intersection.x/y/z=" + intersection.intersection.x + ", "
