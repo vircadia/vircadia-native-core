@@ -403,6 +403,7 @@ void Agent::executeScript() {
     _scriptEngine->registerGlobalObject("Agent", this);
 
     _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
+    _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
 
     QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
     _scriptEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
