@@ -80,7 +80,7 @@ Rectangle {
         id: lobby;
         visible: !hasGif || (animation.status !== Image.Ready);
         width: parent.width - (isConcurrency ? 0 : (2 * smallMargin));
-        height: parent.height - messageHeight - (isConcurrency ? 0 : smallMargin);
+        height: parent.height - (isConcurrency ? 0 : smallMargin);
         source: thumbnail || defaultThumbnail;
         fillMode: Image.PreserveAspectCrop;
         anchors {
@@ -153,44 +153,56 @@ Rectangle {
             margins: textPadding;
         }
     }
+    Rectangle {
+        id: rectRow
+        z: 1
+        width: message.width + (users.visible ? users.width + bottomRow.spacing : 0)
+            + (icon.visible ? icon.width  + bottomRow.spacing: 0) + bottomRow.spacing;
+        height: messageHeight + 1;
+        radius: 25
 
-       Row {
-        FiraSansRegular {
-            id: users;
-            visible: isConcurrency;
-            text: onlineUsers;
-            size: textSize;
-            color: messageColor;
-            anchors.verticalCenter: message.verticalCenter;
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            leftMargin: textPadding
+            bottomMargin: textPadding
         }
-        Image {
-            id: icon;
-            source: "../../images/snap-icon.svg"
-            width: 40;
-            height: 40;
-            visible: action === 'snapshot';
-        }
-        RalewayRegular {
-            id: message;
-            text: isConcurrency ? ((onlineUsers === 1) ? "person" : "people") : (drillDownToPlace ? "snapshots" : ("by " + userName));
-            size: textSizeSmall;
-            color: messageColor;
-            elide: Text.ElideRight; // requires a width to be specified`
-            width: root.width - textPadding
-                - (users.visible ? users.width + parent.spacing : 0)
-                - (icon.visible ? icon.width + parent.spacing : 0)
-                - (actionIcon.width + (2 * smallMargin));
+        
+        Row {
+            id: bottomRow
+            FiraSansRegular {
+                id: users;
+                visible: isConcurrency;
+                text: onlineUsers;
+                size: textSize;
+                color: messageColor;
+                anchors.verticalCenter: message.verticalCenter;
+            }
+            Image {
+                id: icon;
+                source: "../../images/snap-icon.svg"
+                width: 40;
+                height: 40;
+                visible: action === 'snapshot';
+            }
+            RalewayRegular {
+                id: message;
+                text: isConcurrency ? ((onlineUsers === 1) ? "person" : "people") : (drillDownToPlace ? "snapshots" : ("by " + userName));
+                size: textSizeSmall;
+                color: messageColor;
+                elide: Text.ElideRight; // requires a width to be specified`
+                anchors {
+                    bottom: parent.bottom;
+                    bottomMargin: parent.spacing;
+                }
+            }
+            spacing: textPadding;
+            height: messageHeight;
             anchors {
                 bottom: parent.bottom;
-                bottomMargin: parent.spacing;
+                left: parent.left;
+                leftMargin: 4
             }
-        }
-        spacing: textPadding;
-        height: messageHeight;
-        anchors {
-            bottom: parent.bottom;
-            left: parent.left;
-            leftMargin: textPadding;
         }
     }
     // These two can be supplied to provide hover behavior.
@@ -206,15 +218,29 @@ Rectangle {
         onEntered: hoverThunk();
         onExited: unhoverThunk();
     }
-    StateImage {
-        id: actionIcon;
-        imageURL: "../../images/info-icon-2-state.svg";
-        size: 32;
-        buttonState: messageArea.containsMouse ? 1 : 0;
+    Rectangle {
+        id: rectIcon
+        z: 1
+        width: 32
+        height: 32
+        radius: 15
         anchors {
             bottom: parent.bottom;
             right: parent.right;
-            margins: smallMargin;
+            bottomMargin: textPadding;
+            rightMargin: textPadding;
+        }
+        
+        StateImage {
+            id: actionIcon;
+            imageURL: "../../images/info-icon-2-state.svg";
+            size: 32;
+            buttonState: messageArea.containsMouse ? 1 : 0;
+            anchors {
+                bottom: parent.bottom;
+                right: parent.right;
+                //margins: smallMargin;
+            }
         }
     }
     DropShadow {
@@ -225,11 +251,9 @@ Rectangle {
     }
     MouseArea {
         id: messageArea;
-        width: parent.width;
-        height: messageHeight;
-        anchors {
-            top: lobby.bottom;
-        }
+        width: rectIcon.width;
+        height: rectIcon.height;
+        anchors.fill: rectIcon
         acceptedButtons: Qt.LeftButton;
         onClicked: goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));
         hoverEnabled: true;
