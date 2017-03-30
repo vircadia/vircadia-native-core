@@ -1,16 +1,27 @@
 import QtQuick 2.5
+import QtQuick.Controls 1.4
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 import "../controls-uit" as HiFiControls
 import HFWebEngineProfile 1.0
+import "../"
 
-Item {
+StackView {
+    id: stackRoot
     property alias url: root.url
     property alias scriptURL: root.userScriptUrl
     property alias eventBridge: eventBridgeWrapper.eventBridge
     property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
     property bool punctuationMode: false
+    property bool isDesktop: false
+    property bool canGoBack: root.canGoBack
+    property bool canGoForward: root.canGoForward
+    property var goForward: root.goForward();
+    property var goBack: root.goBack();
+    property WebEngineView view: root
+
+    initialItem: root;
 
     // FIXME - Keyboard HMD only: Make Interface either set keyboardRaised property directly in OffscreenQmlSurface
     // or provide HMDinfo object to QML in RenderableWebEntityItem and do the following.
@@ -36,8 +47,8 @@ Item {
 
         profile: HFWebEngineProfile {
             id: webviewProfile
-            storageName: "qmlWebEngine"
-        }
+           storageName: "qmlWebEngine"
+       }
 
         property string userScriptUrl: ""
 
@@ -77,7 +88,8 @@ Item {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
             });
 
-            root.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
+            root.profile.httpUserAgent = "Mozilla/5.0 (Android; Mobile; rv:24.0) Gecko/24.0 Firefox/24.0";
+
         }
 
         onFeaturePermissionRequested: {
@@ -100,12 +112,26 @@ Item {
             }
         }
 
+        //Component { id: browser; TabletBrowser{ } }
         onNewViewRequested:{
             // desktop is not defined for web-entities
-            if (desktop) {
+            if (isDesktop) {
                 var component = Qt.createComponent("../Browser.qml");
                 var newWindow = component.createObject(desktop);
                 request.openIn(newWindow.webView);
+            } else {
+                var component = Qt.createComponent("../TabletBrowser.qml");
+
+                if (component.status != Component.Ready) {
+                    if (component.status == Component.Error) {
+                        console.log("Error: " + component.errorString());
+                    }
+                    return;
+                }
+                var newWindow = component.createObject();
+                newWindow.setProfile(root.profile);
+                request.openIn(newWindow.webView);
+                stackRoot.push(newWindow);
             }
         }
     }
@@ -119,6 +145,11 @@ Item {
             right: parent.right
             bottom: parent.bottom
         }
+    }
+
+    Component.onCompleted: {
+        console.log((typeof desktop !== "undefined"));
+        isDesktop = (typeof desktop !== "undefined");
     }
 
 }

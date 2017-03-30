@@ -17,7 +17,8 @@ import "../../windows"
 import "../"
 import "../toolbars"
 import "../../styles-uit" as HifiStyles
-import "../../controls-uit" as HifiControls
+import "../../controls-uit" as HifiControlsUit
+import "../../controls" as HifiControls
 
 
 Rectangle {
