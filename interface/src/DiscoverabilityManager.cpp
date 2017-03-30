@@ -51,31 +51,33 @@ void DiscoverabilityManager::updateLocation() {
 
         QString pathString = addressManager->currentPath();
 
-        const QString PATH_KEY_IN_LOCATION = "path";
-        locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-
         const QString CONNECTED_KEY_IN_LOCATION = "connected";
         locationObject.insert(CONNECTED_KEY_IN_LOCATION, discoverable && domainHandler.isConnected());
 
-        if (!addressManager->getRootPlaceID().isNull()) {
-            const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
-            locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
-                                  uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
+        if (discoverable) { // Don't consider changes to these as update-worthy if we're not discoverable.
+            const QString PATH_KEY_IN_LOCATION = "path";
+            locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
+
+            if (!addressManager->getRootPlaceID().isNull()) {
+                const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
+                locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
+                                      uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
+            }
+
+            if (!domainHandler.getUUID().isNull()) {
+                const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+                locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
+                                      uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
+            }
+
+            // in case the place/domain isn't in the database, we send the network address and port
+            auto& domainSockAddr = domainHandler.getSockAddr();
+            const QString NETWORK_ADRESS_KEY_IN_LOCATION = "network_address";
+            locationObject.insert(NETWORK_ADRESS_KEY_IN_LOCATION, domainSockAddr.getAddress().toString());
+
+            const QString NETWORK_ADDRESS_PORT_IN_LOCATION = "network_port";
+            locationObject.insert(NETWORK_ADDRESS_PORT_IN_LOCATION, domainSockAddr.getPort());
         }
-
-        if (!domainHandler.getUUID().isNull()) {
-            const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
-            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
-                                  uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
-        }
-
-        // in case the place/domain isn't in the database, we send the network address and port
-        auto& domainSockAddr = domainHandler.getSockAddr();
-        const QString NETWORK_ADRESS_KEY_IN_LOCATION = "network_address";
-        locationObject.insert(NETWORK_ADRESS_KEY_IN_LOCATION, domainSockAddr.getAddress().toString());
-
-        const QString NETWORK_ADDRESS_PORT_IN_LOCATION = "network_port";
-        locationObject.insert(NETWORK_ADDRESS_PORT_IN_LOCATION, domainSockAddr.getPort());
 
         const QString AVAILABILITY_KEY_IN_LOCATION = "availability";
         locationObject.insert(AVAILABILITY_KEY_IN_LOCATION, findableByString(static_cast<Discoverability::Mode>(_mode.get())));
