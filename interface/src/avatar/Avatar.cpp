@@ -348,10 +348,11 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView && _hasNewJointData) {
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
+            glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
+            _skeletonModel->getRig()->computeExternalPoses(rootTransform);
             _jointDataSimulationRate.increment();
 
             _skeletonModel->simulate(deltaTime, true);
-            _skeletonModelSimulationRate.increment();
 
             locationChanged(); // joints changed, so if there are any children, update them.
             _hasNewJointData = false;
@@ -367,8 +368,8 @@ void Avatar::simulate(float deltaTime, bool inView) {
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
-            _skeletonModelSimulationRate.increment();
         }
+        _skeletonModelSimulationRate.increment();
     }
 
     // update animation for display name fade in/out

@@ -14,7 +14,7 @@ var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,
     y: 0.5,
     z: 0
-}), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
+}), Vec3.multiply(1, Quat.getForward(Camera.getOrientation())));
 
 // this is just a model exported from blender with a texture named 'Picture' on one face.  also made it emissive so it doesn't require lighting.
 var MODEL_URL = "http://hifi-production.s3.amazonaws.com/tutorials/pictureFrame/finalFrame.fbx";

@@ -25,6 +25,8 @@ Original.CheckBox {
     readonly property int checkSize: Math.max(boxSize - 8, 10)
     readonly property int checkRadius: 2
 
+    activeFocusOnPress: true
+
     style: CheckBoxStyle {
         indicator: Rectangle {
             id: box

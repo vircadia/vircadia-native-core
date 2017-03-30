@@ -1,7 +1,7 @@
 describe('Entity', function() {
     var center = Vec3.sum(
         MyAvatar.position,
-        Vec3.multiply(3, Quat.getFront(Camera.getOrientation()))
+        Vec3.multiply(3, Quat.getForward(Camera.getOrientation()))
     );
     var boxEntity;
     var boxProps = {

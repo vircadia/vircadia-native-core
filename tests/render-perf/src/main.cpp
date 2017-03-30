@@ -642,7 +642,6 @@ protected:
                 gpu::Texture::setAllowedGPUMemoryUsage(MB_TO_BYTES(64));
                 return;
 
-
             default:
                 break;
         }

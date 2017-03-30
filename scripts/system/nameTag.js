@@ -33,7 +33,7 @@ Script.setTimeout(function() {
 }, STARTUP_DELAY);
 
 function addNameTag() {
-    var nameTagPosition = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(HEAD_OFFSET, Quat.getFront(MyAvatar.orientation)));
+    var nameTagPosition = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(HEAD_OFFSET, Quat.getForward(MyAvatar.orientation)));
     nameTagPosition.y += HEIGHT_ABOVE_HEAD;
     var nameTagProperties = {
         name: MyAvatar.displayName + ' Name Tag',
@@ -49,7 +49,7 @@ function addNameTag() {
 
 function updateNameTag() {
     var nameTagProps = Entities.getEntityProperties(nameTagEntityID);
-    var nameTagPosition = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(HEAD_OFFSET, Quat.getFront(MyAvatar.orientation)));
+    var nameTagPosition = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(HEAD_OFFSET, Quat.getForward(MyAvatar.orientation)));
     nameTagPosition.y += HEIGHT_ABOVE_HEAD;
 
     Entities.editEntity(nameTagEntityID, {

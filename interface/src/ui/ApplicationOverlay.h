@@ -31,8 +31,6 @@ public:
 private:
     void renderStatsAndLogs(RenderArgs* renderArgs);
     void renderDomainConnectionStatusBorder(RenderArgs* renderArgs);
-    void renderRearViewToFbo(RenderArgs* renderArgs);
-    void renderRearView(RenderArgs* renderArgs);
     void renderQmlUi(RenderArgs* renderArgs);
     void renderAudioScope(RenderArgs* renderArgs);
     void renderOverlays(RenderArgs* renderArgs);
@@ -51,7 +49,6 @@ private:
     gpu::TexturePointer _overlayColorTexture;
     gpu::FramebufferPointer _overlayFramebuffer;
     int _qmlGeometryId { 0 };
-    int _rearViewGeometryId { 0 };
 };
 
 #endif // hifi_ApplicationOverlay_h

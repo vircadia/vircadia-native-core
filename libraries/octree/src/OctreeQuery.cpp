@@ -142,6 +142,6 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
 }
 
 glm::vec3 OctreeQuery::calculateCameraDirection() const {
-    glm::vec3 direction = glm::vec3(_cameraOrientation * glm::vec4(IDENTITY_FRONT, 0.0f));
+    glm::vec3 direction = glm::vec3(_cameraOrientation * glm::vec4(IDENTITY_FORWARD, 0.0f));
     return direction;
 }

@@ -20,8 +20,17 @@ class AudioEffectOptions;
 
 class AudioDeviceScriptingInterface : public QObject {
     Q_OBJECT
+
+    Q_PROPERTY(QStringList inputAudioDevices READ inputAudioDevices NOTIFY inputAudioDevicesChanged)
+    Q_PROPERTY(QStringList outputAudioDevices READ outputAudioDevices NOTIFY outputAudioDevicesChanged)
+    Q_PROPERTY(bool muted READ muted WRITE setMuted NOTIFY mutedChanged)
+
 public:
     static AudioDeviceScriptingInterface* getInstance();
+
+    QStringList inputAudioDevices() const;
+    QStringList outputAudioDevices() const;
+    bool muted();
 
 public slots:
     bool setInputDevice(const QString& deviceName);
@@ -44,12 +53,17 @@ public slots:
     bool getMuted();
     void toggleMute();
     
+    void setMuted(bool muted);
+
 private:
     AudioDeviceScriptingInterface();
 
 signals:
     void muteToggled();
     void deviceChanged();
+    void mutedChanged(bool muted);
+    void inputAudioDevicesChanged(QStringList inputAudioDevices);
+    void outputAudioDevicesChanged(QStringList outputAudioDevices);
 };
 
 #endif // hifi_AudioDeviceScriptingInterface_h

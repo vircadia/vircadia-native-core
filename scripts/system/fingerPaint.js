@@ -13,6 +13,7 @@
         button,
         BUTTON_NAME = "PAINT",
         isFingerPainting = false,
+        shouldPointFingers = false,
         leftHand = null,
         rightHand = null,
         leftBrush = null,
@@ -308,9 +309,14 @@
         Messages.sendMessage(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL, JSON.stringify({
             pointerEnabled: enabled
         }), true);
-        Messages.sendMessage(HIFI_POINT_INDEX_MESSAGE_CHANNEL, JSON.stringify({
-            pointIndex: !enabled
-        }), true);
+
+        var newShouldPointFingers = !enabled;
+        if (newShouldPointFingers !== shouldPointFingers) {
+            Messages.sendMessage(HIFI_POINT_INDEX_MESSAGE_CHANNEL, JSON.stringify({
+                pointIndex: newShouldPointFingers
+            }), true);
+            shouldPointFingers = newShouldPointFingers;
+        }
     }
 
     function enableProcessing() {

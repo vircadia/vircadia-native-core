@@ -376,6 +376,7 @@ public:
 
     typedef enum { 
         NoData,
+        PALMinimum,
         MinimumData, 
         CullSmallData,
         IncludeSmallData,
@@ -597,9 +598,10 @@ public:
 
     static const float OUT_OF_VIEW_PENALTY;
 
-    static std::priority_queue<AvatarPriority> sortAvatars(
+    static void sortAvatars(
         QList<AvatarSharedPointer> avatarList,
         const ViewFrustum& cameraView,
+        std::priority_queue<AvatarPriority>& sortedAvatarsOut,
         std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
         std::function<float(AvatarSharedPointer)> getBoundingRadius,
         std::function<bool(AvatarSharedPointer)> shouldIgnore);

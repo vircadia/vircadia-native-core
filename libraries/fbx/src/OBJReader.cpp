@@ -267,7 +267,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             }
             if (token == "map_Kd") {
                 currentMaterial.diffuseTextureFilename = filename;
-            } else {
+            } else if( token == "map_Ks" ) {
                 currentMaterial.specularTextureFilename = filename;
             }
         }
@@ -546,6 +546,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
     QString queryPart = _url.query();
     bool suppressMaterialsHack = queryPart.contains("hifiusemat"); // If this appears in query string, don't fetch mtl even if used.
     OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
+    preDefinedMaterial.used = true;
     if (suppressMaterialsHack) {
         needsMaterialLibrary = preDefinedMaterial.userSpecifiesUV = false; // I said it was a hack...
     }
@@ -594,8 +595,8 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
     }
 
     foreach (QString materialID, materials.keys()) {
-       OBJMaterial& objMaterial = materials[materialID];
-       if (!objMaterial.used) {
+        OBJMaterial& objMaterial = materials[materialID];
+        if (!objMaterial.used) {
             continue;
         }
         geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
@@ -611,6 +612,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         if (!objMaterial.diffuseTextureFilename.isEmpty()) {
             fbxMaterial.albedoTexture.filename = objMaterial.diffuseTextureFilename;
         }
+		if (!objMaterial.specularTextureFilename.isEmpty()) {
+			fbxMaterial.specularTexture.filename = objMaterial.specularTextureFilename;
+		}
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
         modelMaterial->setAlbedo(fbxMaterial.diffuseColor);

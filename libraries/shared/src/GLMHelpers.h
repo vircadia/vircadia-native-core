@@ -50,7 +50,7 @@ using glm::quat;
 // this is where the coordinate system is represented
 const glm::vec3 IDENTITY_RIGHT = glm::vec3( 1.0f, 0.0f, 0.0f);
 const glm::vec3 IDENTITY_UP    = glm::vec3( 0.0f, 1.0f, 0.0f);
-const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f,-1.0f);
+const glm::vec3 IDENTITY_FORWARD = glm::vec3( 0.0f, 0.0f,-1.0f);
 
 glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 
@@ -244,5 +244,54 @@ inline bool isNaN(const glm::vec3& value) { return isNaN(value.x) || isNaN(value
 inline bool isNaN(const glm::quat& value) { return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
 
 glm::mat4 orthoInverse(const glm::mat4& m);
+
+//
+// Safe replacement of glm_mat4_mul() for unaligned arguments instead of __m128
+//
+inline void glm_mat4u_mul(const glm::mat4& m1, const glm::mat4& m2, glm::mat4& r) {
+
+#if GLM_ARCH & GLM_ARCH_SSE2_BIT
+    __m128 u0 = _mm_loadu_ps((float*)&m1[0][0]);
+    __m128 u1 = _mm_loadu_ps((float*)&m1[1][0]);
+    __m128 u2 = _mm_loadu_ps((float*)&m1[2][0]);
+    __m128 u3 = _mm_loadu_ps((float*)&m1[3][0]);
+
+    __m128 v0 = _mm_loadu_ps((float*)&m2[0][0]);
+    __m128 v1 = _mm_loadu_ps((float*)&m2[1][0]);
+    __m128 v2 = _mm_loadu_ps((float*)&m2[2][0]);
+    __m128 v3 = _mm_loadu_ps((float*)&m2[3][0]);
+
+    __m128 t0 = _mm_mul_ps(_mm_shuffle_ps(v0, v0, _MM_SHUFFLE(0,0,0,0)), u0);
+    __m128 t1 = _mm_mul_ps(_mm_shuffle_ps(v0, v0, _MM_SHUFFLE(1,1,1,1)), u1);
+    __m128 t2 = _mm_mul_ps(_mm_shuffle_ps(v0, v0, _MM_SHUFFLE(2,2,2,2)), u2);
+    __m128 t3 = _mm_mul_ps(_mm_shuffle_ps(v0, v0, _MM_SHUFFLE(3,3,3,3)), u3);
+    v0 = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
+
+    t0 = _mm_mul_ps(_mm_shuffle_ps(v1, v1, _MM_SHUFFLE(0,0,0,0)), u0);
+    t1 = _mm_mul_ps(_mm_shuffle_ps(v1, v1, _MM_SHUFFLE(1,1,1,1)), u1);
+    t2 = _mm_mul_ps(_mm_shuffle_ps(v1, v1, _MM_SHUFFLE(2,2,2,2)), u2);
+    t3 = _mm_mul_ps(_mm_shuffle_ps(v1, v1, _MM_SHUFFLE(3,3,3,3)), u3);
+    v1 = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
+
+    t0 = _mm_mul_ps(_mm_shuffle_ps(v2, v2, _MM_SHUFFLE(0,0,0,0)), u0);
+    t1 = _mm_mul_ps(_mm_shuffle_ps(v2, v2, _MM_SHUFFLE(1,1,1,1)), u1);
+    t2 = _mm_mul_ps(_mm_shuffle_ps(v2, v2, _MM_SHUFFLE(2,2,2,2)), u2);
+    t3 = _mm_mul_ps(_mm_shuffle_ps(v2, v2, _MM_SHUFFLE(3,3,3,3)), u3);
+    v2 = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
+
+    t0 = _mm_mul_ps(_mm_shuffle_ps(v3, v3, _MM_SHUFFLE(0,0,0,0)), u0);
+    t1 = _mm_mul_ps(_mm_shuffle_ps(v3, v3, _MM_SHUFFLE(1,1,1,1)), u1);
+    t2 = _mm_mul_ps(_mm_shuffle_ps(v3, v3, _MM_SHUFFLE(2,2,2,2)), u2);
+    t3 = _mm_mul_ps(_mm_shuffle_ps(v3, v3, _MM_SHUFFLE(3,3,3,3)), u3);
+    v3 = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
+
+    _mm_storeu_ps((float*)&r[0][0], v0);
+    _mm_storeu_ps((float*)&r[1][0], v1);
+    _mm_storeu_ps((float*)&r[2][0], v2);
+    _mm_storeu_ps((float*)&r[3][0], v3);
+#else
+    r = m1 * m2;
+#endif
+}
 
 #endif // hifi_GLMHelpers_h

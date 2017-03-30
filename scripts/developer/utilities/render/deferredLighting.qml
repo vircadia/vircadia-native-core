@@ -25,7 +25,7 @@ Column {
                      "Lightmap:LightingModel:enableLightmap",
                      "Background:LightingModel:enableBackground",                      
                      "ssao:AmbientOcclusion:enabled",                      
-                     "Textures:LightingModel:enableMaterialTexturing",                      
+                     "Textures:LightingModel:enableMaterialTexturing"                     
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
@@ -45,6 +45,7 @@ Column {
                      "Diffuse:LightingModel:enableDiffuse",
                      "Specular:LightingModel:enableSpecular",
                      "Albedo:LightingModel:enableAlbedo",
+                     "Wireframe:LightingModel:enableWireframe"
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
@@ -159,12 +160,32 @@ Column {
         }
     }
 
-    Row {
+    Column {
         id: metas
         CheckBox {
-            text: "Draw Meta Bounds"
+            text: "Metas"
             checked: Render.getConfig("DrawMetaBounds")["enabled"]
             onCheckedChanged: { Render.getConfig("DrawMetaBounds")["enabled"] = checked }
+        }
+        CheckBox {
+            text: "Opaques"
+            checked: Render.getConfig("DrawOpaqueBounds")["enabled"]
+            onCheckedChanged: { Render.getConfig("DrawOpaqueBounds")["enabled"] = checked }
+        }
+        CheckBox {
+            text: "Transparents"
+            checked: Render.getConfig("DrawTransparentBounds")["enabled"]
+            onCheckedChanged: { Render.getConfig("DrawTransparentBounds")["enabled"] = checked }
+        }
+        CheckBox {
+            text: "Overlay Opaques"
+            checked: Render.getConfig("DrawOverlayOpaqueBounds")["enabled"]
+            onCheckedChanged: { Render.getConfig("DrawOverlayOpaqueBounds")["enabled"] = checked }
+        }
+        CheckBox {
+            text: "Overlay Transparents"
+            checked: Render.getConfig("DrawOverlayTransparentBounds")["enabled"]
+            onCheckedChanged: { Render.getConfig("DrawOverlayTransparentBounds")["enabled"] = checked }
         }
     }
 }

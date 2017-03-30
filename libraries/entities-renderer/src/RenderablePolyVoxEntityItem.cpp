@@ -14,6 +14,7 @@
 #include <QByteArray>
 #include <QtConcurrent/QtConcurrentRun>
 #include <glm/gtx/transform.hpp>
+#include "ModelScriptingInterface.h"
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -53,6 +54,8 @@
 #include "PhysicalEntitySimulation.h"
 
 gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
+gpu::PipelinePointer RenderablePolyVoxEntityItem::_wireframePipeline = nullptr;
+
 const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
 
@@ -73,7 +76,7 @@ const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
   _meshDirty
 
   In RenderablePolyVoxEntityItem::render, these flags are checked and changes are propagated along the chain.
-  decompressVolumeData() is called to decompress _voxelData into _volData.  getMesh() is called to invoke the
+  decompressVolumeData() is called to decompress _voxelData into _volData.  recomputeMesh() is called to invoke the
   polyVox surface extractor to create _mesh (as well as set Simulation _dirtyFlags).  Because Simulation::DIRTY_SHAPE
   is set, isReadyToComputeShape() gets called and _shape is created either from _volData or _shape, depending on
   the surface style.
@@ -81,7 +84,7 @@ const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
   When a script changes _volData, compressVolumeDataAndSendEditPacket is called to update _voxelData and to
   send a packet to the entity-server.
 
-  decompressVolumeData, getMesh, computeShapeInfoWorker, and compressVolumeDataAndSendEditPacket are too expensive
+  decompressVolumeData, recomputeMesh, computeShapeInfoWorker, and compressVolumeDataAndSendEditPacket are too expensive
   to run on a thread that has other things to do.  These use QtConcurrent::run to spawn a thread.  As each thread
   finishes, it adjusts the dirty flags so that the next call to render() will kick off the next step.
 
@@ -401,6 +404,9 @@ bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
     float smallestDimensionSize = voxelSize.x;
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.z);
+    if (smallestDimensionSize <= 0.0f) {
+        return false;
+    }
 
     glm::vec3 maxRadiusInVoxelCoords = glm::vec3(radiusWorldCoords / smallestDimensionSize);
     glm::vec3 centerInVoxelCoords = wtvMatrix * glm::vec4(centerWorldCoords, 1.0f);
@@ -411,21 +417,33 @@ bool RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
     glm::ivec3 lowI = glm::clamp(low, glm::vec3(0.0f), _voxelVolumeSize);
     glm::ivec3 highI = glm::clamp(high, glm::vec3(0.0f), _voxelVolumeSize);
 
+    glm::vec3 radials(radiusWorldCoords / voxelSize.x,
+                      radiusWorldCoords / voxelSize.y,
+                      radiusWorldCoords / voxelSize.z);
+
     // This three-level for loop iterates over every voxel in the volume that might be in the sphere
     withWriteLock([&] {
         for (int z = lowI.z; z < highI.z; z++) {
             for (int y = lowI.y; y < highI.y; y++) {
                 for (int x = lowI.x; x < highI.x; x++) {
-                    // Store our current position as a vector...
-                    glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
-                    // convert to world coordinates
-                    glm::vec3 worldPos = glm::vec3(vtwMatrix * pos);
-                    // compute how far the current position is from the center of the volume
-                    float fDistToCenter = glm::distance(worldPos, centerWorldCoords);
-                    // If the current voxel is less than 'radius' units from the center then we set its value
-                    if (fDistToCenter <= radiusWorldCoords) {
+
+                    // set voxels whose bounding-box touches the sphere
+                    AABox voxelBox(glm::vec3(x - 0.5f, y - 0.5f, z - 0.5f), glm::vec3(1.0f, 1.0f, 1.0f));
+                    if (voxelBox.touchesAAEllipsoid(centerInVoxelCoords, radials)) {
                         result |= setVoxelInternal(x, y, z, toValue);
                     }
+
+                    // TODO -- this version only sets voxels which have centers inside the sphere.  which is best?
+                    // // Store our current position as a vector...
+                    // glm::vec4 pos(x + 0.5f, y + 0.5f, z + 0.5f, 1.0); // consider voxels cenetered on their coordinates
+                    // // convert to world coordinates
+                    // glm::vec3 worldPos = glm::vec3(vtwMatrix * pos);
+                    // // compute how far the current position is from the center of the volume
+                    // float fDistToCenter = glm::distance(worldPos, centerWorldCoords);
+                    // // If the current voxel is less than 'radius' units from the center then we set its value
+                    // if (fDistToCenter <= radiusWorldCoords) {
+                    //     result |= setVoxelInternal(x, y, z, toValue);
+                    // }
                 }
             }
         }
@@ -663,11 +681,8 @@ void RenderablePolyVoxEntityItem::setZTextureURL(QString zTextureURL) {
     }
 }
 
-void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
-    PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
-    assert(getType() == EntityTypes::PolyVox);
-    Q_ASSERT(args->_batch);
 
+bool RenderablePolyVoxEntityItem::updateDependents() {
     bool voxelDataDirty;
     bool volDataDirty;
     withWriteLock([&] {
@@ -677,12 +692,27 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
             _voxelDataDirty = false;
         } else if (_volDataDirty) {
             _volDataDirty = false;
+        } else {
+            _meshReady = true;
         }
     });
     if (voxelDataDirty) {
         decompressVolumeData();
     } else if (volDataDirty) {
-        getMesh();
+        recomputeMesh();
+    }
+
+    return !volDataDirty;
+}
+
+
+void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
+    PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
+    assert(getType() == EntityTypes::PolyVox);
+    Q_ASSERT(args->_batch);
+
+    if (_voxelDataDirty || _volDataDirty) {
+        updateDependents();
     }
 
     model::MeshPointer mesh;
@@ -696,7 +726,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         !mesh->getIndexBuffer()._buffer) {
         return;
     }
-
+    
     if (!_pipeline) {
         gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
         gpu::ShaderPointer pixelShader = gpu::Shader::createPixel(std::string(polyvox_frag));
@@ -715,6 +745,13 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
 
         _pipeline = gpu::Pipeline::create(program, state);
+
+        auto wireframeState = std::make_shared<gpu::State>();
+        wireframeState->setCullMode(gpu::State::CULL_BACK);
+        wireframeState->setDepthTest(true, true, gpu::LESS_EQUAL);
+        wireframeState->setFillMode(gpu::State::FILL_LINE);
+
+        _wireframePipeline = gpu::Pipeline::create(program, wireframeState);
     }
 
     if (!_vertexFormat) {
@@ -725,7 +762,11 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     }
 
     gpu::Batch& batch = *args->_batch;
-    batch.setPipeline(_pipeline);
+
+    // Pick correct Pipeline
+    bool wireframe = (render::ShapeKey(args->_globalShapeKey).isWireframe());
+    auto pipeline = (wireframe ? _wireframePipeline : _pipeline);
+    batch.setPipeline(pipeline);
 
     Transform transform(voxelToWorldMatrix());
     batch.setModelTransform(transform);
@@ -733,6 +774,12 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer()._buffer,
                          0,
                          sizeof(PolyVox::PositionMaterialNormal));
+
+    // TODO -- should we be setting this?
+    // batch.setInputBuffer(gpu::Stream::NORMAL, mesh->getVertexBuffer()._buffer,
+    //                      12,
+    //                      sizeof(PolyVox::PositionMaterialNormal));
+
 
     batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
 
@@ -762,7 +809,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         batch.setResourceTexture(2, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
 
-    int voxelVolumeSizeLocation = _pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
+    int voxelVolumeSizeLocation = pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
     batch._glUniform3f(voxelVolumeSizeLocation, voxelVolumeSize.x, voxelVolumeSize.y, voxelVolumeSize.z);
 
     batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)mesh->getNumIndices(), 0);
@@ -1199,7 +1246,7 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
     }
 }
 
-void RenderablePolyVoxEntityItem::getMesh() {
+void RenderablePolyVoxEntityItem::recomputeMesh() {
     // use _volData to make a renderable mesh
     PolyVoxSurfaceStyle voxelSurfaceStyle;
     withReadLock([&] {
@@ -1252,29 +1299,41 @@ void RenderablePolyVoxEntityItem::getMesh() {
         auto indexBuffer = std::make_shared<gpu::Buffer>(vecIndices.size() * sizeof(uint32_t),
                                                          (gpu::Byte*)vecIndices.data());
         auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
-        gpu::BufferView indexBufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
+        gpu::BufferView indexBufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::INDEX));
         mesh->setIndexBuffer(indexBufferView);
 
-        const std::vector<PolyVox::PositionMaterialNormal>& vecVertices = polyVoxMesh.getVertices();
+        const std::vector<PolyVox::PositionMaterialNormal>& vecVertices = polyVoxMesh.getRawVertexData();
         auto vertexBuffer = std::make_shared<gpu::Buffer>(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
                                                           (gpu::Byte*)vecVertices.data());
         auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
         gpu::BufferView vertexBufferView(vertexBufferPtr, 0,
                                          vertexBufferPtr->getSize(),
                                          sizeof(PolyVox::PositionMaterialNormal),
-                                         gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
+                                         gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
         mesh->setVertexBuffer(vertexBufferView);
+
+
+        // TODO -- use 3-byte normals rather than 3-float normals
         mesh->addAttribute(gpu::Stream::NORMAL,
-                           gpu::BufferView(vertexBufferPtr, sizeof(float) * 3,
-                                           vertexBufferPtr->getSize() ,
+                           gpu::BufferView(vertexBufferPtr,
+                                           sizeof(float) * 3, // polyvox mesh is packed: position, normal, material
+                                           vertexBufferPtr->getSize(),
                                            sizeof(PolyVox::PositionMaterialNormal),
-                                           gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+                                           gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
+
+        std::vector<model::Mesh::Part> parts;
+        parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
+                                             (model::Index)vecIndices.size(), // numIndices
+                                             (model::Index)0, // baseVertex
+                                             model::Mesh::TRIANGLES)); // topology
+        mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+                                                            (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
         entity->setMesh(mesh);
     });
 }
 
 void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
-    // this catches the payload from getMesh
+    // this catches the payload from recomputeMesh
     bool neighborsNeedUpdate;
     withWriteLock([&] {
         if (!_collisionless) {
@@ -1282,7 +1341,7 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
         }
         _mesh = mesh;
         _meshDirty = true;
-        _meshInitialized = true;
+        _meshReady = true;
         neighborsNeedUpdate = _neighborsNeedUpdate;
         _neighborsNeedUpdate = false;
     });
@@ -1294,7 +1353,7 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
 void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
     // this creates a collision-shape for the physics engine.  The shape comes from
     // _volData for cubic extractors and from _mesh for marching-cube extractors
-    if (!_meshInitialized) {
+    if (!_meshReady) {
         return;
     }
 
@@ -1531,7 +1590,6 @@ std::shared_ptr<RenderablePolyVoxEntityItem> RenderablePolyVoxEntityItem::getZPN
     return std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(_zPNeighbor.lock());
 }
 
-
 void RenderablePolyVoxEntityItem::bonkNeighbors() {
     // flag neighbors to the negative of this entity as needing to rebake their meshes.
     cacheNeighbors();
@@ -1551,7 +1609,6 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
     }
 }
 
-
 void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     EntityItem::locationChanged(tellPhysics);
     if (!_pipeline || !render::Item::isValidID(_myItem)) {
@@ -1562,4 +1619,33 @@ void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     pendingChanges.updateItem<PolyVoxPayload>(_myItem, [](PolyVoxPayload& payload) {});
 
     scene->enqueuePendingChanges(pendingChanges);
+}
+
+bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
+    if (!updateDependents()) {
+        return false;
+    }
+
+    bool success = false;
+    MeshProxy* meshProxy = nullptr;
+    glm::mat4 transform = voxelToLocalMatrix();
+    withReadLock([&] {
+        gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
+        if (!_meshReady) {
+            // we aren't ready to return a mesh.  the caller will have to try again later.
+            success = false;
+        } else if (numVertices == 0) {
+            // we are ready, but there are no triangles in the mesh.
+            success = true;
+        } else {
+            success = true;
+            // the mesh will be in voxel-space.  transform it into object-space
+            meshProxy = new MeshProxy(
+                _mesh->map([=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+                           [=](glm::vec3 normal){ return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
+                           [&](uint32_t index){ return index; }));
+            result << meshProxy;
+        }
+    });
+    return success;
 }

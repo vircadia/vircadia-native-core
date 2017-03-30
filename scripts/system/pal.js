@@ -248,12 +248,16 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         }
         break;
     case 'refresh':
+        data = {};
+        ExtendedOverlay.some(function (overlay) { // capture the audio data
+            data[overlay.key] = overlay;
+        });
         removeOverlays();
         // If filter is specified from .qml instead of through settings, update the settings.
         if (message.params.filter !== undefined) {
             Settings.setValue('pal/filtered', !!message.params.filter);
         }
-        populateUserList(message.params.selected);
+        populateUserList(message.params.selected, data);
         UserActivityLogger.palAction("refresh", "");
         break;
     case 'displayNameUpdate':
@@ -285,7 +289,7 @@ function addAvatarNode(id) {
 }
 // Each open/refresh will capture a stable set of avatarsOfInterest, within the specified filter.
 var avatarsOfInterest = {};
-function populateUserList(selectData) {
+function populateUserList(selectData, oldAudioData) {
     var filter = Settings.getValue('pal/filtered') && {distance: Settings.getValue('pal/nearDistance')};
     var data = [], avatars = AvatarList.getAvatarIdentifiers();
     avatarsOfInterest = {};
@@ -294,7 +298,7 @@ function populateUserList(selectData) {
         verticalHalfAngle = filter && (frustum.fieldOfView / 2),
         horizontalHalfAngle = filter && (verticalHalfAngle * frustum.aspectRatio),
         orientation = filter && Camera.orientation,
-        front = filter && Quat.getFront(orientation),
+        forward = filter && Quat.getForward(orientation),
         verticalAngleNormal = filter && Quat.getRight(orientation),
         horizontalAngleNormal = filter && Quat.getUp(orientation);
     avatars.forEach(function (id) { // sorting the identifiers is just an aid for debugging
@@ -312,17 +316,18 @@ function populateUserList(selectData) {
             return;
         }
         var normal = id && filter && Vec3.normalize(Vec3.subtract(avatar.position, myPosition));
-        var horizontal = normal && angleBetweenVectorsInPlane(normal, front, horizontalAngleNormal);
-        var vertical = normal && angleBetweenVectorsInPlane(normal, front, verticalAngleNormal);
+        var horizontal = normal && angleBetweenVectorsInPlane(normal, forward, horizontalAngleNormal);
+        var vertical = normal && angleBetweenVectorsInPlane(normal, forward, verticalAngleNormal);
         if (id && filter && ((Math.abs(horizontal) > horizontalHalfAngle) || (Math.abs(vertical) > verticalHalfAngle))) {
             return;
         }
+        var oldAudio = oldAudioData && oldAudioData[id];
         var avatarPalDatum = {
             displayName: name,
             userName: '',
             sessionId: id || '',
-            audioLevel: 0.0,
-            avgAudioLevel: 0.0,
+            audioLevel: (oldAudio && oldAudio.audioLevel) || 0.0,
+            avgAudioLevel: (oldAudio && oldAudio.avgAudioLevel) || 0.0,
             admin: false,
             personalMute: !!id && Users.getPersonalMuteStatus(id), // expects proper boolean, not null
             ignore: !!id && Users.getIgnoreStatus(id) // ditto
@@ -691,6 +696,9 @@ function clearLocalQMLDataAndClosePAL() {
 }
 
 function shutdown() {
+    if (onPalScreen) {
+        tablet.gotoHomeScreen();
+    }
     button.clicked.disconnect(onTabletButtonClicked);
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);

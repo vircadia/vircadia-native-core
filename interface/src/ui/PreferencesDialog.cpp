@@ -102,11 +102,19 @@ void setupPreferences() {
         auto setter = [](bool value) { qApp->setHmdTabletBecomesToolbarSetting(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "HMD Tablet Becomes Toolbar", getter, setter));
     }
-    {
+    // TODO
+    // Note: If this code is added back, you must remove the line "setTabletVisibleToOthersSetting(false)" from Application::loadSettings()
+    /*{
         auto getter = []()->bool { return qApp->getTabletVisibleToOthersSetting(); };
         auto setter = [](bool value) { qApp->setTabletVisibleToOthersSetting(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Tablet Is Visible To Others", getter, setter));
+        }*/
+    {
+        auto getter = []()->bool { return qApp->getPreferAvatarFingerOverStylus(); };
+        auto setter = [](bool value) { qApp->setPreferAvatarFingerOverStylus(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
     }
+
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
     {

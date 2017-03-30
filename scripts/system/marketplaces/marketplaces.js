@@ -19,6 +19,7 @@ var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
 var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
+var MARKETPLACES_INJECT_NO_SCROLLBAR_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInjectNoScrollbar.js");
 
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -59,7 +60,13 @@ function showMarketplace() {
     UserActivityLogger.openedMarketplace();
 
     shouldActivateButton = true;
-    tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+
+    // by default the marketplace should NOT have a scrollbar, except when tablet is in toolbar mode.
+    var injectURL = MARKETPLACES_INJECT_NO_SCROLLBAR_SCRIPT_URL;
+    if (tablet.toolbarMode) {
+        injectURL = MARKETPLACES_INJECT_SCRIPT_URL;
+    }
+    tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, injectURL);
     onMarketplaceScreen = true;
 
     tablet.webEventReceived.connect(function (message) {
@@ -121,6 +128,7 @@ function onClick() {
     if (onMarketplaceScreen) {
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
+        onMarketplaceScreen = false;
     } else {
         var entity = HMD.tabletID;
         Entities.editEntity(entity, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
@@ -140,6 +148,9 @@ tablet.screenChanged.connect(onScreenChanged);
 Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
 
 Script.scriptEnding.connect(function () {
+    if (onMarketplaceScreen) {
+        tablet.gotoHomeScreen();
+    }
     tablet.removeButton(marketplaceButton);
     tablet.screenChanged.disconnect(onScreenChanged);
     Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);

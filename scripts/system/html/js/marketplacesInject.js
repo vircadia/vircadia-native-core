@@ -26,6 +26,8 @@
     var xmlHttpRequest = null;
     var isPreparing = false;  // Explicitly track download request status.
 
+    var lastPage = "https://metaverse.highfidelity.com/marketplace?";
+
     function injectCommonCode(isDirectoryPage) {
 
         // Supporting styles from marketplaces.css.
@@ -65,7 +67,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            window.history.back();
+            window.location = lastPage;
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -342,7 +344,12 @@
         }
     }
 
+    function locationChanged() {
+        lastPage = location.href;
+    }
+
     // Load / unload.
     window.addEventListener("load", onLoad);  // More robust to Web site issues than using $(document).ready().
+    window.addEventListener("hashchange", locationChanged);
 
 }());

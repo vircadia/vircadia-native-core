@@ -210,6 +210,7 @@ public:
 
     void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
+    void computeExternalPoses(const glm::mat4& modelOffsetMat);
 
     void computeAvatarBoundingCapsule(const FBXGeometry& geometry, float& radiusOut, float& heightOut, glm::vec3& offsetOut) const;
 
@@ -217,6 +218,8 @@ public:
     void setEnableAnimations(bool enable);
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
+
+    void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
 
 signals:
     void onLoadComplete();
@@ -266,7 +269,7 @@ protected:
     int _rightElbowJointIndex { -1 };
     int _rightShoulderJointIndex { -1 };
 
-    glm::vec3 _lastFront;
+    glm::vec3 _lastForward;
     glm::vec3 _lastPosition;
     glm::vec3 _lastVelocity;
 
@@ -323,7 +326,8 @@ protected:
 
     mutable uint32_t _jointNameWarningCount { 0 };
     float _maxHipsOffsetLength { 1.0f };
-    float _maxErrorOnLastSolve { 0.0f };
+
+    bool _enableDebugDrawIKTargets { false };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

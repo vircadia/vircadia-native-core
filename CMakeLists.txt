@@ -30,6 +30,8 @@ project(hifi)
 add_definitions(-DGLM_FORCE_RADIANS)
 set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
+find_package( Threads )
+
 if (WIN32)
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
 
@@ -205,6 +207,17 @@ file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
   include(${CUSTOM_MACRO})
 endforeach()
+
+file(GLOB_RECURSE JS_SRC scripts/*.js)
+add_custom_target(js SOURCES ${JS_SRC})
+
+if (UNIX)
+   install(
+   DIRECTORY "${CMAKE_SOURCE_DIR}/scripts"
+   DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/interface
+   COMPONENT ${CLIENT_COMPONENT}
+   )
+endif()
 
 if (ANDROID)
   file(GLOB ANDROID_CUSTOM_MACROS "cmake/android/*.cmake")

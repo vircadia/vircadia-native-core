@@ -94,11 +94,13 @@ var NotificationType = {
     LOD_WARNING: 2,
     CONNECTION_REFUSED: 3,
     EDIT_ERROR: 4,
+    TABLET: 5,
     properties: [
         { text: "Snapshot" },
         { text: "Level of Detail" },
         { text: "Connection Refused" },
-        { text: "Edit error" }
+        { text: "Edit error" },
+        { text: "Tablet" }
     ],
     getTypeFromMenuItem: function(menuItemName) {
         if (menuItemName.substr(menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length) !== NOTIFICATION_MENU_ITEM_POST) {
@@ -521,6 +523,9 @@ function onEditError(msg) {
     createNotification(wordWrap(msg), NotificationType.EDIT_ERROR);
 }
 
+function onNotify(msg) {
+    createNotification(wordWrap(msg), NotificationType.UNKNOWN); // Needs a generic notification system for user feedback, thus using this
+}
 
 function onSnapshotTaken(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     if (notify) {
@@ -530,6 +535,10 @@ function onSnapshotTaken(pathStillSnapshot, pathAnimatedSnapshot, notify) {
         };
         createNotification(wordWrap("Snapshot saved to " + pathStillSnapshot), NotificationType.SNAPSHOT, imageProperties);
     }
+}
+
+function tabletNotification() {
+    createNotification("Tablet needs your attention", NotificationType.TABLET);
 }
 
 function processingGif() {
@@ -637,7 +646,8 @@ Window.domainConnectionRefused.connect(onDomainConnectionRefused);
 Window.snapshotTaken.connect(onSnapshotTaken);
 Window.processingGif.connect(processingGif);
 Window.notifyEditError = onEditError;
-
+Window.notify = onNotify;
+Tablet.tabletNotification.connect(tabletNotification);
 setup();
 
 }()); // END LOCAL_SCOPE

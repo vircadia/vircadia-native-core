@@ -228,7 +228,8 @@ void KinectPlugin::init() {
     {
         auto getter = [this]()->bool { return _enabled; };
         auto setter = [this](bool value) { 
-            _enabled = value; saveSettings(); 
+            _enabled = value; 
+            saveSettings(); 
             if (!_enabled) {
                 auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
                 userInputMapper->withLock([&, this]() {
@@ -237,6 +238,15 @@ void KinectPlugin::init() {
             }
         };
         auto preference = new CheckPreference(KINECT_PLUGIN, "Enabled", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto debugGetter = [this]()->bool { return _debug; };
+        auto debugSetter = [this](bool value) {
+            _debug = value;
+            saveSettings();
+        };
+        auto preference = new CheckPreference(KINECT_PLUGIN, "Extra Debugging", debugGetter, debugSetter);
         preferences->addPreference(preference);
     }
 }
@@ -389,37 +399,110 @@ void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
 
                     if (SUCCEEDED(hr)) {
                         auto jointCount = _countof(joints);
-                        //qDebug() << __FUNCTION__ << "nBodyCount:" << nBodyCount << "body:" << i << "jointCount:" << jointCount;
+                        if (_debug) {
+                            qDebug() << __FUNCTION__ << "nBodyCount:" << bodyCount << "body:" << i << "jointCount:" << jointCount;
+                        }
+                        
                         for (int j = 0; j < jointCount; ++j) {
-                            //QString jointName = kinectJointNames[joints[j].JointType];
 
                             glm::vec3 jointPosition { joints[j].Position.X,
                                                       joints[j].Position.Y,
                                                       joints[j].Position.Z };
 
-                            // Kinect Documentation is unclear on what these orientations are, are they absolute? 
-                            // or are the relative to the parent bones. It appears as if it has changed between the
-                            // older 1.x SDK and the 2.0 sdk
-                            //
-                            // https://social.msdn.microsoft.com/Forums/en-US/31c9aff6-7dab-433d-9af9-59942dfd3d69/kinect-v20-preview-sdk-jointorientation-vs-boneorientation?forum=kinectv2sdk
-                            // seems to suggest these are absolute...
-                            //    "These quaternions are absolute, so you can take a mesh in local space, transform it by the quaternion, 
-                            //    and it will match the exact orientation of the bone.  If you want relative orientation quaternion, you 
-                            //    can multiply the absolute quaternion by the inverse of the parent joint's quaternion."
-                            //
-                            //  - Bone direction(Y green) - always matches the skeleton.
-                            //  - Normal(Z blue) - joint roll, perpendicular to the bone
-                            //  - Binormal(X orange) - perpendicular to the bone and normal
-
-                            glm::quat jointOrientation { jointOrientations[j].Orientation.x,
+                            // This is the rotation in the kinect camera/sensor frame... we adjust that in update...
+                            // NOTE: glm::quat(W!!!, x, y, z)... not (x,y,z,w)!!!
+                            glm::quat jointOrientation { jointOrientations[j].Orientation.w,
+                                                         jointOrientations[j].Orientation.x,
                                                          jointOrientations[j].Orientation.y,
-                                                         jointOrientations[j].Orientation.z,
-                                                         jointOrientations[j].Orientation.w };
+                                                         jointOrientations[j].Orientation.z };
+
+                            if (_debug) {
+                                QString jointName = kinectJointNames[joints[j].JointType];
+                                qDebug() << __FUNCTION__ << "joint[" << j << "]:" << jointName
+                                        << "position:" << jointPosition
+                                        << "orientation:" << jointOrientation
+                                        << "isTracked:" << (joints[j].TrackingState != TrackingState_NotTracked);
+                            }
 
                             // filling in the _joints data...
                             if (joints[j].TrackingState != TrackingState_NotTracked) {
                                 _joints[j].position = jointPosition;
+
+                                // Kinect Documentation...
+                                //
+                                // https://social.msdn.microsoft.com/Forums/en-US/31c9aff6-7dab-433d-9af9-59942dfd3d69/kinect-v20-preview-sdk-jointorientation-vs-boneorientation?forum=kinectv2sdk
+                                // seems to suggest these are absolute...
+                                //    "These quaternions are absolute, so you can take a mesh in local space, transform it by the quaternion, 
+                                //    and it will match the exact orientation of the bone.  If you want relative orientation quaternion, you 
+                                //    can multiply the absolute quaternion by the inverse of the parent joint's quaternion."
+                                //
+                                // This is consistent with our findings, but does not include "enough information"
+                                //  - Bone direction(Y green) - always matches the skeleton.
+                                //  - Normal(Z blue) - joint roll, perpendicular to the bone
+                                //  - Binormal(X orange) - perpendicular to the bone and normal
+
+                                // NOTE: Common notation of vectors on paper...
+                                //     (+) is the back of the arrow - this vector is pointing into the page
+                                //     (o) is the point of the arrow - this vector is pointing out of the page
+                                //
+
+                                // From ABOVE the kinect coordinate frame looks like this:
+                                //
+                                //   Assuming standing facing the kinect camera
+                                //   Right Hand with fingers pointing up (green/y)
+                                //                   thumb pointing behind body (blue/z)
+                                //                   palm facing the head (point out back of my hand, red/x)
+                                //
+                                //   The identity rotation relative to the cameras frame... (the joint data from SDK)
+                                //
+                                //              y        | | | |
+                                //              |        | | | |
+                                //              |        |     |
+                                //        z----(o)     \ |right|
+                                //                x     \_     |
+                                //                        |   |
+                                //                        |   |
+                                //  
+                                //   Expected... identity rotation for left hand..... [to be verified]
+                                //   Left Hand with fingers pointing up (green/y)
+                                //                   thumb pointing forward (blue/z)
+                                //                   palm facing outward away from head (point out back of my hand, red/x)
+                                //
+                                // Our desired coordinate system... 
+                                //     "the local coordinate of the palm in our system"...
+                                //
+                                // From ABOVE the hand canonical axes look like this:
+                                //
+                                //
+                                //      | | | |          y        | | | |
+                                //      | | | |          |        | | | |
+                                //      |     |          |        |     |
+                                //      |left | /  x----(+)     \ |right|
+                                //      |     _/           z     \_     |
+                                //       |   |                     |   |
+                                //       |   |                     |   |
+                                //
+                                // Right hand rule... make the hitch hiking sign...
+                                //     thumb points in direction of the axis you want to rotate around
+                                //     fisted fingers curl in positive rotation direction....
+                                //
+                                // To transform from Kinect to our RIGHT Hand.... Negative 90 deg around Y
+                                // 
+                                // FIXME -- Double check if JointType_HandRight vs JointType_WristRight is actually 
+                                //          the joint we want to be using!!
+                                // 
                                 //_joints[j].orientation = jointOrientation;
+                                if (joints[j].JointType == JointType_HandRight) {
+                                    static const quat kinectToHandRight = glm::angleAxis(-PI / 2.0f, Vectors::UNIT_Y);
+                                    _joints[j].orientation = jointOrientation * kinectToHandRight;
+                                }  else if (joints[j].JointType == JointType_HandLeft) {
+                                    // To transform from Kinect to our LEFT  Hand.... Postive 90 deg around Y
+                                    static const quat kinectToHandLeft = glm::angleAxis(PI / 2.0f, Vectors::UNIT_Y);
+                                    _joints[j].orientation = jointOrientation * kinectToHandLeft;
+                                } else {
+                                    _joints[j].orientation = jointOrientation;
+                                }
+
                             }
                         }
                     }
@@ -482,6 +565,7 @@ void KinectPlugin::saveSettings() const {
     settings.beginGroup(idString);
     {
         settings.setValue(QString("enabled"), _enabled);
+        settings.setValue(QString("extraDebug"), _debug);
     }
     settings.endGroup();
 }
@@ -491,8 +575,8 @@ void KinectPlugin::loadSettings() {
     QString idString = getID();
     settings.beginGroup(idString);
     {
-        // enabled
         _enabled = settings.value("enabled", QVariant(DEFAULT_ENABLED)).toBool();
+        _debug = settings.value("extraDebug", QVariant(DEFAULT_ENABLED)).toBool();
     }
     settings.endGroup();
 }
@@ -541,8 +625,8 @@ void KinectPlugin::InputDevice::update(float deltaTime, const controller::InputC
             continue;
         }
 
-        // FIXME - determine the correct orientation transform
-        glm::quat rot = joints[i].orientation;
+        // Note: we want our rotations presenting in the AVATAR frame, so we need to adjust that here.
+        glm::quat rot = controllerToAvatarRotation * joints[i].orientation;
 
         if (i < prevJoints.size()) {
             linearVel = (pos - (prevJoints[i].position * METERS_PER_CENTIMETER)) / deltaTime;  // m/s

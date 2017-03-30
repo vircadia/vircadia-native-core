@@ -431,7 +431,9 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
                                                           thisFace, thisSurfaceNormal, thisExtraInfo)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
-                if (thisDistance < bestDistance && (!bestIsFront || isDrawInFront)) {
+                if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
+                    || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {
+
                     bestIsFront = isDrawInFront;
                     bestDistance = thisDistance;
                     result.intersects = true;
@@ -711,10 +713,9 @@ PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay r
     auto dimensions = thisOverlay->getSize();
 
     glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
-    PointerEvent pointerEvent(eventType, MOUSE_POINTER_ID,
-        pos2D, rayPickResult.intersection,
-        rayPickResult.surfaceNormal, ray.direction,
-        toPointerButton(*event), toPointerButtons(*event));
+
+    PointerEvent pointerEvent(eventType, MOUSE_POINTER_ID, pos2D, rayPickResult.intersection, rayPickResult.surfaceNormal,
+                              ray.direction, toPointerButton(*event), toPointerButtons(*event), event->modifiers());
 
     return pointerEvent;
 }
@@ -766,6 +767,26 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
         }
     }
     emit mousePressOffOverlay();
+    return false;
+}
+
+bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
+    if (rayPickResult.intersects) {
+        _currentClickingOnOverlayID = rayPickResult.overlayID;
+
+        // Only Web overlays can have focus.
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
+        if (thisOverlay) {
+            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Press);
+            emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
+            return true;
+        }
+    }
+    emit mouseDoublePressOffOverlay();
     return false;
 }
 
