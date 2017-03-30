@@ -45,11 +45,22 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
 
     // If the object hasn't been created, or the object definition is out of date, drop and re-create
     GL41Texture* object = Backend::getGPUObject<GL41Texture>(texture);
+
     if (!object || object->_storageStamp < texture.getStamp()) {
         // This automatically any previous texture
         object = new GL41Texture(shared_from_this(), texture);
-    }
+        object->withPreservedTexture([&] {
+            if (object->_contentStamp <= texture.getDataStamp()) {
+                // FIXME implement synchronous texture transfer here
+                object->syncContent();
+            }
 
+            if (object->_samplerStamp <= texture.getSamplerStamp()) {
+                object->syncSampler();
+            }
+        });
+    }
+    /*
     // FIXME internalize to GL41Texture 'sync' function
     if (object->isOutdated()) {
         object->withPreservedTexture([&] {
@@ -62,7 +73,7 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
                 object->syncSampler();
             }
         });
-    }
+    }*/
 
     return object;
 }
@@ -93,6 +104,13 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
                 ++face;
             }
         }
+        glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(_target, GL_TEXTURE_MAX_LEVEL, numMips - 1);
+
+        if (texture.isAutogenerateMips()) {
+            glGenerateMipmap(_target);
+            (void)CHECK_GL_ERROR();
+        }
     });
 }
 
@@ -111,6 +129,7 @@ bool GL41Texture::isOutdated() const {
 }
 
 void GL41Texture::withPreservedTexture(std::function<void()> f) const {
+    GLint transferUnit = 32;
     GLint boundTex = -1;
     switch (_target) {
         case GL_TEXTURE_2D:
@@ -126,9 +145,12 @@ void GL41Texture::withPreservedTexture(std::function<void()> f) const {
     }
     (void)CHECK_GL_ERROR();
 
+    glActiveTexture(GL_TEXTURE0 + transferUnit);
+    (void)CHECK_GL_ERROR();
+
     glBindTexture(_target, _texture);
     f();
-    glBindTexture(_target, boundTex);
+    glBindTexture(_target, 0);
     (void)CHECK_GL_ERROR();
 }
 
