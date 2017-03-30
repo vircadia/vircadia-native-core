@@ -334,6 +334,7 @@ public slots:
     void toggleEntityScriptServerLogDialog();
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
+    Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
 
     void showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const;
 

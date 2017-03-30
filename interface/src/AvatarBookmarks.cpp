@@ -41,10 +41,6 @@ void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
 
     Bookmarks::setupMenus(menubar, menu);
     Bookmarks::sortActions(menubar, _bookmarksMenu);
-
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto context = offscreenUi->getRootContext();
-    context->setContextProperty("avatarBookmarks", this);
 }
 
 void AvatarBookmarks::changeToBookmarkedAvatar() {

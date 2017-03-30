@@ -86,7 +86,7 @@ Preference {
                 bottom: parent.bottom
                 rightMargin: hifi.dimensions.contentSpacing.x
             }
-            onClickedQueued: avatarBookmarks.addBookmark()
+            onClickedQueued: ApplicationInterface.loadAddAvatarBookmarkDialog()
         }
 
         Button {

@@ -12,10 +12,12 @@
 #ifndef hifi_AvatarBookmarks_h
 #define hifi_AvatarBookmarks_h
 
+#include <DependencyManager.h>
 #include "Bookmarks.h"
 
-class AvatarBookmarks: public Bookmarks {
+class AvatarBookmarks: public Bookmarks, public  Dependency {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
 
 public:
     AvatarBookmarks();

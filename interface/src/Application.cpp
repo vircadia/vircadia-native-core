@@ -59,6 +59,7 @@
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
+#include <AvatarBookmarks.h>
 #include <CursorManager.h>
 #include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
@@ -522,6 +523,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<EntityScriptClient>();
     DependencyManager::set<EntityScriptServerLogClient>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
+    DependencyManager::set<AvatarBookmarks>();
     return previousSessionCrashed;
 }
 
@@ -2000,6 +2002,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    rootContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
 
     // Caches
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -5481,6 +5484,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
+    scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -6352,7 +6356,6 @@ void Application::loadLODToolsDialog() {
     } else {
         tablet->pushOntoStack("../../hifi/dialogs/TabletLODTools.qml");
     }
-
 }
 
 
@@ -6400,6 +6403,11 @@ void Application::toggleEntityScriptServerLogDialog() {
     } else {
         _entityScriptServerLogDialog->show();
     }
+}
+
+void Application::loadAddAvatarBookmarkDialog() const {
+    auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
+    avatarBookmarks->addBookmark();
 }
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
