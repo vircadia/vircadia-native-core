@@ -473,8 +473,8 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 					// Create a new FBXMesh for this material mapping.
 					materialMeshIdMap.insert(face.materialName, materialMeshIdMap.count());
 
-					FBXMesh& meshNew = geometry.meshes[0];
-					meshNew.meshIndex = 0;
+					FBXMesh meshNew = geometry.meshes[0];
+					meshNew.meshIndex = fbxMeshes.count();
 					meshNew.clusters.append(cluster);
 
 					// Add this mesh part to the mesh.
