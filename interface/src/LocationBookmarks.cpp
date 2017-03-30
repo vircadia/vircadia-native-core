@@ -83,9 +83,6 @@ void LocationBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, co
         menubar->addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, name, 0, QAction::NoRole);
     } else {
         // TODO: this is aggressive but other alternatives have proved less fruitful so far.
-
-        //menubar->addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, name, 0, QAction::NoRole, 
-        //Bookmarks::getMenuItemLocation(_bookmarksMenu->actions(), name));
         menubar->addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction, name, 0, QAction::NoRole);
         Bookmarks::sortActions(menubar, _bookmarksMenu);
     }

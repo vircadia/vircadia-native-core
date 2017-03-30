@@ -123,15 +123,9 @@ void Bookmarks::sortActions(Menu* menubar, MenuWrapper* menu) {
     qSort(actions.begin(), actions.end(), sortOrder);
     for (QAction* action : menu->actions()) {
         menu->removeAction(action);
-        //removeBookmarkFromMenu(menubar, action->text());
     }
     for (QAction* action : actions) {
         menu->addAction(action);
-//        for (int i = 0; i <  _bookmarks.size() ; i++) {
-//            if (_bookmarks.keys().at(i) == action->text()) {
-//                addBookmarkToMenu(menubar, action->text(), _bookmarks.values().at(i).toString());
-//            }
-//        }
     }
     _isMenuSorted = true;
 }
