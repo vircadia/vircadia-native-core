@@ -14,7 +14,6 @@
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QQmlContext>
-//#include <QQmlEngine>
 
 #include <Application.h>
 #include <OffscreenUi.h>

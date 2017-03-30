@@ -40,7 +40,6 @@ protected:
     int getMenuItemLocation(QList<QAction*> actions, const QString& name) const;
 
     QVariantMap _bookmarks;  // { name: url, ... }
-    //QSharedPointer<MenuWrapper> _bookmarksMenu;
     QPointer<MenuWrapper> _bookmarksMenu;
     QPointer<QAction> _deleteBookmarksAction;
     QString _bookmarksFilename;

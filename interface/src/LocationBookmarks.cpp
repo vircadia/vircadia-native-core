@@ -13,7 +13,6 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QStandardPaths>
-//#include <QQmlEngine>
 
 #include <AddressManager.h>
 #include <Application.h>
