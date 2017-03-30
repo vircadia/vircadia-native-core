@@ -29,8 +29,8 @@ Rectangle {
     // Style
     color: "#E3E3E3";
     // Properties
-    property int myCardWidth: palContainer.width - upperRightInfoContainer.width;
-    property int myCardHeight: 82;
+    property int myCardWidth: width - upperRightInfoContainer.width;
+    property int myCardHeight: 80;
     property int rowHeight: 60;
     property int actionButtonWidth: 55;
     property int locationColumnWidth: 170;
@@ -43,6 +43,7 @@ Rectangle {
     property bool iAmAdmin: false;
     property var activeTab: "nearbyTab";
     property bool currentlyEditingDisplayName: false
+    property bool punctuationMode: false;
 
     HifiConstants { id: hifi; }
 
@@ -99,94 +100,6 @@ Rectangle {
         pal.sendToScript({method: 'refreshNearby', params: params});
     }
 
-    // This is the container for the PAL
-    Rectangle {
-        property bool punctuationMode: false;
-        id: palContainer;
-        // Size
-        width: pal.width - 10;
-        height: pal.height - 10;
-        // Style
-        color: "white";
-        // Anchors
-        anchors.centerIn: pal;
-
-        // This contains the current user's NameCard and will contain other information in the future
-        Rectangle {
-            id: myInfo;
-            // Size
-            width: palContainer.width;
-            height: myCardHeight;
-            // Style
-            color: pal.color;
-            // Anchors
-            anchors.top: palContainer.top;
-            // This NameCard refers to the current user's NameCard (the one above the nearbyTable)
-            NameCard {
-                id: myCard;
-                // Properties
-                profileUrl: myData.profileUrl;
-                displayName: myData.displayName;
-                userName: myData.userName;
-                audioLevel: myData.audioLevel;
-                avgAudioLevel: myData.avgAudioLevel;
-                isMyCard: true;
-                isPresent: true;
-                // Size
-                width: myCardWidth;
-                height: parent.height;
-                // Anchors
-                anchors.top: parent.top
-                anchors.left: parent.left;
-            }
-            Item {
-                id: upperRightInfoContainer;
-                width: 160;
-                height: parent.height;
-                anchors.top: parent.top;
-                anchors.right: parent.right;
-                
-                RalewayRegular {
-                    id: availabilityText;
-                    text: "set availability";
-                    // Text size
-                    size: hifi.fontSizes.tabularData;
-                    // Anchors
-                    anchors.top: availabilityComboBox.bottom;
-                    anchors.horizontalCenter: parent.horizontalCenter;
-                    // Style
-                    color: hifi.colors.baseGrayHighlight;
-                    // Alignment
-                    horizontalAlignment: Text.AlignHCenter;
-                    verticalAlignment: Text.AlignTop;
-                }
-                HifiControlsUit.TabletComboBox {
-                    function determineAvailabilityIndex() {
-                        return ['all', 'connections', 'friends', 'none'].indexOf(GlobalServices.findableBy)
-                     }
-                    id: availabilityComboBox;
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.horizontalCenter: parent.horizontalCenter;
-                    // Size
-                    width: parent.width;
-                    height: 40;
-                    currentIndex: determineAvailabilityIndex();
-                    model: ListModel {
-                        id: availabilityComboBoxListItems
-                        ListElement { text: "Everyone"; value: "all"; }
-                        ListElement { text: "All Connections"; value: "connections"; }
-                        ListElement { text: "Friends Only"; value: "friends"; }
-                        ListElement { text: "Appear Offline"; value: "none" }
-                    }
-                    onCurrentIndexChanged: {
-                        GlobalServices.findableBy = availabilityComboBoxListItems.get(currentIndex).value;
-                        UserActivityLogger.palAction("set_availability", availabilityComboBoxListItems.get(currentIndex).value);
-                        print('Setting availability:', JSON.stringify(GlobalServices.findableBy));
-                    }
-                }
-            }
-        }
     Item {
         id: palTabContainer;
         // Anchors
@@ -214,7 +127,7 @@ Rectangle {
                 }
                 width: parent.width/2;
                 height: parent.height;
-                color: activeTab == "nearbyTab" ? palContainer.color : "#CCCCCC";
+                color: activeTab == "nearbyTab" ? "white" : "#CCCCCC";
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: {
@@ -287,7 +200,7 @@ Rectangle {
                 }
                 width: parent.width/2;
                 height: parent.height;
-                color: activeTab == "connectionsTab" ? palContainer.color : "#CCCCCC";
+                color: activeTab == "connectionsTab" ? "white" : "#CCCCCC";
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: { 
@@ -723,7 +636,7 @@ Rectangle {
     *****************************************/
     Rectangle {
         id: connectionsTab;
-        color: palContainer.color;
+        color: "white";
         // Anchors
         anchors {
             top: tabSelectorContainer.bottom;
@@ -979,6 +892,85 @@ Rectangle {
     } // "Connections" Tab
     } // palTabContainer
 
+    // This contains the current user's NameCard and will contain other information in the future
+    Rectangle {
+        id: myInfo;
+        // Size
+        width: pal.width;
+        height: myCardHeight;
+        // Style
+        color: pal.color;
+        // Anchors
+        anchors.top: pal.top;
+        anchors.topMargin: 10;
+        anchors.left: pal.left;
+        // This NameCard refers to the current user's NameCard (the one above the nearbyTable)
+        NameCard {
+            id: myCard;
+            // Properties
+            profileUrl: myData.profileUrl;
+            displayName: myData.displayName;
+            userName: myData.userName;
+            audioLevel: myData.audioLevel;
+            avgAudioLevel: myData.avgAudioLevel;
+            isMyCard: true;
+            isPresent: true;
+            // Size
+            width: myCardWidth;
+            height: parent.height;
+            // Anchors
+            anchors.top: parent.top
+            anchors.left: parent.left;
+        }
+        Item {
+            id: upperRightInfoContainer;
+            width: 160;
+            height: parent.height;
+            anchors.top: parent.top;
+            anchors.right: parent.right;
+                
+            RalewayRegular {
+                id: availabilityText;
+                text: "set availability";
+                // Text size
+                size: hifi.fontSizes.tabularData;
+                // Anchors
+                anchors.top: availabilityComboBox.bottom;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                // Style
+                color: hifi.colors.baseGrayHighlight;
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignTop;
+            }
+            HifiControlsUit.ComboBox {
+                function determineAvailabilityIndex() {
+                    return ['all', 'connections', 'friends', 'none'].indexOf(GlobalServices.findableBy)
+                    }
+                id: availabilityComboBox;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                // Size
+                width: parent.width;
+                height: 40;
+                currentIndex: determineAvailabilityIndex();
+                model: ListModel {
+                    id: availabilityComboBoxListItems
+                    ListElement { text: "Everyone"; value: "all"; }
+                    ListElement { text: "All Connections"; value: "connections"; }
+                    ListElement { text: "Friends Only"; value: "friends"; }
+                    ListElement { text: "Appear Offline"; value: "none" }
+                }
+                onCurrentIndexChanged: {
+                    GlobalServices.findableBy = availabilityComboBoxListItems.get(currentIndex).value;
+                    UserActivityLogger.palAction("set_availability", availabilityComboBoxListItems.get(currentIndex).value);
+                    print('Setting availability:', JSON.stringify(GlobalServices.findableBy));
+                }
+            }
+        }
+    }
+
         HifiControlsUit.Keyboard {
             id: keyboard;
             raised: currentlyEditingDisplayName && HMD.mounted;
@@ -1124,9 +1116,6 @@ Rectangle {
                 visible: false;
             }
         }
-
-
-    } // PAL container
 
     // Timer used when selecting nearbyTable rows that aren't yet present in the model
     // (i.e. when selecting avatars using edit.js or sphere overlays)
