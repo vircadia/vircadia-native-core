@@ -2,4 +2,4 @@ set(TARGET_NAME oven)
 
 setup_hifi_project()
 
-find_package(FBXSDK REQUIRED)
+link_hifi_libraries(model-baking)
