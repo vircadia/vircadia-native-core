@@ -16,6 +16,7 @@
    MyAvatar, Menu */
 
 (function() { // BEGIN LOCAL_SCOPE
+    var _this = this;
     var tabletShown = false;
     var tabletRezzed = false;
     var activeHand = null;
@@ -159,6 +160,7 @@
 
         // close the WebTablet if it we go into toolbar mode.
         var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
+        var landscape = Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape;
 
         if (tabletShown && toolbarMode) {
             closeTabletUI();
@@ -176,6 +178,9 @@
         }
 
         updateTabletWidthFromSettings();
+        if (UIWebTablet) {
+            UIWebTablet.setLandscape(landscape);
+        }
 
         if (validCheckTime - now > MSECS_PER_SEC) {
             validCheckTime = now;
@@ -218,14 +223,20 @@
 
     }
 
-    function toggleHand(channel, hand, senderUUID, localOnly) {
+    function handleMessage(channel, hand, senderUUID, localOnly) {
         if (channel === "toggleHand") {
             activeHand = JSON.parse(hand);
+        }
+        if (channel === "home") {
+            if (UIWebTablet) {
+                Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape = false;
+            }
         }
     }
 
     Messages.subscribe("toggleHand");
-    Messages.messageReceived.connect(toggleHand);
+    Messages.subscribe("home");
+    Messages.messageReceived.connect(handleMessage);
 
     Script.setInterval(updateShowTablet, 100);
 

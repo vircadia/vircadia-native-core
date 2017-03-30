@@ -113,6 +113,14 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
     }
 
+    this.getDimensions = function() {
+        if (this.landscape) {
+            return { x: this.width * 2, y: this.height, z: this.depth };
+        } else {
+            return { x: this.width, y: this.height, z: this.depth };
+        }
+    };
+
     var modelURL = LOCAL_TABLET_MODEL_PATH;
     var tabletProperties = {
         name: "WebTablet Tablet",
@@ -123,16 +131,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
-        dimensions: {x: this.width, y: this.height, z: this.depth},
+        dimensions: this.getDimensions(),
         parentID: AVATAR_SELF_ID
-    };
-
-    this.getDimensions = function() {
-        if (this.landscape) {
-            return { x: this.width * 2, y: this.height, z: this.depth };
-        } else {
-            return { x: this.width, y: this.height, z: this.depth };
-        }
     };
 
     this.getTabletTextureResolution = function() {
@@ -215,7 +215,9 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         }
         this.landscape = newLandscapeValue;
         Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
-        Overlays.editOverlay(this.webOverlayID, { resolution: this.getTabletTextureResolution() });
+        Overlays.editOverlay(this.webOverlayID, {
+            resolution: this.getTabletTextureResolution()
+        });
     };
 
     this.state = "idle";
@@ -508,6 +510,7 @@ WebTablet.prototype.mousePressEvent = function (event) {
                     tablet.gotoHomeScreen();
                     this.setHomeButtonTexture();
                 }
+                Messages.sendLocalMessage("home", this.homeButtonID);
             }
         } else if (!HMD.active && (!overlayPickResults.intersects || overlayPickResults.overlayID !== this.webOverlayID)) {
             this.dragging = true;

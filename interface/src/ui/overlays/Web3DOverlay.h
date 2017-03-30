@@ -87,6 +87,8 @@ private:
     uint8_t _desiredMaxFPS { 10 };
     uint8_t _currentMaxFPS { 0 };
 
+    bool _mayNeedResize { false };
+
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;
     QMetaObject::Connection _mouseMoveConnection;
