@@ -128,7 +128,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     }
 
     // Number level of mips coming
-    header.numberOfMipmapLevels = texture.getNumMipLevels();
+    header.numberOfMipmapLevels = texture.getNumMips();
 
     ktx::Images images;
     for (uint32_t level = 0; level < header.numberOfMipmapLevels; level++) {
@@ -224,6 +224,7 @@ Texture* Texture::unserialize(const std::string& ktxfile, TextureUsageType usage
                                 header.getPixelDepth(),
                                 1, // num Samples
                                 header.getNumberOfSlices(),
+                                header.getNumberOfLevels(),
                                 (isGPUKTXPayload ? gpuktxKeyValue._samplerDesc : sampler));
 
     tex->setUsage((isGPUKTXPayload ? gpuktxKeyValue._usage : usage));

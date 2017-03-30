@@ -322,12 +322,13 @@ public:
         friend class Texture;
     };
 
-    static Texture* create1D(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
-    static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
-    static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler = Sampler());
-    static Texture* createCube(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
-    static Texture* createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
-    static Texture* createStrict(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
+    static const uint16 MAX_NUM_MIPS = 0;
+    static Texture* create1D(const Element& texelFormat, uint16 width, uint16 numMips = 1, const Sampler& sampler = Sampler());
+    static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = 1, const Sampler& sampler = Sampler());
+    static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numMips = 1, const Sampler& sampler = Sampler());
+    static Texture* createCube(const Element& texelFormat, uint16 width, uint16 numMips = 1, const Sampler& sampler = Sampler());
+    static Texture* createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = 1, const Sampler& sampler = Sampler());
+    static Texture* createStrict(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = 1, const Sampler& sampler = Sampler());
     static Texture* createExternal(const ExternalRecycler& recycler, const Sampler& sampler = Sampler());
 
     Texture(TextureUsageType usageType);
@@ -344,6 +345,7 @@ public:
     // The actual size in bytes of data stored in the texture
     Size getStoredSize() const;
 
+    /*
     // Resize, unless auto mips mode would destroy all the sub mips
     Size resize1D(uint16 width, uint16 numSamples);
     Size resize2D(uint16 width, uint16 height, uint16 numSamples);
@@ -352,6 +354,7 @@ public:
 
     // Reformat, unless auto mips mode would destroy all the sub mips
     Size reformat(const Element& texelFormat);
+    */
 
     // Size and format
     Type getType() const { return _type; }
@@ -390,21 +393,32 @@ public:
     // NumSamples can only have certain values based on the hw
     static uint16 evalNumSamplesUsed(uint16 numSamplesTried);
 
+    // max mip is in the range [ 0 if no sub mips, log2(max(width, height, depth))]
+    // It is defined at creation time (immutable)
+    uint16 getNumMips() const { return _maxMipLevel + 1; }
+    uint16 getMaxMip() const { return _maxMipLevel; }
+
     // Mips size evaluation
 
     // The number mips that a dimension could haves
     // = 1 + log2(size)
-    static uint16 evalDimNumMips(uint16 size);
+    static uint16 evalDimMaxNumMips(uint16 size);
 
     // The number mips that the texture could have if all existed
     // = 1 + log2(max(width, height, depth))
-    uint16 evalNumMips() const;
+    uint16 evalMaxNumMips() const;
+    static uint16 evalMaxNumMips(const Vec3u& dimensions);
 
-    static uint16 evalNumMips(const Vec3u& dimensions);
+    // Check a num of mips requested against the maximum possible specified
+    // if passing -1 then answer the max
+    // simply does (askedNumMips == -1 ? maxMips : (numstd::min(askedNumMips, max))
+    static uint16 safeNumMips(uint16 askedNumMips, uint16 maxMips);
+
+    // Same but applied to this texture's num max mips from evalNumMips()
+    uint16 safeNumMips(uint16 askedNumMips) const;
 
     // Eval the size that the mips level SHOULD have
     // not the one stored in the Texture
-    static const uint MIN_DIMENSION = 1;
 
     Vec3u evalMipDimensions(uint16 level) const;
     uint16 evalMipWidth(uint16 level) const { return std::max(_width >> level, 1); }
@@ -432,32 +446,20 @@ public:
         return size * getNumSlices();
     }
 
-    // max mip is in the range [ 0 if no sub mips, log2(max(width, height, depth))]
-    // if autoGenerateMip is on => will provide the maxMIp level specified
-    // else provide the deepest mip level provided through assignMip
-    uint16 getMaxMip() const { return _maxMip; }
+
+
     uint16 getMinMip() const { return _minMip; }
-    uint16 getNumMipLevels() const { return _maxMip + 1; }
-    uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
+    uint16 usedMipLevels() const { return (_maxMipLevel - _minMip) + 1; }
 
     const std::string& source() const { return _source; }
     void setSource(const std::string& source) { _source = source; }
     bool setMinMip(uint16 newMinMip);
     bool incremementMinMip(uint16 count = 1);
 
-    // Generate the mips automatically
-    // But the sysmem version is not available
+    // Generate the sub mips automatically for the texture
+    // If the storage version is not available (from CPU memory)
     // Only works for the standard formats
-    // Specify the maximum Mip level available
-    // 0 is the default one
-    // 1 is the first level
-    // ...
-    // nbMips - 1 is the last mip level
-    //
-    // If -1 then all the mips are generated
-    //
-    // Return the totalnumber of mips that will be available
-    uint16 autoGenerateMips(uint16 maxMip);
+    void setAutoGenerateMips(bool enable);
     bool isAutogenerateMips() const { return _autoGenerateMips; }
 
     // Managing Storage and mips
@@ -553,9 +555,14 @@ protected:
     uint16 _depth { 1 };
 
     uint16 _numSamples { 1 };
-    uint16 _numSlices { 0 }; // if _numSlices is 0, the texture is not an "Array", the getNumSlices reported is 1
 
-    uint16 _maxMip { 0 };
+    // if _numSlices is 0, the texture is not an "Array", the getNumSlices reported is 1
+    uint16 _numSlices { 0 };
+
+    // valid _maxMipLevel is in the range [ 0 if no sub mips, log2(max(width, height, depth) ]
+    // The num of mips returned is _maxMipLevel + 1
+    uint16 _maxMipLevel { 0 };
+
     uint16 _minMip { 0 };
  
     Type _type { TEX_1D };
@@ -567,9 +574,9 @@ protected:
     bool _isIrradianceValid = false;
     bool _defined = false;
    
-    static Texture* create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
+    static Texture* create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, uint16 numMips, const Sampler& sampler);
 
-    Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
+    Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, uint16 numMips);
 };
 
 typedef std::shared_ptr<Texture> TexturePointer;

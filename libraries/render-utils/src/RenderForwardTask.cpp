@@ -73,11 +73,11 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
 
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        auto colorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, frameSize.x, frameSize.y, defaultSampler));
+        auto colorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, frameSize.x, frameSize.y, 1, defaultSampler));
         _framebuffer->setRenderBuffer(0, colorTexture);
 
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
-        auto depthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, defaultSampler));
+        auto depthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, 1, defaultSampler));
         _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
     }
 
