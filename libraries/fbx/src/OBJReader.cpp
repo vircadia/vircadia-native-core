@@ -302,10 +302,9 @@ QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
 }
 
 
-bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess, int index) {
+bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess) {
     FaceGroup faces;
-	geometry.meshes.append(FBXMesh());
-    FBXMesh& mesh = geometry.meshes.last();
+    FBXMesh& mesh = geometry.meshes[0];
     mesh.parts.append(FBXMeshPart());
     FBXMeshPart& meshPart = mesh.parts.last();
     bool sawG = false;
@@ -434,118 +433,111 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 
     _url = url;
     geometry.meshExtents.reset();
-//	geometry.meshes.append(FBXMesh());
+    geometry.meshes.append(FBXMesh());
 
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
         // add a new meshPart to the geometry's single mesh.
-		int i = 0;
-        while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess, i)) {
-			++i;
-		}
+        while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess)) {}
 
-		geometry.joints.resize(1);
-		geometry.joints[0].isFree = false;
-		geometry.joints[0].parentIndex = -1;
-		geometry.joints[0].distanceToParent = 0;
-		geometry.joints[0].translation = glm::vec3(0, 0, 0);
-		geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
-		geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
-		geometry.joints[0].name = "OBJ";
-		geometry.joints[0].isSkeletonJoint = true;
+        FBXMesh& mesh = geometry.meshes[0];
+        mesh.meshIndex = 0;
 
-		geometry.jointIndices["x"] = 1;
+        geometry.joints.resize(1);
+        geometry.joints[0].isFree = false;
+        geometry.joints[0].parentIndex = -1;
+        geometry.joints[0].distanceToParent = 0;
+        geometry.joints[0].translation = glm::vec3(0, 0, 0);
+        geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
+        geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
+        geometry.joints[0].name = "OBJ";
+        geometry.joints[0].isSkeletonJoint = true;
 
-		for (int i = 0; i < geometry.meshes.count(); i++) {
-			FBXMesh& mesh = geometry.meshes[i];
-			mesh.meshIndex = i;
+        geometry.jointIndices["x"] = 1;
 
-			FBXCluster cluster;
-			cluster.jointIndex = 0;
-			cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
-				0, 1, 0, 0,
-				0, 0, 1, 0,
-				0, 0, 0, 1);
-			mesh.clusters.append(cluster);
+        FBXCluster cluster;
+        cluster.jointIndex = 0;
+        cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
+                                              0, 1, 0, 0,
+                                              0, 0, 1, 0,
+                                              0, 0, 0, 1);
+        mesh.clusters.append(cluster);
 
-			for (int meshPartCount = 0; meshPartCount < mesh.parts.count( ); ++meshPartCount) {
-				FBXMeshPart& meshPart = mesh.parts[meshPartCount];
-				FaceGroup faceGroup = faceGroups[meshPartCount];
-				bool specifiesUV = false;
+        for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
+            FBXMeshPart& meshPart = mesh.parts[i];
+            FaceGroup faceGroup = faceGroups[meshPartCount];
+            bool specifiesUV = false;
+            foreach(OBJFace face, faceGroup) {
+                glm::vec3 v0 = checked_at(vertices, face.vertexIndices[0]);
+                glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
+                glm::vec3 v2 = checked_at(vertices, face.vertexIndices[2]);
+                meshPart.triangleIndices.append(mesh.vertices.count()); // not face.vertexIndices into vertices
+                mesh.vertices << v0;
+                meshPart.triangleIndices.append(mesh.vertices.count());
+                mesh.vertices << v1;
+                meshPart.triangleIndices.append(mesh.vertices.count());
+                mesh.vertices << v2;
 
-				foreach(OBJFace face, faceGroup) {
-					glm::vec3 v0 = checked_at(vertices, face.vertexIndices[0]);
-					glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
-					glm::vec3 v2 = checked_at(vertices, face.vertexIndices[2]);
-					meshPart.triangleIndices.append(mesh.vertices.count()); // not face.vertexIndices into vertices
-					mesh.vertices << v0;
-					meshPart.triangleIndices.append(mesh.vertices.count());
-					mesh.vertices << v1;
-					meshPart.triangleIndices.append(mesh.vertices.count());
-					mesh.vertices << v2;
+                glm::vec3 n0, n1, n2;
+                if (face.normalIndices.count()) {
+                    n0 = checked_at(normals, face.normalIndices[0]);
+                    n1 = checked_at(normals, face.normalIndices[1]);
+                    n2 = checked_at(normals, face.normalIndices[2]);
+                } else { // generate normals from triangle plane if not provided
+                    n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
+                }
+                mesh.normals << n0 << n1 << n2;
+                if (face.textureUVIndices.count()) {
+                    specifiesUV = true;
+                    mesh.texCoords <<
+                    checked_at(textureUVs, face.textureUVIndices[0]) <<
+                    checked_at(textureUVs, face.textureUVIndices[1]) <<
+                    checked_at(textureUVs, face.textureUVIndices[2]);
+                } else {
+                    glm::vec2 corner(0.0f, 1.0f);
+                    mesh.texCoords << corner << corner << corner;
+                }
+            }
+            // All the faces in the same group will have the same name and material.
+            OBJFace leadFace = faceGroup[0];
+            QString groupMaterialName = leadFace.materialName;
+            if (groupMaterialName.isEmpty() && specifiesUV) {
+                #ifdef WANT_DEBUG
+                qCDebug(modelformat) << "OBJ Reader WARNING: " << url
+                    << " needs a texture that isn't specified. Using default mechanism.";
+                #endif
+                groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
+            }
+            if (!groupMaterialName.isEmpty()) {
+                OBJMaterial& material = materials[groupMaterialName];
+                if (specifiesUV) {
+                    material.userSpecifiesUV = true; // Note might not be true in a later usage.
+                }
+                if (specifiesUV || (0 != groupMaterialName.compare("none", Qt::CaseInsensitive))) {
+                    // Blender has a convention that a material named "None" isn't really used (or defined).
+                    material.used = true;
+                    needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
+                }
+                materials[groupMaterialName] = material;
+                meshPart.materialID = groupMaterialName;
+            }
 
-					glm::vec3 n0, n1, n2;
-					if (face.normalIndices.count()) {
-						n0 = checked_at(normals, face.normalIndices[0]);
-						n1 = checked_at(normals, face.normalIndices[1]);
-						n2 = checked_at(normals, face.normalIndices[2]);
-					}
-					else { // generate normals from triangle plane if not provided
-						n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
-					}
-					mesh.normals << n0 << n1 << n2;
-					if (face.textureUVIndices.count()) {
-						specifiesUV = true;
-						mesh.texCoords <<
-							checked_at(textureUVs, face.textureUVIndices[0]) <<
-							checked_at(textureUVs, face.textureUVIndices[1]) <<
-							checked_at(textureUVs, face.textureUVIndices[2]);
-					}
-					else {
-						glm::vec2 corner(0.0f, 1.0f);
-						mesh.texCoords << corner << corner << corner;
-					}
-				}
-				// All the faces in the same group will have the same name and material.
-				OBJFace leadFace = faceGroup[0];
-				QString groupMaterialName = leadFace.materialName;
-				if (groupMaterialName.isEmpty() && specifiesUV) {
-#ifdef WANT_DEBUG
-					qCDebug(modelformat) << "OBJ Reader WARNING: " << url
-						<< " needs a texture that isn't specified. Using default mechanism.";
-#endif
-					groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
-				}
-				if (!groupMaterialName.isEmpty()) {
-					OBJMaterial& material = materials[groupMaterialName];
-					if (specifiesUV) {
-						material.userSpecifiesUV = true; // Note might not be true in a later usage.
-					}
-					if (specifiesUV || (0 != groupMaterialName.compare("none", Qt::CaseInsensitive))) {
-						// Blender has a convention that a material named "None" isn't really used (or defined).
-						material.used = true;
-						needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
-					}
-					materials[groupMaterialName] = material;
-					meshPart.materialID = groupMaterialName;
-				}
-			}
-
-			// if we got a hint about units, scale all the points
-			if (scaleGuess != 1.0f) {
-				for (int i = 0; i < mesh.vertices.size(); i++) {
-					mesh.vertices[i] *= scaleGuess;
-				}
-			}
-
-			mesh.meshExtents.reset();
-			foreach(const glm::vec3& vertex, mesh.vertices) {
-				mesh.meshExtents.addPoint(vertex);
-				geometry.meshExtents.addPoint(vertex);
-			}
-
-			FBXReader::buildModelMesh(mesh, url.toString());
         }
+
+        // if we got a hint about units, scale all the points
+        if (scaleGuess != 1.0f) {
+            for (int i = 0; i < mesh.vertices.size(); i++) {
+                mesh.vertices[i] *= scaleGuess;
+            }
+        }
+
+        mesh.meshExtents.reset();
+        foreach (const glm::vec3& vertex, mesh.vertices) {
+            mesh.meshExtents.addPoint(vertex);
+            geometry.meshExtents.addPoint(vertex);
+        }
+
+        FBXReader::buildModelMesh(mesh, url.toString());
         // fbxDebugDump(geometry);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();

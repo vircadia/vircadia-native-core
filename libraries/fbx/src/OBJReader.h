@@ -79,7 +79,7 @@ private:
     QUrl _url;
 
     QHash<QByteArray, bool> librariesSeen;
-    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess, int index);
+    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess);
     void parseMaterialLibrary(QIODevice* device);
     bool isValidTexture(const QByteArray &filename); // true if the file exists. TODO?: check content-type header and that it is a supported format.
 };
