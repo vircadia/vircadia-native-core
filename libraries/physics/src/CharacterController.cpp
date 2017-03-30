@@ -400,8 +400,12 @@ void CharacterController::handleChangedCollisionGroup() {
         }
         _pendingFlags &= ~PENDING_FLAG_UPDATE_COLLISION_GROUP;
 
-        if (_state != State::Hover && _rigidBody) {
-            _gravity = _collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS ? 0.0f : DEFAULT_CHARACTER_GRAVITY;
+        if (_collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            _gravity = 0.0f;
+        } else if (_state != State::Hover) {
+            _gravity = (_collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) ? 0.0f : DEFAULT_CHARACTER_GRAVITY;
+        }
+        if (_rigidBody) {
             _rigidBody->setGravity(_gravity * _currentUp);
         }
     }
@@ -630,8 +634,12 @@ void CharacterController::updateState() {
     // rayStart is at center of bottom sphere
     btVector3 rayStart = _position;
 
-    // rayEnd is straight down MAX_FALL_HEIGHT
-    btScalar rayLength = _radius + MAX_FALL_HEIGHT;
+    btScalar rayLength = _radius;
+    if (_collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
+        rayLength += MAX_FALL_HEIGHT;
+    } else {
+        rayLength += MIN_HOVER_HEIGHT;
+    }
     btVector3 rayEnd = rayStart - rayLength * _currentUp;
 
     ClosestNotMe rayCallback(_rigidBody);
@@ -663,6 +671,7 @@ void CharacterController::updateState() {
     btVector3 velocity = _preSimulationVelocity;
 
     // disable normal state transitions while collisionless
+    const btScalar MAX_WALKING_SPEED = 2.65f;
     if (_collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
         switch (_state) {
         case State::Ground:
@@ -703,9 +712,8 @@ void CharacterController::updateState() {
             break;
         }
         case State::Hover:
-            btVector3 actualHorizVelocity = velocity - velocity.dot(_currentUp) * _currentUp;
-            const btScalar MAX_WALKING_SPEED = 2.5f;
-            bool flyingFast = _state == State::Hover && actualHorizVelocity.length() > (MAX_WALKING_SPEED * 0.75f);
+            btScalar horizontalSpeed = (velocity - velocity.dot(_currentUp) * _currentUp).length();
+            bool flyingFast = _state == State::Hover && horizontalSpeed > (MAX_WALKING_SPEED * 0.75f);
 
             if ((_floorDistance < MIN_HOVER_HEIGHT) &&
                     !(jumpButtonHeld || flyingFast || (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD)) {
@@ -716,9 +724,13 @@ void CharacterController::updateState() {
             break;
         }
     } else {
-        // in collisionless state switch only between Ground and Hover states
+        // when collisionless: only switch between State::Ground and State::Hover
         if (rayHasHit) {
-            SET_STATE(State::Ground, "collisionless above ground");
+            if (velocity.length() > (MAX_WALKING_SPEED)) {
+                SET_STATE(State::Hover, "collisionless in air");
+            } else {
+                SET_STATE(State::Ground, "collisionless above ground");
+            }
         } else {
             SET_STATE(State::Hover, "collisionless in air");
         }

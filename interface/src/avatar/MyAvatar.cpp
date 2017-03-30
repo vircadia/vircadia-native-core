@@ -1883,8 +1883,9 @@ void MyAvatar::updateActionMotor(float deltaTime) {
 
     glm::vec3 direction = forward + right;
     CharacterController::State state = _characterController.getState();
-    if (state == CharacterController::State::Hover) {
-        // we're flying --> support vertical motion
+    if (state == CharacterController::State::Hover ||
+            _characterController.getCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+        // we can fly --> support vertical motion
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         direction += up;
     }
