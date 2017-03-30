@@ -79,9 +79,14 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
             uint8_t face = 0;
             for (GLenum target : getFaceTargets(_target)) {
                 const Byte* mipData = nullptr;
+                gpu::Texture::PixelsPointer mip;
                 if (_gpuObject.isStoredMipFaceAvailable(mipLevel, face)) {
-                    auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
-                    mipData = mip->readData();
+                    mip = _gpuObject.accessStoredMipFace(mipLevel, face);
+                    if (mip) {
+                        mipData = mip->readData();
+                    } else {
+                        mipData = nullptr;
+                    }
                 }
                 glTexImage2D(target, mipLevel, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, mipData);
                 (void)CHECK_GL_ERROR();
