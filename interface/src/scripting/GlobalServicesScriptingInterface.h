@@ -66,8 +66,6 @@ private:
     GlobalServicesScriptingInterface();
     ~GlobalServicesScriptingInterface();
     
-    QString findableByString(Discoverability::Mode discoverabilityMode) const;
-
     bool _downloading;
 };
 

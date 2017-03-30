@@ -548,7 +548,7 @@ function processingGif() {
 }
 
 function connectionAdded(connectionName) {
-    createNotification(wordWrap("Successfully connected to " + connectionName), NotificationType.CONNECTION);
+    createNotification(connectionName, NotificationType.CONNECTION);
 }
 
 function connectionError(error) {

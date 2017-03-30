@@ -40,9 +40,10 @@ void DiscoverabilityManager::updateLocation() {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto addressManager = DependencyManager::get<AddressManager>();
     auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    bool discoverable = (_mode.get() != Discoverability::None);
 
 
-    if (_mode.get() != Discoverability::None && accountManager->isLoggedIn()) {
+    if (accountManager->isLoggedIn()) {
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
 
@@ -50,34 +51,36 @@ void DiscoverabilityManager::updateLocation() {
 
         QString pathString = addressManager->currentPath();
 
-        const QString PATH_KEY_IN_LOCATION = "path";
-        locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-
         const QString CONNECTED_KEY_IN_LOCATION = "connected";
-        locationObject.insert(CONNECTED_KEY_IN_LOCATION, domainHandler.isConnected());
+        locationObject.insert(CONNECTED_KEY_IN_LOCATION, discoverable && domainHandler.isConnected());
 
-        if (!addressManager->getRootPlaceID().isNull()) {
-            const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
-            locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
-                                  uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
+        if (discoverable) { // Don't consider changes to these as update-worthy if we're not discoverable.
+            const QString PATH_KEY_IN_LOCATION = "path";
+            locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
+
+            if (!addressManager->getRootPlaceID().isNull()) {
+                const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
+                locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
+                                      uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
+            }
+
+            if (!domainHandler.getUUID().isNull()) {
+                const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+                locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
+                                      uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
+            }
+
+            // in case the place/domain isn't in the database, we send the network address and port
+            auto& domainSockAddr = domainHandler.getSockAddr();
+            const QString NETWORK_ADDRESS_KEY_IN_LOCATION = "network_address";
+            locationObject.insert(NETWORK_ADDRESS_KEY_IN_LOCATION, domainSockAddr.getAddress().toString());
+
+            const QString NETWORK_ADDRESS_PORT_IN_LOCATION = "network_port";
+            locationObject.insert(NETWORK_ADDRESS_PORT_IN_LOCATION, domainSockAddr.getPort());
         }
 
-        if (!domainHandler.getUUID().isNull()) {
-            const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
-            locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
-                                  uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
-        }
-
-        // in case the place/domain isn't in the database, we send the network address and port
-        auto& domainSockAddr = domainHandler.getSockAddr();
-        const QString NETWORK_ADRESS_KEY_IN_LOCATION = "network_address";
-        locationObject.insert(NETWORK_ADRESS_KEY_IN_LOCATION, domainSockAddr.getAddress().toString());
-
-        const QString NETWORK_ADDRESS_PORT_IN_LOCATION = "network_port";
-        locationObject.insert(NETWORK_ADDRESS_PORT_IN_LOCATION, domainSockAddr.getPort());
-
-        const QString FRIENDS_ONLY_KEY_IN_LOCATION = "friends_only";
-        locationObject.insert(FRIENDS_ONLY_KEY_IN_LOCATION, (_mode.get() == Discoverability::Friends));
+        const QString AVAILABILITY_KEY_IN_LOCATION = "availability";
+        locationObject.insert(AVAILABILITY_KEY_IN_LOCATION, findableByString(static_cast<Discoverability::Mode>(_mode.get())));
 
         JSONCallbackParameters callbackParameters;
         callbackParameters.jsonCallbackReceiver = this;
@@ -139,18 +142,28 @@ void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discov
         
         // update the setting to the new value
         _mode.set(static_cast<int>(discoverabilityMode));
-        
-        if (static_cast<int>(_mode.get()) == Discoverability::None) {
-            // if we just got set to no discoverability, make sure that we delete our location in DB
-            removeLocation();
-        } else {
-            // we have a discoverability mode that says we should send a location, do that right away
-            updateLocation();
-        }
+        updateLocation();  // update right away
 
         emit discoverabilityModeChanged(discoverabilityMode);
     }
 }
+
+
+QString DiscoverabilityManager::findableByString(Discoverability::Mode discoverabilityMode) {
+    if (discoverabilityMode == Discoverability::None) {
+        return "none";
+    } else if (discoverabilityMode == Discoverability::Friends) {
+        return "friends";
+    } else if (discoverabilityMode == Discoverability::Connections) {
+        return "connections";
+    } else if (discoverabilityMode == Discoverability::All) {
+        return "all";
+    } else {
+        qDebug() << "GlobalServices findableByString called with an unrecognized value.";
+        return "";
+    }
+}
+
 
 void DiscoverabilityManager::setVisibility() {
     Menu* menu = Menu::getInstance();

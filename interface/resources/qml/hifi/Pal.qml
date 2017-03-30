@@ -162,17 +162,8 @@ Rectangle {
                 }
                 HifiControlsUit.TabletComboBox {
                     function determineAvailabilityIndex() {
-                        var globalServicesAvailability = GlobalServices.findableBy;
-                        if (globalServicesAvailability === "all") {
-                            return 0;
-                        } else if (globalServicesAvailability === "friends") {
-                            return 1;
-                        } else if (globalServicesAvailability === "none") {
-                            return 2;
-                        } else {
-                            return 1;
-                        }
-                    }
+                        return ['all', 'connections', 'friends', 'none'].indexOf(GlobalServices.findableBy)
+                     }
                     id: availabilityComboBox;
                     // Anchors
                     anchors.top: parent.top;
@@ -184,6 +175,7 @@ Rectangle {
                     model: ListModel {
                         id: availabilityComboBoxListItems
                         ListElement { text: "Everyone"; value: "all"; }
+                        ListElement { text: "All Connections"; value: "connections"; }
                         ListElement { text: "Friends Only"; value: "friends"; }
                         ListElement { text: "Appear Offline"; value: "none" }
                     }

@@ -334,75 +334,35 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
 function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
     // The back end doesn't do user connections yet. Fake it by getting all users that have made themselves accessible to us,
     // and pretending that they are all connections.
-    function getData(cb) {
-        requestJSON(METAVERSE_BASE + '/api/v1/users?status=online', function (connectionsData) {
-
-            // The above does not include friend status. Fetch that separately.
-            requestJSON(METAVERSE_BASE + '/api/v1/user/friends', function (friendsData) {
-                var users = connectionsData.users || [], friends = friendsData.friends || [];
-                users.forEach(function (user) {
-                    user.connection = (friends.indexOf(user.username) < 0) ? 'connection' : 'friend';
-                });
-
-                // The back end doesn't include the profile picture data, but we can add that here.
-                // For our current purposes, there's no need to be fancy and try to reduce latency by doing some number of requests in parallel,
-                // so these requests are all sequential.
-                function addPicture(index) {
-                    if (index >= users.length) {
-                        return cb(users);
-                    }
-                    var user = users[index];
-                    getProfilePicture(user.username, function (url) {
-                        user.profileUrl = url;
-                        addPicture(index + 1);
-                    });
-                }
-                addPicture(0);
-            });
-        });
-    }
-
+    url = METAVERSE_BASE + '/api/v1/users?'
     if (domain) {
-        // The back end doesn't keep sessionUUID in the location data yet. Fake it by finding the avatar closest to the path.
-        var positions = {};
-        AvatarList.getAvatarIdentifiers().forEach(function (id) {
-            positions[id || ''] = AvatarList.getAvatar(id).position; // Don't use null id as a key. Properties must be a string, and we don't want 'null'.
-        });
-        getData(function (users) {
-            // The endpoint in getData doesn't take a domain filter. So filter out the unwanted stuff now.
-            domain = domain.slice(1, -1); // without curly braces
-            users = users.filter(function (user) { return (user.location.domain || (user.location.root && user.location.root.domain) || {}).id === domain; });
-
-            // Now fill in the sessionUUID as if it were in the data all along.
-            users.forEach(function (user) {
-                var coordinates = user.location.path.match(/\/([^,]+)\,([^,]+),([^\/]+)\//);
-                if (coordinates) {
-                    var position = {x: Number(coordinates[1]), y: Number(coordinates[2]), z: Number(coordinates[3])};
-                    var none = 'not found', closestId = none, bestDistance = Infinity, distance, id;
-                    for (id in positions) {
-                        distance = Vec3.distance(position, positions[id]);
-                        if (distance < bestDistance) {
-                            closestId = id;
-                            bestDistance = distance;
-                        }
-                    }
-                    if (closestId !== none) {
-                        user.location.sessionUUID = closestId;
-                    }
-                }
-            });
-
-            callback(users);
-        });
-    } else { // We don't need to filter, nor add any sessionUUID data
-        getData(callback);
+        url += 'status=' + domain.slice(1, -1); // without curly braces
+    } else {
+        url += 'filter=connections'; // regardless of whether online
     }
+    requestJSON(url, function (connectionsData) {
+        // The back end doesn't include the profile picture data, but we can add that here.
+        // For our current purposes, there's no need to be fancy and try to reduce latency by doing some number of requests in parallel,
+        // so these requests are all sequential.
+        var users = connectionsData.users;
+        function addPicture(index) {
+            if (index >= users.length) {
+                return callback(users);
+            }
+            var user = users[index];
+            getProfilePicture(user.username, function (url) {
+                user.profileUrl = url;
+                addPicture(index + 1);
+            });
+        }
+        addPicture(0);
+    });
 }
 
 function getConnectionData(domain) { // Update all the usernames that I am entitled to see, using my login but not dependent on canKick.
     function frob(user) { // get into the right format
         return {
-            sessionId: user.location.sessionUUID || '',
+            sessionId: user.location.node_id || '',
             userName: user.username,
             connection: user.connection,
             profileUrl: user.profileUrl,
