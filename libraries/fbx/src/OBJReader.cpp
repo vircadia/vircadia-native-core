@@ -463,7 +463,6 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 		QMap<QString, int> materialMeshIdMap;
 		QVector<FBXMesh> fbxMeshes;
 		for (int i = 0, meshPartCount = 0; i < geometry.meshes[0].parts.count(); i++, meshPartCount++) {
-			FBXMeshPart& meshPart = geometry.meshes[0].parts[i];
             FaceGroup faceGroup = faceGroups[meshPartCount];
             bool specifiesUV = false;
 			foreach(OBJFace face, faceGroup) {
@@ -473,20 +472,15 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 					// Create a new FBXMesh for this material mapping.
 					materialMeshIdMap.insert(face.materialName, materialMeshIdMap.count());
 
-					FBXMesh meshNew = geometry.meshes[0];
-					meshNew.meshIndex = fbxMeshes.count();
+					FBXMesh meshNew;
+					meshNew.modelTransform = geometry.meshes[0].modelTransform;
+					meshNew.meshExtents = geometry.meshes[0].meshExtents;
+					meshNew.meshIndex = 0;// fbxMeshes.count();
 					meshNew.clusters.append(cluster);
-
-					// Add this mesh part to the mesh.
-					meshNew.parts.append(meshPart);
-
-					// Add it to the mesh vector.
-					fbxMeshes.append(meshNew);
 
 					// Do some of the material logic (which previously lived below) now.
 					// All the faces in the same group will have the same name and material.
-					OBJFace leadFace = faceGroup[0];
-					QString groupMaterialName = leadFace.materialName;
+					QString groupMaterialName = face.materialName;
 					if (groupMaterialName.isEmpty() && specifiesUV) {
 #ifdef WANT_DEBUG
 						qCDebug(modelformat) << "OBJ Reader WARNING: " << url
@@ -505,14 +499,21 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 							needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
 						}
 						materials[groupMaterialName] = material;
-						meshPart.materialID = groupMaterialName;
+						geometry.meshes[0].parts[i].materialID = groupMaterialName;
 					}
+
+					// Add this mesh part.
+					meshNew.parts.append(FBXMeshPart(geometry.meshes[0].parts[i]));
+
+					// Add it to the mesh vector.
+					fbxMeshes.append(meshNew);
 				}
 			}
 
 			// Now that each mesh has been created with its own unique material mappings, fill them with data (vertex data is duplicated, face data is not).
 			foreach(OBJFace face, faceGroup) {
 				FBXMesh& mesh = fbxMeshes[materialMeshIdMap[face.materialName]];
+				FBXMeshPart& meshPart = mesh.parts.last();
 
 				glm::vec3 v0 = checked_at(vertices, face.vertexIndices[0]);
 				glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
@@ -527,11 +528,11 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 
 				// Add the vertices.
 				meshPart.triangleIndices.append(mesh.vertices.count()); // not face.vertexIndices into vertices
-				mesh.vertices << v0;
+				mesh.vertices.append(v0);
 				meshPart.triangleIndices.append(mesh.vertices.count());
-				mesh.vertices << v1;
+				mesh.vertices.append(v1);
 				meshPart.triangleIndices.append(mesh.vertices.count());
-				mesh.vertices << v2;
+				mesh.vertices.append(v2);
 
 				glm::vec3 n0, n1, n2;
 				if (face.normalIndices.count()) {
@@ -543,17 +544,20 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 					// generate normals from triangle plane if not provided
 					n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
 				}
-				mesh.normals << n0 << n1 << n2;
+				mesh.normals.append(n0);
+				mesh.normals.append(n1);
+				mesh.normals.append(n2);
 				if (face.textureUVIndices.count()) {
 					specifiesUV = true;
-					mesh.texCoords <<
-						checked_at(textureUVs, face.textureUVIndices[0]) <<
-						checked_at(textureUVs, face.textureUVIndices[1]) <<
-						checked_at(textureUVs, face.textureUVIndices[2]);
+					mesh.texCoords.append(checked_at(textureUVs, face.textureUVIndices[0]));
+					mesh.texCoords.append(checked_at(textureUVs, face.textureUVIndices[1]));
+					mesh.texCoords.append(checked_at(textureUVs, face.textureUVIndices[2]));
 				}
 				else {
 					glm::vec2 corner(0.0f, 1.0f);
-					mesh.texCoords << corner << corner << corner;
+					mesh.texCoords.append(corner);
+					mesh.texCoords.append(corner);
+					mesh.texCoords.append(corner);
 				}
 			}
         }
