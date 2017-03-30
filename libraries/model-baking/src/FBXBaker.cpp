@@ -136,6 +136,7 @@ bool FBXBaker::rewriteAndCollectChannelTextures(FbxProperty& property) {
 }
 
 static const QString BAKED_TEXTURE_DIRECTORY = "textures";
+static const QString BAKED_TEXTURE_EXT = ".xtk";
 
 bool FBXBaker::rewriteAndCollectTexture(fbxsdk::FbxTexture* texture) {
     FbxFileTexture* fileTexture = FbxCast<FbxFileTexture>(texture);
@@ -146,7 +147,7 @@ bool FBXBaker::rewriteAndCollectTexture(fbxsdk::FbxTexture* texture) {
         QFileInfo textureFileInfo { fileTexture->GetRelativeFileName() };
 
         // construct the new baked texture file name
-        QString bakedTextureFileName { BAKED_TEXTURE_DIRECTORY + "/" + textureFileInfo.baseName() + ".xtk" };
+        QString bakedTextureFileName { BAKED_TEXTURE_DIRECTORY + "/" + textureFileInfo.baseName() + BAKED_TEXTURE_EXT };
 
         // write the new filename into the FBX scene
         fileTexture->SetRelativeFileName(bakedTextureFileName.toLocal8Bit());
