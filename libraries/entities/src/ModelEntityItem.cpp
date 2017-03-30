@@ -429,7 +429,7 @@ void ModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translation
         for (int index = 0; index < translations.size(); index++) {
             if (_localJointTranslationsSet[index]) {
                 _localJointTranslations[index] = translations[index];
-                _localJointTranslationsSet[index] = true;
+                _localJointTranslationsDirty[index] = true;
             }
         }
     });
