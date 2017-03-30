@@ -340,21 +340,11 @@ public:
     Stamp getDataStamp() const { return _storage->getStamp(); }
 
     // The theoretical size in bytes of data stored in the texture
+    // For the master (level) first level of mip
     Size getSize() const override { return _size; }
 
     // The actual size in bytes of data stored in the texture
     Size getStoredSize() const;
-
-    /*
-    // Resize, unless auto mips mode would destroy all the sub mips
-    Size resize1D(uint16 width, uint16 numSamples);
-    Size resize2D(uint16 width, uint16 height, uint16 numSamples);
-    Size resize3D(uint16 width, uint16 height, uint16 depth, uint16 numSamples);
-    Size resizeCube(uint16 width, uint16 numSamples);
-
-    // Reformat, unless auto mips mode would destroy all the sub mips
-    Size reformat(const Element& texelFormat);
-    */
 
     // Size and format
     Type getType() const { return _type; }
@@ -395,8 +385,8 @@ public:
 
     // max mip is in the range [ 0 if no sub mips, log2(max(width, height, depth))]
     // It is defined at creation time (immutable)
-    uint16 getNumMips() const { return _maxMipLevel + 1; }
     uint16 getMaxMip() const { return _maxMipLevel; }
+    uint16 getNumMips() const { return _maxMipLevel + 1; }
 
     // Mips size evaluation
 
@@ -448,13 +438,13 @@ public:
 
 
 
-    uint16 getMinMip() const { return _minMip; }
-    uint16 usedMipLevels() const { return (_maxMipLevel - _minMip) + 1; }
 
     const std::string& source() const { return _source; }
     void setSource(const std::string& source) { _source = source; }
     bool setMinMip(uint16 newMinMip);
     bool incremementMinMip(uint16 count = 1);
+    uint16 getMinMip() const { return _minMip; }
+    uint16 usedMipLevels() const { return (getNumMips() - _minMip); }
 
     // Generate the sub mips automatically for the texture
     // If the storage version is not available (from CPU memory)

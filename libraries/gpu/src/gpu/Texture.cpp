@@ -348,24 +348,6 @@ Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 widt
 
     return _size;
 }
-/*
-Texture::Size Texture::resize1D(uint16 width, uint16 numSamples) {
-    return resize(TEX_1D, getTexelFormat(), width, 1, 1, numSamples, 0);
-}
-Texture::Size Texture::resize2D(uint16 width, uint16 height, uint16 numSamples) {
-    return resize(TEX_2D, getTexelFormat(), width, height, 1, numSamples, 0);
-}
-Texture::Size Texture::resize3D(uint16 width, uint16 height, uint16 depth, uint16 numSamples) {
-    return resize(TEX_3D, getTexelFormat(), width, height, depth, numSamples, 0);
-}
-Texture::Size Texture::resizeCube(uint16 width, uint16 numSamples) {
-    return resize(TEX_CUBE, getTexelFormat(), width, 1, 1, numSamples, 0);
-}
-
-Texture::Size Texture::reformat(const Element& texelFormat) {
-    return resize(_type, texelFormat, getWidth(), getHeight(), getDepth(), getNumSamples(), _numSlices, getNumMips());
-}
-*/
 
 bool Texture::isColorRenderTarget() const {
     return (_texelFormat.getSemantic() == gpu::RGBA);
@@ -486,22 +468,7 @@ void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePoin
         _stamp++;
     }
 }
-/*
-uint16 Texture::resizeMips(uint16 maxMip) {
-    bool changed = false;
-    auto newMaxMip = std::min((uint16)(evalNumMips() - 1), maxMip);
-    if (newMaxMip != _maxMip) {
-        changed = true;
-        _maxMip = newMaxMip;;
-    }
 
-    if (changed) {
-        _stamp++;
-    }
-
-    return _maxMip;
-}
-*/
 void Texture::setAutoGenerateMips(bool enable) {
     bool changed = false;
     if (!_autoGenerateMips) {
