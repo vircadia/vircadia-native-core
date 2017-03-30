@@ -458,6 +458,8 @@ function endHandshake() {
         debug("removing animation");
         MyAvatar.removeAnimationStateHandler(animHandlerId);
     }
+    // No-op if we were successful, but this way we ensure that failures and abandoned handshakes don't leave us in a weird state.
+    request({uri: requestUrl, method: 'DELETE'}, debug);
 }
 
 function updateTriggers(value, fromKeyboard, hand) {
