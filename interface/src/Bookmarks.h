@@ -30,10 +30,8 @@ public:
     virtual void setupMenus(Menu* menubar, MenuWrapper* menu);
     QString addressForBookmark(const QString& name) const;
 
-public slots:
-    virtual void addBookmark(const QString& bookmarkName, const QString& bookmarkAddress);
-
 protected:
+    virtual void addBookmarkToFile(const QString& bookmarkName, const QString& bookmarkAddress);
     virtual void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) = 0;
     void enableMenuItems(bool enabled);
     void readFromFile();

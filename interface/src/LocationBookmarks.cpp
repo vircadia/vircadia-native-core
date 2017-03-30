@@ -49,7 +49,7 @@ void LocationBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
 void LocationBookmarks::setHomeLocation() {
     auto addressManager = DependencyManager::get<AddressManager>();
     QString bookmarkAddress = addressManager->currentAddress().toString();
-    Bookmarks::addBookmark(HOME_BOOKMARK, bookmarkAddress);
+    Bookmarks::addBookmarkToFile(HOME_BOOKMARK, bookmarkAddress);
 }
 
 void LocationBookmarks::teleportToBookmark() {
@@ -72,7 +72,7 @@ void LocationBookmarks::addBookmark() {
 
     auto addressManager = DependencyManager::get<AddressManager>();
     QString bookmarkAddress = addressManager->currentAddress().toString();
-    Bookmarks::addBookmark(bookmarkName, bookmarkAddress);
+    Bookmarks::addBookmarkToFile(bookmarkName, bookmarkAddress);
 }
 
 void LocationBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) {

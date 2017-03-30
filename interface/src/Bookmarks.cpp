@@ -67,7 +67,7 @@ void Bookmarks::deleteBookmark() {
     }
 }
 
-void Bookmarks::addBookmark(const QString& bookmarkName, const QString& bookmarkAddress) {
+void Bookmarks::addBookmarkToFile(const QString& bookmarkName, const QString& bookmarkAddress) {
     Menu* menubar = Menu::getInstance();
     if (contains(bookmarkName)) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();

@@ -41,6 +41,7 @@ void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
 
     Bookmarks::setupMenus(menubar, menu);
     Bookmarks::sortActions(menubar, _bookmarksMenu);
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto context = offscreenUi->getRootContext();
     context->setContextProperty("avatarBookmarks", this);
@@ -68,7 +69,7 @@ void AvatarBookmarks::addBookmark() {
 
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     const QString& bookmarkAddress = myAvatar->getSkeletonModelURL().toString();
-    Bookmarks::addBookmark(bookmarkName, bookmarkAddress);
+    Bookmarks::addBookmarkToFile(bookmarkName, bookmarkAddress);
 }
 
 void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) {
