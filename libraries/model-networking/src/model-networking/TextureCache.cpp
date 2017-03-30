@@ -438,15 +438,9 @@ void NetworkTexture::loadContent(const QByteArray& content) {
         if (!texture) {
             KTXFilePointer ktxFile = textureCache->_ktxCache.getFile(hash);
             if (ktxFile) {
-                // Ensure that the KTX deserialization worked
-                auto ktx = ktxFile->getKTX();
-                if (ktx) {
-                    texture.reset(gpu::Texture::unserialize(ktx));
-                    // Ensure that the texture population worked
-                    if (texture) {
-                        texture->setKtxBacking(ktx);
-                        texture = textureCache->cacheTextureByHash(hash, texture);
-                    }
+                texture.reset(gpu::Texture::unserialize(ktxFile->getFilepath()));
+                if (texture) {
+                    texture = textureCache->cacheTextureByHash(hash, texture);
                 }
             }
         }
@@ -586,10 +580,7 @@ void ImageReader::read() {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {
                 resource.staticCast<NetworkTexture>()->_file = file;
-                auto fileKtx = file->getKTX();
-                if (fileKtx) {
-                    texture->setKtxBacking(fileKtx);
-                }
+                texture->setKtxBacking(file->getFilepath());
             }
         }
 

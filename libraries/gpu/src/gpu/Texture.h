@@ -25,6 +25,8 @@
 namespace ktx {
     class KTX;
     using KTXUniquePointer = std::unique_ptr<KTX>;
+    struct KTXDescriptor;
+    using KTXDescriptorPointer = std::unique_ptr<KTXDescriptor>;
     struct Header;
 }
 
@@ -261,6 +263,7 @@ public:
 
         virtual void reset() = 0;
         virtual PixelsPointer getMipFace(uint16 level, uint8 face = 0) const = 0;
+        virtual Size getMipFaceSize(uint16 level, uint8 face = 0) const = 0;
         virtual void assignMipData(uint16 level, const storage::StoragePointer& storage) = 0;
         virtual void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) = 0;
         virtual bool isMipAvailable(uint16 level, uint8 face = 0) const = 0;
@@ -286,6 +289,7 @@ public:
     public:
         void reset() override;
         PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
+        Size getMipFaceSize(uint16 level, uint8 face = 0) const override;
         void assignMipData(uint16 level, const storage::StoragePointer& storage) override;
         void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) override;
         bool isMipAvailable(uint16 level, uint8 face = 0) const override;
@@ -297,8 +301,9 @@ public:
 
     class KtxStorage : public Storage {
     public:
-        KtxStorage(ktx::KTXUniquePointer& ktxData);
+        KtxStorage(const std::string& filename);
         PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
+        Size getMipFaceSize(uint16 level, uint8 face = 0) const override;
         // By convention, all mip levels and faces MUST be populated when using KTX backing
         bool isMipAvailable(uint16 level, uint8 face = 0) const override { return true; }
 
@@ -312,7 +317,8 @@ public:
         void reset() override { }
 
     protected:
-        ktx::KTXUniquePointer _ktxData;
+        std::string _filename;
+        ktx::KTXDescriptorPointer _ktxDescriptor;
         friend class Texture;
     };
 
@@ -475,9 +481,10 @@ public:
     // Access the the sub mips
     bool isStoredMipFaceAvailable(uint16 level, uint8 face = 0) const { return _storage->isMipAvailable(level, face); }
     const PixelsPointer accessStoredMipFace(uint16 level, uint8 face = 0) const { return _storage->getMipFace(level, face); }
+    Size getStoredMipFaceSize(uint16 level, uint8 face = 0) const { return _storage->getMipFaceSize(level, face); }
 
     void setStorage(std::unique_ptr<Storage>& newStorage);
-    void setKtxBacking(ktx::KTXUniquePointer& newBacking);
+    void setKtxBacking(const std::string& filename);
 
     // access sizes for the stored mips
     uint16 getStoredMipWidth(uint16 level) const;
@@ -515,7 +522,7 @@ public:
 
     // Textures can be serialized directly to  ktx data file, here is how
     static ktx::KTXUniquePointer serialize(const Texture& texture);
-    static Texture* unserialize(const ktx::KTXUniquePointer& srcData, TextureUsageType usageType = TextureUsageType::RESOURCE, Usage usage = Usage(), const Sampler::Desc& sampler = Sampler::Desc());
+    static Texture* unserialize(const std::string& ktxFile, TextureUsageType usageType = TextureUsageType::RESOURCE, Usage usage = Usage(), const Sampler::Desc& sampler = Sampler::Desc());
     static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
     static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);
 

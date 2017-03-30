@@ -33,7 +33,13 @@ function shouldOpenFeedAfterShare() {
     return persisted && (persisted !== 'false');
 }
 function showFeedWindow() {
-    DialogsManager.showFeed();
+    if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
+            || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
+        DialogsManager.showFeed();
+    } else {
+        tablet.loadQMLSource("TabletAddressDialog.qml");
+        HMD.openTablet();
+    }
 }
 
 var outstanding;
