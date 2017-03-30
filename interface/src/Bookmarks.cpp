@@ -118,16 +118,15 @@ bool Bookmarks::sortOrder(QAction* a, QAction* b) {
     return a->text().toLower().localeAwareCompare(b->text().toLower()) < 0;
 }
 
-//  TODO: inconsistent naming?
-void Bookmarks::sortActions(Menu* menubar, MenuWrapper* menuWrapper) {
-    QList<QAction*> actions = menuWrapper->actions();
+void Bookmarks::sortActions(Menu* menubar, MenuWrapper* menu) {
+    QList<QAction*> actions = menu->actions();
     qSort(actions.begin(), actions.end(), sortOrder);
-    for (QAction* action : menuWrapper->actions()) {
-        menuWrapper->removeAction(action);
+    for (QAction* action : menu->actions()) {
+        menu->removeAction(action);
         //removeBookmarkFromMenu(menubar, action->text());
     }
     for (QAction* action : actions) {
-        menuWrapper->addAction(action);
+        menu->addAction(action);
 //        for (int i = 0; i <  _bookmarks.size() ; i++) {
 //            if (_bookmarks.keys().at(i) == action->text()) {
 //                addBookmarkToMenu(menubar, action->text(), _bookmarks.values().at(i).toString());

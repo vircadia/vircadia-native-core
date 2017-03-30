@@ -75,9 +75,7 @@ void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, cons
     if (!_isMenuSorted) {
         menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction, name, 0, QAction::NoRole);
     } else {
-        //  TODO: this is aggressive but all other alternative have proved less fruitful so far.
-        //  having experimented with various pointer types, It is possible the issues are deeper routed in the MenuWrapper/Menu  Qt/QML architecture
-        // further research did not produce better results
+        // TODO: this is aggressive but other alternatives have proved less fruitful so far.
 
         //menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction, name, 0, QAction::NoRole, 
         //Bookmarks::getMenuItemLocation(_bookmarksMenu->actions(), name));
