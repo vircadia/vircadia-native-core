@@ -316,16 +316,16 @@ Item {
         visible: thisNameCard.userName !== "";
         // Size
         width: parent.width
-        height: pal.activeTab == "nearbyTab" || isMyCard ? usernameTextPixelSize + 4 : displayNameTextPixelSize + 4
+        height: pal.activeTab == "nearbyTab" || isMyCard ? usernameTextPixelSize + 4 : parent.height;
         // Anchors
-        anchors.top: isMyCard ? myDisplayName.bottom : undefined;
-        anchors.bottom: !isMyCard ? avatarImage.bottom : undefined;
+        anchors.top: isMyCard ? myDisplayName.bottom : (pal.activeTab == "nearbyTab" ? displayNameContainer.bottom : parent.top);
         anchors.left: avatarImage.right;
         anchors.leftMargin: avatarImage.visible ? 5 : 0;
+        anchors.rightMargin: 5;
         // Text Size
         size: pal.activeTab == "nearbyTab" || isMyCard ? usernameTextPixelSize : displayNameTextPixelSize;
         // Text Positioning
-        verticalAlignment: Text.AlignBottom
+        verticalAlignment: Text.AlignVCenter;
         // Style
         color: hifi.colors.blueAccent;
         MouseArea {

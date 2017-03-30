@@ -850,7 +850,7 @@ Rectangle {
                 }
 
                 // LOCATION data
-                FiraSansSemiBold {
+                FiraSansRegular {
                     id: connectionsLocationData
                     // Properties
                     visible: styleData.role === "placeName";
@@ -883,7 +883,7 @@ Rectangle {
                 // "Friends" checkbox
                 HifiControlsUit.CheckBox {
                     id: friendsCheckBox;
-                    visible: styleData.role === "friends";
+                    visible: styleData.role === "friends" && model.userName !== myData.userName;
                     anchors.centerIn: parent;
                     checked: model ? (model["connection"] === "friend" ? true : false) : false;
                     boxSize: 24;
@@ -892,6 +892,7 @@ Rectangle {
                         connectionsUserModel.setProperty(model.userIndex, styleData.role, newValue);
                         connectionsUserModelData[model.userIndex][styleData.role] = newValue; // Defensive programming
                         // Insert line here about actually taking the friend/unfriend action
+                        //pal.sendToScript({method: 'addFriend', params: model.userName});
                         // Also insert line here about logging the activity, similar to the commented line below
                         //UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId);
 
