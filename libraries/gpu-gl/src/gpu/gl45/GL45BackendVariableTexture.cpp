@@ -85,14 +85,16 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
     auto transferDimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
     GLenum format;
     GLenum type;
-    auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_parent._gpuObject.getTexelFormat(), _parent._gpuObject.getStoredMipFormat());
     format = texelFormat.format;
     type = texelFormat.type;
+    auto mipSize = _parent._gpuObject.getStoredMipFaceSize(sourceMip, face);
+
 
     if (0 == lines) {
-        _transferSize = mipData->getSize();
+        _transferSize = mipSize;
         _bufferingLambda = [=] {
+            auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
             _buffer.resize(_transferSize);
             memcpy(&_buffer[0], mipData->readData(), _transferSize);
             _bufferingCompleted = true;
@@ -101,11 +103,11 @@ TransferJob::TransferJob(const GL45VariableAllocationTexture& parent, uint16_t s
     } else {
         transferDimensions.y = lines;
         auto dimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
-        auto mipSize = mipData->getSize();
         auto bytesPerLine = (uint32_t)mipSize / dimensions.y;
-        _transferSize = bytesPerLine * lines;
         auto sourceOffset = bytesPerLine * lineOffset;
+        _transferSize = bytesPerLine * lines;
         _bufferingLambda = [=] {
+            auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
             _buffer.resize(_transferSize);
             memcpy(&_buffer[0], mipData->readData() + sourceOffset, _transferSize);
             _bufferingCompleted = true;
@@ -461,10 +463,10 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
     _allocatedMip = allocatedMip;
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto dimensions = _gpuObject.evalMipDimensions(_allocatedMip);
-    const auto totalMips = _gpuObject.evalNumMips();
+    const auto totalMips = _gpuObject.getNumMipLevels();
     const auto mips = totalMips - _allocatedMip;
     glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
-    auto mipLevels = _gpuObject.evalNumMips();
+    auto mipLevels = _gpuObject.getNumMipLevels();
     _size = 0;
     for (uint16_t mip = _allocatedMip; mip < mipLevels; ++mip) {
         _size += _gpuObject.evalMipSize(mip);
@@ -474,7 +476,7 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
 }
 
 void GL45ResourceTexture::copyMipsFromTexture() {
-    auto mipLevels = _gpuObject.evalNumMips();
+    auto mipLevels = _gpuObject.getNumMipLevels();
     size_t maxFace = GLTexture::getFaceCount(_target);
     for (uint16_t sourceMip = _populatedMip; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip - _allocatedMip;
@@ -499,7 +501,7 @@ void GL45ResourceTexture::promote() {
     uint16_t oldAllocatedMip = _allocatedMip;
     // allocate storage for new level
     allocateStorage(_allocatedMip - std::min<uint16_t>(_allocatedMip, 2));
-    uint16_t mips = _gpuObject.evalNumMips();
+    uint16_t mips = _gpuObject.getNumMipLevels();
     // copy pre-existing mips
     for (uint16_t mip = _populatedMip; mip < mips; ++mip) {
         auto mipDimensions = _gpuObject.evalMipDimensions(mip);
@@ -532,7 +534,7 @@ void GL45ResourceTexture::demote() {
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
-    uint16_t mips = _gpuObject.evalNumMips();
+    uint16_t mips = _gpuObject.getNumMipLevels();
     // copy pre-existing mips
     for (uint16_t mip = _populatedMip; mip < mips; ++mip) {
         auto mipDimensions = _gpuObject.evalMipDimensions(mip);
@@ -585,10 +587,10 @@ void GL45ResourceTexture::populateTransferQueue() {
 
             // break down the transfers into chunks so that no single transfer is 
             // consuming more than X bandwidth
-            auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
+            auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
             const auto lines = mipDimensions.y;
-            auto bytesPerLine = (uint32_t)mipData->getSize() / lines;
-            Q_ASSERT(0 == (mipData->getSize() % lines));
+            auto bytesPerLine = mipSize / lines;
+            Q_ASSERT(0 == (mipSize % lines));
             uint32_t linesPerTransfer = (uint32_t)(MAX_TRANSFER_SIZE / bytesPerLine);
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {

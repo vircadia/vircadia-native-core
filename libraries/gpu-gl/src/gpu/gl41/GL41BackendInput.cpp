@@ -99,8 +99,13 @@ void GL41Backend::updateInput() {
                             GLboolean isNormalized = attrib._element.isNormalized();
 
                             for (size_t locNum = 0; locNum < locationCount; ++locNum) {
-                                glVertexAttribPointer(slot + (GLuint)locNum, count, type, isNormalized, stride,
-                                    reinterpret_cast<GLvoid*>(pointer + perLocationStride * (GLuint)locNum));
+                                if (attrib._element.isInteger()) {
+                                    glVertexAttribIPointer(slot + (GLuint)locNum, count, type, stride,
+                                        reinterpret_cast<GLvoid*>(pointer + perLocationStride * (GLuint)locNum));
+                                } else {
+                                    glVertexAttribPointer(slot + (GLuint)locNum, count, type, isNormalized, stride,
+                                        reinterpret_cast<GLvoid*>(pointer + perLocationStride * (GLuint)locNum));
+                                }
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
                                 glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency * (isStereo() ? 2 : 1));
 #else

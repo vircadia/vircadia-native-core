@@ -28,6 +28,9 @@
 #include "PreferencesDialog.h"
 #include "UpdateDialog.h"
 
+#include "TabletScriptingInterface.h"
+#include "scripting/HMDScriptingInterface.h"
+
 template<typename T>
 void DialogsManager::maybeCreateDialog(QPointer<T>& member) {
     if (!member) {
@@ -69,7 +72,7 @@ void DialogsManager::toggleLoginDialog() {
 }
 
 void DialogsManager::showLoginDialog() {
-    LoginDialog::show();
+    LoginDialog::showWithSelection();
 }
 
 void DialogsManager::showUpdateDialog() {

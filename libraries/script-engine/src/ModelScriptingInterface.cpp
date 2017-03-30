@@ -12,36 +12,18 @@
 #include <QScriptEngine>
 #include <QScriptValueIterator>
 #include <QtScript/QScriptValue>
+#include <model-networking/MeshFace.h>
 #include "ScriptEngine.h"
+#include "ScriptEngineLogging.h"
 #include "ModelScriptingInterface.h"
 #include "OBJWriter.h"
 
 ModelScriptingInterface::ModelScriptingInterface(QObject* parent) : QObject(parent) {
     _modelScriptEngine = qobject_cast<ScriptEngine*>(parent);
-}
 
-QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in) {
-    return engine->newQObject(in, QScriptEngine::QtOwnership,
-                              QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
-}
-
-void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out) {
-    out = qobject_cast<MeshProxy*>(value.toQObject());
-}
-
-QScriptValue meshesToScriptValue(QScriptEngine* engine, const MeshProxyList &in) {
-    return engine->toScriptValue(in);
-}
-
-void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out) {
-    QScriptValueIterator itr(value);
-    while(itr.hasNext()) {
-        itr.next();
-        MeshProxy* meshProxy = qscriptvalue_cast<MeshProxyList::value_type>(itr.value());
-        if (meshProxy) {
-            out.append(meshProxy);
-        }
-    }
+    qScriptRegisterSequenceMetaType<QList<MeshProxy*>>(_modelScriptEngine);
+    qScriptRegisterMetaType(_modelScriptEngine, meshFaceToScriptValue, meshFaceFromScriptValue);
+    qScriptRegisterMetaType(_modelScriptEngine, qVectorMeshFaceToScriptValue, qVectorMeshFaceFromScriptValue);
 }
 
 QString ModelScriptingInterface::meshToOBJ(MeshProxyList in) {
@@ -140,8 +122,6 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
     return meshToScriptValue(_modelScriptEngine, resultProxy);
 }
 
-
-
 QScriptValue ModelScriptingInterface::transformMesh(glm::mat4 transform, MeshProxy* meshProxy) {
     if (!meshProxy) {
         return QScriptValue(false);
@@ -156,4 +136,58 @@ QScriptValue ModelScriptingInterface::transformMesh(glm::mat4 transform, MeshPro
                                           [&](uint32_t index){ return index; });
     MeshProxy* resultProxy = new MeshProxy(result);
     return meshToScriptValue(_modelScriptEngine, resultProxy);
+}
+
+QScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices,
+                                              const QVector<glm::vec3>& normals,
+                                              const QVector<MeshFace>& faces) {
+    model::MeshPointer mesh(new model::Mesh());
+
+    // vertices
+    auto vertexBuffer = std::make_shared<gpu::Buffer>(vertices.size() * sizeof(glm::vec3), (gpu::Byte*)vertices.data());
+    auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
+    gpu::BufferView vertexBufferView(vertexBufferPtr, 0, vertexBufferPtr->getSize(),
+                                     sizeof(glm::vec3), gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+    mesh->setVertexBuffer(vertexBufferView);
+
+    if (vertices.size() == normals.size()) {
+        // normals
+        auto normalBuffer = std::make_shared<gpu::Buffer>(normals.size() * sizeof(glm::vec3), (gpu::Byte*)normals.data());
+        auto normalBufferPtr = gpu::BufferPointer(normalBuffer);
+        gpu::BufferView normalBufferView(normalBufferPtr, 0, normalBufferPtr->getSize(),
+                                         sizeof(glm::vec3), gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+        mesh->addAttribute(gpu::Stream::NORMAL, normalBufferView);
+    } else {
+        qCDebug(scriptengine) << "ModelScriptingInterface::newMesh normals must be same length as vertices";
+    }
+
+    // indices (faces)
+    int VERTICES_PER_TRIANGLE = 3;
+    int indexBufferSize = faces.size() * sizeof(uint32_t) * VERTICES_PER_TRIANGLE;
+    unsigned char* indexData  = new unsigned char[indexBufferSize];
+    unsigned char* indexDataCursor = indexData;
+    foreach(const MeshFace& meshFace, faces) {
+        for (int i = 0; i < VERTICES_PER_TRIANGLE; i++) {
+            memcpy(indexDataCursor, &meshFace.vertexIndices[i], sizeof(uint32_t));
+            indexDataCursor += sizeof(uint32_t);
+        }
+    }
+    auto indexBuffer = std::make_shared<gpu::Buffer>(indexBufferSize, (gpu::Byte*)indexData);
+    auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
+    gpu::BufferView indexBufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
+    mesh->setIndexBuffer(indexBufferView);
+
+    // parts
+    std::vector<model::Mesh::Part> parts;
+    parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
+                                         (model::Index)faces.size() * 3, // numIndices
+                                         (model::Index)0, // baseVertex
+                                         model::Mesh::TRIANGLES)); // topology
+    mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+                                                        (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
+
+
+
+    MeshProxy* meshProxy = new MeshProxy(mesh);
+    return meshToScriptValue(_modelScriptEngine, meshProxy);
 }

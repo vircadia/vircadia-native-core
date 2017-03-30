@@ -45,7 +45,8 @@ function onClicked() {
         var entity = HMD.tabletID;
         Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
         shouldActivateButton = true;
-        tablet.gotoMenuScreen("Audio");
+        shouldActivateButton = true;
+        tablet.loadQMLSource("../Audio.qml");
         onAudioScreen = true;
     }
 }

@@ -185,10 +185,10 @@ namespace ktx {
         result->resetStorage(src);
 
         // read metadata
-        result->_keyValues = parseKeyValues(result->getHeader()->bytesOfKeyValueData, result->getKeyValueData());
+        result->_keyValues = parseKeyValues(result->getHeader().bytesOfKeyValueData, result->getKeyValueData());
 
         // populate image table
-        result->_images = parseImages(*result->getHeader(), result->getTexelsDataSize(), result->getTexelsData());
+        result->_images = parseImages(result->getHeader(), result->getTexelsDataSize(), result->getTexelsData());
 
         return result;
     }

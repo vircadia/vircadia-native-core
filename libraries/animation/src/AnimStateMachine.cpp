@@ -21,7 +21,7 @@ AnimStateMachine::~AnimStateMachine() {
 
 }
 
-const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
 
     QString desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
     if (_currentState->getID() != desiredStateID) {
@@ -29,7 +29,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
         bool foundState = false;
         for (auto& state : _states) {
             if (state->getID() == desiredStateID) {
-                switchState(animVars, state);
+                switchState(animVars, context, state);
                 foundState = true;
                 break;
             }
@@ -42,7 +42,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
     // evaluate currentState transitions
     auto desiredState = evaluateTransitions(animVars);
     if (desiredState != _currentState) {
-        switchState(animVars, desiredState);
+        switchState(animVars, context, desiredState);
     }
 
     assert(_currentState);
@@ -62,7 +62,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
             } else if (_interpType == InterpType::SnapshotPrev) {
                 // interp between the prev snapshot and evaluated next target.
                 // this is useful for interping into a blend
-                localNextPoses = currentStateNode->evaluate(animVars, dt, triggersOut);
+                localNextPoses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
                 prevPoses = &_prevPoses;
                 nextPoses = &localNextPoses;
             } else {
@@ -79,7 +79,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
         }
     }
     if (!_duringInterp) {
-        _poses = currentStateNode->evaluate(animVars, dt, triggersOut);
+        _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
     return _poses;
 }
@@ -92,7 +92,7 @@ void AnimStateMachine::addState(State::Pointer state) {
     _states.push_back(state);
 }
 
-void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointer desiredState) {
+void AnimStateMachine::switchState(const AnimVariantMap& animVars, const AnimContext& context, State::Pointer desiredState) {
 
     const float FRAMES_PER_SECOND = 30.0f;
 
@@ -114,7 +114,7 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointe
         _prevPoses = _poses;
         // snapshot next pose at the target frame.
         nextStateNode->setCurrentFrame(desiredState->_interpTarget);
-        _nextPoses = nextStateNode->evaluate(animVars, dt, triggers);
+        _nextPoses = nextStateNode->evaluate(animVars, context, dt, triggers);
     } else if (_interpType == InterpType::SnapshotPrev) {
         // snapshot previoius pose
         _prevPoses = _poses;

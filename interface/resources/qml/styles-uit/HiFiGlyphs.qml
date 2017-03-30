@@ -14,7 +14,7 @@ import QtQuick.Controls.Styles 1.4
 
 Text {
     id: root
-    FontLoader { id: hiFiGlyphs; source: "../../fonts/hifi-glyphs.ttf"; }
+    FontLoader { id: hiFiGlyphs; source: pathToFonts + "fonts/hifi-glyphs.ttf"; }
     property int size: 32
     font.pixelSize: size
     width: size

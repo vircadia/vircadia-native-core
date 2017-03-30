@@ -55,7 +55,7 @@ OriginalDesktop.Desktop {
         // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
         x: sysToolbar.x
         y: 50
-        shown: false
+        shown: true
     }
 
     Settings {

@@ -76,6 +76,7 @@ static const std::string DEFAULT_ROUGHNESS_SHADER {
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return vec4(vec3(pow(frag.roughness, 1.0 / 2.2)), 1.0);"
+   // "    return vec4(vec3(pow(colorRamp(frag.roughness), vec3(1.0 / 2.2))), 1.0);"
     " }"
 };
 static const std::string DEFAULT_NORMAL_SHADER {

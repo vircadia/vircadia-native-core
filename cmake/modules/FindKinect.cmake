@@ -21,7 +21,7 @@
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("kinect")
 
-find_path(KINECT_INCLUDE_DIRS Kinect.h PATH_SUFFIXES inc HINTS $ENV{KINECT_ROOT_DIR})
+find_path(KINECT_INCLUDE_DIRS Kinect.h PATH_SUFFIXES inc HINTS $ENV{KINECT_ROOT_DIR} $ENV{KINECTSDK20_DIR})
 
 if (WIN32)
 
@@ -35,7 +35,7 @@ if (WIN32)
         KINECT_LIBRARY_RELEASE Kinect20 
         PATH_SUFFIXES "Lib/${ARCH_DIR}" "lib" 
         HINTS ${KINECT_SEARCH_DIRS}
-        PATH $ENV{KINECT_ROOT_DIR})
+        PATHS $ENV{KINECT_ROOT_DIR} $ENV{KINECTSDK20_DIR})
 
   set(KINECT_LIBRARIES ${KINECT_LIBRARY})
 

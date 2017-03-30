@@ -11,6 +11,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -25,7 +26,11 @@ var OVERLAY_RAMP_RATE = 8.0;
 
 var animStateHandlerID;
 
-var isBothIndexesPointing = false;
+var leftIndexPointingOverride = 0;
+var rightIndexPointingOverride = 0;
+var leftThumbRaisedOverride = 0;
+var rightThumbRaisedOverride = 0;
+
 var HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index";
 
 var isLeftIndexPointing = false;
@@ -53,7 +58,7 @@ function init() {
             "leftHandOverlayAlpha", "leftHandGraspAlpha",
             "rightHandOverlayAlpha", "rightHandGraspAlpha",
             "isLeftHandGrasp", "isLeftIndexPoint", "isLeftThumbRaise", "isLeftIndexPointAndThumbRaise",
-            "isRightHandGrasp", "isRightIndexPoint", "isRightThumbRaise", "isRightIndexPointAndThumbRaise",
+            "isRightHandGrasp", "isRightIndexPoint", "isRightThumbRaise", "isRightIndexPointAndThumbRaise"
         ]
     );
     Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
@@ -66,21 +71,23 @@ function animStateHandler(props) {
         leftHandGraspAlpha: lastLeftTrigger,
         rightHandOverlayAlpha: rightHandOverlayAlpha,
         rightHandGraspAlpha: lastRightTrigger,
-        isLeftHandGrasp: !isBothIndexesPointing && !isLeftIndexPointing && !isLeftThumbRaised,
-        isLeftIndexPoint: (isBothIndexesPointing || isLeftIndexPointing) && !isLeftThumbRaised,
-        isLeftThumbRaise: !isBothIndexesPointing && !isLeftIndexPointing && isLeftThumbRaised,
-        isLeftIndexPointAndThumbRaise: (isBothIndexesPointing || isLeftIndexPointing) && isLeftThumbRaised,
-        isRightHandGrasp: !isBothIndexesPointing && !isRightIndexPointing && !isRightThumbRaised,
-        isRightIndexPoint: (isBothIndexesPointing || isRightIndexPointing) && !isRightThumbRaised,
-        isRightThumbRaise: !isBothIndexesPointing && !isRightIndexPointing && isRightThumbRaised,
-        isRightIndexPointAndThumbRaise: (isBothIndexesPointing || isRightIndexPointing) && isRightThumbRaised
+
+        isLeftHandGrasp: !isLeftIndexPointing && !isLeftThumbRaised,
+        isLeftIndexPoint: isLeftIndexPointing && !isLeftThumbRaised,
+        isLeftThumbRaise: !isLeftIndexPointing && isLeftThumbRaised,
+        isLeftIndexPointAndThumbRaise: isLeftIndexPointing && isLeftThumbRaised,
+
+        isRightHandGrasp: !isRightIndexPointing && !isRightThumbRaised,
+        isRightIndexPoint: isRightIndexPointing && !isRightThumbRaised,
+        isRightThumbRaise: !isRightIndexPointing && isRightThumbRaised,
+        isRightIndexPointAndThumbRaise: isRightIndexPointing && isRightThumbRaised
     };
 }
 
 function update(dt) {
     var leftTrigger = clamp(Controller.getValue(Controller.Standard.LT) + Controller.getValue(Controller.Standard.LeftGrip), 0, 1);
     var rightTrigger = clamp(Controller.getValue(Controller.Standard.RT) + Controller.getValue(Controller.Standard.RightGrip), 0, 1);
-        
+
     //  Average last few trigger values together for a bit of smoothing
     var tau = clamp(dt / TRIGGER_SMOOTH_TIMESCALE, 0, 1);
     lastLeftTrigger = lerp(leftTrigger, lastLeftTrigger, tau);
@@ -103,18 +110,61 @@ function update(dt) {
     }
 
     // Pointing index fingers and raising thumbs
-    isLeftIndexPointing = leftHandPose.valid && Controller.getValue(Controller.Standard.LeftIndexPoint) === 1;
-    isRightIndexPointing = rightHandPose.valid && Controller.getValue(Controller.Standard.RightIndexPoint) === 1;
-    isLeftThumbRaised = leftHandPose.valid && Controller.getValue(Controller.Standard.LeftThumbUp) === 1;
-    isRightThumbRaised = rightHandPose.valid && Controller.getValue(Controller.Standard.RightThumbUp) === 1;
+    isLeftIndexPointing = (leftIndexPointingOverride > 0) || (leftHandPose.valid && Controller.getValue(Controller.Standard.LeftIndexPoint) === 1);
+    isRightIndexPointing = (rightIndexPointingOverride > 0) || (rightHandPose.valid && Controller.getValue(Controller.Standard.RightIndexPoint) === 1);
+    isLeftThumbRaised = (leftThumbRaisedOverride > 0) || (leftHandPose.valid && Controller.getValue(Controller.Standard.LeftThumbUp) === 1);
+    isRightThumbRaised = (rightThumbRaisedOverride > 0) || (rightHandPose.valid && Controller.getValue(Controller.Standard.RightThumbUp) === 1);
 }
 
 function handleMessages(channel, message, sender) {
     if (sender === MyAvatar.sessionUUID && channel === HIFI_POINT_INDEX_MESSAGE_CHANNEL) {
         var data = JSON.parse(message);
+
         if (data.pointIndex !== undefined) {
-            print("pointIndex: " + data.pointIndex);
-            isBothIndexesPointing = data.pointIndex;
+            if (data.pointIndex) {
+                leftIndexPointingOverride++;
+                rightIndexPointingOverride++;
+            } else {
+                leftIndexPointingOverride--;
+                rightIndexPointingOverride--;
+            }
+        }
+        if (data.pointLeftIndex !== undefined) {
+            if (data.pointLeftIndex) {
+                leftIndexPointingOverride++;
+            } else {
+                leftIndexPointingOverride--;
+            }
+        }
+        if (data.pointRightIndex !== undefined) {
+            if (data.pointRightIndex) {
+                rightIndexPointingOverride++;
+            } else {
+                rightIndexPointingOverride--;
+            }
+        }
+        if (data.raiseThumbs !== undefined) {
+            if (data.raiseThumbs) {
+                leftThumbRaisedOverride++;
+                rightThumbRaisedOverride++;
+            } else {
+                leftThumbRaisedOverride--;
+                rightThumbRaisedOverride--;
+            }
+        }
+        if (data.raiseLeftThumb !== undefined) {
+            if (data.raiseLeftThumb) {
+                leftThumbRaisedOverride++;
+            } else {
+                leftThumbRaisedOverride--;
+            }
+        }
+        if (data.raiseRightThumb !== undefined) {
+            if (data.raiseRightThumb) {
+                rightThumbRaisedOverride++;
+            } else {
+                rightThumbRaisedOverride--;
+            }
         }
     }
 }
