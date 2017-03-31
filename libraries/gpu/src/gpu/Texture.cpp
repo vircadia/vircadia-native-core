@@ -490,7 +490,7 @@ Size Texture::getStoredMipSize(uint16 level) const {
     PixelsPointer mipFace = accessStoredMipFace(level);
     Size size = 0;
     if (mipFace && mipFace->getSize()) {
-         for (int face = 0; face < mipFace->getSize(); ++face) {
+         for (int face = 0; face < getNumFaces(); ++face) {
             size += getStoredMipFaceSize(level, face);
          }
     }
