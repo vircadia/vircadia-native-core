@@ -40,6 +40,54 @@ public:
 
     class GL41Texture : public GLTexture {
         using Parent = GLTexture;
+        friend class GL41Backend;
+        static GLuint allocate(const Texture& texture);
+    protected:
+        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        void generateMips() const override;
+        void copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const;
+        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const;
+        virtual void syncSampler() const;
+
+        void withPreservedTexture(std::function<void()> f) const;
+    };
+
+    //
+    // Textures that have fixed allocation sizes and cannot be managed at runtime
+    //
+
+    class GL41FixedAllocationTexture : public GL41Texture {
+        using Parent = GL41Texture;
+        friend class GL41Backend;
+
+    public:
+        GL41FixedAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41FixedAllocationTexture();
+
+    protected:
+        uint32 size() const override { return _size; }
+        void allocateStorage() const;
+        void syncSampler() const override;
+        const uint32 _size { 0 };
+    };
+
+    class GL41AttachmentTexture : public GL41FixedAllocationTexture {
+        using Parent = GL41FixedAllocationTexture;
+        friend class GL45Backend;
+    protected:
+        GL41AttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41AttachmentTexture();
+    };
+
+    class GL41StrictResourceTexture : public GL41FixedAllocationTexture {
+        using Parent = GL41FixedAllocationTexture;
+        friend class GL41Backend;
+    protected:
+        GL41StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+    };
+
+   /* class GL41Texture : public GLTexture {
+        using Parent = GLTexture;
         static GLuint allocate();
 
     public:
@@ -62,7 +110,7 @@ public:
         void withPreservedTexture(std::function<void()> f) const;
         void syncContent() const;
         void syncSampler() const;
-    };
+    };*/
 
 
 protected:
