@@ -107,7 +107,7 @@ StackView {
                 imageURL: "../../../images/home.svg"
                 onClicked: {
                     addressBarDialog.loadHome();
-                    root.shown = false;
+                    tabletRoot.shown = false;
                 }
                 anchors {
                     left: parent.left
@@ -541,14 +541,14 @@ StackView {
         if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }
-        root.shown = false;
+        tabletRoot.shown = false;
     }
 
     Keys.onPressed: {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                root.shown = false
+                tabletRoot.shown = false
                 clearAddressLineTimer.start();
                 event.accepted = true
                 break
