@@ -409,7 +409,6 @@ void CharacterController::handleChangedCollisionGroup() {
 
 void CharacterController::updateUpAxis(const glm::quat& rotation) {
     _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
-    _ghost.setUpDirection(_currentUp);
     if (_state != State::Hover && _rigidBody) {
         _rigidBody->setGravity(_gravity * _currentUp);
     }
