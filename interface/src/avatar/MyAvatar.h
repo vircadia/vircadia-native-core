@@ -445,6 +445,14 @@ public:
     controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
     controller::Pose getRightHandControllerPoseInAvatarFrame() const;
 
+    void setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
+    controller::Pose getLeftFootControllerPoseInSensorFrame() const;
+    controller::Pose getRightFootControllerPoseInSensorFrame() const;
+    controller::Pose getLeftFootControllerPoseInWorldFrame() const;
+    controller::Pose getRightFootControllerPoseInWorldFrame() const;
+    controller::Pose getLeftFootControllerPoseInAvatarFrame() const;
+    controller::Pose getRightFootControllerPoseInAvatarFrame() const;
+
     bool hasDriveInput() const;
 
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
@@ -683,6 +691,9 @@ private:
     // These are stored in SENSOR frame
     ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInSensorFrameCache { controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
+
+    ThreadSafeValueCache<controller::Pose> _leftFootControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _rightFootControllerPoseInSensorFrameCache{ controller::Pose() };
 
     bool _hmdLeanRecenterEnabled = true;
 
