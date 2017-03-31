@@ -1,10 +1,18 @@
+//
+//  Created by Thijs Wenker on 3/31/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Revision of James B. Pollack's work on GamesTable in 2016
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 var CLEARCACHE = "?"+Math.random().toString(36).substring(7);
 var TABLE_MODEL_URL = Script.resolvePath('assets/table/gameTable.fbx') + CLEARCACHE;
 var MODEL_URL = Script.resolvePath('assets/table/finalFrame.fbx') + CLEARCACHE;
 var TABLE_SCRIPT_URL = Script.resolvePath('table.js') + CLEARCACHE;
 var ENTITY_SPAWNER_SCRIPT_URL = Script.resolvePath('entitySpawner.js') + CLEARCACHE;
-var MAT_SCRIPT_URL = Script.resolvePath('mat.js') + CLEARCACHE;
 var NEXT_GAME_BUTTON_SCRIPT_URL = Script.resolvePath('nextGameButton.js') + CLEARCACHE;
 var RESET_BUTTON_SCRIPT_URL = Script.resolvePath('resetGameButton.js') + CLEARCACHE;
 var TABLE_PICTURE_URL = Script.resolvePath('assets/mats/Table-default.jpg') + CLEARCACHE;
@@ -152,7 +160,6 @@ function createMat() {
             Picture: TABLE_PICTURE_URL
         }),
         parentID: table,
-        script: MAT_SCRIPT_URL,
         position: getOffsetFromTable(matOffset.forward, matOffset.vertical, matOffset.right),
         userData: JSON.stringify({
             grabbableKey: {
@@ -240,7 +247,6 @@ function makeTable() {
     createEntitySpawner();
     createResetGameButton();
     createNextGameButton();
-
 }
 
 function cleanup() {

@@ -1,3 +1,13 @@
+//
+//  Created by Thijs Wenker on 3/31/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Revision of James B. Pollack's work on GamesTable in 2016
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 (function() {
 	var CLEARCACHE = "?"+Math.random().toString(36).substring(7);
 	var GAMES_LIST_ENDPOINT = Script.resolvePath('games/gamesDirectory.svo.json') + CLEARCACHE;
@@ -12,7 +22,6 @@
     GameTable.prototype = {
         matCorner: null,
         currentGameIndex: 0,
-        count: 0,
         preload: function(entityID) {
             _this.entityID = entityID;
             Script.setTimeout(function() {
@@ -50,27 +59,21 @@
             var userData = _this.getCurrentUserData();
             if (!(userData.gameTableData !== undefined && userData.gameTableData.currentGame !== undefined)) {
                 _this.currentGameIndex = -1;
-                print("no userdata found, setting game index to -1.")
                 return;
             }
             var foundIndex = -1;
             _this.gamesList.forEach(function(game, index) {
                 if (game.gameName === userData.gameTableData.currentGame) {
                     foundIndex = index;
-                    print("found " + game.gameName + " at index " + index);
                 }
-            })
+            });
             _this.currentGameIndex = foundIndex;
         },
         setInitialGameIfNone: function() {
             _this.getCurrentGame();
             if (_this.currentGameIndex === -1) {
-                print('userdata has no gameTableData or no currentGame');
                 _this.setCurrentGame();
                 _this.cleanupGameEntities();
-                print('i set the game and reset the game')
-            } else {
-                print('already has game')
             }
         },
         resetGame: function() {
@@ -81,11 +84,8 @@
         nextGame: function() {
             // always check the current game before switching
             _this.getCurrentGame();
-            print("got current game " + _this.currentGameIndex);
             _this.currentGameIndex = (_this.currentGameIndex + 1) % _this.gamesList.length;
-            print("it is now " + _this.currentGameIndex);
             _this.cleanupGameEntities();
-            print("and now it is " + _this.currentGameIndex);
         },
         cleanupGameEntities: function() {
             var props = Entities.getEntityProperties(_this.entityID);
@@ -108,9 +108,7 @@
             _this.spawnEntitiesForGame();
         },
         setCurrentGamesList: function() {
-            var gamesList = getGamesList();
-            _this.gamesList = gamesList;
-            print('set gamesList to: ' + JSON.stringify(gamesList));
+            _this.gamesList = getGamesList();
             _this.setInitialGameIfNone();
         },
         setCurrentGame: function() {
@@ -155,19 +153,14 @@
                     result = item;
                 }
             });
-            print('result returned ought to be: ' + result);
             return result
         },
         spawnEntitiesForGame: function() {
-            print('jbp should spawn entities for game.  count: ' + this.count);
             var entitySpawner = _this.getEntityFromGroup('gameTable', 'entitySpawner');
-
-            var props = Entities.getEntityProperties(_this.entityID);
             var mat = _this.getEntityFromGroup('gameTable', 'mat');
 
-
-            Entities.callEntityMethod(entitySpawner, 'spawnEntities', [JSON.stringify(_this.currentGameFull), mat, _this.entityID]);
-            this.count++;
+            Entities.callEntityMethod(entitySpawner, 'spawnEntities', [JSON.stringify(_this.currentGameFull),mat,
+                _this.entityID]);
         }
     };
 
@@ -175,10 +168,7 @@
         var request = new XMLHttpRequest();
         request.open("GET", GAMES_LIST_ENDPOINT, false);
         request.send();
-
-        var response = JSON.parse(request.responseText);
-        print('got gamesList' + request.responseText);
-        return response;
+        return JSON.parse(request.responseText);
     }
 
     return new GameTable();

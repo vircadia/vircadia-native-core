@@ -1,3 +1,11 @@
+//
+//  Created by Thijs Wenker on 3/31/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 (function() {
     var _this;
 
@@ -198,8 +206,6 @@
             _this.entityID = id;
         },
         createSingleEntity: function(url, spawnLocation, spawnRotation) {
-            // print('creating a single entity: ' + url)
-            // print('creating a single entity at : ' + JSON.stringify(spawnLocation))
             if (url === 'empty') {
                 return null;
             }
@@ -217,10 +223,8 @@
             })
         },
         spawnEntities: function(id, params) {
-            print('spawn entities called!!');
             this.items = [];
             var dimensions = Entities.getEntityProperties(params[1]).dimensions;
-            print('and it has params: ' + params.length);
             _this.game = JSON.parse(params[0]);
             _this.matDimensions = dimensions;
             _this.matCenter = Entities.getEntityProperties(params[1]).position;
@@ -242,12 +246,8 @@
 
         },
         spawnByPile: function() {
-            print('should spawn by pile');
             var props = Entities.getEntityProperties(_this.entityID);
-
-            var i;
-            for (i = 0; i < _this.game.howMany; i++) {
-                print('spawning entity from pile:: ' + i);
+            for (var i = 0; i < _this.game.howMany; i++) {
                 var spawnLocation = {
                     x: props.position.x,
                     y: props.position.y - 0.25,
@@ -264,8 +264,7 @@
             }
         },
         spawnByArranged: function() {
-            print('should spawn by arranged');
-                // make sure to set userData.gameTable.attachedTo appropriately
+            // make sure to set userData.gameTable.attachedTo appropriately
             _this.setupGrid();
 
         },
@@ -294,11 +293,9 @@
 
         setupGrid: function() {
             _this.tiles = [];
-            var i;
-            var j;
 
-            for (i = 0; i < _this.game.startingArrangement.length; i++) {
-                for (j = 0; j < _this.game.startingArrangement[i].length; j++) {
+            for (var i = 0; i < _this.game.startingArrangement.length; i++) {
+                for (var j = 0; j < _this.game.startingArrangement[i].length; j++) {
                     // print('jbp there is a tile at:: ' + i + "::" + j)
                     var tile = new Tile(i, j);
                     var item = _this.createSingleEntity(tile.url, tile.middle, _this.tableRotation);
