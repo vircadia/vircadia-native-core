@@ -2197,13 +2197,13 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
-    setAvatarCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
+    setCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
 }
 
-void MyAvatar::setAvatarCollisionsEnabled(bool enabled) {
+void MyAvatar::setCollisionsEnabled(bool enabled) {
 
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAvatarCollisionsEnabled", Q_ARG(bool, enabled));
+        QMetaObject::invokeMethod(this, "setCollisionsEnabled", Q_ARG(bool, enabled));
         return;
     }
 
@@ -2219,20 +2219,18 @@ void MyAvatar::setAvatarCollisionsEnabled(bool enabled) {
     _characterController.setCollisionGroup(group);
 }
 
-bool MyAvatar::getAvatarCollisionsEnabled() {
+bool MyAvatar::getCollisionsEnabled() {
     return _characterController.getCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
 }
 
 void MyAvatar::setCharacterControllerEnabled(bool enabled) {
-    qCDebug(interfaceapp) << "MyAvatar.setCharacterControllerEnabled() is deprecated."
-        << "Use MyAvatar.setAvatarCollisionsEnabled() instead.";
-    setAvatarCollisionsEnabled(enabled);
+    qCDebug(interfaceapp) << "MyAvatar.characterControllerEnabled is deprecated. Use MyAvatar.collisionsEnabled instead.";
+    setCollisionsEnabled(enabled);
 }
 
 bool MyAvatar::getCharacterControllerEnabled() {
-    qCDebug(interfaceapp) << "MyAvatar.getCharacterControllerEnabled() is deprecated."
-        << "Use MyAvatar.getAvatarCollisionsEnabled() instead.";
-    return getAvatarCollisionsEnabled();
+    qCDebug(interfaceapp) << "MyAvatar.characterControllerEnabled is deprecated. Use MyAvatar.collisionsEnabled instead.";
+    return getCollisionsEnabled();
 }
 
 void MyAvatar::clearDriveKeys() {
