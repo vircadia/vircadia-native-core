@@ -251,7 +251,7 @@ static QString getUsername() {
 }
 
 void TabletProxy::initialScreen(const QVariant& url) {
-    if (getQmlTablet()) {
+    if (_qmlTabletRoot) {
         pushOntoStack(url);
     } else {
         _initialScreen = true;
