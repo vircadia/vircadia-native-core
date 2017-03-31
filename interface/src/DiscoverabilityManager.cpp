@@ -77,6 +77,10 @@ void DiscoverabilityManager::updateLocation() {
 
             const QString NETWORK_ADDRESS_PORT_IN_LOCATION = "network_port";
             locationObject.insert(NETWORK_ADDRESS_PORT_IN_LOCATION, domainSockAddr.getPort());
+
+            const QString NODE_ID_IN_LOCATION = "node_id";
+            const int UUID_REAL_LENGTH = 36;
+            locationObject.insert(NODE_ID_IN_LOCATION, DependencyManager::get<NodeList>()->getSessionUUID().toString().mid(1, UUID_REAL_LENGTH));
         }
 
         const QString AVAILABILITY_KEY_IN_LOCATION = "availability";
