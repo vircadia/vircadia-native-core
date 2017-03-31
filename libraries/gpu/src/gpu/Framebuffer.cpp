@@ -32,7 +32,7 @@ Framebuffer* Framebuffer::create(const std::string& name) {
 Framebuffer* Framebuffer::create(const std::string& name, const Format& colorBufferFormat, uint16 width, uint16 height) {
     auto framebuffer = Framebuffer::create(name);
 
-    auto colorTexture = TexturePointer(Texture::createRenderBuffer(colorBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+    auto colorTexture = TexturePointer(Texture::createRenderBuffer(colorBufferFormat, width, height, Texture::SINGLE_MIP, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
     colorTexture->setSource("Framebuffer::colorTexture");
 
     framebuffer->setRenderBuffer(0, colorTexture);
@@ -43,8 +43,8 @@ Framebuffer* Framebuffer::create(const std::string& name, const Format& colorBuf
 Framebuffer* Framebuffer::create(const std::string& name, const Format& colorBufferFormat, const Format& depthStencilBufferFormat, uint16 width, uint16 height) {
     auto framebuffer = Framebuffer::create(name);
 
-    auto colorTexture = TexturePointer(Texture::createRenderBuffer(colorBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
-    auto depthTexture = TexturePointer(Texture::createRenderBuffer(depthStencilBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+    auto colorTexture = TexturePointer(Texture::createRenderBuffer(colorBufferFormat, width, height, Texture::SINGLE_MIP, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+    auto depthTexture = TexturePointer(Texture::createRenderBuffer(depthStencilBufferFormat, width, height, Texture::SINGLE_MIP, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
     framebuffer->setRenderBuffer(0, colorTexture);
     framebuffer->setDepthStencilBuffer(depthTexture, depthStencilBufferFormat);
 
