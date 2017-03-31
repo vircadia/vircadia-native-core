@@ -126,10 +126,6 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         _ghost.setCollisionGroupAndMask(_collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR & (~ _collisionGroup));
         _ghost.setCollisionWorld(_dynamicsWorld);
         _ghost.setRadiusAndHalfHeight(_radius, _halfHeight);
-        _ghost.setMaxStepHeight(0.75f * (_radius + _halfHeight));
-        _ghost.setMinWallAngle(PI / 4.0f);
-        _ghost.setUpDirection(_currentUp);
-        _ghost.setMotorOnly(true);
         _ghost.setWorldTransform(_rigidBody->getWorldTransform());
     }
     if (_dynamicsWorld) {
