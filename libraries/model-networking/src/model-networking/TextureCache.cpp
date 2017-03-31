@@ -266,12 +266,18 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSh
 NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) :
     Resource(url),
     _type(type),
-    _maxNumPixels(maxNumPixels)
+    _maxNumPixels(maxNumPixels),
+    _sourceIsKTX(url.path().endsWith(".ktx"))
 {
     _textureSource = std::make_shared<gpu::TextureSource>();
 
     if (!url.isValid()) {
         _loaded = true;
+    }
+
+    if (_sourceIsKTX) {
+        _requestByteRange.fromInclusive = 0;
+        _requestByteRange.toExclusive = 1000;
     }
 
     // if we have content, load it after we have our self pointer

@@ -379,6 +379,8 @@ namespace ktx {
         void setCubeArray(uint32_t width, uint32_t height, uint32_t numSlices) { setDimensions(width, height, 0, (numSlices > 0 ? numSlices : 1), NUM_CUBEMAPFACES); }
 
     };
+    static const size_t KTX_HEADER_SIZE = 64;
+    static_assert(sizeof(Header) == KTX_HEADER_SIZE, "KTX Header size is static");
 
     // Key Values
     struct KeyValue {

@@ -676,6 +676,8 @@ void Resource::makeRequest() {
         return;
     }
     
+    _request->setByteRange(_requestByteRange);
+
     qCDebug(resourceLog).noquote() << "Starting request for:" << _url.toDisplayString();
     emit loading();
 

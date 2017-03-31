@@ -59,6 +59,12 @@ void HTTPResourceRequest::doSend() {
         networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
     }
 
+    if (_byteRange.isSet()) {
+        auto byteRange = QString("bytes={}-{}").arg(_byteRange.fromInclusive).arg(_byteRange.toExclusive);
+        networkRequest.setRawHeader("Range", byteRange.toLatin1());
+    }
+    networkRequest.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
+
     _reply = NetworkAccessManager::getInstance().get(networkRequest);
     
     connect(_reply, &QNetworkReply::finished, this, &HTTPResourceRequest::onRequestFinished);

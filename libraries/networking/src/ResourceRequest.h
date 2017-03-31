@@ -17,6 +17,13 @@
 
 #include <cstdint>
 
+struct ByteRange {
+    int64_t fromInclusive { 0 };
+    int64_t toExclusive { 0 };
+
+    bool isSet() { return fromInclusive < -1 || fromInclusive < toExclusive; }
+};
+
 class ResourceRequest : public QObject {
     Q_OBJECT
 public:
@@ -48,6 +55,7 @@ public:
     bool loadedFromCache() const { return _loadedFromCache; }
 
     void setCacheEnabled(bool value) { _cacheEnabled = value; }
+    void setByteRange(ByteRange byteRange) { _byteRange = byteRange; }
 
 public slots:
     void send();
@@ -65,6 +73,7 @@ protected:
     QByteArray _data;
     bool _cacheEnabled { true };
     bool _loadedFromCache { false };
+    ByteRange _byteRange;
 };
 
 #endif

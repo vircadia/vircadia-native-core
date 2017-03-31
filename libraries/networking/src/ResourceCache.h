@@ -442,6 +442,7 @@ protected:
 
     QUrl _url;
     QUrl _activeUrl;
+    ByteRange _requestByteRange;
     bool _startedLoading = false;
     bool _failedToLoad = false;
     bool _loaded = false;
