@@ -218,7 +218,7 @@ Rectangle {
                 color: activeTab == "connectionsTab" ? "white" : "#CCCCCC";
                 MouseArea {
                     anchors.fill: parent;
-                    onClicked: { 
+                    onClicked: {
                         if (activeTab != "connectionsTab") {
                             connectionsLoading.visible = false;
                             connectionsLoading.visible = true;
@@ -309,7 +309,7 @@ Rectangle {
                 }
             }
         }
-        
+
     /*****************************************
                    NEARBY TAB
     *****************************************/
@@ -663,7 +663,7 @@ Rectangle {
         }
         width: parent.width - 12;
         visible: activeTab == "connectionsTab";
-        
+
         AnimatedImage {
             id: connectionsLoading;
             source: "../../icons/profilePicLoading.gif"
@@ -677,8 +677,8 @@ Rectangle {
                 if (visible) {
                     connectionsTimeoutTimer.start();
                 } else {
-                    connectionsTimeoutTimer.stop();     
-                    connectionsRefreshProblemText.visible = false;               
+                    connectionsTimeoutTimer.stop();
+                    connectionsRefreshProblemText.visible = false;
                 }
             }
         }
@@ -820,13 +820,12 @@ Rectangle {
                     checked: model ? (model["connection"] === "friend" ? true : false) : false;
                     boxSize: 24;
                     onClicked: {
-                        var newValue = !model[styleData.role];
+                        var newValue = !(model["connection"] === "friend");
                         connectionsUserModel.setProperty(model.userIndex, styleData.role, newValue);
                         connectionsUserModelData[model.userIndex][styleData.role] = newValue; // Defensive programming
-                        // Insert line here about actually taking the friend/unfriend action
-                        //pal.sendToScript({method: 'addFriend', params: model.userName});
-                        // Also insert line here about logging the activity, similar to the commented line below
-                        //UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId);
+                        pal.sendToScript({method: newValue ? 'addFriend' : 'removeFriend', params: model.userName});
+
+                        UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId);
 
                         // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
                         // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
@@ -836,7 +835,7 @@ Rectangle {
                 }
             }
         }
-        
+
         // "Make a Connection" instructions
         Rectangle {
             id: connectionInstructions;
@@ -947,7 +946,7 @@ Rectangle {
             height: parent.height;
             anchors.top: parent.top;
             anchors.right: parent.right;
-                
+
             RalewayRegular {
                 id: availabilityText;
                 text: "set availability";

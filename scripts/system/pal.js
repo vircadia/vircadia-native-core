@@ -269,6 +269,38 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         getConnectionData();
         UserActivityLogger.palAction("refresh_connections", "");
         break;
+    case 'removeFriend':
+        friendUserName = message.params;
+        request({
+            uri: METAVERSE_BASE + '/api/v1/user/friends/' + friendUserName,
+            method: 'DELETE'
+        }, function (error, response) {
+            print(JSON.stringify(response));
+            if (error || (response.status !== 'success')) {
+                print("Error: unable to unfriend", friendUserName, error || response.status);
+                return;
+            }
+            getConnectionData();
+        });
+        break
+    case 'addFriend':
+        friendUserName = message.params;
+        request({
+            uri: METAVERSE_BASE + '/api/v1/user/friends',
+            method: 'POST',
+            json: true,
+            body: {
+                username: friendUserName,
+            }
+            }, function (error, response) {
+                if (error || (response.status !== 'success')) {
+                    print("Error: unable to friend " + friendUserName, error || response.status);
+                    return;
+                }
+                getConnectionData(); // For now, just refresh all connection data. Later, just refresh the one friended row.
+            }
+        );
+        break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
@@ -286,10 +318,8 @@ function updateUser(data) {
 //
 // These are prototype versions that will be changed when the back end changes.
 var METAVERSE_BASE = location.metaverseServerUrl;
-
-
-function request(url, callback) { // cb(error, responseOfCorrectContentType) of url. General for 'get' text/html/json, but without redirects.
-    var httpRequest = new XMLHttpRequest();
+function request(options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
+    var httpRequest = new XMLHttpRequest(), key;
     // QT bug: apparently doesn't handle onload. Workaround using readyState.
     httpRequest.onreadystatechange = function () {
         var READY_STATE_DONE = 4;
@@ -298,7 +328,7 @@ function request(url, callback) { // cb(error, responseOfCorrectContentType) of 
             var error = (httpRequest.status !== HTTP_OK) && httpRequest.status.toString() + ':' + httpRequest.statusText,
                 response = !error && httpRequest.responseText,
                 contentType = !error && httpRequest.getResponseHeader('content-type');
-            if (!error && contentType.indexOf('application/json') === 0) {
+            if (!error && contentType.indexOf('application/json') === 0) { // ignoring charset, etc.
                 try {
                     response = JSON.parse(response);
                 } catch (e) {
@@ -308,11 +338,40 @@ function request(url, callback) { // cb(error, responseOfCorrectContentType) of 
             callback(error, response);
         }
     };
-    httpRequest.open("GET", url, true);
-    httpRequest.send();
+    if (typeof options === 'string') {
+        options = {uri: options};
+    }
+    if (options.url) {
+        options.uri = options.url;
+    }
+    if (!options.method) {
+        options.method = 'GET';
+    }
+    if (options.body && (options.method === 'GET')) { // add query parameters
+        var params = [], appender = (-1 === options.uri.search('?')) ? '?' : '&';
+        for (key in options.body) {
+            params.push(key + '=' + options.body[key]);
+        }
+        options.uri += appender + params.join('&');
+        delete options.body;
+    }
+    if (options.json) {
+        options.headers = options.headers || {};
+        options.headers["Content-type"] = "application/json";
+        options.body = JSON.stringify(options.body);
+    }
+    for (key in options.headers || {}) {
+        httpRequest.setRequestHeader(key, options.headers[key]);
+    }
+    httpRequest.open(options.method, options.uri, true);
+    httpRequest.send(options.body);
 }
+
+
 function requestJSON(url, callback) { // callback(data) if successfull. Logs otherwise.
-    request(url, function (error, response) {
+    request({
+        uri: url
+    }, function (error, response) {
         if (error || (response.status !== 'success')) {
             print("Error: unable to get", url,  error || response.status);
             return;
@@ -322,7 +381,9 @@ function requestJSON(url, callback) { // callback(data) if successfull. Logs oth
 }
 function getProfilePicture(username, callback) { // callback(url) if successfull. (Logs otherwise)
     // FIXME Prototype scrapes profile picture. We should include in user status, and also make available somewhere for myself
-    request(METAVERSE_BASE + '/users/' + username, function (error, html) {
+    request({
+        uri: METAVERSE_BASE + '/users/' + username
+    }, function (error, html) {
         var matched = !error && html.match(/img class="users-img" src="([^"]*)"/);
         if (!matched) {
             print('Error: Unable to get profile picture for', username, error);
