@@ -129,6 +129,7 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool avatarCollisionsEnabled READ getAvatarCollisionsEnabled WRITE setAvatarCollisionsEnabled)
+    Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
 
 public:
@@ -472,6 +473,8 @@ public:
 
     Q_INVOKABLE void setAvatarCollisionsEnabled(bool enabled);
     Q_INVOKABLE bool getAvatarCollisionsEnabled();
+    Q_INVOKABLE void setCharacterControllerEnabled(bool enabled); // deprecated
+    Q_INVOKABLE bool getCharacterControllerEnabled(); // deprecated
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;

@@ -2223,6 +2223,18 @@ bool MyAvatar::getAvatarCollisionsEnabled() {
     return _characterController.getCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
 }
 
+void MyAvatar::setCharacterControllerEnabled(bool enabled) {
+    qCDebug(interfaceapp) << "MyAvatar.setCharacterControllerEnabled() is deprecated."
+        << "Use MyAvatar.setAvatarCollisionsEnabled() instead.";
+    setAvatarCollisionsEnabled(enabled);
+}
+
+bool MyAvatar::getCharacterControllerEnabled() {
+    qCDebug(interfaceapp) << "MyAvatar.getCharacterControllerEnabled() is deprecated."
+        << "Use MyAvatar.getAvatarCollisionsEnabled() instead.";
+    return getAvatarCollisionsEnabled();
+}
+
 void MyAvatar::clearDriveKeys() {
     _driveKeys.fill(0.0f);
 }
