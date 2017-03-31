@@ -291,8 +291,6 @@ StackView {
                     left: parent.left
                     right: parent.right
                     leftMargin: 10
-                    verticalCenter: parent.verticalCenter;
-                    horizontalCenter: parent.horizontalCenter;
                 }
                 model: suggestions
                 orientation: ListView.Vertical
