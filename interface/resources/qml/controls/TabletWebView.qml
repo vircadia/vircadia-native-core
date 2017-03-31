@@ -17,7 +17,7 @@ Item {
     property string address: url
     property alias scriptURL: root.userScriptUrl
     property alias eventBridge: eventBridgeWrapper.eventBridge
-    property bool keyboardEnabled: HMD.active // FIXME - Keyboard HMD only: Default to false
+    property bool keyboardEnabled: HMD.active
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool isDesktop: false
@@ -230,6 +230,7 @@ Item {
                     var newWindow = component.createObject();
                     //newWindow.setProfile(root.profile);
                     request.openIn(newWindow.webView);
+                    newWindow.eventBridge = web.eventBridge;
                     stackRoot.push(newWindow);
                 }
             }

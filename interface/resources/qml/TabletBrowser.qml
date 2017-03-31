@@ -147,7 +147,7 @@ Item {
                 // desktop is not defined for web-entities
                 if (stackRoot.isDesktop) {
                     var component = Qt.createComponent("./Browser.qml");
-                    var newWindow = component.createObject(desktop);
+                    var newWindow = component.createObject(desktop); 
                     request.openIn(newWindow.webView);
                 } else {
                     var component = Qt.createComponent("./TabletBrowser.qml");
@@ -161,8 +161,9 @@ Item {
                     var newWindow = component.createObject();
                     //newWindow.setProfile(webview.profile);
                     request.openIn(newWindow.webView);
+                    newWindow.eventBridge = web.eventBridge;
                     stackRoot.push(newWindow);
-                    newWindow.forceActiveFocus();
+                    newWindow.webView.forceActiveFocus();
                 }
             }
         }
