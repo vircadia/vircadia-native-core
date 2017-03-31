@@ -256,7 +256,7 @@ Rectangle {
                     // "CONNECTIONS" text
                     RalewaySemiBold {
                         id: connectionsTabSelectorText;
-                        text: "PEOPLE";
+                        text: "CONNECTIONS";
                         // Text size
                         size: hifi.fontSizes.tabularData;
                         // Anchors
@@ -281,7 +281,7 @@ Rectangle {
                         anchors.left: connectionsTabSelectorTextContainer.left;
                         anchors.top: connectionsTabSelectorTextContainer.top;
                         anchors.topMargin: 1;
-                        anchors.leftMargin: connectionsTabSelectorTextMetrics.width + 25;
+                        anchors.leftMargin: connectionsTabSelectorTextMetrics.width + 42;
                         RalewayRegular {
                             id: connectionsHelpText;
                             text: "[?]";
