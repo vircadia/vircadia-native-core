@@ -113,14 +113,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
     }
 
-    this.getDimensions = function() {
-        if (this.landscape) {
-            return { x: this.width * 2, y: this.height, z: this.depth };
-        } else {
-            return { x: this.width, y: this.height, z: this.depth };
-        }
-    };
-
     var modelURL = LOCAL_TABLET_MODEL_PATH;
     var tabletProperties = {
         name: "WebTablet Tablet",
@@ -133,14 +125,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         }),
         dimensions: this.getDimensions(),
         parentID: AVATAR_SELF_ID
-    };
-
-    this.getTabletTextureResolution = function() {
-        if (this.landscape) {
-            return { x: TABLET_TEXTURE_RESOLUTION.x * 2, y: TABLET_TEXTURE_RESOLUTION.y };
-        } else {
-            return TABLET_TEXTURE_RESOLUTION;
-        }
     };
 
     // compute position, rotation & parentJointIndex of the tablet
@@ -209,31 +193,12 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         }
     };
 
-    this.setLandscape = function(newLandscapeValue) {
-        if (this.landscape == newLandscapeValue) {
-            return;
-        }
-        this.landscape = newLandscapeValue;
-        Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
-        Overlays.editOverlay(this.webOverlayID, {
-            resolution: this.getTabletTextureResolution()
-        });
-    };
-
     this.state = "idle";
 
     this.getRoot = function() {
         return Entities.getWebViewRoot(_this.tabletEntityID);
     };
 
-    this.getLocation = function() {
-        var location = Overlays.getProperty(this.tabletEntityID, "localPosition");
-        var orientation = Overlays.getProperty(this.tabletEntityID, "localOrientation");
-        return {
-            localPosition: location,
-            localRotation: orientation
-        };
-    };
     this.clicked = false;
 
     this.myOnHmdChanged = function () {
@@ -270,6 +235,42 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         _this.cameraModeChanged(newMode);
     };
     Camera.modeUpdated.connect(this.myCameraModeChanged);
+};
+
+WebTablet.prototype.getDimensions = function() {
+    if (this.landscape) {
+        return { x: this.width * 2, y: this.height, z: this.depth };
+    } else {
+        return { x: this.width, y: this.height, z: this.depth };
+    }
+};
+
+WebTablet.prototype.getTabletTextureResolution = function() {
+    if (this.landscape) {
+        return { x: TABLET_TEXTURE_RESOLUTION.x * 2, y: TABLET_TEXTURE_RESOLUTION.y };
+    } else {
+        return TABLET_TEXTURE_RESOLUTION;
+    }
+};
+
+WebTablet.prototype.setLandscape = function(newLandscapeValue) {
+    if (this.landscape == newLandscapeValue) {
+        return;
+    }
+    this.landscape = newLandscapeValue;
+    Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
+    Overlays.editOverlay(this.webOverlayID, {
+        resolution: this.getTabletTextureResolution()
+    });
+};
+
+WebTablet.prototype.getLocation = function() {
+    var location = Overlays.getProperty(this.tabletEntityID, "localPosition");
+    var orientation = Overlays.getProperty(this.tabletEntityID, "localOrientation");
+    return {
+        localPosition: location,
+        localRotation: orientation
+    };
 };
 
 WebTablet.prototype.setHomeButtonTexture = function() {
