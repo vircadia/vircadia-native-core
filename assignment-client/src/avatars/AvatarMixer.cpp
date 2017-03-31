@@ -187,7 +187,7 @@ void AvatarMixer::start() {
 
 
 // NOTE: nodeData->getAvatar() might be side effected, must be called when access to node/nodeData
-// is guarenteed to not be accessed by other thread
+// is guaranteed to not be accessed by other thread
 void AvatarMixer::manageDisplayName(const SharedNodePointer& node) {
     AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
     if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
