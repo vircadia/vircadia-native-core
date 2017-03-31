@@ -26,3 +26,10 @@
 *.ttf binary
 *.wav binary
 *.rsrc binary
+
+# GIT-LFS managed assets
+unpublishedScripts/**/*.fbx filter=lfs diff=lfs merge=lfs -text
+unpublishedScripts/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+unpublishedScripts/**/*.gif filter=lfs diff=lfs merge=lfs -text
+unpublishedScripts/**/*.png filter=lfs diff=lfs merge=lfs -text
+unpublishedScripts/**/*.wav filter=lfs diff=lfs merge=lfs -text
