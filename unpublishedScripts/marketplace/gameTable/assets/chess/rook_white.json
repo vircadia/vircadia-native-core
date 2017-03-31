@@ -22,7 +22,7 @@
         },
         "id": "{db3ee0bd-214f-4ed0-bd4f-7d2e964028cf}",
         "marketplaceID": "31987a70-7a69-4ba8-b022-80f1d2320c93",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/chess/lowPoly/rook_lt.fbx",
+        "modelURL": "assets/chess/lowPoly/rook_lt.fbx",
         "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
         "queryAACube": {
             "scale": 0.23554044961929321,
@@ -41,7 +41,7 @@
             "y": 0.22488787770271301,
             "z": -3.822671715170145e-06
         },
-        "script": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/snapToGrid.js",
+        "script": "snapToGrid.js",
         "type": "Model",
         "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
     }],

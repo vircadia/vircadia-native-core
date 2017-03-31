@@ -25,7 +25,7 @@
             "z": 0
         },
         "id": "{551e5154-db28-4f65-a5cb-ef6214a83288}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/checkers/red_checker.fbx",
+        "modelURL": "red_checker.fbx",
         "name": "Checker Piece",
         "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
         "queryAACube": {
@@ -40,7 +40,7 @@
             "y": 0.79168379306793213,
             "z": -1.52587890625e-05
         },
-        "script": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/snapToGrid.js",
+        "script": "snapToGrid.js",
         "shapeType": "box",
         "type": "Model",
         "velocity": {

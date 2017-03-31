@@ -22,7 +22,7 @@
         },
         "id": "{320a7944-6e31-4ed0-9c94-18c4a82867f6}",
         "marketplaceID": "31987a70-7a69-4ba8-b022-80f1d2320c93",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/chess/lowPoly/pawn_dk.fbx",
+        "modelURL": "assets/chess/lowPoly/pawn_dk.fbx",
         "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
         "queryAACube": {
             "scale": 0.19870693981647491,
@@ -41,7 +41,7 @@
             "y": 0.97436141967773438,
             "z": -3.822671715170145e-06
         },
-        "script": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/snapToGrid.js",
+        "script": "snapToGrid.js",
         "type": "Model",
         "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
     }],

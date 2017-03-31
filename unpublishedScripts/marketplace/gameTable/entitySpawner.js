@@ -54,6 +54,13 @@
         return null;
     }
 
+    function fixLocalPath(link) {
+        if (link.indexOf('://') === -1) {
+            return Script.resolvePath(link);
+        }
+        return link;
+    }
+
     //Creates an entity and returns a mixed object of the creation properties and the assigned entityID
     var createEntity = function(entityProperties, parent, overrideProperties) {
         // JSON.stringify -> JSON.parse trick to create a fresh copy of JSON data
@@ -77,6 +84,13 @@
         }
         if (parent.id !== undefined) {
             newEntityProperties.parentID = parent.id;
+        }
+        // Fix up paths
+        if (entityProperties.modelURL !== undefined) {
+            newEntityProperties.modelURL = fixLocalPath(newEntityProperties.modelURL);
+        }
+        if (entityProperties.script !== undefined) {
+            newEntityProperties.script = fixLocalPath(newEntityProperties.script);
         }
         newEntityProperties.id = Entities.addEntity(newEntityProperties);
         return newEntityProperties;

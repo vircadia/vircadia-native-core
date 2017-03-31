@@ -22,7 +22,7 @@
         },
         "id": "{03593067-9430-4cf6-8d4f-642e17bcc1d5}",
         "marketplaceID": "31987a70-7a69-4ba8-b022-80f1d2320c93",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/chess/lowPoly/knight_lt.fbx",
+        "modelURL": "assets/chess/lowPoly/knight_lt.fbx",
         "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
         "queryAACube": {
             "scale": 0.25709879398345947,
@@ -41,7 +41,7 @@
             "z": -0.000012694558790826704,
             "w": 0.7071805596351624
         },
-        "script": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/snapToGrid.js",
+        "script": "snapToGrid.js",
         "type": "Model",
         "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
     }],

@@ -8,7 +8,7 @@ The gaming table is designed with the following principles:
 1. Gets its list of games from a remote location, and so can be updated without requiring a new download by users.
 2. New games can be defined in a simple JSON data structure.
 3. Games are made for using hand controllers.  Pieces are physical as much as possible.
-4. Simple controls:  reset game, next game, and new seat buttons.
+4. Simple controls:  reset game, next game.
 5. No 'rules' are enforced.  It's up to players to respect each other.  
 
 
@@ -23,7 +23,7 @@ JSON GAME PARAMETERS
 =============
 (BOTH STYLES)
 - @gameName - string - what the game is called.```checkers```
-- @matURL - string - url of picture to put on the table.  ```http://mywebsite/chekers.jpg```
+- @matURL - string - url of picture to put on the table.  ```http://mywebsite/checkers.jpg```
 - @spawnStyle - string - either ```pile``` or ```arranged```.
 
 (ARRANGED STYLE)

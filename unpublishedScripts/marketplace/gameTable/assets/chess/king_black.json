@@ -22,7 +22,7 @@
         },
         "id": "{b04b255d-73a2-465d-bb9b-4a6324c1ade2}",
         "marketplaceID": "31987a70-7a69-4ba8-b022-80f1d2320c93",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/chess/lowPoly/king_dk.fbx",
+        "modelURL": "assets/chess/lowPoly/king_dk.fbx",
         "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
         "queryAACube": {
             "scale": 0.40935343503952026,
@@ -41,7 +41,7 @@
             "y": 0.97436141967773438,
             "z": -3.822671715170145e-06
         },
-        "script": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/snapToGrid.js",
+        "script": "snapToGrid.js",
         "type": "Model",
         "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
     }],

@@ -22,7 +22,7 @@
                 "z": 0
             },
             "id": "{18424328-df9d-4a6f-9c64-b9e51de43534}",
-            "modelURL": "https://hifi-content.s3.amazonaws.com/james/gametable-dev/assets/dice/dice.fbx",
+            "modelURL": "assets/dice/newDice3e.fbx",
             "name": "Dice",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "queryAACube": {
@@ -37,7 +37,7 @@
                 "y": 0.69715219736099243,
                 "z": 0.69532883167266846
             },
-            "shapeType": "simple-compound",
+            "shapeType": "box",
             "type": "Model"
         }
     ],

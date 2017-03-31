@@ -23,7 +23,7 @@
         "friction":1,
         "restitution":0,
         "id": "{36bdb632-06be-4d13-b9be-e620ebec6422}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/assets/deckOfCards/playing_card.fbx",
+        "modelURL": "assets/cards/playing_card.fbx",
         "name": "Deck of Cards",
         "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
         "queryAACube": {
@@ -38,7 +38,7 @@
             "y": -0.29045546054840088,
             "z": 1.52587890625e-05
         },
-        "script": "http://hifi-content.s3.amazonaws.com/thoys/production/gameTable/deckOfCards/deckOfCards.js",
+        "script": "games/deckOfCards/deckOfCards.js",
         "shapeType": "simple-compound",
         "type": "Model"
     }],

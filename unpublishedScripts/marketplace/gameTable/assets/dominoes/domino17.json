@@ -11,7 +11,7 @@
         "dynamic": 1,
         "description":"hifi:gameTable:piece:dominoes",
         "id": "{e25e3ece-6b84-4c0d-925c-aacebf9ebc6c}",
-        "modelURL": "https://hifi-content.s3.amazonaws.com/jimi/gameTable/domino/35.fbx",
+        "modelURL": "assets/dominoes/35.fbx",
         "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
         "queryAACube": {
             "scale": 0.12253325432538986,
