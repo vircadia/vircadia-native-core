@@ -327,12 +327,13 @@ public:
     };
 
     static const uint16 MAX_NUM_MIPS = 0;
-    static Texture* create1D(const Element& texelFormat, uint16 width, uint16 numMips = 1, const Sampler& sampler = Sampler());
-    static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = 1, const Sampler& sampler = Sampler());
-    static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numMips = 1, const Sampler& sampler = Sampler());
+    static const uint16 SINGLE_MIP = 1;
+    static Texture* create1D(const Element& texelFormat, uint16 width, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
+    static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
+    static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
     static Texture* createCube(const Element& texelFormat, uint16 width, uint16 numMips = 1, const Sampler& sampler = Sampler());
-    static Texture* createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = 1, const Sampler& sampler = Sampler());
-    static Texture* createStrict(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = 1, const Sampler& sampler = Sampler());
+    static Texture* createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
+    static Texture* createStrict(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
     static Texture* createExternal(const ExternalRecycler& recycler, const Sampler& sampler = Sampler());
 
     // After the texture has been created, it should be defined

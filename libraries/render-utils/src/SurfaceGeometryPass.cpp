@@ -72,7 +72,7 @@ void LinearDepthFramebuffer::allocate() {
     auto height = _frameSize.y;
 
     // For Linear Depth:
-    _linearDepthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED), width, height, 1,
+    _linearDepthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED), width, height, gpu::Texture::SINGLE_MIP, 
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
     _linearDepthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("linearDepth"));
     _linearDepthFramebuffer->setRenderBuffer(0, _linearDepthTexture);
@@ -83,7 +83,7 @@ void LinearDepthFramebuffer::allocate() {
     _halfLinearDepthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED), _halfFrameSize.x, _halfFrameSize.y, HALF_LINEAR_DEPTH_MAX_MIP_LEVEL,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
 
-    _halfNormalTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _halfFrameSize.x, _halfFrameSize.y, 1,
+    _halfNormalTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _halfFrameSize.x, _halfFrameSize.y, gpu::Texture::SINGLE_MIP,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
 
     _downsampleFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("halfLinearDepth"));
@@ -304,15 +304,15 @@ void SurfaceGeometryFramebuffer::allocate() {
     auto width = _frameSize.x;
     auto height = _frameSize.y;
 
-    _curvatureTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _curvatureTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
     _curvatureFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("surfaceGeometry::curvature"));
     _curvatureFramebuffer->setRenderBuffer(0, _curvatureTexture);
 
-    _lowCurvatureTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _lowCurvatureTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
     _lowCurvatureFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("surfaceGeometry::lowCurvature"));
     _lowCurvatureFramebuffer->setRenderBuffer(0, _lowCurvatureTexture);
 
-    _blurringTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _blurringTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
     _blurringFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("surfaceGeometry::blurring"));
     _blurringFramebuffer->setRenderBuffer(0, _blurringTexture);
 }
