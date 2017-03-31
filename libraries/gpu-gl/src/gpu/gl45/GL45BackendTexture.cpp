@@ -18,7 +18,6 @@
 #include <glm/gtx/component_wise.hpp>
 
 #include <QtCore/QDebug>
-#include <QtCore/QThread>
 
 #include <NumericalConstants.h>
 #include "../gl/GLTexelFormat.h"
@@ -167,8 +166,10 @@ void GL45Texture::syncSampler() const {
     glTextureParameteri(_id, GL_TEXTURE_WRAP_S, WRAP_MODES[sampler.getWrapModeU()]);
     glTextureParameteri(_id, GL_TEXTURE_WRAP_T, WRAP_MODES[sampler.getWrapModeV()]);
     glTextureParameteri(_id, GL_TEXTURE_WRAP_R, WRAP_MODES[sampler.getWrapModeW()]);
+
     glTextureParameterf(_id, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
     glTextureParameterfv(_id, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
+
     glTextureParameterf(_id, GL_TEXTURE_MIN_LOD, sampler.getMinMip());
     glTextureParameterf(_id, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
 }
@@ -189,7 +190,9 @@ void GL45FixedAllocationTexture::allocateStorage() const {
     const auto mips = _gpuObject.getNumMips();
 
     glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
+
     glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
+    glTextureParameteri(_id, GL_TEXTURE_MAX_LEVEL, mips - 1);
 }
 
 void GL45FixedAllocationTexture::syncSampler() const {

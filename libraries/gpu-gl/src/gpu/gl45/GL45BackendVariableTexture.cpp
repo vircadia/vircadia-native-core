@@ -495,7 +495,7 @@ void GL45ResourceTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
     GLuint oldId = _id;
-    uint32_t oldSize = _size;
+    auto oldSize = _size;
     // create new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
     uint16_t oldAllocatedMip = _allocatedMip;

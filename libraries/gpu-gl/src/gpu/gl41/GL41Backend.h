@@ -65,15 +65,15 @@ public:
         ~GL41FixedAllocationTexture();
 
     protected:
-        uint32 size() const override { return _size; }
+        Size size() const override { return _size; }
         void allocateStorage() const;
         void syncSampler() const override;
-        const uint32 _size { 0 };
+        const Size _size { 0 };
     };
 
     class GL41AttachmentTexture : public GL41FixedAllocationTexture {
         using Parent = GL41FixedAllocationTexture;
-        friend class GL45Backend;
+        friend class GL41Backend;
     protected:
         GL41AttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         ~GL41AttachmentTexture();
@@ -86,32 +86,13 @@ public:
         GL41StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
     };
 
-   /* class GL41Texture : public GLTexture {
-        using Parent = GLTexture;
-        static GLuint allocate();
-
-    public:
-        ~GL41Texture();
-
-    private:
-        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer);
-
-        void generateMips() const override;
-        uint32 size() const override;
-
+    class GL41ResourceTexture : public GL41FixedAllocationTexture {
+        using Parent = GL41FixedAllocationTexture;
         friend class GL41Backend;
-        const Stamp _storageStamp;
-        mutable Stamp _contentStamp { 0 };
-        mutable Stamp _samplerStamp { 0 };
-        const uint32 _size;
-
-
-        bool isOutdated() const;
-        void withPreservedTexture(std::function<void()> f) const;
-        void syncContent() const;
-        void syncSampler() const;
-    };*/
-
+    protected:
+        GL41ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41ResourceTexture();
+    };
 
 protected:
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;

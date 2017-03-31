@@ -318,25 +318,24 @@ Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 widt
             _depth = depth;
             changed = true;
         }
-        
-        // Evaluate the new size with the new format
-        uint32_t size = NUM_FACES_PER_TYPE[_type] *_width * _height * _depth * _numSamples * texelFormat.getSize();
 
         if ((_maxMipLevel + 1) != numMips) {
             _maxMipLevel = safeNumMips(numMips) - 1;
             changed = true;
         }
 
+        if (texelFormat != _texelFormat) {
+            _texelFormat = texelFormat;
+            changed = true;
+        }
+
+        // Evaluate the new size with the new format
+        Size size = NUM_FACES_PER_TYPE[_type] * _height * _depth * evalPaddedSize(_numSamples * _width * _texelFormat.getSize());
+
         // If size change then we need to reset 
         if (changed || (size != getSize())) {
             _size = size;
             _storage->reset();
-            _stamp++;
-        }
-
-        // TexelFormat might have change, but it's mostly interpretation
-        if (texelFormat != _texelFormat) {
-            _texelFormat = texelFormat;
             _stamp++;
         }
 
@@ -377,8 +376,6 @@ uint16 Texture::evalMaxNumMips() const {
     return evalMaxNumMips({ _width, _height, _depth });
 }
 
-
-
 // Check a num of mips requested against the maximum possible specified
 // if passing -1 then answer the max
 // simply does (askedNumMips == 0 ? maxNumMips : (numstd::min(askedNumMips, maxNumMips))
@@ -395,7 +392,15 @@ uint16 Texture::safeNumMips(uint16 askedNumMips) const {
     return safeNumMips(askedNumMips, evalMaxNumMips());
 }
 
-
+Size Texture::evalTotalSize(uint16 startingMip) const {
+    Size size = 0;
+    uint16 minMipLevel = std::max(getMinMip(), startingMip);
+    uint16 maxMipLevel = getMaxMip();
+    for (uint16 l = minMipLevel; l <= maxMipLevel; l++) {
+        size += evalMipSize(l);
+    }
+    return size * getNumSlices();
+}
 
 void Texture::setStoredMipFormat(const Element& format) {
     _storage->setFormat(format);
@@ -481,48 +486,19 @@ void Texture::setAutoGenerateMips(bool enable) {
     }
 }
 
-uint16 Texture::getStoredMipWidth(uint16 level) const {
+Size Texture::getStoredMipSize(uint16 level) const {
     PixelsPointer mipFace = accessStoredMipFace(level);
+    Size size = 0;
     if (mipFace && mipFace->getSize()) {
-        return evalMipWidth(level);
+         for (int face = 0; face < mipFace->getSize(); ++face) {
+            size += getStoredMipFaceSize(level, face);
+         }
     }
-    return 0;
+    return size;
 }
 
-uint16 Texture::getStoredMipHeight(uint16 level) const {
-    PixelsPointer mip = accessStoredMipFace(level);
-    if (mip && mip->getSize()) {
-        return evalMipHeight(level);
-    }
-    return 0;
-}
-
-uint16 Texture::getStoredMipDepth(uint16 level) const {
-    PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->getSize()) {
-        return evalMipDepth(level);
-    }
-    return 0;
-}
-
-uint32 Texture::getStoredMipNumTexels(uint16 level) const {
-    PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->getSize()) {
-        return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level);
-    }
-    return 0;
-}
-
-uint32 Texture::getStoredMipSize(uint16 level) const {
-    PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->getSize()) {
-        return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getTexelFormat().getSize();
-    }
-    return 0;
-}
-
-gpu::Resource::Size Texture::getStoredSize() const {
-    auto size = 0;
+Size Texture::getStoredSize() const {
+    Size size = 0;
     for (int level = 0; level < getNumMips(); ++level) {
         size += getStoredMipSize(level);
     }
