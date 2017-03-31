@@ -670,7 +670,6 @@ function mousePressEvent(event) {
 
 var mouseCapturedByTool = false;
 var lastMousePosition = null;
-var idleMouseTimerId = null;
 var CLICK_TIME_THRESHOLD = 500 * 1000; // 500 ms
 var CLICK_MOVE_DISTANCE_THRESHOLD = 20;
 var IDLE_MOUSE_TIMEOUT = 200;
@@ -701,9 +700,6 @@ function mouseMove(event) {
     if (!isActive) {
         return;
     }
-    if (idleMouseTimerId) {
-        Script.clearTimeout(idleMouseTimerId);
-    }
 
     // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
     if (selectionDisplay.mouseMoveEvent(event) || propertyMenu.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
@@ -714,12 +710,6 @@ function mouseMove(event) {
         x: event.x,
         y: event.y
     };
-
-    idleMouseTimerId = Script.setTimeout(handleIdleMouse, IDLE_MOUSE_TIMEOUT);
-}
-
-function handleIdleMouse() {
-    idleMouseTimerId = null;
 }
 
 function mouseReleaseEvent(event) {
