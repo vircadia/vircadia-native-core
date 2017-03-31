@@ -27,7 +27,7 @@ StackView {
     initialItem: addressBarDialog
     width: parent.width
     height: parent.height
-
+    property var eventBridge;
     property var allStories: [];
     property int cardWidth: 460;
     property int cardHeight: 320;
@@ -59,6 +59,7 @@ StackView {
         if (0 !== targetString.indexOf('hifi://')) {
             var card = tabletStoryCard.createObject();
             card.setUrl(addressBarDialog.metaverseServerUrl + targetString);
+            card.eventBridge = root.eventBridge;
             root.push(card);
             return;
         }
