@@ -37,23 +37,23 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
     GL41Texture* object = Backend::getGPUObject<GL41Texture>(texture);
     if (!object) {
         switch (texture.getUsageType()) {
-        case TextureUsageType::RENDERBUFFER:
-            object = new GL41AttachmentTexture(shared_from_this(), texture);
-            break;
+            case TextureUsageType::RENDERBUFFER:
+                object = new GL41AttachmentTexture(shared_from_this(), texture);
+                break;
 
-        case TextureUsageType::STRICT_RESOURCE:
-            qCDebug(gpugllogging) << "Strict texture " << texture.source().c_str();
-            object = new GL41StrictResourceTexture(shared_from_this(), texture);
-            break;
+            case TextureUsageType::STRICT_RESOURCE:
+                qCDebug(gpugllogging) << "Strict texture " << texture.source().c_str();
+                object = new GL41StrictResourceTexture(shared_from_this(), texture);
+                break;
 
-        case TextureUsageType::RESOURCE: {
-            qCDebug(gpugllogging) << "variable / Strict texture " << texture.source().c_str();
-            object = new GL41ResourceTexture(shared_from_this(), texture);
-            break;
-        }
+            case TextureUsageType::RESOURCE: {
+                qCDebug(gpugllogging) << "variable / Strict texture " << texture.source().c_str();
+                object = new GL41ResourceTexture(shared_from_this(), texture);
+                break;
+            }
 
-        default:
-            Q_UNREACHABLE();
+            default:
+                Q_UNREACHABLE();
         }
     }
 
@@ -163,7 +163,7 @@ void GL41FixedAllocationTexture::allocateStorage() const {
     const auto numMips = _gpuObject.getNumMips();
 
     // glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
-    for (GLint level = 0; level < numMips; ++level) {
+    for (GLint level = 0; level < numMips; level++) {
         Vec3u dimensions = _gpuObject.evalMipDimensions(level);
         for (GLenum target : getFaceTargets(_target)) {
             glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, nullptr);
@@ -181,7 +181,7 @@ void GL41FixedAllocationTexture::syncSampler() const {
 
     glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, baseMip);
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
-    glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
+    glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.0f : sampler.getMaxMip()));
 }
 
 // Renderbuffer attachment textures
@@ -202,10 +202,10 @@ GL41StrictResourceTexture::GL41StrictResourceTexture(const std::weak_ptr<GLBacke
     withPreservedTexture([&] {
    
         auto mipLevels = _gpuObject.getNumMips();
-        for (uint16_t sourceMip = 0; sourceMip < mipLevels; ++sourceMip) {
+        for (uint16_t sourceMip = 0; sourceMip < mipLevels; sourceMip++) {
             uint16_t targetMip = sourceMip;
             size_t maxFace = GLTexture::getFaceCount(_target);
-            for (uint8_t face = 0; face < maxFace; ++face) {
+            for (uint8_t face = 0; face < maxFace; face++) {
                 copyMipFaceFromTexture(sourceMip, targetMip, face);
             }
         }
@@ -225,10 +225,10 @@ GL41ResourceTexture::GL41ResourceTexture(const std::weak_ptr<GLBackend>& backend
     withPreservedTexture([&] {
    
         auto mipLevels = _gpuObject.getNumMips();
-        for (uint16_t sourceMip = 0; sourceMip < mipLevels; ++sourceMip) {
+        for (uint16_t sourceMip = 0; sourceMip < mipLevels; sourceMip++) {
             uint16_t targetMip = sourceMip;
             size_t maxFace = GLTexture::getFaceCount(_target);
-            for (uint8_t face = 0; face < maxFace; ++face) {
+            for (uint8_t face = 0; face < maxFace; face++) {
                 copyMipFaceFromTexture(sourceMip, targetMip, face);
             }
         }

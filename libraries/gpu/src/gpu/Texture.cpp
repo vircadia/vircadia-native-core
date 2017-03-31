@@ -396,8 +396,8 @@ Size Texture::evalTotalSize(uint16 startingMip) const {
     Size size = 0;
     uint16 minMipLevel = std::max(getMinMip(), startingMip);
     uint16 maxMipLevel = getMaxMip();
-    for (uint16 l = minMipLevel; l <= maxMipLevel; l++) {
-        size += evalMipSize(l);
+    for (uint16 level = minMipLevel; level <= maxMipLevel; level++) {
+        size += evalMipSize(level);
     }
     return size * getNumSlices();
 }
@@ -490,7 +490,7 @@ Size Texture::getStoredMipSize(uint16 level) const {
     PixelsPointer mipFace = accessStoredMipFace(level);
     Size size = 0;
     if (mipFace && mipFace->getSize()) {
-         for (int face = 0; face < getNumFaces(); ++face) {
+        for (int face = 0; face < getNumFaces(); face++) {
             size += getStoredMipFaceSize(level, face);
          }
     }
@@ -499,7 +499,7 @@ Size Texture::getStoredMipSize(uint16 level) const {
 
 Size Texture::getStoredSize() const {
     Size size = 0;
-    for (int level = 0; level < getNumMips(); ++level) {
+    for (int level = 0; level < getNumMips(); level++) {
         size += getStoredMipSize(level);
     }
     return size;
