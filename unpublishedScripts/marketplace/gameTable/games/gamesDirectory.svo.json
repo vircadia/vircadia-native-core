@@ -1,7 +1,7 @@
 [  
     {  
         "gameName":"checkers",
-        "matURL":"assets/checkers/checker_large.gif",
+        "matURL":"assets/mats/checker_large.gif",
         "spawnStyle":"arranged",
         "snapToGrid":true,
         "startingArrangement":[  
@@ -55,18 +55,8 @@
                 "empty",
                 "empty"
             ],
-            [  
-                "2:checker",
-                "empty",
-                "2:checker",
-                "empty",
-                "2:checker",
-                "empty",
-                "2:checker",
+            [
                 "empty"
-            ],
-            [  
-                "empty",
                 "2:checker",
                 "empty",
                 "2:checker",
@@ -75,7 +65,7 @@
                 "empty",
                 "2:checker"
             ],
-            [  
+            [
                 "2:checker",
                 "empty",
                 "2:checker",
@@ -84,6 +74,16 @@
                 "empty",
                 "2:checker",
                 "empty"
+            ],
+            [
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker",
             ]
         ],
         "pieces":[  
