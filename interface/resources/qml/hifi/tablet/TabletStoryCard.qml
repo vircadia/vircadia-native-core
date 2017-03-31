@@ -33,13 +33,13 @@ Rectangle {
         webview.url = url;
     }
 
-    function goBack() {
+   function goBack() {
     }
 
     function visit() {
     }
 
-    Rectangle {
+   /* Rectangle {
         id: header
         anchors {
             left: parent.left
@@ -119,12 +119,13 @@ Rectangle {
                 }
             }
         }
-    }
+    }*/
 
     HifiControls.WebView {
         id: webview
+        parentStackItem: root
         anchors {
-            top: header.bottom
+            top: parent.top
             right: parent.right
             left: parent.left
             bottom: parent.bottom

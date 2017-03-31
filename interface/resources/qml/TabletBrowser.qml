@@ -13,28 +13,33 @@ Item {
     id: root
     HifiConstants { id: hifi }
     HifiStyles.HifiConstants { id: hifistyles }
-    width: 800
+    width: parent.width
     height: 600
     property variant permissionsBar: {'securityOrigin':'none','feature':'none'}
     //property alias url: webview.url
     property WebEngineView webView: webview
     property alias eventBridge: eventBridgeWrapper.eventBridge
+    property bool canGoBack: webview.canGoBack
+    property bool canGoForward: webview.canGoForward
+    property var goForward: webview.goForward();
+    property var goBack: webview.goBack();
+
 
     signal loadingChanged(int status)
 
-    x: 100
-    y: 100
+    x: 0
+    y: 0
 
     Component.onCompleted: {
-        addressBar.text = webview.url
+        webView.address = webview.url
     }
 
     function showPermissionsBar(){
-        permissionsContainer.visible=true;
+        //permissionsContainer.visible=true;
     }
 
     function hidePermissionsBar(){
-      permissionsContainer.visible=false;
+      //permissionsContainer.visible=false;
     }
 
     function allowPermissions(){
@@ -43,11 +48,17 @@ Item {
     }
 
     function setAutoAdd(auto) {
-        desktop.setAutoAdd(auto);
+       // desktop.setAutoAdd(auto);
     }
 
     function setProfile(profile) {
         webview.profile = profile;
+    }
+
+    function reloadPage() {
+        webview.reloadAndBypassCache();
+        webview.setActiveFocusOnPress(true);
+        webview.setEnabled(true);
     }
 
     Item {
@@ -55,43 +66,7 @@ Item {
         width: parent.width
         implicitHeight: parent.height
 
-        Row {
-            id: buttons
-            spacing: 4
-            anchors.top: parent.top
-            anchors.topMargin: 8
-            anchors.left: parent.left
-            anchors.leftMargin: 8
-            HiFiGlyphs {
-                id: back;
-                enabled: webview.canGoBack;
-                text: hifi.glyphs.backward
-                color: enabled ? hifistyles.colors.text : hifistyles.colors.disabledText
-                size: 48
-                MouseArea { anchors.fill: parent;  onClicked: webview.goBack() }
-            }
-
-            HiFiGlyphs {
-                id: forward;
-                enabled: webview.canGoForward;
-                text: hifi.glyphs.forward
-                color: enabled ? hifistyles.colors.text : hifistyles.colors.disabledText
-                size: 48
-                MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
-            }
-
-            HiFiGlyphs {
-                id: reload;
-                enabled: webview.canGoForward;
-                text: webview.loading ? hifi.glyphs.close : hifi.glyphs.reload
-                color: enabled ? hifistyles.colors.text : hifistyles.colors.disabledText
-                size: 48
-                MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
-            }
-
-        }
-
-        Item {
+              Item {
             id: border
             height: 48
             anchors.top: parent.top
@@ -258,7 +233,7 @@ Item {
                     console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
                 });
                 
-                webview.profile.httpUserAgent = "Mozilla/5.0 (Android; Mobile; rv:24.0) Gecko/24.0 Firefox/24.0";
+                webview.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface";
             }
             
             onFeaturePermissionRequested: {
@@ -281,11 +256,15 @@ Item {
                 }
             }
 
-            //Component { id: browser; TabletBrowser{ } }
+            onActiveFocusOnPressChanged: {
+                console.log("on active focus changed");
+                setActiveFocusOnPress(true);
+            }
+
             onNewViewRequested:{
                 // desktop is not defined for web-entities
                 if (stackRoot.isDesktop) {
-                    var component = Qt.createComponent("../Browser.qml");
+                    var component = Qt.createComponent("./Browser.qml");
                     var newWindow = component.createObject(desktop);
                     request.openIn(newWindow.webView);
                 } else {
@@ -301,6 +280,7 @@ Item {
                     newWindow.setProfile(webview.profile);
                     request.openIn(newWindow.webView);
                     stackRoot.push(newWindow);
+                    newWindow.forceActiveFocus();
                 }
             }
         }
