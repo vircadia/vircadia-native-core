@@ -70,10 +70,10 @@ Item {
             width: parent.width
             height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
             
-            //profile: HFWebEngineProfile {
-                //id: webviewProfile
-                //storageName: "qmlWebEngine"
-            //}
+            profile: HFWebEngineProfile {
+                id: webviewProfile
+                storageName: "qmlWebEngine"
+            }
 
             property string userScriptUrl: ""
             
@@ -159,7 +159,7 @@ Item {
                         return;
                     }
                     var newWindow = component.createObject();
-                    //newWindow.setProfile(webview.profile);
+                    newWindow.setProfile(webview.profile);
                     request.openIn(newWindow.webView);
                     newWindow.eventBridge = web.eventBridge;
                     stackRoot.push(newWindow);
