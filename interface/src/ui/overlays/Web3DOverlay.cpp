@@ -350,38 +350,31 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
 
-    if (event.getType() == PointerEvent::Move) {
-        // Forward a mouse move event to the Web surface so that hover events are generated.
-        // Must send a mouse move event that matches up with touch move event in order for scroll bars to work.
-
-        // Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
-        // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
-
-        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
-    }
-
     if (event.getType() == PointerEvent::Press && event.getButton() == PointerEvent::PrimaryButton) {
         this->_pressed = true;
     } else if (event.getType() == PointerEvent::Release && event.getButton() == PointerEvent::PrimaryButton) {
         this->_pressed = false;
     }
 
-    QEvent::Type type;
+    QEvent::Type touchType;
     Qt::TouchPointState touchPointState;
+    QEvent::Type mouseType;
     switch (event.getType()) {
         case PointerEvent::Press:
-            type = QEvent::TouchBegin;
+            touchType = QEvent::TouchBegin;
             touchPointState = Qt::TouchPointPressed;
+            mouseType = QEvent::MouseButtonPress;
             break;
         case PointerEvent::Release:
-            type = QEvent::TouchEnd;
+            touchType = QEvent::TouchEnd;
             touchPointState = Qt::TouchPointReleased;
+            mouseType = QEvent::MouseButtonRelease;
             break;
         case PointerEvent::Move:
         default:
-            type = QEvent::TouchUpdate;
+            touchType = QEvent::TouchUpdate;
             touchPointState = Qt::TouchPointMoved;
+            mouseType = QEvent::MouseMove;
             break;
     }
 
@@ -393,13 +386,30 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     QList<QTouchEvent::TouchPoint> touchPoints;
     touchPoints.push_back(point);
 
-    QTouchEvent* touchEvent = new QTouchEvent(type, &_touchDevice, event.getKeyboardModifiers());
+    QTouchEvent* touchEvent = new QTouchEvent(touchType, &_touchDevice, event.getKeyboardModifiers());
     touchEvent->setWindow(_webSurface->getWindow());
     touchEvent->setTarget(_webSurface->getRootItem());
     touchEvent->setTouchPoints(touchPoints);
     touchEvent->setTouchPointStates(touchPointState);
 
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
+
+    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
+    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
+    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
+
+    Qt::MouseButtons buttons = Qt::NoButton;
+    if (event.getButtons() & PointerEvent::PrimaryButton) {
+        buttons |= Qt::LeftButton;
+    }
+
+    Qt::MouseButton button = Qt::NoButton;
+    if (event.getButton() == PointerEvent::PrimaryButton) {
+        button = Qt::LeftButton;
+    }
+
+    QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+    QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
 }
 
 void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
@@ -421,11 +431,12 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
         buttons |= Qt::LeftButton;
     }
 
-    QEvent::Type type;
     Qt::MouseButton button = Qt::NoButton;
     if (event.getButton() == PointerEvent::PrimaryButton) {
         button = Qt::LeftButton;
     }
+
+    QEvent::Type type;
     switch (event.getType()) {
         case PointerEvent::Press:
             type = QEvent::MouseButtonPress;
