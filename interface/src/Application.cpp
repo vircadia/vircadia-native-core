@@ -5781,22 +5781,10 @@ void Application::toggleRunningScriptsWidget() const {
 }
 
 void Application::showScriptLogs() {
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     QUrl defaultScriptsLoc = defaultScriptsLocation();
     defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
-
-    if (tablet->getToolbarMode()) {
-        scriptEngines->loadScript(defaultScriptsLoc.toString());
-    } else {
-        QQuickItem* tabletRoot = tablet->getTabletRoot();
-        if (!tabletRoot && !isHMDMode()) {
-            scriptEngines->loadScript(defaultScriptsLoc.toString());
-        } else {
-            tablet->pushOntoStack("../../hifi/dialogs/TabletDebugWindow.qml");
-        }
-    }
+    scriptEngines->loadScript(defaultScriptsLoc.toString());
 }
 
 void Application::showAssetServerWidget(QString filePath) {
