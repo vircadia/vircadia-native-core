@@ -350,11 +350,15 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
 
-    if (event.getButtons() == PointerEvent::NoButtons && event.getType() == PointerEvent::Move) {
-        // Forward a mouse move event to the Web surface.
+    if (event.getType() == PointerEvent::Move) {
+        // Forward a mouse move event to the Web surface so that hover events are generated.
+        // Must send a mouse move event that matches up with touch move event in order for scroll bars to work.
+
+        // Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
+        // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
+
         QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
         QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
-        return;
     }
 
     if (event.getType() == PointerEvent::Press && event.getButton() == PointerEvent::PrimaryButton) {
