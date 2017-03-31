@@ -371,11 +371,12 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
             mouseType = QEvent::MouseButtonRelease;
             break;
         case PointerEvent::Move:
-        default:
             touchType = QEvent::TouchUpdate;
             touchPointState = Qt::TouchPointMoved;
             mouseType = QEvent::MouseMove;
             break;
+        default:
+            return;
     }
 
     QTouchEvent::TouchPoint point;
@@ -445,9 +446,10 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
             type = QEvent::MouseButtonRelease;
             break;
         case PointerEvent::Move:
-        default:
             type = QEvent::MouseMove;
             break;
+        default:
+            return;
     }
 
     QMouseEvent* mouseEvent = new QMouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
