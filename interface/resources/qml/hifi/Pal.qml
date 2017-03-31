@@ -49,9 +49,15 @@ Rectangle {
 
     // The letterbox used for popup messages
     LetterboxMessage {
-
         id: letterboxMessage;
         z: 999; // Force the popup on top of everything else
+    }
+    // The ComboDialog used for setting availability
+    ComboDialog {
+        id: comboDialog;
+        z: 999; // Force the ComboDialog on top of everything else
+        dialogWidth: parent.width - 100;
+        dialogHeight: parent.height - 100;
     }
     function letterbox(headerGlyph, headerText, message) {
         letterboxMessage.headerGlyph = headerGlyph;
@@ -59,6 +65,15 @@ Rectangle {
         letterboxMessage.text = message;
         letterboxMessage.visible = true;
         letterboxMessage.popupRadius = 0;
+    }
+    function popupComboDialog(dialogTitleText, optionTitleText, optionBodyText, optionValues) {
+        comboDialog.dialogTitleText = dialogTitleText;
+        comboDialog.optionTitleText = optionTitleText;
+        comboDialog.optionBodyText = optionBodyText;
+        comboDialog.optionValues = optionValues;
+        comboDialog.selectedOptionIndex = ['all', 'connections', 'friends', 'none'].indexOf(GlobalServices.findableBy);
+        comboDialog.populateComboListViewModel();
+        comboDialog.visible = true;
     }
     Settings {
         id: settings;
@@ -241,7 +256,7 @@ Rectangle {
                     // "CONNECTIONS" text
                     RalewaySemiBold {
                         id: connectionsTabSelectorText;
-                        text: "CONNECTIONS";
+                        text: "PEOPLE";
                         // Text size
                         size: hifi.fontSizes.tabularData;
                         // Anchors
@@ -266,7 +281,7 @@ Rectangle {
                         anchors.left: connectionsTabSelectorTextContainer.left;
                         anchors.top: connectionsTabSelectorTextContainer.top;
                         anchors.topMargin: 1;
-                        anchors.leftMargin: connectionsTabSelectorTextMetrics.width + 42;
+                        anchors.leftMargin: connectionsTabSelectorTextMetrics.width + 25;
                         RalewayRegular {
                             id: connectionsHelpText;
                             text: "[?]";
@@ -350,6 +365,7 @@ Rectangle {
         // This TableView refers to the Nearby Table (on the "Nearby" tab below the current user's NameCard)
         HifiControlsUit.Table {
             id: nearbyTable;
+            flickableItem.interactive: true;
             // Anchors
             anchors.fill: parent;
             // Properties
@@ -653,7 +669,9 @@ Rectangle {
             source: "../../icons/profilePicLoading.gif"
             width: 120;
             height: width;
-            anchors.centerIn: parent;
+            anchors.top: parent.top;
+            anchors.topMargin: 185;
+            anchors.horizontalCenter: parent.horizontalCenter;
             visible: true;
             onVisibleChanged: {
                 if (visible) {
@@ -689,6 +707,7 @@ Rectangle {
         // This TableView refers to the Connections Table (on the "Connections" tab below the current user's NameCard)
         HifiControlsUit.Table {
             id: connectionsTable;
+            flickableItem.interactive: true;
             visible: !connectionsLoading.visible;
             // Anchors
             anchors.fill: parent;
@@ -943,6 +962,28 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignTop;
             }
+            /*Rectangle {
+                id: availabilityComboBox;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                // Size
+                width: parent.width;
+                height: 40;
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        popupComboDialog("Set your list visibility",
+                        ["Everyone", "Friends and Connections", "Friends Only", "Appear Offline"],
+                        ["You will be invisible in everyone's 'People' list.\nAnyone will be able to jump to your location if the domain allows.",
+                        "You will be visible in the 'People' list only for those with whom you are connected or friends.\nThey will be able to jump to your location if the domain allows.",
+                        "You will be visible in the 'People' list only for those with whom you are friends.\nThey will be able to jump to your location if the domain allows.",
+                        "You will not be visible in the 'People' list of any other users."],
+                        ["all", "connections", "friends", "none"]);
+                    }
+                }
+            }*/
+            
             HifiControlsUit.ComboBox {
                 function determineAvailabilityIndex() {
                     return ['all', 'connections', 'friends', 'none'].indexOf(GlobalServices.findableBy)
@@ -1219,12 +1260,12 @@ Rectangle {
             break;
         // Received an "updateUsername()" request from the JS
         case 'updateUsername':
-            // The User ID (UUID) is the first parameter in the message.
-            var userId = message.params.sessionId;
-            // If the userId is empty, we're probably updating "myData".
-            if (userId) {
+            // Get the connection status
+            var connectionStatus = message.params.connection;
+            // If the connection status isn't "self"...
+            if (connectionStatus !== "self") {
                 // Get the index in nearbyUserModel and nearbyUserModelData associated with the passed UUID
-                var userIndex = findNearbySessionIndex(userId);
+                var userIndex = findNearbySessionIndex(message.params.sessionId);
                 if (userIndex !== -1) {
                     ['userName', 'admin', 'connection', 'profileUrl', 'placeName'].forEach(function (name) {
                         var value = message.params[name];
@@ -1235,7 +1276,6 @@ Rectangle {
                         nearbyUserModelData[userIndex][name] = value; // for refill after sort
                     });
                 }
-            // In this "else if" case, the only param of the message is the profile pic URL.
             } else if (message.params.profileUrl) {
                 myData.profileUrl = message.params.profileUrl;
                 myCard.profileUrl = message.params.profileUrl;

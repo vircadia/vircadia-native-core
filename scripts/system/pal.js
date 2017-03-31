@@ -361,8 +361,12 @@ function getAvailableConnections(domain, callback) { // callback([{usename, loca
 
 function getConnectionData(domain) { // Update all the usernames that I am entitled to see, using my login but not dependent on canKick.
     function frob(user) { // get into the right format
+        var formattedSessionId = user.location.node_id || '';
+        if (formattedSessionId !== '' && formattedSessionId.indexOf("{") != 0) {
+            formattedSessionId = "{" + formattedSessionId + "}";
+        }
         return {
-            sessionId: user.location.node_id || '',
+            sessionId: formattedSessionId,
             userName: user.username,
             connection: user.connection,
             profileUrl: user.profileUrl,
@@ -450,9 +454,6 @@ function populateNearbyUserList(selectData, oldAudioData) {
         } else {
             // Return our username from the Account API
             avatarPalDatum.userName = Account.username;
-            getProfilePicture(avatarPalDatum.userName, function (url) {
-                sendToQml({ method: 'updateUsername', params: { profileUrl: url } });
-            });
         }
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
