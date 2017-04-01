@@ -81,19 +81,6 @@ body {
     overflow-y: auto;
 }
 
-/* HACK
-    Makes entity properties dialog's scrollbar work on tablet such that don't need to keep pointer within scrollbar width when
-    using scroll handle.
-*/
-body {
-    padding-right: 0;
-    margin-right: -21px;
-}
-body > * {
-    margin-right: 42px;
-}
-/* END OF HACK */
-
 table {
     font-family: FiraSans-SemiBold;
     font-size: 15px;
