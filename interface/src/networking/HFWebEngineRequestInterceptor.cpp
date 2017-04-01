@@ -10,6 +10,7 @@
 //
 
 #include "HFWebEngineRequestInterceptor.h"
+#include "NetworkingConstants.h"
 
 #include <QtCore/QDebug>
 
@@ -20,8 +21,11 @@ bool isAuthableHighFidelityURL(const QUrl& url) {
         "highfidelity.com", "highfidelity.io",
         "metaverse.highfidelity.com", "metaverse.highfidelity.io"
     };
+    const auto& scheme = url.scheme();
+    const auto& host = url.host();
 
-    return url.scheme() == "https" && HF_HOSTS.contains(url.host());
+    return (scheme == "https" && HF_HOSTS.contains(host)) ||
+        ((scheme == NetworkingConstants::METAVERSE_SERVER_URL.scheme()) && (host == NetworkingConstants::METAVERSE_SERVER_URL.host()));
 }
 
 void HFWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {

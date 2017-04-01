@@ -49,6 +49,8 @@
 #include "ui/DomainConnectionModel.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "ui/AvatarInputs.h"
+#include "avatar/AvatarManager.h"
+#include "scripting/GlobalServicesScriptingInterface.h"
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -194,6 +196,8 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getRootContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
             _webSurface->getRootContext()->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
             _webSurface->getRootContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+            _webSurface->getRootContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+            _webSurface->getRootContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
 
             _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
