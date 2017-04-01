@@ -6,6 +6,7 @@ import "../controls-uit" as HiFiControls
 import "../styles" as HifiStyles
 import "../styles-uit"
 import HFWebEngineProfile 1.0
+import HFTabletWebEngineProfile 1.0
 import "../"
 Item {
     id: web
@@ -23,7 +24,7 @@ Item {
     property bool isDesktop: false
     property WebEngineView view: root
 
-
+    
     Row {
         id: buttons
         HifiConstants { id: hifi }
@@ -136,10 +137,11 @@ Item {
             y: 0
             width: parent.width
             height: keyboardEnabled && keyboardRaised ? (parent.height - keyboard.height) : parent.height
-            //profile: HFWebEngineProfile {
-                //id: webviewProfile
-                //storageName: "qmlWebEngine"
-            //}
+            profile: HFTabletWebEngineProfile {
+                id: webviewTabletProfile
+                storageName: "qmlTabletWebEngine"
+            }
+            
             property WebEngineView webView: root
             function reloadPage() {
                 root.reload();
@@ -188,7 +190,7 @@ Item {
                     console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
                 });
 
-                root.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)"
+                root.profile.httpUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36"   
 
             }
 
@@ -200,7 +202,7 @@ Item {
                 keyboardRaised = false;
                 punctuationMode = false;
                 keyboard.resetShiftMode(false);
-
+                console.log("[DR] -> printing user string " + root.profile.httpUserAgent);
                 // Required to support clicking on "hifi://" links
                 if (WebEngineView.LoadStartedStatus == loadRequest.status) {
                     var url = loadRequest.url.toString();
@@ -214,9 +216,10 @@ Item {
 
             onNewViewRequested:{
                 // desktop is not defined for web-entities
-                if (isDesktop) {
+                if (web.isDesktop) {
                     var component = Qt.createComponent("../Browser.qml");
                     var newWindow = component.createObject(desktop);
+                    newWindow.setProfile(root.profile);
                     request.openIn(newWindow.webView);
                 } else {
                     var component = Qt.createComponent("../TabletBrowser.qml");
@@ -228,7 +231,7 @@ Item {
                         return;
                     }
                     var newWindow = component.createObject();
-                    //newWindow.setProfile(root.profile);
+                    newWindow.setProfile(root.profile);
                     request.openIn(newWindow.webView);
                     newWindow.eventBridge = web.eventBridge;
                     stackRoot.push(newWindow);
@@ -250,7 +253,7 @@ Item {
     }
 
     Component.onCompleted: {
-        stackRoot.isDesktop = (typeof desktop !== "undefined");
+        web.isDesktop = (typeof desktop !== "undefined");
         address = url;
     }
 

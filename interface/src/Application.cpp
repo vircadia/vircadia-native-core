@@ -141,6 +141,7 @@
 #include "LODManager.h"
 #include "ModelPackager.h"
 #include "networking/HFWebEngineProfile.h"
+#include "networking/HFTabletWebEngineProfile.h"
 #include "scripting/TestScriptingInterface.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
@@ -1934,6 +1935,7 @@ void Application::initializeUi() {
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
     qmlRegisterType<HFWebEngineProfile>("HFWebEngineProfile", 1, 0, "HFWebEngineProfile");
+    qmlRegisterType<HFTabletWebEngineProfile>("HFTabletWebEngineProfile", 1, 0, "HFTabletWebEngineProfile");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->qglContext());
