@@ -440,7 +440,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         // add a new meshPart to the geometry's single mesh.
         while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess)) {}
 
-//      FBXMesh& mesh = geometry.meshes[0];
+		FBXMesh& mesh = geometry.meshes[0];
+		mesh.meshIndex = 0;
+
 		geometry.joints.resize(1);
 		geometry.joints[0].isFree = false;
 		geometry.joints[0].parentIndex = -1;
@@ -459,11 +461,14 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 			0, 1, 0, 0,
 			0, 0, 1, 0,
 			0, 0, 0, 1);
+		mesh.clusters.append(cluster);
 
 		QMap<QString, int> materialMeshIdMap;
-		QVector<FBXMesh> fbxMeshes;
-		for (int i = 0, meshPartCount = 0; i < geometry.meshes[0].parts.count(); i++, meshPartCount++) {
-            FaceGroup faceGroup = faceGroups[meshPartCount];
+		QVector<FBXMeshPart> fbxMeshParts;
+		int meshPartCount = 0;
+		for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
+			FBXMeshPart& meshPart = mesh.parts[i];
+			FaceGroup faceGroup = faceGroups[meshPartCount];
             bool specifiesUV = false;
 			foreach(OBJFace face, faceGroup) {
 				// Go through all of the OBJ faces and determine the number of different materials necessary (each different material will be a unique mesh).
@@ -472,11 +477,11 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 					// Create a new FBXMesh for this material mapping.
 					materialMeshIdMap.insert(face.materialName, materialMeshIdMap.count());
 
-					FBXMesh meshNew;
-					meshNew.modelTransform = geometry.meshes[0].modelTransform;
-					meshNew.meshExtents = geometry.meshes[0].meshExtents;
-					meshNew.meshIndex = 0;// fbxMeshes.count();
-					meshNew.clusters.append(cluster);
+					fbxMeshParts.append(FBXMeshPart());
+					FBXMeshPart& meshPartNew = fbxMeshParts.last();
+					meshPartNew.quadIndices = QVector<int>(meshPart.quadIndices);					// Copy over quad indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
+					meshPartNew.quadTrianglesIndices = QVector<int>(meshPart.quadTrianglesIndices); // Copy over quad triangulated indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
+					meshPartNew.triangleIndices = QVector<int>(meshPart.triangleIndices);			// Copy over triangle indices.
 
 					// Do some of the material logic (which previously lived below) now.
 					// All the faces in the same group will have the same name and material.
@@ -499,21 +504,23 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 							needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
 						}
 						materials[groupMaterialName] = material;
-						geometry.meshes[0].parts[i].materialID = groupMaterialName;
+						meshPartNew.materialID = groupMaterialName;
 					}
-
-					// Add this mesh part.
-					meshNew.parts.append(FBXMeshPart(geometry.meshes[0].parts[i]));
-
-					// Add it to the mesh vector.
-					fbxMeshes.append(meshNew);
 				}
 			}
+		}
+
+		// clean up old mesh parts.
+		int unmodifiedMeshPartCount = mesh.parts.count();
+		mesh.parts.clear();
+		mesh.parts = QVector<FBXMeshPart>(fbxMeshParts);
+
+		for (int i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
+			FaceGroup faceGroup = faceGroups[meshPartCount];
 
 			// Now that each mesh has been created with its own unique material mappings, fill them with data (vertex data is duplicated, face data is not).
 			foreach(OBJFace face, faceGroup) {
-				FBXMesh& mesh = fbxMeshes[materialMeshIdMap[face.materialName]];
-				FBXMeshPart& meshPart = mesh.parts.last();
+				FBXMeshPart& meshPart = mesh.parts[materialMeshIdMap[face.materialName]];
 
 				glm::vec3 v0 = checked_at(vertices, face.vertexIndices[0]);
 				glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
@@ -528,11 +535,11 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 
 				// Add the vertices.
 				meshPart.triangleIndices.append(mesh.vertices.count()); // not face.vertexIndices into vertices
-				mesh.vertices.append(v0);
+				mesh.vertices << v0;
 				meshPart.triangleIndices.append(mesh.vertices.count());
-				mesh.vertices.append(v1);
+				mesh.vertices << v1;
 				meshPart.triangleIndices.append(mesh.vertices.count());
-				mesh.vertices.append(v2);
+				mesh.vertices << v2;
 
 				glm::vec3 n0, n1, n2;
 				if (face.normalIndices.count()) {
@@ -548,39 +555,33 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 				mesh.normals.append(n1);
 				mesh.normals.append(n2);
 				if (face.textureUVIndices.count()) {
-					specifiesUV = true;
-					mesh.texCoords.append(checked_at(textureUVs, face.textureUVIndices[0]));
-					mesh.texCoords.append(checked_at(textureUVs, face.textureUVIndices[1]));
-					mesh.texCoords.append(checked_at(textureUVs, face.textureUVIndices[2]));
+					mesh.texCoords <<
+						checked_at(textureUVs, face.textureUVIndices[0]) <<
+						checked_at(textureUVs, face.textureUVIndices[1]) <<
+						checked_at(textureUVs, face.textureUVIndices[2]);
 				}
 				else {
 					glm::vec2 corner(0.0f, 1.0f);
-					mesh.texCoords.append(corner);
-					mesh.texCoords.append(corner);
-					mesh.texCoords.append(corner);
+					mesh.texCoords << corner << corner << corner;
 				}
 			}
         }
 
-		geometry.meshes.clear();
-		foreach(FBXMesh mesh, fbxMeshes) {
-			geometry.meshes.append(mesh);
-
-			mesh.meshExtents.reset();
-			foreach(const glm::vec3& vertex, mesh.vertices) {
-				mesh.meshExtents.addPoint(vertex);
-				geometry.meshExtents.addPoint(vertex);
-			}
-		
-			FBXReader::buildModelMesh(mesh, url.toString());
+		mesh.meshExtents.reset();
+		foreach(const glm::vec3& vertex, mesh.vertices) {
+			mesh.meshExtents.addPoint(vertex);
+			geometry.meshExtents.addPoint(vertex);
 		}
+
+		// Build the single mesh.
+		FBXReader::buildModelMesh(mesh, url.toString());
 
 		// fbxDebugDump(geometry);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
 
-    QString queryPart = _url.query();
+	QString queryPart = _url.query();
     bool suppressMaterialsHack = queryPart.contains("hifiusemat"); // If this appears in query string, don't fetch mtl even if used.
     OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
     preDefinedMaterial.used = true;
