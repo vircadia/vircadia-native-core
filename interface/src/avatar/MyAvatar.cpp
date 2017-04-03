@@ -163,12 +163,14 @@ MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 setRecordingBasis();
             }
-            _previousCollisionGroup = _characterController.getCollisionGroup();
-            _characterController.setCollisionGroup(BULLET_COLLISION_GROUP_COLLISIONLESS);
+            _previousCollisionGroup = _characterController.computeCollisionGroup();
+            _characterController.setCollisionless(true);
         } else {
             clearRecordingBasis();
             useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
-            _characterController.setCollisionGroup(_previousCollisionGroup);
+            if (_previousCollisionGroup != BULLET_COLLISION_GROUP_COLLISIONLESS) {
+                _characterController.setCollisionless(false);
+            }
         }
 
         auto audioIO = DependencyManager::get<AudioClient>();
@@ -550,12 +552,12 @@ void MyAvatar::simulate(float deltaTime) {
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
         bool flyingAllowed = true;
-        bool ghostingAllowed = true;
+        bool collisionlessAllowed = true;
         entityTree->withWriteLock([&] {
             std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
             if (zone) {
                 flyingAllowed = zone->getFlyingAllowed();
-                ghostingAllowed = zone->getGhostingAllowed();
+                collisionlessAllowed = zone->getGhostingAllowed();
             }
             auto now = usecTimestampNow();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
@@ -586,9 +588,7 @@ void MyAvatar::simulate(float deltaTime) {
             }
         });
         _characterController.setFlyingAllowed(flyingAllowed);
-        if (!ghostingAllowed && _characterController.getCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
-            _characterController.setCollisionGroup(BULLET_COLLISION_GROUP_MY_AVATAR);
-        }
+        _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
     updateAvatarEntities();
@@ -1448,7 +1448,7 @@ void MyAvatar::updateMotors() {
     glm::quat motorRotation;
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
         if (_characterController.getState() == CharacterController::State::Hover ||
-                _characterController.getCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+                _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
             motorRotation = getMyHead()->getCameraOrientation();
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
@@ -1884,7 +1884,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     glm::vec3 direction = forward + right;
     CharacterController::State state = _characterController.getState();
     if (state == CharacterController::State::Hover ||
-            _characterController.getCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         // we can fly --> support vertical motion
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         direction += up;
@@ -2207,20 +2207,13 @@ void MyAvatar::setCollisionsEnabled(bool enabled) {
         return;
     }
 
-    bool ghostingAllowed = true;
-    auto entityTreeRenderer = qApp->getEntities();
-    if (entityTreeRenderer) {
-        std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
-        if (zone) {
-            ghostingAllowed = zone->getGhostingAllowed();
-        }
-    }
-    int16_t group = (enabled || !ghostingAllowed) ? BULLET_COLLISION_GROUP_MY_AVATAR : BULLET_COLLISION_GROUP_COLLISIONLESS;
-    _characterController.setCollisionGroup(group);
+    _characterController.setCollisionless(!enabled);
 }
 
 bool MyAvatar::getCollisionsEnabled() {
-    return _characterController.getCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
+    // may return 'false' even though the collisionless option was requested
+    // because the zone may disallow collisionless avatars
+    return _characterController.computeCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
 }
 
 void MyAvatar::setCharacterControllerEnabled(bool enabled) {

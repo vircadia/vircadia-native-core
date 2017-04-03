@@ -113,13 +113,14 @@ public:
 
     bool isEnabledAndReady() const { return _dynamicsWorld; }
 
-    void setCollisionGroup(int16_t group);
-    int16_t getCollisionGroup() const { return _collisionGroup; }
+    void setCollisionless(bool collisionless);
+    int16_t computeCollisionGroup() const;
     void handleChangedCollisionGroup();
 
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
     void setFlyingAllowed(bool value);
+    void setCollisionlessAllowed(bool value);
 
 
 protected:
@@ -129,6 +130,7 @@ protected:
     void setState(State state);
 #endif
 
+    void updateGravity();
     void updateUpAxis(const glm::quat& rotation);
     bool checkForSupport(btCollisionWorld* collisionWorld);
 
@@ -198,7 +200,8 @@ protected:
     uint32_t _previousFlags { 0 };
 
     bool _flyingAllowed { true };
-    int16_t _collisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
+    bool _collisionlessAllowed { true };
+    bool _collisionless { false };
 };
 
 #endif // hifi_CharacterController_h
