@@ -571,10 +571,15 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeScene();
     }
 
+
+#ifdef HIFI_ENABLE_NSIGHT_DEBUG
+    if (false) // do not compositeoverlay if running nsight debug
+#endif
     {
         PROFILE_RANGE_EX(render_detail, "compositeOverlay", 0xff0077ff, (uint64_t)presentCount())
         compositeOverlay();
     }
+
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     if (compositorHelper->getReticleVisible()) {
         PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
