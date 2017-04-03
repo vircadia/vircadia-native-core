@@ -14,11 +14,11 @@ import QtQuick.Controls 1.4
 import "../styles-uit"
 
 Item {
-    property var dialogTitleText;
-    property var optionTitleText;
-    property var optionBodyText;
-    property var optionValues;
-    property var selectedOptionIndex;
+    property var dialogTitleText : "";
+    property var optionTitleText: "";
+    property var optionBodyText: "";
+    property var optionValues: [];
+    property var selectedOptionIndex: 0;
     property var callbackFunction;
     property int dialogWidth;
     property int dialogHeight;
@@ -51,12 +51,12 @@ Item {
         id: dialogContainer;
         color: "white";
         anchors.centerIn: dialogBackground;
-        width: dialogWidth;
-        height: dialogHeight;
+        width: combo.dialogWidth;
+        height: combo.dialogHeight;
 
         RalewayRegular {
             id: dialogTitle;
-            text: dialogTitleText;
+            text: combo.dialogTitleText;
             anchors.top: parent.top;
             anchors.topMargin: 20;
             anchors.left: parent.left;

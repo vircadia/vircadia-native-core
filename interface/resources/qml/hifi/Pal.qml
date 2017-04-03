@@ -512,6 +512,7 @@ Rectangle {
                     // If this is an "Ignore" checkbox, disable the checkbox if user isn't present.
                     enabled: styleData.role === "ignore" ? (model ? model["isPresent"] : true) : true;
                     boxSize: 24;
+                    isRedCheck: true
                     onClicked: {
                         var newValue = !model[styleData.role];
                         nearbyUserModel.setProperty(model.userIndex, styleData.role, newValue);
@@ -611,7 +612,7 @@ Rectangle {
                                      "Bold names in the list are <b>avatar display names</b>.<br>" +
                                      "<font color='purple'>Purple borders around profile pictures are <b>connections</b></font>.<br>" +
                                      "<font color='green'>Green borders around profile pictures are <b>friends</b>.</font><br>" +
-                                     "(TEMPORARY LANGUAGE) In some situations, you can also see others' usernames.<br>" +
+                                     "In some situations, you can also see others' usernames.<br>" +
                                      "If you can see someone's username, you can GoTo them by selecting them in the PAL, then clicking their name.<br>" +
                                      "<br>If someone's display name isn't set, a unique <b>session display name</b> is assigned to them.<br>" +
                                      "<br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.");
@@ -948,7 +949,7 @@ Rectangle {
         }
         Item {
             id: upperRightInfoContainer;
-            width: 160;
+            width: 200;
             height: parent.height;
             anchors.top: parent.top;
             anchors.right: parent.right;
@@ -959,7 +960,7 @@ Rectangle {
                 // Text size
                 size: hifi.fontSizes.tabularData;
                 // Anchors
-                anchors.top: availabilityComboBox.bottom;
+                anchors.top: myCard.top;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 // Style
                 color: hifi.colors.baseGrayHighlight;
@@ -972,13 +973,20 @@ Rectangle {
                 id: availabilityComboBox;
                 color: hifi.colors.textFieldLightBackground
                 // Anchors
-                anchors.top: parent.top;
+                anchors.top: availabilityText.bottom;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 // Size
                 width: parent.width;
                 height: 40;
+                function determineAvailabilityIndex() {
+                    return ['all', 'connections', 'friends', 'none'].indexOf(GlobalServices.findableBy);
+                }
+
+                function determineAvailabilityString() {
+                    return availabilityStrings[determineAvailabilityIndex()];
+                }
                 RalewayRegular {
-                    text: myData.userName === "Unknown user" ? "Login to Set" : availabilityStrings[GlobalServices.findableBy];
+                    text: myData.userName === "Unknown user" ? "Login to Set" : availabilityComboBox.determineAvailabilityString();
                     anchors.fill: parent;
                     anchors.leftMargin: 10;
                     horizontalAlignment: Text.AlignLeft;
@@ -986,7 +994,7 @@ Rectangle {
                 }
                 MouseArea {
                     anchors.fill: parent;
-                    enabled: myData.userName ==! "Unknown user";
+                    enabled: myData.userName !== "Unknown user";
                     hoverEnabled: true;
                     onClicked: {
                         popupComboDialog("Set your availability:",
@@ -1001,32 +1009,6 @@ Rectangle {
                     onExited: availabilityComboBox.color = hifi.colors.textFieldLightBackground;
                 }
             }
-            
-            /*HifiControlsUit.ComboBox {
-                function determineAvailabilityIndex() {
-                    return ['all', 'connections', 'friends', 'none'].indexOf(GlobalServices.findableBy)
-                    }
-                id: availabilityComboBox;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.horizontalCenter: parent.horizontalCenter;
-                // Size
-                width: parent.width;
-                height: 40;
-                currentIndex: determineAvailabilityIndex();
-                model: ListModel {
-                    id: availabilityComboBoxListItems
-                    ListElement { text: "Everyone"; value: "all"; }
-                    ListElement { text: "All Connections"; value: "connections"; }
-                    ListElement { text: "Friends Only"; value: "friends"; }
-                    ListElement { text: "Appear Offline"; value: "none" }
-                }
-                onCurrentIndexChanged: {
-                    GlobalServices.findableBy = availabilityComboBoxListItems.get(currentIndex).value;
-                    UserActivityLogger.palAction("set_availability", availabilityComboBoxListItems.get(currentIndex).value);
-                    print('Setting availability:', JSON.stringify(GlobalServices.findableBy));
-                }
-            }*/
         }
     }
 
