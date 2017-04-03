@@ -235,6 +235,7 @@ void Head::calculateMouthShapes() {
     const float JAW_OPEN_RATE = 0.9f;
     const float JAW_CLOSE_RATE = 0.90f;
     const float TIMESTEP_CONSTANT = 0.0032f;
+    const float USECS_IN_SIXTIETH_SEC = (1.0f / 60.0f) * USECS_PER_SECOND;
     const float MMMM_POWER = 0.10f;
     const float SMILE_POWER = 0.10f;
     const float FUNNEL_POWER = 0.35f;
@@ -251,11 +252,20 @@ void Head::calculateMouthShapes() {
         _audioJawOpen *= JAW_CLOSE_RATE;
     }
     _audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
-    _trailingAudioJawOpen = glm::mix(_trailingAudioJawOpen, _audioJawOpen, 0.99f); 
+    _trailingAudioJawOpen = glm::mix(_trailingAudioJawOpen, _audioJawOpen, 0.99f);
 
-    // Advance time at a rate proportional to loudness, and move the mouth shapes through 
+    // Advance time at a rate proportional to loudness, and move the mouth shapes through
     // a cycle at differing speeds to create a continuous random blend of shapes.
-    _mouthTime += sqrtf(_averageLoudness) * TIMESTEP_CONSTANT;
+
+    quint64 now = usecTimestampNow();
+    float timeRatio = 1.0f;
+    if (_calculateMouthShapesTime > 0) {
+        quint64 timeDelta = now - _calculateMouthShapesTime;
+        timeRatio = (float)timeDelta / USECS_IN_SIXTIETH_SEC;
+    }
+    _calculateMouthShapesTime = now;
+
+    _mouthTime += sqrtf(_averageLoudness) * TIMESTEP_CONSTANT * timeRatio;
     _mouth2 = (sinf(_mouthTime * MMMM_SPEED) + 1.0f) * MMMM_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
     _mouth3 = (sinf(_mouthTime * FUNNEL_SPEED) + 1.0f) * FUNNEL_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
     _mouth4 = (sinf(_mouthTime * SMILE_SPEED) + 1.0f) * SMILE_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
