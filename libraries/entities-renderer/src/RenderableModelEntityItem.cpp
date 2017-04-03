@@ -277,10 +277,11 @@ bool RenderableModelEntityItem::getAnimationFrame() {
         return false;
     }
 
-    if (_animation && _animation->isLoaded()) {
+    auto animation = getAnimation();
+    if (animation && animation->isLoaded()) {
 
-        const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
-        auto& fbxJoints = _animation->getGeometry().joints;
+        const QVector<FBXAnimationFrame>&  frames = animation->getFramesReference(); // NOTE: getFrames() is too heavy
+        auto& fbxJoints = animation->getGeometry().joints;
 
         int frameCount = frames.size();
         if (frameCount > 0) {
@@ -566,7 +567,7 @@ void RenderableModelEntityItem::update(const quint64& now) {
     }
 
     // make a copy of the animation properites
-    _renderAnimationProperties = _animationProperties;
+    _renderAnimationProperties = getAnimationProperties();
 
     ModelEntityItem::update(now);
 }
@@ -608,11 +609,11 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
 
 void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
-    if (_shapeType == SHAPE_TYPE_COMPOUND) {
-        if (!_compoundShapeResource && !_compoundShapeURL.isEmpty()) {
+    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
+        if (!_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
             _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL());
         }
-    } else if (_compoundShapeResource && !_compoundShapeURL.isEmpty()) {
+    } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
         _compoundShapeResource.reset();
     }
@@ -627,7 +628,7 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
         if (tree) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
         }
-        if (_shapeType == SHAPE_TYPE_COMPOUND) {
+        if (getShapeType() == SHAPE_TYPE_COMPOUND) {
             _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
         }
     }
@@ -637,7 +638,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     ShapeType type = getShapeType();
 
     if (type == SHAPE_TYPE_COMPOUND) {
-        if (!_model || _compoundShapeURL.isEmpty()) {
+        if (!_model || getCompoundShapeURL().isEmpty()) {
             EntityTreePointer tree = getTree();
             if (tree) {
                 QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
@@ -659,8 +660,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
                     doInitialModelSimulation();
                 }
                 return true;
-            } else if (!_compoundShapeURL.isEmpty()) {
-                _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(_compoundShapeURL);
+            } else if (!getCompoundShapeURL().isEmpty()) {
+                _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL());
             }
         }
 
@@ -775,7 +776,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + _model->getOffset()) - registrationOffset;
             }
         }
-        shapeInfo.setParams(type, dimensions, _compoundShapeURL);
+        shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         // should never fall in here when model not fully loaded
         assert(_model && _model->isLoaded());
@@ -1001,7 +1002,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             }
         }
 
-        shapeInfo.setParams(type, 0.5f * dimensions, _modelURL);
+        shapeInfo.setParams(type, 0.5f * dimensions, getModelURL());
     } else {
         ModelEntityItem::computeShapeInfo(shapeInfo);
         shapeInfo.setParams(type, 0.5f * dimensions);
