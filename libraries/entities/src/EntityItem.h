@@ -367,6 +367,7 @@ public:
     virtual void setShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const;
+    void markDirtyFlags(uint32_t mask);
     void clearDirtyFlags(uint32_t mask = 0xffffffff);
 
     bool isMoving() const;
@@ -509,7 +510,7 @@ protected:
     // NOTE: _volumeMultiplier is used to allow some mass properties code exist in the EntityItem base class
     // rather than in all of the derived classes.  If we ever collapse these classes to one we could do it a
     // different way.
-    float _volumeMultiplier { 1.0f };
+    const float _volumeMultiplier { 1.0f };
     glm::vec3 _gravity;
     glm::vec3 _acceleration;
     float _damping;

@@ -80,7 +80,7 @@ public:
     bool getFaceCamera() const;
     void setFaceCamera(bool value);
 
-protected:
+private:
     QString _text;
     float _lineHeight;
     rgbColor _textColor;

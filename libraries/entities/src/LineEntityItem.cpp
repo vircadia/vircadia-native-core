@@ -88,8 +88,10 @@ bool LineEntityItem::appendPoint(const glm::vec3& point) {
         qCDebug(entities) << "Point is outside entity's bounding box";
         return false;
     }
-    _points << point;
-    _pointsChanged = true;
+    withWriteLock([&] {
+        _points << point;
+        _pointsChanged = true;
+    });
     return true;
 }
 
@@ -105,8 +107,11 @@ bool LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
             return false;
         }
     }
-    _points = points;
-    _pointsChanged = true;
+
+    withWriteLock([&] {
+        _points = points;
+        _pointsChanged = true;
+    });
     return true;
 }
 
@@ -159,3 +164,51 @@ void LineEntityItem::debugDump() const {
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
+
+const rgbColor& LineEntityItem::getColor() const { 
+    return _color; 
+}
+
+xColor LineEntityItem::getXColor() const { 
+    xColor result;
+    withReadLock([&] {
+        result = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] };
+    });
+    return result; 
+}
+
+void LineEntityItem::setColor(const rgbColor& value) { 
+    withWriteLock([&] {
+        memcpy(_color, value, sizeof(_color));
+    });
+}
+
+void LineEntityItem::setColor(const xColor& value) {
+    withWriteLock([&] {
+        _color[RED_INDEX] = value.red;
+        _color[GREEN_INDEX] = value.green;
+        _color[BLUE_INDEX] = value.blue;
+    });
+}
+
+void LineEntityItem::setLineWidth(float lineWidth) { 
+    withWriteLock([&] {
+        _lineWidth = lineWidth;
+    });
+}
+
+float LineEntityItem::getLineWidth() const { 
+    float result;
+    withReadLock([&] {
+        result = _lineWidth;
+    });
+    return result;
+}
+
+QVector<glm::vec3> LineEntityItem::getLinePoints() const { 
+    QVector<glm::vec3> result;
+    withReadLock([&] {
+        result = _points;
+    });
+    return result;
+}

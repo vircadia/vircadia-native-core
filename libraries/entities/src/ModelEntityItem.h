@@ -130,7 +130,7 @@ private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     ShapeType computeTrueShapeType() const;
 
-protected:
+private:
     // these are used:
     // - to bounce joint data from an animation into the model/rig.
     // - to relay changes from scripts to model/rig.

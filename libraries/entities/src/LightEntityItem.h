@@ -97,7 +97,7 @@ public:
     static bool getLightsArePickable() { return _lightsArePickable; }
     static void setLightsArePickable(bool value) { _lightsArePickable = value; }
     
-protected:
+private:
 
 
     // properties of a light

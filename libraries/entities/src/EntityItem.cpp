@@ -683,7 +683,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // However, for now, when the server uses a newer time than what we sent, listen to what we're told.
                 if (overwriteLocalData) weOwnSimulation = false;
             } else if (_simulationOwner.set(newSimOwner)) {
-                _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+                markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                 somethingChanged = true;
                 // recompute weOwnSimulation for later
                 weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
@@ -695,19 +695,19 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             weOwnSimulation = true;
             if (!_simulationOwner.isNull()) {
                 // someone else really did own it
-                _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+                markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                 somethingChanged = true;
                 _simulationOwner.clearCurrentOwner();
             }
         } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
             // this could happen when the user reloads the cache and entity tree.
-            _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+            markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
             somethingChanged = true;
             _simulationOwner.clearCurrentOwner();
             weOwnSimulation = false;
         } else if (_simulationOwner.set(newSimOwner)) {
-            _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+            markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
             somethingChanged = true;
             // recompute weOwnSimulation for later
             weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
@@ -994,7 +994,7 @@ SharedSoundPointer EntityItem::getCollisionSound() {
 }
 
 void EntityItem::simulate(const quint64& now) {
-    if (0 == getLastSimulated()) {
+    if (getLastSimulated() == 0) {
         setLastSimulated(now);
     }
 
@@ -1042,7 +1042,7 @@ void EntityItem::simulate(const quint64& now) {
     if (!stepKinematicMotion(timeElapsed)) {
         // this entity is no longer moving
         // flag it to transition from KINEMATIC to STATIC
-        _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
         setAcceleration(Vectors::ZERO);
     }
     setLastSimulated(now);
@@ -1294,7 +1294,7 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
 }
 
 void EntityItem::pokeSimulationOwnership() {
-    _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE;
+    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE);
     auto nodeList = DependencyManager::get<NodeList>();
     if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
         // we already own it
@@ -1306,7 +1306,7 @@ void EntityItem::pokeSimulationOwnership() {
 }
 
 void EntityItem::grabSimulationOwnership() {
-    _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB;
+    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB);
     auto nodeList = DependencyManager::get<NodeList>();
     if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
         // we already own it
@@ -1599,18 +1599,18 @@ float EntityItem::getVolumeEstimate() const {
 void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
     if (value != _registrationPoint) {
         setRegistrationPoint(value);
-        _dirtyFlags |= Simulation::DIRTY_SHAPE;
+        markDirtyFlags(Simulation::DIRTY_SHAPE);
     }
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) {
     if (getLocalPosition() != value) {
         setLocalPosition(value);
-        _dirtyFlags |= Simulation::DIRTY_POSITION;
+        markDirtyFlags(Simulation::DIRTY_POSITION);
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
-                entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
+                entity->markDirtyFlags(Simulation::DIRTY_POSITION);
             }
         });
     }
@@ -1619,8 +1619,9 @@ void EntityItem::updatePosition(const glm::vec3& value) {
 void EntityItem::updateParentID(const QUuid& value) {
     if (getParentID() != value) {
         setParentID(value);
-        _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; // children are forced to be kinematic
-        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        // children are forced to be kinematic
+        // may need to not collide with own avatar
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
     }
 }
 
@@ -1634,7 +1635,7 @@ void EntityItem::updatePositionFromNetwork(const glm::vec3& value) {
 void EntityItem::updateDimensions(const glm::vec3& value) {
     if (getDimensions() != value) {
         setDimensions(value);
-        _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+        markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
     }
 }
 
@@ -1645,8 +1646,7 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
-                entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
-                entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
+                entity->markDirtyFlags(Simulation::DIRTY_ROTATION | Simulation::DIRTY_POSITION);
             }
         });
     }
@@ -1913,7 +1913,7 @@ void EntityItem::updateSimulationOwner(const SimulationOwner& owner) {
     }
 
     if (_simulationOwner.set(owner)) {
-        _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+        markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
     }
 }
 
@@ -1926,7 +1926,7 @@ void EntityItem::clearSimulationOwnership() {
     // don't bother setting the DIRTY_SIMULATOR_ID flag because:
     // (a) when entity-server calls clearSimulationOwnership() the dirty-flags are meaningless (only used by interface)
     // (b) the interface only calls clearSimulationOwnership() in a context that already knows best about dirty flags
-    //_dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+    //markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
 
 }
 
@@ -2774,6 +2774,13 @@ uint32_t EntityItem::getDirtyFlags() const {
         result = _dirtyFlags;
     });
     return result;
+}
+
+
+void EntityItem::markDirtyFlags(uint32_t mask) {
+    withWriteLock([&] {
+        _dirtyFlags |= mask;
+    });
 }
 
 void EntityItem::clearDirtyFlags(uint32_t mask) { 
