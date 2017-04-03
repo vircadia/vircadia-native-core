@@ -140,7 +140,7 @@ private:
     int _rightEyeLookAtID;
 
     // private methods
-    void calculateMouthShapes();
+    void calculateMouthShapes(float timeRatio);
     void applyEyelidOffset(glm::quat headOrientation);
 };
 

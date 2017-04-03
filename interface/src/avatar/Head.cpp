@@ -71,6 +71,7 @@ void Head::reset() {
 }
 
 void Head::simulate(float deltaTime, bool isMine) {
+
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
     const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
@@ -79,7 +80,8 @@ void Head::simulate(float deltaTime, bool isMine) {
     if (_longTermAverageLoudness == -1.0f) {
         _longTermAverageLoudness = _averageLoudness;
     } else {
-        _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
+        _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness,
+                                            glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
 
     if (isMine) {
@@ -94,7 +96,7 @@ void Head::simulate(float deltaTime, bool isMine) {
                 if (typeid(*faceTracker) == typeid(DdeFaceTracker)) {
 
                     if (Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
-                        calculateMouthShapes();
+                        calculateMouthShapes(deltaTime);
 
                         const int JAW_OPEN_BLENDSHAPE = 21;
                         const int MMMM_BLENDSHAPE = 34;
@@ -116,7 +118,7 @@ void Head::simulate(float deltaTime, bool isMine) {
             _isEyeTrackerConnected = eyeTracker->isTracking();
         }
     }
-   
+
     if (!_isFaceTrackerConnected) {
 
         if (!_isEyeTrackerConnected) {
@@ -144,22 +146,23 @@ void Head::simulate(float deltaTime, bool isMine) {
         _timeWithoutTalking += deltaTime;
         if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
             _timeWithoutTalking = 0.0f;
-        
+
         } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
             forceBlink = true;
         }
-                                 
+
         //  Update audio attack data for facial animation (eyebrows and mouth)
         const float AUDIO_ATTACK_AVERAGING_RATE = 0.9f;
-        _audioAttack = AUDIO_ATTACK_AVERAGING_RATE * _audioAttack + (1.0f - AUDIO_ATTACK_AVERAGING_RATE) * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
+        _audioAttack = AUDIO_ATTACK_AVERAGING_RATE * _audioAttack +
+            (1.0f - AUDIO_ATTACK_AVERAGING_RATE) * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
         _lastLoudness = (_audioLoudness - _longTermAverageLoudness);
-        
+
         const float BROW_LIFT_THRESHOLD = 100.0f;
         if (_audioAttack > BROW_LIFT_THRESHOLD) {
             _browAudioLift += sqrtf(_audioAttack) * 0.01f;
         }
         _browAudioLift = glm::clamp(_browAudioLift *= 0.7f, 0.0f, 1.0f);
-        
+
         const float BLINK_SPEED = 10.0f;
         const float BLINK_SPEED_VARIABILITY = 1.0f;
         const float BLINK_START_VARIABILITY = 0.25f;
@@ -169,8 +172,9 @@ void Head::simulate(float deltaTime, bool isMine) {
             // no blinking when brows are raised; blink less with increasing loudness
             const float BASE_BLINK_RATE = 15.0f / 60.0f;
             const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
-            if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
-                    ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
+            if (forceBlink ||
+                (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
+                                                               ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
                 _leftEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
                 _rightEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
                 if (randFloat() < 0.5f) {
@@ -182,23 +186,23 @@ void Head::simulate(float deltaTime, bool isMine) {
         } else {
             _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
             _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
-            
+
             if (_leftEyeBlink == FULLY_CLOSED) {
                 _leftEyeBlinkVelocity = -BLINK_SPEED;
-            
+
             } else if (_leftEyeBlink == FULLY_OPEN) {
                 _leftEyeBlinkVelocity = 0.0f;
             }
             if (_rightEyeBlink == FULLY_CLOSED) {
                 _rightEyeBlinkVelocity = -BLINK_SPEED;
-            
+
             } else if (_rightEyeBlink == FULLY_OPEN) {
                 _rightEyeBlinkVelocity = 0.0f;
             }
         }
-        
+
         // use data to update fake Faceshift blendshape coefficients
-        calculateMouthShapes();
+        calculateMouthShapes(deltaTime);
         DependencyManager::get<Faceshift>()->updateFakeCoefficients(_leftEyeBlink,
                                                                     _rightEyeBlink,
                                                                     _browAudioLift,
@@ -216,7 +220,7 @@ void Head::simulate(float deltaTime, bool isMine) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::FixGaze)) { // if debug menu turns off, use no saccade
         _saccade = glm::vec3();
     }
-    
+
     _leftEyePosition = _rightEyePosition = getPosition();
     _eyePosition = getPosition();
 
@@ -230,12 +234,12 @@ void Head::simulate(float deltaTime, bool isMine) {
     _eyePosition = calculateAverageEyePosition();
 }
 
-void Head::calculateMouthShapes() {
+void Head::calculateMouthShapes(float deltaTime) {
     const float JAW_OPEN_SCALE = 0.015f;
     const float JAW_OPEN_RATE = 0.9f;
     const float JAW_CLOSE_RATE = 0.90f;
     const float TIMESTEP_CONSTANT = 0.0032f;
-    const float USECS_IN_SIXTIETH_SEC = (1.0f / 60.0f) * USECS_PER_SECOND;
+    // const float USECS_IN_SIXTIETH_SEC = (1.0f / 60.0f) * USECS_PER_SECOND;
     const float MMMM_POWER = 0.10f;
     const float SMILE_POWER = 0.10f;
     const float FUNNEL_POWER = 0.35f;
@@ -247,9 +251,9 @@ void Head::calculateMouthShapes() {
     // From the change in loudness, decide how much to open or close the jaw
     float audioDelta = sqrtf(glm::max(_averageLoudness - _longTermAverageLoudness, 0.0f)) * JAW_OPEN_SCALE;
     if (audioDelta > _audioJawOpen) {
-        _audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE;
+        _audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE * deltaTime;
     } else {
-        _audioJawOpen *= JAW_CLOSE_RATE;
+        _audioJawOpen *= JAW_CLOSE_RATE * deltaTime;
     }
     _audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
     _trailingAudioJawOpen = glm::mix(_trailingAudioJawOpen, _audioJawOpen, 0.99f);
@@ -257,18 +261,13 @@ void Head::calculateMouthShapes() {
     // Advance time at a rate proportional to loudness, and move the mouth shapes through
     // a cycle at differing speeds to create a continuous random blend of shapes.
 
-    quint64 now = usecTimestampNow();
-    float timeRatio = 1.0f;
-    if (_calculateMouthShapesTime > 0) {
-        quint64 timeDelta = now - _calculateMouthShapesTime;
-        timeRatio = (float)timeDelta / USECS_IN_SIXTIETH_SEC;
-    }
-    _calculateMouthShapesTime = now;
-
-    _mouthTime += sqrtf(_averageLoudness) * TIMESTEP_CONSTANT * timeRatio;
-    _mouth2 = (sinf(_mouthTime * MMMM_SPEED) + 1.0f) * MMMM_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
-    _mouth3 = (sinf(_mouthTime * FUNNEL_SPEED) + 1.0f) * FUNNEL_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
-    _mouth4 = (sinf(_mouthTime * SMILE_SPEED) + 1.0f) * SMILE_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
+    _mouthTime += sqrtf(_averageLoudness) * TIMESTEP_CONSTANT * deltaTime;
+    _mouth2 = (sinf(_mouthTime * MMMM_SPEED) + 1.0f) * MMMM_POWER *
+        glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN) * deltaTime;
+    _mouth3 = (sinf(_mouthTime * FUNNEL_SPEED) + 1.0f) * FUNNEL_POWER *
+        glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN) * deltaTime;
+    _mouth4 = (sinf(_mouthTime * SMILE_SPEED) + 1.0f) * SMILE_POWER *
+        glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN) * deltaTime;
 }
 
 void Head::applyEyelidOffset(glm::quat headOrientation) {
@@ -331,7 +330,7 @@ glm::quat Head::getFinalOrientationInLocalFrame() const {
 //
 // Everyone else's head also keeps track of a correctedLookAtPosition that may be different for the same head within
 // different Interfaces. If that head is not looking at me, the correctedLookAtPosition is the same as the lookAtPosition.
-// However, if that head is looking at me, then I will attempt to adjust the lookAtPosition by the difference between 
+// However, if that head is looking at me, then I will attempt to adjust the lookAtPosition by the difference between
 // my (singular) eye position and my actual camera position. This adjustment is used on their eyeballs during rendering
 // (and also on any lookAt vector display for that head, during rendering). Note that:
 // 1. this adjustment can be made directly to the other head's eyeball joints, because we won't be send their joint information to others.
