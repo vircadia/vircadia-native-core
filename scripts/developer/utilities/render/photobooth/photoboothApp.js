@@ -188,11 +188,11 @@
         });
         Entities.deleteEntity(this.modelEntityID);
         photoboothCreated = false;
+        Camera.mode = "first person";
     };
     
     function cleanup() {
         tablet.removeButton(button);
-        Camera.mode = "first person";
         PhotoBooth.destroy();
     }
     Script.scriptEnding.connect(cleanup);
