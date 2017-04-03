@@ -265,7 +265,7 @@ void Context::incrementBufferGPUCount() {
     auto total = ++_bufferGPUCount;
     if (total > max.load()) {
         max = total;
-        qCDebug(gpulogging) << "New max GPU buffers " << total;
+       // qCDebug(gpulogging) << "New max GPU buffers " << total;
     }
 }
 void Context::decrementBufferGPUCount() {
@@ -299,7 +299,7 @@ void Context::incrementTextureGPUCount() {
     auto total = ++_textureGPUCount;
     if (total > max.load()) {
         max = total;
-        qCDebug(gpulogging) << "New max GPU textures " << total;
+       // qCDebug(gpulogging) << "New max GPU textures " << total;
     }
 }
 void Context::decrementTextureGPUCount() {
@@ -311,7 +311,7 @@ void Context::incrementTextureGPUSparseCount() {
     auto total = ++_textureGPUSparseCount;
     if (total > max.load()) {
         max = total;
-        qCDebug(gpulogging) << "New max GPU textures " << total;
+       // qCDebug(gpulogging) << "New max GPU textures " << total;
     }
 }
 void Context::decrementTextureGPUSparseCount() {
@@ -378,7 +378,7 @@ void Context::incrementTextureGPUTransferCount() {
     auto total = ++_textureGPUTransferCount;
     if (total > max.load()) {
         max = total;
-        qCDebug(gpulogging) << "New max GPU textures transfers" << total;
+     // qCDebug(gpulogging) << "New max GPU textures transfers" << total;
     }
 }
 

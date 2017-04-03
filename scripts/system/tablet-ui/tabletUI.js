@@ -16,8 +16,6 @@
    MyAvatar, Menu */
 
 (function() { // BEGIN LOCAL_SCOPE
-    var _this = this;
-    var tabletShown = false;
     var tabletRezzed = false;
     var activeHand = null;
     var DEFAULT_WIDTH = 0.4375;
@@ -94,7 +92,7 @@
     }
 
     function showTabletUI() {
-        tabletShown = true;
+        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = true;
 
         if (!tabletRezzed || !tabletIsValid()) {
             closeTabletUI();
@@ -116,7 +114,7 @@
     }
 
     function hideTabletUI() {
-        tabletShown = false;
+        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = false;
         if (!UIWebTablet) {
             return;
         }
@@ -132,7 +130,7 @@
     }
 
     function closeTabletUI() {
-        tabletShown = false;
+        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = false;
         if (UIWebTablet) {
             if (UIWebTablet.onClose) {
                 UIWebTablet.onClose();
@@ -159,6 +157,7 @@
         var now = Date.now();
 
         // close the WebTablet if it we go into toolbar mode.
+        var tabletShown = Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown;
         var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
         var landscape = Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape;
 

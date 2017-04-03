@@ -43,7 +43,7 @@ public:
     static const GLenum WRAP_MODES[Sampler::NUM_WRAP_MODES];
 
 protected:
-    virtual uint32 size() const = 0;
+    virtual Size size() const = 0;
     virtual void generateMips() const = 0;
 
     GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
@@ -57,7 +57,7 @@ public:
 protected:
     GLExternalTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
     void generateMips() const override {}
-    uint32 size() const override { return 0; }
+    Size size() const override { return 0; }
 };
 
 

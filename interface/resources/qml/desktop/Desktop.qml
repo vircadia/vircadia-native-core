@@ -490,6 +490,13 @@ FocusScope {
         desktop.forceActiveFocus();
     }
 
+    function openBrowserWindow(request, profile) {
+        var component = Qt.createComponent("../Browser.qml");
+        var newWindow = component.createObject(desktop);
+        newWindow.webView.profile = profile;
+        request.openIn(newWindow.webView);
+    }
+
     FocusHack { id: focusHack; }
 
     Rectangle {

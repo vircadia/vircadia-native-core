@@ -18,6 +18,7 @@
 #include <QScriptValue>
 #include <QString>
 #include <QStringList>
+#include <DiscoverabilityManager.h>
 
 class DownloadInfoResult {
 public:
@@ -35,7 +36,7 @@ class GlobalServicesScriptingInterface : public QObject {
     Q_OBJECT
     
     Q_PROPERTY(QString username READ getUsername)
-    Q_PROPERTY(QString findableBy READ getFindableBy WRITE setFindableBy)
+    Q_PROPERTY(QString findableBy READ getFindableBy WRITE setFindableBy NOTIFY findableByChanged)
     
 public:
     static GlobalServicesScriptingInterface* getInstance();
@@ -65,8 +66,6 @@ private:
     GlobalServicesScriptingInterface();
     ~GlobalServicesScriptingInterface();
     
-    QString findableByString(Discoverability::Mode discoverabilityMode) const;
-
     bool _downloading;
 };
 

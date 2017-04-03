@@ -441,7 +441,7 @@ void GL45VariableAllocationTexture::executeNextTransfer(const TexturePointer& cu
 using GL45ResourceTexture = GL45Backend::GL45ResourceTexture;
 
 GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45VariableAllocationTexture(backend, texture) {
-    auto mipLevels = texture.evalNumMips();
+    auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
     uvec3 mipDimensions;
     for (uint16_t mip = 0; mip < mipLevels; ++mip) {
@@ -463,10 +463,10 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
     _allocatedMip = allocatedMip;
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto dimensions = _gpuObject.evalMipDimensions(_allocatedMip);
-    const auto totalMips = _gpuObject.getNumMipLevels();
+    const auto totalMips = _gpuObject.getNumMips();
     const auto mips = totalMips - _allocatedMip;
     glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
-    auto mipLevels = _gpuObject.getNumMipLevels();
+    auto mipLevels = _gpuObject.getNumMips();
     _size = 0;
     for (uint16_t mip = _allocatedMip; mip < mipLevels; ++mip) {
         _size += _gpuObject.evalMipSize(mip);
@@ -476,7 +476,7 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
 }
 
 void GL45ResourceTexture::copyMipsFromTexture() {
-    auto mipLevels = _gpuObject.getNumMipLevels();
+    auto mipLevels = _gpuObject.getNumMips();
     size_t maxFace = GLTexture::getFaceCount(_target);
     for (uint16_t sourceMip = _populatedMip; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip - _allocatedMip;
@@ -495,13 +495,13 @@ void GL45ResourceTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
     GLuint oldId = _id;
-    uint32_t oldSize = _size;
+    auto oldSize = _size;
     // create new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
     uint16_t oldAllocatedMip = _allocatedMip;
     // allocate storage for new level
     allocateStorage(_allocatedMip - std::min<uint16_t>(_allocatedMip, 2));
-    uint16_t mips = _gpuObject.getNumMipLevels();
+    uint16_t mips = _gpuObject.getNumMips();
     // copy pre-existing mips
     for (uint16_t mip = _populatedMip; mip < mips; ++mip) {
         auto mipDimensions = _gpuObject.evalMipDimensions(mip);
@@ -534,7 +534,7 @@ void GL45ResourceTexture::demote() {
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
-    uint16_t mips = _gpuObject.getNumMipLevels();
+    uint16_t mips = _gpuObject.getNumMips();
     // copy pre-existing mips
     for (uint16_t mip = _populatedMip; mip < mips; ++mip) {
         auto mipDimensions = _gpuObject.evalMipDimensions(mip);
