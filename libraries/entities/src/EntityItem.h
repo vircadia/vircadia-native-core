@@ -510,7 +510,7 @@ protected:
     // NOTE: _volumeMultiplier is used to allow some mass properties code exist in the EntityItem base class
     // rather than in all of the derived classes.  If we ever collapse these classes to one we could do it a
     // different way.
-    const float _volumeMultiplier { 1.0f };
+    float _volumeMultiplier { 1.0f };
     glm::vec3 _gravity;
     glm::vec3 _acceleration;
     float _damping;

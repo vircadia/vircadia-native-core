@@ -73,8 +73,9 @@ class LineEntityItem : public EntityItem {
  private:
     rgbColor _color;
     float _lineWidth;
-    bool _pointsChanged;
     QVector<glm::vec3> _points;
+protected:
+    bool _pointsChanged;
 };
 
 #endif // hifi_LineEntityItem_h
