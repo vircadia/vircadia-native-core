@@ -974,6 +974,8 @@ void ScriptEngine::run() {
         return; // bail early - avoid setting state in init(), as evaluate() will bail too
     }
 
+    scriptInfoMessage("Script Engine starting:" + getFilename());
+
     if (!_isInitialized) {
         init();
     }

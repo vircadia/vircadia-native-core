@@ -201,7 +201,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
             QObject::connect(quickItem, SIGNAL(windowClosed()), this, SLOT(desktopWindowClosed()));
 
-            QObject::connect(tabletRootWindow, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
+            QObject::connect(tabletRootWindow, SIGNAL(webEventReceived(QVariant)), this, SLOT(emitWebEvent(QVariant)), Qt::DirectConnection);
 
             // forward qml surface events to interface js
             connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
@@ -271,12 +271,17 @@ bool TabletProxy::isMessageDialogOpen() {
     return false;
 }
 
+void TabletProxy::emitWebEvent(QVariant msg) {
+    emit webEventReceived(msg);
+}
+
 void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     std::lock_guard<std::mutex> guard(_mutex);
     _qmlOffscreenSurface = qmlOffscreenSurface;
     _qmlTabletRoot = qmlTabletRoot;
     if (_qmlTabletRoot && _qmlOffscreenSurface) {
-        QObject::connect(_qmlOffscreenSurface, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
+
+        QObject::connect(_qmlOffscreenSurface, SIGNAL(webEventReceived(QVariant)), this, SLOT(emitWebEvent(QVariant)), Qt::DirectConnection);
 
         // forward qml surface events to interface js
         connect(dynamic_cast<OffscreenQmlSurface*>(_qmlOffscreenSurface), &OffscreenQmlSurface::fromQml, [this](QVariant message) {
@@ -398,7 +403,7 @@ void TabletProxy::popFromStack() {
         auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
         if (stack) {
             QMetaObject::invokeMethod(stack, "popSource");
-        } else { 
+        } else {
             qCDebug(scriptengine) << "tablet cannot pop QML because _desktopWindow doesn't have child stack";
         }
     } else {
@@ -705,4 +710,3 @@ void TabletButtonProxy::editProperties(QVariantMap properties) {
 }
 
 #include "TabletScriptingInterface.moc"
-

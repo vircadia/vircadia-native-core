@@ -63,7 +63,7 @@ signals:
      * @returns {Signal}
      */
     void tabletNotification();
-    
+
 private:
     void processMenuEvents(QObject* object, const QKeyEvent* event);
     void processTabletEvents(QObject* object, const QKeyEvent* event);
@@ -209,6 +209,7 @@ signals:
 protected slots:
     void addButtonsToHomeScreen();
     void desktopWindowClosed();
+    void emitWebEvent(QVariant msg);
 protected:
     void removeButtonsFromHomeScreen();
     void loadHomeScreen(bool forceOntoHomeScreen);
@@ -216,7 +217,7 @@ protected:
     void removeButtonsFromToolbar();
 
     bool _initialScreen { false };
-    QVariant _initialPath { "" }; 
+    QVariant _initialPath { "" };
     QString _name;
     std::mutex _mutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;

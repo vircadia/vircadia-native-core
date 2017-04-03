@@ -271,6 +271,13 @@
     }
 
     Script.scriptEnding.connect(function () {
+
+        // if we reload scripts in tablet mode make sure we close the currently open window, by calling gotoHomeScreen
+        var tabletProxy = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        if (tabletProxy && tabletProxy.toolbarMode) {
+            tabletProxy.gotoHomeScreen();
+        }
+
         var tabletID = HMD.tabletID;
         Entities.deleteEntity(tabletID);
         Overlays.deleteOverlay(tabletID)
