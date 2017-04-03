@@ -102,16 +102,16 @@
         var success = Clipboard.importEntities(PHOTOBOOTH_SETUP_JSON_URL);
         var frontFactor = 10;
         // getForward is preffered as getFront function is deprecated
-        var frontUnitVec = (typeof Quat.getForward === "undefined") ? Vec3.normalize(Quat.getFront(MyAvatar.orientation)) : Vec3.normalize(Quat.getForward(MyAvatar.orientation));
+        var frontUnitVec = Vec3.normalize(Quat.getFront(MyAvatar.orientation));
         var frontOffset = Vec3.multiply(frontUnitVec,frontFactor);
-        var rightFactor = 3;
-        var rightUnitVec = Vec3.normalize(Quat.getRight(MyAvatar.orientation));
-        var rightOffset = Vec3.multiply(rightUnitVec,rightFactor);
-        var spawnLocation = Vec3.sum(Vec3.sum(MyAvatar.position,frontOffset),rightOffset);
+        var upFactor = 3;
+        var upUnitVec = Vec3.normalize(Quat.getUp(MyAvatar.orientation));
+        var upOffset = Vec3.multiply(upUnitVec, upFactor);
+        var spawnLocation = Vec3.sum(MyAvatar.position,frontOffset);
+        spawnLocation = Vec3.sum(spawnLocation, upOffset);
         if (success) {
             this.pastedEntityIDs = Clipboard.pasteEntities(spawnLocation);
             this.processPastedEntities();
-
         }
     };
 
