@@ -274,6 +274,11 @@ void Web3DOverlay::render(RenderArgs* args) {
         }
     }
 
+    if (_mayNeedResize) {
+        _mayNeedResize = false;
+        _webSurface->resize(QSize(_resolution.x, _resolution.y));
+    }
+
     vec2 halfSize = getSize() / 2.0f;
     vec4 color(toGlm(getColor()), getAlpha());
 
@@ -532,6 +537,8 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
             _inputMode = Touch;
         }
     }
+
+    _mayNeedResize = true;
 }
 
 QVariant Web3DOverlay::getProperty(const QString& property) {

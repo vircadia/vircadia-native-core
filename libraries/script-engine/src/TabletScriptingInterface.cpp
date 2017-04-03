@@ -662,7 +662,10 @@ const QString OBJECT_NAME_KEY = "objectName";
 const QString STABLE_ORDER_KEY = "stableOrder";
 static int s_stableOrder = 1;
 
-TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) : _uuid(QUuid::createUuid()), _stableOrder(++s_stableOrder), _properties(properties) {
+TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) :
+    _uuid(QUuid::createUuid()),
+    _stableOrder(++s_stableOrder),
+    _properties(properties) {
     // this is used to uniquely identify this button.
     _properties[UUID_KEY] = _uuid;
     _properties[OBJECT_NAME_KEY] = _uuid.toString();
