@@ -152,9 +152,9 @@ void Head::simulate(float deltaTime, bool isMine) {
         }
 
         //  Update audio attack data for facial animation (eyebrows and mouth)
-        const float AUDIO_ATTACK_AVERAGING_RATE = 0.9f;
-        _audioAttack = AUDIO_ATTACK_AVERAGING_RATE * _audioAttack +
-            (1.0f - AUDIO_ATTACK_AVERAGING_RATE) * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
+        const float audioAttackAveragingRate = (10.0f - deltaTime * 90.0f) / 10.0f; // --> 0.9 at 90 Hz
+        _audioAttack = audioAttackAveragingRate * _audioAttack +
+            (1.0f - audioAttackAveragingRate) * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
         _lastLoudness = (_audioLoudness - _longTermAverageLoudness);
 
         const float BROW_LIFT_THRESHOLD = 100.0f;
@@ -238,8 +238,7 @@ void Head::calculateMouthShapes(float deltaTime) {
     const float JAW_OPEN_SCALE = 0.015f;
     const float JAW_OPEN_RATE = 0.9f;
     const float JAW_CLOSE_RATE = 0.90f;
-    const float TIMESTEP_CONSTANT = 0.0032f;
-    // const float USECS_IN_SIXTIETH_SEC = (1.0f / 60.0f) * USECS_PER_SECOND;
+    const float TIMESTEP_CONSTANT = 0.288f;
     const float MMMM_POWER = 0.10f;
     const float SMILE_POWER = 0.10f;
     const float FUNNEL_POWER = 0.35f;
@@ -262,12 +261,9 @@ void Head::calculateMouthShapes(float deltaTime) {
     // a cycle at differing speeds to create a continuous random blend of shapes.
 
     _mouthTime += sqrtf(_averageLoudness) * TIMESTEP_CONSTANT * deltaTime;
-    _mouth2 = (sinf(_mouthTime * MMMM_SPEED) + 1.0f) * MMMM_POWER *
-        glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN) * deltaTime;
-    _mouth3 = (sinf(_mouthTime * FUNNEL_SPEED) + 1.0f) * FUNNEL_POWER *
-        glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN) * deltaTime;
-    _mouth4 = (sinf(_mouthTime * SMILE_SPEED) + 1.0f) * SMILE_POWER *
-        glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN) * deltaTime;
+    _mouth2 = (sinf(_mouthTime * MMMM_SPEED) + 1.0f) * MMMM_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
+    _mouth3 = (sinf(_mouthTime * FUNNEL_SPEED) + 1.0f) * FUNNEL_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
+    _mouth4 = (sinf(_mouthTime * SMILE_SPEED) + 1.0f) * SMILE_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
 }
 
 void Head::applyEyelidOffset(glm::quat headOrientation) {
