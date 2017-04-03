@@ -4383,6 +4383,10 @@ void Application::update(float deltaTime) {
     auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
     myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
 
+    controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
+    controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
+    myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
+
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
 
