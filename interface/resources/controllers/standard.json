@@ -58,6 +58,9 @@
         { "from": "Standard.RT", "to": "Actions.RightHandClick" },
 
         { "from": "Standard.LeftHand", "to": "Actions.LeftHand" },
-        { "from": "Standard.RightHand", "to": "Actions.RightHand" }
+        { "from": "Standard.RightHand", "to": "Actions.RightHand" },
+
+        { "from": "Standard.LeftFoot", "to": "Actions.LeftFoot" },
+        { "from": "Standard.RightFoot", "to": "Actions.RightFoot" }
     ]
 }

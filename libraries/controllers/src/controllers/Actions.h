@@ -42,6 +42,8 @@ enum class Action {
 
     LEFT_HAND = NUM_COMBINED_AXES,
     RIGHT_HAND,
+    LEFT_FOOT,
+    RIGHT_FOOT,
 
     LEFT_HAND_CLICK,
     RIGHT_HAND_CLICK,
