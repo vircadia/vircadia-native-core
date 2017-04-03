@@ -56,7 +56,7 @@ Rectangle {
     ComboDialog {
         id: comboDialog;
         z: 999; // Force the ComboDialog on top of everything else
-        dialogWidth: parent.width - 100;
+        dialogWidth: parent.width - 50;
         dialogHeight: parent.height - 100;
     }
     function letterbox(headerGlyph, headerText, message) {
@@ -66,7 +66,13 @@ Rectangle {
         letterboxMessage.visible = true;
         letterboxMessage.popupRadius = 0;
     }
+    function popupComboDialogCallback(availability) {
+        GlobalServices.findableBy = availability;
+        UserActivityLogger.palAction("set_availability", availability);
+        print('Setting availability:', JSON.stringify(GlobalServices.findableBy));
+    }
     function popupComboDialog(dialogTitleText, optionTitleText, optionBodyText, optionValues) {
+        comboDialog.callbackFunction = popupComboDialogCallback;
         comboDialog.dialogTitleText = dialogTitleText;
         comboDialog.optionTitleText = optionTitleText;
         comboDialog.optionBodyText = optionBodyText;
@@ -961,29 +967,42 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignTop;
             }
-            /*Rectangle {
+            Rectangle {
+                property var availabilityStrings: ["Everyone", "Friends and Connections", "Friends Only", "Appear Offline"];
                 id: availabilityComboBox;
+                color: hifi.colors.textFieldLightBackground
                 // Anchors
                 anchors.top: parent.top;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 // Size
                 width: parent.width;
                 height: 40;
+                RalewayRegular {
+                    text: myData.userName === "Unknown user" ? "Login to Set" : availabilityStrings[GlobalServices.findableBy];
+                    anchors.fill: parent;
+                    anchors.leftMargin: 10;
+                    horizontalAlignment: Text.AlignLeft;
+                    size: 16;
+                }
                 MouseArea {
-                    anchors.fill: parent
+                    anchors.fill: parent;
+                    enabled: myData.userName ==! "Unknown user";
+                    hoverEnabled: true;
                     onClicked: {
-                        popupComboDialog("Set your list visibility",
-                        ["Everyone", "Friends and Connections", "Friends Only", "Appear Offline"],
-                        ["You will be invisible in everyone's 'People' list.\nAnyone will be able to jump to your location if the domain allows.",
+                        popupComboDialog("Set your availability:",
+                        availabilityComboBox.availabilityStrings,
+                        ["Your username will be visible in everyone's 'Nearby' list.\nAnyone will be able to jump to your location from within the 'Nearby' list.",
                         "You will be visible in the 'People' list only for those with whom you are connected or friends.\nThey will be able to jump to your location if the domain allows.",
                         "You will be visible in the 'People' list only for those with whom you are friends.\nThey will be able to jump to your location if the domain allows.",
-                        "You will not be visible in the 'People' list of any other users."],
+                        "You will not be visible in the 'People' list of any other users. Only domain admins will be able to see your username in the 'Nearby' list."],
                         ["all", "connections", "friends", "none"]);
                     }
+                    onEntered: availabilityComboBox.color = hifi.colors.lightGrayText;
+                    onExited: availabilityComboBox.color = hifi.colors.textFieldLightBackground;
                 }
-            }*/
+            }
             
-            HifiControlsUit.ComboBox {
+            /*HifiControlsUit.ComboBox {
                 function determineAvailabilityIndex() {
                     return ['all', 'connections', 'friends', 'none'].indexOf(GlobalServices.findableBy)
                     }
@@ -1007,7 +1026,7 @@ Rectangle {
                     UserActivityLogger.palAction("set_availability", availabilityComboBoxListItems.get(currentIndex).value);
                     print('Setting availability:', JSON.stringify(GlobalServices.findableBy));
                 }
-            }
+            }*/
         }
     }
 
