@@ -38,7 +38,7 @@ StackView {
         root.currentItem.focus = true;
         root.currentItem.forceActiveFocus();
         fillDestinations();
-        updateLocationText();
+        updateLocationText(false);
         root.parentChanged.connect(center);
         center();
     }
@@ -63,8 +63,8 @@ StackView {
             root.push(card);
             return;
         }
-        addressLine.text = targetString;
-        toggleOrGo(true);
+        location.text = targetString;
+        toggleOrGo(true, targetString);
         clearAddressLineTimer.start();
     }
  
@@ -539,7 +539,11 @@ StackView {
         }
     }
 
-    function toggleOrGo(fromSuggestions) {
+    function toggleOrGo(fromSuggestions, address) {
+        if (address !== undefined && address !== "") {
+            addressBarDialog.loadAddress(address, fromSuggestions)
+        }
+
         if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }
