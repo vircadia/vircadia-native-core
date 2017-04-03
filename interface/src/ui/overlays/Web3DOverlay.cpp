@@ -363,6 +363,16 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     QEvent::Type touchType;
     Qt::TouchPointState touchPointState;
     QEvent::Type mouseType;
+
+    Qt::MouseButton button = Qt::NoButton;
+    Qt::MouseButtons buttons = Qt::NoButton;
+    if (event.getButton() == PointerEvent::PrimaryButton) {
+        button = Qt::LeftButton;
+    }
+    if (event.getButtons() & PointerEvent::PrimaryButton) {
+        buttons |= Qt::LeftButton;
+    }
+
     switch (event.getType()) {
         case PointerEvent::Press:
             touchType = QEvent::TouchBegin;
@@ -378,6 +388,26 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
             touchType = QEvent::TouchUpdate;
             touchPointState = Qt::TouchPointMoved;
             mouseType = QEvent::MouseMove;
+
+            if (((event.getButtons() & PointerEvent::PrimaryButton) > 0) != this->_pressed) {
+                // Mouse was pressed/released while off the overlay; convert touch and mouse events to press/release to reflect
+                // current mouse/touch status.
+                this->_pressed = !this->_pressed;
+                if (this->_pressed) {
+                    touchType = QEvent::TouchBegin;
+                    touchPointState = Qt::TouchPointPressed;
+                    mouseType = QEvent::MouseButtonPress;
+
+                } else {
+                    touchType = QEvent::TouchEnd;
+                    touchPointState = Qt::TouchPointReleased;
+                    mouseType = QEvent::MouseButtonRelease;
+
+                }
+                button = Qt::LeftButton;
+                buttons |= Qt::LeftButton;
+            }
+
             break;
         default:
             return;
@@ -402,16 +432,6 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
     // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
     // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
-
-    Qt::MouseButtons buttons = Qt::NoButton;
-    if (event.getButtons() & PointerEvent::PrimaryButton) {
-        buttons |= Qt::LeftButton;
-    }
-
-    Qt::MouseButton button = Qt::NoButton;
-    if (event.getButton() == PointerEvent::PrimaryButton) {
-        button = Qt::LeftButton;
-    }
 
     QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
     QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
