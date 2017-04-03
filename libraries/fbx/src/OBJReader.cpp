@@ -465,7 +465,6 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 
 		QMap<QString, int> materialMeshIdMap;
 		QVector<FBXMeshPart> fbxMeshParts;
-		int meshPartCount = 0;
 		for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
 			FBXMeshPart& meshPart = mesh.parts[i];
 			FaceGroup faceGroup = faceGroups[meshPartCount];
