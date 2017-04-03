@@ -71,6 +71,7 @@ void Head::reset() {
 }
 
 void Head::simulate(float deltaTime, bool isMine) {
+    const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
 
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
@@ -80,8 +81,7 @@ void Head::simulate(float deltaTime, bool isMine) {
     if (_longTermAverageLoudness == -1.0f) {
         _longTermAverageLoudness = _averageLoudness;
     } else {
-        _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness,
-                                            glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
+        _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
 
     if (isMine) {
@@ -152,7 +152,7 @@ void Head::simulate(float deltaTime, bool isMine) {
         }
 
         //  Update audio attack data for facial animation (eyebrows and mouth)
-        const float audioAttackAveragingRate = (10.0f - deltaTime * 90.0f) / 10.0f; // --> 0.9 at 90 Hz
+        float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
         _audioAttack = audioAttackAveragingRate * _audioAttack +
             (1.0f - audioAttackAveragingRate) * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
         _lastLoudness = (_audioLoudness - _longTermAverageLoudness);
@@ -172,9 +172,8 @@ void Head::simulate(float deltaTime, bool isMine) {
             // no blinking when brows are raised; blink less with increasing loudness
             const float BASE_BLINK_RATE = 15.0f / 60.0f;
             const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
-            if (forceBlink ||
-                (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
-                                                               ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
+            if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
+                    ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
                 _leftEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
                 _rightEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
                 if (randFloat() < 0.5f) {
@@ -238,7 +237,7 @@ void Head::calculateMouthShapes(float deltaTime) {
     const float JAW_OPEN_SCALE = 0.015f;
     const float JAW_OPEN_RATE = 0.9f;
     const float JAW_CLOSE_RATE = 0.90f;
-    const float TIMESTEP_CONSTANT = 0.288f;
+    const float TIMESTEP_CONSTANT = 0.0032f;
     const float MMMM_POWER = 0.10f;
     const float SMILE_POWER = 0.10f;
     const float FUNNEL_POWER = 0.35f;
@@ -246,21 +245,24 @@ void Head::calculateMouthShapes(float deltaTime) {
     const float SMILE_SPEED = 1.0f;
     const float FUNNEL_SPEED = 2.335f;
     const float STOP_GAIN = 5.0f;
+    const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
+
+    float deltaTimeRatio = deltaTime / (1.0f / NORMAL_HZ);
 
     // From the change in loudness, decide how much to open or close the jaw
     float audioDelta = sqrtf(glm::max(_averageLoudness - _longTermAverageLoudness, 0.0f)) * JAW_OPEN_SCALE;
     if (audioDelta > _audioJawOpen) {
-        _audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE * deltaTime;
+        _audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE * deltaTimeRatio;
     } else {
-        _audioJawOpen *= JAW_CLOSE_RATE * deltaTime;
+        _audioJawOpen *= powf(JAW_CLOSE_RATE, deltaTimeRatio);
     }
     _audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
-    _trailingAudioJawOpen = glm::mix(_trailingAudioJawOpen, _audioJawOpen, 0.99f);
+    float trailingAudioJawOpenRatio = (100.0f - deltaTime * NORMAL_HZ) / 100.0f; // --> 0.99 at 60 Hz
+    _trailingAudioJawOpen = glm::mix(_trailingAudioJawOpen, _audioJawOpen, trailingAudioJawOpenRatio);
 
     // Advance time at a rate proportional to loudness, and move the mouth shapes through
     // a cycle at differing speeds to create a continuous random blend of shapes.
-
-    _mouthTime += sqrtf(_averageLoudness) * TIMESTEP_CONSTANT * deltaTime;
+    _mouthTime += sqrtf(_averageLoudness) * TIMESTEP_CONSTANT * deltaTimeRatio;
     _mouth2 = (sinf(_mouthTime * MMMM_SPEED) + 1.0f) * MMMM_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
     _mouth3 = (sinf(_mouthTime * FUNNEL_SPEED) + 1.0f) * FUNNEL_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
     _mouth4 = (sinf(_mouthTime * SMILE_SPEED) + 1.0f) * SMILE_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);

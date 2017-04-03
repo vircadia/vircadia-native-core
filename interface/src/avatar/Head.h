@@ -114,8 +114,6 @@ private:
     float _mouth2;
     float _mouth3;
     float _mouth4;
-
-    quint64 _calculateMouthShapesTime { 0 };
     float _mouthTime;
 
     glm::vec3 _saccade;
