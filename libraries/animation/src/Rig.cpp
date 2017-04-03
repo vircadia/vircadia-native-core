@@ -1146,9 +1146,8 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
     }
 }
 
-void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
+void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, float dt) {
     if (_animSkeleton && _animNode) {
-
         const float HAND_RADIUS = 0.05f;
         int hipsIndex = indexOfJoint("Hips");
         glm::vec3 hipsTrans;
@@ -1197,6 +1196,27 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             _animVars.unset("rightHandRotation");
             _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
+
+        if (params.isLeftFootEnabled) {
+            _animVars.set("leftFootPosition", params.leftFootPosition);
+            _animVars.set("leftFootRotation", params.leftFootOrientation);
+            _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+        } else {
+            _animVars.unset("leftFootPosition");
+            _animVars.unset("leftFootRotation");
+            _animVars.set("leftFootType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+        }
+
+        if (params.isRightFootEnabled) {
+            _animVars.set("rightFootPosition", params.rightFootPosition);
+            _animVars.set("rightFootRotation", params.rightFootOrientation);
+            _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
+        } else {
+            _animVars.unset("rightFootPosition");
+            _animVars.unset("rightFootRotation");
+            _animVars.set("rightFootType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+        }
+
     }
 }
 

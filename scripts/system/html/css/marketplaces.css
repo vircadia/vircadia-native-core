@@ -5,6 +5,93 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
+
+/*
+    CSS  rules copied from edit-style.css.
+    Edit-style.css is not used in its entirety because don't want custom scrollbars; default scrollbar styling is used in order
+    to match other marketplace pages.
+*/
+
+@font-face {
+    font-family: Raleway-Regular;
+    src: url(../../../../resources/fonts/Raleway-Regular.ttf),  /* Windows production */
+         url(../../../../fonts/Raleway-Regular.ttf),  /* OSX production */
+         url(../../../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development, running script in /HiFi/examples */
+}
+
+@font-face {
+    font-family: Raleway-Bold;
+    src: url(../../../../resources/fonts/Raleway-Bold.ttf),
+         url(../../../../fonts/Raleway-Bold.ttf),
+         url(../../../../interface/resources/fonts/Raleway-Bold.ttf);
+}
+
+@font-face {
+    font-family: Raleway-SemiBold;
+    src: url(../../../../resources/fonts/Raleway-SemiBold.ttf),
+         url(../../../../fonts/Raleway-SemiBold.ttf),
+         url(../../../../interface/resources/fonts/Raleway-SemiBold.ttf);
+}
+
+@font-face {
+    font-family: FiraSans-SemiBold;
+    src: url(../../../../resources/fonts/FiraSans-SemiBold.ttf),
+         url(../../../../fonts/FiraSans-SemiBold.ttf),
+         url(../../../../interface/resources/fonts/FiraSans-SemiBold.ttf);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    padding: 21px 21px 21px 21px;
+
+    color: #afafaf;
+    background-color: #404040;
+    font-family: Raleway-Regular;
+    font-size: 15px;
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+input[type=button] {
+    font-family: Raleway-Bold;
+    font-size: 13px;
+    text-transform: uppercase;
+    vertical-align: top;
+    height: 28px;
+    min-width: 120px;
+    padding: 0px 18px;
+    margin-right: 6px;
+    border-radius: 5px;
+    border: none;
+    color: #fff;
+    background-color: #000;
+    background: linear-gradient(#343434 20%, #000 100%);
+    cursor: pointer;
+}
+
+input[type=button].blue {
+    color: #fff;
+    background-color: #1080b8;
+    background: linear-gradient(#00b4ef 20%, #1080b8 100%);
+}
+
+
+/*
+    Marketplaces-specific CSS.
+*/
+
 body {
     background: white;
     padding: 0 0 0 0;

@@ -220,8 +220,6 @@ public:
     void setDesktopTabletBecomesToolbarSetting(bool value);
     bool getHmdTabletBecomesToolbarSetting() { return _hmdTabletBecomesToolbarSetting.get(); }
     void setHmdTabletBecomesToolbarSetting(bool value);
-    bool getTabletVisibleToOthersSetting() { return _tabletVisibleToOthersSetting.get(); }
-    void setTabletVisibleToOthersSetting(bool value);
     bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
     void setPreferAvatarFingerOverStylus(bool value);
 
@@ -569,7 +567,6 @@ private:
     Setting::Handle<float> _desktopTabletScale;
     Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
-    Setting::Handle<bool> _tabletVisibleToOthersSetting;
     Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
 

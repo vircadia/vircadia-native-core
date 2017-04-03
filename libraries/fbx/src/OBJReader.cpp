@@ -294,7 +294,7 @@ QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
     QObject::connect(netReply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec();                    // Nothing is going to happen on this whole run thread until we get this
     static const int WAIT_TIMEOUT_MS = 500;
-    while (qApp && !aboutToQuit && !netReply->isReadable()) {
+    while (!aboutToQuit && qApp && !netReply->isReadable()) {
         netReply->waitForReadyRead(WAIT_TIMEOUT_MS); // so we might as well block this thread waiting for the response, rather than
     }
     QObject::disconnect(connection);

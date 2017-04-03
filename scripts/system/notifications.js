@@ -95,12 +95,14 @@ var NotificationType = {
     CONNECTION_REFUSED: 3,
     EDIT_ERROR: 4,
     TABLET: 5,
+    CONNECTION: 6,
     properties: [
         { text: "Snapshot" },
         { text: "Level of Detail" },
         { text: "Connection Refused" },
         { text: "Edit error" },
-        { text: "Tablet" }
+        { text: "Tablet" },
+        { text: "Connection" }
     ],
     getTypeFromMenuItem: function(menuItemName) {
         if (menuItemName.substr(menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length) !== NOTIFICATION_MENU_ITEM_POST) {
@@ -545,6 +547,14 @@ function processingGif() {
     createNotification("Processing GIF snapshot...", NotificationType.SNAPSHOT);
 }
 
+function connectionAdded(connectionName) {
+    createNotification(connectionName, NotificationType.CONNECTION);
+}
+
+function connectionError(error) {
+    createNotification(wordWrap("Error trying to make connection: " + error), NotificationType.CONNECTION);
+}
+
 //  handles mouse clicks on buttons
 function mousePressEvent(event) {
     var pickRay,
@@ -645,6 +655,8 @@ Menu.menuItemEvent.connect(menuItemEvent);
 Window.domainConnectionRefused.connect(onDomainConnectionRefused);
 Window.snapshotTaken.connect(onSnapshotTaken);
 Window.processingGif.connect(processingGif);
+Window.connectionAdded.connect(connectionAdded);
+Window.connectionError.connect(connectionError);
 Window.notifyEditError = onEditError;
 Window.notify = onNotify;
 Tablet.tabletNotification.connect(tabletNotification);

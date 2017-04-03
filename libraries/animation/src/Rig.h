@@ -60,7 +60,7 @@ public:
         int rightEyeJointIndex = -1;
     };
 
-    struct HandParameters {
+    struct HandAndFeetParameters {
         bool isLeftEnabled;
         bool isRightEnabled;
         float bodyCapsuleRadius;
@@ -70,6 +70,13 @@ public:
         glm::quat leftOrientation = glm::quat();  // rig space (z forward)
         glm::vec3 rightPosition = glm::vec3();    // rig space
         glm::quat rightOrientation = glm::quat(); // rig space (z forward)
+
+        bool isLeftFootEnabled;
+        bool isRightFootEnabled;
+        glm::vec3 leftFootPosition = glm::vec3();     // rig space
+        glm::quat leftFootOrientation = glm::quat();  // rig space (z forward)
+        glm::vec3 rightFootPosition = glm::vec3();    // rig space
+        glm::quat rightFootOrientation = glm::quat(); // rig space (z forward)
     };
 
     enum class CharacterControllerState {
@@ -185,7 +192,7 @@ public:
 
     void updateFromHeadParameters(const HeadParameters& params, float dt);
     void updateFromEyeParameters(const EyeParameters& params);
-    void updateFromHandParameters(const HandParameters& params, float dt);
+    void updateFromHandAndFeetParameters(const HandAndFeetParameters& params, float dt);
 
     void initAnimGraph(const QUrl& url);
 
