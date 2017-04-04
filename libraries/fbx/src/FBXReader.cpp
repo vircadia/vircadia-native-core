@@ -443,6 +443,43 @@ FBXLight extractLight(const FBXNode& object) {
     return light;
 }
 
+QByteArray fixedTextureFilepath(QByteArray fbxRelativeFilepath, const QString& urlString) {
+    // first setup a QFileInfo for the passed relative filepath
+    auto fileInfo = QFileInfo { fbxRelativeFilepath };
+
+    if (fileInfo.isRelative()) {
+        // the RelativeFilename pulled from the FBX is already correctly relative
+        // so simply return this as the filepath to use
+        return fbxRelativeFilepath;
+    } else {
+        // the RelativeFilename pulled from the FBX is an absolute path
+
+        // use the URL to figure out where the FBX is being loaded from
+        auto url = QUrl { urlString };
+        auto filename = fileInfo.fileName();
+
+        if (url.scheme() == "file") {
+            // the FBX is being loaded from the local filesystem
+
+            // in order to match the behaviour with a local FBX, first check if a file with this filename
+            // is right beside the FBX
+            QFileInfo fileBesideFBX { QFileInfo(urlString).path() + "/" + filename };
+
+            if (fileBesideFBX.exists() && fileBesideFBX.isFile()) {
+                // we found a file that matches right beside the FBX, return just the filename as the relative path
+                return filename.toUtf8();
+            } else {
+                // did not find a matching file beside the FBX, return the absolute path found in the FBX
+                return fbxRelativeFilepath;
+            }
+        } else {
+            // this is a remote file, meaning we can't really do anything with the absolute path to the texture
+            // so assume it will be right beside the fbx
+            return filename.toUtf8();
+        }
+    }
+}
+
 FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
     const FBXNode& node = _fbxNode;
     QMap<QString, ExtractedMesh> meshes;
@@ -819,8 +856,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         const int MODEL_UV_SCALING_MIN_SIZE = 2;
                         const int CROPPING_MIN_SIZE = 4;
                         if (subobject.name == "RelativeFilename" && subobject.properties.length() >= RELATIVE_FILENAME_MIN_SIZE) {
-                            QByteArray filepath = subobject.properties.at(0).toByteArray();
-                            filepath = filepath.replace('\\', '/');
+                            auto filepath = fixedTextureFilepath(subobject.properties.at(0).toByteArray(), url);
                             
                             _textureFilepaths.insert(getID(object.properties), filepath);
                         } else if (subobject.name == "TextureName" && subobject.properties.length() >= TEXTURE_NAME_MIN_SIZE) {
