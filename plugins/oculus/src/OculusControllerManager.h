@@ -11,6 +11,7 @@
 
 #include <QObject>
 #include <unordered_set>
+#include <map>
 
 #include <GLMHelpers.h>
 
@@ -75,6 +76,7 @@ private:
     private:
         void stopHapticPulse(bool leftHand);
         void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, const ovrPoseStatef& handPose);
+        void handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, const ovrPoseStatef& handPose);
         int _trackedControllers { 0 };
 
         // perform an action when the TouchDevice mutex is acquired.
@@ -87,6 +89,9 @@ private:
         float _rightHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
         mutable std::recursive_mutex _lock;
+        std::map<int, bool> _lostTracking;
+        std::map<int, quint64> _regainTrackingDeadline;
+        std::map<int, ovrPoseStatef> _lastControllerPose;
 
         friend class OculusControllerManager;
     };
