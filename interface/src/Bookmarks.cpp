@@ -136,7 +136,6 @@ int Bookmarks::getMenuItemLocation(QList<QAction*> actions, const QString& name)
         if (name.toLower().localeAwareCompare(action->text().toLower()) < 0) {
             menuItemLocation = actions.indexOf(action);
             break;
-
         }
     }
     return menuItemLocation;

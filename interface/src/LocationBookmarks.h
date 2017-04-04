@@ -12,10 +12,12 @@
 #ifndef hifi_LocationBookmarks_h
 #define hifi_LocationBookmarks_h
 
+#include <DependencyManager.h>
 #include "Bookmarks.h"
 
-class LocationBookmarks: public Bookmarks {
+class LocationBookmarks : public Bookmarks, public  Dependency  {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
 
 public:
     LocationBookmarks();

@@ -82,6 +82,7 @@
 #include <controllers/StateController.h>
 #include <UserActivityLoggerScriptingInterface.h>
 #include <LogHandler.h>
+#include "LocationBookmarks.h"
 #include <MainWindow.h>
 #include <MappingRequest.h>
 #include <MessagesClient.h>
@@ -524,6 +525,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<EntityScriptServerLogClient>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
+    DependencyManager::set<LocationBookmarks>();
     return previousSessionCrashed;
 }
 
@@ -697,9 +699,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         updateHeartbeat();
         usleep(USECS_PER_MSEC * 50); // 20hz
     }
-
-    _locationBookmarks = new LocationBookmarks();  // Before setting up the menu
-    _avatarBookmarks = new AvatarBookmarks();
 
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
@@ -2003,6 +2002,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     rootContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
+    rootContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -5485,6 +5485,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
     scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
+    scriptEngine->registerGlobalObject("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
