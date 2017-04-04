@@ -10,7 +10,6 @@
 //
 
 #include "HFWebEngineRequestInterceptor.h"
-#include "NetworkingConstants.h"
 
 #include <QtCore/QDebug>
 

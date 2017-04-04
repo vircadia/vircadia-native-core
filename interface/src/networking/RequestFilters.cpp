@@ -10,6 +10,7 @@
 //
 
 #include "RequestFilters.h"
+#include "NetworkingConstants.h"
 
 #include <QtCore/QDebug>
 
@@ -17,14 +18,17 @@
 
 namespace {
 
-     bool isAuthableHighFidelityURL(const QUrl& url) {
-         static const QStringList HF_HOSTS = {
-             "highfidelity.com", "highfidelity.io",
-             "metaverse.highfidelity.com", "metaverse.highfidelity.io"
-         };
+    bool isAuthableHighFidelityURL(const QUrl& url) {
+        static const QStringList HF_HOSTS = {
+            "highfidelity.com", "highfidelity.io",
+            "metaverse.highfidelity.com", "metaverse.highfidelity.io"
+        };
+        const auto& scheme = url.scheme();
+        const auto& host = url.host();
 
-         return url.scheme() == "https" && HF_HOSTS.contains(url.host());
-     }
+        return (scheme == "https" && HF_HOSTS.contains(host)) ||
+            ((scheme == NetworkingConstants::METAVERSE_SERVER_URL.scheme()) && (host == NetworkingConstants::METAVERSE_SERVER_URL.host()));
+    }
 
      bool isScript(const QString filename) {
          return filename.contains(".js", Qt::CaseInsensitive);
