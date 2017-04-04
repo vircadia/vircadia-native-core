@@ -208,36 +208,39 @@ const QImage& image, bool isLinear, bool doCompress) {
 }
 
 #define CPU_MIPMAPS 1
+#define DEBUG_NVTT 0
 
 void generateMips(gpu::Texture* texture, QImage& image, bool fastResize) {
 #if CPU_MIPMAPS
     PROFILE_RANGE(resource_parse, "generateMips");
+#if DEBUG_NVTT
+    QDebug debug = qDebug();
+    
+    debug << Q_FUNC_INFO << "\n";
+    debug << (QList<int>() << image.byteCount() << image.width() << image.height() << image.depth()) << "\n";
+#endif // DEBUG_NVTT
+
     auto numMips = texture->getNumMips();
     for (uint16 level = 1; level < numMips; ++level) {
         QSize mipSize(texture->evalMipWidth(level), texture->evalMipHeight(level));
         if (fastResize) {
             image = image.scaled(mipSize);
+
+#if DEBUG_NVTT
+            debug << "Begin fast { " << image.byteCount() << image.width() << image.height() << image.depth() << level << " } Ends\n";
+#endif // DEBUG_NVTT
+
             texture->assignStoredMip(level, image.byteCount(), image.constBits());
         } else {
             QImage mipImage = image.scaled(mipSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+
+#if DEBUG_NVTT
+            debug << "Begin { " << mipImage.byteCount() << mipImage.width() << mipImage.height() << mipImage.depth() << level << " } Ends\n";
+#endif // DEBUG_NVTT
+           
             texture->assignStoredMip(level, mipImage.byteCount(), mipImage.constBits());
         }
     }
-
-    int w = 0, h = 0;
-    void* data = 0;
-    nvtt::InputOptions inputOptions;
-    inputOptions.setTextureLayout(nvtt::TextureType_2D, w, h);
-    inputOptions.setMipmapData(data, w, h);
-
-    nvtt::OutputOptions outputOptions;
-    outputOptions.setFileName("output.dds");
-
-    nvtt::CompressionOptions compressionOptions;
-    compressionOptions.setFormat(nvtt::Format_DXT1);
-
-    nvtt::Compressor compressor;
-    //compressor.process(inputOptions, compressionOptions, outputOptions);
 #else
     texture->autoGenerateMips(-1);
 #endif
@@ -252,6 +255,125 @@ void generateFaceMips(gpu::Texture* texture, QImage& image, uint8 face) {
         QImage mipImage = image.scaled(mipSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         texture->assignStoredMipFace(level, face, mipImage.byteCount(), mipImage.constBits());
     }
+#else
+    texture->autoGenerateMips(-1);
+#endif
+}
+
+struct MyOutputHandler : public nvtt::OutputHandler {
+    MyOutputHandler(gpu::Texture* texture, QDebug* debug) :
+#if DEBUG_NVTT
+        _debug(debug),
+#endif // DEBUG_NVTT
+        _texture(texture) {
+
+    }
+
+    virtual void beginImage(int size, int width, int height, int depth, int face, int miplevel) {
+#if DEBUG_NVTT
+        auto list = QStringList() << QString::number(size)
+            << QString::number(width)
+            << QString::number(height)
+            << QString::number(depth)
+            << QString::number(face)
+            << QString::number(miplevel);
+        _count = 0;
+        _str = "Begin { " + list.join(", ");
+#endif // DEBUG_NVTT
+
+        _size = size;
+        _miplevel = miplevel;
+
+        _data = static_cast<gpu::Byte*>(malloc(size));
+        _current = _data;
+    }
+    virtual bool writeData(const void* data, int size) {
+#if DEBUG_NVTT
+        ++_count;
+#endif // DEBUG_NVTT
+
+        assert(_current + size <= _data + _size);
+        memcpy(_current, data, size);
+        _current += size;
+        return true;
+    }
+    virtual void endImage() {
+#if DEBUG_NVTT
+        _str += " } End " + QString::number(_count) + "\n";
+        *_debug << qPrintable(_str);
+#endif // DEBUG_NVTT
+
+        _texture->assignStoredMip(_miplevel, _size, static_cast<const gpu::Byte*>(_data));
+        free(_data);
+        _data = nullptr;
+    }
+
+#if DEBUG_NVTT
+    int _count = 0;
+    QString _str;
+    QDebug* _debug{ nullptr };
+#endif // DEBUG_NVTT
+    gpu::Byte* _data{ nullptr };
+    gpu::Byte* _current{ nullptr };
+    gpu::Texture* _texture{ nullptr };
+    int _miplevel = 0;
+    int _size = 0;
+};
+struct MyErrorHandler : public nvtt::ErrorHandler {
+    virtual void error(nvtt::Error e) override {
+        qDebug() << "Texture compression error:" << nvtt::errorString(e);
+    }
+};
+
+void generateNVTTMips(gpu::Texture* texture, QImage& image, nvtt::InputFormat inputFormat, nvtt::Format compressionFormat) {
+#if CPU_MIPMAPS
+    PROFILE_RANGE(resource_parse, "generateMips");
+
+    /*/
+    generateMips(texture, image, false);
+    return;
+    /**/
+
+#if DEBUG_NVTT
+    QDebug debug = qDebug();
+    QDebug* debugPtr = &debug;
+
+    debug << Q_FUNC_INFO << "\n";
+    debug << (QList<int>() << image.byteCount() << image.width() << image.height() << image.depth()) << "\n";
+#else
+    QDebug* debugPtr = nullptr;
+#endif // DEBUG_NVTT
+
+    const int w = image.width(), h = image.height();
+    const void* data = static_cast<const void*>(image.constBits());
+
+    nvtt::InputOptions inputOptions;
+    inputOptions.setTextureLayout(nvtt::TextureType_2D, w, h);
+    inputOptions.setMipmapData(data, w, h);
+
+    inputOptions.setFormat(inputFormat);
+    // inputOptions.setAlphaMode(AlphaMode alphaMode);
+    // inputOptions.setGamma(float inputGamma, float outputGamma);
+    // inputOptions.setWrapMode(WrapMode mode);
+    // inputOptions.setMaxExtents(int d);
+    // inputOptions.setRoundMode(RoundMode mode);
+
+    inputOptions.setMipmapGeneration(true);
+    inputOptions.setMipmapFilter(nvtt::MipmapFilter_Box);
+
+    nvtt::OutputOptions outputOptions;
+    outputOptions.setOutputHeader(false);
+    MyOutputHandler outputHandler(texture, debugPtr);
+    outputOptions.setOutputHandler(&outputHandler);
+    MyErrorHandler errorHandler;
+    outputOptions.setErrorHandler(&errorHandler);
+
+    nvtt::CompressionOptions compressionOptions;
+    compressionOptions.setFormat(compressionFormat);
+    compressionOptions.setQuality(nvtt::Quality_Fastest);
+
+    nvtt::Compressor compressor;
+    compressor.process(inputOptions, compressionOptions, outputOptions);
 #else
     texture->autoGenerateMips(-1);
 #endif
@@ -288,7 +410,7 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
 
         if (generateMips) {
-            ::generateMips(theTexture, image, false);
+            ::generateNVTTMips(theTexture, image, nvtt::InputFormat_BGRA_8UB, nvtt::Format_RGBA);
         }
         theTexture->setSource(srcImageName);
     }
