@@ -323,7 +323,7 @@
     function howToExitTutorial() {
         HMD.requestShowHandControllers();
         setControllerPartLayer('button_b', 'highlight');
-        Window.alert(HOW_TO_EXIT_MESSAGE);
+        messageWindow = Window.alert(HOW_TO_EXIT_MESSAGE);
         setControllerPartLayer('button_b', 'blank');
         HMD.requestHideHandControllers();
         Settings.setValue("FingerPaintTutorialComplete", true);
