@@ -526,6 +526,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
+
     return previousSessionCrashed;
 }
 
