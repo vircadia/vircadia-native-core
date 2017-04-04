@@ -612,7 +612,7 @@ Rectangle {
                                      "Bold names in the list are <b>avatar display names</b>.<br>" +
                                      "<font color='purple'>Purple borders around profile pictures are <b>connections</b></font>.<br>" +
                                      "<font color='green'>Green borders around profile pictures are <b>friends</b>.</font><br>" +
-                                     "In some situations, you can also see others' usernames.<br>" +
+                                     "Others can find you and see your username according to your <b>availability</b> settings.<br>" +
                                      "If you can see someone's username, you can GoTo them by selecting them in the PAL, then clicking their name.<br>" +
                                      "<br>If someone's display name isn't set, a unique <b>session display name</b> is assigned to them.<br>" +
                                      "<br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.");
@@ -961,11 +961,11 @@ Rectangle {
                 size: hifi.fontSizes.tabularData;
                 // Anchors
                 anchors.top: myCard.top;
-                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.left: parent.left;
                 // Style
                 color: hifi.colors.baseGrayHighlight;
                 // Alignment
-                horizontalAlignment: Text.AlignHCenter;
+                horizontalAlignment: Text.AlignLeft;
                 verticalAlignment: Text.AlignTop;
             }
             Rectangle {
@@ -1000,9 +1000,9 @@ Rectangle {
                         popupComboDialog("Set your availability:",
                         availabilityComboBox.availabilityStrings,
                         ["Your username will be visible in everyone's 'Nearby' list.\nAnyone will be able to jump to your location from within the 'Nearby' list.",
-                        "You will be visible in the 'People' list only for those with whom you are connected or friends.\nThey will be able to jump to your location if the domain allows.",
-                        "You will be visible in the 'People' list only for those with whom you are friends.\nThey will be able to jump to your location if the domain allows.",
-                        "You will not be visible in the 'People' list of any other users. Only domain admins will be able to see your username in the 'Nearby' list."],
+                        "You will be visible in the 'Connections' list only for those with whom you are connected or friends.\nThey will be able to jump to your location if the domain allows.",
+                        "You will be visible in the 'Connections' list only for those with whom you are friends.\nThey will be able to jump to your location if the domain allows.",
+                        "You will not be visible in the 'Connections' list of any other users. Only domain admins will be able to see your username in the 'Nearby' list."],
                         ["all", "connections", "friends", "none"]);
                     }
                     onEntered: availabilityComboBox.color = hifi.colors.lightGrayText;

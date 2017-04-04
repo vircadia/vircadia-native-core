@@ -68,9 +68,9 @@ Original.CheckBox {
                 height: checkSize
                 radius: checkRadius
                 anchors.centerIn: parent
-                color: isRedCheck ? "#FF0000" : hifi.colors.checkboxChecked
+                color: isRedCheck ? hifi.colors.checkboxCheckedRed : hifi.colors.checkboxChecked
                 border.width: 2
-                border.color: isRedCheck? "#D00000" : hifi.colors.checkboxCheckedBorder
+                border.color: isRedCheck? hifi.colors.checkboxCheckedBorderRed : hifi.colors.checkboxCheckedBorder
                 visible: checked && !pressed || !checked && pressed
             }
 
