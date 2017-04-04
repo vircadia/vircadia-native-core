@@ -70,7 +70,7 @@ Item {
             worldId: WebEngineScript.MainWorld
         }
         
-        property string urlTag: "?noDownload=false";
+        property string urlTag: "noDownload=false";
 
         userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
@@ -98,7 +98,8 @@ Item {
 
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-                var url = loadRequest.url.toString() + urlTag;
+                var url = loadRequest.url.toString();
+                url = (url.indexOf("?") >= 0) ? url + urlTag : url + "?" + urlTag;
                 if (urlHandler.canHandleUrl(url)) {
                     if (urlHandler.handleUrl(url)) {
                         root.stop();

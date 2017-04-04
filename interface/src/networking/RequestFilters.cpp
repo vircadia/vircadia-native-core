@@ -31,7 +31,11 @@ namespace {
     }
 
      bool isScript(const QString filename) {
-         return filename.contains(".js", Qt::CaseInsensitive);
+         return filename.endsWith(".js", Qt::CaseInsensitive);
+     }
+
+     bool isJSON(const QString filename) {
+        return filename.endsWith(".json", Qt::CaseInsensitive);
      }
 
 }
@@ -53,7 +57,7 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info)
 
 void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info) {
     QString filename = info.requestUrl().fileName();
-    if (isScript(filename)) {
+    if (isScript(filename) || isJSON(filename)) {
         static const QString CONTENT_HEADER = "Accept";
         static const QString TYPE_VALUE = "text/plain,text/html";
         info.setHttpHeader(CONTENT_HEADER.toLocal8Bit(), TYPE_VALUE.toLocal8Bit());

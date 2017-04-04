@@ -219,7 +219,7 @@ static const QString FST_EXTENSION  = ".fst";
 static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
-static const QString WEB_VIEW_TAG = "?noDownload=true";
+static const QString WEB_VIEW_TAG = "noDownload=true";
 
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
@@ -2608,7 +2608,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
 
         QUrl url = fileEvent->url();
-                
+
         if (!url.isEmpty()) {
             QString urlString = url.toString();
 
@@ -5548,7 +5548,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
 bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
-    if (urlString.endsWith(WEB_VIEW_TAG)) {
+    if (url.query().contains(WEB_VIEW_TAG)) {
         return false;
     } else if (urlString.startsWith(HIFI_URL_SCHEME)) {
         return true;
@@ -5658,7 +5658,9 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     QUrl scriptURL { scriptFilenameOrURL };
 
     if (scriptURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
-        shortName = shortName.mid(shortName.lastIndexOf('/') + 1);
+        int startIndex = shortName.lastIndexOf('/') + 1;
+        int endIndex = shortName.lastIndexOf('?');
+        shortName = shortName.mid(startIndex, endIndex - startIndex);
     }
 
     QString message = "Would you like to run this script:\n" + shortName;
