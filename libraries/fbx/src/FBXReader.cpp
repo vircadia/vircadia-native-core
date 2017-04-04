@@ -443,7 +443,7 @@ FBXLight extractLight(const FBXNode& object) {
     return light;
 }
 
-QByteArray fixedTextureFilepath(QByteArray fbxRelativeFilepath, const QString& urlString) {
+QByteArray fixedTextureFilepath(QByteArray fbxRelativeFilepath, QUrl url) {
     // first setup a QFileInfo for the passed relative filepath
     auto fileInfo = QFileInfo { fbxRelativeFilepath };
 
@@ -455,15 +455,14 @@ QByteArray fixedTextureFilepath(QByteArray fbxRelativeFilepath, const QString& u
         // the RelativeFilename pulled from the FBX is an absolute path
 
         // use the URL to figure out where the FBX is being loaded from
-        auto url = QUrl { urlString };
         auto filename = fileInfo.fileName();
 
-        if (url.scheme() == "file") {
+        if (url.isLocalFile()) {
             // the FBX is being loaded from the local filesystem
 
             // in order to match the behaviour with a local FBX, first check if a file with this filename
             // is right beside the FBX
-            QFileInfo fileBesideFBX { QFileInfo(urlString).path() + "/" + filename };
+            QFileInfo fileBesideFBX { QFileInfo(url.toLocalFile()).path() + "/" + filename };
 
             if (fileBesideFBX.exists() && fileBesideFBX.isFile()) {
                 // we found a file that matches right beside the FBX, return just the filename as the relative path
@@ -480,7 +479,7 @@ QByteArray fixedTextureFilepath(QByteArray fbxRelativeFilepath, const QString& u
     }
 }
 
-FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
+FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QUrl& url) {
     const FBXNode& node = _fbxNode;
     QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
@@ -1839,13 +1838,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     return geometryPtr;
 }
 
-FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QUrl& url, bool loadLightmaps, float lightmapLevel) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
     return readFBX(&buffer, mapping, url, loadLightmaps, lightmapLevel);
 }
 
-FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QUrl& url, bool loadLightmaps, float lightmapLevel) {
     FBXReader reader;
     reader._fbxNode = FBXReader::parseFBX(device);
     reader._loadLightmaps = loadLightmaps;
