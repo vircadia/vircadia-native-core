@@ -81,7 +81,7 @@ public:
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
-    bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
+    void addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
                             render::Transaction& transaction);
 
     void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
@@ -310,7 +310,6 @@ private:
     int _nameRectGeometryID { 0 };
     bool _initialized;
     bool _isLookAtTarget { false };
-    bool _inScene { false };
     bool _isAnimatingScale { false };
 
     float getBoundingRadius() const;

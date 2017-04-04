@@ -476,7 +476,7 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+void Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
     _renderItemID = scene->allocateID();
@@ -486,9 +486,6 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
     }
-
-    _inScene = true;
-    return true;
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
@@ -498,7 +495,6 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, transaction);
     }
-    _inScene = false;
 }
 
 void Avatar::updateRenderItem(render::Transaction& transaction) {
@@ -1435,7 +1431,7 @@ void Avatar::addToScene(AvatarSharedPointer myHandle) {
     }
 }
 void Avatar::ensureInScene(AvatarSharedPointer self) {
-    if (!_inScene) {
+    if (!render::Item::isValidID(_renderItemID)) {
         addToScene(self);
     }
 }
