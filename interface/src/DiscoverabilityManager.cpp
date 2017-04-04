@@ -54,7 +54,7 @@ void DiscoverabilityManager::updateLocation() {
         const QString CONNECTED_KEY_IN_LOCATION = "connected";
         locationObject.insert(CONNECTED_KEY_IN_LOCATION, discoverable && domainHandler.isConnected());
 
-        if (discoverable) { // Don't consider changes to these as update-worthy if we're not discoverable.
+        if (discoverable || _lastLocationObject.isEmpty()) { // Don't consider changes to these as update-worthy if we're not discoverable.
             const QString PATH_KEY_IN_LOCATION = "path";
             locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
 
