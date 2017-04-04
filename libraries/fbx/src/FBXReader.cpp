@@ -443,20 +443,6 @@ FBXLight extractLight(const FBXNode& object) {
     return light;
 }
 
-QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
-    QString path = QFileInfo(url).path();
-    QByteArray filename = filepath;
-    QFileInfo checkFile(path + "/" + filepath);
-
-    // check if the file exists at the RelativeFilename
-    if (!(checkFile.exists() && checkFile.isFile())) {
-        // if not, assume it is in the fbx directory
-        filename = filename.mid(filename.lastIndexOf('/') + 1);
-    }
-
-    return filename;
-}
-
 FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
     const FBXNode& node = _fbxNode;
     QMap<QString, ExtractedMesh> meshes;
