@@ -497,7 +497,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 						if (specifiesUV) {
 							material.userSpecifiesUV = true; // Note might not be true in a later usage.
 						}
-						if (specifiesUV || (0 != groupMaterialName.compare("none", Qt::CaseInsensitive))) {
+						if (specifiesUV || (groupMaterialName.compare("none", Qt::CaseInsensitive) != 0)) {
 							// Blender has a convention that a material named "None" isn't really used (or defined).
 							material.used = true;
 							needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
@@ -545,21 +545,21 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 					n0 = checked_at(normals, face.normalIndices[0]);
 					n1 = checked_at(normals, face.normalIndices[1]);
 					n2 = checked_at(normals, face.normalIndices[2]);
-				}
-				else { 
+				} else { 
 					// generate normals from triangle plane if not provided
 					n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
 				}
+
 				mesh.normals.append(n0);
 				mesh.normals.append(n1);
 				mesh.normals.append(n2);
+
 				if (face.textureUVIndices.count()) {
 					mesh.texCoords <<
 						checked_at(textureUVs, face.textureUVIndices[0]) <<
 						checked_at(textureUVs, face.textureUVIndices[1]) <<
 						checked_at(textureUVs, face.textureUVIndices[2]);
-				}
-				else {
+				} else {
 					glm::vec2 corner(0.0f, 1.0f);
 					mesh.texCoords << corner << corner << corner;
 				}
@@ -580,7 +580,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
 
-	QString queryPart = _url.query();
+    QString queryPart = _url.query();
     bool suppressMaterialsHack = queryPart.contains("hifiusemat"); // If this appears in query string, don't fetch mtl even if used.
     OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
     preDefinedMaterial.used = true;
