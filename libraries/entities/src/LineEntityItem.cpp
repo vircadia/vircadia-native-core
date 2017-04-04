@@ -34,8 +34,8 @@ EntityItemPointer LineEntityItem::factory(const EntityItemID& entityID, const En
 LineEntityItem::LineEntityItem(const EntityItemID& entityItemID) :
     EntityItem(entityItemID),
     _lineWidth(DEFAULT_LINE_WIDTH),
-    _pointsChanged(true),
-    _points(QVector<glm::vec3>(0))
+    _points(QVector<glm::vec3>(0)),
+    _pointsChanged(true)
 {
     _type = EntityTypes::Line;
 }
