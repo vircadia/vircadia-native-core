@@ -178,13 +178,13 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         modelVertex, modelPixel);
     addPipeline(
         Key::Builder(),
-        modelVertex, simplePixel);
+        simpleVertex, simplePixel);
     addPipeline(
         Key::Builder().withMaterial().withUnlit(),
         modelVertex, modelUnlitPixel);
     addPipeline(
         Key::Builder().withUnlit(),
-        modelVertex, simpleUnlitPixel);
+        simpleVertex, simpleUnlitPixel);
     addPipeline(
         Key::Builder().withMaterial().withTangents(),
         modelNormalMapVertex, modelNormalMapPixel);
