@@ -1345,6 +1345,45 @@ controller::Pose MyAvatar::getRightHandControllerPoseInAvatarFrame() const {
     return getRightHandControllerPoseInWorldFrame().transform(invAvatarMatrix);
 }
 
+void MyAvatar::setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
+    if (controller::InputDevice::getLowVelocityFilter()) {
+        auto oldLeftPose = getLeftFootControllerPoseInSensorFrame();
+        auto oldRightPose = getRightFootControllerPoseInSensorFrame();
+        _leftFootControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldLeftPose, left));
+        _rightFootControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldRightPose, right));
+    } else {
+        _leftFootControllerPoseInSensorFrameCache.set(left);
+        _rightFootControllerPoseInSensorFrameCache.set(right);
+    }
+}
+
+controller::Pose MyAvatar::getLeftFootControllerPoseInSensorFrame() const {
+    return _leftFootControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getRightFootControllerPoseInSensorFrame() const {
+    return _rightFootControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getLeftFootControllerPoseInWorldFrame() const {
+    return _leftFootControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
+}
+
+controller::Pose MyAvatar::getRightFootControllerPoseInWorldFrame() const {
+    return _rightFootControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
+}
+
+controller::Pose MyAvatar::getLeftFootControllerPoseInAvatarFrame() const {
+    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
+    return getLeftFootControllerPoseInWorldFrame().transform(invAvatarMatrix);
+}
+
+controller::Pose MyAvatar::getRightFootControllerPoseInAvatarFrame() const {
+    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
+    return getRightFootControllerPoseInWorldFrame().transform(invAvatarMatrix);
+}
+
+
 void MyAvatar::updateMotors() {
     _characterController.clearMotors();
     glm::quat motorRotation;

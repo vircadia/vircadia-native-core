@@ -4383,6 +4383,10 @@ void Application::update(float deltaTime) {
     auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
     myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
 
+    controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
+    controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
+    myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
+
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
 
@@ -5782,22 +5786,10 @@ void Application::toggleRunningScriptsWidget() const {
 }
 
 void Application::showScriptLogs() {
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     QUrl defaultScriptsLoc = defaultScriptsLocation();
     defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
-
-    if (tablet->getToolbarMode()) {
-        scriptEngines->loadScript(defaultScriptsLoc.toString());
-    } else {
-        QQuickItem* tabletRoot = tablet->getTabletRoot();
-        if (!tabletRoot && !isHMDMode()) {
-            scriptEngines->loadScript(defaultScriptsLoc.toString());
-        } else {
-            tablet->pushOntoStack("../../hifi/dialogs/TabletDebugWindow.qml");
-        }
-    }
+    scriptEngines->loadScript(defaultScriptsLoc.toString());
 }
 
 void Application::showAssetServerWidget(QString filePath) {

@@ -278,6 +278,11 @@ void OffscreenQmlSurface::cleanup() {
 }
 
 void OffscreenQmlSurface::render() {
+
+#ifdef HIFI_ENABLE_NSIGHT_DEBUG
+    return;
+#endif
+
     if (_paused) {
         return;
     }
@@ -576,7 +581,9 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         return nullptr;
     }
 
+    _qmlEngine->setObjectOwnership(this, QQmlEngine::CppOwnership);
     newObject->setProperty("eventBridge", QVariant::fromValue(this));
+
     newContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
 
     f(newContext, newObject);
