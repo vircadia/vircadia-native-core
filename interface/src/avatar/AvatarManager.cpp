@@ -68,7 +68,7 @@ void AvatarManager::registerMetaTypes(QScriptEngine* engine) {
 }
 
 AvatarManager::AvatarManager(QObject* parent) :
-    _avatarFades(),
+    _avatarsToFade(),
     _myAvatar(std::make_shared<MyAvatar>(std::make_shared<Rig>()))
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
@@ -151,7 +151,7 @@ float AvatarManager::getAvatarSimulationRate(const QUuid& sessionID, const QStri
 void AvatarManager::updateOtherAvatars(float deltaTime) {
     // lock the hash for read to check the size
     QReadLocker lock(&_hashLock);
-    if (_avatarHash.size() < 2 && _avatarFades.isEmpty()) {
+    if (_avatarHash.size() < 2 && _avatarsToFade.isEmpty()) {
         return;
     }
     lock.unlock();
@@ -277,22 +277,22 @@ void AvatarManager::postUpdate(float deltaTime) {
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {
-    QVector<AvatarSharedPointer>::iterator fadingIterator = _avatarFades.begin();
+    QVector<AvatarSharedPointer>::iterator fadingIterator = _avatarsToFade.begin();
 
     const float SHRINK_RATE = 0.15f;
     const float MIN_FADE_SCALE = MIN_AVATAR_SCALE;
 
     render::ScenePointer scene = qApp->getMain3DScene();
     render::Transaction transaction;
-    while (fadingIterator != _avatarFades.end()) {
+    while (fadingIterator != _avatarsToFade.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
         avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
         avatar->animateScaleChanges(deltaTime);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, transaction);
-            // only remove from _avatarFades if we're sure its motionState has been removed from PhysicsEngine
+            // only remove from _avatarsToFade if we're sure its motionState has been removed from PhysicsEngine
             if (_motionStatesToRemoveFromPhysics.empty()) {
-                fadingIterator = _avatarFades.erase(fadingIterator);
+                fadingIterator = _avatarsToFade.erase(fadingIterator);
             } else {
                 ++fadingIterator;
             }
@@ -306,26 +306,9 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return std::make_shared<Avatar>(std::make_shared<Rig>());
-}
-
-AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
-    auto newAvatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
-    auto rawRenderableAvatar = std::static_pointer_cast<Avatar>(newAvatar);
-
-    rawRenderableAvatar->addToScene(rawRenderableAvatar);
-
-    return newAvatar;
-}
-
-// virtual
-void AvatarManager::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
-    QWriteLocker locker(&_hashLock);
-
-    auto removedAvatar = _avatarHash.take(sessionUUID);
-    if (removedAvatar) {
-        handleRemovedAvatar(removedAvatar, removalReason);
-    }
+    std::shared_ptr<Avatar> avatar = std::make_shared<Avatar>(std::make_shared<Rig>());
+    avatar->addToScene(avatar);
+    return avatar;
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
@@ -353,7 +336,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
     }
-    _avatarFades.push_back(removedAvatar);
+    _avatarsToFade.push_back(removedAvatar);
 }
 
 void AvatarManager::clearOtherAvatars() {

@@ -91,21 +91,27 @@ public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
-private slots:
-    virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
-
 private:
     explicit AvatarManager(QObject* parent = 0);
     explicit AvatarManager(const AvatarManager& other);
 
     void simulateAvatarFades(float deltaTime);
 
-    // virtual overrides
-    virtual AvatarSharedPointer newSharedAvatar() override;
-    virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
-    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
+    AvatarSharedPointer newSharedAvatar() override;
+    void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
-    QVector<AvatarSharedPointer> _avatarFades;
+    /* TODO: maintain these lists
+    QVector<AvatarSharedPointer> _avatarsToRemoveFromScene;
+    QVector<AvatarSharedPointer> _avatarsToAddToScene;
+    QVector<AvatarSharedPointer> _avatarsToRemoveFromPhysicsEngine;
+    QVector<AvatarSharedPointer> _avatarsToAddToPhysicsEngine;
+    */
+    QVector<AvatarSharedPointer> _avatarsToFade;
+
+    SetOfAvatarMotionStates _motionStatesThatMightUpdate;
+    VectorOfMotionStates _motionStatesToRemoveFromPhysics;
+    SetOfMotionStates _motionStatesToAddToPhysics;
+
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
 
@@ -114,10 +120,6 @@ private:
     bool _shouldShowReceiveStats = false;
 
     std::list<QPointer<AudioInjector>> _collisionInjectors;
-
-    SetOfAvatarMotionStates _motionStatesThatMightUpdate;
-    SetOfMotionStates _motionStatesToAddToPhysics;
-    VectorOfMotionStates _motionStatesToRemoveFromPhysics;
 
     RateCounter<> _myAvatarSendRate;
     int _numAvatarsUpdated { 0 };
