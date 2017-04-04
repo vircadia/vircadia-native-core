@@ -444,8 +444,8 @@ FBXLight extractLight(const FBXNode& object) {
 }
 
 QByteArray fixedTextureFilepath(QByteArray fbxRelativeFilepath, QUrl url) {
-    // first setup a QFileInfo for the passed relative filepath
-    auto fileInfo = QFileInfo { fbxRelativeFilepath };
+    // first setup a QFileInfo for the passed relative filepath, with backslashes replaced by forward slashes
+    auto fileInfo = QFileInfo { fbxRelativeFilepath.replace("\\", "/") };
 
     if (fileInfo.isRelative()) {
         // the RelativeFilename pulled from the FBX is already correctly relative
