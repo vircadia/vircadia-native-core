@@ -112,6 +112,7 @@ Item {
                     currentItem.goBack();
                 } else {
                     stackRoot.pop();
+                    currentItem.webView.focus = true;
                     currentItem.webView.forceActiveFocus();
                     web.address = currentItem.webView.url;
                 }
@@ -186,7 +187,6 @@ Item {
             Component.onCompleted: {
                 // Ensure the JS from the web-engine makes it to our logging
                 root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-                    console.log("WebView.qml");
                     console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
                 });
 
@@ -202,7 +202,6 @@ Item {
                 keyboardRaised = false;
                 punctuationMode = false;
                 keyboard.resetShiftMode(false);
-                console.log("[DR] -> printing user string " + root.profile.httpUserAgent);
                 // Required to support clicking on "hifi://" links
                 if (WebEngineView.LoadStartedStatus == loadRequest.status) {
                     var url = loadRequest.url.toString();
@@ -215,30 +214,21 @@ Item {
             }
 
             onNewViewRequested:{
-                // desktop is not defined for web-entities
-                if (web.isDesktop) {
-                    var component = Qt.createComponent("../Browser.qml");
-                    var newWindow = component.createObject(desktop);
-                    newWindow.setProfile(root.profile);
-                    request.openIn(newWindow.webView);
-                } else {
-                    var component = Qt.createComponent("../TabletBrowser.qml");
-
-                    if (component.status != Component.Ready) {
-                        if (component.status == Component.Error) {
-                            console.log("Error: " + component.errorString());
-                        }
-                        return;
+                var component = Qt.createComponent("../TabletBrowser.qml");
+                if (component.status != Component.Ready) {
+                    if (component.status == Component.Error) {
+                        console.log("Error: " + component.errorString());
                     }
-                    var newWindow = component.createObject();
-                    newWindow.setProfile(root.profile);
-                    request.openIn(newWindow.webView);
-                    newWindow.eventBridge = web.eventBridge;
-                    stackRoot.push(newWindow);
+                    return;
                 }
+                var newWindow = component.createObject();
+                newWindow.setProfile(root.profile);
+                request.openIn(newWindow.webView);
+                newWindow.eventBridge = web.eventBridge;
+                stackRoot.push(newWindow);
             }
         }
-
+        
         HiFiControls.Keyboard {
             id: keyboard
             raised: web.keyboardEnabled && web.keyboardRaised

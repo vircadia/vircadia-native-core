@@ -110,7 +110,6 @@ Item {
             Component.onCompleted: {
                 // Ensure the JS from the web-engine makes it to our logging
                 webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-                    console.log("TabletBrowser");
                     console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
                 });
                 
@@ -138,33 +137,22 @@ Item {
                 }
             }
 
-            onActiveFocusOnPressChanged: {
-                console.log("on active focus changed");
-                setActiveFocusOnPress(true);
-            }
-
-            onNewViewRequested:{
-                // desktop is not defined for web-entities
-                if (stackRoot.isDesktop) {
-                    var component = Qt.createComponent("./Browser.qml");
-                    var newWindow = component.createObject(desktop); 
-                    request.openIn(newWindow.webView);
-                } else {
-                    var component = Qt.createComponent("./TabletBrowser.qml");
-                    
-                    if (component.status != Component.Ready) {
-                        if (component.status == Component.Error) {
-                            console.log("Error: " + component.errorString());
-                        }
-                        return;
+            onNewViewRequested: {
+                var component = Qt.createComponent("./TabletBrowser.qml");
+                
+                if (component.status != Component.Ready) {
+                    if (component.status == Component.Error) {
+                        console.log("Error: " + component.errorString());
                     }
-                    var newWindow = component.createObject();
-                    newWindow.setProfile(webview.profile);
-                    request.openIn(newWindow.webView);
-                    newWindow.eventBridge = web.eventBridge;
-                    stackRoot.push(newWindow);
-                    newWindow.webView.forceActiveFocus();
+                    return;
                 }
+                var newWindow = component.createObject();
+                newWindow.setProfile(webview.profile);
+                request.openIn(newWindow.webView);
+                newWindow.eventBridge = web.eventBridge;
+                stackRoot.push(newWindow);
+                newWindow.webView.forceActiveFocus();
+                
             }
         }
         

@@ -70,6 +70,9 @@ Item {
         readonly property color indigoAccent: "#9495FF"
         readonly property color magentaHighlight: "#EF93D1"
         readonly property color magentaAccent: "#A2277C"
+        readonly property color checkboxCheckedRed: "#FF0000"
+        readonly property color checkboxCheckedBorderRed: "#D00000"
+
         // Semitransparent
         readonly property color darkGray30: "#4d121212"
         readonly property color darkGray0: "#00121212"
