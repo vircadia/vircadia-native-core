@@ -226,6 +226,7 @@ signals:
 protected slots:
     void addButtonsToHomeScreen();
     void desktopWindowClosed();
+    void emitWebEvent(QVariant msg);
 protected:
     void removeButtonsFromHomeScreen();
     void loadHomeScreen(bool forceOntoHomeScreen);
