@@ -31,6 +31,8 @@
 #include "simple_vert.h"
 #include "simple_textured_frag.h"
 #include "simple_textured_unlit_frag.h"
+#include "simple_transparent_textured_frag.h"
+#include "simple_transparent_textured_unlit_frag.h"
 
 #include "model_frag.h"
 #include "model_unlit_frag.h"
@@ -152,6 +154,8 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     // Pixel shaders
     auto simplePixel = gpu::Shader::createPixel(std::string(simple_textured_frag));
     auto simpleUnlitPixel = gpu::Shader::createPixel(std::string(simple_textured_unlit_frag));
+    auto simpleTranslucentPixel = gpu::Shader::createPixel(std::string(simple_transparent_textured_frag));
+    auto simpleTranslucentUnlitPixel = gpu::Shader::createPixel(std::string(simple_transparent_textured_unlit_frag));
     auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
     auto modelUnlitPixel = gpu::Shader::createPixel(std::string(model_unlit_frag));
     auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(model_normal_map_frag));
@@ -196,13 +200,13 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         modelVertex, modelTranslucentPixel);
     addPipeline(
         Key::Builder().withTranslucent(),
-        simpleVertex, simplePixel);
+        simpleVertex, simpleTranslucentPixel);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withUnlit(),
         modelVertex, modelTranslucentUnlitPixel);
     addPipeline(
         Key::Builder().withTranslucent().withUnlit(),
-        simpleVertex, simpleUnlitPixel);
+        simpleVertex, simpleTranslucentUnlitPixel);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents(),
         modelNormalMapVertex, modelTranslucentPixel);
