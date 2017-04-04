@@ -460,16 +460,13 @@ QByteArray fixedTextureFilepath(QByteArray fbxRelativeFilepath, QUrl url) {
         if (url.isLocalFile()) {
             // the FBX is being loaded from the local filesystem
 
-            // in order to match the behaviour with a local FBX, first check if a file with this filename
-            // is right beside the FBX
-            QFileInfo fileBesideFBX { QFileInfo(url.toLocalFile()).path() + "/" + filename };
-
-            if (fileBesideFBX.exists() && fileBesideFBX.isFile()) {
-                // we found a file that matches right beside the FBX, return just the filename as the relative path
-                return filename.toUtf8();
-            } else {
-                // did not find a matching file beside the FBX, return the absolute path found in the FBX
+            if (fileInfo.exists() && fileInfo.isFile()) {
+                // found a file at the absolute path in the FBX, return that path
                 return fbxRelativeFilepath;
+            } else {
+                // didn't find a file at the absolute path, assume it is right beside the FBX
+                // return just the filename as the relative path
+                return filename.toUtf8();
             }
         } else {
             // this is a remote file, meaning we can't really do anything with the absolute path to the texture
