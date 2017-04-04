@@ -28,6 +28,10 @@
 #include "skin_model_shadow_vert.h"
 #include "skin_model_normal_map_vert.h"
 
+#include "simple_vert.h"
+#include "simple_textured_frag.h"
+#include "simple_textured_unlit_frag.h"
+
 #include "model_frag.h"
 #include "model_unlit_frag.h"
 #include "model_shadow_frag.h"
@@ -135,6 +139,7 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
 
 void initDeferredPipelines(render::ShapePlumber& plumber) {
     // Vertex shaders
+    auto simpleVertex = gpu::Shader::createVertex(std::string(simple_vert));
     auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
     auto modelNormalMapVertex = gpu::Shader::createVertex(std::string(model_normal_map_vert));
     auto modelLightmapVertex = gpu::Shader::createVertex(std::string(model_lightmap_vert));
@@ -145,6 +150,8 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto skinModelShadowVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
 
     // Pixel shaders
+    auto simplePixel = gpu::Shader::createPixel(std::string(simple_textured_frag));
+    auto simpleUnlitPixel = gpu::Shader::createPixel(std::string(simple_textured_unlit_frag));
     auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
     auto modelUnlitPixel = gpu::Shader::createPixel(std::string(model_unlit_frag));
     auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(model_normal_map_frag));
@@ -167,13 +174,13 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         modelVertex, modelPixel);
     addPipeline(
         Key::Builder(),
-        modelVertex, modelPixel);
+        modelVertex, simplePixel);
     addPipeline(
         Key::Builder().withMaterial().withUnlit(),
         modelVertex, modelUnlitPixel);
     addPipeline(
         Key::Builder().withUnlit(),
-        modelVertex, modelUnlitPixel);
+        modelVertex, simpleUnlitPixel);
     addPipeline(
         Key::Builder().withMaterial().withTangents(),
         modelNormalMapVertex, modelNormalMapPixel);
@@ -189,13 +196,13 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         modelVertex, modelTranslucentPixel);
     addPipeline(
         Key::Builder().withTranslucent(),
-        modelVertex, modelTranslucentPixel);
+        simpleVertex, simplePixel);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withUnlit(),
         modelVertex, modelTranslucentUnlitPixel);
     addPipeline(
         Key::Builder().withTranslucent().withUnlit(),
-        modelVertex, modelTranslucentUnlitPixel);
+        simpleVertex, simpleUnlitPixel);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents(),
         modelNormalMapVertex, modelTranslucentPixel);

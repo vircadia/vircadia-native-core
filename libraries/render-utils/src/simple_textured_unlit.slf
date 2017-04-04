@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple.frag
+//  simple_textured_unlit.frag
 //  fragment shader
 //
 //  Created by Clément Brisset on 5/29/15.
@@ -31,12 +31,22 @@ void main(void) {
 
     const float ALPHA_THRESHOLD = 0.999;
     if (_color.a * texel.a < ALPHA_THRESHOLD) {
-        packDeferredFragmentTranslucent(
+
+        _fragColor0 = vec4(_color.rgb * texel.rgb, _color.a * texel.a);
+
+        if (_color.a * texel.a <= 0.0) {
+            _fragColor0 = vec4(_color.rgb * texel.rgb, _color.a * texel.a);
+            //discard;
+        } else {
+            _fragColor0 = vec4(_color.rgb * texel.rgb, _color.a * texel.a);
+        }
+       // _fragColor0 = vec4(albedo.rgb, alpha);
+       /* packDeferredFragmentTranslucent(
             normalize(_normal),
             _color.a * texel.a,
             _color.rgb * texel.rgb,
             DEFAULT_FRESNEL,
-            DEFAULT_ROUGHNESS);
+            DEFAULT_ROUGHNESS);*/
     } else {
         packDeferredFragmentUnlit(
             normalize(_normal),

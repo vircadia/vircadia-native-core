@@ -278,6 +278,7 @@ void OffscreenQmlSurface::cleanup() {
 }
 
 void OffscreenQmlSurface::render() {
+    return;
     if (_paused) {
         return;
     }
