@@ -2133,7 +2133,7 @@ void EntityItem::deserializeActionsInternal() {
                 static QString repeatedMessage =
                     LogHandler::getInstance().addRepeatedMessageRegex(".*action creation failed for.*");
                 qCDebug(entities) << "EntityItem::deserializeActionsInternal -- action creation failed for"
-                                  << getID() << getName();
+                        << getID() << _name; // getName();
                 removeActionInternal(actionID, nullptr);
             }
         }
