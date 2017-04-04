@@ -1395,6 +1395,30 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
     }
 }
 
+QList<QVariant> Avatar::getSkeleton() {
+    SkeletonModelPointer skeletonModel = _skeletonModel;
+    if (skeletonModel) {
+        RigPointer rig = skeletonModel->getRig();
+        if (rig) {
+            AnimSkeleton::ConstPointer skeleton = rig->getAnimSkeleton();
+            if (skeleton) {
+                QList<QVariant> list;
+                list.reserve(skeleton->getNumJoints());
+                for (int i = 0; i < skeleton->getNumJoints(); i++) {
+                    QVariantMap obj;
+                    obj["name"] = skeleton->getJointName(i);
+                    obj["index"] = i;
+                    obj["parentIndex"] = skeleton->getParentIndex(i);
+                    list.push_back(obj);
+                }
+                return list;
+            }
+        }
+    }
+
+    return QList<QVariant>();
+}
+
 void Avatar::addToScene(AvatarSharedPointer myHandle) {
     render::ScenePointer scene = qApp->getMain3DScene();
     if (scene) {

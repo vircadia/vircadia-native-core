@@ -60,10 +60,25 @@ void DialogsManager::showFeed() {
 }
 
 void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
-    if (visible) {
-        ConnectionFailureDialog::show();
+    qDebug() << "DialogsManager::setDomainConnectionFailureVisibility: visible" << visible;
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+
+    if (tablet->getToolbarMode()) {
+        if (visible) {
+            ConnectionFailureDialog::show();
+        } else {
+            ConnectionFailureDialog::hide();
+        }
     } else {
-        ConnectionFailureDialog::hide();
+        static const QUrl url("../../dialogs/TabletConnectionFailureDialog.qml");
+        auto hmd = DependencyManager::get<HMDScriptingInterface>();
+        if (visible) {
+            tablet->initialScreen(url);
+            if (!hmd->getShouldShowTablet()) {
+                hmd->openTablet();
+            }
+        }
     }
 }
 

@@ -85,7 +85,6 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
         renderAudioScope(renderArgs); // audio scope in the very back - NOTE: this is the debug audio scope, not the VU meter
         renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
         renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
-        renderStatsAndLogs(renderArgs);  // currently renders nothing
     });
 
     renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch
@@ -159,27 +158,6 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     qApp->getOverlays().renderHUD(renderArgs);
 }
 
-void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
-
-    //  Display stats and log text onscreen
-
-    // Determine whether to compute timing details
-
-    /*
-    //  Show on-screen msec timer
-    if (Menu::getInstance()->isOptionChecked(MenuOption::FrameTimer)) {
-        auto canvasSize = qApp->getCanvasSize();
-        quint64 mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
-        QString frameTimer = QString("%1\n").arg((int)(mSecsNow % 1000));
-        int timerBottom =
-            (Menu::getInstance()->isOptionChecked(MenuOption::Stats))
-            ? 80 : 20;
-        drawText(canvasSize.x - 100, canvasSize.y - timerBottom,
-            0.30f, 0.0f, 0, frameTimer.toUtf8().constData(), WHITE_TEXT);
-    }
-    */
-}
-
 void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     static std::once_flag once;
@@ -229,13 +207,13 @@ void ApplicationOverlay::buildFramebufferObject() {
     auto width = uiSize.x;
     auto height = uiSize.y;
     if (!_overlayFramebuffer->getDepthStencilBuffer()) {
-        auto overlayDepthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(DEPTH_FORMAT, width, height, DEFAULT_SAMPLER));
+        auto overlayDepthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(DEPTH_FORMAT, width, height, gpu::Texture::SINGLE_MIP, DEFAULT_SAMPLER));
         _overlayFramebuffer->setDepthStencilBuffer(overlayDepthTexture, DEPTH_FORMAT);
     }
 
     if (!_overlayFramebuffer->getRenderBuffer(0)) {
         const gpu::Sampler OVERLAY_SAMPLER(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
-        auto colorBuffer = gpu::TexturePointer(gpu::Texture::createRenderBuffer(COLOR_FORMAT, width, height, OVERLAY_SAMPLER));
+        auto colorBuffer = gpu::TexturePointer(gpu::Texture::createRenderBuffer(COLOR_FORMAT, width, height, gpu::Texture::SINGLE_MIP, OVERLAY_SAMPLER));
         _overlayFramebuffer->setRenderBuffer(0, colorBuffer);
     }
 }

@@ -63,7 +63,7 @@ signals:
      * @returns {Signal}
      */
     void tabletNotification();
-    
+
 private:
     void processMenuEvents(QObject* object, const QKeyEvent* event);
     void processTabletEvents(QObject* object, const QKeyEvent* event);
@@ -85,6 +85,8 @@ class TabletProxy : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
     Q_PROPERTY(bool toolbarMode READ getToolbarMode WRITE setToolbarMode)
+    Q_PROPERTY(bool landscape READ getLandscape WRITE setLandscape)
+    Q_PROPERTY(bool tabletShown MEMBER _tabletShown NOTIFY tabletShownChanged)
 public:
     TabletProxy(QString name);
 
@@ -173,6 +175,14 @@ public:
      */
     Q_INVOKABLE bool onHomeScreen();
 
+    /**jsdoc
+     * set tablet into our out of landscape mode
+     * @function TabletProxy#setLandscape
+     * @param landscape {bool} true for landscape, false for portrait
+     */
+    Q_INVOKABLE void setLandscape(bool landscape) { _landscape = landscape; }
+    Q_INVOKABLE bool getLandscape() { return _landscape; }
+
     QQuickItem* getTabletRoot() const { return _qmlTabletRoot; }
 
     QObject* getTabletSurface();
@@ -206,6 +216,13 @@ signals:
      */
     void screenChanged(QVariant type, QVariant url);
 
+    /** jsdoc
+    * Signaled when the tablet becomes visible or becomes invisible
+    * @function TabletProxy#isTabletShownChanged
+    * @returns {Signal}
+    */
+    void tabletShownChanged();
+
 protected slots:
     void addButtonsToHomeScreen();
     void desktopWindowClosed();
@@ -216,7 +233,7 @@ protected:
     void removeButtonsFromToolbar();
 
     bool _initialScreen { false };
-    QVariant _initialPath { "" }; 
+    QVariant _initialPath { "" };
     QString _name;
     std::mutex _mutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
@@ -224,9 +241,11 @@ protected:
     QObject* _qmlOffscreenSurface { nullptr };
     QmlWindowClass* _desktopWindow { nullptr };
     bool _toolbarMode { false };
+    bool _tabletShown { false };
 
     enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
+    bool _landscape { false };
 };
 
 /**jsdoc

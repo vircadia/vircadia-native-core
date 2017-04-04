@@ -33,6 +33,10 @@ ScrollingWindow {
         addressBar.text = webview.url
     }
 
+    function setProfile(profile) {
+        webview.profile = profile;
+    }
+
     function showPermissionsBar(){
         permissionsContainer.visible=true;
     }

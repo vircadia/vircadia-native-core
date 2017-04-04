@@ -27,7 +27,7 @@ StackView {
     initialItem: addressBarDialog
     width: parent.width
     height: parent.height
-
+    property var eventBridge;
     property var allStories: [];
     property int cardWidth: 460;
     property int cardHeight: 320;
@@ -38,7 +38,7 @@ StackView {
         root.currentItem.focus = true;
         root.currentItem.forceActiveFocus();
         fillDestinations();
-        updateLocationText();
+        updateLocationText(false);
         root.parentChanged.connect(center);
         center();
     }
@@ -59,11 +59,12 @@ StackView {
         if (0 !== targetString.indexOf('hifi://')) {
             var card = tabletStoryCard.createObject();
             card.setUrl(addressBarDialog.metaverseServerUrl + targetString);
+            card.eventBridge = root.eventBridge;
             root.push(card);
             return;
         }
-        addressLine.text = targetString;
-        toggleOrGo(true);
+        location.text = targetString;
+        toggleOrGo(true, targetString);
         clearAddressLineTimer.start();
     }
  
@@ -538,7 +539,11 @@ StackView {
         }
     }
 
-    function toggleOrGo(fromSuggestions) {
+    function toggleOrGo(fromSuggestions, address) {
+        if (address !== undefined && address !== "") {
+            addressBarDialog.loadAddress(address, fromSuggestions)
+        }
+
         if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }

@@ -19,20 +19,11 @@ using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl41;
 
-using GL41TexelFormat = GLTexelFormat;
-using GL41Texture = GL41Backend::GL41Texture;
-
-GLuint GL41Texture::allocate() {
-    Backend::incrementTextureGPUCount();
-    GLuint result;
-    glGenTextures(1, &result);
-    return result;
-}
-
 GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
     if (!texturePointer) {
         return nullptr;
     }
+
     const Texture& texture = *texturePointer;
     if (TextureUsageType::EXTERNAL == texture.getUsageType()) {
         return Parent::syncGPUObject(texturePointer);
@@ -43,89 +34,57 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
         return nullptr;
     }
 
-    // If the object hasn't been created, or the object definition is out of date, drop and re-create
     GL41Texture* object = Backend::getGPUObject<GL41Texture>(texture);
-    if (!object || object->_storageStamp < texture.getStamp()) {
-        // This automatically any previous texture
-        object = new GL41Texture(shared_from_this(), texture);
-    }
+    if (!object) {
+        switch (texture.getUsageType()) {
+            case TextureUsageType::RENDERBUFFER:
+                object = new GL41AttachmentTexture(shared_from_this(), texture);
+                break;
 
-    // FIXME internalize to GL41Texture 'sync' function
-    if (object->isOutdated()) {
-        object->withPreservedTexture([&] {
-            if (object->_contentStamp <= texture.getDataStamp()) {
-                // FIXME implement synchronous texture transfer here
-                object->syncContent();
+            case TextureUsageType::STRICT_RESOURCE:
+                qCDebug(gpugllogging) << "Strict texture " << texture.source().c_str();
+                object = new GL41StrictResourceTexture(shared_from_this(), texture);
+                break;
+
+            case TextureUsageType::RESOURCE: {
+                qCDebug(gpugllogging) << "variable / Strict texture " << texture.source().c_str();
+                object = new GL41ResourceTexture(shared_from_this(), texture);
+                break;
             }
 
-            if (object->_samplerStamp <= texture.getSamplerStamp()) {
-                object->syncSampler();
-            }
-        });
+            default:
+                Q_UNREACHABLE();
+        }
     }
 
     return object;
 }
 
-GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) 
-    : GLTexture(backend, texture, allocate()), _storageStamp { texture.getStamp() }, _size(texture.evalTotalSize()) {
+using GL41Texture = GL41Backend::GL41Texture;
+
+GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture)
+    : GLTexture(backend, texture, allocate(texture)) {
     incrementTextureGPUCount();
-    withPreservedTexture([&] {
-        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        auto numMips = _gpuObject.getNumMipLevels();
-        for (uint16_t mipLevel = 0; mipLevel < numMips; ++mipLevel) {
-            // Get the mip level dimensions, accounting for the downgrade level
-            Vec3u dimensions = _gpuObject.evalMipDimensions(mipLevel);
-            uint8_t face = 0;
-            for (GLenum target : getFaceTargets(_target)) {
-                const Byte* mipData = nullptr;
-                if (_gpuObject.isStoredMipFaceAvailable(mipLevel, face)) {
-                    auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
-                    mipData = mip->readData();
-                }
-                glTexImage2D(target, mipLevel, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, mipData);
-                (void)CHECK_GL_ERROR();
-                ++face;
-            }
-        }
-    });
 }
 
-GL41Texture::~GL41Texture() {
-
+GLuint GL41Texture::allocate(const Texture& texture) {
+    GLuint result;
+    glGenTextures(1, &result);
+    return result;
 }
 
-bool GL41Texture::isOutdated() const {
-    if (_samplerStamp <= _gpuObject.getSamplerStamp()) {
-        return true;
-    }
-    if (TextureUsageType::RESOURCE == _gpuObject.getUsageType() && _contentStamp <= _gpuObject.getDataStamp()) {
-        return true;
-    }
-    return false;
-}
 
 void GL41Texture::withPreservedTexture(std::function<void()> f) const {
-    GLint boundTex = -1;
-    switch (_target) {
-        case GL_TEXTURE_2D:
-            glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
-            break;
-
-        case GL_TEXTURE_CUBE_MAP:
-            glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
-            break;
-
-        default:
-            qFatal("Unsupported texture type");
-    }
+    const GLint TRANSFER_TEXTURE_UNIT = 32;
+    glActiveTexture(GL_TEXTURE0 + TRANSFER_TEXTURE_UNIT);
+    glBindTexture(_target, _texture);
     (void)CHECK_GL_ERROR();
 
-    glBindTexture(_target, _texture);
     f();
-    glBindTexture(_target, boundTex);
+    glBindTexture(_target, 0);
     (void)CHECK_GL_ERROR();
 }
+
 
 void GL41Texture::generateMips() const {
     withPreservedTexture([&] {
@@ -134,13 +93,35 @@ void GL41Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL41Texture::syncContent() const {
-    // FIXME actually copy the texture data
-    _contentStamp = _gpuObject.getDataStamp() + 1;
+void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
+    if (GL_TEXTURE_2D == _target) {
+        glTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+    } else if (GL_TEXTURE_CUBE_MAP == _target) {
+        auto target = GLTexture::CUBE_FACE_LAYOUT[face];
+        glTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+    } else {
+        assert(false);
+    }
+    (void)CHECK_GL_ERROR();
+}
+
+void GL41Texture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const {
+    if (!_gpuObject.isStoredMipFaceAvailable(sourceMip)) {
+        return;
+    }
+    auto size = _gpuObject.evalMipDimensions(sourceMip);
+    auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
+    if (mipData) {
+        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
+        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.format, texelFormat.type, mipData->readData());
+    } else {
+        qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
+    }
 }
 
 void GL41Texture::syncSampler() const {
     const Sampler& sampler = _gpuObject.getSampler();
+
     const auto& fm = FILTER_MODES[sampler.getFilter()];
     glTexParameteri(_target, GL_TEXTURE_MIN_FILTER, fm.minFilter);
     glTexParameteri(_target, GL_TEXTURE_MAG_FILTER, fm.magFilter);
@@ -158,12 +139,106 @@ void GL41Texture::syncSampler() const {
 
     glTexParameterfv(_target, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
     glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, (uint16)sampler.getMipOffset());
+
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
+
     glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
-    _samplerStamp = _gpuObject.getSamplerStamp() + 1;
 }
 
-uint32 GL41Texture::size() const {
-    return _size;
+using GL41FixedAllocationTexture = GL41Backend::GL41FixedAllocationTexture;
+
+GL41FixedAllocationTexture::GL41FixedAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41Texture(backend, texture), _size(texture.evalTotalSize()) {
+    withPreservedTexture([&] {
+        allocateStorage();
+        syncSampler();
+    });
+}
+
+GL41FixedAllocationTexture::~GL41FixedAllocationTexture() {
+}
+
+void GL41FixedAllocationTexture::allocateStorage() const {
+    const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
+    const auto numMips = _gpuObject.getNumMips();
+
+    // glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
+    for (GLint level = 0; level < numMips; level++) {
+        Vec3u dimensions = _gpuObject.evalMipDimensions(level);
+        for (GLenum target : getFaceTargets(_target)) {
+            glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, nullptr);
+        }
+    }
+
+    glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(_target, GL_TEXTURE_MAX_LEVEL, numMips - 1);
+}
+
+void GL41FixedAllocationTexture::syncSampler() const {
+    Parent::syncSampler();
+    const Sampler& sampler = _gpuObject.getSampler();
+    auto baseMip = std::max<uint16_t>(sampler.getMipOffset(), sampler.getMinMip());
+
+    glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, baseMip);
+    glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
+    glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.0f : sampler.getMaxMip()));
+}
+
+// Renderbuffer attachment textures
+using GL41AttachmentTexture = GL41Backend::GL41AttachmentTexture;
+
+GL41AttachmentTexture::GL41AttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41FixedAllocationTexture(backend, texture) {
+    Backend::updateTextureGPUFramebufferMemoryUsage(0, size());
+}
+
+GL41AttachmentTexture::~GL41AttachmentTexture() {
+    Backend::updateTextureGPUFramebufferMemoryUsage(size(), 0);
+}
+
+// Strict resource textures
+using GL41StrictResourceTexture = GL41Backend::GL41StrictResourceTexture;
+
+GL41StrictResourceTexture::GL41StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41FixedAllocationTexture(backend, texture) {
+    withPreservedTexture([&] {
+   
+        auto mipLevels = _gpuObject.getNumMips();
+        for (uint16_t sourceMip = 0; sourceMip < mipLevels; sourceMip++) {
+            uint16_t targetMip = sourceMip;
+            size_t maxFace = GLTexture::getFaceCount(_target);
+            for (uint8_t face = 0; face < maxFace; face++) {
+                copyMipFaceFromTexture(sourceMip, targetMip, face);
+            }
+        }
+    });
+
+    if (texture.isAutogenerateMips()) {
+        generateMips();
+    }
+}
+
+// resource textures
+using GL41ResourceTexture = GL41Backend::GL41ResourceTexture;
+
+GL41ResourceTexture::GL41ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41FixedAllocationTexture(backend, texture) {
+    Backend::updateTextureGPUMemoryUsage(0, size());
+
+    withPreservedTexture([&] {
+   
+        auto mipLevels = _gpuObject.getNumMips();
+        for (uint16_t sourceMip = 0; sourceMip < mipLevels; sourceMip++) {
+            uint16_t targetMip = sourceMip;
+            size_t maxFace = GLTexture::getFaceCount(_target);
+            for (uint8_t face = 0; face < maxFace; face++) {
+                copyMipFaceFromTexture(sourceMip, targetMip, face);
+            }
+        }
+    });
+
+    if (texture.isAutogenerateMips()) {
+        generateMips();
+    }
+}
+
+GL41ResourceTexture::~GL41ResourceTexture() {
+    Backend::updateTextureGPUMemoryUsage(size(), 0);
 }

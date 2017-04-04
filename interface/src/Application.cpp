@@ -143,6 +143,7 @@
 #include "LODManager.h"
 #include "ModelPackager.h"
 #include "networking/HFWebEngineProfile.h"
+#include "networking/HFTabletWebEngineProfile.h"
 #include "scripting/TestScriptingInterface.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
@@ -181,6 +182,7 @@
 #include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
+#include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
 
@@ -523,6 +525,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<OffscreenQmlSurfaceCache>();
     DependencyManager::set<EntityScriptClient>();
     DependencyManager::set<EntityScriptServerLogClient>();
+    DependencyManager::set<LimitlessVoiceRecognitionScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
@@ -553,8 +556,7 @@ const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 100.0f;
 const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
-const bool DEFAULT_TABLET_VISIBLE_TO_OTHERS = false;
-const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = true;
+const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
     QApplication(argc, argv),
@@ -576,7 +578,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _desktopTabletScale("desktopTabletScale", DEFAULT_DESKTOP_TABLET_SCALE_PERCENT),
     _desktopTabletBecomesToolbarSetting("desktopTabletBecomesToolbar", DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR),
     _hmdTabletBecomesToolbarSetting("hmdTabletBecomesToolbar", DEFAULT_HMD_TABLET_BECOMES_TOOLBAR),
-    _tabletVisibleToOthersSetting("tabletVisibleToOthers", DEFAULT_TABLET_VISIBLE_TO_OTHERS),
     _preferAvatarFingerOverStylusSetting("preferAvatarFingerOverStylus", DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _scaleMirror(1.0f),
@@ -1934,6 +1935,7 @@ void Application::initializeUi() {
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
     qmlRegisterType<HFWebEngineProfile>("HFWebEngineProfile", 1, 0, "HFWebEngineProfile");
+    qmlRegisterType<HFTabletWebEngineProfile>("HFTabletWebEngineProfile", 1, 0, "HFTabletWebEngineProfile");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->qglContext());
@@ -2361,11 +2363,6 @@ void Application::setDesktopTabletBecomesToolbarSetting(bool value) {
 
 void Application::setHmdTabletBecomesToolbarSetting(bool value) {
     _hmdTabletBecomesToolbarSetting.set(value);
-    updateSystemTabletMode();
-}
-
-void Application::setTabletVisibleToOthersSetting(bool value) {
-    _tabletVisibleToOthersSetting.set(value);
     updateSystemTabletMode();
 }
 
@@ -3793,7 +3790,6 @@ void Application::loadSettings() {
     }
 
     getMyAvatar()->loadData();
-    setTabletVisibleToOthersSetting(false);
     _settingsLoaded = true;
 }
 
@@ -4391,6 +4387,10 @@ void Application::update(float deltaTime) {
     auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
     myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
 
+    controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
+    controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
+    myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
+
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
 
@@ -4575,6 +4575,8 @@ void Application::update(float deltaTime) {
     }
 
     AnimDebugDraw::getInstance().update();
+
+    DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>()->update();
 }
 
 void Application::sendAvatarViewFrustum() {
@@ -5523,6 +5525,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
+    scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
+
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine, steamClient.get()));
     }
@@ -5788,22 +5792,10 @@ void Application::toggleRunningScriptsWidget() const {
 }
 
 void Application::showScriptLogs() {
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     QUrl defaultScriptsLoc = defaultScriptsLocation();
     defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
-
-    if (tablet->getToolbarMode()) {
-        scriptEngines->loadScript(defaultScriptsLoc.toString());
-    } else {
-        QQuickItem* tabletRoot = tablet->getTabletRoot();
-        if (!tabletRoot && !isHMDMode()) {
-            scriptEngines->loadScript(defaultScriptsLoc.toString());
-        } else {
-            tablet->pushOntoStack("../../hifi/dialogs/TabletDebugWindow.qml");
-        }
-    }
+    scriptEngines->loadScript(defaultScriptsLoc.toString());
 }
 
 void Application::showAssetServerWidget(QString filePath) {
