@@ -36,7 +36,6 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: keyboard.top
-       // spacing: 5
 
         Text {
             id: text1
