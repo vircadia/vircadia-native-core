@@ -10,7 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var elEnableRecording,
+var isUsingToolbar = false,
+    elEnableRecording,
     elInstructions,
     EVENT_BRIDGE_TYPE = "record",
     BODY_LOADED_ACTION = "bodyLoaded",
@@ -19,13 +20,19 @@ var elEnableRecording,
     TABLET_INSTRUCTIONS = "Close the tablet to start recording",
     WINDOW_INSTRUCTIONS = "Close the window to start recording";
 
+function updateInstructions() {
+    elInstructions.innerHTML = elEnableRecording.checked ? (isUsingToolbar ? WINDOW_INSTRUCTIONS : TABLET_INSTRUCTIONS) : "";
+}
+
 function onScriptEventReceived(data) {
     var message = JSON.parse(data);
     if (message.type === EVENT_BRIDGE_TYPE) {
         if (message.action === ENABLE_RECORDING_ACTION) {
             elEnableRecording.checked = message.value;
+            updateInstructions();
         } else if (message.action === USING_TOOLBAR_ACTION) {
-            elInstructions.innerHTML = message.value ? WINDOW_INSTRUCTIONS : TABLET_INSTRUCTIONS;
+            isUsingToolbar = message.value;
+            updateInstructions();
         }
     }
 }
@@ -36,6 +43,7 @@ function onBodyLoaded() {
 
     elEnableRecording = document.getElementById("enable-recording");
     elEnableRecording.onchange = function () {
+        updateInstructions();
         EventBridge.emitWebEvent(JSON.stringify({
             type: EVENT_BRIDGE_TYPE,
             action: ENABLE_RECORDING_ACTION,
