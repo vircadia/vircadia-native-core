@@ -440,105 +440,142 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         // add a new meshPart to the geometry's single mesh.
         while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess)) {}
 
-        FBXMesh& mesh = geometry.meshes[0];
-        mesh.meshIndex = 0;
+		FBXMesh& mesh = geometry.meshes[0];
+		mesh.meshIndex = 0;
 
-        geometry.joints.resize(1);
-        geometry.joints[0].isFree = false;
-        geometry.joints[0].parentIndex = -1;
-        geometry.joints[0].distanceToParent = 0;
-        geometry.joints[0].translation = glm::vec3(0, 0, 0);
-        geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
-        geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
-        geometry.joints[0].name = "OBJ";
-        geometry.joints[0].isSkeletonJoint = true;
+		geometry.joints.resize(1);
+		geometry.joints[0].isFree = false;
+		geometry.joints[0].parentIndex = -1;
+		geometry.joints[0].distanceToParent = 0;
+		geometry.joints[0].translation = glm::vec3(0, 0, 0);
+		geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
+		geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
+		geometry.joints[0].name = "OBJ";
+		geometry.joints[0].isSkeletonJoint = true;
 
-        geometry.jointIndices["x"] = 1;
+		geometry.jointIndices["x"] = 1;
 
-        FBXCluster cluster;
-        cluster.jointIndex = 0;
-        cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
-                                              0, 1, 0, 0,
-                                              0, 0, 1, 0,
-                                              0, 0, 0, 1);
-        mesh.clusters.append(cluster);
+		FBXCluster cluster;
+		cluster.jointIndex = 0;
+		cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1);
+		mesh.clusters.append(cluster);
 
-        for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
-            FBXMeshPart& meshPart = mesh.parts[i];
-            FaceGroup faceGroup = faceGroups[meshPartCount];
+		QMap<QString, int> materialMeshIdMap;
+		QVector<FBXMeshPart> fbxMeshParts;
+		for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
+			FBXMeshPart& meshPart = mesh.parts[i];
+			FaceGroup faceGroup = faceGroups[meshPartCount];
             bool specifiesUV = false;
-            foreach(OBJFace face, faceGroup) {
-                glm::vec3 v0 = checked_at(vertices, face.vertexIndices[0]);
-                glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
-                glm::vec3 v2 = checked_at(vertices, face.vertexIndices[2]);
-                meshPart.triangleIndices.append(mesh.vertices.count()); // not face.vertexIndices into vertices
-                mesh.vertices << v0;
-                meshPart.triangleIndices.append(mesh.vertices.count());
-                mesh.vertices << v1;
-                meshPart.triangleIndices.append(mesh.vertices.count());
-                mesh.vertices << v2;
+			foreach(OBJFace face, faceGroup) {
+				// Go through all of the OBJ faces and determine the number of different materials necessary (each different material will be a unique mesh).
+				// NOTE (trent/mittens 3/30/17): this seems hardcore wasteful and is slowed down a bit by iterating through the face group twice, but it's the best way I've thought of to hack multi-material support in an OBJ into this pipeline.
+				if (!materialMeshIdMap.contains(face.materialName)) {
+					// Create a new FBXMesh for this material mapping.
+					materialMeshIdMap.insert(face.materialName, materialMeshIdMap.count());
 
-                glm::vec3 n0, n1, n2;
-                if (face.normalIndices.count()) {
-                    n0 = checked_at(normals, face.normalIndices[0]);
-                    n1 = checked_at(normals, face.normalIndices[1]);
-                    n2 = checked_at(normals, face.normalIndices[2]);
-                } else { // generate normals from triangle plane if not provided
-                    n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
-                }
-                mesh.normals << n0 << n1 << n2;
-                if (face.textureUVIndices.count()) {
-                    specifiesUV = true;
-                    mesh.texCoords <<
-                    checked_at(textureUVs, face.textureUVIndices[0]) <<
-                    checked_at(textureUVs, face.textureUVIndices[1]) <<
-                    checked_at(textureUVs, face.textureUVIndices[2]);
-                } else {
-                    glm::vec2 corner(0.0f, 1.0f);
-                    mesh.texCoords << corner << corner << corner;
-                }
-            }
-            // All the faces in the same group will have the same name and material.
-            OBJFace leadFace = faceGroup[0];
-            QString groupMaterialName = leadFace.materialName;
-            if (groupMaterialName.isEmpty() && specifiesUV) {
-                #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader WARNING: " << url
-                    << " needs a texture that isn't specified. Using default mechanism.";
-                #endif
-                groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
-            }
-            if (!groupMaterialName.isEmpty()) {
-                OBJMaterial& material = materials[groupMaterialName];
-                if (specifiesUV) {
-                    material.userSpecifiesUV = true; // Note might not be true in a later usage.
-                }
-                if (specifiesUV || (0 != groupMaterialName.compare("none", Qt::CaseInsensitive))) {
-                    // Blender has a convention that a material named "None" isn't really used (or defined).
-                    material.used = true;
-                    needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
-                }
-                materials[groupMaterialName] = material;
-                meshPart.materialID = groupMaterialName;
-            }
+					fbxMeshParts.append(FBXMeshPart());
+					FBXMeshPart& meshPartNew = fbxMeshParts.last();
+					meshPartNew.quadIndices = QVector<int>(meshPart.quadIndices);					// Copy over quad indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
+					meshPartNew.quadTrianglesIndices = QVector<int>(meshPart.quadTrianglesIndices); // Copy over quad triangulated indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
+					meshPartNew.triangleIndices = QVector<int>(meshPart.triangleIndices);			// Copy over triangle indices.
 
+					// Do some of the material logic (which previously lived below) now.
+					// All the faces in the same group will have the same name and material.
+					QString groupMaterialName = face.materialName;
+					if (groupMaterialName.isEmpty() && specifiesUV) {
+#ifdef WANT_DEBUG
+						qCDebug(modelformat) << "OBJ Reader WARNING: " << url
+							<< " needs a texture that isn't specified. Using default mechanism.";
+#endif
+						groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
+					}
+					if (!groupMaterialName.isEmpty()) {
+						OBJMaterial& material = materials[groupMaterialName];
+						if (specifiesUV) {
+							material.userSpecifiesUV = true; // Note might not be true in a later usage.
+						}
+						if (specifiesUV || (groupMaterialName.compare("none", Qt::CaseInsensitive) != 0)) {
+							// Blender has a convention that a material named "None" isn't really used (or defined).
+							material.used = true;
+							needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
+						}
+						materials[groupMaterialName] = material;
+						meshPartNew.materialID = groupMaterialName;
+					}
+				}
+			}
+		}
+
+		// clean up old mesh parts.
+		int unmodifiedMeshPartCount = mesh.parts.count();
+		mesh.parts.clear();
+		mesh.parts = QVector<FBXMeshPart>(fbxMeshParts);
+
+		for (int i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
+			FaceGroup faceGroup = faceGroups[meshPartCount];
+
+			// Now that each mesh has been created with its own unique material mappings, fill them with data (vertex data is duplicated, face data is not).
+			foreach(OBJFace face, faceGroup) {
+				FBXMeshPart& meshPart = mesh.parts[materialMeshIdMap[face.materialName]];
+
+				glm::vec3 v0 = checked_at(vertices, face.vertexIndices[0]);
+				glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
+				glm::vec3 v2 = checked_at(vertices, face.vertexIndices[2]);
+
+				// Scale the vertices if the OBJ file scale is specified as non-one.
+				if (scaleGuess != 1.0f) {
+					v0 *= scaleGuess;
+					v1 *= scaleGuess;
+					v2 *= scaleGuess;
+				}
+
+				// Add the vertices.
+				meshPart.triangleIndices.append(mesh.vertices.count()); // not face.vertexIndices into vertices
+				mesh.vertices << v0;
+				meshPart.triangleIndices.append(mesh.vertices.count());
+				mesh.vertices << v1;
+				meshPart.triangleIndices.append(mesh.vertices.count());
+				mesh.vertices << v2;
+
+				glm::vec3 n0, n1, n2;
+				if (face.normalIndices.count()) {
+					n0 = checked_at(normals, face.normalIndices[0]);
+					n1 = checked_at(normals, face.normalIndices[1]);
+					n2 = checked_at(normals, face.normalIndices[2]);
+				} else { 
+					// generate normals from triangle plane if not provided
+					n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
+				}
+
+				mesh.normals.append(n0);
+				mesh.normals.append(n1);
+				mesh.normals.append(n2);
+
+				if (face.textureUVIndices.count()) {
+					mesh.texCoords <<
+						checked_at(textureUVs, face.textureUVIndices[0]) <<
+						checked_at(textureUVs, face.textureUVIndices[1]) <<
+						checked_at(textureUVs, face.textureUVIndices[2]);
+				} else {
+					glm::vec2 corner(0.0f, 1.0f);
+					mesh.texCoords << corner << corner << corner;
+				}
+			}
         }
 
-        // if we got a hint about units, scale all the points
-        if (scaleGuess != 1.0f) {
-            for (int i = 0; i < mesh.vertices.size(); i++) {
-                mesh.vertices[i] *= scaleGuess;
-            }
-        }
+		mesh.meshExtents.reset();
+		foreach(const glm::vec3& vertex, mesh.vertices) {
+			mesh.meshExtents.addPoint(vertex);
+			geometry.meshExtents.addPoint(vertex);
+		}
 
-        mesh.meshExtents.reset();
-        foreach (const glm::vec3& vertex, mesh.vertices) {
-            mesh.meshExtents.addPoint(vertex);
-            geometry.meshExtents.addPoint(vertex);
-        }
+		// Build the single mesh.
+		FBXReader::buildModelMesh(mesh, url.toString());
 
-        FBXReader::buildModelMesh(mesh, url.toString());
-        // fbxDebugDump(geometry);
+		// fbxDebugDump(geometry);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }

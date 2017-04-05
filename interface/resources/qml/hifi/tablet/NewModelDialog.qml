@@ -22,15 +22,20 @@ Rectangle {
     color: hifi.colors.baseGray;
     property var eventBridge;
     signal sendToScript(var message);
+    property bool keyboardEnabled: false
+    property bool punctuationMode: false
+    property bool keyboardRasied: false
 
-    Column {
+    Item {
         id: column1
         anchors.rightMargin: 10
         anchors.leftMargin: 10
         anchors.bottomMargin: 10
         anchors.topMargin: 10
-        anchors.fill: parent
-        spacing: 5
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: keyboard.top
 
         Text {
             id: text1
@@ -43,17 +48,42 @@ Rectangle {
             id: modelURL
             height: 20
             text: qsTr("")
+            color: "white"
+            anchors.top: text1.bottom
+            anchors.topMargin: 5
             anchors.left: parent.left
             anchors.leftMargin: 0
             anchors.right: parent.right
             anchors.rightMargin: 0
             font.pixelSize: 12
+
+            onAccepted: {
+                newModelDialog.keyboardEnabled = false;
+            }
+            
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    newModelDialog.keyboardEnabled = HMD.active
+                    parent.focus = true;
+                    parent.forceActiveFocus()
+                }
+            }
+        }
+
+        Rectangle {
+            id: textInputBox
+            color: "white"
+            anchors.fill: modelURL
+            opacity: 0.1
         }
 
         Row {
             id: row1
             height: 400
             spacing: 30
+            anchors.top: modelURL.top
+            anchors.topMargin: 25
             anchors.left: parent.left
             anchors.leftMargin: 0
             anchors.right: parent.right
@@ -153,6 +183,17 @@ Rectangle {
                     }
                 }
             }
+        }
+    }
+
+    Keyboard {
+        id: keyboard
+        raised: parent.keyboardEnabled
+        numeric: parent.punctuationMode
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
         }
     }
 }
