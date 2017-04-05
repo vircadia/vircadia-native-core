@@ -8,13 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-#include <FBXBaker.h>
-
+#include "Oven.h"
 
 int main (int argc, char** argv) {
-    
-    FBXBaker baker(QUrl("file:///Users/birarda/code/hifi/lod/test-oven/DiscGolfBasket.fbx"));
-    baker.start();
-
-    return 0;
+    Oven app(argc, argv);
+    return app.exec();
 }

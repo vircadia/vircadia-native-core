@@ -12,8 +12,10 @@
 #ifndef hifi_FBXBaker_h
 #define hifi_FBXBaker_h
 
-#include <QLoggingCategory>
-#include <QUrl>
+#include <QtCore/QDir>
+#include <QtCore/QLoggingCategory>
+#include <QtCore/QUrl>
+#include <QtNetwork/QNetworkReply>
 
 Q_DECLARE_LOGGING_CATEGORY(model_baking)
 
@@ -27,23 +29,33 @@ namespace fbxsdk {
 class FBXBaker : public QObject {
     Q_OBJECT
 public:
-    FBXBaker(QUrl fbxPath);
+    FBXBaker(QUrl fbxURL, QString baseOutputPath);
     ~FBXBaker();
 
     void start();
 
 signals:
-    void finished(QStringList errorList);
+    void finished();
 
+private slots:
+    void handleFBXNetworkReply();
+    
 private:
     void bake();
+
+    bool setupOutputFolder();
     bool importScene();
     bool rewriteAndCollectSceneTextures();
     bool exportScene();
     bool bakeTextures();
     bool bakeTexture();
 
-    QUrl _fbxPath;
+    QUrl _fbxURL;
+    QString _fbxName;
+    
+    QString _baseOutputPath;
+    QString _uniqueOutputPath;
+
     fbxsdk::FbxManager* _sdkManager;
     fbxsdk::FbxScene* _scene { nullptr };
 
