@@ -147,6 +147,10 @@
             abandonRecording();
         }
 
+        if (isDialogDisplayed) {
+            tablet.gotoHomeScreen();
+        }
+
         if (!tablet) {
             return;
         }
