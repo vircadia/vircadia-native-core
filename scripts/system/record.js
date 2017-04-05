@@ -15,10 +15,12 @@
     var APP_NAME = "RECORD",
         APP_ICON_INACTIVE = "icons/tablet-icons/edit-i.svg",  // FIXME: Record icon.
         APP_ICON_ACTIVE = "icons/tablet-icons/edit-a.svg",  // FIXME: Record icon.
+        APP_URL = Script.resolvePath("html/record.html"),
         isRecordingEnabled = false,
         isRecording = false,
         tablet,
-        button;
+        button,
+        EVENT_BRIDGE_TYPE = "record";
 
     function startRecording() {
         isRecording = true;
@@ -51,6 +53,26 @@
         }
     }
 
+    function onWebEventReceived(data) {
+        var message = JSON.parse(data);
+        if (message.type === EVENT_BRIDGE_TYPE) {
+            if (message.action === "bodyLoaded") {
+                tablet.emitScriptEvent(JSON.stringify({
+                    type: EVENT_BRIDGE_TYPE,
+                    action: "enableRecording",
+                    value: isRecordingEnabled
+                }));
+
+            } else if (message.action === "enableRecording") {
+                isRecordingEnabled = message.value;
+            }
+        }
+    }
+
+    function onButtonClicked() {
+        tablet.gotoWebScreen(APP_URL);
+    }
+
     function setUp() {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
@@ -64,6 +86,10 @@
             text: APP_NAME,
             isActive: isRecordingEnabled || isRecording
         });
+        button.clicked.connect(onButtonClicked);
+
+        // UI communications.
+        tablet.webEventReceived.connect(onWebEventReceived);
 
         // Track showing/hiding tablet.
         tablet.tabletShownChanged.connect(onTabletShownChanged);
@@ -78,7 +104,9 @@
         if (!tablet) {
             return;
         }
+        tablet.webEventReceived.disconnect(onWebEventReceived);
         tablet.tabletShownChanged.disconnect(onTabletShownChanged);
+        button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
     }
 
