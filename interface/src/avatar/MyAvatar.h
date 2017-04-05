@@ -553,9 +553,12 @@ private:
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
 
+    // AJT: FIX ME... reorder this
+public:
     // derive avatar body position and orientation from the current HMD Sensor location.
     // results are in HMD frame
     glm::mat4 deriveBodyFromHMDSensor() const;
+private:
 
     virtual void updatePalms() override {}
     void lateUpdatePalms();

@@ -1024,6 +1024,15 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
 
     _animVars.set("isTalking", params.isTalking);
     _animVars.set("notIsTalking", !params.isTalking);
+
+    // AJT:
+    if (params.hipsEnabled) {
+        _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
+        _animVars.set("hipsPosition", extractTranslation(params.hipsMatrix));
+        _animVars.set("hipsRotation", glmExtractRotation(params.hipsMatrix) * Quaternions::Y_180);
+    } else {
+        _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
+    }
 }
 
 void Rig::updateFromEyeParameters(const EyeParameters& params) {
@@ -1094,7 +1103,7 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 
             _animVars.set("headPosition", headPos);
             _animVars.set("headRotation", headRot);
-            _animVars.set("headType", (int)IKTarget::Type::HmdHead);
+            _animVars.set("headType", (int)IKTarget::Type::RotationAndPosition);
             _animVars.set("neckPosition", neckPos);
             _animVars.set("neckRotation", neckRot);
             _animVars.set("neckType", (int)IKTarget::Type::Unknown); // 'Unknown' disables the target

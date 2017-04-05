@@ -119,7 +119,11 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.rigHeadPosition = extractTranslation(rigHMDMat);
             headParams.rigHeadOrientation = extractRotation(rigHMDMat);
             headParams.worldHeadOrientation = extractRotation(worldHMDMat);
+
+            headParams.hipsMatrix = worldToRig * myAvatar->getSensorToWorldMatrix() * myAvatar->deriveBodyFromHMDSensor();
+            headParams.hipsEnabled = true;
         } else {
+            headParams.hipsEnabled = false;
             headParams.isInHMD = false;
 
             // We don't have a valid localHeadPosition.
