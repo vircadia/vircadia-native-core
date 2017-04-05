@@ -75,10 +75,10 @@ public:
     // THis is the total number of allocated items, this a threadsafe call
     size_t getNumItems() const { return _numAllocatedItems.load(); }
 
-    // Enqueue change batch to the scene
+    // Enqueue transaction to the scene
     void enqueueTransaction(const Transaction& transaction);
 
-    // Process the pending transactions equeued
+    // Process the pending transactions queued
     void processTransactionQueue();
 
     // This next call are  NOT threadsafe, you have to call them from the correct thread to avoid any potential issues
