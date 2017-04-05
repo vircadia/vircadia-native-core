@@ -10,14 +10,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var enableRecording,
-    EVENT_BRIDGE_TYPE = "record";
+var elEnableRecording,
+    elInstructions,
+    EVENT_BRIDGE_TYPE = "record",
+    BODY_LOADED_ACTION = "bodyLoaded",
+    ENABLE_RECORDING_ACTION = "enableRecording";
 
 function onScriptEventReceived(data) {
     var message = JSON.parse(data);
     if (message.type === EVENT_BRIDGE_TYPE) {
-        if (message.action === "enableRecording") {
-            enableRecording.checked = message.value;
+        if (message.action === ENABLE_RECORDING_ACTION) {
+            elEnableRecording.checked = message.value;
         }
     }
 }
@@ -26,17 +29,17 @@ function onBodyLoaded() {
 
     EventBridge.scriptEventReceived.connect(onScriptEventReceived);
 
-    enableRecording = document.getElementById("enable-recording");
-    enableRecording.onchange = function () {
+    elEnableRecording = document.getElementById("enable-recording");
+    elEnableRecording.onchange = function () {
         EventBridge.emitWebEvent(JSON.stringify({
             type: EVENT_BRIDGE_TYPE,
-            action: "enableRecording",
-            value: enableRecording.checked
+            action: ENABLE_RECORDING_ACTION,
+            value: elEnableRecording.checked
         }));
     };
 
     EventBridge.emitWebEvent(JSON.stringify({
         type: EVENT_BRIDGE_TYPE,
-        action: "bodyLoaded",
+        action: BODY_LOADED_ACTION
     }));
 }

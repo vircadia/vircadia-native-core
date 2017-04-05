@@ -20,7 +20,9 @@
         isRecording = false,
         tablet,
         button,
-        EVENT_BRIDGE_TYPE = "record";
+        EVENT_BRIDGE_TYPE = "record",
+        BODY_LOADED_ACTION = "bodyLoaded",
+        ENABLE_RECORDING_ACTION = "enableRecording";
 
     function startRecording() {
         isRecording = true;
@@ -37,17 +39,40 @@
         print("Abandon recording");
     }
 
-    function onTabletShownChanged() {
-        if (tablet.tabletShown) {
+    function onTabletScreenChanged(type, url) {
+        // Open/close dialog in tablet or window.
+
+        var RECORD_URL = "/scripts/system/html/record.html",
+            HOME_URL = "Tablet.qml";
+
+        if (type === "Home" && url === HOME_URL) {
+            // Start recording if recording is enabled.
+            if (!isRecording && isRecordingEnabled) {
+                startRecording();
+                button.editProperties({ isActive: isRecordingEnabled || isRecording });
+            }
+        } else if (type === "Web" && url.slice(-RECORD_URL.length) === RECORD_URL) {
             // Finish recording if is recording.
             if (isRecording) {
                 finishRecording();
                 button.editProperties({ isActive: isRecordingEnabled || isRecording });
             }
-        } else {
+        }
+    }
+
+    function onTabletShownChanged() {
+        // Open/close tablet.
+
+        if (!tablet.tabletShown) {
             // Start recording if recording is enabled.
-            if (isRecordingEnabled) {
+            if (!isRecording && isRecordingEnabled) {
                 startRecording();
+                button.editProperties({ isActive: isRecordingEnabled || isRecording });
+            }
+        } else {
+            // Finish recording if is recording.
+            if (isRecording) {
+                finishRecording();
                 button.editProperties({ isActive: isRecordingEnabled || isRecording });
             }
         }
@@ -56,15 +81,15 @@
     function onWebEventReceived(data) {
         var message = JSON.parse(data);
         if (message.type === EVENT_BRIDGE_TYPE) {
-            if (message.action === "bodyLoaded") {
+            if (message.action === BODY_LOADED_ACTION) {
                 tablet.emitScriptEvent(JSON.stringify({
                     type: EVENT_BRIDGE_TYPE,
-                    action: "enableRecording",
+                    action: ENABLE_RECORDING_ACTION,
                     value: isRecordingEnabled
                 }));
-
-            } else if (message.action === "enableRecording") {
+            } else if (message.action === ENABLE_RECORDING_ACTION) {
                 isRecordingEnabled = message.value;
+                button.editProperties({ isActive: isRecordingEnabled || isRecording });
             }
         }
     }
@@ -91,9 +116,9 @@
         // UI communications.
         tablet.webEventReceived.connect(onWebEventReceived);
 
-        // Track showing/hiding tablet.
+        // Track showing/hiding tablet/dialog.
+        tablet.screenChanged.connect(onTabletScreenChanged);
         tablet.tabletShownChanged.connect(onTabletShownChanged);
-
     }
 
     function tearDown() {
@@ -106,6 +131,7 @@
         }
         tablet.webEventReceived.disconnect(onWebEventReceived);
         tablet.tabletShownChanged.disconnect(onTabletShownChanged);
+        tablet.screenChanged.disconnect(onTabletScreenChanged);
         button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
     }
