@@ -1204,7 +1204,7 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
         } else {
             _animVars.unset("leftFootPosition");
             _animVars.unset("leftFootRotation");
-            _animVars.set("leftFootType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+            _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
         }
 
         if (params.isRightFootEnabled) {
@@ -1214,7 +1214,7 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
         } else {
             _animVars.unset("rightFootPosition");
             _animVars.unset("rightFootRotation");
-            _animVars.set("rightFootType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+            _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
         }
 
     }
