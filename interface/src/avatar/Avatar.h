@@ -210,6 +210,10 @@ public:
 
     bool hasNewJointData() const { return _hasNewJointData; }
 
+	inline float easeInOutQuad(float t) {
+		return((t < 0.5) ? (2*t*t) : (t*(4 - 2*t) - 1));
+	}
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
@@ -292,6 +296,15 @@ protected:
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 
+	// Smoothing data for blending from one position/orientation to another on remote agents.
+	float _smoothPositionTime;
+	float _smoothPositionTimer;
+	float _smoothOrientationTime;
+	float _smoothOrientationTimer;
+	glm::vec3 _smoothPositionInitial;
+	glm::vec3 _smoothPositionTarget;
+	glm::quat _smoothOrientationInitial;
+	glm::quat _smoothOrientationTarget;
 
 private:
     class AvatarEntityDataHash {
