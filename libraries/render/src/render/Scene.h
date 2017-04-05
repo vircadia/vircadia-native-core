@@ -19,6 +19,15 @@ namespace render {
 
 class Engine;
 
+// Transaction is the mechanism to make any change to the scene.
+// Whenever a new item need to be reset,
+// or when an item changes its position or its size
+// or when an item's payload has to be be updated with new states (coming from outside the scene knowledge)
+// or when an item is destroyed
+// These changes must be expressed through the corresponding command from the Transaction
+// THe Transaction is then queued on the Scene so all the pending transactions can be consolidated and processed at the time
+// of updating the scene before it s rendered.
+// 
 class Transaction {
 public:
     Transaction() {}
