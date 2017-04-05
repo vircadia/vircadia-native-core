@@ -22,7 +22,13 @@
         button,
         EVENT_BRIDGE_TYPE = "record",
         BODY_LOADED_ACTION = "bodyLoaded",
+        USING_TOOLBAR_ACTION = "usingToolbar",
         ENABLE_RECORDING_ACTION = "enableRecording";
+
+    function usingToolbar() {
+        return ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
+            || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar")));
+    }
 
     function startRecording() {
         isRecording = true;
@@ -86,6 +92,11 @@
                     type: EVENT_BRIDGE_TYPE,
                     action: ENABLE_RECORDING_ACTION,
                     value: isRecordingEnabled
+                }));
+                tablet.emitScriptEvent(JSON.stringify({
+                    type: EVENT_BRIDGE_TYPE,
+                    action: USING_TOOLBAR_ACTION,
+                    value: usingToolbar()
                 }));
             } else if (message.action === ENABLE_RECORDING_ACTION) {
                 isRecordingEnabled = message.value;

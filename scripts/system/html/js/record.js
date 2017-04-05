@@ -14,13 +14,18 @@ var elEnableRecording,
     elInstructions,
     EVENT_BRIDGE_TYPE = "record",
     BODY_LOADED_ACTION = "bodyLoaded",
-    ENABLE_RECORDING_ACTION = "enableRecording";
+    USING_TOOLBAR_ACTION = "usingToolbar",
+    ENABLE_RECORDING_ACTION = "enableRecording",
+    TABLET_INSTRUCTIONS = "Close the tablet to start recording",
+    WINDOW_INSTRUCTIONS = "Close the window to start recording";
 
 function onScriptEventReceived(data) {
     var message = JSON.parse(data);
     if (message.type === EVENT_BRIDGE_TYPE) {
         if (message.action === ENABLE_RECORDING_ACTION) {
             elEnableRecording.checked = message.value;
+        } else if (message.action === USING_TOOLBAR_ACTION) {
+            elInstructions.innerHTML = message.value ? WINDOW_INSTRUCTIONS : TABLET_INSTRUCTIONS;
         }
     }
 }
@@ -37,6 +42,8 @@ function onBodyLoaded() {
             value: elEnableRecording.checked
         }));
     };
+
+    elInstructions = document.getElementById("instructions");
 
     EventBridge.emitWebEvent(JSON.stringify({
         type: EVENT_BRIDGE_TYPE,
