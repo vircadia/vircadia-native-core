@@ -184,15 +184,6 @@ Rectangle {
                 }
             }
         }
-        MouseArea {
-            id: modelMouse
-            anchors.fill: parent
-            propagateComposedEvents: true
-            onClicked: {
-                newModelDialog.keyboardEnabled = false;
-                mouse.accepted = false;
-            }
-        }
     }
 
     Keyboard {
