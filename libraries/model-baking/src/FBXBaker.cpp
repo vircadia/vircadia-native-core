@@ -13,29 +13,44 @@
 #include <fbxsdk/scene/shading/fbxlayeredtexture.h>
 
 #include <QtCore/QFileInfo>
+#include <QThread>
 
 #include "FBXBaker.h"
 
 Q_LOGGING_CATEGORY(model_baking, "hifi.model-baking");
 
-FBXBaker::FBXBaker(std::string fbxPath) :
+FBXBaker::FBXBaker(QUrl fbxPath) :
     _fbxPath(fbxPath)
 {
     // create an FBX SDK manager
     _sdkManager = FbxManager::Create();
 }
 
-bool FBXBaker::bakeFBX() {
+FBXBaker::~FBXBaker() {
+    _sdkManager->Destroy();
+}
 
-    // load the scene from the FBX file
-    if (importScene()) {
-        // enumerate the textures found in the scene and bake them
-        rewriteAndCollectSceneTextures();
+void FBXBaker::start() {
+    // check if the FBX is local or first needs to be downloaded
+    if (_fbxPath.isLocalFile()) {
+        // local file, bake now
+        bake();
     } else {
-        return false;
+        // remote file, kick off a download
     }
+}
 
-    return true;
+void FBXBaker::bake() {
+    // (1) load the scene from the FBX file
+    // (2) enumerate the textures found in the scene and bake them
+    // (3) export the FBX with re-written texture references
+    // (4) enumerate the collected texture paths and bake the textures
+
+    // a failure at any step along the way stops the chain
+    importScene() && rewriteAndCollectSceneTextures() && exportScene() && bakeTextures();
+
+    // emit a signal saying that we are done, with whatever errors were produced
+    emit finished(_errorList);
 }
 
 bool FBXBaker::importScene() {
@@ -43,11 +58,11 @@ bool FBXBaker::importScene() {
     FbxImporter* importer = FbxImporter::Create(_sdkManager, "");
 
     // import the FBX file at the given path
-    bool importStatus = importer->Initialize(_fbxPath.c_str());
+    bool importStatus = importer->Initialize(_fbxPath.toLocalFile().toLocal8Bit().data());
 
     if (!importStatus) {
-        // failed to import the FBX file, print an error and return
-        qCDebug(model_baking) << "Failed to import FBX file at" << _fbxPath.c_str() << "- error:" << importer->GetStatus().GetErrorString();
+        // failed to initialize importer, print an error and return
+        qCDebug(model_baking) << "Failed to import FBX file at" << _fbxPath << "- error:" << importer->GetStatus().GetErrorString();
 
         return false;
     }
@@ -64,93 +79,89 @@ bool FBXBaker::importScene() {
     return true;
 }
 
-bool FBXBaker::rewriteAndCollectSceneTextures() {
-    // grab the root node from the scene
-    FbxNode* rootNode = _scene->GetRootNode();
-
-    if (rootNode) {
-        // enumerate the children of the root node
-        for (int i = 0; i < rootNode->GetChildCount(); ++i) {
-            FbxNode* node = rootNode->GetChild(i);
-
-            // check if this child is a mesh node
-            if (node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eMesh) {
-                FbxMesh* mesh = (FbxMesh*) node->GetNodeAttribute();
-
-                // make sure this mesh is valid
-                if (mesh->GetNode() != nullptr) {
-                    // figure out the number of materials in this mesh
-                    int numMaterials = mesh->GetNode()->GetSrcObjectCount<FbxSurfaceMaterial>();
-
-                    // enumerate the materials in this mesh
-                    for (int materialIndex = 0; materialIndex < numMaterials; materialIndex++) {
-                        // grab this material
-                        FbxSurfaceMaterial* material = mesh->GetNode()->GetSrcObject<FbxSurfaceMaterial>(materialIndex);
-
-                        if (material) {
-                            // enumerate the textures in this valid material
-                            int textureIndex;
-                            FBXSDK_FOR_EACH_TEXTURE(textureIndex) {
-                                // collect this texture so we know later to bake it
-                                FbxProperty property = material->FindProperty(FbxLayerElement::sTextureChannelNames[textureIndex]);
-                                if (property.IsValid()) {
-                                    rewriteAndCollectChannelTextures(property);
-                                }
-                            }
-
-                        }
-                    }
-
-                }
-            }
-        }
-    }
-
-    return true;
-}
-
-bool FBXBaker::rewriteAndCollectChannelTextures(FbxProperty& property) {
-    if (property.IsValid()) {
-        int textureCount = property.GetSrcObjectCount<FbxTexture>();
-
-        // enumerate the textures for this channel
-        for (int i = 0; i < textureCount; ++i) {
-            // check if this texture is layered
-            FbxLayeredTexture* layeredTexture = property.GetSrcObject<FbxLayeredTexture>(i);
-            if (layeredTexture) {
-                // enumerate the layers of the layered texture
-                int numberOfLayers = layeredTexture->GetSrcObjectCount<FbxTexture>();
-
-                for (int j = 0; j < numberOfLayers; ++j) {
-                    FbxTexture* texture = layeredTexture->GetSrcObject<FbxTexture>(j);
-                    rewriteAndCollectTexture(texture);
-                }
-            } else {
-                FbxTexture* texture = property.GetSrcObject<FbxTexture>(i);
-                rewriteAndCollectTexture(texture);
-            }
-        }
-    }
-
-    return true;
-}
-
 static const QString BAKED_TEXTURE_DIRECTORY = "textures";
-static const QString BAKED_TEXTURE_EXT = ".xtk";
+static const QString BAKED_TEXTURE_EXT = ".ktx";
 
-bool FBXBaker::rewriteAndCollectTexture(fbxsdk::FbxTexture* texture) {
-    FbxFileTexture* fileTexture = FbxCast<FbxFileTexture>(texture);
-    if (fileTexture) {
-        qCDebug(model_baking) << "Flagging" << fileTexture->GetRelativeFileName() << "for bake and re-mapping to .xtk in FBX";
+static const QString EXPORT_PATH { "/Users/birarda/code/hifi/lod/test-oven/export/DiscGolfBasket.ktx.fbx" };
 
-        // use QFileInfo to easily split up the existing texture filename into its components
-        QFileInfo textureFileInfo { fileTexture->GetRelativeFileName() };
+bool FBXBaker::rewriteAndCollectSceneTextures() {
+    // get a count of the textures used in the scene
+    int numTextures = _scene->GetTextureCount();
 
-        // construct the new baked texture file name
-        QString bakedTextureFileName { BAKED_TEXTURE_DIRECTORY + "/" + textureFileInfo.baseName() + BAKED_TEXTURE_EXT };
+    // enumerate the textures in the scene
+    for (int i = 0; i < numTextures; i++) {
+        // grab each file texture
+        FbxFileTexture* fileTexture = FbxCast<FbxFileTexture>(_scene->GetTexture(i));
 
-        // write the new filename into the FBX scene
-        fileTexture->SetRelativeFileName(bakedTextureFileName.toLocal8Bit());
+        if (fileTexture) {
+            // use QFileInfo to easily split up the existing texture filename into its components
+            QFileInfo textureFileInfo { fileTexture->GetFileName() };
+
+            // make sure this texture points to something
+            if (!textureFileInfo.filePath().isEmpty()) {
+
+                // construct the new baked texture file name and file path
+                QString bakedTextureFileName { textureFileInfo.baseName() + BAKED_TEXTURE_EXT };
+                QString bakedTextureFilePath { QFileInfo(EXPORT_PATH).absolutePath() + "/textures/" + bakedTextureFileName };
+
+                qCDebug(model_baking).noquote() << "Re-mapping" << fileTexture->GetFileName() << "to" << bakedTextureFilePath;
+
+                // write the new filename into the FBX scene
+                fileTexture->SetFileName(bakedTextureFilePath.toLocal8Bit());
+
+                // add the texture to the list of textures needing to be baked
+                if (textureFileInfo.exists() && textureFileInfo.isFile()) {
+                    // append the URL to the local texture that we have confirmed exists
+                    _unbakedTextures.append(QUrl::fromLocalFile(textureFileInfo.absoluteFilePath()));
+                } else {
+
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+bool FBXBaker::exportScene() {
+    // setup the exporter
+    FbxExporter* exporter = FbxExporter::Create(_sdkManager, "");
+
+    bool exportStatus = exporter->Initialize(EXPORT_PATH.toLocal8Bit().data());
+
+    if (!exportStatus) {
+        // failed to initialize exporter, print an error and return
+         qCDebug(model_baking) << "Failed to export FBX file at" << _fbxPath
+            << "to" << EXPORT_PATH << "- error:" << exporter->GetStatus().GetErrorString();
+
+        return false;
+    }
+
+    // export the scene
+    exporter->Export(_scene);
+
+    return true;
+}
+
+bool FBXBaker::bakeTextures() {
+    // enumerate the list of unbaked textures
+    foreach(const QUrl& textureUrl, _unbakedTextures) {
+        qCDebug(model_baking) << "Baking texture at" << textureUrl;
+
+        if (textureUrl.isLocalFile()) {
+            // this is a local file that we've already determined is available on the filesystem
+
+            // load the file
+            QFile localTexture { textureUrl.toLocalFile() };
+
+            if (!localTexture.open(QIODevice::ReadOnly)) {
+                // add an error to the list stating that this texture couldn't be baked because it could not be loaded
+            }
+
+            // call the image library to produce a compressed KTX for this image
+        } else {
+            // this is a remote texture that we'll need to download first
+        }
     }
 
     return true;
