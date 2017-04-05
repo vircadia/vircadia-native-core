@@ -447,7 +447,15 @@ QByteArray fixedTextureFilepath(QByteArray fbxRelativeFilepath, QUrl url) {
     // first setup a QFileInfo for the passed relative filepath, with backslashes replaced by forward slashes
     auto fileInfo = QFileInfo { fbxRelativeFilepath.replace("\\", "/") };
 
-    if (fileInfo.isRelative()) {
+#ifndef Q_OS_WIN
+    // it turns out that absolute windows paths starting with drive letters look like relative paths to QFileInfo on UNIX
+    // so we add a check for that here to work around it
+    bool isRelative = fbxRelativeFilepath[1] != ':' && fileInfo.isRelative();
+#else
+    bool isRelative = fileInfo.isRelative();
+#endif
+
+    if (isRelative) {
         // the RelativeFilename pulled from the FBX is already correctly relative
         // so simply return this as the filepath to use
         return fbxRelativeFilepath;
