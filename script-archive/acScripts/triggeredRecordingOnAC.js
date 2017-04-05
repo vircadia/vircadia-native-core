@@ -42,10 +42,13 @@ var playRecording = function() {
     Recording.setPlayerLoop(false);
     Recording.setPlayerTime(STARTING_TIME);
     Recording.setPlayerAudioOffset(AUDIO_OFFSET);
-    Recording.loadRecording(CLIP_URL);
-    Recording.startPlaying();
-    isPlaying = true;
-    isPlayable = false; // Set this true again after the cooldown period
+    Recording.loadRecording(CLIP_URL, function(success) {
+        if (success) {
+            Recording.startPlaying();
+            isPlaying = true;
+            isPlayable = false; // Set this true again after the cooldown period
+        }
+    });
 };
 
 Script.update.connect(function(deltaTime) {
