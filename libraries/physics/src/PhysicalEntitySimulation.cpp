@@ -96,7 +96,7 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     if (motionState) {
         if (!entity->shouldBePhysical()) {
             // the entity should be removed from the physical simulation
-            _transaction.remove(motionState);
+            _pendingChanges.remove(motionState);
             _physicalObjects.remove(motionState);
             _outgoingChanges.remove(motionState);
             _entitiesToRemoveFromPhysics.insert(entity);
@@ -104,7 +104,7 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
                 _simpleKinematicEntities.insert(entity);
             }
         } else {
-            _transaction.insert(motionState);
+            _pendingChanges.insert(motionState);
         }
     } else if (entity->shouldBePhysical()) {
         // The intent is for this object to be in the PhysicsEngine, but it has no MotionState yet.
@@ -148,7 +148,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     _entitiesToRemoveFromPhysics.clear();
     _entitiesToRelease.clear();
     _entitiesToAddToPhysics.clear();
-    _transaction.clear();
+    _pendingChanges.clear();
     _outgoingChanges.clear();
 }
 
@@ -170,7 +170,7 @@ void PhysicalEntitySimulation::getObjectsToRemoveFromPhysics(VectorOfMotionState
 
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
-            _transaction.remove(motionState);
+            _pendingChanges.remove(motionState);
             _outgoingChanges.remove(motionState);
             _physicalObjects.remove(motionState);
             result.push_back(motionState);
@@ -246,18 +246,18 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
 void PhysicalEntitySimulation::setObjectsToChange(const VectorOfMotionStates& objectsToChange) {
     QMutexLocker lock(&_mutex);
     for (auto object : objectsToChange) {
-        _transaction.insert(static_cast<EntityMotionState*>(object));
+        _pendingChanges.insert(static_cast<EntityMotionState*>(object));
     }
 }
 
 void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) {
     result.clear();
     QMutexLocker lock(&_mutex);
-    for (auto stateItr : _transaction) {
+    for (auto stateItr : _pendingChanges) {
         EntityMotionState* motionState = &(*stateItr);
         result.push_back(motionState);
     }
-    _transaction.clear();
+    _pendingChanges.clear();
 }
 
 void PhysicalEntitySimulation::handleDeactivatedMotionStates(const VectorOfMotionStates& motionStates) {

@@ -53,8 +53,8 @@ namespace Setting {
         const auto& key = handle->getKey();
         withWriteLock([&] {
             QVariant loadedValue;
-            if (_transaction.contains(key) && _transaction[key] != UNSET_VALUE) {
-                loadedValue = _transaction[key];
+            if (_pendingChanges.contains(key) && _pendingChanges[key] != UNSET_VALUE) {
+                loadedValue = _pendingChanges[key];
             } else {
                 loadedValue = value(key);
             }
@@ -73,7 +73,7 @@ namespace Setting {
         }
 
         withWriteLock([&] {
-            _transaction[key] = handleValue;
+            _pendingChanges[key] = handleValue;
         });
     }
 
@@ -98,8 +98,8 @@ namespace Setting {
     void Manager::saveAll() {
         bool forceSync = false;
         withWriteLock([&] {
-            for (auto key : _transaction.keys()) {
-                auto newValue = _transaction[key];
+            for (auto key : _pendingChanges.keys()) {
+                auto newValue = _pendingChanges[key];
                 auto savedValue = value(key, UNSET_VALUE);
                 if (newValue == savedValue) {
                     continue;
@@ -112,7 +112,7 @@ namespace Setting {
                     setValue(key, newValue);
                 }
             }
-            _transaction.clear();
+            _pendingChanges.clear();
         });
 
         if (forceSync) {

@@ -34,7 +34,7 @@ public:
     void updateItem(ItemID id, const UpdateFunctorPointer& functor);
     void updateItem(ItemID id) { updateItem(id, nullptr); }
 
-    void merge(const Transaction& change);
+    void merge(const Transaction& transaction);
 
     ItemIDs _resetItems; 
     Payloads _resetPayloads;

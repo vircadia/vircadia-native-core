@@ -35,12 +35,12 @@ void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
     _updateFunctors.push_back(functor);
 }
 
-void Transaction::merge(const Transaction& change) {
-    _resetItems.insert(_resetItems.end(), change._resetItems.begin(), change._resetItems.end());
-    _resetPayloads.insert(_resetPayloads.end(), change._resetPayloads.begin(), change._resetPayloads.end());
-    _removedItems.insert(_removedItems.end(), change._removedItems.begin(), change._removedItems.end());
-    _updatedItems.insert(_updatedItems.end(), change._updatedItems.begin(), change._updatedItems.end());
-    _updateFunctors.insert(_updateFunctors.end(), change._updateFunctors.begin(), change._updateFunctors.end());
+void Transaction::merge(const Transaction& transaction) {
+    _resetItems.insert(_resetItems.end(), transaction._resetItems.begin(), transaction._resetItems.end());
+    _resetPayloads.insert(_resetPayloads.end(), transaction._resetPayloads.begin(), transaction._resetPayloads.end());
+    _removedItems.insert(_removedItems.end(), transaction._removedItems.begin(), transaction._removedItems.end());
+    _updatedItems.insert(_updatedItems.end(), transaction._updatedItems.begin(), transaction._updatedItems.end());
+    _updateFunctors.insert(_updateFunctors.end(), transaction._updateFunctors.begin(), transaction._updateFunctors.end());
 }
 
 Scene::Scene(glm::vec3 origin, float size) :
