@@ -16,6 +16,7 @@
         APP_ICON_INACTIVE = "icons/tablet-icons/edit-i.svg",  // FIXME: Record icon.
         APP_ICON_ACTIVE = "icons/tablet-icons/edit-a.svg",  // FIXME: Record icon.
         APP_URL = Script.resolvePath("html/record.html"),
+        isDialogDisplayed = false,
         isRecordingEnabled = false,
         isRecording = false,
         tablet,
@@ -57,6 +58,7 @@
                 startRecording();
                 button.editProperties({ isActive: isRecordingEnabled || isRecording });
             }
+            isDialogDisplayed = false;
         } else if (type === "Web" && url.slice(-RECORD_URL.length) === RECORD_URL) {
             // Finish recording if is recording.
             if (isRecording) {
@@ -68,6 +70,7 @@
 
     function onTabletShownChanged() {
         // Open/close tablet.
+        isDialogDisplayed = false;
 
         if (!tablet.tabletShown) {
             // Start recording if recording is enabled.
@@ -106,7 +109,14 @@
     }
 
     function onButtonClicked() {
-        tablet.gotoWebScreen(APP_URL);
+        if (isDialogDisplayed) {
+            // Can click icon in toolbar mode; gotoHomeScreen() closes dialog.
+            tablet.gotoHomeScreen();  
+            isDialogDisplayed = false;
+        } else {
+            tablet.gotoWebScreen(APP_URL);
+            isDialogDisplayed = true;
+        }
     }
 
     function setUp() {
