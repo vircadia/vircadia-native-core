@@ -228,20 +228,20 @@ namespace render {
 }
 
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
-                                            render::PendingChanges& pendingChanges) {
+                                            render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
 
     auto renderData = std::make_shared<RenderableModelEntityItemMeta>(self);
     auto renderPayload = std::make_shared<RenderableModelEntityItemMeta::Payload>(renderData);
 
-    pendingChanges.resetItem(_myMetaItem, renderPayload);
+    transaction.resetItem(_myMetaItem, renderPayload);
 
     if (_model) {
         render::Item::Status::Getters statusGetters;
         makeEntityItemStatusGetters(getThisPointer(), statusGetters);
 
         // note: we don't mind if the model fails to add, we'll retry (in render()) until it succeeds
-        _model->addToScene(scene, pendingChanges, statusGetters);
+        _model->addToScene(scene, transaction, statusGetters);
     }
 
     // we've successfully added _myMetaItem so we always return true
@@ -249,11 +249,11 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
 }
 
 void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
-                                                render::PendingChanges& pendingChanges) {
-    pendingChanges.removeItem(_myMetaItem);
+                                                render::Transaction& transaction) {
+    transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
     if (_model) {
-        _model->removeFromScene(scene, pendingChanges);
+        _model->removeFromScene(scene, transaction);
     }
 }
 
@@ -467,15 +467,15 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         }
 
         if (_model->needsFixupInScene()) {
-            render::PendingChanges pendingChanges;
+            render::Transaction transaction;
 
-            _model->removeFromScene(scene, pendingChanges);
+            _model->removeFromScene(scene, transaction);
 
             render::Item::Status::Getters statusGetters;
             makeEntityItemStatusGetters(getThisPointer(), statusGetters);
-            _model->addToScene(scene, pendingChanges, statusGetters);
+            _model->addToScene(scene, transaction, statusGetters);
 
-            scene->enqueuePendingChanges(pendingChanges);
+            scene->enqueueTransaction(transaction);
         }
 
         auto& currentURL = getParsedModelURL();
@@ -525,9 +525,9 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
     } else if (_model) {
         // remove from scene
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-        render::PendingChanges pendingChanges;
-        _model->removeFromScene(scene, pendingChanges);
-        scene->enqueuePendingChanges(pendingChanges);
+        render::Transaction transaction;
+        _model->removeFromScene(scene, transaction);
+        scene->enqueueTransaction(transaction);
 
         // release interest
         _myRenderer->releaseModel(_model);
@@ -1226,10 +1226,10 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
             }
 
             render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-            render::PendingChanges pendingChanges;
+            render::Transaction transaction;
 
-            pendingChanges.updateItem(myMetaItem);
-            scene->enqueuePendingChanges(pendingChanges);
+            transaction.updateItem(myMetaItem);
+            scene->enqueueTransaction(transaction);
         });
     }
 }

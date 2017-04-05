@@ -19,10 +19,10 @@ namespace render {
 
 class Engine;
 
-class PendingChanges {
+class Transaction {
 public:
-    PendingChanges() {}
-    ~PendingChanges() {}
+    Transaction() {}
+    ~Transaction() {}
 
     void resetItem(ItemID id, const PayloadPointer& payload);
     void removeItem(ItemID id);
@@ -34,7 +34,7 @@ public:
     void updateItem(ItemID id, const UpdateFunctorPointer& functor);
     void updateItem(ItemID id) { updateItem(id, nullptr); }
 
-    void merge(const PendingChanges& changes);
+    void merge(const Transaction& change);
 
     ItemIDs _resetItems; 
     Payloads _resetPayloads;
@@ -44,12 +44,12 @@ public:
 
 protected:
 };
-typedef std::queue<PendingChanges> PendingChangesQueue;
+typedef std::queue<Transaction> TransactionQueue;
 
 
 // Scene is a container for Items
-// Items are introduced, modified or erased in the scene through PendingChanges
-// Once per Frame, the PendingChanges are all flushed
+// Items are introduced, modified or erased in the scene through Transaction
+// Once per Frame, the Transaction are all flushed
 // During the flush the standard buckets are updated
 // Items are notified accordingly on any update message happening
 class Scene {
@@ -67,10 +67,10 @@ public:
     size_t getNumItems() const { return _numAllocatedItems.load(); }
 
     // Enqueue change batch to the scene
-    void enqueuePendingChanges(const PendingChanges& pendingChanges);
+    void enqueueTransaction(const Transaction& transaction);
 
-    // Process the penging changes equeued
-    void processPendingChangesQueue();
+    // Process the pending transactions equeued
+    void processTransactionQueue();
 
     // This next call are  NOT threadsafe, you have to call them from the correct thread to avoid any potential issues
 
@@ -91,8 +91,8 @@ protected:
     // Thread safe elements that can be accessed from anywhere
     std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
     std::atomic<unsigned int> _numAllocatedItems{ 1 }; // num of allocated items, matching the _items.size()
-    std::mutex _changeQueueMutex;
-    PendingChangesQueue _changeQueue;
+    std::mutex _transactionQueueMutex;
+    TransactionQueue _transactionQueue;
 
     // The actual database
     // database of items is protected for editing by a mutex

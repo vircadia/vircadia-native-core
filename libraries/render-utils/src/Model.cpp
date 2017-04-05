@@ -235,9 +235,9 @@ void Model::updateRenderItems() {
 
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
-            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter](ModelMeshPartPayload& data) {
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter](ModelMeshPartPayload& data) {
                 if (data._model && data._model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == data._model->_deleteGeometryCounter) {
@@ -259,14 +259,14 @@ void Model::updateRenderItems() {
         Transform collisionMeshOffset;
         collisionMeshOffset.setIdentity();
         Transform modelTransform = self->getTransform();
-		foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
-            pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
+        foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
+            transaction.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
                 data.updateTransform(modelTransform, collisionMeshOffset);
             });
         }
 
-        scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueueTransaction(transaction);
     });
 }
 
@@ -538,14 +538,14 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
     if (_isVisible != newValue) {
         _isVisible = newValue;
 
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-            pendingChanges.resetItem(item, _modelMeshRenderItemsMap[item]);
+            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
         }
-		foreach(auto item, _collisionRenderItemsMap.keys()) {
-			pendingChanges.resetItem(item, _collisionRenderItemsMap[item]);
+        foreach(auto item, _collisionRenderItemsMap.keys()) {
+            transaction.resetItem(item, _collisionRenderItemsMap[item]);
         }
-        scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueueTransaction(transaction);
     }
 }
 
@@ -554,19 +554,19 @@ void Model::setLayeredInFront(bool layered, std::shared_ptr<render::Scene> scene
     if (_isLayeredInFront != layered) {
         _isLayeredInFront = layered;
 
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            pendingChanges.resetItem(item, _modelMeshRenderItemsMap[item]);
+            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
         }
-		foreach(auto item, _collisionRenderItemsMap.keys()) {
-			pendingChanges.resetItem(item, _collisionRenderItemsMap[item]);
+        foreach(auto item, _collisionRenderItemsMap.keys()) {
+            transaction.resetItem(item, _collisionRenderItemsMap[item]);
         }
-        scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueueTransaction(transaction);
     }
 }
 
 bool Model::addToScene(std::shared_ptr<render::Scene> scene,
-                       render::PendingChanges& pendingChanges,
+                       render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters) {
     bool readyToRender = _collisionGeometry || isLoaded();
     if (!_addedToScene && readyToRender) {
@@ -579,11 +579,11 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
             foreach (auto renderItem, _collisionRenderItems) {
                 auto item = scene->allocateID();
                 auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-				if (_collisionRenderItems.empty() && statusGetters.size()) {
+                if (_collisionRenderItems.empty() && statusGetters.size()) {
                     renderPayload->addStatusGetters(statusGetters);
                 }
-                pendingChanges.resetItem(item, renderPayload);
-				_collisionRenderItemsMap.insert(item, renderPayload);
+                transaction.resetItem(item, renderPayload);
+                _collisionRenderItemsMap.insert(item, renderPayload);
             }
             somethingAdded = !_collisionRenderItems.empty();
         }
@@ -595,10 +595,10 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
             foreach(auto renderItem, _modelMeshRenderItems) {
                 auto item = scene->allocateID();
                 auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-				if (_modelMeshRenderItemsMap.empty() && statusGetters.size()) {
+                if (_modelMeshRenderItemsMap.empty() && statusGetters.size()) {
                     renderPayload->addStatusGetters(statusGetters);
                 }
-                pendingChanges.resetItem(item, renderPayload);
+                transaction.resetItem(item, renderPayload);
 
                 hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
                 verticesCount += renderItem.get()->getVerticesCount();
@@ -622,16 +622,16 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
     return somethingAdded;
 }
 
-void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
     foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-        pendingChanges.removeItem(item);
+        transaction.removeItem(item);
     }
     _modelMeshRenderItemIDs.clear();
     _modelMeshRenderItemsMap.clear();
     _modelMeshRenderItems.clear();
 
-	foreach(auto item, _collisionRenderItemsMap.keys()) {
-        pendingChanges.removeItem(item);
+    foreach(auto item, _collisionRenderItemsMap.keys()) {
+        transaction.removeItem(item);
     }
     _collisionRenderItems.clear();
     _collisionRenderItems.clear();
@@ -794,11 +794,11 @@ void Model::setURL(const QUrl& url) {
     _url = url;
 
     {
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
         if (scene) {
-            removeFromScene(scene, pendingChanges);
-            scene->enqueuePendingChanges(pendingChanges);
+            removeFromScene(scene, transaction);
+            scene->enqueueTransaction(transaction);
         } else {
             qCWarning(renderutils) << "Model::setURL(), Unexpected null scene, possibly during application shutdown";
         }
@@ -1279,17 +1279,17 @@ bool Model::initWhenReady(render::ScenePointer scene) {
 
     createRenderItemSet();
 
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
 
-    bool addedPendingChanges = false;
+    bool addedTransaction = false;
     if (_collisionGeometry) {
         foreach (auto renderItem, _collisionRenderItems) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
             _collisionRenderItemsMap.insert(item, renderPayload);
-            pendingChanges.resetItem(item, renderPayload);
+            transaction.resetItem(item, renderPayload);
         }
-        addedPendingChanges = !_collisionRenderItems.empty();
+        addedTransaction = !_collisionRenderItems.empty();
     } else {
         bool hasTransparent = false;
         size_t verticesCount = 0;
@@ -1300,17 +1300,17 @@ bool Model::initWhenReady(render::ScenePointer scene) {
             hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
             verticesCount += renderItem.get()->getVerticesCount();
             _modelMeshRenderItemsMap.insert(item, renderPayload);
-            pendingChanges.resetItem(item, renderPayload);
+            transaction.resetItem(item, renderPayload);
         }
-        addedPendingChanges = !_modelMeshRenderItemsMap.empty();
+        addedTransaction = !_modelMeshRenderItemsMap.empty();
         _renderInfoVertexCount = verticesCount;
         _renderInfoDrawCalls = _modelMeshRenderItemsMap.count();
         _renderInfoHasTransparent = hasTransparent;
     }
-    _addedToScene = addedPendingChanges;
-    if (addedPendingChanges) {
-        scene->enqueuePendingChanges(pendingChanges);
-        // NOTE: updateRender items enqueues identical pendingChanges (using a lambda)
+    _addedToScene = addedTransaction;
+    if (addedTransaction) {
+        scene->enqueueTransaction(transaction);
+        // NOTE: updateRender items enqueues identical transaction (using a lambda)
         // so it looks like we're doing double work here, but I don't want to remove the call
         // for fear there is some side effect we'll miss. -- Andrew 2016.07.21
         // TODO: figure out if we really need this call to updateRenderItems() or not.

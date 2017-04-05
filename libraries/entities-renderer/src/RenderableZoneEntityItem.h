@@ -38,8 +38,8 @@ public:
     virtual void render(RenderArgs* args) override;
     virtual bool contains(const glm::vec3& point) const override;
     
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
     
 private:
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }

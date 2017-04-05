@@ -43,7 +43,7 @@ public:
     void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
-    void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
+    void updateRendering(RenderArgs* args, render::ScenePointer scene, render::Transaction transaction);
 
     void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
 

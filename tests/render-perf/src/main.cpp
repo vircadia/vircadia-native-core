@@ -880,7 +880,7 @@ private:
         getEntities()->update();
 
         // The pending changes collecting the changes here
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
 
         // FIXME: Move this out of here!, Background / skybox should be driven by the enityt content just like the other entities
         // Background rendering decision
@@ -888,7 +888,7 @@ private:
             auto backgroundRenderData = std::make_shared<BackgroundRenderData>();
             auto backgroundRenderPayload = std::make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
             BackgroundRenderData::_item = _main3DScene->allocateID();
-            pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
+            transaction.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
         }
         // Setup the current Zone Entity lighting
         {
@@ -897,10 +897,10 @@ private:
         }
 
         {
-            PerformanceTimer perfTimer("SceneProcessPendingChanges");
-            _main3DScene->enqueuePendingChanges(pendingChanges);
+            PerformanceTimer perfTimer("SceneProcessTransaction");
+            _main3DScene->enqueueTransaction(transaction);
 
-            _main3DScene->processPendingChangesQueue();
+            _main3DScene->processTransactionQueue();
         }
 
     }
@@ -914,13 +914,13 @@ private:
         PROFILE_RANGE(render, __FUNCTION__);
         PerformanceTimer perfTimer("draw");
         // The pending changes collecting the changes here
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         // Setup the current Zone Entity lighting
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(_sunSkyStage.getSunLight());
         {
-            PerformanceTimer perfTimer("SceneProcessPendingChanges");
-            _main3DScene->enqueuePendingChanges(pendingChanges);
-            _main3DScene->processPendingChangesQueue();
+            PerformanceTimer perfTimer("SceneProcessTransaction");
+            _main3DScene->enqueueTransaction(transaction);
+            _main3DScene->processTransactionQueue();
         }
 
         // For now every frame pass the renderContext

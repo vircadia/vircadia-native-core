@@ -5036,7 +5036,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // TODO fix shadows and make them use the GPU library
 
     // The pending changes collecting the changes here
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
 
     // FIXME: Move this out of here!, Background / skybox should be driven by the enityt content just like the other entities
     // Background rendering decision
@@ -5044,7 +5044,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         auto backgroundRenderData = make_shared<BackgroundRenderData>();
         auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
-        pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
+        transaction.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
     }
 
     // Assuming nothing get's rendered through that
@@ -5062,7 +5062,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                     static_cast<int>(RenderArgs::RENDER_DEBUG_HULLS));
             }
             renderArgs->_debugFlags = renderDebugFlags;
-            //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, pendingChanges);
+            //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, transaction);
         }
     }
 
@@ -5074,9 +5074,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         WorldBoxRenderData::_item = _main3DScene->allocateID();
 
-        pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
+        transaction.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     } else {
-        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
+        transaction.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
             [](WorldBoxRenderData& payload) {
             payload._val++;
         });
@@ -5089,10 +5089,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     {
-        PerformanceTimer perfTimer("SceneProcessPendingChanges");
-        _main3DScene->enqueuePendingChanges(pendingChanges);
+        PerformanceTimer perfTimer("SceneProcessTransaction");
+        _main3DScene->enqueueTransaction(transaction);
 
-        _main3DScene->processPendingChangesQueue();
+        _main3DScene->processTransactionQueue();
     }
 
     // For now every frame pass the renderContext
@@ -5786,10 +5786,22 @@ void Application::toggleRunningScriptsWidget() const {
 }
 
 void Application::showScriptLogs() {
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     QUrl defaultScriptsLoc = defaultScriptsLocation();
     defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
-    scriptEngines->loadScript(defaultScriptsLoc.toString());
+
+    if (tablet->getToolbarMode()) {
+        scriptEngines->loadScript(defaultScriptsLoc.toString());
+    } else {
+        QQuickItem* tabletRoot = tablet->getTabletRoot();
+        if (!tabletRoot && !isHMDMode()) {
+            scriptEngines->loadScript(defaultScriptsLoc.toString());
+        } else {
+            tablet->pushOntoStack("../../hifi/dialogs/TabletDebugWindow.qml");
+        }
+    }
 }
 
 void Application::showAssetServerWidget(QString filePath) {

@@ -127,11 +127,11 @@ void EntityTreeRenderer::clear() {
     // remove all entities from the scene
     auto scene = _viewState->getMain3DScene();
     if (scene) {
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         foreach(auto entity, _entitiesInScene) {
-            entity->removeFromScene(entity, scene, pendingChanges);
+            entity->removeFromScene(entity, scene, transaction);
         }
-        scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueueTransaction(transaction);
     } else {
         qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
     }
@@ -951,11 +951,11 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     // here's where we remove the entity payload from the scene
     if (_entitiesInScene.contains(entityID)) {
         auto entity = _entitiesInScene.take(entityID);
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         auto scene = _viewState->getMain3DScene();
         if (scene) {
-            entity->removeFromScene(entity, scene, pendingChanges);
-            scene->enqueuePendingChanges(pendingChanges);
+            entity->removeFromScene(entity, scene, transaction);
+            scene->enqueueTransaction(transaction);
         } else {
             qCWarning(entitiesrenderer) << "EntityTreeRenderer::deletingEntity(), Unexpected null scene, possibly during application shutdown";
         }
@@ -973,13 +973,13 @@ void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
 
 void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
     // here's where we add the entity payload to the scene
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
     auto scene = _viewState->getMain3DScene();
     if (scene) {
-        if (entity->addToScene(entity, scene, pendingChanges)) {
+        if (entity->addToScene(entity, scene, transaction)) {
             _entitiesInScene.insert(entity->getEntityItemID(), entity);
         }
-        scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueueTransaction(transaction);
     } else {
         qCWarning(entitiesrenderer) << "EntityTreeRenderer::addEntityToScene(), Unexpected null scene, possibly during application shutdown";
     }

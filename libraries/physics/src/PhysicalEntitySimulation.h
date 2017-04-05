@@ -67,7 +67,7 @@ private:
     SetOfEntities _entitiesToRelease;
     SetOfEntities _entitiesToAddToPhysics;
 
-    SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
+    SetOfEntityMotionStates _transaction; // EntityMotionStates already in PhysicsEngine that need their physics changed
     SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we may need to send updates to entity-server
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine

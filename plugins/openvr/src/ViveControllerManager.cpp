@@ -145,7 +145,7 @@ void ViveControllerManager::deactivate() {
     _registeredWithInputMapper = false;
 }
 
-void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges) {
+void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePointer scene, render::Transaction transaction) {
     PerformanceTimer perfTimer("ViveControllerManager::updateRendering");
 
     /*
@@ -154,9 +154,9 @@ void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePoint
         //auto controllerPayloadPointer = ViveControllerManager::PayloadPointer(controllerPayload);
         //if (_leftHandRenderID == 0) {
         //    _leftHandRenderID = scene->allocateID();
-        //    pendingChanges.resetItem(_leftHandRenderID, controllerPayloadPointer);
+        //    transaction.resetItem(_leftHandRenderID, controllerPayloadPointer);
         //}
-        //pendingChanges.updateItem(_leftHandRenderID, );
+        //transaction.updateItem(_leftHandRenderID, );
 
 
         controller::Pose leftHand = _inputDevice->_poseStateMap[controller::StandardPoseChannel::LEFT_HAND];
