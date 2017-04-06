@@ -496,21 +496,21 @@ void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
                                     static const quat kinectToHandRight = glm::angleAxis(-PI / 2.0f, Vectors::UNIT_Y);
                                     // add moving average of orientation quaternion 
                                     glm::quat jointSample = jointOrientation * kinectToHandRight;
-                                    if (glm::dot(jointSample, _RightHandOrientationAverage.average) < 0) {
+                                    if (glm::dot(jointSample, _RightHandOrientationAverage.getAverage()) < 0) {
                                         jointSample = -jointSample;
                                     }
                                     _RightHandOrientationAverage.addSample(jointSample);
-                                    _joints[j].orientation = glm::normalize(_RightHandOrientationAverage.average);
+                                    _joints[j].orientation = glm::normalize(_RightHandOrientationAverage.getAverage());
                                 }  else if (joints[j].JointType == JointType_HandLeft) {
                                     // To transform from Kinect to our LEFT  Hand.... Postive 90 deg around Y
                                     static const quat kinectToHandLeft = glm::angleAxis(PI / 2.0f, Vectors::UNIT_Y);
                                     // add moving average of orientation quaternion 
                                     glm::quat jointSample = jointOrientation * kinectToHandLeft;
-                                    if (glm::dot(jointSample, _LeftHandOrientationAverage.average) < 0) {
+                                    if (glm::dot(jointSample, _LeftHandOrientationAverage.getAverage()) < 0) {
                                         jointSample = -jointSample;
                                     }
                                     _LeftHandOrientationAverage.addSample(jointSample);
-                                    _joints[j].orientation = glm::normalize(_LeftHandOrientationAverage.average);
+                                    _joints[j].orientation = glm::normalize(_LeftHandOrientationAverage.getAverage());
                                 } else {
                                     _joints[j].orientation = jointOrientation;
                                 }

@@ -62,8 +62,8 @@ public:
 private:
     // add variables for moving average
 
-    MovingAverage<glm::quat, 2> _LeftHandOrientationAverage;
-    MovingAverage<glm::quat, 2> _RightHandOrientationAverage;
+    ThreadSafeMovingAverage<glm::quat, 2> _LeftHandOrientationAverage;
+    ThreadSafeMovingAverage<glm::quat, 2> _RightHandOrientationAverage;
 
 protected:
 
