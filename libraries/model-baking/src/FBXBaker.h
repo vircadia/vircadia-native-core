@@ -20,8 +20,27 @@ namespace fbxsdk {
     class FbxManager;
     class FbxProperty;
     class FbxScene;
-    class FbxTexture;
+    class FbxFileTexture;
 }
+
+enum TextureType {
+    DEFAULT_TEXTURE,
+    STRICT_TEXTURE,
+    ALBEDO_TEXTURE,
+    NORMAL_TEXTURE,
+    BUMP_TEXTURE,
+    SPECULAR_TEXTURE,
+    METALLIC_TEXTURE = SPECULAR_TEXTURE, // for now spec and metallic texture are the same, converted to grey
+    ROUGHNESS_TEXTURE,
+    GLOSS_TEXTURE,
+    EMISSIVE_TEXTURE,
+    CUBE_TEXTURE,
+    OCCLUSION_TEXTURE,
+    SCATTERING_TEXTURE = OCCLUSION_TEXTURE,
+    LIGHTMAP_TEXTURE,
+    CUSTOM_TEXTURE,
+    UNUSED_TEXTURE = -1
+};
 
 class TextureBaker;
 
@@ -49,6 +68,9 @@ private:
     bool exportScene();
     bool removeEmbeddedMediaFolder();
 
+    QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
+    QUrl getTextureURL(const QFileInfo& textureFileInfo, fbxsdk::FbxFileTexture* fileTexture);
+
     void bakeTexture(const QUrl& textureURL);
 
     QString pathToCopyOfOriginal() const;
@@ -66,8 +88,7 @@ private:
 
     QHash<QUrl, QString> _unbakedTextures;
     QHash<QString, int> _textureNameMatchCount;
-
-    QHash<QUrl, QByteArray> _downloadedTextures;
+    QHash<uint64_t, TextureType> _textureTypes;
 
     std::list<std::unique_ptr<TextureBaker>> _bakingTextures;
 };

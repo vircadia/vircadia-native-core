@@ -17,7 +17,7 @@ static const QString OUTPUT_FOLDER = "/Users/birarda/code/hifi/lod/test-oven/exp
 
 Oven::Oven(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
-    _testBake(QUrl("file:///Users/birarda/code/hifi/lod/test-oven/DiscGolfBasket.fbx"), OUTPUT_FOLDER)
+    _testBake(QUrl("file:///Users/birarda/code/hifi/lod/test-oven/Test-Object6.fbx"), OUTPUT_FOLDER)
 {
     _testBake.start();
 }

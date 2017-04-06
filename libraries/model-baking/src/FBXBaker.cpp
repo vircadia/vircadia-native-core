@@ -202,105 +202,190 @@ QString texturePathRelativeToFBX(QUrl fbxURL, QUrl textureURL) {
     }
 }
 
-bool FBXBaker::rewriteAndBakeSceneTextures() {
-    // get a count of the textures used in the scene
-    int numTextures = _scene->GetTextureCount();
+QString FBXBaker::createBakedTextureFileName(const QFileInfo& textureFileInfo) {
+    // first make sure we have a unique base name for this texture
+    // in case another texture referenced by this model has the same base name
+    auto& nameMatches = _textureNameMatchCount[textureFileInfo.baseName()];
 
-    // enumerate the textures in the scene
-    for (int i = 0; i < numTextures; i++) {
-        // grab each file texture
-        FbxFileTexture* fileTexture = FbxCast<FbxFileTexture>(_scene->GetTexture(i));
+    QString bakedTextureFileName { textureFileInfo.baseName() };
 
-        if (fileTexture) {
-            // use QFileInfo to easily split up the existing texture filename into its components
-            QFileInfo textureFileInfo { fileTexture->GetFileName() };
+    if (nameMatches > 0) {
+        // there are already nameMatches texture with this name
+        // append - and that number to our baked texture file name so that it is unique
+        bakedTextureFileName += "-" + QString::number(nameMatches);
+    }
 
-            // make sure this texture points to something
-            if (!textureFileInfo.filePath().isEmpty()) {
+    bakedTextureFileName += BAKED_TEXTURE_EXT;
 
-                // construct the new baked texture file name and file path
+    // increment the number of name matches
+    ++nameMatches;
 
-                // first make sure we have a unique base name for this texture
-                // in case another texture referenced by this model has the same base name
-                auto& nameMatches = _textureNameMatchCount[textureFileInfo.baseName()];
+    return bakedTextureFileName;
+}
 
-                QString bakedTextureFileName { textureFileInfo.baseName() };
+QUrl FBXBaker::getTextureURL(const QFileInfo& textureFileInfo, FbxFileTexture* fileTexture) {
+    QUrl urlToTexture;
 
-                if (nameMatches > 0) {
-                    // there are already nameMatches texture with this name
-                    // append - and that number to our baked texture file name so that it is unique
-                    bakedTextureFileName += "-" + QString::number(nameMatches);
-                }
+    if (textureFileInfo.exists() && textureFileInfo.isFile()) {
+        // set the texture URL to the local texture that we have confirmed exists
+        urlToTexture = QUrl::fromLocalFile(textureFileInfo.absoluteFilePath());
+    } else {
+        // external texture that we'll need to download or find
 
-                bakedTextureFileName += BAKED_TEXTURE_EXT;
-
-                // increment the number of name matches
-                ++nameMatches;
-
-                QString bakedTextureFilePath { _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER + BAKED_TEXTURE_DIRECTORY + bakedTextureFileName };
-
-                qCDebug(model_baking).noquote() << "Re-mapping" << fileTexture->GetFileName() << "to" << bakedTextureFilePath;
-
-                // write the new filename into the FBX scene
-                fileTexture->SetFileName(bakedTextureFilePath.toLocal8Bit());
-
-                QUrl urlToTexture;
-
-                // add the texture to the list of textures needing to be baked
-                if (textureFileInfo.exists() && textureFileInfo.isFile()) {
-                    // set the texture URL to the local texture that we have confirmed exists
-                    urlToTexture = QUrl::fromLocalFile(textureFileInfo.absoluteFilePath());
-                } else {
-                    // external texture that we'll need to download or find
-
-                    // first check if it the RelativePath to the texture in the FBX was relative
-                    QString relativeFileName = fileTexture->GetRelativeFileName();
-                    auto apparentRelativePath = QFileInfo(relativeFileName.replace("\\", "/"));
+        // first check if it the RelativePath to the texture in the FBX was relative
+        QString relativeFileName = fileTexture->GetRelativeFileName();
+        auto apparentRelativePath = QFileInfo(relativeFileName.replace("\\", "/"));
 
 #ifndef Q_OS_WIN
-                    // it turns out that paths that start with a drive letter and a colon appear to QFileInfo
-                    // as a relative path on UNIX systems - we perform a special check here to handle that case
-                    bool isAbsolute = relativeFileName[1] == ':' || apparentRelativePath.isAbsolute();
+        // it turns out that paths that start with a drive letter and a colon appear to QFileInfo
+        // as a relative path on UNIX systems - we perform a special check here to handle that case
+        bool isAbsolute = relativeFileName[1] == ':' || apparentRelativePath.isAbsolute();
 #else
-                    bool isAbsolute = apparentRelativePath.isAbsolute();
+        bool isAbsolute = apparentRelativePath.isAbsolute();
 #endif
 
-                    if (isAbsolute) {
-                        // this is a relative file path which will require different handling
-                        // depending on the location of the original FBX
-                        if (_fbxURL.isLocalFile()) {
-                            // since the loaded FBX is loaded, first check if we actually have the texture locally
-                            // at the absolute path
-                            if (apparentRelativePath.exists() && apparentRelativePath.isFile()) {
-                                // the absolute path we ran into for the texture in the FBX exists on this machine
-                                // so use that file
-                                urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
-                            } else {
-                                // we didn't find the texture on this machine at the absolute path
-                                // so assume that it is right beside the FBX to match the behaviour of interface
-                                urlToTexture = _fbxURL.resolved(apparentRelativePath.fileName());
+        if (isAbsolute) {
+            // this is a relative file path which will require different handling
+            // depending on the location of the original FBX
+            if (_fbxURL.isLocalFile()) {
+                // since the loaded FBX is loaded, first check if we actually have the texture locally
+                // at the absolute path
+                if (apparentRelativePath.exists() && apparentRelativePath.isFile()) {
+                    // the absolute path we ran into for the texture in the FBX exists on this machine
+                    // so use that file
+                    urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
+                } else {
+                    // we didn't find the texture on this machine at the absolute path
+                    // so assume that it is right beside the FBX to match the behaviour of interface
+                    urlToTexture = _fbxURL.resolved(apparentRelativePath.fileName());
+                }
+            } else {
+                // the original FBX was remote and downloaded
+
+                // since this "relative" texture path is actually absolute, we have to assume it is beside the FBX
+                // which matches the behaviour of Interface
+
+                // append that path to our list of unbaked textures
+                urlToTexture = _fbxURL.resolved(apparentRelativePath.fileName());
+            }
+        } else {
+            // simply construct a URL with the relative path to the asset, locally or remotely
+            // and append that to the list of unbaked textures
+            urlToTexture = _fbxURL.resolved(apparentRelativePath.filePath());
+        }
+    }
+
+    return urlToTexture;
+}
+
+TextureType textureTypeForMaterialProperty(FbxProperty& property, FbxSurfaceMaterial* material) {
+    // this is a property we know has a texture, we need to match it to a High Fidelity known texture type
+    // since that information is passed to the baking process
+
+    // grab the hierarchical name for this property and lowercase it for case-insensitive compare
+    auto propertyName = QString(property.GetHierarchicalName()).toLower();
+
+    // figure out the type of the property based on what known value string it matches
+    if ((propertyName.contains("diffuse") && !propertyName.contains("tex_global_diffuse"))
+        || propertyName.contains("tex_color_map")) {
+        return ALBEDO_TEXTURE;
+    } else if (propertyName.contains("transparentcolor") ||  propertyName.contains("transparencyfactor")) {
+        return ALBEDO_TEXTURE;
+    } else if (propertyName.contains("bump")) {
+        return BUMP_TEXTURE;
+    } else if (propertyName.contains("normal")) {
+        return NORMAL_TEXTURE;
+    } else if ((propertyName.contains("specular") && !propertyName.contains("tex_global_specular"))
+               || propertyName.contains("reflection")) {
+        return SPECULAR_TEXTURE;
+    } else if (propertyName.contains("tex_metallic_map")) {
+        return METALLIC_TEXTURE;
+    } else if (propertyName.contains("shininess")) {
+        return GLOSS_TEXTURE;
+    } else if (propertyName.contains("tex_roughness_map")) {
+        return ROUGHNESS_TEXTURE;
+    } else if (propertyName.contains("emissive")) {
+        return EMISSIVE_TEXTURE;
+    } else if (propertyName.contains("ambientcolor")) {
+        return LIGHTMAP_TEXTURE;
+    } else if (propertyName.contains("ambientfactor")) {
+        // we need to check what the ambient factor is, since that tells Interface to process this texture
+        // either as an occlusion texture or a light map
+        auto lambertMaterial = FbxCast<FbxSurfaceLambert>(material);
+
+        if (lambertMaterial->AmbientFactor == 0) {
+            return LIGHTMAP_TEXTURE;
+        } else if (lambertMaterial->AmbientFactor > 0) {
+            return OCCLUSION_TEXTURE;
+        } else {
+            return UNUSED_TEXTURE;
+        }
+
+    } else if (propertyName.contains("tex_ao_map")) {
+        return OCCLUSION_TEXTURE;
+    }
+
+    return UNUSED_TEXTURE;
+}
+
+bool FBXBaker::rewriteAndBakeSceneTextures() {
+
+    // enumerate the surface materials to find the textures used in the scene
+    int numMaterials = _scene->GetMaterialCount();
+    for (int i = 0; i < numMaterials; i++) {
+        FbxSurfaceMaterial* material = _scene->GetMaterial(i);
+
+        if (material) {
+            // enumerate the properties of this material to see what texture channels it might have
+            FbxProperty property = material->GetFirstProperty();
+
+            while (property.IsValid()) {
+                // first check if this property has connected textures, if not we don't need to bother with it here
+                if (property.GetSrcObjectCount<FbxTexture>() > 0) {
+
+                    // figure out the type of texture from the material property
+                    auto textureType = textureTypeForMaterialProperty(property, material);
+
+                    if (textureType != UNUSED_TEXTURE) {
+                        int numTextures = property.GetSrcObjectCount<FbxFileTexture>();
+
+                        for (int j = 0; j < numTextures; j++) {
+                            FbxFileTexture* fileTexture = property.GetSrcObject<FbxFileTexture>(j);
+
+                            // use QFileInfo to easily split up the existing texture filename into its components
+                            QFileInfo textureFileInfo { fileTexture->GetFileName() };
+
+                            // make sure this texture points to something
+                            if (!textureFileInfo.filePath().isEmpty()) {
+
+                                // construct the new baked texture file name and file path
+                                // ensuring that the baked texture will have a unique name
+                                // even if there was another texture with the same name at a different path
+                                auto bakedTextureFileName = createBakedTextureFileName(textureFileInfo);
+                                QString bakedTextureFilePath {
+                                    _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER + BAKED_TEXTURE_DIRECTORY + bakedTextureFileName
+                                };
+
+                                qCDebug(model_baking).noquote() << "Re-mapping" << fileTexture->GetFileName() << "to" << bakedTextureFilePath;
+
+                                // write the new filename into the FBX scene
+                                fileTexture->SetFileName(bakedTextureFilePath.toLocal8Bit());
+
+                                // figure out the URL to this texture, embedded or external
+                                auto urlToTexture = getTextureURL(textureFileInfo, fileTexture);
+                                
+                                // add the deduced url to the texture, associated with the resulting baked texture file name,
+                                // to our hash of textures needing to be baked
+                                _unbakedTextures.insert(urlToTexture, bakedTextureFileName);
+                                
+                                // bake this texture asynchronously
+                                bakeTexture(urlToTexture);
                             }
-                        } else {
-                            // the original FBX was remote and downloaded
-
-                            // since this "relative" texture path is actually absolute, we have to assume it is beside the FBX
-                            // which matches the behaviour of Interface
-
-                            // append that path to our list of unbaked textures
-                            urlToTexture = _fbxURL.resolved(apparentRelativePath.fileName());
                         }
-                    } else {
-                        // simply construct a URL with the relative path to the asset, locally or remotely
-                        // and append that to the list of unbaked textures
-                        urlToTexture = _fbxURL.resolved(apparentRelativePath.filePath());
                     }
                 }
 
-                // add the deduced url to the texture, associated with the resulting baked texture file name, to our hash
-                _unbakedTextures.insert(urlToTexture, bakedTextureFileName);
-
-                // bake this texture asynchronously
-                bakeTexture(urlToTexture);
+                property = material->GetNextProperty(property);
             }
         }
     }
