@@ -211,7 +211,9 @@ public:
     bool hasNewJointData() const { return _hasNewJointData; }
 
 	inline float easeInOutQuad(float t) {
-		return((t < 0.5) ? (2*t*t) : (t*(4 - 2*t) - 1));
+		assert(!((t < 0.0f) || (t > 1.0f)));
+
+		return((t < 0.5f) ? (2.0f*t*t) : (t*(4.0f - 2.0f*t) - 1.0f));
 	}
 
 public slots:

@@ -355,7 +355,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             // Smooth the remote avatar movement.
             _smoothPositionTimer += deltaTime;
             if (_smoothPositionTimer < _smoothPositionTime) {
-                AvatarData::setPosition(lerp(_smoothPositionInitial, _smoothPositionTarget, easeInOutQuad(_smoothPositionTimer / _smoothPositionTime)));
+				AvatarData::setPosition(lerp(_smoothPositionInitial, _smoothPositionTarget, easeInOutQuad(glm::clamp(_smoothPositionTimer / _smoothPositionTime, 0.0f, 1.0f))));
                 updateAttitude();
             }
         }
@@ -364,7 +364,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             // Smooth the remote avatar movement.
             _smoothOrientationTimer += deltaTime;
             if (_smoothOrientationTimer < _smoothOrientationTime) {
-                 AvatarData::setOrientation(slerp(_smoothOrientationInitial, _smoothOrientationTarget, easeInOutQuad(_smoothOrientationTimer / _smoothOrientationTime)));
+				AvatarData::setOrientation(slerp(_smoothOrientationInitial, _smoothOrientationTarget, easeInOutQuad(glm::clamp(_smoothOrientationTimer / _smoothOrientationTime, 0.0f, 1.0f))));
                  updateAttitude();
             }
         }
