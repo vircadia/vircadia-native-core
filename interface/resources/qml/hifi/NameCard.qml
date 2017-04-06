@@ -45,7 +45,7 @@ Item {
     property bool isPresent: true
     property string placeName: ""
     property string profilePicBorderColor: (connectionStatus == "connection" ? hifi.colors.indigoAccent : (connectionStatus == "friend" ? hifi.colors.greenHighlight : "transparent"))
-
+    property alias avImage: avatarImage
     Item {
         id: avatarImage
         visible: profileUrl !== "" && userName !== "";
@@ -367,14 +367,13 @@ Item {
         text: "Info"
         color: hifi.colors.baseGray
     }
-    StateImage {
+    HiFiGlyphs {
         id: nameCardRemoveConnectionImage
         visible: selected && !isMyCard && pal.activeTab == "connectionsTab"
-        imageURL: "../../images/info-icon-2-state.svg" // PLACEHOLDER!!!
-        size: 32;
-        buttonState: 0;
+        text: hifi.glyphs.close
+        size: 28;
         x: 120
-        anchors.bottom: parent.bottom
+        anchors.verticalCenter: nameCardConnectionInfoImage.verticalCenter
     }
     MouseArea {
         anchors.fill:nameCardRemoveConnectionImage
@@ -385,10 +384,10 @@ Item {
             pal.sendToScript({method: 'removeConnection', params: thisNameCard.userName});
         }
         onEntered: {
-            nameCardRemoveConnectionImage.buttonState = 1;
+            nameCardRemoveConnectionImage.text = hifi.glyphs.closeInverted;
         }
         onExited: {
-            nameCardRemoveConnectionImage.buttonState = 0;
+            nameCardRemoveConnectionImage.text = hifi.glyphs.close;
         }
     }
     FiraSansRegular {
