@@ -76,8 +76,8 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
         return;
     }
     if (_scriptEngine != NULL) {
-        disconnect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
-        disconnect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
+        disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
+        disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
         if (_ownScriptEngine) {
             _scriptEngine->deleteLater();
         }
@@ -87,8 +87,8 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
     _ownScriptEngine = scriptEngine == NULL;
     _scriptEngine = _ownScriptEngine ? DependencyManager::get<ScriptEngines>()->loadScript(QString(), false) : scriptEngine;
 
-    connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
-    connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
+    connect(_scriptEngine, &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
+    connect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
 }
 
 void JSConsole::executeCommand(const QString& command) {
@@ -134,11 +134,13 @@ void JSConsole::commandFinished() {
     resetCurrentCommandHistory();
 }
 
-void JSConsole::handleError(const QString& message) {
+void JSConsole::handleError(const QString& scriptName, const QString& message) {
+    Q_UNUSED(scriptName);
     appendMessage(GUTTER_ERROR, "<span style='" + RESULT_ERROR_STYLE + "'>" + message.toHtmlEscaped() + "</span>");
 }
 
-void JSConsole::handlePrint(const QString& message) {
+void JSConsole::handlePrint(const QString& scriptName, const QString& message) {
+    Q_UNUSED(scriptName);
     appendMessage("", message);
 }
 
