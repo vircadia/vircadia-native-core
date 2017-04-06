@@ -140,9 +140,15 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     handleHandController(deltaTime, leftHandDeviceIndex, inputCalibrationData, true);
     handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
 
-    // collect raw poses
+    // collect poses for all generic trackers
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
-        handleTrackedObject(i, inputCalibrationData);
+        if (_system->GetTrackedDeviceClass(i) == vr::TrackedDeviceClass_GenericTracker) {
+            handleTrackedObject(i, inputCalibrationData);
+        } else {
+            uint32_t poseIndex = controller::TRACKED_OBJECT_00 + i;
+            controller::Pose invalidPose;
+            _poseStateMap[poseIndex] = invalidPose;
+        }
     }
 
     // handle haptics
@@ -203,7 +209,7 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
         handlePoseEvent(deltaTime, inputCalibrationData, mat, linearVelocity, angularVelocity, isLeftHand);
 
         vr::VRControllerState_t controllerState = vr::VRControllerState_t();
-        if (_system->GetControllerState(deviceIndex, &controllerState)) {
+        if (_system->GetControllerState(deviceIndex, &controllerState, sizeof(vr::VRControllerState_t))) {
             // process each button
             for (uint32_t i = 0; i < vr::k_EButton_Max; ++i) {
                 auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)i);
