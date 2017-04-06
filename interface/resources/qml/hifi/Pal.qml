@@ -52,6 +52,13 @@ Rectangle {
         id: letterboxMessage;
         z: 999; // Force the popup on top of everything else
     }
+    Connections {
+        target: GlobalServices
+        onMyUsernameChanged: {
+            myData.userName = Account.username;
+            myDataChanged(); // Setting a property within an object isn't enough to update dependencies. This will do it.
+        }
+    }
     // The ComboDialog used for setting availability
     ComboDialog {
         id: comboDialog;
