@@ -192,6 +192,8 @@ void Avatar::animateScaleChanges(float deltaTime) {
             _isAnimatingScale = false;
         }
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
+
+        // flag the joints as having changed for force update to RenderItem
         _hasNewJointData = true;
 
         // TODO: rebuilding the shape constantly is somehwat expensive.
