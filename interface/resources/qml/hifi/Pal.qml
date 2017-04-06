@@ -770,7 +770,7 @@ Rectangle {
             // This Rectangle refers to each Row in the connectionsTable.
             rowDelegate: Rectangle {
                 // Size
-                height: rowHeight;
+                height: rowHeight + (styleData.selected ? 15 : 0);
                 color: rowColor(styleData.selected, styleData.alternate);
             }
 
@@ -786,6 +786,7 @@ Rectangle {
                     profileUrl: (model && model.profileUrl) || "";
                     displayName: "";
                     userName: model ? model.userName : "";
+                    placeName: model ? model.placeName : ""
                     connectionStatus : model ? model.connection : "";
                     selected: styleData.selected;
                     // Size
@@ -804,12 +805,16 @@ Rectangle {
                     elide: Text.ElideRight;
                     // Size
                     width: parent.width;
-                    // Anchors
-                    anchors.fill: parent;
+                    // you would think that this would work:
+                    // anchors.verticalCenter: connectionsNameCard.avImage.verticalCenter
+                    // but no!  you cannot anchor to a non-sibling or parent.  So I will
+                    // align with the friends checkbox, where I did the manual alignment
+                    anchors.verticalCenter: friendsCheckBox.verticalCenter
                     // Text Size
                     size: 16;
                     // Text Positioning
                     verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
                     // Style
                     color: hifi.colors.blueAccent;
                     font.underline: true;
@@ -829,8 +834,12 @@ Rectangle {
                 // "Friends" checkbox
                 HifiControlsUit.CheckBox {
                     id: friendsCheckBox;
-                    visible: styleData.role === "friends" && model.userName !== myData.userName;
-                    anchors.centerIn: parent;
+                    visible: styleData.role === "friends" && model && model.userName !== myData.userName;
+                    // you would think that this would work:
+                    // anchors.verticalCenter: connectionsNameCard.avImage.verticalCenter
+                    // but no!  you cannot anchor to a non-sibling or parent.  So:
+                    x: parent.width/2 - boxSize/2
+                    y: connectionsNameCard.avImage.y + connectionsNameCard.avImage.height/2 - boxSize/2
                     checked: model ? (model["connection"] === "friend" ? true : false) : false;
                     boxSize: 24;
                     onClicked: {
@@ -908,7 +917,7 @@ Rectangle {
                 wrapMode: Text.WordWrap
                 textFormat: Text.StyledText;
                 // Text
-                text: HMD.active ?
+                text: HMD.isMounted ?
                 "<b>When you meet someone you want to remember later, you can <font color='purple'>connect</font> with a handshake:</b><br><br>" +
                 "1. Put your hand out onto their hand and squeeze your controller's grip button on its side.<br>" +
                 "2. Once the other person puts their hand onto yours, you'll see your connection form.<br>" +
@@ -967,7 +976,6 @@ Rectangle {
                 // Text size
                 size: hifi.fontSizes.tabularData;
                 // Anchors
-                anchors.top: myCard.top;
                 anchors.left: parent.left;
                 // Style
                 color: hifi.colors.baseGrayHighlight;
