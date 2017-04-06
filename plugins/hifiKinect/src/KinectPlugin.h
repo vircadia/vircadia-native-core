@@ -23,6 +23,7 @@
 
 // Kinect Header files
 #include <Kinect.h>
+#include <SimpleMovingAverage.h>
 
 // Safe release for interfaces
 template<class Interface> inline void SafeRelease(Interface *& pInterfaceToRelease) {
@@ -61,10 +62,8 @@ public:
 private:
     // add variables for moving average
 
-    glm::quat _q_barL;
-    glm::quat _q_barR;
-    float _deltaL = 0.5f;
-    float _deltaR = 0.5f;
+    MovingAverage<glm::quat, 2> _LeftHandOrientationAverage;
+    MovingAverage<glm::quat, 2> _RightHandOrientationAverage;
 
 protected:
 
@@ -121,9 +120,6 @@ protected:
 
     // Body reader
     mutable IBodyFrameReader* _bodyFrameReader { nullptr };
-	// moving average for a quaternion
-	glm::quat QMAL(glm::quat q);
-	glm::quat QMAR(glm::quat q);
 #endif
 
 };
