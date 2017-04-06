@@ -50,6 +50,8 @@ private:
     bool bakeTextures();
     bool bakeTexture();
 
+    QString pathToCopyOfOriginal() const;
+
     QUrl _fbxURL;
     QString _fbxName;
     
@@ -61,7 +63,7 @@ private:
 
     QStringList _errorList;
 
-    QList<QUrl> _unbakedTextures;
+    QSet<QUrl> _unbakedTextures;
 };
 
 #endif // hifi_FBXBaker_h

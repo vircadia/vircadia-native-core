@@ -36,8 +36,16 @@ FBXBaker::~FBXBaker() {
     _sdkManager->Destroy();
 }
 
+static const QString BAKED_OUTPUT_SUBFOLDER = "baked/";
+static const QString ORIGINAL_OUTPUT_SUBFOLDER = "original/";
+
+QString FBXBaker::pathToCopyOfOriginal() const {
+    return _uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER + _fbxURL.fileName();
+}
 
 void FBXBaker::start() {
+    qCDebug(model_baking) << "Baking" << _fbxURL;
+
     // setup the output folder for the results of this bake
     if (!setupOutputFolder()) {
         return;
@@ -49,7 +57,7 @@ void FBXBaker::start() {
         QFile localFBX { _fbxURL.toLocalFile() };
 
         // make a copy in the output folder
-        localFBX.copy(_uniqueOutputPath + _fbxURL.fileName());
+        localFBX.copy(pathToCopyOfOriginal());
 
         // start the bake now that we have everything in place
         bake();
@@ -87,7 +95,16 @@ bool FBXBaker::setupOutputFolder() {
 
     // attempt to make the output folder
     if (!QDir().mkdir(_uniqueOutputPath)) {
-        qCWarning(model_baking) << "Failed to created FBX output folder" << _uniqueOutputPath;
+        qCCritical(model_baking) << "Failed to create FBX output folder" << _uniqueOutputPath;
+
+        emit finished();
+        return false;
+    }
+
+    // make the baked and original sub-folders used during export
+    QDir uniqueOutputDir = _uniqueOutputPath;
+    if (!uniqueOutputDir.mkdir(BAKED_OUTPUT_SUBFOLDER) || !uniqueOutputDir.mkdir(ORIGINAL_OUTPUT_SUBFOLDER)) {
+        qCCritical(model_baking) << "Failed to create baked/original subfolders in" << _uniqueOutputPath;
 
         emit finished();
         return false;
@@ -103,7 +120,7 @@ void FBXBaker::handleFBXNetworkReply() {
         qCDebug(model_baking) << "Downloaded" << _fbxURL;
 
         // grab the contents of the reply and make a copy in the output folder
-        QFile copyOfOriginal(_uniqueOutputPath + _fbxURL.fileName());
+        QFile copyOfOriginal(pathToCopyOfOriginal());
 
         qDebug(model_baking) << "Writing copy of original FBX to" << copyOfOriginal.fileName();
 
@@ -130,8 +147,6 @@ void FBXBaker::bake() {
     // (3) export the FBX with re-written texture references
     // (4) enumerate the collected texture paths and bake the textures
 
-    qCDebug(model_baking) << "Baking" << _fbxURL;
-
     // a failure at any step along the way stops the chain
     importScene() && rewriteAndCollectSceneTextures() && exportScene() && bakeTextures();
 
@@ -144,7 +159,7 @@ bool FBXBaker::importScene() {
     FbxImporter* importer = FbxImporter::Create(_sdkManager, "");
 
     // import the copy of the original FBX file
-    QString originalCopyPath = _uniqueOutputPath + _fbxURL.fileName();
+    QString originalCopyPath = pathToCopyOfOriginal();
     bool importStatus = importer->Initialize(originalCopyPath.toLocal8Bit().data());
 
     if (!importStatus) {
@@ -169,7 +184,7 @@ bool FBXBaker::importScene() {
     return true;
 }
 
-static const QString BAKED_TEXTURE_DIRECTORY = "textures";
+static const QString BAKED_TEXTURE_DIRECTORY = "textures/";
 static const QString BAKED_TEXTURE_EXT = ".ktx";
 
 bool FBXBaker::rewriteAndCollectSceneTextures() {
@@ -190,7 +205,7 @@ bool FBXBaker::rewriteAndCollectSceneTextures() {
 
                 // construct the new baked texture file name and file path
                 QString bakedTextureFileName { textureFileInfo.baseName() + BAKED_TEXTURE_EXT };
-                QString bakedTextureFilePath { _uniqueOutputPath + "ktx/" + bakedTextureFileName };
+                QString bakedTextureFilePath { _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER + BAKED_TEXTURE_DIRECTORY + bakedTextureFileName };
 
                 qCDebug(model_baking).noquote() << "Re-mapping" << fileTexture->GetFileName() << "to" << bakedTextureFilePath;
 
@@ -200,9 +215,51 @@ bool FBXBaker::rewriteAndCollectSceneTextures() {
                 // add the texture to the list of textures needing to be baked
                 if (textureFileInfo.exists() && textureFileInfo.isFile()) {
                     // append the URL to the local texture that we have confirmed exists
-                    _unbakedTextures.append(QUrl::fromLocalFile(textureFileInfo.absoluteFilePath()));
+                    _unbakedTextures.insert(QUrl::fromLocalFile(textureFileInfo.absoluteFilePath()));
                 } else {
+                    // external texture that we'll need to download or find
 
+                    // first check if it the RelativePath to the texture in the FBX was relative
+                    QString relativeFileName = fileTexture->GetRelativeFileName();
+                    auto apparentRelativePath = QFileInfo(relativeFileName.replace("\\", "/"));
+
+#ifndef Q_OS_WIN
+                    // it turns out that paths that start with a drive letter and a colon appear to QFileInfo
+                    // as a relative path on UNIX systems - we perform a special check here to handle that case
+                    bool isAbsolute = relativeFileName[1] == ':' || apparentRelativePath.isAbsolute();
+#else
+                    bool isAbsolute = apparentRelativePath.isAbsolute();
+#endif
+
+                    if (isAbsolute) {
+                        // this is a relative file path which will require different handling
+                        // depending on the location of the original FBX
+                        if (_fbxURL.isLocalFile()) {
+                            // since the loaded FBX is loaded, first check if we actually have the texture locally
+                            // at the absolute path
+                            if (apparentRelativePath.exists() && apparentRelativePath.isFile()) {
+                                // the absolute path we ran into for the texture in the FBX exists on this machine
+                                // so use that file
+                                _unbakedTextures.insert(QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath()));
+                            } else {
+                                // we didn't find the texture on this machine at the absolute path
+                                // so assume that it is right beside the FBX to match the behaviour of interface
+                                _unbakedTextures.insert(_fbxURL.resolved(apparentRelativePath.fileName()));
+                            }
+                        } else {
+                            // the original FBX was remote and downloaded
+
+                            // since this "relative" texture path is actually absolute, we have to assume it is beside the FBX
+                            // which matches the behaviour of Interface
+
+                            // append that path to our list of unbaked textures
+                            _unbakedTextures.insert(_fbxURL.resolved(apparentRelativePath.fileName()));
+                        }
+                    } else {
+                        // simply construct a URL with the relative path to the asset, locally or remotely
+                        // and append that to the list of unbaked textures
+                        _unbakedTextures.insert(_fbxURL.resolved(apparentRelativePath.filePath()));
+                    }
                 }
             }
         }
@@ -211,11 +268,13 @@ bool FBXBaker::rewriteAndCollectSceneTextures() {
     return true;
 }
 
+static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
+
 bool FBXBaker::exportScene() {
     // setup the exporter
     FbxExporter* exporter = FbxExporter::Create(_sdkManager, "");
 
-    auto rewrittenFBXPath = _uniqueOutputPath + _fbxName + ".ktx.fbx";
+    auto rewrittenFBXPath = _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER + _fbxName + BAKED_FBX_EXTENSION;
     bool exportStatus = exporter->Initialize(rewrittenFBXPath.toLocal8Bit().data());
 
     if (!exportStatus) {
