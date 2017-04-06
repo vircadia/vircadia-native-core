@@ -840,7 +840,6 @@ Rectangle {
                         pal.sendToScript({method: newValue ? 'addFriend' : 'removeFriend', params: model.userName});
 
                         UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId);
-                        checked = newValue;
                     }
                 }
             }
