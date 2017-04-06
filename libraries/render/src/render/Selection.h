@@ -18,21 +18,28 @@ namespace render {
 
     class Selection {
     public:
+        using Name = std::string;
 
-        Selection(const std::string& name, const ItemIDs items);
         ~Selection();
+        Selection();
+        Selection(const Selection& selection);
+        Selection& operator= (const Selection& selection);
+        Selection(Selection&& selection);
+        Selection& operator= (Selection&& selection);
 
-        const std::string& getName() const { return _name; }
+        Selection(const Name& name, const ItemIDs& items);
+
+        const Name& getName() const { return _name; }
 
         const ItemIDs& getItems() const { return _items; }
 
     protected:
-        const std::string _name;
+        Name _name;
         ItemIDs _items;
     };
     using Selections = std::vector<Selection>;
 
-    using SelectionMap = std::map<std::string, Selection>;
+    using SelectionMap = std::map<const Selection::Name, Selection>;
 
 }
 

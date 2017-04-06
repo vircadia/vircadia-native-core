@@ -14,11 +14,42 @@
 
 using namespace render;
 
-Selection::Selection(const std::string& name, const ItemIDs items) :
+
+Selection::Selection() :
+_name(),
+_items()
+{
+}
+
+Selection::Selection(const Selection& selection) :
+_name(selection._name),
+_items(selection._items)
+{
+}
+
+Selection& Selection::operator= (const Selection& selection) {
+    _name = (selection._name);
+    _items = (selection._items);
+    return (*this);
+}
+
+Selection::Selection(Selection&& selection) :
+_name(selection._name),
+_items(selection._items)
+{
+}
+
+
+Selection& Selection::operator= (Selection&& selection) {
+    _name = (selection._name);
+    _items = (selection._items);
+    return (*this);
+}
+
+Selection::Selection(const Name& name, const ItemIDs& items) :
     _name(name),
     _items(items)
 {
-
 }
 
 Selection::~Selection() {

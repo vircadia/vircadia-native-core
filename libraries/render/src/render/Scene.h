@@ -34,6 +34,7 @@ public:
     Transaction() {}
     ~Transaction() {}
 
+    // Item transactions
     void resetItem(ItemID id, const PayloadPointer& payload);
     void removeItem(ItemID id);
 
@@ -44,13 +45,21 @@ public:
     void updateItem(ItemID id, const UpdateFunctorPointer& functor);
     void updateItem(ItemID id) { updateItem(id, nullptr); }
 
+    // Selection transactions
+    void resetSelection(const Selection& selection);
+
     void merge(const Transaction& transaction);
+
+    // Checkers if there is work to do when processing the transaction
+    bool touchTransactions() const { return !_resetSelections.empty(); }
 
     ItemIDs _resetItems; 
     Payloads _resetPayloads;
     ItemIDs _removedItems;
     ItemIDs _updatedItems;
     UpdateFunctors _updateFunctors;
+
+    Selections _resetSelections;
 
 protected:
 };
@@ -81,6 +90,10 @@ public:
 
     // Process the pending transactions queued
     void processTransactionQueue();
+
+    // Access a particular selection (empty if doesn't exist)
+    // Thread safe
+    Selection getSelection(const Selection::Name& name) const;
 
     // This next call are  NOT threadsafe, you have to call them from the correct thread to avoid any potential issues
 
@@ -117,8 +130,14 @@ protected:
 
 
     // The Selection map
-    std::mutex _selectionsMutex;
+    mutable std::mutex _selectionsMutex; // mutable so it can be used in the thread safe getSelection const method
     SelectionMap _selections;
+
+    void resetSelections(const Selections& selections);
+  // More actions coming to selections soon:
+  //  void removeFromSelection(const Selection& selection);
+  //  void appendToSelection(const Selection& selection);
+  //  void mergeWithSelection(const Selection& selection);
 
     friend class Engine;
 };
