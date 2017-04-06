@@ -29,6 +29,8 @@
         USING_TOOLBAR_ACTION = "usingToolbar",
         ENABLE_RECORDING_ACTION = "enableRecording",
 
+        mappingPath,
+
         CountdownTimer;
 
     CountdownTimer = (function () {
@@ -145,7 +147,6 @@
         };
     }());
 
-
     function usingToolbar() {
         return ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
             || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar")));
@@ -155,19 +156,56 @@
         button.editProperties({ isActive: isRecordingEnabled || recordingState !== IDLE });
     }
 
+    function setMappingCallback() {
+        var error;
+
+        if (true || Assets.isKnownMapping(mappingPath)) {  // TODO: isKnownMapping() is not available in JavaScript.
+            print(APP_NAME + ": Recording mapped to " + mappingPath);
+            print(APP_NAME + ": Request play recording");
+            // TODO
+        } else {
+            error = "Error mapping recording to " + mappingPath + " on Asset Server!";
+            print(APP_NAME + ": " + error);
+            Window.alert(error);
+        }
+    }
+
+    function saveRecordingToAssetCallback(url) {
+        var filename,  
+            hash;
+
+        print(APP_NAME + ": Recording saved to Asset Server as " + url);
+
+        filename = (new Date()).toISOString();  // yyyy-mm-ddThh:mm:ss.sssZ
+        filename = filename.replace(/[-:]|\.\d*Z$/g, "").replace("T", "-") + ".hfr";  // yyyymmmdd-hhmmss.hfr
+        hash = url.slice(4);  // Remove leading "atp:" from url.
+        mappingPath = "/recordings/" + filename;
+        Assets.setMapping(mappingPath, hash, setMappingCallback);
+    }
+
     function startRecording() {
         recordingState = RECORDING;
         updateButtonState();
         print(APP_NAME + ": Start recording");
+        Recording.startRecording();
     }
 
     function finishRecording() {
+        var error;
+
         recordingState = IDLE;
         updateButtonState();
         print(APP_NAME + ": Finish recording");
+        Recording.stopRecording();
+        if (!Recording.saveRecordingToAsset(saveRecordingToAssetCallback)) {
+            error = "Could not save recording to Asset Server!";
+            print(APP_NAME + ": " + error);
+            Window.alert(error);
+        }
     }
 
     function cancelRecording() {
+        Recording.stopRecording();
         recordingState = IDLE;
         updateButtonState();
         print(APP_NAME + ": Cancel recording");
