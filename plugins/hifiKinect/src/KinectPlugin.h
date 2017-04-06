@@ -16,6 +16,12 @@
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 #endif
 
+// glm files
+
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+
 // Windows Header Files
 #include <windows.h>
 
@@ -57,6 +63,14 @@ public:
 
     virtual void saveSettings() const override;
     virtual void loadSettings() override;
+
+private:
+	// add variables for moving average
+
+	glm::quat _q_barL;
+	glm::quat _q_barR;
+    float _deltaL = (float)0.5;
+	float _deltaR = (float)0.5;
 
 protected:
 
@@ -113,6 +127,9 @@ protected:
 
     // Body reader
     mutable IBodyFrameReader* _bodyFrameReader { nullptr };
+	// moving average for a quaternion
+	glm::quat QMAL(glm::quat q);
+	glm::quat QMAR(glm::quat q);
 #endif
 
 };

@@ -248,6 +248,7 @@ void KinectPlugin::init() {
         auto preference = new CheckPreference(KINECT_PLUGIN, "Extra Debugging", debugGetter, debugSetter);
         preferences->addPreference(preference);
     }
+
 }
 
 bool KinectPlugin::isSupported() const {
@@ -493,11 +494,15 @@ void KinectPlugin::ProcessBody(INT64 time, int bodyCount, IBody** bodies) {
                                 //_joints[j].orientation = jointOrientation;
                                 if (joints[j].JointType == JointType_HandRight) {
                                     static const quat kinectToHandRight = glm::angleAxis(-PI / 2.0f, Vectors::UNIT_Y);
-                                    _joints[j].orientation = jointOrientation * kinectToHandRight;
+									// add moving average of orientation quaternion 
+									glm::quat jointTmp = jointOrientation * kinectToHandRight;
+									_joints[j].orientation = QMAR(jointTmp);
                                 }  else if (joints[j].JointType == JointType_HandLeft) {
                                     // To transform from Kinect to our LEFT  Hand.... Postive 90 deg around Y
                                     static const quat kinectToHandLeft = glm::angleAxis(PI / 2.0f, Vectors::UNIT_Y);
-                                    _joints[j].orientation = jointOrientation * kinectToHandLeft;
+									// add moving average of orientation quaternion 
+									glm::quat jointTmp = jointOrientation * kinectToHandLeft;
+									_joints[j].orientation = QMAL(jointTmp);
                                 } else {
                                     _joints[j].orientation = jointOrientation;
                                 }
@@ -644,3 +649,44 @@ void KinectPlugin::InputDevice::clearState() {
         _poseStateMap[poseIndex] = controller::Pose();
     }
 }
+
+glm::quat KinectPlugin::QMAL(glm::quat q)
+{
+	if (glm::dot(_q_barL, q) < 0)
+		_q_barL = (1 - _deltaL)*_q_barL + -_deltaL*q;
+	else
+	   _q_barL = (1 - _deltaL)*_q_barL + _deltaL*q;
+
+	_q_barL = glm::normalize(_q_barL);
+	
+	
+	if (_debug)
+	{
+		qDebug() << __FUNCTION__ << "q = " << q.x << "," << q.y << "," << q.z << "," << q.w;
+		qDebug() << __FUNCTION__ << "_q_barL = " << _q_barL.x << "," << _q_barL.y << "," << _q_barL.z << "," << _q_barL.w;
+	}
+	return _q_barL;
+}
+
+
+glm::quat KinectPlugin::QMAR(glm::quat q)
+{
+	if (glm::dot(_q_barR, q) < 0)
+		_q_barR = (1 - _deltaR)*_q_barR + -_deltaR*q;
+	else
+		_q_barR = (1 - _deltaR)*_q_barR + _deltaR*q;
+	
+	_q_barR = glm::normalize(_q_barR);
+	
+	
+		_q_barR = -_q_barR;
+	
+	if (_debug)
+	{
+		qDebug() << __FUNCTION__ << "q = " << q.x << "," << q.y << "," << q.z << "," << q.w;
+		qDebug() << __FUNCTION__ << "_q_barL = " << _q_barR.x << "," << _q_barR.y << "," << _q_barR.z << "," << _q_barR.w;
+	}
+
+	return _q_barR;
+}
+
