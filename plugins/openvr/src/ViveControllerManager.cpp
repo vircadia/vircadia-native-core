@@ -142,13 +142,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
 
     // collect poses for all generic trackers
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
-        if (_system->GetTrackedDeviceClass(i) == vr::TrackedDeviceClass_GenericTracker) {
-            handleTrackedObject(i, inputCalibrationData);
-        } else {
-            uint32_t poseIndex = controller::TRACKED_OBJECT_00 + i;
-            controller::Pose invalidPose;
-            _poseStateMap[poseIndex] = invalidPose;
-        }
+        handleTrackedObject(i, inputCalibrationData);
     }
 
     // handle haptics
@@ -177,6 +171,7 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
     uint32_t poseIndex = controller::TRACKED_OBJECT_00 + deviceIndex;
 
     if (_system->IsTrackedDeviceConnected(deviceIndex) &&
+        _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_GenericTracker &&
         _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid &&
         poseIndex <= controller::TRACKED_OBJECT_15) {
 
