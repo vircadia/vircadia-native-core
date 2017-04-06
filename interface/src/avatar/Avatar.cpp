@@ -96,7 +96,6 @@ Avatar::Avatar(RigPointer rig) :
     _lastOrientation(),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
-    _initialized(false),
     _smoothPositionTime(SMOOTH_TIME_POSITION),
     _smoothPositionTimer(std::numeric_limits<float>::max()),
     _smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
@@ -105,6 +104,7 @@ Avatar::Avatar(RigPointer rig) :
     _smoothPositionTarget(),
     _smoothOrientationInitial(),
     _smoothOrientationTarget(),
+    _initialized(false),
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
