@@ -20,7 +20,7 @@ import "../../windows"
 Rectangle {
     id: root
     objectName: "RunningScripts"
-    property var title: "Running Scripts"
+    property string title: "Running Scripts"
     HifiConstants { id: hifi }
     signal sendToScript(var message);
     property var eventBridge;
@@ -81,9 +81,9 @@ Rectangle {
 
     Flickable {
         id: flickable
-        width: parent.width
+        width: tabletRoot.width
         height: parent.height - (keyboard.raised ? keyboard.raisedHeight : 0)
-        contentWidth: parent.width
+        contentWidth: column.width
         contentHeight: column.childrenRect.height
         clip: true
 
@@ -121,9 +121,8 @@ Rectangle {
                     model: runningScriptsModel
                     id: table
                     height: 185
+                    width: parent.width
                     colorScheme: hifi.colorSchemes.dark
-                    anchors.left: parent.left
-                    anchors.right: parent.right
                     expandSelectedRow: true
 
                     itemDelegate: Item {

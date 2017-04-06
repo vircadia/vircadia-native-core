@@ -269,13 +269,26 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         getConnectionData();
         UserActivityLogger.palAction("refresh_connections", "");
         break;
+    case 'removeConnection':
+        connectionUserName = message.params;
+        request({
+            uri: METAVERSE_BASE + '/api/v1/user/connections/' + connectionUserName,
+            method: 'DELETE'
+        }, function (error, response) {
+            if (error || (response.status !== 'success')) {
+                print("Error: unable to remove connection", connectionUserName, error || response.status);
+                return;
+            }
+            getConnectionData();
+        });
+        break
+
     case 'removeFriend':
         friendUserName = message.params;
         request({
             uri: METAVERSE_BASE + '/api/v1/user/friends/' + friendUserName,
             method: 'DELETE'
         }, function (error, response) {
-            print(JSON.stringify(response));
             if (error || (response.status !== 'success')) {
                 print("Error: unable to unfriend", friendUserName, error || response.status);
                 return;

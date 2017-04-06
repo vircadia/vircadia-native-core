@@ -278,11 +278,9 @@ void OffscreenQmlSurface::cleanup() {
 }
 
 void OffscreenQmlSurface::render() {
-
 #ifdef HIFI_ENABLE_NSIGHT_DEBUG
     return;
 #endif
-
     if (_paused) {
         return;
     }
@@ -614,7 +612,11 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         return nullptr;
     }
 
-    connect(newItem, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(QVariant)));
+    //check if the item contains sendToScript signal
+    int sendToScriptIndex = newItem->metaObject()->indexOfSignal("sendToScript");
+    if (sendToScriptIndex != -1) {
+        connect(newItem, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(QVariant)));
+    }
 
     // The root item is ready. Associate it with the window.
     _rootItem = newItem;

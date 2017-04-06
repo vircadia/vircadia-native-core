@@ -543,12 +543,14 @@ function connectionRequestCompleted() { // Final result is in. Do effects.
         // don't change state (so animation continues while gripped)
         // but do send a notification, by calling the slot that emits the signal for it
         Window.makeConnection(true, result.connection.new_connection ? "You and " + result.connection.username + " are now connected!" : result.connection.username);
+        UserActivityLogger.makeUserConnection(connectingId, true, result.connection.new_connection ? "new connection" : "already connected");
         return;
     } // failed
     endHandshake();
     debug("failing with result data", result);
     // IWBNI we also did some fail sound/visual effect.
     Window.makeConnection(false, result.connection);
+    UserActivityLogger.makeUserConnection(connectingId, false, result.connection);
 }
 var POLL_INTERVAL_MS = 200, POLL_LIMIT = 5;
 function handleConnectionResponseAndMaybeRepeat(error, response) {
@@ -573,6 +575,7 @@ function handleConnectionResponseAndMaybeRepeat(error, response) {
     } else if (error || (response.status !== 'success')) {
         debug('server fail', error, response.status);
         result = error ? {status: 'error', connection: error} : response;
+        UserActivityLogger.makeUserConnection(connectingId, false, error || response);
         connectionRequestCompleted();
     } else {
         debug('server success', result);

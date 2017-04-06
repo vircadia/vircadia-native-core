@@ -63,59 +63,6 @@ bool ViveControllerManager::activate() {
 
     enableOpenVrKeyboard(_container);
 
-    // OpenVR provides 3d mesh representations of the controllers
-    // Disabled controller rendering code
-    /*
-    auto renderModels = vr::VRRenderModels();
-
-    vr::RenderModel_t model;
-    if (!_system->LoadRenderModel(CONTROLLER_MODEL_STRING, &model)) {
-        qDebug() << QString("Unable to load render model %1\n").arg(CONTROLLER_MODEL_STRING);
-    } else {
-        model::Mesh* mesh = new model::Mesh();
-        model::MeshPointer meshPtr(mesh);
-        _modelGeometry.setMesh(meshPtr);
-
-        auto indexBuffer = new gpu::Buffer(3 * model.unTriangleCount * sizeof(uint16_t), (gpu::Byte*)model.rIndexData);
-        auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
-        auto indexBufferView = new gpu::BufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT16, gpu::RAW));
-        mesh->setIndexBuffer(*indexBufferView);
-
-        auto vertexBuffer = new gpu::Buffer(model.unVertexCount * sizeof(vr::RenderModel_Vertex_t),
-            (gpu::Byte*)model.rVertexData);
-        auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
-        auto vertexBufferView = new gpu::BufferView(vertexBufferPtr,
-            0,
-            vertexBufferPtr->getSize() - sizeof(float) * 3,
-            sizeof(vr::RenderModel_Vertex_t),
-            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
-        mesh->setVertexBuffer(*vertexBufferView);
-        mesh->addAttribute(gpu::Stream::NORMAL,
-            gpu::BufferView(vertexBufferPtr,
-            sizeof(float) * 3,
-            vertexBufferPtr->getSize() - sizeof(float) * 3,
-            sizeof(vr::RenderModel_Vertex_t),
-            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
-        //mesh->addAttribute(gpu::Stream::TEXCOORD,
-        //    gpu::BufferView(vertexBufferPtr,
-        //    2 * sizeof(float) * 3,
-        //    vertexBufferPtr->getSize() - sizeof(float) * 2,
-        //    sizeof(vr::RenderModel_Vertex_t),
-        //    gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::RAW)));
-
-        gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-        gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-        _texture = gpu::TexturePointer(
-            gpu::Texture::create2D(formatGPU, model.diffuseTexture.unWidth, model.diffuseTexture.unHeight,
-            gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-        _texture->assignStoredMip(0, formatMip, model.diffuseTexture.unWidth * model.diffuseTexture.unHeight * 4 * sizeof(uint8_t), model.diffuseTexture.rubTextureMapData);
-        _texture->autoGenerateMips(-1);
-
-        _modelLoaded = true;
-        _renderControllers = true;
-    }
-    */
-
     // register with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
@@ -144,70 +91,6 @@ void ViveControllerManager::deactivate() {
     userInputMapper->removeDevice(_inputDevice->_deviceID);
     _registeredWithInputMapper = false;
 }
-
-void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges) {
-    PerformanceTimer perfTimer("ViveControllerManager::updateRendering");
-
-    /*
-    if (_modelLoaded) {
-        //auto controllerPayload = new render::Payload<ViveControllerManager>(this);
-        //auto controllerPayloadPointer = ViveControllerManager::PayloadPointer(controllerPayload);
-        //if (_leftHandRenderID == 0) {
-        //    _leftHandRenderID = scene->allocateID();
-        //    pendingChanges.resetItem(_leftHandRenderID, controllerPayloadPointer);
-        //}
-        //pendingChanges.updateItem(_leftHandRenderID, );
-
-
-        controller::Pose leftHand = _inputDevice->_poseStateMap[controller::StandardPoseChannel::LEFT_HAND];
-        controller::Pose rightHand = _inputDevice->_poseStateMap[controller::StandardPoseChannel::RIGHT_HAND];
-
-        gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
-            auto geometryCache = DependencyManager::get<GeometryCache>();
-            geometryCache->useSimpleDrawPipeline(batch);
-            DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
-
-            auto mesh = _modelGeometry.getMesh();
-            batch.setInputFormat(mesh->getVertexFormat());
-            //batch._glBindTexture(GL_TEXTURE_2D, _uexture);
-
-            if (leftHand.isValid()) {
-                renderHand(leftHand, batch, 1);
-            }
-            if (rightHand.isValid()) {
-                renderHand(rightHand, batch, -1);
-            }
-        });
-    }
-    */
-}
-
-void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign) {
-    /*
-    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-    Transform transform(userInputMapper->getSensorToWorldMat());
-    transform.postTranslate(pose.getTranslation() + pose.getRotation() * glm::vec3(0, 0, CONTROLLER_LENGTH_OFFSET));
-
-    glm::quat rotation = pose.getRotation() * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(sign * PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
-    transform.postRotate(rotation);
-
-    batch.setModelTransform(transform);
-
-    auto mesh = _modelGeometry.getMesh();
-    batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
-    batch.setInputBuffer(gpu::Stream::NORMAL,
-        mesh->getVertexBuffer()._buffer,
-        sizeof(float) * 3,
-        mesh->getVertexBuffer()._stride);
-    //batch.setInputBuffer(gpu::Stream::TEXCOORD,
-    //    mesh->getVertexBuffer()._buffer,
-    //    2 * 3 * sizeof(float),
-    //    mesh->getVertexBuffer()._stride);
-    batch.setIndexBuffer(gpu::UINT16, mesh->getIndexBuffer()._buffer, 0);
-    batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
-    */
-}
-
 
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
 
@@ -257,6 +140,11 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     handleHandController(deltaTime, leftHandDeviceIndex, inputCalibrationData, true);
     handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
 
+    // collect raw poses
+    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+        handleTrackedObject(i, inputCalibrationData);
+    }
+
     // handle haptics
     {
         Locker locker(_lock);
@@ -276,6 +164,30 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
         numTrackedControllers++;
     }
     _trackedControllers = numTrackedControllers;
+}
+
+void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
+
+    uint32_t poseIndex = controller::TRACKED_OBJECT_00 + deviceIndex;
+
+    if (_system->IsTrackedDeviceConnected(deviceIndex) &&
+        _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid &&
+        poseIndex <= controller::TRACKED_OBJECT_15) {
+
+        // process pose
+        const mat4& mat = _nextSimPoseData.poses[deviceIndex];
+        const vec3 linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
+        const vec3 angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
+
+        controller::Pose pose(extractTranslation(mat), glmExtractRotation(mat), linearVelocity, angularVelocity);
+
+        // transform into avatar frame
+        glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+        _poseStateMap[poseIndex] = pose.transform(controllerToAvatar);
+    } else {
+        controller::Pose invalidPose;
+        _poseStateMap[poseIndex] = invalidPose;
+    }
 }
 
 void ViveControllerManager::InputDevice::handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand) {
@@ -491,6 +403,24 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         // 3d location of controller
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
+
+        // 16 tracked poses
+        makePair(TRACKED_OBJECT_00, "TrackedObject00"),
+        makePair(TRACKED_OBJECT_01, "TrackedObject01"),
+        makePair(TRACKED_OBJECT_02, "TrackedObject02"),
+        makePair(TRACKED_OBJECT_03, "TrackedObject03"),
+        makePair(TRACKED_OBJECT_04, "TrackedObject04"),
+        makePair(TRACKED_OBJECT_05, "TrackedObject05"),
+        makePair(TRACKED_OBJECT_06, "TrackedObject06"),
+        makePair(TRACKED_OBJECT_07, "TrackedObject07"),
+        makePair(TRACKED_OBJECT_08, "TrackedObject08"),
+        makePair(TRACKED_OBJECT_09, "TrackedObject09"),
+        makePair(TRACKED_OBJECT_10, "TrackedObject10"),
+        makePair(TRACKED_OBJECT_11, "TrackedObject11"),
+        makePair(TRACKED_OBJECT_12, "TrackedObject12"),
+        makePair(TRACKED_OBJECT_13, "TrackedObject13"),
+        makePair(TRACKED_OBJECT_14, "TrackedObject14"),
+        makePair(TRACKED_OBJECT_15, "TrackedObject15"),
 
         // app button above trackpad.
         Input::NamedPair(Input(_deviceID, LEFT_APP_MENU, ChannelType::BUTTON), "LeftApplicationMenu"),

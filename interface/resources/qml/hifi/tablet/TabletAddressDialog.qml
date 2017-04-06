@@ -25,6 +25,8 @@ StackView {
     HifiConstants { id: hifi }
     HifiStyles.HifiConstants { id: hifiStyleConstants }
     initialItem: addressBarDialog
+    width: parent !== null ? parent.width : undefined
+    height: parent !== null ? parent.height : undefined
     property var eventBridge;
     property var allStories: [];
     property int cardWidth: 460;
@@ -116,6 +118,7 @@ StackView {
                 imageURL: "../../../images/home.svg"
                 onClicked: {
                     addressBarDialog.loadHome();
+                    tabletRoot.shown = false;
                 }
                 anchors {
                     left: parent.left
@@ -150,7 +153,9 @@ StackView {
             anchors {
                 top: navBar.bottom
                 right: parent.right
+                rightMargin: 16
                 left: parent.left
+                leftMargin: 16
             }
 
             property int inputAreaHeight: 70
@@ -554,20 +559,21 @@ StackView {
         if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }
-
+        
         if (root.desktop) {
             tablet.gotoHomeScreen();
         } else {
             HMD.closeTablet();
         }
             
+        tabletRoot.shown = false;
     }
 
     Keys.onPressed: {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                root.shown = false
+                tabletRoot.shown = false
                 clearAddressLineTimer.start();
                 event.accepted = true
                 break
