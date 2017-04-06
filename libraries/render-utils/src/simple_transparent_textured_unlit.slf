@@ -2,18 +2,17 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple_textured_unlit.frag
+//  simple_transparent_textured_unlit.slf
 //  fragment shader
 //
-//  Created by Clément Brisset on 5/29/15.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Sam Gateau on 4/3/17.
+//  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 <@include gpu/Color.slh@>
-<@include DeferredBufferWrite.slh@>
 
 // the albedo texture
 uniform sampler2D originalTexture;
@@ -23,6 +22,9 @@ in vec3 _normal;
 in vec4 _color;
 in vec2 _texCoord0;
 
+
+layout(location = 0) out vec4 _fragColor0;
+
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);
     float colorAlpha = _color.a;
@@ -30,19 +32,5 @@ void main(void) {
         texel = colorToLinearRGBA(texel);
         colorAlpha = -_color.a;
     }
-
-    const float ALPHA_THRESHOLD = 0.999;
-    if (colorAlpha * texel.a < ALPHA_THRESHOLD) {
-       packDeferredFragmentTranslucent(
-            normalize(_normal),
-            colorAlpha * texel.a,
-            _color.rgb * texel.rgb,
-            DEFAULT_FRESNEL,
-            DEFAULT_ROUGHNESS);
-    } else {
-        packDeferredFragmentUnlit(
-            normalize(_normal),
-            1.0,
-            _color.rgb * texel.rgb);
-    }
+    _fragColor0 = vec4(_color.rgb * texel.rgb, colorAlpha * texel.a);
 }
