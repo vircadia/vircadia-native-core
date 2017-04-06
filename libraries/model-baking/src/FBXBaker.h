@@ -49,6 +49,7 @@ private:
     bool exportScene();
     bool bakeTextures();
     bool bakeTexture();
+    bool removeEmbeddedMediaFolder();
 
     QString pathToCopyOfOriginal() const;
 

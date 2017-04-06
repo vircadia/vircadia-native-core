@@ -148,7 +148,7 @@ void FBXBaker::bake() {
     // (4) enumerate the collected texture paths and bake the textures
 
     // a failure at any step along the way stops the chain
-    importScene() && rewriteAndCollectSceneTextures() && exportScene() && bakeTextures();
+    importScene() && rewriteAndCollectSceneTextures() && exportScene() && bakeTextures() && removeEmbeddedMediaFolder();
 
     // emit a signal saying that we are done, with whatever errors were produced
     emit finished();
@@ -314,5 +314,14 @@ bool FBXBaker::bakeTextures() {
         }
     }
 
+    return true;
+}
+
+bool FBXBaker::removeEmbeddedMediaFolder() {
+    // now that the bake is complete, remove the embedded media folder produced by the FBX SDK when it imports an FBX
+    auto embeddedMediaFolderName = _fbxURL.fileName().replace(".fbx", ".fbm");
+    QDir(_uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER + embeddedMediaFolderName).removeRecursively();
+
+    // we always return true because a failure to delete the embedded media folder is not a failure of the bake
     return true;
 }
