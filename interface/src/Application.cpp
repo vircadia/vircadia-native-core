@@ -1800,10 +1800,11 @@ Application::~Application() {
     _physicsEngine->setCharacterController(nullptr);
 
     // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearAllAvatars();
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     VectorOfMotionStates motionStates;
     DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
     _physicsEngine->removeObjects(motionStates);
+    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();

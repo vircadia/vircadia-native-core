@@ -53,7 +53,7 @@ public:
     void postUpdate(float deltaTime);
 
     void clearOtherAvatars();
-    void clearAllAvatars();
+    void deleteAllAvatars();
 
     bool shouldShowReceiveStats() const { return _shouldShowReceiveStats; }
 
