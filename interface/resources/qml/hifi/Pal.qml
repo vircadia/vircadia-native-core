@@ -436,7 +436,7 @@ Rectangle {
             rowDelegate: Rectangle { // The only way I know to specify a row height.
                 // Size
                 height: rowHeight + (styleData.selected ? 15 : 0);
-                color: rowColor(styleData.selected, styleData.alternate);
+                color: nearbyRowColor(styleData.selected, styleData.alternate);
             }
 
             // This Item refers to the contents of each Cell
@@ -764,7 +764,7 @@ Rectangle {
             rowDelegate: Rectangle {
                 // Size
                 height: rowHeight;
-                color: rowColor(styleData.selected, styleData.alternate);
+                color: connectionsRowColor(styleData.selected, styleData.alternate);
             }
 
             // This Item refers to the contents of each Cell
@@ -1184,8 +1184,11 @@ Rectangle {
         }
     }
 
-    function rowColor(selected, alternate) {
+    function nearbyRowColor(selected, alternate) {
         return selected ? hifi.colors.orangeHighlight : alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd;
+    }
+    function connectionsRowColor(selected, alternate) {
+        return selected ? hifi.colors.lightBlueHighlight : alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd;
     }
     function findNearbySessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var data = optionalData || nearbyUserModelData, length = data.length;
@@ -1257,6 +1260,8 @@ Rectangle {
                 selectionTimer.userIndex = userIndex;
                 selectionTimer.start();
             }
+            // in any case make sure we are in the nearby tab
+            activeTab="nearbyTab";
             break;
         // Received an "updateUsername()" request from the JS
         case 'updateUsername':
