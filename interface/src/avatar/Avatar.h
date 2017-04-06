@@ -285,6 +285,7 @@ protected:
 
     void addToScene(AvatarSharedPointer self);
     void ensureInScene(AvatarSharedPointer self);
+    bool isInScene() const { return render::Item::isValidID(_renderItemID); }
 
     // Some rate tracking support
     RateCounter<> _simulationRate;

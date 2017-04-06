@@ -100,15 +100,16 @@ void AvatarManager::init() {
         _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
     }
 
+    _shouldRender = DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars();
     connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged,
             this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
 
-    render::ScenePointer scene = qApp->getMain3DScene();
-    render::Transaction transaction;
-    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
+    if (_shouldRender) {
+        render::ScenePointer scene = qApp->getMain3DScene();
+        render::Transaction transaction;
         _myAvatar->addToScene(_myAvatar, scene, transaction);
+        scene->enqueueTransaction(transaction);
     }
-    scene->enqueueTransaction(transaction);
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
@@ -181,30 +182,24 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 // DO NOT update or fade out uninitialized Avatars
                 return true; // ignore it
             }
-            if (avatar->shouldDie()) {
-                removeAvatar(avatar->getID());
-                return true; // ignore it
-            }
-            if (avatar->isDead()) {
-                return true; // ignore it
-            }
-
             return false;
         });
 
-    render::Transaction transaction;
     uint64_t startTime = usecTimestampNow();
     const uint64_t UPDATE_BUDGET = 2000; // usec
     uint64_t updateExpiry = startTime + UPDATE_BUDGET;
-
     int numAvatarsUpdated = 0;
     int numAVatarsNotUpdated = 0;
+
+    render::Transaction transaction;
     while (!sortedAvatars.empty()) {
         const AvatarPriority& sortData = sortedAvatars.top();
         const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
 
         // for ALL avatars...
-        avatar->ensureInScene(avatar);
+        if (_shouldRender) {
+            avatar->ensureInScene(avatar);
+        }
         if (!avatar->getMotionState()) {
             ShapeInfo shapeInfo;
             avatar->computeShapeInfo(shapeInfo);
@@ -218,6 +213,10 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             }
         }
         avatar->animateScaleChanges(deltaTime);
+        if (avatar->shouldDie()) {
+            avatar->die();
+            removeAvatar(avatar->getID());
+        }
 
         const float OUT_OF_VIEW_THRESHOLD = 0.5f * AvatarData::OUT_OF_VIEW_PENALTY;
         uint64_t now = usecTimestampNow();
@@ -259,10 +258,21 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         sortedAvatars.pop();
     }
 
+    if (_shouldRender) {
+        QVector<AvatarSharedPointer>::iterator itr = _avatarsToFade.begin();
+        while (itr != _avatarsToFade.end() && usecTimestampNow() > updateExpiry) {
+            auto avatar = std::static_pointer_cast<Avatar>(*itr);
+            avatar->animateScaleChanges(deltaTime);
+            avatar->simulate(deltaTime, true);
+            avatar->updateRenderItem(transaction);
+            ++itr;
+        }
+        qApp->getMain3DScene()->enqueueTransaction(transaction);
+    }
+
     _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
-    qApp->getMain3DScene()->enqueueTransaction(transaction);
 
     simulateAvatarFades(deltaTime);
 }
@@ -277,38 +287,68 @@ void AvatarManager::postUpdate(float deltaTime) {
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {
-    QVector<AvatarSharedPointer>::iterator fadingIterator = _avatarsToFade.begin();
+    QVector<AvatarSharedPointer>::iterator itr = _avatarsToFade.begin();
 
     const float SHRINK_RATE = 0.15f;
     const float MIN_FADE_SCALE = MIN_AVATAR_SCALE;
 
-    render::ScenePointer scene = qApp->getMain3DScene();
-    render::Transaction transaction;
-    while (fadingIterator != _avatarsToFade.end()) {
-        auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
+    while (itr != _avatarsToFade.end()) {
+        auto avatar = std::static_pointer_cast<Avatar>(*itr);
         avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
         avatar->animateScaleChanges(deltaTime);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
-            avatar->removeFromScene(*fadingIterator, scene, transaction);
+            // fading to zero is such a rare event we push unique transaction for each one
+            removeAvatar(avatar->getID());
+            if (avatar->isInScene()) {
+                render::ScenePointer scene = qApp->getMain3DScene();
+                render::Transaction transaction;
+                avatar->removeFromScene(*itr, scene, transaction);
+                scene->enqueueTransaction(transaction);
+            }
+
             // only remove from _avatarsToFade if we're sure its motionState has been removed from PhysicsEngine
             if (_motionStatesToRemoveFromPhysics.empty()) {
-                fadingIterator = _avatarsToFade.erase(fadingIterator);
+                itr = _avatarsToFade.erase(itr);
             } else {
-                ++fadingIterator;
+                ++itr;
             }
         } else {
             const bool inView = true; // HACK
             avatar->simulate(deltaTime, inView);
-            ++fadingIterator;
+            ++itr;
         }
     }
-    scene->enqueueTransaction(transaction);
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    std::shared_ptr<Avatar> avatar = std::make_shared<Avatar>(std::make_shared<Rig>());
-    avatar->addToScene(avatar);
-    return avatar;
+    return std::make_shared<Avatar>(std::make_shared<Rig>());
+}
+
+void AvatarManager::processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    PerformanceTimer perfTimer("receiveAvatar");
+    // enumerate over all of the avatars in this packet
+    // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
+    while (message->getBytesLeftToRead()) {
+        AvatarSharedPointer avatarData = parseAvatarData(message, sendingNode);
+        if (avatarData) {
+            auto avatar = std::static_pointer_cast<Avatar>(avatarData);
+            if (avatar->isInScene()) {
+                if (!_shouldRender) {
+                    // rare transition so we process pending changes immediately
+                    render::ScenePointer scene = qApp->getMain3DScene();
+                    render::Transaction transaction;
+                    avatar->removeFromScene(avatar, scene, transaction);
+                    scene->enqueueTransaction(transaction);
+                }
+            } else if (_shouldRender) {
+                // very rare transition so we process pending changes immediately
+                render::ScenePointer scene = qApp->getMain3DScene();
+                render::Transaction transaction;
+                avatar->addToScene(avatar, scene, transaction);
+                scene->enqueueTransaction(transaction);
+            }
+        }
+    }
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
@@ -458,25 +498,22 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 }
 
 void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
-    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
+    _shouldRender = shouldRenderAvatars;
+    render::ScenePointer scene = qApp->getMain3DScene();
+    render::Transaction transaction;
+    if (_shouldRender) {
         for (auto avatarData : _avatarHash) {
             auto avatar = std::static_pointer_cast<Avatar>(avatarData);
-            render::ScenePointer scene = qApp->getMain3DScene();
-            render::Transaction transaction;
             avatar->addToScene(avatar, scene, transaction);
-            scene->enqueueTransaction(transaction);
         }
     } else {
         for (auto avatarData : _avatarHash) {
             auto avatar = std::static_pointer_cast<Avatar>(avatarData);
-            render::ScenePointer scene = qApp->getMain3DScene();
-            render::Transaction transaction;
             avatar->removeFromScene(avatar, scene, transaction);
-            scene->enqueueTransaction(transaction);
         }
     }
+    scene->enqueueTransaction(transaction);
 }
-
 
 AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) const {
     if (sessionID == AVATAR_SELF_ID || sessionID == _myAvatar->getSessionUUID()) {

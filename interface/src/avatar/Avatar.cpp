@@ -192,6 +192,7 @@ void Avatar::animateScaleChanges(float deltaTime) {
             _isAnimatingScale = false;
         }
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
+        _hasNewJointData = true;
 
         // TODO: rebuilding the shape constantly is somehwat expensive.
         // We should only rebuild after significant change.
@@ -200,8 +201,12 @@ void Avatar::animateScaleChanges(float deltaTime) {
 }
 
 void Avatar::setTargetScale(float targetScale) {
-    AvatarData::setTargetScale(targetScale);
-    _isAnimatingScale = true;
+    float newValue = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    if (_targetScale != newValue) {
+        _targetScale = newValue;
+        _scaleChanged = usecTimestampNow();
+        _isAnimatingScale = true;
+    }
 }
 
 void Avatar::updateAvatarEntities() {

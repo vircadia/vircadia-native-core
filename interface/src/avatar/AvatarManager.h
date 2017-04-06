@@ -91,6 +91,9 @@ public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
+protected slots:
+    void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) override;
+
 private:
     explicit AvatarManager(QObject* parent = 0);
     explicit AvatarManager(const AvatarManager& other);
@@ -100,12 +103,6 @@ private:
     AvatarSharedPointer newSharedAvatar() override;
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
-    /* TODO: maintain these lists
-    QVector<AvatarSharedPointer> _avatarsToRemoveFromScene;
-    QVector<AvatarSharedPointer> _avatarsToAddToScene;
-    QVector<AvatarSharedPointer> _avatarsToRemoveFromPhysicsEngine;
-    QVector<AvatarSharedPointer> _avatarsToAddToPhysicsEngine;
-    */
     QVector<AvatarSharedPointer> _avatarsToFade;
 
     SetOfAvatarMotionStates _motionStatesThatMightUpdate;
@@ -125,6 +122,7 @@ private:
     int _numAvatarsUpdated { 0 };
     int _numAvatarsNotUpdated { 0 };
     float _avatarSimulationTime { 0.0f };
+    bool _shouldRender { true };
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)
