@@ -61,6 +61,16 @@ void UserActivityLoggerScriptingInterface::palOpened(float secondsOpened) {
     });
 }
 
+void UserActivityLoggerScriptingInterface::makeUserConnection(QString otherID, bool success, QString detailsString) {
+    QJsonObject payload;
+    payload["otherUser"] = otherID;
+    payload["success"] = success;
+    if (detailsString.length() > 0) {
+        payload["details"] = detailsString;
+    }
+    logAction("makeUserConnection", payload);
+}
+
 void UserActivityLoggerScriptingInterface::logAction(QString action, QJsonObject details) {
     QMetaObject::invokeMethod(&UserActivityLogger::getInstance(), "logAction",
                               Q_ARG(QString, action),

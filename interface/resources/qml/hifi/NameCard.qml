@@ -14,6 +14,7 @@ import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 import "../styles-uit"
+import "../controls-uit" as HifiControls
 import "toolbars"
 
 // references Users, UserActivityLogger, MyAvatar, Vec3, Quat, AddressManager from root context
@@ -42,8 +43,9 @@ Item {
     property bool selected: false
     property bool isAdmin: false
     property bool isPresent: true
+    property string placeName: ""
     property string profilePicBorderColor: (connectionStatus == "connection" ? hifi.colors.indigoAccent : (connectionStatus == "friend" ? hifi.colors.greenHighlight : "transparent"))
-
+    property alias avImage: avatarImage
     Item {
         id: avatarImage
         visible: profileUrl !== "" && userName !== "";
@@ -78,25 +80,6 @@ Item {
             source: "../../icons/profilePicLoading.gif"
             anchors.fill: parent;
             visible: userImage.status != Image.Ready;
-        }
-        StateImage {
-            id: infoHoverImage;
-            visible: false;
-            imageURL: "../../images/info-icon-2-state.svg";
-            size: 32;
-            buttonState: 1;
-            anchors.centerIn: parent;
-        }
-        MouseArea {
-            anchors.fill: parent
-            enabled: selected || isMyCard;
-            hoverEnabled: enabled
-            onClicked: {
-                userInfoViewer.url = defaultBaseUrl + "/users/" + userName;
-                userInfoViewer.visible = true;
-            }
-            onEntered: infoHoverImage.visible = true;
-            onExited: infoHoverImage.visible = false;
         }
     }
 
@@ -316,9 +299,10 @@ Item {
         visible: thisNameCard.userName !== "";
         // Size
         width: parent.width
-        height: pal.activeTab == "nearbyTab" || isMyCard ? usernameTextPixelSize + 4 : parent.height;
+        height: usernameTextPixelSize + 4
         // Anchors
-        anchors.top: isMyCard ? myDisplayName.bottom : (pal.activeTab == "nearbyTab" ? displayNameContainer.bottom : parent.top);
+        anchors.top: isMyCard ? myDisplayName.bottom : pal.activeTab == "nearbyTab" ? displayNameContainer.bottom : undefined //(parent.height - displayNameTextPixelSize/2));
+        anchors.verticalCenter: pal.activeTab == "connectionsTab" ? avatarImage.verticalCenter : undefined
         anchors.left: avatarImage.right;
         anchors.leftMargin: avatarImage.visible ? 5 : 0;
         anchors.rightMargin: 5;
@@ -346,6 +330,92 @@ Item {
             }
         }
     }
+    StateImage {
+        id: nameCardConnectionInfoImage
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab"
+        imageURL: "../../images/info-icon-2-state.svg" // PLACEHOLDER!!!
+        size: 32;
+        buttonState: 0;
+        anchors.left: avatarImage.right
+        anchors.bottom: parent.bottom
+    }
+    MouseArea {
+        anchors.fill:nameCardConnectionInfoImage
+        enabled: selected
+        hoverEnabled: true
+        onClicked: {
+            userInfoViewer.url = defaultBaseUrl + "/users/" + userName;
+            userInfoViewer.visible = true;
+        }
+        onEntered: {
+            nameCardConnectionInfoImage.buttonState = 1;
+        }
+        onExited: {
+            nameCardConnectionInfoImage.buttonState = 0;
+        }
+    }
+    FiraSansRegular {
+        id: nameCardConnectionInfoText
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && !isMyCard
+        width: parent.width
+        height: displayNameTextPixelSize
+        size: displayNameTextPixelSize - 4
+        anchors.left: nameCardConnectionInfoImage.right
+        anchors.verticalCenter: nameCardConnectionInfoImage.verticalCenter
+        anchors.leftMargin: 5
+        verticalAlignment: Text.AlignVCenter
+        text: "Info"
+        color: hifi.colors.baseGray
+    }
+    HiFiGlyphs {
+        id: nameCardRemoveConnectionImage
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab"
+        text: hifi.glyphs.close
+        size: 28;
+        x: 120
+        anchors.verticalCenter: nameCardConnectionInfoImage.verticalCenter
+    }
+    MouseArea {
+        anchors.fill:nameCardRemoveConnectionImage
+        enabled: selected
+        hoverEnabled: true
+        onClicked: {
+            // send message to pal.js to forgetConnection
+            pal.sendToScript({method: 'removeConnection', params: thisNameCard.userName});
+        }
+        onEntered: {
+            nameCardRemoveConnectionImage.text = hifi.glyphs.closeInverted;
+        }
+        onExited: {
+            nameCardRemoveConnectionImage.text = hifi.glyphs.close;
+        }
+    }
+    FiraSansRegular {
+        id: nameCardRemoveConnectionText
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && !isMyCard
+        width: parent.width
+        height: displayNameTextPixelSize
+        size: displayNameTextPixelSize - 4
+        anchors.left: nameCardRemoveConnectionImage.right
+        anchors.verticalCenter: nameCardRemoveConnectionImage.verticalCenter
+        anchors.leftMargin: 5
+        verticalAlignment: Text.AlignVCenter
+        text: "Forget"
+        color: hifi.colors.baseGray
+    }
+    HifiControls.Button {
+        id: visitConnectionButton
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && !isMyCard
+        text: "Visit"
+        enabled: thisNameCard.placeName !== ""
+        anchors.verticalCenter: nameCardRemoveConnectionImage.verticalCenter
+        x: 240
+        onClicked: {
+            AddressManager.goToUser(thisNameCard.userName);
+            UserActivityLogger.palAction("go_to_user", thisNameCard.userName);
+        }
+    }
+
     // VU Meter
     Rectangle {
         id: nameCardVUMeter
@@ -484,7 +554,7 @@ Item {
             }
         }
     }
-    
+
     function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
         Users.setAvatarGain(avatarUuid, sliderValue);
         if (isReleased) {

@@ -21,6 +21,9 @@ Rectangle {
     id: root
     objectName: "AssetServer"
 
+    property string title: "Asset Browser"
+    property bool keyboardRaised: false
+
     property var eventBridge;
     signal sendToScript(var message);
     property bool isHMD: false
@@ -415,7 +418,6 @@ Rectangle {
 
     Column {
         width: parent.width
-        y: hifi.dimensions.tabletMenuHeader //-bgNavBar
         spacing: 10
 
         HifiControls.TabletContentSection {

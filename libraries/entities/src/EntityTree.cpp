@@ -182,6 +182,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             if (!wantsLocked) {
                 EntityItemProperties tempProperties;
                 tempProperties.setLocked(wantsLocked);
+                tempProperties.setLastEdited(properties.getLastEdited());
 
                 bool success;
                 AACube queryCube = entity->getQueryAACube(success);

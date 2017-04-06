@@ -52,6 +52,13 @@ Rectangle {
         id: letterboxMessage;
         z: 999; // Force the popup on top of everything else
     }
+    Connections {
+        target: GlobalServices
+        onMyUsernameChanged: {
+            myData.userName = Account.username;
+            myDataChanged(); // Setting a property within an object isn't enough to update dependencies. This will do it.
+        }
+    }
     // The ComboDialog used for setting availability
     ComboDialog {
         id: comboDialog;
@@ -436,7 +443,7 @@ Rectangle {
             rowDelegate: Rectangle { // The only way I know to specify a row height.
                 // Size
                 height: rowHeight + (styleData.selected ? 15 : 0);
-                color: rowColor(styleData.selected, styleData.alternate);
+                color: nearbyRowColor(styleData.selected, styleData.alternate);
             }
 
             // This Item refers to the contents of each Cell
@@ -749,7 +756,7 @@ Rectangle {
                 resizable: false;
             }
             TableViewColumn {
-                role: "friends";
+                role: "connection";
                 title: "FRIEND";
                 width: actionButtonWidth;
                 movable: false;
@@ -763,8 +770,8 @@ Rectangle {
             // This Rectangle refers to each Row in the connectionsTable.
             rowDelegate: Rectangle {
                 // Size
-                height: rowHeight;
-                color: rowColor(styleData.selected, styleData.alternate);
+                height: rowHeight + (styleData.selected ? 15 : 0);
+                color: connectionsRowColor(styleData.selected, styleData.alternate);
             }
 
             // This Item refers to the contents of each Cell
@@ -779,6 +786,7 @@ Rectangle {
                     profileUrl: (model && model.profileUrl) || "";
                     displayName: "";
                     userName: model ? model.userName : "";
+                    placeName: model ? model.placeName : ""
                     connectionStatus : model ? model.connection : "";
                     selected: styleData.selected;
                     // Size
@@ -797,12 +805,16 @@ Rectangle {
                     elide: Text.ElideRight;
                     // Size
                     width: parent.width;
-                    // Anchors
-                    anchors.fill: parent;
+                    // you would think that this would work:
+                    // anchors.verticalCenter: connectionsNameCard.avImage.verticalCenter
+                    // but no!  you cannot anchor to a non-sibling or parent.  So I will
+                    // align with the friends checkbox, where I did the manual alignment
+                    anchors.verticalCenter: friendsCheckBox.verticalCenter
                     // Text Size
                     size: 16;
                     // Text Positioning
                     verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
                     // Style
                     color: hifi.colors.blueAccent;
                     font.underline: true;
@@ -822,12 +834,16 @@ Rectangle {
                 // "Friends" checkbox
                 HifiControlsUit.CheckBox {
                     id: friendsCheckBox;
-                    visible: styleData.role === "friends" && model.userName !== myData.userName;
-                    anchors.centerIn: parent;
-                    checked: model ? (model["connection"] === "friend" ? true : false) : false;
+                    visible: styleData.role === "connection" && model && model.userName !== myData.userName;
+                    // you would think that this would work:
+                    // anchors.verticalCenter: connectionsNameCard.avImage.verticalCenter
+                    // but no!  you cannot anchor to a non-sibling or parent.  So:
+                    x: parent.width/2 - boxSize/2;
+                    y: connectionsNameCard.avImage.y + connectionsNameCard.avImage.height/2 - boxSize/2;
+                    checked: model && (model.connection === "friend");
                     boxSize: 24;
                     onClicked: {
-                        var newValue = !(model["connection"] === "friend");
+                        var newValue = model.connection !== "friend";
                         connectionsUserModel.setProperty(model.userIndex, styleData.role, newValue);
                         connectionsUserModelData[model.userIndex][styleData.role] = newValue; // Defensive programming
                         pal.sendToScript({method: newValue ? 'addFriend' : 'removeFriend', params: model.userName});
@@ -901,7 +917,7 @@ Rectangle {
                 wrapMode: Text.WordWrap
                 textFormat: Text.StyledText;
                 // Text
-                text: HMD.active ?
+                text: HMD.isMounted ?
                 "<b>When you meet someone you want to remember later, you can <font color='purple'>connect</font> with a handshake:</b><br><br>" +
                 "1. Put your hand out onto their hand and squeeze your controller's grip button on its side.<br>" +
                 "2. Once the other person puts their hand onto yours, you'll see your connection form.<br>" +
@@ -960,7 +976,6 @@ Rectangle {
                 // Text size
                 size: hifi.fontSizes.tabularData;
                 // Anchors
-                anchors.top: myCard.top;
                 anchors.left: parent.left;
                 // Style
                 color: hifi.colors.baseGrayHighlight;
@@ -1184,8 +1199,11 @@ Rectangle {
         }
     }
 
-    function rowColor(selected, alternate) {
+    function nearbyRowColor(selected, alternate) {
         return selected ? hifi.colors.orangeHighlight : alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd;
+    }
+    function connectionsRowColor(selected, alternate) {
+        return selected ? hifi.colors.lightBlueHighlight : alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd;
     }
     function findNearbySessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var data = optionalData || nearbyUserModelData, length = data.length;
@@ -1257,6 +1275,8 @@ Rectangle {
                 selectionTimer.userIndex = userIndex;
                 selectionTimer.start();
             }
+            // in any case make sure we are in the nearby tab
+            activeTab="nearbyTab";
             break;
         // Received an "updateUsername()" request from the JS
         case 'updateUsername':
