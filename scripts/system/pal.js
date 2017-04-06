@@ -275,7 +275,6 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             uri: METAVERSE_BASE + '/api/v1/user/connections/' + connectionUserName,
             method: 'DELETE'
         }, function (error, response) {
-            print(JSON.stringify(response));
             if (error || (response.status !== 'success')) {
                 print("Error: unable to remove connection", connectionUserName, error || response.status);
                 return;
@@ -290,7 +289,6 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             uri: METAVERSE_BASE + '/api/v1/user/friends/' + friendUserName,
             method: 'DELETE'
         }, function (error, response) {
-            print(JSON.stringify(response));
             if (error || (response.status !== 'success')) {
                 print("Error: unable to unfriend", friendUserName, error || response.status);
                 return;
