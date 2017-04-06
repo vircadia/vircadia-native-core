@@ -13,11 +13,8 @@
 #define hifi_FBXBaker_h
 
 #include <QtCore/QDir>
-#include <QtCore/QLoggingCategory>
 #include <QtCore/QUrl>
 #include <QtNetwork/QNetworkReply>
-
-Q_DECLARE_LOGGING_CATEGORY(model_baking)
 
 namespace fbxsdk {
     class FbxManager;
@@ -25,6 +22,8 @@ namespace fbxsdk {
     class FbxScene;
     class FbxTexture;
 }
+
+class TextureBaker;
 
 class FBXBaker : public QObject {
     Q_OBJECT
@@ -45,10 +44,8 @@ private:
 
     bool setupOutputFolder();
     bool importScene();
-    bool rewriteAndCollectSceneTextures();
+    bool rewriteAndBakeSceneTextures();
     bool exportScene();
-    bool bakeTextures();
-    bool bakeTexture();
     bool removeEmbeddedMediaFolder();
 
     QString pathToCopyOfOriginal() const;
@@ -66,6 +63,10 @@ private:
 
     QHash<QUrl, QString> _unbakedTextures;
     QHash<QString, int> _textureNameMatchCount;
+
+    QHash<QUrl, QByteArray> _downloadedTextures;
+
+    std::list<std::unique_ptr<TextureBaker>> _bakingTextures;
 };
 
 #endif // hifi_FBXBaker_h

@@ -16,9 +16,11 @@
 
 #include <NetworkAccessManager.h>
 
+#include "ModelBakingLoggingCategory.h"
+#include "TextureBaker.h"
+
 #include "FBXBaker.h"
 
-Q_LOGGING_CATEGORY(model_baking, "hifi.model-baking");
 
 FBXBaker::FBXBaker(QUrl fbxURL, QString baseOutputPath) :
     _fbxURL(fbxURL),
@@ -143,15 +145,12 @@ void FBXBaker::handleFBXNetworkReply() {
 
 void FBXBaker::bake() {
     // (1) load the scene from the FBX file
-    // (2) enumerate the textures found in the scene and bake them
+    // (2) enumerate the textures found in the scene and start a bake for them
     // (3) export the FBX with re-written texture references
-    // (4) enumerate the collected texture paths and bake the textures
 
-    // a failure at any step along the way stops the chain
-    importScene() && rewriteAndCollectSceneTextures() && exportScene() && bakeTextures() && removeEmbeddedMediaFolder();
-
-    // emit a signal saying that we are done, with whatever errors were produced
-    emit finished();
+    importScene();
+    rewriteAndBakeSceneTextures();
+    exportScene();
 }
 
 bool FBXBaker::importScene() {
@@ -187,7 +186,7 @@ bool FBXBaker::importScene() {
 static const QString BAKED_TEXTURE_DIRECTORY = "textures/";
 static const QString BAKED_TEXTURE_EXT = ".ktx";
 
-bool FBXBaker::rewriteAndCollectSceneTextures() {
+bool FBXBaker::rewriteAndBakeSceneTextures() {
     // get a count of the textures used in the scene
     int numTextures = _scene->GetTextureCount();
 
@@ -283,6 +282,11 @@ bool FBXBaker::rewriteAndCollectSceneTextures() {
 
                 // add the deduced url to the texture, associated with the resulting baked texture file name, to our hash
                 _unbakedTextures.insert(urlToTexture, bakedTextureFileName);
+
+                // start a bake for this texture and add it to our list to keep track of
+                auto bakingTexture = new TextureBaker(urlToTexture);
+                bakingTexture->start();
+                _bakingTextures.emplace_back(bakingTexture);
             }
         }
     }
@@ -315,31 +319,6 @@ bool FBXBaker::exportScene() {
     return true;
 }
 
-bool FBXBaker::bakeTextures() {
-    // enumerate the list of unbaked textures
-    for (auto it = _unbakedTextures.begin(); it != _unbakedTextures.end(); ++it) {
-        auto& textureUrl = it.key();
-        
-        qCDebug(model_baking) << "Baking texture at" << textureUrl;
-
-        if (textureUrl.isLocalFile()) {
-            // this is a local file that we've already determined is available on the filesystem
-
-            // load the file
-            QFile localTexture { textureUrl.toLocalFile() };
-
-            if (!localTexture.open(QIODevice::ReadOnly)) {
-                // add an error to the list stating that this texture couldn't be baked because it could not be loaded
-            }
-
-            // call the image library to produce a compressed KTX for this image
-        } else {
-            // this is a remote texture that we'll need to download first
-        }
-    }
-
-    return true;
-}
 
 bool FBXBaker::removeEmbeddedMediaFolder() {
     // now that the bake is complete, remove the embedded media folder produced by the FBX SDK when it imports an FBX
