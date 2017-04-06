@@ -186,6 +186,19 @@ bool FBXBaker::importScene() {
 static const QString BAKED_TEXTURE_DIRECTORY = "textures/";
 static const QString BAKED_TEXTURE_EXT = ".ktx";
 
+QString texturePathRelativeToFBX(QUrl fbxURL, QUrl textureURL) {
+    auto fbxPath = fbxURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
+    auto texturePath = textureURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
+
+    if (texturePath.startsWith(fbxPath)) {
+        // texture path is a child of the FBX path, return the texture path without the fbx path
+        return texturePath.mid(fbxPath.length());
+    } else {
+        // the texture path was not a child of the FBX path, return the empty string
+        return "";
+    }
+}
+
 bool FBXBaker::rewriteAndBakeSceneTextures() {
     // get a count of the textures used in the scene
     int numTextures = _scene->GetTextureCount();

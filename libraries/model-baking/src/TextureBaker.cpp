@@ -66,6 +66,8 @@ void TextureBaker::handleTextureNetworkReply() {
 
     if (requestReply->error() == QNetworkReply::NoError) {
         qCDebug(model_baking) << "Downloaded texture at" << _textureURL;
+
+        // store the original texture so it can be passed along for the bake
         _originalTexture = requestReply->readAll();
     } else {
         qCDebug(model_baking) << "Error downloading texture" << requestReply->errorString();
