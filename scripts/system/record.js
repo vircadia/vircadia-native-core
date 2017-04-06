@@ -156,23 +156,32 @@
         button.editProperties({ isActive: isRecordingEnabled || recordingState !== IDLE });
     }
 
-    function setMappingCallback() {
+    function setMappingCallback(status) {
         var error;
 
-        if (true || Assets.isKnownMapping(mappingPath)) {  // TODO: isKnownMapping() is not available in JavaScript.
-            print(APP_NAME + ": Recording mapped to " + mappingPath);
-            print(APP_NAME + ": Request play recording");
-            // TODO
-        } else {
+        if (status !== "") {
             error = "Error mapping recording to " + mappingPath + " on Asset Server!";
-            print(APP_NAME + ": " + error);
+            print(APP_NAME + ": " + error + " - " + status);
             Window.alert(error);
+            return;
         }
+
+        print(APP_NAME + ": Recording mapped to " + mappingPath);
+        print(APP_NAME + ": Request play recording");
+        // TODO
     }
 
     function saveRecordingToAssetCallback(url) {
-        var filename,  
-            hash;
+        var filename,
+            hash,
+            error;
+
+        if (url === "") {
+            error = "Error saving recording to Asset Server!";
+            print(APP_NAME + ": " + error);
+            Window.alert(error);
+            return;
+        }
 
         print(APP_NAME + ": Recording saved to Asset Server as " + url);
 
@@ -191,14 +200,16 @@
     }
 
     function finishRecording() {
-        var error;
+        var success,
+            error;
 
         recordingState = IDLE;
         updateButtonState();
         print(APP_NAME + ": Finish recording");
         Recording.stopRecording();
-        if (!Recording.saveRecordingToAsset(saveRecordingToAssetCallback)) {
-            error = "Could not save recording to Asset Server!";
+        success = Recording.saveRecordingToAsset(saveRecordingToAssetCallback);
+        if (!success) {
+            error = "Error saving recording to Asset Server!";
             print(APP_NAME + ": " + error);
             Window.alert(error);
         }
