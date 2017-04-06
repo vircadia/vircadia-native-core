@@ -51,7 +51,7 @@ private:
 
     void bakeTexture(const QUrl& textureURL);
 
-    QString pathToCopyOfRaw() const;
+    QString pathToCopyOfOriginal() const;
 
     QUrl _fbxURL;
     QString _fbxName;
