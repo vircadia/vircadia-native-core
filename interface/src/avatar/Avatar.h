@@ -210,11 +210,15 @@ public:
 
     bool hasNewJointData() const { return _hasNewJointData; }
 
-	inline float easeInOutQuad(float t) {
-		assert(!((t < 0.0f) || (t > 1.0f)));
+    inline float easeInOutQuad(float lerpValue) {
+        assert(!((lerpValue < 0.0f) || (lerpValue > 1.0f)));
 
-		return((t < 0.5f) ? (2.0f*t*t) : (t*(4.0f - 2.0f*t) - 1.0f));
-	}
+        if (lerpValue < 0.5f) {
+            return (2.0f * lerpValue * lerpValue);
+        }
+
+        return (lerpValue*(4.0f - 2.0f * lerpValue) - 1.0f);
+    }
 
 public slots:
 
@@ -230,8 +234,8 @@ public slots:
 protected:
     friend class AvatarManager;
 
-	const float SMOOTH_TIME_POSITION = 0.125f;
-	const float SMOOTH_TIME_ORIENTATION = 0.075f;
+    const float SMOOTH_TIME_POSITION = 0.125f;
+    const float SMOOTH_TIME_ORIENTATION = 0.075f;
 
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
@@ -301,15 +305,15 @@ protected:
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 
-	// Smoothing data for blending from one position/orientation to another on remote agents.
-	float _smoothPositionTime;
-	float _smoothPositionTimer;
-	float _smoothOrientationTime;
-	float _smoothOrientationTimer;
-	glm::vec3 _smoothPositionInitial;
-	glm::vec3 _smoothPositionTarget;
-	glm::quat _smoothOrientationInitial;
-	glm::quat _smoothOrientationTarget;
+    // Smoothing data for blending from one position/orientation to another on remote agents.
+    float _smoothPositionTime;
+    float _smoothPositionTimer;
+    float _smoothOrientationTime;
+    float _smoothOrientationTimer;
+    glm::vec3 _smoothPositionInitial;
+    glm::vec3 _smoothPositionTarget;
+    glm::quat _smoothOrientationInitial;
+    glm::quat _smoothOrientationTarget;
 
 private:
     class AvatarEntityDataHash {

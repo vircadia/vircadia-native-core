@@ -97,15 +97,15 @@ Avatar::Avatar(RigPointer rig) :
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
     _initialized(false),
-    _voiceSphereID(GeometryCache::UNKNOWN_ID),
-	_smoothPositionTime(SMOOTH_TIME_POSITION),
+    _smoothPositionTime(SMOOTH_TIME_POSITION),
     _smoothPositionTimer(std::numeric_limits<float>::max()),
-	_smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
+    _smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
     _smoothOrientationTimer(std::numeric_limits<float>::max()),
     _smoothPositionInitial(),
     _smoothPositionTarget(),
     _smoothOrientationInitial(),
-    _smoothOrientationTarget()
+    _smoothOrientationTarget(),
+    _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(qApp->thread());
@@ -355,7 +355,11 @@ void Avatar::simulate(float deltaTime, bool inView) {
             // Smooth the remote avatar movement.
             _smoothPositionTimer += deltaTime;
             if (_smoothPositionTimer < _smoothPositionTime) {
-				AvatarData::setPosition(lerp(_smoothPositionInitial, _smoothPositionTarget, easeInOutQuad(glm::clamp(_smoothPositionTimer / _smoothPositionTime, 0.0f, 1.0f))));
+                AvatarData::setPosition(
+                    lerp(_smoothPositionInitial, 
+                        _smoothPositionTarget,
+                        easeInOutQuad(glm::clamp(_smoothPositionTimer / _smoothPositionTime, 0.0f, 1.0f)))
+                );
                 updateAttitude();
             }
         }
@@ -364,8 +368,12 @@ void Avatar::simulate(float deltaTime, bool inView) {
             // Smooth the remote avatar movement.
             _smoothOrientationTimer += deltaTime;
             if (_smoothOrientationTimer < _smoothOrientationTime) {
-				AvatarData::setOrientation(slerp(_smoothOrientationInitial, _smoothOrientationTarget, easeInOutQuad(glm::clamp(_smoothOrientationTimer / _smoothOrientationTime, 0.0f, 1.0f))));
-                 updateAttitude();
+                AvatarData::setOrientation(
+                    slerp(_smoothOrientationInitial, 
+                        _smoothOrientationTarget,
+                        easeInOutQuad(glm::clamp(_smoothOrientationTimer / _smoothOrientationTime, 0.0f, 1.0f)))
+                );
+                updateAttitude();
             }
         }
     }
@@ -1374,7 +1382,6 @@ void Avatar::setPosition(const glm::vec3& position) {
         // This is the local avatar, no need to handle any position smoothing.
         AvatarData::setPosition(position);
         updateAttitude();
-
         return;
     }
 
@@ -1389,7 +1396,6 @@ void Avatar::setOrientation(const glm::quat& orientation) {
         // This is the local avatar, no need to handle any position smoothing.
         AvatarData::setOrientation(orientation);
         updateAttitude();
-
         return;
     }
 
