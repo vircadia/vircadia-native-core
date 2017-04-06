@@ -14,6 +14,7 @@
 
 #include "Item.h"
 #include "SpatialTree.h"
+#include "Tag.h"
 
 namespace render {
 
@@ -113,6 +114,11 @@ protected:
     void resetItems(const ItemIDs& ids, Payloads& payloads);
     void removeItems(const ItemIDs& ids);
     void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
+
+
+    // The Tag map
+    std::mutex _tagsMutex;
+    TagMap _tags;
 
     friend class Engine;
 };
