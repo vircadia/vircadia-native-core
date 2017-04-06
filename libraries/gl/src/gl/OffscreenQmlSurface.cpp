@@ -278,11 +278,9 @@ void OffscreenQmlSurface::cleanup() {
 }
 
 void OffscreenQmlSurface::render() {
-
 #ifdef HIFI_ENABLE_NSIGHT_DEBUG
     return;
 #endif
-
     if (_paused) {
         return;
     }
