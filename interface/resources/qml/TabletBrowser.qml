@@ -1,5 +1,5 @@
 import QtQuick 2.5
-import QtQuick.Controls 1.2
+import QtQuick.Controls 1.4
 import QtWebChannel 1.0
 import QtWebEngine 1.2
 
@@ -7,7 +7,7 @@ import "controls"
 import "styles" as HifiStyles
 import "styles-uit"
 import "windows"
-import HFWebEngineProfile 1.0
+import HFTabletWebEngineProfile 1.0
 
 Item {
     id: root
@@ -27,138 +27,103 @@ Item {
 
     x: 0
     y: 0
-    
-    function goBack() {
-        webview.goBack();
-    }
-    
-    function goForward() {
-        webview.goForward();
-    }
-    
-    function gotoPage(url) {
-        webview.url = url;
-    }
 
     function setProfile(profile) {
         webview.profile = profile;
     }
 
-    function reloadPage() {
-        webview.reloadAndBypassCache();
-        webview.setActiveFocusOnPress(true);
-        webview.setEnabled(true);
+    QtObject {
+        id: eventBridgeWrapper
+        WebChannel.id: "eventBridgeWrapper"
+        property var eventBridge;
     }
 
-    Item {
-        id:item
+    WebEngineView {
+        id: webview
+        objectName: "webEngineView"
+        x: 0
+        y: 0
         width: parent.width
-        implicitHeight: parent.height
+        height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
-        
-        QtObject {
-            id: eventBridgeWrapper
-            WebChannel.id: "eventBridgeWrapper"
-            property var eventBridge;
+        profile: HFTabletWebEngineProfile {
+            id: webviewTabletProfile
+            storageName: "qmlTabletWebEngine"
         }
 
-        WebEngineView {
-            id: webview
-            objectName: "webEngineView"
-            x: 0
-            y: 0
-            width: parent.width
-            height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
-            
-            profile: HFWebEngineProfile {
-                id: webviewProfile
-                storageName: "qmlWebEngine"
-            }
+        property string userScriptUrl: ""
 
-            property string userScriptUrl: ""
-            
-            // creates a global EventBridge object.
-            WebEngineScript {
-                id: createGlobalEventBridge
-                sourceCode: eventBridgeJavaScriptToInject
-                injectionPoint: WebEngineScript.DocumentCreation
-                worldId: WebEngineScript.MainWorld
-            }
-            
-            // detects when to raise and lower virtual keyboard
-            WebEngineScript {
-                id: raiseAndLowerKeyboard
-                injectionPoint: WebEngineScript.Deferred
-                sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
-                worldId: WebEngineScript.MainWorld
-            }
-            
-            // User script.
-            WebEngineScript {
-                id: userScript
-                sourceUrl: webview.userScriptUrl
-                injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
-                worldId: WebEngineScript.MainWorld
-            }
+        // creates a global EventBridge object.
+        WebEngineScript {
+            id: createGlobalEventBridge
+            sourceCode: eventBridgeJavaScriptToInject
+            injectionPoint: WebEngineScript.DocumentCreation
+            worldId: WebEngineScript.MainWorld
+        }
 
-            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
-            
-            property string newUrl: ""
-            
-            webChannel.registeredObjects: [eventBridgeWrapper]
+        // detects when to raise and lower virtual keyboard
+        WebEngineScript {
+            id: raiseAndLowerKeyboard
+            injectionPoint: WebEngineScript.Deferred
+            sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
+            worldId: WebEngineScript.MainWorld
+        }
 
-            Component.onCompleted: {
-                // Ensure the JS from the web-engine makes it to our logging
-                webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-                    console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
-                });
-                
-                webview.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface";
-                web.address = url;
-            }
-            
-            onFeaturePermissionRequested: {
-                grantFeaturePermission(securityOrigin, feature, true);
-            }
+        // User script.
+        WebEngineScript {
+            id: userScript
+            sourceUrl: webview.userScriptUrl
+            injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
+            worldId: WebEngineScript.MainWorld
+        }
 
-            onLoadingChanged: {
-                keyboardRaised = false;
-                punctuationMode = false;
-                keyboard.resetShiftMode(false);
-                
-                // Required to support clicking on "hifi://" links
-                if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-                    var url = loadRequest.url.toString();
-                    if (urlHandler.canHandleUrl(url)) {
-                        if (urlHandler.handleUrl(url)) {
-                            root.stop();
-                        }
+        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
+
+        property string newUrl: ""
+
+        webChannel.registeredObjects: [eventBridgeWrapper]
+
+        Component.onCompleted: {
+            // Ensure the JS from the web-engine makes it to our logging
+            webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
+                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
+            });
+
+            webview.profile.httpUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36";
+            web.address = url;
+        }
+
+        onFeaturePermissionRequested: {
+            grantFeaturePermission(securityOrigin, feature, true);
+        }
+
+        onLoadingChanged: {
+            keyboardRaised = false;
+            punctuationMode = false;
+            keyboard.resetShiftMode(false);
+
+            // Required to support clicking on "hifi://" links
+            if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+                var url = loadRequest.url.toString();
+                if (urlHandler.canHandleUrl(url)) {
+                    if (urlHandler.handleUrl(url)) {
+                        root.stop();
                     }
                 }
             }
+        }
 
-            onNewViewRequested: {
-                var component = Qt.createComponent("./TabletBrowser.qml");
-                
-                if (component.status != Component.Ready) {
-                    if (component.status == Component.Error) {
-                        console.log("Error: " + component.errorString());
-                    }
-                    return;
-                }
-                var newWindow = component.createObject();
-                newWindow.setProfile(webview.profile);
-                request.openIn(newWindow.webView);
-                newWindow.eventBridge = web.eventBridge;
-                stackRoot.push(newWindow);
-                newWindow.webView.forceActiveFocus();
-                
+        onNavigationRequested: {
+            if (request.navigationType == WebEngineNavigationRequest.LinkClickedNavigation) {
+                pagesModel.append({webUrl: request.url.toString()})
             }
         }
-        
-    } // item
-    
-    
+
+        onNewViewRequested: {
+            request.openIn(webView);
+        }
+    }
+
     Keys.onPressed: {
         switch(event.key) {
         case Qt.Key_L:
@@ -171,4 +136,4 @@ Item {
         }
     }
     
-   } // dialog
+}
