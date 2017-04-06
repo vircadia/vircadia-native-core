@@ -200,8 +200,8 @@
             HOME_URL = "Tablet.qml";
 
         if (type === "Home" && url === HOME_URL) {
-            // Start countdown if recording is enabled.
-            if (isRecordingEnabled && recordingState === IDLE) {
+            // Start countdown if using toolbar and recording is enabled.
+            if (usingToolbar() && isRecordingEnabled && recordingState === IDLE) {
                 startCountdown();
             }
             isDialogDisplayed = false;
