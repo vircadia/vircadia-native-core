@@ -15,6 +15,10 @@
 using namespace render;
 
 
+Selection::~Selection() {
+
+}
+
 Selection::Selection() :
 _name(),
 _items()
@@ -50,9 +54,5 @@ Selection::Selection(const Name& name, const ItemIDs& items) :
     _name(name),
     _items(items)
 {
-}
-
-Selection::~Selection() {
-
 }
 

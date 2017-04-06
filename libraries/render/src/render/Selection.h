@@ -23,9 +23,9 @@ namespace render {
         ~Selection();
         Selection();
         Selection(const Selection& selection);
-        Selection& operator= (const Selection& selection);
+        Selection& operator = (const Selection& selection);
         Selection(Selection&& selection);
-        Selection& operator= (Selection&& selection);
+        Selection& operator = (Selection&& selection);
 
         Selection(const Name& name, const ItemIDs& items);
 

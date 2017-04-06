@@ -33,6 +33,7 @@
 #include "FramebufferCache.h"
 #include "HitEffect.h"
 #include "TextureCache.h"
+#include "ZoneRenderer.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
