@@ -98,14 +98,14 @@ Avatar::Avatar(RigPointer rig) :
     _moving(false),
     _initialized(false),
     _voiceSphereID(GeometryCache::UNKNOWN_ID),
-	_smoothPositionTime(0.15f),
-	_smoothPositionTimer(std::numeric_limits<float>::max()),
-	_smoothOrientationTime(0.15f),
-	_smoothOrientationTimer(std::numeric_limits<float>::max()),
-	_smoothPositionInitial(),
-	_smoothPositionTarget(),
-	_smoothOrientationInitial(),
-	_smoothOrientationTarget()
+	_smoothPositionTime(SMOOTH_TIME_POSITION),
+    _smoothPositionTimer(std::numeric_limits<float>::max()),
+	_smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
+    _smoothOrientationTimer(std::numeric_limits<float>::max()),
+    _smoothPositionInitial(),
+    _smoothPositionTarget(),
+    _smoothOrientationInitial(),
+    _smoothOrientationTarget()
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(qApp->thread());
@@ -350,25 +350,25 @@ void Avatar::simulate(float deltaTime, bool inView) {
         _simulationInViewRate.increment();
     }
 
-	if (!isMyAvatar()) {
-		if (_smoothPositionTimer < _smoothPositionTime) {
-			// Smooth the remote avatar movement.
-			_smoothPositionTimer += deltaTime;
-			if (_smoothPositionTimer < _smoothPositionTime) {
-				AvatarData::setPosition(lerp(_smoothPositionInitial, _smoothPositionTarget, easeInOutQuad(_smoothPositionTimer / _smoothPositionTime)));
-				updateAttitude();
-			}
-		}
+    if (!isMyAvatar()) {
+        if (_smoothPositionTimer < _smoothPositionTime) {
+            // Smooth the remote avatar movement.
+            _smoothPositionTimer += deltaTime;
+            if (_smoothPositionTimer < _smoothPositionTime) {
+                AvatarData::setPosition(lerp(_smoothPositionInitial, _smoothPositionTarget, easeInOutQuad(_smoothPositionTimer / _smoothPositionTime)));
+                updateAttitude();
+            }
+        }
 
-		if (_smoothOrientationTimer < _smoothOrientationTime) {
-			// Smooth the remote avatar movement.
-			_smoothOrientationTimer += deltaTime;
-			if (_smoothOrientationTimer < _smoothOrientationTime) {
-				 AvatarData::setOrientation(slerp(_smoothOrientationInitial, _smoothOrientationTarget, easeInOutQuad(_smoothOrientationTimer / _smoothOrientationTime)));
-				 updateAttitude();
-			}
-		}
-	}
+        if (_smoothOrientationTimer < _smoothOrientationTime) {
+            // Smooth the remote avatar movement.
+            _smoothOrientationTimer += deltaTime;
+            if (_smoothOrientationTimer < _smoothOrientationTime) {
+                 AvatarData::setOrientation(slerp(_smoothOrientationInitial, _smoothOrientationTarget, easeInOutQuad(_smoothOrientationTimer / _smoothOrientationTime)));
+                 updateAttitude();
+            }
+        }
+    }
 
     PerformanceTimer perfTimer("simulate");
     {
@@ -1370,33 +1370,33 @@ glm::quat Avatar::getUncachedRightPalmRotation() const {
 }
 
 void Avatar::setPosition(const glm::vec3& position) {
-	if (isMyAvatar()) {
-		// This is the local avatar, no need to handle any position smoothing.
-		AvatarData::setPosition(position);
-		updateAttitude();
+    if (isMyAvatar()) {
+        // This is the local avatar, no need to handle any position smoothing.
+        AvatarData::setPosition(position);
+        updateAttitude();
 
-		return;
-	}
+        return;
+    }
 
-	// Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-	_smoothPositionInitial = getPosition();
-	_smoothPositionTarget = position;
-	_smoothPositionTimer = 0.0f;
+    // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
+    _smoothPositionInitial = getPosition();
+    _smoothPositionTarget = position;
+    _smoothPositionTimer = 0.0f;
 }
 
 void Avatar::setOrientation(const glm::quat& orientation) {
-	if (isMyAvatar()) {
-		// This is the local avatar, no need to handle any position smoothing.
-		AvatarData::setOrientation(orientation);
-		updateAttitude();
+    if (isMyAvatar()) {
+        // This is the local avatar, no need to handle any position smoothing.
+        AvatarData::setOrientation(orientation);
+        updateAttitude();
 
-		return;
-	}
+        return;
+    }
 
-	// Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-	_smoothOrientationInitial = getOrientation();
-	_smoothOrientationTarget = orientation;
-	_smoothOrientationTimer = 0.0f;
+    // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
+    _smoothOrientationInitial = getOrientation();
+    _smoothOrientationTarget = orientation;
+    _smoothOrientationTimer = 0.0f;
 }
 
 void Avatar::updatePalms() {

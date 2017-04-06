@@ -228,6 +228,9 @@ public slots:
 protected:
     friend class AvatarManager;
 
+	const float SMOOTH_TIME_POSITION = 0.125f;
+	const float SMOOTH_TIME_ORIENTATION = 0.075f;
+
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
