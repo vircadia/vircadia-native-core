@@ -64,7 +64,8 @@ private:
 
     QStringList _errorList;
 
-    QSet<QUrl> _unbakedTextures;
+    QHash<QUrl, QString> _unbakedTextures;
+    QHash<QString, int> _textureNameMatchCount;
 };
 
 #endif // hifi_FBXBaker_h

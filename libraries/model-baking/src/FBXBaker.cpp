@@ -204,7 +204,24 @@ bool FBXBaker::rewriteAndCollectSceneTextures() {
             if (!textureFileInfo.filePath().isEmpty()) {
 
                 // construct the new baked texture file name and file path
-                QString bakedTextureFileName { textureFileInfo.baseName() + BAKED_TEXTURE_EXT };
+
+                // first make sure we have a unique base name for this texture
+                // in case another texture referenced by this model has the same base name
+                auto& nameMatches = _textureNameMatchCount[textureFileInfo.baseName()];
+
+                QString bakedTextureFileName { textureFileInfo.baseName() };
+
+                if (nameMatches > 0) {
+                    // there are already nameMatches texture with this name
+                    // append - and that number to our baked texture file name so that it is unique
+                    bakedTextureFileName += "-" + QString::number(nameMatches);
+                }
+
+                bakedTextureFileName += BAKED_TEXTURE_EXT;
+
+                // increment the number of name matches
+                ++nameMatches;
+
                 QString bakedTextureFilePath { _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER + BAKED_TEXTURE_DIRECTORY + bakedTextureFileName };
 
                 qCDebug(model_baking).noquote() << "Re-mapping" << fileTexture->GetFileName() << "to" << bakedTextureFilePath;
@@ -212,10 +229,12 @@ bool FBXBaker::rewriteAndCollectSceneTextures() {
                 // write the new filename into the FBX scene
                 fileTexture->SetFileName(bakedTextureFilePath.toLocal8Bit());
 
+                QUrl urlToTexture;
+
                 // add the texture to the list of textures needing to be baked
                 if (textureFileInfo.exists() && textureFileInfo.isFile()) {
-                    // append the URL to the local texture that we have confirmed exists
-                    _unbakedTextures.insert(QUrl::fromLocalFile(textureFileInfo.absoluteFilePath()));
+                    // set the texture URL to the local texture that we have confirmed exists
+                    urlToTexture = QUrl::fromLocalFile(textureFileInfo.absoluteFilePath());
                 } else {
                     // external texture that we'll need to download or find
 
@@ -240,11 +259,11 @@ bool FBXBaker::rewriteAndCollectSceneTextures() {
                             if (apparentRelativePath.exists() && apparentRelativePath.isFile()) {
                                 // the absolute path we ran into for the texture in the FBX exists on this machine
                                 // so use that file
-                                _unbakedTextures.insert(QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath()));
+                                urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
                             } else {
                                 // we didn't find the texture on this machine at the absolute path
                                 // so assume that it is right beside the FBX to match the behaviour of interface
-                                _unbakedTextures.insert(_fbxURL.resolved(apparentRelativePath.fileName()));
+                                urlToTexture = _fbxURL.resolved(apparentRelativePath.fileName());
                             }
                         } else {
                             // the original FBX was remote and downloaded
@@ -253,14 +272,17 @@ bool FBXBaker::rewriteAndCollectSceneTextures() {
                             // which matches the behaviour of Interface
 
                             // append that path to our list of unbaked textures
-                            _unbakedTextures.insert(_fbxURL.resolved(apparentRelativePath.fileName()));
+                            urlToTexture = _fbxURL.resolved(apparentRelativePath.fileName());
                         }
                     } else {
                         // simply construct a URL with the relative path to the asset, locally or remotely
                         // and append that to the list of unbaked textures
-                        _unbakedTextures.insert(_fbxURL.resolved(apparentRelativePath.filePath()));
+                        urlToTexture = _fbxURL.resolved(apparentRelativePath.filePath());
                     }
                 }
+
+                // add the deduced url to the texture, associated with the resulting baked texture file name, to our hash
+                _unbakedTextures.insert(urlToTexture, bakedTextureFileName);
             }
         }
     }
@@ -295,7 +317,9 @@ bool FBXBaker::exportScene() {
 
 bool FBXBaker::bakeTextures() {
     // enumerate the list of unbaked textures
-    foreach(const QUrl& textureUrl, _unbakedTextures) {
+    for (auto it = _unbakedTextures.begin(); it != _unbakedTextures.end(); ++it) {
+        auto& textureUrl = it.key();
+        
         qCDebug(model_baking) << "Baking texture at" << textureUrl;
 
         if (textureUrl.isLocalFile()) {
