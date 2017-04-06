@@ -18,9 +18,9 @@
 
 if (NOT FBX_VERSION)
   if (WIN32)
-    set(FBX_VERSION 2016.1.1)
+    set(FBX_VERSION 2017.1)
   else()
-    set(FBX_VERSION 2016.1.1)
+    set(FBX_VERSION 2017.0.1)
   endif()
 endif()
 
