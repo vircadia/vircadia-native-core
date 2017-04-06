@@ -164,7 +164,9 @@ void Stats::updateStats(bool force) {
     SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
     SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
     SharedNodePointer messageMixerNode = nodeList->soloNodeOfType(NodeType::MessagesMixer);
+    auto mixerStream = _audioStats->data()->getMixerStream();
     STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
+    STAT_UPDATE(audioPacketLoss, mixerStream ? roundf(mixerStream->lossRateWindow() * 100.0f) : -1);
     STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
     STAT_UPDATE(assetPing, assetServerNode ? assetServerNode->getPingMs() : -1);
     STAT_UPDATE(messagePing, messageMixerNode ? messageMixerNode->getPingMs() : -1);
