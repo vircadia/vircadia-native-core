@@ -763,7 +763,7 @@ Rectangle {
             // This Rectangle refers to each Row in the connectionsTable.
             rowDelegate: Rectangle {
                 // Size
-                height: rowHeight;
+                height: rowHeight + (styleData.selected ? 15 : 0);
                 color: rowColor(styleData.selected, styleData.alternate);
             }
 
@@ -779,6 +779,7 @@ Rectangle {
                     profileUrl: (model && model.profileUrl) || "";
                     displayName: "";
                     userName: model ? model.userName : "";
+                    placeName: model ? model.placeName : ""
                     connectionStatus : model ? model.connection : "";
                     selected: styleData.selected;
                     // Size
@@ -792,7 +793,7 @@ Rectangle {
                 FiraSansRegular {
                     id: connectionsLocationData
                     // Properties
-                    visible: styleData.role === "placeName";
+                    visible: !connectionsNameCard.selected && styleData.role === "placeName";
                     text: (model && model.placeName) || "";
                     elide: Text.ElideRight;
                     // Size
@@ -822,7 +823,7 @@ Rectangle {
                 // "Friends" checkbox
                 HifiControlsUit.CheckBox {
                     id: friendsCheckBox;
-                    visible: styleData.role === "friends" && model.userName !== myData.userName;
+                    visible: styleData.role === "friends" && model && model.userName !== myData.userName;
                     anchors.centerIn: parent;
                     checked: model ? (model["connection"] === "friend" ? true : false) : false;
                     boxSize: 24;
