@@ -259,13 +259,16 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     }
 
     if (_shouldRender) {
-        QVector<AvatarSharedPointer>::iterator itr = _avatarsToFade.begin();
-        while (itr != _avatarsToFade.end() && usecTimestampNow() > updateExpiry) {
-            auto avatar = std::static_pointer_cast<Avatar>(*itr);
-            avatar->animateScaleChanges(deltaTime);
-            avatar->simulate(deltaTime, true);
-            avatar->updateRenderItem(transaction);
-            ++itr;
+        if (!_avatarsToFade.empty()) {
+            QReadLocker lock(&_hashLock);
+            QVector<AvatarSharedPointer>::iterator itr = _avatarsToFade.begin();
+            while (itr != _avatarsToFade.end() && usecTimestampNow() > updateExpiry) {
+                auto avatar = std::static_pointer_cast<Avatar>(*itr);
+                avatar->animateScaleChanges(deltaTime);
+                avatar->simulate(deltaTime, true);
+                avatar->updateRenderItem(transaction);
+                ++itr;
+            }
         }
         qApp->getMain3DScene()->enqueueTransaction(transaction);
     }
@@ -287,18 +290,21 @@ void AvatarManager::postUpdate(float deltaTime) {
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {
-    QVector<AvatarSharedPointer>::iterator itr = _avatarsToFade.begin();
+    if (_avatarsToFade.empty()) {
+        return;
+    }
 
     const float SHRINK_RATE = 0.15f;
     const float MIN_FADE_SCALE = MIN_AVATAR_SCALE;
 
+    QReadLocker locker(&_hashLock);
+    QVector<AvatarSharedPointer>::iterator itr = _avatarsToFade.begin();
     while (itr != _avatarsToFade.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*itr);
         avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
         avatar->animateScaleChanges(deltaTime);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             // fading to zero is such a rare event we push unique transaction for each one
-            removeAvatar(avatar->getID());
             if (avatar->isInScene()) {
                 render::ScenePointer scene = qApp->getMain3DScene();
                 render::Transaction transaction;
