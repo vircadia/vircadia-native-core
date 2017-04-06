@@ -342,6 +342,15 @@
     }
 
     function tearDown() {
+        if (!tablet) {
+            return;
+        }
+
+        tablet.webEventReceived.disconnect(onWebEventReceived);
+        tablet.tabletShownChanged.disconnect(onTabletShownChanged);
+        tablet.screenChanged.disconnect(onTabletScreenChanged);
+        button.clicked.disconnect(onButtonClicked);
+
         if (recordingState === COUNTING_DOWN) {
             cancelCountdown();
         } else if (recordingState === RECORDING) {
@@ -352,13 +361,6 @@
             tablet.gotoHomeScreen();
         }
 
-        if (!tablet) {
-            return;
-        }
-        tablet.webEventReceived.disconnect(onWebEventReceived);
-        tablet.tabletShownChanged.disconnect(onTabletShownChanged);
-        tablet.screenChanged.disconnect(onTabletScreenChanged);
-        button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
     }
 
