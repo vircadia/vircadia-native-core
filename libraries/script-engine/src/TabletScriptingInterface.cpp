@@ -83,7 +83,7 @@ QQuickWindow* TabletScriptingInterface::getTabletWindow() {
     QObject* qmlSurface = tablet->getTabletSurface();
     OffscreenQmlSurface* surface = dynamic_cast<OffscreenQmlSurface*>(qmlSurface);
 
-    if (!surface) {
+     if (!surface) {
         return nullptr;
     }
     QQuickWindow* window = surface->getWindow();
