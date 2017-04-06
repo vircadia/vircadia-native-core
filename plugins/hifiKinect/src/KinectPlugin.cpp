@@ -653,8 +653,7 @@ glm::quat KinectPlugin::QMAL(glm::quat q)
 {
     if (glm::dot(_q_barL, q) < 0) {
         _q_barL = (1 - _deltaL) * _q_barL + -_deltaL * q;
-    }
-    else {
+    } else {
         _q_barL = (1 - _deltaL) * _q_barL + _deltaL * q;
     }
     
@@ -670,15 +669,14 @@ glm::quat KinectPlugin::QMAL(glm::quat q)
 
 glm::quat KinectPlugin::QMAR(glm::quat q)
 {
-    if (glm::dot(_q_barR, q) < 0){
-        _q_barR = (1 - _deltaR)*_q_barR + -_deltaR*q;
-    } 
-    else {
-        _q_barR = (1 - _deltaR)*_q_barR + _deltaR*q;
+    if (glm::dot(_q_barR, q) < 0) {
+        _q_barR = (1 - _deltaR) * _q_barR + -_deltaR*q;
+    } else {
+        _q_barR = (1 - _deltaR) * _q_barR + _deltaR * q;
     }
 
     _q_barR = glm::normalize(_q_barR);
-        _q_barR = -_q_barR;
+    _q_barR = -_q_barR;
     
     if (_debug)
     {
