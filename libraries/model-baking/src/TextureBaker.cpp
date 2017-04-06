@@ -69,6 +69,9 @@ void TextureBaker::handleTextureNetworkReply() {
 
         // store the original texture so it can be passed along for the bake
         _originalTexture = requestReply->readAll();
+
+        // kickoff the texture bake now that everything is ready to go
+        bake();
     } else {
         qCDebug(model_baking) << "Error downloading texture" << requestReply->errorString();
     }
@@ -78,4 +81,5 @@ void TextureBaker::bake() {
     qCDebug(model_baking) << "Baking texture at" << _textureURL;
 
     // call image library to asynchronously bake this texture
+    emit finished();
 }

@@ -39,10 +39,10 @@ FBXBaker::~FBXBaker() {
 }
 
 static const QString BAKED_OUTPUT_SUBFOLDER = "baked/";
-static const QString ORIGINAL_OUTPUT_SUBFOLDER = "original/";
+static const QString RAW_OUTPUT_SUBFOLDER = "raw/";
 
-QString FBXBaker::pathToCopyOfOriginal() const {
-    return _uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER + _fbxURL.fileName();
+QString FBXBaker::pathToCopyOfRaw() const {
+    return _uniqueOutputPath + RAW_OUTPUT_SUBFOLDER + _fbxURL.fileName();
 }
 
 void FBXBaker::start() {
@@ -59,7 +59,7 @@ void FBXBaker::start() {
         QFile localFBX { _fbxURL.toLocalFile() };
 
         // make a copy in the output folder
-        localFBX.copy(pathToCopyOfOriginal());
+        localFBX.copy(pathToCopyOfRaw());
 
         // start the bake now that we have everything in place
         bake();
@@ -103,10 +103,10 @@ bool FBXBaker::setupOutputFolder() {
         return false;
     }
 
-    // make the baked and original sub-folders used during export
+    // make the baked and raw sub-folders used during export
     QDir uniqueOutputDir = _uniqueOutputPath;
-    if (!uniqueOutputDir.mkdir(BAKED_OUTPUT_SUBFOLDER) || !uniqueOutputDir.mkdir(ORIGINAL_OUTPUT_SUBFOLDER)) {
-        qCCritical(model_baking) << "Failed to create baked/original subfolders in" << _uniqueOutputPath;
+    if (!uniqueOutputDir.mkdir(BAKED_OUTPUT_SUBFOLDER) || !uniqueOutputDir.mkdir(RAW_OUTPUT_SUBFOLDER)) {
+        qCCritical(model_baking) << "Failed to create baked/raw subfolders in" << _uniqueOutputPath;
 
         emit finished();
         return false;
@@ -122,19 +122,19 @@ void FBXBaker::handleFBXNetworkReply() {
         qCDebug(model_baking) << "Downloaded" << _fbxURL;
 
         // grab the contents of the reply and make a copy in the output folder
-        QFile copyOfOriginal(pathToCopyOfOriginal());
+        QFile copyOfRaw(pathToCopyOfRaw());
 
-        qDebug(model_baking) << "Writing copy of original FBX to" << copyOfOriginal.fileName();
+        qDebug(model_baking) << "Writing copy of raw FBX to" << copyOfRaw.fileName();
 
-        if (!copyOfOriginal.open(QIODevice::WriteOnly) || (copyOfOriginal.write(requestReply->readAll()) == -1)) {
+        if (!copyOfRaw.open(QIODevice::WriteOnly) || (copyOfRaw.write(requestReply->readAll()) == -1)) {
 
-            // add an error to the error list for this FBX stating that a duplicate of the original could not be made
+            // add an error to the error list for this FBX stating that a duplicate of the raw FBX could not be made
             emit finished();
             return;
         }
 
         // close that file now that we are done writing to it
-        copyOfOriginal.close();
+        copyOfRaw.close();
 
         // kick off the bake process now that everything is ready to go
         bake();
@@ -157,9 +157,9 @@ bool FBXBaker::importScene() {
     // create an FBX SDK importer
     FbxImporter* importer = FbxImporter::Create(_sdkManager, "");
 
-    // import the copy of the original FBX file
-    QString originalCopyPath = pathToCopyOfOriginal();
-    bool importStatus = importer->Initialize(originalCopyPath.toLocal8Bit().data());
+    // import the copy of the raw FBX file
+    QString rawCopyPath = pathToCopyOfRaw();
+    bool importStatus = importer->Initialize(rawCopyPath.toLocal8Bit().data());
 
     if (!importStatus) {
         // failed to initialize importer, print an error and return
@@ -296,15 +296,60 @@ bool FBXBaker::rewriteAndBakeSceneTextures() {
                 // add the deduced url to the texture, associated with the resulting baked texture file name, to our hash
                 _unbakedTextures.insert(urlToTexture, bakedTextureFileName);
 
-                // start a bake for this texture and add it to our list to keep track of
-                auto bakingTexture = new TextureBaker(urlToTexture);
-                bakingTexture->start();
-                _bakingTextures.emplace_back(bakingTexture);
+                // bake this texture asynchronously
+                bakeTexture(urlToTexture);
             }
         }
     }
 
     return true;
+}
+
+void FBXBaker::bakeTexture(const QUrl& textureURL) {
+    // start a bake for this texture and add it to our list to keep track of
+    auto bakingTexture = new TextureBaker(textureURL);
+
+    connect(bakingTexture, &TextureBaker::finished, this, &FBXBaker::handleBakedTexture);
+
+    bakingTexture->start();
+
+    _bakingTextures.emplace_back(bakingTexture);
+}
+
+void FBXBaker::handleBakedTexture() {
+    auto bakedTexture = qobject_cast<TextureBaker*>(sender());
+
+    // use the path to the texture being baked to determine if this was an embedded or a linked texture
+
+    // it is embeddded if the texure being baked was inside the unbaked output folder
+    //
+
+    auto rawOutputFolder = QUrl::fromLocalFile(_uniqueOutputPath + RAW_OUTPUT_SUBFOLDER);
+
+    if (!rawOutputFolder.isParentOf(bakedTexture->getTextureURL())) {
+        // for linked textures we want to save a copy of original texture beside the original FBX
+
+        qCDebug(model_baking) << "Saving raw texture for" << bakedTexture->getTextureURL();
+
+        // check if we have a relative path to use for the texture
+        auto relativeTexturePath = texturePathRelativeToFBX(_fbxURL, bakedTexture->getTextureURL());
+
+        QFile originalTextureFile {
+            _uniqueOutputPath + RAW_OUTPUT_SUBFOLDER + relativeTexturePath + bakedTexture->getTextureURL().fileName()
+        };
+
+        if (relativeTexturePath.length() > 0) {
+            // make the folders needed by the relative path
+        }
+
+        if (originalTextureFile.open(QIODevice::WriteOnly) && originalTextureFile.write(bakedTexture->getOriginalTexture()) != -1) {
+            qCDebug(model_baking) << "Saved original texture file" << originalTextureFile.fileName()
+            << "for" << _fbxURL;
+        } else {
+            qCWarning(model_baking) << "Could not save original external texture" << originalTextureFile.fileName()
+            << "for" << _fbxURL;
+        }
+    }
 }
 
 static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
@@ -336,7 +381,7 @@ bool FBXBaker::exportScene() {
 bool FBXBaker::removeEmbeddedMediaFolder() {
     // now that the bake is complete, remove the embedded media folder produced by the FBX SDK when it imports an FBX
     auto embeddedMediaFolderName = _fbxURL.fileName().replace(".fbx", ".fbm");
-    QDir(_uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER + embeddedMediaFolderName).removeRecursively();
+    QDir(_uniqueOutputPath + RAW_OUTPUT_SUBFOLDER + embeddedMediaFolderName).removeRecursively();
 
     // we always return true because a failure to delete the embedded media folder is not a failure of the bake
     return true;

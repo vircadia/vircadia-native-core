@@ -38,6 +38,7 @@ signals:
 
 private slots:
     void handleFBXNetworkReply();
+    void handleBakedTexture();
     
 private:
     void bake();
@@ -48,7 +49,9 @@ private:
     bool exportScene();
     bool removeEmbeddedMediaFolder();
 
-    QString pathToCopyOfOriginal() const;
+    void bakeTexture(const QUrl& textureURL);
+
+    QString pathToCopyOfRaw() const;
 
     QUrl _fbxURL;
     QString _fbxName;
