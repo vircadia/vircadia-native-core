@@ -34,26 +34,109 @@
     CountdownTimer = (function () {
         var countdownTimer,
             countdownSeconds,
-            NUMBER_OF_SECONDS = 3,
-            finishCallback;
+            COUNTDOWN_SECONDS = 3,
+            finishCallback,
+            isHMD = false,
+            desktopOverlay,
+            desktopOverlayAdjust,
+            DESKTOP_FONT_SIZE = 200,
+            hmdOverlay,
+            HMD_FONT_SIZE = 0.25;
+
+        function displayOverlay() {
+            // Create both overlays in case user switches desktop/HMD mode during countdown.
+            var screenSize = Controller.getViewportDimensions(),
+                AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
+
+            isHMD = HMD.active;
+
+            desktopOverlayAdjust = {  // Adjust overlay position to cater to font rendering.
+                x: -DESKTOP_FONT_SIZE / 4,
+                y: -DESKTOP_FONT_SIZE / 2 - 50
+
+            };
+
+            desktopOverlay = Overlays.addOverlay("text", {
+                text: countdownSeconds,
+                width: DESKTOP_FONT_SIZE,
+                height: DESKTOP_FONT_SIZE + 20,
+                x: screenSize.x / 2 + desktopOverlayAdjust.x,
+                y: screenSize.y / 2 + desktopOverlayAdjust.y,
+                font: { size: DESKTOP_FONT_SIZE },
+                color: { red: 255, green: 255, blue: 255 },
+                alpha: 0.9,
+                backgroundAlpha: 0,
+                visible: !isHMD
+            });
+
+            hmdOverlay = Overlays.addOverlay("text3d", {
+                text: countdownSeconds,
+                dimensions: { x: HMD_FONT_SIZE, y: HMD_FONT_SIZE },
+                parentID: AVATAR_SELF_ID,
+                localPosition: { x: 0, y: 0.6, z: 2.0 },
+                color: { red: 255, green: 255, blue: 255 },
+                alpha: 0.9,
+                lineHeight: HMD_FONT_SIZE,
+                backgroundAlpha: 0,
+                ignoreRayIntersection: true,
+                isFacingAvatar: true,
+                drawInFront: true,
+                visible: isHMD
+            });
+        }
+
+        function updateOverlay() {
+            var screenSize;
+
+            if (isHMD !== HMD.active) {
+                if (isHMD) {
+                    Overlays.editOverlay(hmdOverlay, { visible: false });
+                } else {
+                    Overlays.editOverlay(desktopOverlay, { visible: false });
+                }
+                isHMD = HMD.active;
+            }
+
+            if (isHMD) {
+                Overlays.editOverlay(hmdOverlay, {
+                    text: countdownSeconds,
+                    visible: true
+                });
+            } else {
+                screenSize = Controller.getViewportDimensions();
+                Overlays.editOverlay(desktopOverlay, {
+                    x: screenSize.x / 2 + desktopOverlayAdjust.x,
+                    y: screenSize.y / 2 + desktopOverlayAdjust.y,
+                    text: countdownSeconds,
+                    visible: true
+                });
+            }
+        }
+
+        function deleteOverlay() {
+            Overlays.deleteOverlay(desktopOverlay);
+            Overlays.deleteOverlay(hmdOverlay);
+        }
 
         function start(onFinishCallback) {
             finishCallback = onFinishCallback;
-            countdownSeconds = NUMBER_OF_SECONDS;
-            print(countdownSeconds);
+            countdownSeconds = COUNTDOWN_SECONDS;
+            displayOverlay();
             countdownTimer = Script.setInterval(function () {
                 countdownSeconds -= 1;
                 if (countdownSeconds <= 0) {
                     Script.clearInterval(countdownTimer);
+                    deleteOverlay();
                     finishCallback();
                 } else {
-                    print(countdownSeconds);
+                    updateOverlay();
                 }
             }, 1000);
         }
 
         function cancel() {
             Script.clearInterval(countdownTimer);
+            deleteOverlay();
         }
 
         return {
