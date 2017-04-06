@@ -386,22 +386,32 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 }
 
 void AvatarManager::clearOtherAvatars() {
-    // clear any avatars that came from an avatar-mixer
-    QWriteLocker locker(&_hashLock);
+    // Remove other avatars from the world but don't actually remove them from _avatarHash
+    // each will either be removed on timeout or will re-added to the world on receipt of update.
+    render::ScenePointer scene = qApp->getMain3DScene();
+    render::PendingChanges pendingChanges;
 
+    QReadLocker locker(&_hashLock);
     AvatarHash::iterator avatarIterator =  _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
-        if (avatar == _myAvatar || !avatar->isInitialized()) {
-            // don't remove myAvatar or uninitialized avatars from the list
-            ++avatarIterator;
-        } else {
-            auto removedAvatar = avatarIterator.value();
-            avatarIterator = _avatarHash.erase(avatarIterator);
-
-            handleRemovedAvatar(removedAvatar);
+        if (avatar != _myAvatar) {
+            //auto removedAvatar = avatarIterator.value();
+            //avatarIterator = _avatarHash.erase(avatarIterator);
+            //handleRemovedAvatar(removedAvatar);
+            if (avatar->isInScene()) {
+                avatar->removeFromScene(avatar, scene, pendingChanges);
+            }
+            AvatarMotionState* motionState = avatar->getMotionState();
+            if (motionState) {
+                _motionStatesThatMightUpdate.remove(motionState);
+                _motionStatesToAddToPhysics.remove(motionState);
+                _motionStatesToRemoveFromPhysics.push_back(motionState);
+            }
         }
+        ++avatarIterator;
     }
+    scene->enqueuePendingChanges(pendingChanges);
     _myAvatar->clearLookAtTargetAvatar();
 }
 
