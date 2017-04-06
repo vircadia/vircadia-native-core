@@ -1,5 +1,5 @@
 //
-//  Tag.cpp
+//  Selection.cpp
 //  render/src/render
 //
 //  Created by Sam Gateau on 4/4/2017.
@@ -8,20 +8,20 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "Tag.h"
+#include "Selection.h"
 
 #include "Logging.h"
 
 using namespace render;
 
-Tag::Tag(const std::string& name, const ItemIDs items) : 
+Selection::Selection(const std::string& name, const ItemIDs items) :
     _name(name),
     _items(items)
 {
 
 }
 
-Tag::~Tag() {
+Selection::~Selection() {
 
 }
 

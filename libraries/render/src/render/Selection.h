@@ -1,5 +1,5 @@
 //
-//  Tag.h
+//  Selection.h
 //  render/src/render
 //
 //  Created by Sam Gateau on 4/4/2017.
@@ -9,18 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_render_Tag_h
-#define hifi_render_Tag_h
+#ifndef hifi_render_Selection_h
+#define hifi_render_Selection_h
 
 #include "Item.h"
 
 namespace render {
 
-    class Tag {
+    class Selection {
     public:
 
-        Tag(const std::string& name, const ItemIDs items);
-        ~Tag();
+        Selection(const std::string& name, const ItemIDs items);
+        ~Selection();
 
         const std::string& getName() const { return _name; }
 
@@ -30,20 +30,10 @@ namespace render {
         const std::string _name;
         ItemIDs _items;
     };
-    using Tags = std::vector<Tag>;
+    using Selections = std::vector<Selection>;
 
-    class TagMap {
-    public:
-        using NameMap = std::map<std::string, uint32_t>;
+    using SelectionMap = std::map<std::string, Selection>;
 
-        TagMap() {}
-        ~TagMap() {}
-
-
-    protected:
-        NameMap _names;
-        Tags _values;
-    };
 }
 
 #endif
