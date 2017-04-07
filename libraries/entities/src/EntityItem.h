@@ -53,7 +53,7 @@ using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElemen
 
 namespace render {
     class Scene;
-    class PendingChanges;
+    class Transaction;
 }
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
@@ -153,9 +153,9 @@ public:
                                                 { somethingChanged = false; return 0; }
 
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
-                            render::PendingChanges& pendingChanges) { return false; } // by default entity items don't add to scene
+                            render::Transaction& transaction) { return false; } // by default entity items don't add to scene
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
-                                render::PendingChanges& pendingChanges) { } // by default entity items don't add to scene
+                                render::Transaction& transaction) { } // by default entity items don't add to scene
     virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
 
     static int expectedBytes();

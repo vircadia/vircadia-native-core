@@ -133,7 +133,8 @@ namespace SceneScripting {
 class SceneScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    
+     
+
 public:
     Q_PROPERTY(bool shouldRenderAvatars READ shouldRenderAvatars WRITE setShouldRenderAvatars)
     Q_PROPERTY(bool shouldRenderEntities READ shouldRenderEntities WRITE setShouldRenderEntities)

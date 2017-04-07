@@ -199,9 +199,9 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
         auto itemID = getRenderItemID();
         if (render::Item::isValidID(itemID)) {
             render::ScenePointer scene = qApp->getMain3DScene();
-            render::PendingChanges pendingChanges;
-            pendingChanges.updateItem(itemID);
-            scene->enqueuePendingChanges(pendingChanges);
+            render::Transaction transaction;
+            transaction.updateItem(itemID);
+            scene->enqueueTransaction(transaction);
         }
     }
 }
@@ -264,9 +264,9 @@ void Base3DOverlay::locationChanged(bool tellPhysics) {
     auto itemID = getRenderItemID();
     if (render::Item::isValidID(itemID)) {
         render::ScenePointer scene = qApp->getMain3DScene();
-        render::PendingChanges pendingChanges;
-        pendingChanges.updateItem(itemID);
-        scene->enqueuePendingChanges(pendingChanges);
+        render::Transaction transaction;
+        transaction.updateItem(itemID);
+        scene->enqueueTransaction(transaction);
     }
 }
 
