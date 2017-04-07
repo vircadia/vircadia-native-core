@@ -183,7 +183,7 @@
             print(APP_NAME + ": Recording saved to Asset Server as " + url);
 
             filename = (new Date()).toISOString();  // yyyy-mm-ddThh:mm:ss.sssZ
-            filename = filename.replace(/[-:]|\.\d*Z$/g, "").replace("T", "-") + ".hfr";  // yyyymmmdd-hhmmss.hfr
+            filename = filename.replace(/[\-:]|\.\d*Z$/g, "").replace("T", "-") + ".hfr";  // yyyymmmdd-hhmmss.hfr
             hash = url.slice(4);  // Remove leading "atp:" from url.
             mappingPath = "/recordings/" + filename;
             Assets.setMapping(mappingPath, hash, setMappingCallback);
