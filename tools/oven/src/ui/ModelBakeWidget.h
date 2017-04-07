@@ -14,6 +14,8 @@
 
 #include <QtWidgets/QWidget>
 
+#include <SettingHandle.h>
+
 #include <FBXBaker.h>
 
 class QLineEdit;
@@ -29,6 +31,8 @@ private slots:
     void chooseOutputDirButtonClicked();
     void bakeButtonClicked();
 
+    void outputDirectoryChanged(const QString& newDirectory);
+
 private:
     void setupUI();
 
@@ -38,6 +42,9 @@ private:
     QLineEdit* _outputDirLineEdit;
 
     QUrl modelToBakeURL;
+
+    Setting::Handle<QString> _exportDirectory;
+    Setting::Handle<QString> _modelStartDirectory;
 };
 
 #endif // hifi_ModelBakeWidget_h

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <SettingInterface.h>
+
 #include "ui/OvenMainWindow.h"
 #include "ui/ModelBakeWidget.h"
 
@@ -21,6 +23,9 @@ Oven::Oven(int argc, char* argv[]) :
 {
     QCoreApplication::setOrganizationName("High Fidelity");
     QCoreApplication::setApplicationName("Oven");
+
+    // init the settings interface so we can save and load settings
+    Setting::init();
 
     // check if we were passed any command line arguments that would tell us just to run without the GUI
 

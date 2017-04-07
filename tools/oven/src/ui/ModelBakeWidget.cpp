@@ -20,8 +20,13 @@
 
 #include "ModelBakeWidget.h"
 
+static const QString EXPORT_DIR_SETTING_KEY = "model_export_directory";
+static const QString MODEL_START_DIR_SETTING_KEY = "model_search_directory";
+
 ModelBakeWidget::ModelBakeWidget(QWidget* parent, Qt::WindowFlags flags) :
-    QWidget(parent, flags)
+    QWidget(parent, flags),
+    _exportDirectory(EXPORT_DIR_SETTING_KEY),
+    _modelStartDirectory(MODEL_START_DIR_SETTING_KEY)
 {
     setupUI();
 }
@@ -53,6 +58,12 @@ void ModelBakeWidget::setupUI() {
 
     _outputDirLineEdit = new QLineEdit;
 
+    // set the current export directory to whatever was last used
+    _outputDirLineEdit->setText(_exportDirectory.get());
+
+    // whenever the output directory line edit changes, update the value in settings
+    connect(_outputDirLineEdit, &QLineEdit::textChanged, this, &ModelBakeWidget::outputDirectoryChanged);
+
     QPushButton* chooseOutputDirectoryButton = new QPushButton("Browse...");
     connect(chooseOutputDirectoryButton, &QPushButton::clicked, this, &ModelBakeWidget::chooseOutputDirButtonClicked);
 
@@ -76,22 +87,44 @@ void ModelBakeWidget::setupUI() {
 
 void ModelBakeWidget::chooseFileButtonClicked() {
     // pop a file dialog so the user can select the model file
-    auto selectedFile = QFileDialog::getOpenFileName(this, "Choose Model", QDir::homePath());
+
+    // if we have picked an FBX before, start in the folder that matches the last path
+    // otherwise start in the home directory
+    auto startDir = _modelStartDirectory.get();
+    if (startDir.isEmpty()) {
+        startDir = QDir::homePath();
+    }
+
+    auto selectedFile = QFileDialog::getOpenFileName(this, "Choose Model", startDir);
 
     if (!selectedFile.isEmpty()) {
         // set the contents of the model file text box to be the path to the selected file
         _modelLineEdit->setText(selectedFile);
+        _modelStartDirectory.set(QDir(selectedFile).absolutePath());
     }
 }
 
 void ModelBakeWidget::chooseOutputDirButtonClicked() {
     // pop a file dialog so the user can select the output directory
-    auto selectedDir = QFileDialog::getExistingDirectory(this, "Choose Output Directory", QDir::homePath());
+
+    // if we have a previously selected output directory, use that as the initial path in the choose dialog
+    // otherwise use the user's home directory
+    auto startDir = _exportDirectory.get();
+    if (startDir.isEmpty()) {
+        startDir = QDir::homePath();
+    }
+
+    auto selectedDir = QFileDialog::getExistingDirectory(this, "Choose Output Directory", startDir);
 
     if (!selectedDir.isEmpty()) {
         // set the contents of the output directory text box to be the path to the directory
         _outputDirLineEdit->setText(selectedDir);
     }
+}
+
+void ModelBakeWidget::outputDirectoryChanged(const QString& newDirectory) {
+    // update the export directory setting so we can re-use it next time
+    _exportDirectory.set(newDirectory);
 }
 
 void ModelBakeWidget::bakeButtonClicked() {
