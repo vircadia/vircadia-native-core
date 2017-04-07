@@ -18,10 +18,6 @@
         APP_URL = Script.resolvePath("html/record.html"),
         isDialogDisplayed = false,
         isRecordingEnabled = false,
-        IDLE = 0,
-        COUNTING_DOWN = 1,
-        RECORDING = 2,
-        recordingState = IDLE,
         tablet,
         button,
         EVENT_BRIDGE_TYPE = "record",
@@ -29,9 +25,12 @@
         USING_TOOLBAR_ACTION = "usingToolbar",
         ENABLE_RECORDING_ACTION = "enableRecording",
 
-        mappingPath,
+        CountdownTimer,
+        Recorder;
 
-        CountdownTimer;
+    function updateButtonState() {
+        button.editProperties({ isActive: isRecordingEnabled || !Recorder.isIdle() });
+    }
 
     CountdownTimer = (function () {
         var countdownTimer,
@@ -147,99 +146,126 @@
         };
     }());
 
+    Recorder = (function () {
+        var IDLE = 0,
+            COUNTING_DOWN = 1,
+            RECORDING = 2,
+            recordingState = IDLE,
+            mappingPath;
+
+        function setMappingCallback(status) {
+            var error;
+
+            if (status !== "") {
+                error = "Error mapping recording to " + mappingPath + " on Asset Server!";
+                print(APP_NAME + ": " + error + " - " + status);
+                Window.alert(error);
+                return;
+            }
+
+            print(APP_NAME + ": Recording mapped to " + mappingPath);
+            print(APP_NAME + ": Request play recording");
+            // TODO
+        }
+
+        function saveRecordingToAssetCallback(url) {
+            var filename,
+                hash,
+                error;
+
+            if (url === "") {
+                error = "Error saving recording to Asset Server!";
+                print(APP_NAME + ": " + error);
+                Window.alert(error);
+                return;
+            }
+
+            print(APP_NAME + ": Recording saved to Asset Server as " + url);
+
+            filename = (new Date()).toISOString();  // yyyy-mm-ddThh:mm:ss.sssZ
+            filename = filename.replace(/[-:]|\.\d*Z$/g, "").replace("T", "-") + ".hfr";  // yyyymmmdd-hhmmss.hfr
+            hash = url.slice(4);  // Remove leading "atp:" from url.
+            mappingPath = "/recordings/" + filename;
+            Assets.setMapping(mappingPath, hash, setMappingCallback);
+        }
+
+        function startRecording() {
+            recordingState = RECORDING;
+            updateButtonState();
+            print(APP_NAME + ": Start recording");
+            Recording.startRecording();
+        }
+
+        function finishRecording() {
+            var success,
+                error;
+
+            recordingState = IDLE;
+            updateButtonState();
+            print(APP_NAME + ": Finish recording");
+            Recording.stopRecording();
+            success = Recording.saveRecordingToAsset(saveRecordingToAssetCallback);
+            if (!success) {
+                error = "Error saving recording to Asset Server!";
+                print(APP_NAME + ": " + error);
+                Window.alert(error);
+            }
+        }
+
+        function cancelRecording() {
+            Recording.stopRecording();
+            recordingState = IDLE;
+            updateButtonState();
+            print(APP_NAME + ": Cancel recording");
+        }
+
+        function finishCountdown() {
+            recordingState = RECORDING;
+            updateButtonState();
+            startRecording();
+        }
+
+        function cancelCountdown() {
+            recordingState = IDLE;
+            updateButtonState();
+            CountdownTimer.cancel();
+            print(APP_NAME + ": Cancel countdown");
+        }
+
+        function startCountdown() {
+            recordingState = COUNTING_DOWN;
+            updateButtonState();
+            print(APP_NAME + ": Start countdown");
+            CountdownTimer.start(finishCountdown);
+        }
+
+        function isIdle() {
+            return recordingState === IDLE;
+        }
+
+        function isCountingDown() {
+            return recordingState === COUNTING_DOWN;
+        }
+
+        function isRecording() {
+            return recordingState === RECORDING;
+        }
+
+        return {
+            startCountdown: startCountdown,
+            cancelCountdown: cancelCountdown,
+            startRecording: startRecording,
+            cancelRecording: cancelRecording,
+            finishRecording: finishRecording,
+            isIdle: isIdle,
+            isCountingDown: isCountingDown,
+            isRecording: isRecording
+        };
+    }());
+
     function usingToolbar() {
         return ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
             || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar")));
-    }
-
-    function updateButtonState() {
-        button.editProperties({ isActive: isRecordingEnabled || recordingState !== IDLE });
-    }
-
-    function setMappingCallback(status) {
-        var error;
-
-        if (status !== "") {
-            error = "Error mapping recording to " + mappingPath + " on Asset Server!";
-            print(APP_NAME + ": " + error + " - " + status);
-            Window.alert(error);
-            return;
-        }
-
-        print(APP_NAME + ": Recording mapped to " + mappingPath);
-        print(APP_NAME + ": Request play recording");
-        // TODO
-    }
-
-    function saveRecordingToAssetCallback(url) {
-        var filename,
-            hash,
-            error;
-
-        if (url === "") {
-            error = "Error saving recording to Asset Server!";
-            print(APP_NAME + ": " + error);
-            Window.alert(error);
-            return;
-        }
-
-        print(APP_NAME + ": Recording saved to Asset Server as " + url);
-
-        filename = (new Date()).toISOString();  // yyyy-mm-ddThh:mm:ss.sssZ
-        filename = filename.replace(/[-:]|\.\d*Z$/g, "").replace("T", "-") + ".hfr";  // yyyymmmdd-hhmmss.hfr
-        hash = url.slice(4);  // Remove leading "atp:" from url.
-        mappingPath = "/recordings/" + filename;
-        Assets.setMapping(mappingPath, hash, setMappingCallback);
-    }
-
-    function startRecording() {
-        recordingState = RECORDING;
-        updateButtonState();
-        print(APP_NAME + ": Start recording");
-        Recording.startRecording();
-    }
-
-    function finishRecording() {
-        var success,
-            error;
-
-        recordingState = IDLE;
-        updateButtonState();
-        print(APP_NAME + ": Finish recording");
-        Recording.stopRecording();
-        success = Recording.saveRecordingToAsset(saveRecordingToAssetCallback);
-        if (!success) {
-            error = "Error saving recording to Asset Server!";
-            print(APP_NAME + ": " + error);
-            Window.alert(error);
-        }
-    }
-
-    function cancelRecording() {
-        Recording.stopRecording();
-        recordingState = IDLE;
-        updateButtonState();
-        print(APP_NAME + ": Cancel recording");
-    }
-
-    function finishCountdown() {
-        recordingState = RECORDING;
-        updateButtonState();
-        startRecording();
-    }
-
-    function cancelCountdown() {
-        recordingState = IDLE;
-        updateButtonState();
-        CountdownTimer.cancel();
-        print(APP_NAME + ": Cancel countdown");
-    }
-
-    function startCountdown() {
-        recordingState = COUNTING_DOWN;
-        updateButtonState();
-        print(APP_NAME + ": Start countdown");
-        CountdownTimer.start(finishCountdown);
     }
 
     function onTabletScreenChanged(type, url) {
@@ -250,16 +276,16 @@
 
         if (type === "Home" && url === HOME_URL) {
             // Start countdown if using toolbar and recording is enabled.
-            if (usingToolbar() && isRecordingEnabled && recordingState === IDLE) {
-                startCountdown();
+            if (usingToolbar() && isRecordingEnabled && Recorder.isIdle()) {
+                Recorder.startCountdown();
             }
             isDialogDisplayed = false;
         } else if (type === "Web" && url.slice(-RECORD_URL.length) === RECORD_URL) {
             // Cancel countdown or finish recording.
-            if (recordingState === COUNTING_DOWN) {
-                cancelCountdown();
-            } else if (recordingState === RECORDING) {
-                finishRecording();
+            if (Recorder.isCountingDown()) {
+                Recorder.cancelCountdown();
+            } else if (Recorder.isRecording()) {
+                Recorder.finishRecording();
             }
         }
     }
@@ -270,15 +296,15 @@
 
         if (!tablet.tabletShown) {
             // Start countdown if recording is enabled.
-            if (isRecordingEnabled && recordingState === IDLE) {
-                startCountdown();
+            if (isRecordingEnabled && Recorder.isIdle()) {
+                Recorder.startCountdown();
             }
         } else {
             // Cancel countdown or finish recording.
-            if (recordingState === COUNTING_DOWN) {
-                cancelCountdown();
-            } else if (recordingState === RECORDING) {
-                finishRecording();
+            if (Recorder.isCountingDown()) {
+                Recorder.cancelCountdown();
+            } else if (Recorder.isRecording()) {
+                Recorder.finishRecording();
             }
         }
     }
@@ -351,10 +377,10 @@
         tablet.screenChanged.disconnect(onTabletScreenChanged);
         button.clicked.disconnect(onButtonClicked);
 
-        if (recordingState === COUNTING_DOWN) {
-            cancelCountdown();
-        } else if (recordingState === RECORDING) {
-            cancelRecording();
+        if (Recorder.isCountingDown()) {
+            Recorder.cancelCountdown();
+        } else if (Recorder.isRecording()) {
+            Recorder.cancelRecording();
         }
 
         if (isDialogDisplayed) {
