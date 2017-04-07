@@ -121,6 +121,10 @@ public:
     Q_INVOKABLE virtual glm::quat getDefaultJointRotation(int index) const;
     Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
 
+    // in avatar coordinates
+    Q_INVOKABLE virtual glm::quat getAbsoluteDefaultJointRotationInObjectFrame(int index) const;
+    Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
+
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
