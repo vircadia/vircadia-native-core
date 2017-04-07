@@ -107,10 +107,10 @@ public:
 
     virtual bool addToScene(EntityItemPointer self,
                             std::shared_ptr<render::Scene> scene,
-                            render::PendingChanges& pendingChanges) override;
+                            render::Transaction& transaction) override;
     virtual void removeFromScene(EntityItemPointer self,
                                  std::shared_ptr<render::Scene> scene,
-                                 render::PendingChanges& pendingChanges) override;
+                                 render::Transaction& transaction) override;
 
     virtual void setXNNeighborID(const EntityItemID& xNNeighborID) override;
     virtual void setYNNeighborID(const EntityItemID& yNNeighborID) override;

@@ -82,12 +82,12 @@ public:
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
     bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
-                            render::PendingChanges& pendingChanges);
+                            render::Transaction& transaction);
 
     void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
-                                render::PendingChanges& pendingChanges);
+                                render::Transaction& transaction);
 
-    void updateRenderItem(render::PendingChanges& pendingChanges);
+    void updateRenderItem(render::Transaction& transaction);
 
     virtual void postUpdate(float deltaTime);
 
