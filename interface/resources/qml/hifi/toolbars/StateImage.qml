@@ -12,7 +12,10 @@ Item {
     property bool pinned: false
     clip: true
 
-    function updateYOffset() { yOffset = size * buttonState; }
+    function updateYOffset() {
+        //make sure offset not set outside image
+        yOffset = (size * buttonState >= image.height) ? image.height - size : size * buttonState
+    }
     onButtonStateChanged: updateYOffset();
 
     Component.onCompleted: {
