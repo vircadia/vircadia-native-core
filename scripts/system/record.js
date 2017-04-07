@@ -26,13 +26,16 @@
         ENABLE_RECORDING_ACTION = "enableRecording",
 
         CountdownTimer,
-        Recorder;
+        Recorder,
+        Player;
 
     function updateButtonState() {
         button.editProperties({ isActive: isRecordingEnabled || !Recorder.isIdle() });
     }
 
     CountdownTimer = (function () {
+        // Displays countdown overlay.
+
         var countdownTimer,
             countdownSeconds,
             COUNTDOWN_SECONDS = 3,
@@ -147,11 +150,14 @@
     }());
 
     Recorder = (function () {
+        // Makes the recording and uploads it to the domain's Asset Server.
+
         var IDLE = 0,
             COUNTING_DOWN = 1,
             RECORDING = 2,
             recordingState = IDLE,
-            mappingPath;
+            mappingPath,
+            play;
 
         function setMappingCallback(status) {
             var error;
@@ -165,7 +171,8 @@
 
             print(APP_NAME + ": Recording mapped to " + mappingPath);
             print(APP_NAME + ": Request play recording");
-            // TODO
+
+            play(mappingPath);
         }
 
         function saveRecordingToAssetCallback(url) {
@@ -251,6 +258,14 @@
             return recordingState === RECORDING;
         }
 
+        function setUp(playerCallback) {
+            play = playerCallback;
+        }
+
+        function tearDown() {
+            // Nothing to do; any cancelling of recording needs to be done by script using this object.
+        }
+
         return {
             startCountdown: startCountdown,
             cancelCountdown: cancelCountdown,
@@ -259,7 +274,74 @@
             finishRecording: finishRecording,
             isIdle: isIdle,
             isCountingDown: isCountingDown,
-            isRecording: isRecording
+            isRecording: isRecording,
+            setUp: setUp,
+            tearDown: tearDown
+        };
+    }());
+
+    Player = (function () {
+        var HIFI_RECORDER_CHANNEL = "HiFi-Recorder-Channel",
+            HIFI_PLAYER_CHANNEL = "HiFi-Player-Channel",
+            PLAYER_COMMAND_PLAY = "play",
+
+            playerIDs = [],         // UUIDs of AC player scripts.
+            playerIsPlaying = [],   // True if AC player script is playing a recording.
+            playerRecordings = [],  // Assignment client mappings of recordings being played.
+            playerTimestamps = [];  // Timestamps of last heartbeat update from player script.
+
+        function playRecording(mapping) {
+            var index,
+                error;
+
+            index = playerIsPlaying.indexOf(false);
+            if (index === -1) {
+                error = "No assignment client player available to play recording " + mapping + "!";
+                print(APP_NAME + ": " + error);
+                Window.alert(error);
+                return;
+            }
+
+            Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
+                player: playerIDs[index],
+                command: PLAYER_COMMAND_PLAY,
+                recording: mapping,
+                position: MyAvatar.position,
+                orientation: MyAvatar.orientation
+            }));
+        }
+
+        function onMessageReceived(channel, message, sender) {
+            // Heartbeat from AC script.
+            var index;
+
+            message = JSON.parse(message);
+
+            index = playerIDs.indexOf(sender);
+            if (index === -1) {
+                index = playerIDs.length;
+                playerIDs[index] = sender;
+            }
+            playerIsPlaying[index] = message.playing;
+            playerRecordings[index] = message.recording;
+            playerTimestamps[index] = Date.now();
+        }
+
+        function setUp() {
+            // Messaging with AC scripts.
+            Messages.messageReceived.connect(onMessageReceived);
+            Messages.subscribe(HIFI_RECORDER_CHANNEL);
+        }
+
+        function tearDown() {
+            Messages.messageReceived.disconnect(onMessageReceived);
+            Messages.subscribe(HIFI_RECORDER_CHANNEL);
+        }
+
+        return {
+            playRecording: playRecording,
+            setUp: setUp,
+            tearDown: tearDown
         };
     }());
 
@@ -365,12 +447,18 @@
         // Track showing/hiding tablet/dialog.
         tablet.screenChanged.connect(onTabletScreenChanged);
         tablet.tabletShownChanged.connect(onTabletShownChanged);
+
+        Player.setUp();
+        Recorder.setUp(Player.playRecording);
     }
 
     function tearDown() {
         if (!tablet) {
             return;
         }
+
+        Recorder.tearDown();
+        Player.tearDown();
 
         tablet.webEventReceived.disconnect(onWebEventReceived);
         tablet.tabletShownChanged.disconnect(onTabletShownChanged);
