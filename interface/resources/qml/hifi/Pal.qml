@@ -308,12 +308,11 @@ Rectangle {
                         MouseArea {
                             anchors.fill: parent;
                             hoverEnabled: true;
-                            enabled: activeTab === "connectionsTab";
                             onClicked: letterbox(hifi.glyphs.question,
                                                  "Connections and Friends",
-                                                 "<font color='purple'>Purple borders around profile pictures are <b>Connections</b>.</font><br>" +
+                                                 "<font color='purple'>Purple borders around profile pictures represent <b>Connections</b>.</font><br>" +
                                                  "When your availability is set to Everyone, Connections can see your username and location.<br><br>" +
-                                                 "<font color='green'>Green borders around profile pictures are <b>Friends</b>.</font><br>" +
+                                                 "<font color='green'>Green borders around profile pictures represent <b>Friends</b>.</font><br>" +
                                                  "When your availability is set to Friends, only Friends can see your username and location.");
                             onEntered: connectionsHelpText.color = hifi.colors.blueHighlight;
                             onExited: connectionsHelpText.color = hifi.colors.blueAccent;
@@ -849,11 +848,6 @@ Rectangle {
                         pal.sendToScript({method: newValue ? 'addFriend' : 'removeFriend', params: model.userName});
 
                         UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId);
-
-                        // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
-                        // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
-                        // "checked:" statement above.
-                        checked = Qt.binding(function() { return (model["connection"] === "friend" ? true : false)});
                     }
                 }
             }

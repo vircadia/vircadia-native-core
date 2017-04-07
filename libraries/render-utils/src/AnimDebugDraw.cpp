@@ -114,9 +114,9 @@ AnimDebugDraw::AnimDebugDraw() :
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     if (scene) {
         _itemID = scene->allocateID();
-        render::PendingChanges pendingChanges;
-        pendingChanges.resetItem(_itemID, _animDebugDrawPayload);
-        scene->enqueuePendingChanges(pendingChanges);
+        render::Transaction transaction;
+        transaction.resetItem(_itemID, _animDebugDrawPayload);
+        scene->enqueueTransaction(transaction);
     }
 
     // HACK: add red, green and blue axis at (1,1,1)
@@ -142,9 +142,9 @@ void AnimDebugDraw::shutdown() {
     // remove renderItem from main 3d scene.
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     if (scene && _itemID) {
-        render::PendingChanges pendingChanges;
-        pendingChanges.removeItem(_itemID);
-        scene->enqueuePendingChanges(pendingChanges);
+        render::Transaction transaction;
+        transaction.removeItem(_itemID);
+        scene->enqueueTransaction(transaction);
     }
 }
 
@@ -317,8 +317,8 @@ void AnimDebugDraw::update() {
         return;
     }
 
-    render::PendingChanges pendingChanges;
-    pendingChanges.updateItem<AnimDebugDrawData>(_itemID, [&](AnimDebugDrawData& data) {
+    render::Transaction transaction;
+    transaction.updateItem<AnimDebugDrawData>(_itemID, [&](AnimDebugDrawData& data) {
 
         const size_t VERTICES_PER_BONE = (6 + (NUM_CIRCLE_SLICES * 2) * 3);
         const size_t VERTICES_PER_LINK = 8 * 2;
@@ -422,5 +422,5 @@ void AnimDebugDraw::update() {
             data._indexBuffer->setSubData<uint16_t>(i, (uint16_t)i);;
         }
     });
-    scene->enqueuePendingChanges(pendingChanges);
+    scene->enqueueTransaction(transaction);
 }

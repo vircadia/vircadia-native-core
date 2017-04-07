@@ -266,7 +266,7 @@ void RenderableWebEntityItem::loadSourceURL() {
             _webSurface->setMaxFps(DEFAULT_MAX_FPS);
         }
 
-        _webSurface->load("WebView.qml", [&](QQmlContext* context, QObject* obj) {
+        _webSurface->load("WebEntityView.qml", [&](QQmlContext* context, QObject* obj) {
             context->setContextProperty("eventBridgeJavaScriptToInject", QVariant(_javaScriptToInject));
         });
 
