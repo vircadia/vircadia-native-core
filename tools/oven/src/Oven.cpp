@@ -33,7 +33,12 @@ void Oven::setupGUI() {
 
     _mainWindow->setWindowTitle("High Fidelity Oven");
 
+    // give the window a fixed width that will never change
+    const int FIXED_WINDOW_WIDTH = 640;
+    _mainWindow->setFixedWidth(FIXED_WINDOW_WIDTH);
+
     _mainWindow->setCentralWidget(new ModelBakeWidget);
+
     _mainWindow->show();
 }
 
