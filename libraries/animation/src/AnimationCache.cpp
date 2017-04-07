@@ -74,7 +74,7 @@ void AnimationReader::run() {
             // Parse the FBX directly from the QNetworkReply
             FBXGeometry::Pointer fbxgeo;
             if (_url.path().toLower().endsWith(".fbx")) {
-                fbxgeo.reset(readFBX(_data, QVariantHash(), _url.path()));
+                fbxgeo.reset(readFBX(_data, QVariantHash(), _url));
             } else {
                 QString errorStr("usupported format");
                 emit onError(299, errorStr);

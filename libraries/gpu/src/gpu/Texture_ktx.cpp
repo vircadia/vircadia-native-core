@@ -72,6 +72,15 @@ Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
 }
 
 void Texture::setKtxBacking(const std::string& filename) {
+    // Check the KTX file for validity before using it as backing storage
+    {
+        ktx::StoragePointer storage { new storage::FileStorage(filename.c_str()) };
+        auto ktxPointer = ktx::KTX::create(storage);
+        if (!ktxPointer) {
+            return;
+        }
+    }
+
     auto newBacking = std::unique_ptr<Storage>(new KtxStorage(filename));
     setStorage(newBacking);
 }
@@ -185,7 +194,12 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
 }
 
 Texture* Texture::unserialize(const std::string& ktxfile, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
-    ktx::KTXDescriptor descriptor { ktx::KTX::create(ktx::StoragePointer { new storage::FileStorage(ktxfile.c_str()) })->toDescriptor() };
+    std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(ktx::StoragePointer { new storage::FileStorage(ktxfile.c_str()) });
+    if (!ktxPointer) {
+        return nullptr;
+    }
+
+    ktx::KTXDescriptor descriptor { ktxPointer->toDescriptor() };
     const auto& header = descriptor.header;
 
     Format mipFormat = Format::COLOR_BGRA_32;
