@@ -13,7 +13,6 @@
 //
 // Usage instruction: Spacebar toggles camera control - WASD first person free movement or no movement but allowing others to grab the selfie stick 
 // and control your camera.
-// For best result, turn off avatar collisions(Developer > Avatar > Uncheck Enable Avatar Collisions)
 // 
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -25,11 +24,20 @@
     var lensEntityID = null;
     var freeMovementMode = true;
 
+    turnOffAvatarCollisions();
     changeAvatar();
     importModel();
     processImportedEntities();
     setupSpaceBarControl();
     Script.update.connect(update);
+
+    function turnOffAvatarCollisions() {
+        Menu.setIsOptionChecked("Enable avatar collisions", 0);
+    }
+
+    function turnOnAvatarCollisions() {
+        Menu.setIsOptionChecked("Enable avatar collisions", 1);
+    }
 
     function changeAvatar() {
         originalAvatar = MyAvatar.skeletonModelURL;
@@ -107,6 +115,7 @@
         Camera.mode = "first person";
         Controller.disableMapping("Handheld-Cam-Space-Bar");
         MyAvatar.skeletonModelURL = originalAvatar;
+        turnOnAvatarCollisions();
     }
     Script.scriptEnding.connect(cleanup);
 }()); // END LOCAL_SCOPE
