@@ -849,11 +849,6 @@ Rectangle {
                         pal.sendToScript({method: newValue ? 'addFriend' : 'removeFriend', params: model.userName});
 
                         UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId);
-
-                        // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
-                        // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
-                        // "checked:" statement above.
-                        checked = Qt.binding(function() { return (model["connection"] === "friend" ? true : false)});
                     }
                 }
             }
