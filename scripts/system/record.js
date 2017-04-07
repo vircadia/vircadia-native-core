@@ -178,7 +178,7 @@
             log("Recording mapped to " + mappingPath);
             log("Request play recording");
 
-            play(mappingPath);
+            play("atp:" + mappingPath);
         }
 
         function saveRecordingToAssetCallback(url) {
@@ -295,7 +295,8 @@
             UPDATE_INTERVAL = 5000;  // Must be > player's HEARTBEAT_INTERVAL. TODO: Final value.
 
         function updatePlayers() {
-            var now = Date.now();
+            var now = Date.now(),
+                i;
 
             // Remove players that haven't sent a heartbeat for a while.
             for (i = playerTimestamps.length - 1; i >= 0; i -= 1) {
@@ -308,23 +309,32 @@
             }
         }
 
-        function playRecording(mapping) {
+        function playRecording(recording) {
             var index,
-                error;
+                CHECK_PLAYING_TIMEOUT = 5000;
 
             index = playerIsPlaying.indexOf(false);
             if (index === -1) {
-                error("No assignment client player available to play recording " + mapping + "!");
+                error("No assignment client player available to play recording "
+                    + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
                 return;
             }
 
             Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
                 player: playerIDs[index],
                 command: PLAYER_COMMAND_PLAY,
-                recording: "atp:" + mapping,
+                recording: recording,
                 position: MyAvatar.position,
                 orientation: MyAvatar.orientation
             }));
+
+            Script.setTimeout(function () {
+                if (playerRecordings.indexOf(recording) === -1) {
+                    error("Didn't start playing recording "
+                        + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
+                }
+            }, CHECK_PLAYING_TIMEOUT)
+
         }
 
         function onMessageReceived(channel, message, sender) {
