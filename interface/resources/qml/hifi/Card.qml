@@ -243,12 +243,7 @@ Rectangle {
             }
         }
     }
-    DropShadow {
-        anchors.fill: actionIcon
-        radius: 8.0
-        color: "#80000000"
-        source: actionIcon
-    }
+    
     MouseArea {
         id: messageArea;
         width: rectIcon.width;

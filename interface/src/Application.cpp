@@ -2013,6 +2013,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
 
     rootContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
+    rootContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data()); 
     rootContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     rootContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     rootContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
