@@ -121,8 +121,24 @@ public:
     Q_INVOKABLE virtual glm::quat getDefaultJointRotation(int index) const;
     Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
 
-    // in avatar coordinates
+    /**jsdoc
+     * Provides read only access to the default joint rotations in avatar coordinates.
+     * The default pose of the avatar is defined by the position and orientation of all bones
+     * in the avatar's model file.  Typically this is a t-pose.
+     * @function Avatar.getAbsoluteDefaultJointRotationInObjectFrame
+     * @param index {number} index number
+     * @returns {Quat} The rotation of this joint in avatar coordinates.
+     */
     Q_INVOKABLE virtual glm::quat getAbsoluteDefaultJointRotationInObjectFrame(int index) const;
+
+    /**jsdoc
+     * Provides read only access to the default joint translations in avatar coordinates.
+     * The default pose of the avatar is defined by the position and orientation of all bones
+     * in the avatar's model file.  Typically this is a t-pose.
+     * @function Avatar.getAbsoluteDefaultJointTranslationInObjectFrame
+     * @param index {number} index number
+     * @returns {Vec3} The position of this joint in avatar coordinates.
+     */
     Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
