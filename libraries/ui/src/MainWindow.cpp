@@ -105,7 +105,6 @@ void MainWindow::hideEvent(QHideEvent* event) {
 void MainWindow::changeEvent(QEvent* event) {
     if (event->type() == QEvent::WindowStateChange) {
         QWindowStateChangeEvent* stateChangeEvent = static_cast<QWindowStateChangeEvent*>(event);
-
         if ((stateChangeEvent->oldState() == Qt::WindowNoState ||
             stateChangeEvent->oldState() == Qt::WindowMaximized) &&
             windowState() == Qt::WindowMinimized) {

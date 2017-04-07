@@ -6485,7 +6485,6 @@ void Application::windowMinimizedChanged(bool minimized) {
     }
 }
 
-
 void Application::postLambdaEvent(std::function<void()> f) {
     if (this->thread() == QThread::currentThread()) {
         f();
