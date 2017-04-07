@@ -21,10 +21,8 @@
 #include <Preferences.h>
 #include <SettingHandle.h>
 
-
 Q_DECLARE_LOGGING_CATEGORY(inputplugins)
 Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
-
 
 const char* KinectPlugin::NAME = "Kinect";
 const char* KinectPlugin::KINECT_ID_STRING = "Kinect";

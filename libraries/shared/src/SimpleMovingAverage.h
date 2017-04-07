@@ -77,9 +77,6 @@ public:
         }
         numSamples++;
     }
-
-
-
 };
 
 template <class T, int MAX_NUM_SAMPLES> class ThreadSafeMovingAverage {
