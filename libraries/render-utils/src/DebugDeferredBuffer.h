@@ -72,6 +72,7 @@ protected:
         NormalCurvatureMode,
         DiffusedCurvatureMode,
         DiffusedNormalCurvatureMode,
+        CurvatureOcclusionMode,
         ScatteringDebugMode,
         AmbientOcclusionMode,
         AmbientOcclusionBlurredMode,
