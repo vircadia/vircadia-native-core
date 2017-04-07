@@ -167,6 +167,8 @@
             RECORDING = 2,
             recordingState = IDLE,
             mappingPath,
+            startPosition,
+            startOrientation,
             play;
 
         function setMappingCallback(status) {
@@ -178,7 +180,7 @@
             log("Recording mapped to " + mappingPath);
             log("Request play recording");
 
-            play("atp:" + mappingPath);
+            play("atp:" + mappingPath, startPosition, startOrientation);
         }
 
         function saveRecordingToAssetCallback(url) {
@@ -203,6 +205,8 @@
             recordingState = RECORDING;
             updateButtonState();
             log("Start recording");
+            startPosition = MyAvatar.position;
+            startOrientation = MyAvatar.orientation;
             Recording.startRecording();
         }
 
@@ -309,9 +313,17 @@
             }
         }
 
-        function playRecording(recording) {
+        function playRecording(recording, position, orientation) {
             var index,
                 CHECK_PLAYING_TIMEOUT = 5000;
+
+            // Optional function parameters.
+            if (position === undefined) {
+                position = MyAvatar.position;
+            }
+            if (orientation === undefined) {
+                orientation = MyAvatar.orientation;
+            }
 
             index = playerIsPlaying.indexOf(false);
             if (index === -1) {
@@ -324,8 +336,8 @@
                 player: playerIDs[index],
                 command: PLAYER_COMMAND_PLAY,
                 recording: recording,
-                position: MyAvatar.position,
-                orientation: MyAvatar.orientation
+                position: position,
+                orientation: orientation
             }));
 
             Script.setTimeout(function () {
@@ -333,7 +345,7 @@
                     error("Didn't start playing recording "
                         + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
                 }
-            }, CHECK_PLAYING_TIMEOUT)
+            }, CHECK_PLAYING_TIMEOUT);
 
         }
 
