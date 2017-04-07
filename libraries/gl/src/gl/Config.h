@@ -29,7 +29,7 @@
 #include <GL/wglew.h>
 
 // Uncomment this define and recompile to be able to avoid code path preventing to be able to run nsight graphics debug
-//#define HIFI_ENABLE_NSIGHT_DEBUG 1
+#define HIFI_ENABLE_NSIGHT_DEBUG 1
 
 #endif
 
