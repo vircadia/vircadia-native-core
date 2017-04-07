@@ -44,7 +44,7 @@ void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
 void Bookmarks::deleteBookmark() {
     QStringList bookmarkList;
     QList<QAction*> menuItems = _bookmarksMenu->actions();
-    for (int i = 0; i < menuItems.count(); i += 1) {
+    for (int i = 0; i < menuItems.count(); ++i) {
         bookmarkList.append(menuItems[i]->text());
     }
 
