@@ -487,7 +487,7 @@ function populateNearbyUserList(selectData, oldAudioData) {
         horizontalAngleNormal = filter && Quat.getUp(orientation);
     avatarsOfInterest = {};
     avatars.forEach(function (id) {
-        var avatar = AvatarList.getAvatar(id);
+        var avatar = AvatarList.getAvatarCopy(id);
         var name = avatar.sessionDisplayName;
         if (!name) {
             // Either we got a data packet but no identity yet, or something is really messed up. In any case,
@@ -561,7 +561,7 @@ function updateOverlays() {
         if (!id || !avatarsOfInterest[id]) {
             return; // don't update ourself, or avatars we're not interested in
         }
-        var avatar = AvatarList.getAvatar(id);
+        var avatar = AvatarList.getAvatarCopy(id);
         if (!avatar) {
             return; // will be deleted below if there had been an overlay.
         }
@@ -574,10 +574,10 @@ function updateOverlays() {
         var distance = Vec3.distance(target, eye);
         var offset = 0.2;
         var diff = Vec3.subtract(target, eye); // get diff between target and eye (a vector pointing to the eye from avatar position)
-        var headIndex = avatar.getJointIndex("Head"); // base offset on 1/2 distance from hips to head if we can
-        if (headIndex > 0) {
-            offset = avatar.getAbsoluteJointTranslationInObjectFrame(headIndex).y / 2;
-        }
+        //var headIndex = avatar.getJointIndex("Head"); // base offset on 1/2 distance from hips to head if we can
+        //if (headIndex > 0) {
+        //    offset = avatar.getAbsoluteJointTranslationInObjectFrame(headIndex).y / 2;
+        //}
 
         // move a bit in front, towards the camera
         target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(diff), offset));
@@ -843,14 +843,14 @@ function getAudioLevel(id) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
     // But of course it gets the data at a different rate, so we tweak the averaging ratio and frequency
     // of updating (the latter for efficiency too).
-    var avatar = AvatarList.getAvatar(id);
+    var avatar = AvatarList.getAvatarCopy(id);
     var audioLevel = 0.0;
     var avgAudioLevel = 0.0;
     var data = id ? ExtendedOverlay.get(id) : myData;
     if (data) {
 
         // we will do exponential moving average by taking some the last loudness and averaging
-        data.accumulatedLevel = AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
+        data.accumulatedLevel = 0;//AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
 
         // add 1 to insure we don't go log() and hit -infinity.  Math.log is
         // natural log, so to get log base 2, just divide by ln(2).

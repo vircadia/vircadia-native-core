@@ -35,6 +35,17 @@ AvatarData* AvatarHashMap::getAvatar(QUuid avatarID) {
     return getAvatarBySessionID(avatarID).get();
 }
 
+AvatarData* AvatarHashMap::getAvatarCopy(QUuid avatarID) {
+    AvatarData* avatarDataOriginal = getAvatarBySessionID(avatarID).get();
+    AvatarData* avatarDataCopy = new AvatarData();
+    avatarDataCopy->setSessionUUID(avatarDataOriginal->getSessionUUID());
+    avatarDataCopy->setSessionDisplayName(avatarDataOriginal->getSessionDisplayName());
+    avatarDataCopy->setPosition(avatarDataOriginal->getPosition());
+    //avatarDataCopy->setAudioLoudness(avatarDataOriginal->getAudioLoudness());
+    //avatarDataCopy->setAudioAverageLoudness(avatarDataOriginal->getAudioAverageLoudness());
+    return avatarDataCopy;
+}
+
 bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
     auto hashCopy = getHashCopy();
     foreach(const AvatarSharedPointer& sharedAvatar, hashCopy) {
