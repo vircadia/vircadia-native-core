@@ -151,6 +151,7 @@ Column {
                 ListElement { text: "Mid Normal"; color: "White" }
                 ListElement { text: "Low Curvature"; color: "White" }
                 ListElement { text: "Low Normal"; color: "White" }
+                ListElement { text: "Curvature Occlusion"; color: "White" }
                 ListElement { text: "Debug Scattering"; color: "White" }
                 ListElement { text: "Ambient Occlusion"; color: "White" }
                 ListElement { text: "Ambient Occlusion Blurred"; color: "White" }
