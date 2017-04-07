@@ -12,18 +12,20 @@
 #ifndef hifi_Oven_h
 #define hifi_Oven_h
 
-#include <QtCore/QCoreApplication>
+#include <QtWidgets/QApplication>
 
-#include <FBXBaker.h>
+class OvenMainWindow;
 
-class Oven : public QCoreApplication {
+class Oven : public QApplication {
     Q_OBJECT
 
 public:
     Oven(int argc, char* argv[]);
 
 private:
-    FBXBaker _testBake;
+    void setupGUI();
+
+    OvenMainWindow* _mainWindow;
 };
 
 
