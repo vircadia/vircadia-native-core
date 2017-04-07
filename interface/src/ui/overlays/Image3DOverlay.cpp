@@ -53,7 +53,6 @@ void Image3DOverlay::update(float deltatime) {
 }
 
 void Image3DOverlay::render(RenderArgs* args) {
-    qDebug() << _url;
     if (!_isLoaded) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);

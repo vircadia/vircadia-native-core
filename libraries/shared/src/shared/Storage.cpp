@@ -67,6 +67,7 @@ StoragePointer FileStorage::create(const QString& filename, size_t size, const u
     return std::make_shared<FileStorage>(filename);
 }
 
+// Represents a memory mapped file
 FileStorage::FileStorage(const QString& filename) : _file(filename) {
     if (_file.open(QFile::ReadOnly)) {
         _mapped = _file.map(0, _file.size());

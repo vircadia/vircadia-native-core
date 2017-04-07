@@ -207,6 +207,10 @@ TexturePointer Texture::unserialize(const std::string& ktxfile, TextureUsageType
     }
 
     ktx::KTXDescriptor descriptor { ktxPointer->toDescriptor() };
+    return unserialize(ktxfile, ktxPointer->toDescriptor(), usageType, usage, sampler);
+}
+
+TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDescriptor& descriptor, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
     const auto& header = descriptor.header;
 
     Format mipFormat = Format::COLOR_BGRA_32;
@@ -254,6 +258,13 @@ TexturePointer Texture::unserialize(const std::string& ktxfile, TextureUsageType
     tex->setStoredMipFormat(mipFormat);
     tex->setKtxBacking(ktxfile);
     return tex;
+}
+
+Texture* Texture::serializeHeader(const std::string& ktxfile, const ktx::Header& header, const ktx::KeyValues& keyValues) {
+    // Create a memory-backed KTX object
+    auto ktxBuffer = ktx::KTX::createBare(header, keyValues);
+
+    return unserialize(ktxfile, ktxBuffer->toDescriptor());
 }
 
 bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header) {

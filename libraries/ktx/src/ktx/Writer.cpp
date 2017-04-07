@@ -40,6 +40,20 @@ namespace ktx {
         return create(storagePointer);
     }
 
+    std::unique_ptr<KTX> KTX::createBare(const Header& header, const KeyValues& keyValues) {
+        auto descriptors = header.generateImageDescriptors();
+
+        StoragePointer storagePointer;
+        {
+            auto storageSize = ktx::KTX::evalStorageSize(header, descriptors, keyValues);
+            auto memoryStorage = new storage::MemoryStorage(storageSize);
+            qDebug() << "Memory storage size is: " << storageSize;
+            ktx::KTX::writeWithoutImages(memoryStorage->data(), memoryStorage->size(), header, descriptors, keyValues);
+            storagePointer.reset(memoryStorage);
+        }
+        return create(storagePointer);
+    }
+
     size_t KTX::evalStorageSize(const Header& header, const Images& images, const KeyValues& keyValues) {
         size_t storageSize = sizeof(Header);
 
@@ -54,6 +68,25 @@ namespace ktx {
                 storageSize += sizeof(uint32_t);
                 storageSize += images[l]._imageSize;
                 storageSize += Header::evalPadding(images[l]._imageSize);
+            }
+        }
+        return storageSize;
+    }
+
+    size_t KTX::evalStorageSize(const Header& header, const ImageDescriptors& imageDescriptors, const KeyValues& keyValues) {
+        size_t storageSize = sizeof(Header);
+
+        if (!keyValues.empty()) {
+            size_t keyValuesSize = KeyValue::serializedKeyValuesByteSize(keyValues);
+            storageSize += keyValuesSize;
+        }
+
+        auto numMips = header.getNumberOfLevels();
+        for (uint32_t l = 0; l < numMips; l++) {
+            if (imageDescriptors.size() > l) {
+                storageSize += sizeof(uint32_t);
+                storageSize += imageDescriptors[l]._imageSize;
+                storageSize += Header::evalPadding(imageDescriptors[l]._imageSize);
             }
         }
         return storageSize;
@@ -83,6 +116,35 @@ namespace ktx {
         // Images
         auto destImages = writeImages(currentDestPtr, destByteSize - sizeof(Header) - destHeader->bytesOfKeyValueData, srcImages);
         // We chould check here that the amoutn of dest IMages generated is the same as the source
+
+        return destByteSize;
+    }
+
+    size_t KTX::writeWithoutImages(Byte* destBytes, size_t destByteSize, const Header& header, const ImageDescriptors& descriptors, const KeyValues& keyValues) {
+        // Check again that we have enough destination capacity
+        if (!destBytes || (destByteSize < evalStorageSize(header, descriptors, keyValues))) {
+            return 0;
+        }
+
+        auto currentDestPtr = destBytes;
+        // Header
+        auto destHeader = reinterpret_cast<Header*>(currentDestPtr);
+        memcpy(currentDestPtr, &header, sizeof(Header));
+        currentDestPtr += sizeof(Header);
+
+        // KeyValues
+        if (!keyValues.empty()) {
+            destHeader->bytesOfKeyValueData = (uint32_t) writeKeyValues(currentDestPtr, destByteSize - sizeof(Header), keyValues);
+        } else {
+            // Make sure the header contains the right bytesOfKeyValueData size
+            destHeader->bytesOfKeyValueData = 0;
+        }
+        currentDestPtr += destHeader->bytesOfKeyValueData;
+
+        for (int i = 0; i < descriptors.size(); ++i) {
+            *currentDestPtr = descriptors[i]._imageSize;
+            currentDestPtr += descriptors[i]._imageSize + sizeof(uint32_t);
+        }
 
         return destByteSize;
     }

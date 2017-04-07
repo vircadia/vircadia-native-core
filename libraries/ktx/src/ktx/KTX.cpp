@@ -45,7 +45,7 @@ uint32_t Header::evalPixelDepth(uint32_t level) const {
 }
 
 size_t Header::evalPixelSize() const {
-    return glTypeSize; // Really we should generate the size from the FOrmat etc
+    return 4;//glTypeSize; // Really we should generate the size from the FOrmat etc
 }
 
 size_t Header::evalRowSize(uint32_t level) const {
@@ -68,6 +68,25 @@ size_t Header::evalImageSize(uint32_t level) const {
     } else {
         return (getNumberOfSlices() * numberOfFaces * faceSize);
     }
+}
+
+ImageDescriptors Header::generateImageDescriptors() const {
+    ImageDescriptors descriptors;
+
+    for (auto level = 0; level < numberOfMipmapLevels; ++level) {
+        ImageHeader header {
+            numberOfFaces == NUM_CUBEMAPFACES,
+            static_cast<uint32_t>(evalImageSize(level)),
+            0
+        };
+        ImageHeader::FaceOffsets offsets;
+        for (auto i = 0; i < numberOfFaces; ++i) {
+            offsets.push_back(0);
+        }
+        descriptors.push_back(ImageDescriptor(header, offsets));
+    }
+
+    return descriptors;
 }
 
 

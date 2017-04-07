@@ -60,7 +60,7 @@ void HTTPResourceRequest::doSend() {
     }
 
     if (_byteRange.isSet()) {
-        auto byteRange = QString("bytes={}-{}").arg(_byteRange.fromInclusive).arg(_byteRange.toExclusive);
+        auto byteRange = QString("bytes=%1-%2").arg(_byteRange.fromInclusive).arg(_byteRange.toExclusive);
         networkRequest.setRawHeader("Range", byteRange.toLatin1());
     }
     networkRequest.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
@@ -78,12 +78,61 @@ void HTTPResourceRequest::onRequestFinished() {
     Q_ASSERT(_reply);
 
     cleanupTimer();
-    
+
+    // Content-Range headers have the form: 
+    //
+    //   Content-Range: <unit> <range-start>-<range-end>/<size>
+    //   Content-Range: <unit> <range-start>-<range-end>/*
+    //   Content-Range: <unit> */<size>
+    //
+    auto parseContentRangeHeader = [](QString contentRangeHeader) -> std::pair<bool, uint64_t> {
+        auto unitRangeParts = contentRangeHeader.split(' ');
+        if (unitRangeParts.size() != 2) {
+            return { false, 0 };
+        }
+
+        auto rangeSizeParts = unitRangeParts[1].split('/');
+        if (rangeSizeParts.size() != 2) {
+            return { false, 0 };
+        }
+
+        auto sizeStr = rangeSizeParts[1];
+        if (sizeStr == "*") {
+            return { true, 0 };
+        } else {
+            bool ok;
+            auto size = sizeStr.toLong(&ok);
+            return { ok, size };
+        }
+    };
+
     switch(_reply->error()) {
         case QNetworkReply::NoError:
             _data = _reply->readAll();
             _loadedFromCache = _reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool();
             _result = Success;
+
+            if (_byteRange.isSet()) {
+                auto statusCode = _reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+                if (statusCode == 206) {
+                    _rangeRequestSuccessful = true;
+                    auto contentRangeHeader = _reply->rawHeader("Content-Range");
+                    bool success;
+                    uint64_t size;
+                    std::tie(success, size) = parseContentRangeHeader(contentRangeHeader);
+                    if (success) {
+                        qWarning(networking) << "Total http resource size is: " << size;
+                        _totalSizeOfResource = size;
+                    } else {
+                        qWarning(networking) << "Error parsing content-range header: " << contentRangeHeader;
+                        _totalSizeOfResource = 0;
+                    }
+                } else {
+                    _rangeRequestSuccessful = false;
+                    _totalSizeOfResource = _data.size();
+                }
+            }
+
             break;
 
         case QNetworkReply::TimeoutError:

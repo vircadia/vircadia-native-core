@@ -13,12 +13,20 @@
 
 #include "AtpReply.h"
 #include "NetworkAccessManager.h"
+#include <QtNetwork/QNetworkProxy>
 
 QThreadStorage<QNetworkAccessManager*> networkAccessManagers;
 
 QNetworkAccessManager& NetworkAccessManager::getInstance() {
     if (!networkAccessManagers.hasLocalData()) {
-        networkAccessManagers.setLocalData(new QNetworkAccessManager());
+        auto nm = new QNetworkAccessManager();
+        networkAccessManagers.setLocalData(nm);
+
+        QNetworkProxy proxy;
+        proxy.setType(QNetworkProxy::HttpProxy);
+        proxy.setHostName("127.0.0.1");
+        proxy.setPort(8888);
+        nm->setProxy(proxy);
     }
     
     return *networkAccessManagers.localData();

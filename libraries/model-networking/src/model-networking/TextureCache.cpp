@@ -335,6 +335,77 @@ void NetworkTexture::downloadFinished(const QByteArray& data) {
 }
 
 void NetworkTexture::loadContent(const QByteArray& content) {
+    if (_sourceIsKTX) {
+        if (_ktxLoadState == LOADING_HEADER) {
+            // TODO Handle case where we already have the source hash texture on disk
+            // TODO Handle case where data isn't as large as the ktx header
+            _ktxLoadState = LOADING_LOWEST_SIX;
+            auto header = reinterpret_cast<const ktx::Header*>(content.data());
+            qDebug() << "Identifier:" << QString(QByteArray((char*)header->identifier, 12));
+            qDebug() << "Type:" << header->glType;
+            qDebug() << "TypeSize:" << header->glTypeSize;
+            qDebug() << "numberOfArrayElements:" << header->numberOfArrayElements;
+            qDebug() << "numberOfFaces:" << header->numberOfFaces;
+            qDebug() << "numberOfMipmapLevels:" << header->numberOfMipmapLevels;
+            auto kvSize = header->bytesOfKeyValueData;
+            if (kvSize > content.size() - ktx::KTX_HEADER_SIZE) {
+                qWarning() << "Cannot load " << _url << ", did not receive all kv data with initial request";
+                return;
+            }
+
+            auto keyValues = ktx::KTX::parseKeyValues(header->bytesOfKeyValueData, reinterpret_cast<const ktx::Byte*>(content.data()) + ktx::KTX_HEADER_SIZE);
+
+            // Create bare ktx in memory
+            std::string filename = "test";
+            auto memKtx = ktx::KTX::createBare(*header, keyValues);
+
+
+            auto textureCache = DependencyManager::get<TextureCache>();
+
+            // Move ktx to file
+            const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
+            size_t length = memKtx->_storage->size();
+            KTXFilePointer file;
+            auto& ktxCache = textureCache->_ktxCache;
+            if (!memKtx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(filename, length)))) {
+                qCWarning(modelnetworking) << _url << "file cache failed";
+            } else {
+                _file = file;
+            }
+
+            //auto texture = gpu::Texture::serializeHeader("test.ktx", *header, keyValues);
+            gpu::TexturePointer texture;
+            texture.reset(gpu::Texture::unserialize(_file->getFilepath(), memKtx->toDescriptor()));
+            texture->setKtxBacking(file->getFilepath());
+
+            // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
+            // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
+            // be the winner
+            if (textureCache) {
+                texture = textureCache->cacheTextureByHash(filename, texture);
+            }
+
+            setImage(texture, header->getPixelWidth(), header->getPixelHeight());
+
+
+            auto desc = memKtx->toDescriptor();
+            int numMips = desc.images.size();
+            auto numMipsToGet = glm::min(numMips, 6);
+            auto sizeOfTopMips = 0;
+            for (int i = 0; i < numMipsToGet; ++i) {
+                auto& img = desc.images[i];
+                sizeOfTopMips += img._imageSize;
+            }
+            _requestByteRange.fromInclusive = length - sizeOfTopMips;
+            _requestByteRange.toExclusive = length;
+            attemptRequest();
+
+        } else {
+            qDebug() << "Got highest 6 mips";
+        }
+        return;
+    }
+
     QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, _maxNumPixels));
 }
 
@@ -457,6 +528,7 @@ void ImageReader::read() {
     if (texture && textureCache) {
         auto memKtx = gpu::Texture::serialize(*texture);
 
+        // Move the texture into a memory mapped file
         if (memKtx) {
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
             size_t length = memKtx->_storage->size();

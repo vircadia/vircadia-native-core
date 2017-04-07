@@ -20,6 +20,7 @@ namespace storage {
     class Storage;
     using StoragePointer = std::shared_ptr<const Storage>;
 
+    // Abstract class to represent memory that stored _somewhere_ (in system memory or in a file, for example)
     class Storage : public std::enable_shared_from_this<Storage> {
     public:
         virtual ~Storage() {}

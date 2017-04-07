@@ -72,6 +72,14 @@ private:
     friend class ImageReader;
 
     image::TextureUsage::Type _type;
+
+    enum KTXLoadState {
+        LOADING_HEADER,
+        LOADING_LOWEST_SIX,
+        DONE_LOADING 
+    };
+
+    KTXLoadState _ktxLoadState { LOADING_HEADER };
     KTXFilePointer _file;
     bool _sourceIsKTX { false };
     int _originalWidth { 0 };

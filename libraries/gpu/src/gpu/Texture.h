@@ -28,6 +28,8 @@ namespace ktx {
     struct KTXDescriptor;
     using KTXDescriptorPointer = std::unique_ptr<KTXDescriptor>;
     struct Header;
+    struct KeyValue;
+    using KeyValues = std::list<KeyValue>;
 }
 
 namespace gpu {
@@ -503,9 +505,15 @@ public:
 
     ExternalUpdates getUpdates() const;
 
-    // Textures can be serialized directly to ktx data file, here is how
+    // Serialize ktx header and keyvalues directly to a file, and return a Texture representing that file
+    static Texture* serializeHeader(const std::string& ktxfile, const ktx::Header& header, const ktx::KeyValues& keyValues);
+
+    // Serialize a texture into a KTX file
     static ktx::KTXUniquePointer serialize(const Texture& texture);
+
     static TexturePointer unserialize(const std::string& ktxFile, TextureUsageType usageType = TextureUsageType::RESOURCE, Usage usage = Usage(), const Sampler::Desc& sampler = Sampler::Desc());
+    static TexturePointer unserialize(const std::string& ktxFile, const ktx::KTXDescriptor& descriptor, TextureUsageType usageType = TextureUsageType::RESOURCE, Usage usage = Usage(), const Sampler::Desc& sampler = Sampler::Desc());
+
     static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
     static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);
 

@@ -292,6 +292,9 @@ namespace ktx {
     using Storage = storage::Storage;
     using StoragePointer = std::shared_ptr<Storage>;
 
+    struct ImageDescriptor;
+    using ImageDescriptors = std::vector<ImageDescriptor>;
+
     // Header
     struct Header {
         static const size_t IDENTIFIER_LENGTH = 12;
@@ -378,6 +381,7 @@ namespace ktx {
         void setCube(uint32_t width, uint32_t height) { setDimensions(width, height, 0, 0, NUM_CUBEMAPFACES); }
         void setCubeArray(uint32_t width, uint32_t height, uint32_t numSlices) { setDimensions(width, height, 0, (numSlices > 0 ? numSlices : 1), NUM_CUBEMAPFACES); }
 
+        ImageDescriptors generateImageDescriptors() const;
     };
     static const size_t KTX_HEADER_SIZE = 64;
     static_assert(sizeof(Header) == KTX_HEADER_SIZE, "KTX Header size is static");
@@ -421,14 +425,14 @@ namespace ktx {
 
     struct Image;
 
+    // Image without the image data itself
     struct ImageDescriptor : public ImageHeader {
         const FaceOffsets _faceOffsets;
         ImageDescriptor(const ImageHeader& header, const FaceOffsets& offsets) : ImageHeader(header), _faceOffsets(offsets) {}
         Image toImage(const ktx::StoragePointer& storage) const;
     };
 
-    using ImageDescriptors = std::vector<ImageDescriptor>;
-
+    // Image with the image data itself
     struct Image : public ImageHeader {
         FaceBytes _faceBytes;
         Image(const ImageHeader& header, const FaceBytes& faces) : ImageHeader(header), _faceBytes(faces) {}
@@ -473,6 +477,7 @@ namespace ktx {
         // This path allocate the Storage where to store header, keyvalues and copy mips
         // Then COPY all the data
         static std::unique_ptr<KTX> create(const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
+        static std::unique_ptr<KTX> createBare(const Header& header, const KeyValues& keyValues = KeyValues());
 
         // Instead of creating a full Copy of the src data in a KTX object, the write serialization can be performed with the
         // following two functions
@@ -486,7 +491,9 @@ namespace ktx {
         //
         // This is exactly what is done in the create function
         static size_t evalStorageSize(const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
+        static size_t evalStorageSize(const Header& header, const ImageDescriptors& images, const KeyValues& keyValues = KeyValues());
         static size_t write(Byte* destBytes, size_t destByteSize, const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
+        static size_t writeWithoutImages(Byte* destBytes, size_t destByteSize, const Header& header, const ImageDescriptors& descriptors, const KeyValues& keyValues = KeyValues());
         static size_t writeKeyValues(Byte* destBytes, size_t destByteSize, const KeyValues& keyValues);
         static Images writeImages(Byte* destBytes, size_t destByteSize, const Images& images);
 

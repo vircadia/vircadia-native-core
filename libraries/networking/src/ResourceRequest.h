@@ -53,6 +53,8 @@ public:
     QString getResultString() const;
     QUrl getUrl() const { return _url; }
     bool loadedFromCache() const { return _loadedFromCache; }
+    bool getRangeRequestSuccessful() const { return _rangeRequestSuccessful; }
+    bool getTotalSizeOfResource() const { return _totalSizeOfResource; }
 
     void setCacheEnabled(bool value) { _cacheEnabled = value; }
     void setByteRange(ByteRange byteRange) { _byteRange = byteRange; }
@@ -74,6 +76,8 @@ protected:
     bool _cacheEnabled { true };
     bool _loadedFromCache { false };
     ByteRange _byteRange;
+    bool _rangeRequestSuccessful { false };
+    uint64_t _totalSizeOfResource { 0 };
 };
 
 #endif

@@ -217,8 +217,12 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
         _transferSize = mipSize;
         _bufferingLambda = [=] {
             auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
-            _buffer.resize(_transferSize);
-            memcpy(&_buffer[0], mipData->readData(), _transferSize);
+            if (!mipData) {
+                qWarning() << "Mip not available: " << sourceMip;
+            } else {
+                _buffer.resize(_transferSize);
+                memcpy(&_buffer[0], mipData->readData(), _transferSize);
+            }
             _bufferingCompleted = true;
         };
 
