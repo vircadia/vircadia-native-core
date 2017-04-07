@@ -178,7 +178,8 @@ void GeometryReader::run() {
                     throw QString("empty geometry, possibly due to an unsupported FBX version");
                 }
             } else if (_url.path().toLower().endsWith(".obj")) {
-                fbxGeometry.reset(OBJReader().readOBJ(_data, _mapping, _url));
+                bool combineParts = false;
+                fbxGeometry.reset(OBJReader().readOBJ(_data, _mapping, combineParts, _url));
             } else {
                 throw QString("unsupported format");
             }
