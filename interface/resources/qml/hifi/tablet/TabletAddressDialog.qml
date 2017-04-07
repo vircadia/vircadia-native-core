@@ -119,6 +119,8 @@ StackView {
                 onClicked: {
                     addressBarDialog.loadHome();
                     tabletRoot.shown = false;
+                    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+                    tablet.gotoHomeScreen();
                 }
                 anchors {
                     left: parent.left
