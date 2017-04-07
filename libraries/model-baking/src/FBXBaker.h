@@ -47,7 +47,7 @@ class TextureBaker;
 class FBXBaker : public QObject {
     Q_OBJECT
 public:
-    FBXBaker(QUrl fbxURL, QString baseOutputPath);
+    FBXBaker(QUrl fbxURL, QString baseOutputPath, bool copyOriginals = true);
     ~FBXBaker();
 
     void start();
@@ -66,7 +66,8 @@ private:
     bool importScene();
     bool rewriteAndBakeSceneTextures();
     bool exportScene();
-    bool removeEmbeddedMediaFolder();
+    void removeEmbeddedMediaFolder();
+    void possiblyCleanupOriginals();
 
     QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
     QUrl getTextureURL(const QFileInfo& textureFileInfo, fbxsdk::FbxFileTexture* fileTexture);
@@ -91,6 +92,8 @@ private:
     QHash<uint64_t, TextureType> _textureTypes;
 
     std::list<std::unique_ptr<TextureBaker>> _bakingTextures;
+
+    bool _copyOriginals { true };
 };
 
 #endif // hifi_FBXBaker_h

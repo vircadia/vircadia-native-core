@@ -22,9 +22,10 @@
 #include "FBXBaker.h"
 
 
-FBXBaker::FBXBaker(QUrl fbxURL, QString baseOutputPath) :
+FBXBaker::FBXBaker(QUrl fbxURL, QString baseOutputPath, bool copyOriginals) :
     _fbxURL(fbxURL),
-    _baseOutputPath(baseOutputPath)
+    _baseOutputPath(baseOutputPath),
+    _copyOriginals(copyOriginals)
 {
     // create an FBX SDK manager
     _sdkManager = FbxManager::Create();
@@ -152,8 +153,8 @@ void FBXBaker::bake() {
     rewriteAndBakeSceneTextures();
     exportScene();
 
-
     removeEmbeddedMediaFolder();
+    possiblyCleanupOriginals();
 }
 
 bool FBXBaker::importScene() {
@@ -466,11 +467,15 @@ bool FBXBaker::exportScene() {
 }
 
 
-bool FBXBaker::removeEmbeddedMediaFolder() {
+void FBXBaker::removeEmbeddedMediaFolder() {
     // now that the bake is complete, remove the embedded media folder produced by the FBX SDK when it imports an FBX
     auto embeddedMediaFolderName = _fbxURL.fileName().replace(".fbx", ".fbm");
     QDir(_uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER + embeddedMediaFolderName).removeRecursively();
+}
 
-    // we always return true because a failure to delete the embedded media folder is not a failure of the bake
-    return true;
+void FBXBaker::possiblyCleanupOriginals() {
+    if (!_copyOriginals) {
+        // caller did not ask us to keep the original around, so delete the original output folder now
+        QDir(_uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER).removeRecursively();
+    }
 }
