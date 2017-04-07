@@ -127,11 +127,11 @@ Item {
     }
 
     function urlAppend(url) {
-        var _url = decodeURIComponent(url)
-        if (_url[_url.length - 1] !== "/")
-            _url = _url + "/"
-        if (currentPage === -1 || pagesModel.get(currentPage).webUrl !== _url) {
-            pagesModel.append({webUrl: _url})
+        var lurl = decodeURIComponent(url)
+        if (lurl[lurl.length - 1] !== "/")
+            lurl = lurl + "/"
+        if (currentPage === -1 || pagesModel.get(currentPage).webUrl !== lurl) {
+            pagesModel.append({webUrl: lurl})
         }
     }
 
