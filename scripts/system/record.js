@@ -321,7 +321,7 @@
             Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
                 player: playerIDs[index],
                 command: PLAYER_COMMAND_PLAY,
-                recording: mapping,
+                recording: "atp:" + mapping,
                 position: MyAvatar.position,
                 orientation: MyAvatar.orientation
             }));

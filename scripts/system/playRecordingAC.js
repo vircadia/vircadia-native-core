@@ -22,6 +22,10 @@
         isPlaying = false,  // TODO: Just use recording value instead?
         recording = "";
 
+    function log(message) {
+        print(APP_NAME + ": " + message);
+    }
+
     function updateRecorder() {
         Messages.sendMessage(HIFI_RECORDER_CHANNEL, JSON.stringify({
             playing: isPlaying,
@@ -40,6 +44,24 @@
             case PLAYER_COMMAND_PLAY:
                 isPlaying = true;
                 recording = message.recording;
+
+                log("Play recording " + recording);
+
+                Agent.isAvatar = true;
+                Avatar.position = message.position;
+                Avatar.orientation = message.orientation;
+
+                Recording.loadRecording(recording);
+                Recording.setPlayFromCurrentLocation(true);
+                Recording.setPlayerUseDisplayName(true);
+                Recording.setPlayerUseHeadModel(false);
+                Recording.setPlayerUseAttachments(true);
+                Recording.setPlayerLoop(true);
+                Recording.setPlayerUseSkeletonModel(true);
+
+                Recording.setPlayerTime(0.0);
+                Recording.startPlaying();
+
                 break;
             }
 
