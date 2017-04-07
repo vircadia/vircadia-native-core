@@ -33,6 +33,16 @@
         button.editProperties({ isActive: isRecordingEnabled || !Recorder.isIdle() });
     }
 
+    function log(message) {
+        print(APP_NAME + ": " + message);
+    }
+
+    function error(message, info) {
+        print(APP_NAME + ": " + message + (info !== "" ? " - " + info : ""));
+        Window.alert(message);
+
+    }
+
     CountdownTimer = (function () {
         // Displays countdown overlay.
 
@@ -160,34 +170,27 @@
             play;
 
         function setMappingCallback(status) {
-            var error;
-
             if (status !== "") {
-                error = "Error mapping recording to " + mappingPath + " on Asset Server!";
-                print(APP_NAME + ": " + error + " - " + status);
-                Window.alert(error);
+                error("Error mapping recording to " + mappingPath + " on Asset Server!", status);
                 return;
             }
 
-            print(APP_NAME + ": Recording mapped to " + mappingPath);
-            print(APP_NAME + ": Request play recording");
+            log("Recording mapped to " + mappingPath);
+            log("Request play recording");
 
             play(mappingPath);
         }
 
         function saveRecordingToAssetCallback(url) {
             var filename,
-                hash,
-                error;
+                hash;
 
             if (url === "") {
-                error = "Error saving recording to Asset Server!";
-                print(APP_NAME + ": " + error);
-                Window.alert(error);
+                error("Error saving recording to Asset Server!");
                 return;
             }
 
-            print(APP_NAME + ": Recording saved to Asset Server as " + url);
+            log("Recording saved to Asset Server as " + url);
 
             filename = (new Date()).toISOString();  // yyyy-mm-ddThh:mm:ss.sssZ
             filename = filename.replace(/[\-:]|\.\d*Z$/g, "").replace("T", "-") + ".hfr";  // yyyymmmdd-hhmmss.hfr
@@ -199,7 +202,7 @@
         function startRecording() {
             recordingState = RECORDING;
             updateButtonState();
-            print(APP_NAME + ": Start recording");
+            log("Start recording");
             Recording.startRecording();
         }
 
@@ -209,13 +212,11 @@
 
             recordingState = IDLE;
             updateButtonState();
-            print(APP_NAME + ": Finish recording");
+            log("Finish recording");
             Recording.stopRecording();
             success = Recording.saveRecordingToAsset(saveRecordingToAssetCallback);
             if (!success) {
-                error = "Error saving recording to Asset Server!";
-                print(APP_NAME + ": " + error);
-                Window.alert(error);
+                error("Error saving recording to Asset Server!");
             }
         }
 
@@ -223,7 +224,7 @@
             Recording.stopRecording();
             recordingState = IDLE;
             updateButtonState();
-            print(APP_NAME + ": Cancel recording");
+            log("Cancel recording");
         }
 
         function finishCountdown() {
@@ -236,13 +237,13 @@
             recordingState = IDLE;
             updateButtonState();
             CountdownTimer.cancel();
-            print(APP_NAME + ": Cancel countdown");
+            log("Cancel countdown");
         }
 
         function startCountdown() {
             recordingState = COUNTING_DOWN;
             updateButtonState();
-            print(APP_NAME + ": Start countdown");
+            log("Start countdown");
             CountdownTimer.start(finishCountdown);
         }
 
@@ -296,9 +297,7 @@
 
             index = playerIsPlaying.indexOf(false);
             if (index === -1) {
-                error = "No assignment client player available to play recording " + mapping + "!";
-                print(APP_NAME + ": " + error);
-                Window.alert(error);
+                error("No assignment client player available to play recording " + mapping + "!");
                 return;
             }
 
