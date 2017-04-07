@@ -560,7 +560,7 @@ StackView {
             addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }
         
-        if (root.desktop) {
+        if (isDesktop) {
             tablet.gotoHomeScreen();
         } else {
             HMD.closeTablet();
