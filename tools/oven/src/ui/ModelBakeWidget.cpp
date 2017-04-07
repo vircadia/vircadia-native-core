@@ -41,6 +41,7 @@ void ModelBakeWidget::setupUI() {
     QLabel* modelFileLabel = new QLabel("Model File");
 
     _modelLineEdit = new QLineEdit;
+    _modelLineEdit->setPlaceholderText("File or URL");
 
     QPushButton* chooseFileButton = new QPushButton("Browse...");
     connect(chooseFileButton, &QPushButton::clicked, this, &ModelBakeWidget::chooseFileButtonClicked);
@@ -100,7 +101,14 @@ void ModelBakeWidget::chooseFileButtonClicked() {
     if (!selectedFile.isEmpty()) {
         // set the contents of the model file text box to be the path to the selected file
         _modelLineEdit->setText(selectedFile);
-        _modelStartDirectory.set(QDir(selectedFile).absolutePath());
+
+        auto directoryOfModel = QFileInfo(selectedFile).absolutePath();
+
+        // save the directory containing this model so we can default to it next time we show the file dialog
+        _modelStartDirectory.set(directoryOfModel);
+
+        // if our output directory is not yet set, set it to the directory of this model
+        _outputDirLineEdit->setText(directoryOfModel);
     }
 }
 
