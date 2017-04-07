@@ -38,7 +38,7 @@ void ModelBakeWidget::setupUI() {
     int rowIndex = 0;
 
     // setup a section to choose the file being baked
-    QLabel* modelFileLabel = new QLabel("Model File");
+    QLabel* modelFileLabel = new QLabel("Model File(s)");
 
     _modelLineEdit = new QLineEdit;
     _modelLineEdit->setPlaceholderText("File or URL");
@@ -77,7 +77,7 @@ void ModelBakeWidget::setupUI() {
     ++rowIndex;
 
     // add a button that will kickoff the bake
-    QPushButton* bakeButton = new QPushButton("Bake Model");
+    QPushButton* bakeButton = new QPushButton("Bake");
     connect(bakeButton, &QPushButton::clicked, this, &ModelBakeWidget::bakeButtonClicked);
 
     // add the bake button to the grid
@@ -96,13 +96,13 @@ void ModelBakeWidget::chooseFileButtonClicked() {
         startDir = QDir::homePath();
     }
 
-    auto selectedFile = QFileDialog::getOpenFileName(this, "Choose Model", startDir);
+    auto selectedFiles = QFileDialog::getOpenFileNames(this, "Choose Model", startDir);
 
-    if (!selectedFile.isEmpty()) {
+    if (!selectedFiles.isEmpty()) {
         // set the contents of the model file text box to be the path to the selected file
-        _modelLineEdit->setText(selectedFile);
+        _modelLineEdit->setText(selectedFiles.join(','));
 
-        auto directoryOfModel = QFileInfo(selectedFile).absolutePath();
+        auto directoryOfModel = QFileInfo(selectedFiles[0]).absolutePath();
 
         // save the directory containing this model so we can default to it next time we show the file dialog
         _modelStartDirectory.set(directoryOfModel);
@@ -148,15 +148,22 @@ void ModelBakeWidget::bakeButtonClicked() {
 
     }
 
-    // construct a URL from the path in the model file text box
-    QUrl modelToBakeURL(_modelLineEdit->text());
+    // split the list from the model line edit to see how many models we need to bake
+    auto fileURLStrings = _modelLineEdit->text().split(',');
+    foreach (QString fileURLString, fileURLStrings) {
+        // construct a URL from the path in the model file text box
+        QUrl modelToBakeURL(fileURLString);
 
-    // if the URL doesn't have a scheme, assume it is a local file
-    if (modelToBakeURL.scheme().isEmpty()) {
-        modelToBakeURL.setScheme("file");
+        // if the URL doesn't have a scheme, assume it is a local file
+        if (modelToBakeURL.scheme().isEmpty()) {
+            modelToBakeURL.setScheme("file");
+        }
+
+        // everything seems to be in place, kick off a bake for this model now
+        auto baker = new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), false);
+        baker->start();
+        _bakers.emplace_back(baker);
     }
 
-    // everything seems to be in place, kick off a bake now
-    _baker.reset(new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), false));
-    _baker->start();
+
 }

@@ -36,7 +36,7 @@ private slots:
 private:
     void setupUI();
 
-    std::unique_ptr<FBXBaker> _baker;
+    std::list<std::unique_ptr<FBXBaker>> _bakers;
 
     QLineEdit* _modelLineEdit;
     QLineEdit* _outputDirLineEdit;
