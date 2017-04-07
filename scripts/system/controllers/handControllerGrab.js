@@ -189,6 +189,10 @@ var blacklist = [];
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
 
+var MAX_SECONDARY_PRESS_VALUE = 1;
+var MIN_SECONDARY_PRESS_VALUE = 0;
+var farToNearGrab = false;
+
 var holdEnabled = true;
 var nearGrabEnabled = true;
 var farGrabEnabled = true;
@@ -2082,6 +2086,15 @@ function MyController(hand) {
         return true;
     };
 
+    this.entityIsFartoNearGrabbable = function (objectPosition, handPosition, maxDistance) {
+        var distanceToObjectFromHand = Vec3.length(Vec3.subtract(handPosition, objectPosition));
+
+        if (distanceToObjectFromHand > maxDistance) {
+          return false;
+        }
+        return true;
+    };
+
     this.chooseNearEquipHotspots = function(candidateEntities, distance) {
         var equippableHotspots = flatten(candidateEntities.map(function(entityID) {
             return _this.collectEquipHotspots(entityID);
@@ -2661,6 +2674,15 @@ function MyController(hand) {
                            this.grabbedThingID);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+        var handPosition = controllerLocation.position;
+            
+        //Far to Near Grab: If object is draw by user inside NEAR_GRAB_MAX_DISTANCE, grab it
+        if (this.entityIsFartoNearGrabbable(this.currentObjectPosition, handPosition, NEAR_GRAB_MAX_DISTANCE)) {
+            this.secondaryPress(MAX_SECONDARY_PRESS_VALUE);
+            this.farToNearGrab = true;
+            this.setState(STATE_NEAR_GRABBING, "near grab entity '" + this.grabbedThingID + "'");
+        }
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
             targetPosition: newTargetPosition,
             linearTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
@@ -3035,6 +3057,11 @@ function MyController(hand) {
 
     this.nearGrabbing = function(deltaTime, timestamp) {
         this.grabPointSphereOff();
+
+        if (this.farToNearGrab && !this.triggerClicked) {
+            this.farToNearGrab = false;
+            this.secondaryPress(MIN_SECONDARY_PRESS_VALUE);
+        }
 
         if (this.state == STATE_NEAR_GRABBING && (!this.triggerClicked && this.secondaryReleased())) {
             this.callEntityMethodOnGrabbed("releaseGrab");
