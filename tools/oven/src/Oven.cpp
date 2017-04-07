@@ -12,7 +12,6 @@
 #include <SettingInterface.h>
 
 #include "ui/OvenMainWindow.h"
-#include "ui/ModelBakeWidget.h"
 
 #include "Oven.h"
 
@@ -30,20 +29,7 @@ Oven::Oven(int argc, char* argv[]) :
     // check if we were passed any command line arguments that would tell us just to run without the GUI
 
     // setup the GUI
-    setupGUI();
-}
-
-void Oven::setupGUI() {
     _mainWindow = new OvenMainWindow;
-
-    _mainWindow->setWindowTitle("High Fidelity Oven");
-
-    // give the window a fixed width that will never change
-    const int FIXED_WINDOW_WIDTH = 640;
-    _mainWindow->setFixedWidth(FIXED_WINDOW_WIDTH);
-
-    _mainWindow->setCentralWidget(new ModelBakeWidget);
-
     _mainWindow->show();
 }
 

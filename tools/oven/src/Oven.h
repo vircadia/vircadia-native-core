@@ -23,8 +23,6 @@ public:
     Oven(int argc, char* argv[]);
 
 private:
-    void setupGUI();
-
     OvenMainWindow* _mainWindow;
 };
 

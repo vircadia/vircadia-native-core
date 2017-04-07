@@ -30,6 +30,7 @@ private slots:
     void chooseFileButtonClicked();
     void chooseOutputDirButtonClicked();
     void bakeButtonClicked();
+    void cancelButtonClicked();
 
     void outputDirectoryChanged(const QString& newDirectory);
 

@@ -14,6 +14,7 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QStackedWidget>
 
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
@@ -76,12 +77,24 @@ void ModelBakeWidget::setupUI() {
     // start a new row for the next component
     ++rowIndex;
 
+    // add a horizontal line to split the bake/cancel buttons off
+    QFrame* lineFrame = new QFrame;
+    lineFrame->setFrameShape(QFrame::HLine);
+    lineFrame->setFrameShadow(QFrame::Sunken);
+    gridLayout->addWidget(lineFrame, rowIndex, 0, 1, -1);
+
+    // start a new row for the next component
+    ++rowIndex;
+
     // add a button that will kickoff the bake
     QPushButton* bakeButton = new QPushButton("Bake");
     connect(bakeButton, &QPushButton::clicked, this, &ModelBakeWidget::bakeButtonClicked);
+    gridLayout->addWidget(bakeButton, rowIndex, 3);
 
-    // add the bake button to the grid
-    gridLayout->addWidget(bakeButton, rowIndex, 0, -1, -1);
+    // add a cancel button to go back to the modes page
+    QPushButton* cancelButton = new QPushButton("Cancel");
+    connect(cancelButton, &QPushButton::clicked, this, &ModelBakeWidget::cancelButtonClicked);
+    gridLayout->addWidget(cancelButton, rowIndex, 4);
 
     setLayout(gridLayout);
 }
@@ -141,11 +154,13 @@ void ModelBakeWidget::bakeButtonClicked() {
 
     if (!outputDirectory.exists()) {
 
+        return;
     }
 
     // make sure we have a non empty URL to a model to bake
     if (_modelLineEdit->text().isEmpty()) {
 
+        return;
     }
 
     // split the list from the model line edit to see how many models we need to bake
@@ -164,6 +179,13 @@ void ModelBakeWidget::bakeButtonClicked() {
         baker->start();
         _bakers.emplace_back(baker);
     }
+}
 
+void ModelBakeWidget::cancelButtonClicked() {
+    // the user wants to go back to the mode selection screen
+    // remove ourselves from the stacked widget and call delete later so we'll be cleaned up
+    auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
+    stackedWidget->removeWidget(this);
 
+    this->deleteLater();
 }

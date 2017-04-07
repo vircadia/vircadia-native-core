@@ -15,7 +15,9 @@
 #include <QtWidgets/QMainWindow>
 
 class OvenMainWindow : public QMainWindow {
-
+    Q_OBJECT
+public:
+    OvenMainWindow(QWidget *parent = Q_NULLPTR, Qt::WindowFlags flags = Qt::WindowFlags());
 };
 
 #endif // hifi_OvenMainWindow_h
