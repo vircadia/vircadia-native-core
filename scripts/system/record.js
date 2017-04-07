@@ -289,7 +289,24 @@
             playerIDs = [],         // UUIDs of AC player scripts.
             playerIsPlaying = [],   // True if AC player script is playing a recording.
             playerRecordings = [],  // Assignment client mappings of recordings being played.
-            playerTimestamps = [];  // Timestamps of last heartbeat update from player script.
+            playerTimestamps = [],  // Timestamps of last heartbeat update from player script.
+
+            updateTimer,
+            UPDATE_INTERVAL = 5000;  // Must be > player's HEARTBEAT_INTERVAL. TODO: Final value.
+
+        function updatePlayers() {
+            var now = Date.now();
+
+            // Remove players that haven't sent a heartbeat for a while.
+            for (i = playerTimestamps.length - 1; i >= 0; i -= 1) {
+                if (now - playerTimestamps[i] > UPDATE_INTERVAL) {
+                    playerIDs.splice(i, 1);
+                    playerIsPlaying.splice(i, 1);
+                    playerRecordings.splice(i, 1);
+                    playerTimestamps.splice(i, 1);
+                }
+            }
+        }
 
         function playRecording(mapping) {
             var index,
@@ -330,9 +347,13 @@
             // Messaging with AC scripts.
             Messages.messageReceived.connect(onMessageReceived);
             Messages.subscribe(HIFI_RECORDER_CHANNEL);
+
+            updateTimer = Script.setInterval(updatePlayers, UPDATE_INTERVAL);
         }
 
         function tearDown() {
+            Script.clearInterval(updateTimer);
+
             Messages.messageReceived.disconnect(onMessageReceived);
             Messages.subscribe(HIFI_RECORDER_CHANNEL);
         }
