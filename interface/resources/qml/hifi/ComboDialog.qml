@@ -12,6 +12,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import "../styles-uit"
+import "../controls-uit"
 
 Item {
     property var dialogTitleText : "";
@@ -66,6 +67,29 @@ Item {
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignTop;
         }
+
+        HiFiGlyphs {
+            id: closeGlyphButton;
+            text: hifi.glyphs.close;
+            size: 32;
+            anchors.verticalCenter: dialogTitle.verticalCenter;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            MouseArea {
+                anchors.fill: closeGlyphButton;
+                hoverEnabled: true;
+                onEntered: {
+                    parent.text = hifi.glyphs.closeInverted;
+                }
+                onExited: {
+                    parent.text = hifi.glyphs.close;
+                }
+                onClicked: {
+                    combo.visible = false;
+                }
+            }
+        }
+
 
         ListModel {
             id: comboListViewModel;
