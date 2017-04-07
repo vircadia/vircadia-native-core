@@ -308,7 +308,6 @@ Rectangle {
                         MouseArea {
                             anchors.fill: parent;
                             hoverEnabled: true;
-                            enabled: activeTab === "connectionsTab";
                             onClicked: letterbox(hifi.glyphs.question,
                                                  "Connections and Friends",
                                                  "<font color='purple'>Purple borders around profile pictures are <b>Connections</b>.</font><br>" +
