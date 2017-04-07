@@ -184,6 +184,7 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
         const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).hasVarying();
         addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
 
+        addJob<ZoneRenderer>("ZoneRenderer", opaques);
 
         // Scene Octree Debugging job
         {
