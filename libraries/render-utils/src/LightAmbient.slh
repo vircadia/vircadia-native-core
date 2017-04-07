@@ -82,13 +82,12 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
 
 
 <@if supportScattering@>
-    float ambientOcclusion = curvatureAO(lowNormalCurvature.w * 20.0f) * 0.5f;
-    float ambientOcclusionHF = curvatureAO(midNormalCurvature.w * 8.0f) * 0.5f;
-    ambientOcclusion = min(ambientOcclusion, ambientOcclusionHF);
-
-    obscurance = min(obscurance, ambientOcclusion);
-
     if (scattering * isScatteringEnabled() > 0.0) {
+        float ambientOcclusion = curvatureAO(lowNormalCurvature.w * 20.0f) * 0.5f;
+        float ambientOcclusionHF = curvatureAO(midNormalCurvature.w * 8.0f) * 0.5f;
+        ambientOcclusion = min(ambientOcclusion, ambientOcclusionHF);
+
+        obscurance = min(obscurance, ambientOcclusion);
 
         // Diffuse from ambient
         diffuse = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), lowNormalCurvature.xyz).xyz;
