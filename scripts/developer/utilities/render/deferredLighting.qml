@@ -63,7 +63,8 @@ Column {
                      "Directional:LightingModel:enableDirectionalLight",
                      "Point:LightingModel:enablePointLight",
                      "Spot:LightingModel:enableSpotLight",
-                     "Light Contour:LightingModel:showLightContour"
+                     "Light Contour:LightingModel:showLightContour",
+                     "Shadow:RenderShadowTask:enabled"
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
