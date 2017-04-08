@@ -16,25 +16,105 @@
         HIFI_RECORDER_CHANNEL = "HiFi-Recorder-Channel",
         HIFI_PLAYER_CHANNEL = "HiFi-Player-Channel",
         PLAYER_COMMAND_PLAY = "play",
-        heartbeatTimer,
+        PLAYER_COMMAND_STOP = "stop",
+        heartbeatTimer = null,
         HEARTBEAT_INTERVAL = 3000,  // TODO: Final value.
         sessionUUID,
-        isPlaying = false,  // TODO: Just use recording value instead?
-        recording = "";
+
+        Entity,
+        Player;
 
     function log(message) {
         print(APP_NAME + ": " + message);
     }
 
-    function updateRecorder() {
+    Entity = (function () {
+        // Persistence of playback.
+
+        // TODO
+    }());
+
+    Player = (function () {
+        // Recording playback functions.
+        var isPlayingRecording = false,
+            recordingFilename = "";
+
+        function play(recording, position, orientation) {
+            isPlayingRecording = true;
+            recordingFilename = recording;
+
+            log("Play recording " + recordingFilename);
+
+            Agent.isAvatar = true;
+            Avatar.position = position;
+            Avatar.orientation = orientation;
+
+            Recording.loadRecording(recordingFilename);
+            Recording.setPlayFromCurrentLocation(true);
+            Recording.setPlayerUseDisplayName(true);
+            Recording.setPlayerUseHeadModel(false);
+            Recording.setPlayerUseAttachments(true);
+            Recording.setPlayerLoop(true);
+            Recording.setPlayerUseSkeletonModel(true);
+
+            Recording.setPlayerTime(0.0);
+            Recording.startPlaying();
+        }
+
+        function autoPlay() {
+            // TODO: Automatically play a persisted recording, if any.
+        }
+
+        function stop() {
+            log("Stop playing " + recordingFilename);
+
+            if (Recording.isPlaying()) {
+                Recording.stopPlaying();
+            }
+            isPlayingRecording = false;
+            recordingFilename = "";
+        }
+
+        function isPlaying() {
+            return isPlayingRecording;
+        }
+
+        function recording() {
+            return recordingFilename;
+        }
+
+        function setUp() {
+            // Nothing to do.
+        }
+
+        function tearDown() {
+            // Nothing to do.
+        }
+
+        return {
+            autoPlay: autoPlay,
+            play: play,
+            stop: stop,
+            isPlaying: isPlaying,
+            recording: recording,
+            setUp: setUp,
+            tearDown: tearDown
+        };
+    }());
+
+    function sendHeartbeat() {
         Messages.sendMessage(HIFI_RECORDER_CHANNEL, JSON.stringify({
-            playing: isPlaying,
-            recording: recording
+            playing: Player.isPlaying(),
+            recording: Player.recording()
         }));
+        heartbeatTimer = Script.setTimeout(sendHeartbeat, HEARTBEAT_INTERVAL);
     }
 
-    function onHeartbeatTimer() {
-        updateRecorder();
+    function cancelHeartbeat() {
+        if (heartbeatTimer) {
+            Script.clearTimeout(heartbeatTimer);
+            heartbeatTimer = null;
+        }
     }
 
     function onMessageReceived(channel, message, sender) {
@@ -42,47 +122,42 @@
         if (message.player === sessionUUID) {
             switch (message.command) {
             case PLAYER_COMMAND_PLAY:
-                isPlaying = true;
-                recording = message.recording;
-
-                log("Play recording " + recording);
-
-                Agent.isAvatar = true;
-                Avatar.position = message.position;
-                Avatar.orientation = message.orientation;
-
-                Recording.loadRecording(recording);
-                Recording.setPlayFromCurrentLocation(true);
-                Recording.setPlayerUseDisplayName(true);
-                Recording.setPlayerUseHeadModel(false);
-                Recording.setPlayerUseAttachments(true);
-                Recording.setPlayerLoop(true);
-                Recording.setPlayerUseSkeletonModel(true);
-
-                Recording.setPlayerTime(0.0);
-                Recording.startPlaying();
-
+                if (!Player.isPlaying()) {
+                    Player.play(message.recording, message.position, message.orientation);
+                } else {
+                    log("Didn't start playing " + message.recording + " because already playing " + Player.recording());
+                }
+                sendHeartbeat();
+                break;
+            case PLAYER_COMMAND_STOP:
+                Player.stop();
+                Player.autoPlay();
+                sendHeartbeat();
                 break;
             }
-
-            updateRecorder();
         }
     }
 
     function setUp() {
         sessionUUID = Agent.sessionUUID;
 
+        Player.setUp();
+
         Messages.messageReceived.connect(onMessageReceived);
         Messages.subscribe(HIFI_PLAYER_CHANNEL);
 
-        heartbeatTimer = Script.setInterval(onHeartbeatTimer, HEARTBEAT_INTERVAL);
+        Player.autoPlay();
+        sendHeartbeat();
     }
 
     function tearDown() {
-        Script.clearInterval(heartbeatTimer);
+        cancelHeartbeat();
 
         Messages.messageReceived.disconnect(onMessageReceived);
         Messages.unsubscribe(HIFI_PLAYER_CHANNEL);
+
+        Player.stop();
+        Player.tearDown();
     }
 
     setUp();
