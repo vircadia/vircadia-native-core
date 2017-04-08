@@ -180,13 +180,11 @@ protected:
     const bool& isOriginal() const { return _isOriginal; }
 
 private:
-    using TextureType = NetworkTexture::Type;
-
     // Helpers for the ctors
     QUrl getTextureUrl(const QUrl& baseUrl, const FBXTexture& fbxTexture);
     model::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
-        TextureType type, MapChannel channel);
-    model::TextureMapPointer fetchTextureMap(const QUrl& url, TextureType type, MapChannel channel);
+                                             gpu::TextureType type, MapChannel channel);
+    model::TextureMapPointer fetchTextureMap(const QUrl& url, gpu::TextureType type, MapChannel channel);
 
     Transform _albedoTransform;
     Transform _lightmapTransform;

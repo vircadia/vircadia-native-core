@@ -157,6 +157,23 @@ enum class TextureUsageType {
     EXTERNAL,
 };
 
+enum TextureType {
+    DEFAULT_TEXTURE,
+    STRICT_TEXTURE,
+    ALBEDO_TEXTURE,
+    NORMAL_TEXTURE,
+    BUMP_TEXTURE,
+    SPECULAR_TEXTURE,
+    METALLIC_TEXTURE = SPECULAR_TEXTURE, // for now spec and metallic texture are the same, converted to grey
+    ROUGHNESS_TEXTURE,
+    GLOSS_TEXTURE,
+    EMISSIVE_TEXTURE,
+    CUBE_TEXTURE,
+    OCCLUSION_TEXTURE,
+    SCATTERING_TEXTURE = OCCLUSION_TEXTURE,
+    LIGHTMAP_TEXTURE
+};
+
 class Texture : public Resource {
     static std::atomic<uint32_t> _textureCPUCount;
     static std::atomic<Size> _textureCPUMemoryUsage;

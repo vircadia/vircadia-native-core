@@ -1445,8 +1445,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.jpg" };
     QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
 
-    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
-    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
+    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, gpu::TextureType::CUBE_TEXTURE, { { "generateIrradiance", false } });
+    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, gpu::TextureType::CUBE_TEXTURE, { { "generateIrradiance", true } });
 
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
 

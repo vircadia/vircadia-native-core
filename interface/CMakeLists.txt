@@ -194,7 +194,7 @@ link_hifi_libraries(
   recording fbx networking model-networking entities avatars
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui auto-updater
-  controllers plugins
+  controllers plugins image
   ui-plugins display-plugins input-plugins
   ${NON_ANDROID_LIBRARIES}
 )

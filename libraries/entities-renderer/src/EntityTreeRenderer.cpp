@@ -495,7 +495,7 @@ bool EntityTreeRenderer::applySkyboxAndHasAmbient() {
 
     bool isAmbientSet = false;
     if (_pendingAmbientTexture && !_ambientTexture) {
-        _ambientTexture = textureCache->getTexture(_ambientTextureURL, NetworkTexture::CUBE_TEXTURE);
+        _ambientTexture = textureCache->getTexture(_ambientTextureURL, gpu::TextureType::CUBE_TEXTURE);
     }
     if (_ambientTexture && _ambientTexture->isLoaded()) {
         _pendingAmbientTexture = false;
@@ -512,7 +512,7 @@ bool EntityTreeRenderer::applySkyboxAndHasAmbient() {
 
     if (_pendingSkyboxTexture && 
         (!_skyboxTexture || (_skyboxTexture->getURL() != _skyboxTextureURL))) {
-        _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, NetworkTexture::CUBE_TEXTURE);
+        _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, gpu::TextureType::CUBE_TEXTURE);
     }
     if (_skyboxTexture && _skyboxTexture->isLoaded()) {
         _pendingSkyboxTexture = false;
