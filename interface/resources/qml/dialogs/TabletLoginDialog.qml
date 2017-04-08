@@ -66,7 +66,12 @@ TabletModalWindow {
     HifiConstants { id: hifi }
 
     onCanceled: {
-        loginDialogRoot.Stack.view.pop()
+        if (loginDialogRoot.Stack.view) {
+            loginDialogRoot.Stack.view.pop();
+        } else {
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.returnToPreviousApp();
+        }
     }
 
     LoginDialog {

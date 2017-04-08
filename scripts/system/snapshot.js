@@ -70,7 +70,7 @@ function onMessage(message) {
                     || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
                 Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "General Preferences");
             } else {
-                tablet.loadQMLSource("TabletGeneralPreferences.qml");
+                tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
             }
             break;
         case 'setOpenFeedFalse':
@@ -96,12 +96,18 @@ function onMessage(message) {
                 } else {
                     print('not sharing', submessage.localPath);
                 }
+                
             });
             if (!outstanding && shouldOpenFeedAfterShare()) {
                 //showFeedWindow();
             }
             if (needsLogin) { // after the possible feed, so that the login is on top
-                Account.checkAndSignalForAccessToken();
+                var isLoggedIn = Account.isLoggedIn();
+
+                if (!isLoggedIn) {
+                    tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
+                    HMD.openTablet();
+                }
             }
     }
 }

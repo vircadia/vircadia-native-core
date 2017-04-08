@@ -349,6 +349,38 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
     }
 }
 
+void TabletProxy::loadQMLOnTop(const QVariant& path) {
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        QMetaObject::invokeMethod(root, "loadQMLOnTop", Q_ARG(const QVariant&, path));
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+    } else {
+        qCDebug(scriptengine) << "tablet cannot load QML because _qmlTabletRoot is null";
+    }
+}
+
+void TabletProxy::returnToPreviousApp() {
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        QMetaObject::invokeMethod(root, "returnToPreviousApp");
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+    } else {
+        qCDebug(scriptengine) << "tablet cannot load QML because _qmlTabletRoot is null";
+    }
+}
+    
 void TabletProxy::loadQMLSource(const QVariant& path) {
 
     QObject* root = nullptr;
@@ -431,6 +463,26 @@ void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
 
 void TabletProxy::gotoWebScreen(const QString& url) {
     gotoWebScreen(url, "");
+}
+
+void TabletProxy::loadWebScreenOnTop(const QVariant& url) {
+    loadWebScreenOnTop(url, "");
+}
+
+void TabletProxy::loadWebScreenOnTop(const QVariant& url, const QString& injectJavaScriptUrl) {
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        QMetaObject::invokeMethod(root, "loadQMLOnTop", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+        QMetaObject::invokeMethod(root, "loadWebOnTop", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectJavaScriptUrl)));
+    }
+    _state = State::Web;
 }
 
 void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl) {

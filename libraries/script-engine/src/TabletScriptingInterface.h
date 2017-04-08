@@ -120,6 +120,13 @@ public:
     Q_INVOKABLE void pushOntoStack(const QVariant& path);
     Q_INVOKABLE void popFromStack();
 
+    Q_INVOKABLE void loadQMLOnTop(const QVariant& path);
+    Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url);
+    Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url, const QString& injectedJavaScriptUrl);
+    Q_INVOKABLE void returnToPreviousApp();
+
+    
+
     /** jsdoc
      * Check if the tablet has a message dialog open
      * @function TabletProxy#isMessageDialogOpen
