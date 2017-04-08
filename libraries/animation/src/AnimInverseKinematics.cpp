@@ -277,6 +277,9 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
 
             const float MIN_AXIS_LENGTH = 1.0e-4f;
             RotationConstraint* constraint = getConstraint(pivotIndex);
+
+            // AJT: disabled special case for the lower spine.
+            /*
             if (constraint && constraint->isLowerSpine() && tipIndex != _headIndex) {
                 // for these types of targets we only allow twist at the lower-spine
                 // (this prevents the hand targets from bending the spine too much and thereby driving the hips too far)
@@ -292,6 +295,7 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
                     targetLine = Vectors::ZERO;
                 }
             }
+            */
 
             glm::vec3 axis = glm::cross(leverArm, targetLine);
             float axisLength = glm::length(axis);
