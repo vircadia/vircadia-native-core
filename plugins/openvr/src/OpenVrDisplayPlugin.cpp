@@ -277,8 +277,8 @@ public:
                 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
                 static const vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
                 static const vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
-                
-                vr::Texture_t texture{ (void*)_colors[currentColorBuffer], vr::API_OpenGL, vr::ColorSpace_Auto };
+
+                vr::Texture_t texture{ (void*)_colors[currentColorBuffer], vr::TextureType_OpenGL, vr::ColorSpace_Auto };
                 vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &leftBounds);
                 vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &rightBounds);
                 _plugin._presentRate.increment();
@@ -422,7 +422,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
     withNonPresentThreadLock([&] {
         openvr_for_each_eye([&](vr::Hmd_Eye eye) {
             _eyeOffsets[eye] = toGlm(_system->GetEyeToHeadTransform(eye));
-            _eyeProjections[eye] = toGlm(_system->GetProjectionMatrix(eye, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, vr::API_OpenGL));
+            _eyeProjections[eye] = toGlm(_system->GetProjectionMatrix(eye, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
         });
         // FIXME Calculate the proper combined projection by using GetProjectionRaw values from both eyes
         _cullingProjection = _eyeProjections[0];
@@ -639,7 +639,7 @@ void OpenVrDisplayPlugin::hmdPresent() {
         _submitThread->waitForPresent();
     } else {
         GLuint glTexId = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0));
-        vr::Texture_t vrTexture { (void*)glTexId, vr::API_OpenGL, vr::ColorSpace_Auto };
+        vr::Texture_t vrTexture { (void*)glTexId, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
         vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
         vr::VRCompositor()->Submit(vr::Eye_Right, &vrTexture, &OPENVR_TEXTURE_BOUNDS_RIGHT);
         vr::VRCompositor()->PostPresentHandoff();

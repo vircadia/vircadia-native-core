@@ -55,7 +55,7 @@ void DeferredFramebuffer::allocate() {
 
     _deferredColorTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(colorFormat, width, height, gpu::Texture::SINGLE_MIP, defaultSampler));
     _deferredNormalTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(linearFormat, width, height, gpu::Texture::SINGLE_MIP, defaultSampler));
-    _deferredSpecularTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(colorFormat, width, height, gpu::Texture::SINGLE_MIP, defaultSampler));
+    _deferredSpecularTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(linearFormat, width, height, gpu::Texture::SINGLE_MIP, defaultSampler));
 
     _deferredFramebuffer->setRenderBuffer(0, _deferredColorTexture);
     _deferredFramebuffer->setRenderBuffer(1, _deferredNormalTexture);

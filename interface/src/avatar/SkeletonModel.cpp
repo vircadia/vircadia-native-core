@@ -132,31 +132,49 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromHeadParameters(headParams, deltaTime);
 
-        Rig::HandParameters handParams;
+        Rig::HandAndFeetParameters handAndFeetParams;
 
         auto leftPose = myAvatar->getLeftHandControllerPoseInAvatarFrame();
         if (leftPose.isValid()) {
-            handParams.isLeftEnabled = true;
-            handParams.leftPosition = Quaternions::Y_180 * leftPose.getTranslation();
-            handParams.leftOrientation = Quaternions::Y_180 * leftPose.getRotation();
+            handAndFeetParams.isLeftEnabled = true;
+            handAndFeetParams.leftPosition = Quaternions::Y_180 * leftPose.getTranslation();
+            handAndFeetParams.leftOrientation = Quaternions::Y_180 * leftPose.getRotation();
         } else {
-            handParams.isLeftEnabled = false;
+            handAndFeetParams.isLeftEnabled = false;
         }
 
         auto rightPose = myAvatar->getRightHandControllerPoseInAvatarFrame();
         if (rightPose.isValid()) {
-            handParams.isRightEnabled = true;
-            handParams.rightPosition = Quaternions::Y_180 * rightPose.getTranslation();
-            handParams.rightOrientation = Quaternions::Y_180 * rightPose.getRotation();
+            handAndFeetParams.isRightEnabled = true;
+            handAndFeetParams.rightPosition = Quaternions::Y_180 * rightPose.getTranslation();
+            handAndFeetParams.rightOrientation = Quaternions::Y_180 * rightPose.getRotation();
         } else {
-            handParams.isRightEnabled = false;
+            handAndFeetParams.isRightEnabled = false;
         }
 
-        handParams.bodyCapsuleRadius = myAvatar->getCharacterController()->getCapsuleRadius();
-        handParams.bodyCapsuleHalfHeight = myAvatar->getCharacterController()->getCapsuleHalfHeight();
-        handParams.bodyCapsuleLocalOffset = myAvatar->getCharacterController()->getCapsuleLocalOffset();
+        auto leftFootPose = myAvatar->getLeftFootControllerPoseInAvatarFrame();
+        if (leftFootPose.isValid()) {
+            handAndFeetParams.isLeftFootEnabled = true;
+            handAndFeetParams.leftFootPosition = Quaternions::Y_180 * leftFootPose.getTranslation();
+            handAndFeetParams.leftFootOrientation = Quaternions::Y_180 * leftFootPose.getRotation();
+        } else {
+            handAndFeetParams.isLeftFootEnabled = false;
+        }
 
-        _rig->updateFromHandParameters(handParams, deltaTime);
+        auto rightFootPose = myAvatar->getRightFootControllerPoseInAvatarFrame();
+        if (rightFootPose.isValid()) {
+            handAndFeetParams.isRightFootEnabled = true;
+            handAndFeetParams.rightFootPosition = Quaternions::Y_180 * rightFootPose.getTranslation();
+            handAndFeetParams.rightFootOrientation = Quaternions::Y_180 * rightFootPose.getRotation();
+        } else {
+            handAndFeetParams.isRightFootEnabled = false;
+        }
+
+        handAndFeetParams.bodyCapsuleRadius = myAvatar->getCharacterController()->getCapsuleRadius();
+        handAndFeetParams.bodyCapsuleHalfHeight = myAvatar->getCharacterController()->getCapsuleHalfHeight();
+        handAndFeetParams.bodyCapsuleLocalOffset = myAvatar->getCharacterController()->getCapsuleLocalOffset();
+
+        _rig->updateFromHandAndFeetParameters(handAndFeetParams, deltaTime);
 
         Rig::CharacterControllerState ccState = convertCharacterControllerState(myAvatar->getCharacterController()->getState());
 

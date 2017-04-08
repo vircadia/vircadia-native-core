@@ -336,6 +336,10 @@ void Agent::executeScript() {
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar->setSkeletonModelURL(QUrl());
 
+    // force lazy initialization of the head data for the scripted avatar
+    // since it is referenced below by computeLoudness and getAudioLoudness
+    scriptedAvatar->getHeadOrientation();
+
     // give this AvatarData object to the script engine
     _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
 

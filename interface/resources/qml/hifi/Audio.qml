@@ -127,7 +127,7 @@ Rectangle {
                 text: hifi.glyphs.mic
                 color: hifi.colors.primaryHighlight
                 anchors.verticalCenter: parent.verticalCenter
-                font.pointSize: 27
+                size: 32
             }
             RalewayRegular {
                 anchors.verticalCenter: parent.verticalCenter
@@ -182,7 +182,7 @@ Rectangle {
                 text: hifi.glyphs.unmuted
                 color: hifi.colors.primaryHighlight
                 anchors.verticalCenter: parent.verticalCenter
-                font.pointSize: 27
+                size: 32
             }
             RalewayRegular {
                 anchors.verticalCenter: parent.verticalCenter

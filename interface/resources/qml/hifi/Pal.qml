@@ -52,11 +52,18 @@ Rectangle {
         id: letterboxMessage;
         z: 999; // Force the popup on top of everything else
     }
+    Connections {
+        target: GlobalServices
+        onMyUsernameChanged: {
+            myData.userName = Account.username;
+            myDataChanged(); // Setting a property within an object isn't enough to update dependencies. This will do it.
+        }
+    }
     // The ComboDialog used for setting availability
     ComboDialog {
         id: comboDialog;
         z: 999; // Force the ComboDialog on top of everything else
-        dialogWidth: parent.width - 100;
+        dialogWidth: parent.width - 50;
         dialogHeight: parent.height - 100;
     }
     function letterbox(headerGlyph, headerText, message) {
@@ -66,7 +73,13 @@ Rectangle {
         letterboxMessage.visible = true;
         letterboxMessage.popupRadius = 0;
     }
+    function popupComboDialogCallback(availability) {
+        GlobalServices.findableBy = availability;
+        UserActivityLogger.palAction("set_availability", availability);
+        print('Setting availability:', JSON.stringify(GlobalServices.findableBy));
+    }
     function popupComboDialog(dialogTitleText, optionTitleText, optionBodyText, optionValues) {
+        comboDialog.callbackFunction = popupComboDialogCallback;
         comboDialog.dialogTitleText = dialogTitleText;
         comboDialog.optionTitleText = optionTitleText;
         comboDialog.optionBodyText = optionBodyText;
@@ -295,12 +308,11 @@ Rectangle {
                         MouseArea {
                             anchors.fill: parent;
                             hoverEnabled: true;
-                            enabled: activeTab === "connectionsTab";
                             onClicked: letterbox(hifi.glyphs.question,
                                                  "Connections and Friends",
-                                                 "<font color='purple'>Purple borders around profile pictures are <b>Connections</b>.</font><br>" +
+                                                 "<font color='purple'>Purple borders around profile pictures represent <b>Connections</b>.</font><br>" +
                                                  "When your availability is set to Everyone, Connections can see your username and location.<br><br>" +
-                                                 "<font color='green'>Green borders around profile pictures are <b>Friends</b>.</font><br>" +
+                                                 "<font color='green'>Green borders around profile pictures represent <b>Friends</b>.</font><br>" +
                                                  "When your availability is set to Friends, only Friends can see your username and location.");
                             onEntered: connectionsHelpText.color = hifi.colors.blueHighlight;
                             onExited: connectionsHelpText.color = hifi.colors.blueAccent;
@@ -430,7 +442,7 @@ Rectangle {
             rowDelegate: Rectangle { // The only way I know to specify a row height.
                 // Size
                 height: rowHeight + (styleData.selected ? 15 : 0);
-                color: rowColor(styleData.selected, styleData.alternate);
+                color: nearbyRowColor(styleData.selected, styleData.alternate);
             }
 
             // This Item refers to the contents of each Cell
@@ -506,6 +518,7 @@ Rectangle {
                     // If this is an "Ignore" checkbox, disable the checkbox if user isn't present.
                     enabled: styleData.role === "ignore" ? (model ? model["isPresent"] : true) : true;
                     boxSize: 24;
+                    isRedCheck: true
                     onClicked: {
                         var newValue = !model[styleData.role];
                         nearbyUserModel.setProperty(model.userIndex, styleData.role, newValue);
@@ -605,7 +618,7 @@ Rectangle {
                                      "Bold names in the list are <b>avatar display names</b>.<br>" +
                                      "<font color='purple'>Purple borders around profile pictures are <b>connections</b></font>.<br>" +
                                      "<font color='green'>Green borders around profile pictures are <b>friends</b>.</font><br>" +
-                                     "(TEMPORARY LANGUAGE) In some situations, you can also see others' usernames.<br>" +
+                                     "Others can find you and see your username according to your <b>availability</b> settings.<br>" +
                                      "If you can see someone's username, you can GoTo them by selecting them in the PAL, then clicking their name.<br>" +
                                      "<br>If someone's display name isn't set, a unique <b>session display name</b> is assigned to them.<br>" +
                                      "<br>Administrators of this domain can also see the <b>username</b> or <b>machine ID</b> associated with each avatar present.");
@@ -742,7 +755,7 @@ Rectangle {
                 resizable: false;
             }
             TableViewColumn {
-                role: "friends";
+                role: "connection";
                 title: "FRIEND";
                 width: actionButtonWidth;
                 movable: false;
@@ -756,8 +769,8 @@ Rectangle {
             // This Rectangle refers to each Row in the connectionsTable.
             rowDelegate: Rectangle {
                 // Size
-                height: rowHeight;
-                color: rowColor(styleData.selected, styleData.alternate);
+                height: rowHeight + (styleData.selected ? 15 : 0);
+                color: connectionsRowColor(styleData.selected, styleData.alternate);
             }
 
             // This Item refers to the contents of each Cell
@@ -772,6 +785,7 @@ Rectangle {
                     profileUrl: (model && model.profileUrl) || "";
                     displayName: "";
                     userName: model ? model.userName : "";
+                    placeName: model ? model.placeName : ""
                     connectionStatus : model ? model.connection : "";
                     selected: styleData.selected;
                     // Size
@@ -790,12 +804,16 @@ Rectangle {
                     elide: Text.ElideRight;
                     // Size
                     width: parent.width;
-                    // Anchors
-                    anchors.fill: parent;
+                    // you would think that this would work:
+                    // anchors.verticalCenter: connectionsNameCard.avImage.verticalCenter
+                    // but no!  you cannot anchor to a non-sibling or parent.  So I will
+                    // align with the friends checkbox, where I did the manual alignment
+                    anchors.verticalCenter: friendsCheckBox.verticalCenter
                     // Text Size
                     size: 16;
                     // Text Positioning
                     verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
                     // Style
                     color: hifi.colors.blueAccent;
                     font.underline: true;
@@ -815,22 +833,21 @@ Rectangle {
                 // "Friends" checkbox
                 HifiControlsUit.CheckBox {
                     id: friendsCheckBox;
-                    visible: styleData.role === "friends" && model.userName !== myData.userName;
-                    anchors.centerIn: parent;
-                    checked: model ? (model["connection"] === "friend" ? true : false) : false;
+                    visible: styleData.role === "connection" && model && model.userName !== myData.userName;
+                    // you would think that this would work:
+                    // anchors.verticalCenter: connectionsNameCard.avImage.verticalCenter
+                    // but no!  you cannot anchor to a non-sibling or parent.  So:
+                    x: parent.width/2 - boxSize/2;
+                    y: connectionsNameCard.avImage.y + connectionsNameCard.avImage.height/2 - boxSize/2;
+                    checked: model && (model.connection === "friend");
                     boxSize: 24;
                     onClicked: {
-                        var newValue = !(model["connection"] === "friend");
+                        var newValue = model.connection !== "friend";
                         connectionsUserModel.setProperty(model.userIndex, styleData.role, newValue);
                         connectionsUserModelData[model.userIndex][styleData.role] = newValue; // Defensive programming
                         pal.sendToScript({method: newValue ? 'addFriend' : 'removeFriend', params: model.userName});
 
                         UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId);
-
-                        // http://doc.qt.io/qt-5/qtqml-syntax-propertybinding.html#creating-property-bindings-from-javascript
-                        // I'm using an explicit binding here because clicking a checkbox breaks the implicit binding as set by
-                        // "checked:" statement above.
-                        checked = Qt.binding(function() { return (model["connection"] === "friend" ? true : false)});
                     }
                 }
             }
@@ -894,7 +911,7 @@ Rectangle {
                 wrapMode: Text.WordWrap
                 textFormat: Text.StyledText;
                 // Text
-                text: HMD.active ?
+                text: HMD.isMounted ?
                 "<b>When you meet someone you want to remember later, you can <font color='purple'>connect</font> with a handshake:</b><br><br>" +
                 "1. Put your hand out onto their hand and squeeze your controller's grip button on its side.<br>" +
                 "2. Once the other person puts their hand onto yours, you'll see your connection form.<br>" +
@@ -942,7 +959,7 @@ Rectangle {
         }
         Item {
             id: upperRightInfoContainer;
-            width: 160;
+            width: 200;
             height: parent.height;
             anchors.top: parent.top;
             anchors.right: parent.right;
@@ -953,59 +970,52 @@ Rectangle {
                 // Text size
                 size: hifi.fontSizes.tabularData;
                 // Anchors
-                anchors.top: availabilityComboBox.bottom;
-                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.left: parent.left;
                 // Style
                 color: hifi.colors.baseGrayHighlight;
                 // Alignment
-                horizontalAlignment: Text.AlignHCenter;
+                horizontalAlignment: Text.AlignLeft;
                 verticalAlignment: Text.AlignTop;
             }
-            /*Rectangle {
+            Rectangle {
+                property var availabilityStrings: ["Everyone", "Friends and Connections", "Friends Only", "Appear Offline"];
                 id: availabilityComboBox;
+                color: hifi.colors.textFieldLightBackground
                 // Anchors
-                anchors.top: parent.top;
+                anchors.top: availabilityText.bottom;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 // Size
                 width: parent.width;
                 height: 40;
+                function determineAvailabilityIndex() {
+                    return ['all', 'connections', 'friends', 'none'].indexOf(GlobalServices.findableBy);
+                }
+
+                function determineAvailabilityString() {
+                    return availabilityStrings[determineAvailabilityIndex()];
+                }
+                RalewayRegular {
+                    text: myData.userName === "Unknown user" ? "Login to Set" : availabilityComboBox.determineAvailabilityString();
+                    anchors.fill: parent;
+                    anchors.leftMargin: 10;
+                    horizontalAlignment: Text.AlignLeft;
+                    size: 16;
+                }
                 MouseArea {
-                    anchors.fill: parent
+                    anchors.fill: parent;
+                    enabled: myData.userName !== "Unknown user";
+                    hoverEnabled: true;
                     onClicked: {
-                        popupComboDialog("Set your list visibility",
-                        ["Everyone", "Friends and Connections", "Friends Only", "Appear Offline"],
-                        ["You will be invisible in everyone's 'People' list.\nAnyone will be able to jump to your location if the domain allows.",
-                        "You will be visible in the 'People' list only for those with whom you are connected or friends.\nThey will be able to jump to your location if the domain allows.",
-                        "You will be visible in the 'People' list only for those with whom you are friends.\nThey will be able to jump to your location if the domain allows.",
-                        "You will not be visible in the 'People' list of any other users."],
+                        popupComboDialog("Set your availability:",
+                        availabilityComboBox.availabilityStrings,
+                        ["Your username will be visible in everyone's 'Nearby' list.\nAnyone will be able to jump to your location from within the 'Nearby' list.",
+                        "Your location will be visible in the 'Connections' list only for those with whom you are connected or friends.\nThey will be able to jump to your location if the domain allows.",
+                        "Your location will be visible in the 'Connections' list only for those with whom you are friends.\nThey will be able to jump to your location if the domain allows.",
+                        "Your location will not be visible in the 'Connections' list of any other users. Only domain admins will be able to see your username in the 'Nearby' list."],
                         ["all", "connections", "friends", "none"]);
                     }
-                }
-            }*/
-            
-            HifiControlsUit.ComboBox {
-                function determineAvailabilityIndex() {
-                    return ['all', 'connections', 'friends', 'none'].indexOf(GlobalServices.findableBy)
-                    }
-                id: availabilityComboBox;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.horizontalCenter: parent.horizontalCenter;
-                // Size
-                width: parent.width;
-                height: 40;
-                currentIndex: determineAvailabilityIndex();
-                model: ListModel {
-                    id: availabilityComboBoxListItems
-                    ListElement { text: "Everyone"; value: "all"; }
-                    ListElement { text: "All Connections"; value: "connections"; }
-                    ListElement { text: "Friends Only"; value: "friends"; }
-                    ListElement { text: "Appear Offline"; value: "none" }
-                }
-                onCurrentIndexChanged: {
-                    GlobalServices.findableBy = availabilityComboBoxListItems.get(currentIndex).value;
-                    UserActivityLogger.palAction("set_availability", availabilityComboBoxListItems.get(currentIndex).value);
-                    print('Setting availability:', JSON.stringify(GlobalServices.findableBy));
+                    onEntered: availabilityComboBox.color = hifi.colors.lightGrayText;
+                    onExited: availabilityComboBox.color = hifi.colors.textFieldLightBackground;
                 }
             }
         }
@@ -1183,8 +1193,11 @@ Rectangle {
         }
     }
 
-    function rowColor(selected, alternate) {
+    function nearbyRowColor(selected, alternate) {
         return selected ? hifi.colors.orangeHighlight : alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd;
+    }
+    function connectionsRowColor(selected, alternate) {
+        return selected ? hifi.colors.lightBlueHighlight : alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd;
     }
     function findNearbySessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var data = optionalData || nearbyUserModelData, length = data.length;
@@ -1256,6 +1269,8 @@ Rectangle {
                 selectionTimer.userIndex = userIndex;
                 selectionTimer.start();
             }
+            // in any case make sure we are in the nearby tab
+            activeTab="nearbyTab";
             break;
         // Received an "updateUsername()" request from the JS
         case 'updateUsername':

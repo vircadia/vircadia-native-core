@@ -113,14 +113,14 @@ static controller::StandardPoseChannel KinectJointIndexToPoseIndexMap[KinectJoin
     controller::RIGHT_FORE_ARM,
     controller::RIGHT_HAND,
 
-    controller::RIGHT_UP_LEG,   // hip socket
-    controller::RIGHT_LEG,      // knee?
-    controller::RIGHT_FOOT,     // ankle?
-    UNKNOWN_JOINT,              // ????
-
     controller::LEFT_UP_LEG,   // hip socket
     controller::LEFT_LEG,      // knee?
     controller::LEFT_FOOT,     // ankle?
+    UNKNOWN_JOINT,              // ????
+
+    controller::RIGHT_UP_LEG,   // hip socket
+    controller::RIGHT_LEG,      // knee?
+    controller::RIGHT_FOOT,     // ankle?
     UNKNOWN_JOINT,              // ????
 
     UNKNOWN_JOINT, /* SpineShoulder */
@@ -130,7 +130,6 @@ static controller::StandardPoseChannel KinectJointIndexToPoseIndexMap[KinectJoin
 
     controller::RIGHT_HAND_INDEX4,
     controller::RIGHT_HAND_THUMB4,
-
 };
 
 // in rig frame

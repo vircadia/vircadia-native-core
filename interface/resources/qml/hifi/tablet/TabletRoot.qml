@@ -13,6 +13,7 @@ Item {
     property var openMessage: null;
     property string subMenu: ""
     signal showDesktop();
+    property bool shown: true
 
     function setOption(value) {
         option = value;

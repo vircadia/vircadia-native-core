@@ -12,13 +12,15 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import "../styles-uit"
+import "../controls-uit"
 
 Item {
-    property var dialogTitleText;
-    property var optionTitleText;
-    property var optionBodyText;
-    property var optionValues;
-    property var selectedOptionIndex;
+    property var dialogTitleText : "";
+    property var optionTitleText: "";
+    property var optionBodyText: "";
+    property var optionValues: [];
+    property var selectedOptionIndex: 0;
+    property var callbackFunction;
     property int dialogWidth;
     property int dialogHeight;
     property int comboOptionTextSize: 18;
@@ -29,6 +31,14 @@ Item {
     anchors.fill: parent;
     onVisibleChanged: {
         populateComboListViewModel();
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        onClicked: {
+            combo.visible = false;
+        }
     }
 
     Rectangle {
@@ -42,12 +52,12 @@ Item {
         id: dialogContainer;
         color: "white";
         anchors.centerIn: dialogBackground;
-        width: dialogWidth;
-        height: dialogHeight;
+        width: combo.dialogWidth;
+        height: combo.dialogHeight;
 
         RalewayRegular {
             id: dialogTitle;
-            text: dialogTitleText;
+            text: combo.dialogTitleText;
             anchors.top: parent.top;
             anchors.topMargin: 20;
             anchors.left: parent.left;
@@ -57,6 +67,29 @@ Item {
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignTop;
         }
+
+        HiFiGlyphs {
+            id: closeGlyphButton;
+            text: hifi.glyphs.close;
+            size: 32;
+            anchors.verticalCenter: dialogTitle.verticalCenter;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            MouseArea {
+                anchors.fill: closeGlyphButton;
+                hoverEnabled: true;
+                onEntered: {
+                    parent.text = hifi.glyphs.closeInverted;
+                }
+                onExited: {
+                    parent.text = hifi.glyphs.close;
+                }
+                onClicked: {
+                    combo.visible = false;
+                }
+            }
+        }
+
 
         ListModel {
             id: comboListViewModel;
@@ -69,6 +102,7 @@ Item {
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
+            clip: true;
             model: comboListViewModel;
             delegate: comboListViewDelegate;
 
@@ -77,13 +111,12 @@ Item {
                 Rectangle {
                     id: comboListViewItemContainer;
                     // Size
-                    height: childrenRect.height + 10;
+                    height: optionTitle.height + optionBody.height + 20;
                     width: dialogContainer.width;
                     color: selectedOptionIndex === index ? '#cee6ff' : 'white';
                     Rectangle {
                         id: comboOptionSelected;
-                        visible: selectedOptionIndex === index ? true : false;
-                        color: hifi.colors.blueAccent;
+                        color: selectedOptionIndex == index ? hifi.colors.blueAccent : 'white';
                         anchors.left: parent.left;
                         anchors.leftMargin: 20;
                         anchors.top: parent.top;
@@ -92,7 +125,7 @@ Item {
                         height: width;
                         radius: width;
                         border.width: 3;
-                        border.color: hifi.colors.blueHighlight;
+                        border.color: selectedOptionIndex === index ? hifi.colors.blueHighlight: hifi.colors.lightGrayText;
                     }
 
 
@@ -100,9 +133,11 @@ Item {
                         id: optionTitle;
                         text: titleText;
                         anchors.top: parent.top;
+                        anchors.topMargin: 7;
                         anchors.left: comboOptionSelected.right;
-                        anchors.leftMargin: 20;
+                        anchors.leftMargin: 10;
                         anchors.right: parent.right;
+                        anchors.rightMargin: 10;
                         height: 30;
                         size: comboOptionTextSize;
                         wrapMode: Text.WordWrap;
@@ -112,10 +147,10 @@ Item {
                         id: optionBody;
                         text: bodyText;
                         anchors.top: optionTitle.bottom;
-                        anchors.bottom: parent.bottom;
                         anchors.left: comboOptionSelected.right;
                         anchors.leftMargin: 25;
                         anchors.right: parent.right;
+                        anchors.rightMargin: 10;
                         size: comboOptionTextSize;
                         wrapMode: Text.WordWrap;
                     }
@@ -127,21 +162,12 @@ Item {
                         onEntered: comboListViewItemContainer.color = hifi.colors.blueHighlight
                         onExited: comboListViewItemContainer.color = selectedOptionIndex === index ? '#cee6ff' : 'white';
                         onClicked: {
-                            GlobalServices.findableBy = optionValue;
-                            UserActivityLogger.palAction("set_availability", optionValue);
-                            print('Setting availability:', optionValue);
+                            callbackFunction(optionValue);
+                            combo.visible = false;
                         }
                     }
                 }
             }
-        }
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            combo.visible = false;
         }
     }
 
