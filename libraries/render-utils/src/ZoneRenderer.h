@@ -27,19 +27,19 @@ signals:
 protected:
 };
 
-class ZoneRenderer {
+class ZoneRendererTask : public render::Task {
 public:
 
     static const render::Selection::Name ZONES_SELECTION;
 
+
     using Inputs = render::ItemBounds;
     using Config = ZoneRendererConfig;
-    using JobModel = render::Job::ModelI<ZoneRenderer, Inputs, Config>;
+    using JobModel = Model<ZoneRendererTask, Config>;
 
-    ZoneRenderer() {}
+    ZoneRendererTask(const Inputs& inputs);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     int _maxDrawn; // initialized by Config

@@ -12,6 +12,7 @@
 #include "RenderFetchCullSortTask.h"
 
 #include "CullTask.h"
+#include "FilterTask.h"
 #include "SortTask.h"
 
 using namespace render;
@@ -36,23 +37,23 @@ RenderFetchCullSortTask::RenderFetchCullSortTask(CullFunctor cullFunctor) {
     const int LIGHT_BUCKET = 2;
     const int META_BUCKET = 3;
     const int BACKGROUND_BUCKET = 2;
-    MultiFilterItem<NUM_SPATIAL_FILTERS>::ItemFilterArray spatialFilters = { {
+    MultiFilterItems<NUM_SPATIAL_FILTERS>::ItemFilterArray spatialFilters = { {
             ItemFilter::Builder::opaqueShape(),
             ItemFilter::Builder::transparentShape(),
             ItemFilter::Builder::light(),
             ItemFilter::Builder::meta()
         } };
-    MultiFilterItem<NUM_NON_SPATIAL_FILTERS>::ItemFilterArray nonspatialFilters = { {
+    MultiFilterItems<NUM_NON_SPATIAL_FILTERS>::ItemFilterArray nonspatialFilters = { {
             ItemFilter::Builder::opaqueShape(),
             ItemFilter::Builder::transparentShape(),
             ItemFilter::Builder::background()
         } };
     const auto filteredSpatialBuckets = 
-        addJob<MultiFilterItem<NUM_SPATIAL_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters)
-            .get<MultiFilterItem<NUM_SPATIAL_FILTERS>::ItemBoundsArray>();
+        addJob<MultiFilterItems<NUM_SPATIAL_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters)
+            .get<MultiFilterItems<NUM_SPATIAL_FILTERS>::ItemBoundsArray>();
     const auto filteredNonspatialBuckets = 
-        addJob<MultiFilterItem<NUM_NON_SPATIAL_FILTERS>>("FilterOverlaySelection", nonspatialSelection, nonspatialFilters)
-            .get<MultiFilterItem<NUM_NON_SPATIAL_FILTERS>::ItemBoundsArray>();
+        addJob<MultiFilterItems<NUM_NON_SPATIAL_FILTERS>>("FilterOverlaySelection", nonspatialSelection, nonspatialFilters)
+            .get<MultiFilterItems<NUM_NON_SPATIAL_FILTERS>::ItemBoundsArray>();
 
     // Extract opaques / transparents / lights / overlays
     const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", filteredSpatialBuckets[OPAQUE_SHAPE_BUCKET]);

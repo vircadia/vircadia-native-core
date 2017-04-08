@@ -33,6 +33,9 @@ namespace render {
 
         const ItemIDs& getItems() const { return _items; }
 
+        bool isEmpty() const { return _items.empty(); }
+        bool contains(ItemID id) const;
+
     protected:
         Name _name;
         ItemIDs _items;

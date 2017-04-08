@@ -10,15 +10,19 @@
 //
 #include "ZoneRenderer.h"
 
-const render::Selection::Name ZoneRenderer::ZONES_SELECTION { "RankedZones" };
+#include <render/FilterTask.h>
+#include <render/DrawTask.h>
 
+using namespace render;
 
-void ZoneRenderer::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs) {
-    auto& scene = sceneContext->_scene;
-    RenderArgs* args = renderContext->args;
+const Selection::Name ZoneRendererTask::ZONES_SELECTION { "RankedZones" };
 
-    auto zones = scene->getSelection(ZONES_SELECTION);
+ZoneRendererTask::ZoneRendererTask(const Inputs& inputs) {
 
+    const auto zoneItems = addJob<SelectItems>("FilterZones", inputs, ZONES_SELECTION);
+
+    // just draw them...
+    addJob<DrawBounds>("DrawZones", zoneItems);
 
 }
 

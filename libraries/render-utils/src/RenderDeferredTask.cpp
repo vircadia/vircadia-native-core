@@ -19,6 +19,7 @@
 #include <gpu/Context.h>
 
 #include <render/CullTask.h>
+#include <render/FilterTask.h>
 #include <render/SortTask.h>
 #include <render/DrawTask.h>
 #include <render/DrawStatus.h>
@@ -66,7 +67,7 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
 
     // Filter the non antialiaased overlays
     const int LAYER_NO_AA = 3;
-    const auto nonAAOverlays = addJob<FilterItemLayer>("Filter2DWebOverlays", overlayOpaques, LAYER_NO_AA);
+    const auto nonAAOverlays = addJob<FilterLayeredItems>("Filter2DWebOverlays", overlayOpaques, LAYER_NO_AA);
 
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
@@ -184,7 +185,7 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
         const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).hasVarying();
         addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
 
-        addJob<ZoneRenderer>("ZoneRenderer", opaques);
+        addJob<ZoneRendererTask>("ZoneRenderer", opaques);
 
         // Scene Octree Debugging job
         {

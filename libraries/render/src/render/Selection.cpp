@@ -56,3 +56,11 @@ Selection::Selection(const Name& name, const ItemIDs& items) :
 {
 }
 
+bool Selection::contains(ItemID id) const {
+    for (auto selected : _items) {
+        if (selected == id) {
+            return true;
+        }
+    }
+    return false;
+}
