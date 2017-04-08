@@ -850,7 +850,7 @@ function getAudioLevel(id) {
     if (data) {
 
         // we will do exponential moving average by taking some the last loudness and averaging
-        data.accumulatedLevel = 0;//AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
+        data.accumulatedLevel = AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatar.audioLoudness);
 
         // add 1 to insure we don't go log() and hit -infinity.  Math.log is
         // natural log, so to get log base 2, just divide by ln(2).

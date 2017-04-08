@@ -19,9 +19,6 @@
 #include "AvatarLogging.h"
 #include "AvatarHashMap.h"
 
-
-int avatarDataPointerMetaTypeId = qRegisterMetaType<QSharedPointer<AvatarData>>();
-
 AvatarHashMap::AvatarHashMap() {
     auto nodeList = DependencyManager::get<NodeList>();
 

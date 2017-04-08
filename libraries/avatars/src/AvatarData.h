@@ -448,10 +448,18 @@ public:
     void setHeadRoll(float value) { _headData->setBaseRoll(value); }
 
     // access to Head().set/getAverageLoudness
-    float getAudioLoudness() const { return _headData->getAudioLoudness(); }
-    void setAudioLoudness(float value) { _headData->setAudioLoudness(value); }
-    float getAudioAverageLoudness() const { return _headData->getAudioAverageLoudness(); }
-    void setAudioAverageLoudness(float value) { _headData->setAudioAverageLoudness(value); }
+
+    float getAudioLoudness() const { return _audioLoudness; }
+    void setAudioLoudness(float audioLoudness) {
+        if (audioLoudness != _audioLoudness) {
+            _audioLoudnessChanged = usecTimestampNow();
+        }
+        _audioLoudness = audioLoudness;
+    }
+    bool audioLoudnessChangedSince(quint64 time) const { return _audioLoudnessChanged >= time; }
+
+    float getAudioAverageLoudness() const { return _audioAverageLoudness; }
+    void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
 
     //  Scale
     virtual void setTargetScale(float targetScale);
@@ -642,7 +650,6 @@ protected:
     bool avatarBoundingBoxChangedSince(quint64 time) const { return _avatarBoundingBoxChanged >= time; }
     bool avatarScaleChangedSince(quint64 time) const { return _avatarScaleChanged >= time; }
     bool lookAtPositionChangedSince(quint64 time) const { return _headData->lookAtPositionChangedSince(time); }
-    bool audioLoudnessChangedSince(quint64 time) const { return _headData->audioLoudnessChangedSince(time); }
     bool sensorToWorldMatrixChangedSince(quint64 time) const { return _sensorToWorldMatrixChanged >= time; }
     bool additionalFlagsChangedSince(quint64 time) const { return _additionalFlagsChanged >= time; }
     bool parentInfoChangedSince(quint64 time) const { return _parentChanged >= time; }
@@ -767,6 +774,10 @@ protected:
     ThreadSafeValueCache<glm::mat4> _controllerRightHandMatrixCache { glm::mat4() };
 
     int getFauxJointIndex(const QString& name) const;
+
+    float _audioLoudness { 0.0f };
+    quint64 _audioLoudnessChanged { 0 };
+    float _audioAverageLoudness { 0.0f };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

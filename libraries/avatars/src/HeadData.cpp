@@ -32,14 +32,12 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _basePitch(0.0f),
     _baseRoll(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
-    _audioLoudness(0.0f),
     _isFaceTrackerConnected(false),
     _isEyeTrackerConnected(false),
     _leftEyeBlink(0.0f),
     _rightEyeBlink(0.0f),
     _averageLoudness(0.0f),
     _browAudioLift(0.0f),
-    _audioAverageLoudness(0.0f),
     _owningAvatar(owningAvatar)
 {
 

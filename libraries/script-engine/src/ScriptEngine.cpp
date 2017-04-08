@@ -112,7 +112,7 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
 }
 
 QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &in) {
-    return engine->newQObject(in, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
+    return engine->newQObject(in, QScriptEngine::ScriptOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
 }
 
 void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
