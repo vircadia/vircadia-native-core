@@ -19,6 +19,9 @@
 #include "AvatarLogging.h"
 #include "AvatarHashMap.h"
 
+
+int avatarDataPointerMetaTypeId = qRegisterMetaType<QSharedPointer<AvatarData>>();
+
 AvatarHashMap::AvatarHashMap() {
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -35,9 +38,9 @@ AvatarData* AvatarHashMap::getAvatar(QUuid avatarID) {
     return getAvatarBySessionID(avatarID).get();
 }
 
-AvatarData* AvatarHashMap::getAvatarCopy(QUuid avatarID) {
+QSharedPointer<AvatarData> AvatarHashMap::getAvatarCopy(QUuid avatarID) {
     AvatarData* avatarDataOriginal = getAvatarBySessionID(avatarID).get();
-    AvatarData* avatarDataCopy = new AvatarData();
+    QSharedPointer<AvatarData> avatarDataCopy{ new AvatarData };
     avatarDataCopy->setSessionUUID(avatarDataOriginal->getSessionUUID());
     avatarDataCopy->setSessionDisplayName(avatarDataOriginal->getSessionDisplayName());
     avatarDataCopy->setPosition(avatarDataOriginal->getPosition());
