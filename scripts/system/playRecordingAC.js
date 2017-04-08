@@ -19,7 +19,7 @@
         PLAYER_COMMAND_STOP = "stop",
         heartbeatTimer = null,
         HEARTBEAT_INTERVAL = 3000,  // TODO: Final value.
-        sessionUUID,
+        scriptUUID,
 
         Entity,
         Player;
@@ -29,9 +29,69 @@
     }
 
     Entity = (function () {
-        // Persistence of playback.
+        // Persistence of playback via invisible entity.
+        var entityID = null,
+            userData,
+            updateTimestampTimer = null,
+            TIMESTAMP_UPDATE_INTERVAL = 2000,  // TODO: Final value.
+            ENTITY_NAME = "Recording",
+            ENTITY_DESCRIPTION = "Avatar recording to play back",
+            ENTITIY_POSITION = { x: -16382, y: -16382, z: -16382 };  // Near but not right on corner boundary.
 
-        // TODO
+        function onUpdateTimestamp() {
+            userData.timestamp = Date.now();
+            Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
+        }
+
+        function create(filename, scriptUUID) {
+            // Create a new persistence entity (even if already have one but that should never occur).
+            var properties;
+
+            if (updateTimestampTimer !== null) {
+                Script.clearInterval(updateTimestampTimer);  // Just in case.
+            }
+
+            userData = {
+                recording: filename,
+                scriptUUID: scriptUUID,
+                timestamp: Date.now()
+            };
+
+            properties = {
+                type: "Box",
+                name: ENTITY_NAME,
+                description: ENTITY_DESCRIPTION,
+                position: ENTITIY_POSITION,
+                visible: false,
+                userData: JSON.stringify(userData)
+            };
+
+            entityID = Entities.addEntity(properties);
+
+            updateTimestampTimer = Script.setInterval(onUpdateTimestamp, TIMESTAMP_UPDATE_INTERVAL);
+        }
+
+        function find() {
+            // TODO
+        }
+
+        function destroy() {
+            // Delete current persistence entity.
+            if (entityID !== null) {  // Just in case.
+                Entities.deleteEntity(entityID);
+                entityID = null;
+            }
+            if (updateTimestampTimer !== null) {  // Just in case.
+                Script.clearInterval(updateTimestampTimer);
+            }
+        }
+
+        return {
+            create: create,
+            find: find,
+            destroy: destroy
+        };
+
     }());
 
     Player = (function () {
@@ -43,7 +103,9 @@
             isPlayingRecording = true;
             recordingFilename = recording;
 
-            log("Play recording " + recordingFilename);
+            log("Play new recording " + recordingFilename);
+
+            Entity.create(recordingFilename, scriptUUID);
 
             Agent.isAvatar = true;
             Avatar.position = position;
@@ -67,6 +129,8 @@
 
         function stop() {
             log("Stop playing " + recordingFilename);
+
+            Entity.destroy();
 
             if (Recording.isPlaying()) {
                 Recording.stopPlaying();
@@ -119,7 +183,7 @@
 
     function onMessageReceived(channel, message, sender) {
         message = JSON.parse(message);
-        if (message.player === sessionUUID) {
+        if (message.player === scriptUUID) {
             switch (message.command) {
             case PLAYER_COMMAND_PLAY:
                 if (!Player.isPlaying()) {
@@ -139,7 +203,7 @@
     }
 
     function setUp() {
-        sessionUUID = Agent.sessionUUID;
+        scriptUUID = Agent.sessionUUID;
 
         Player.setUp();
 
