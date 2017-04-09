@@ -167,7 +167,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1); 
     const int mixerLossRate = (int)roundf(_audioStats->data()->getMixerStream()->lossRateWindow() * 100.0f);
     const int clientLossRate = (int)roundf(_audioStats->data()->getClientStream()->lossRateWindow() * 100.0f);
-    int largestLossRate = mixerLossRate > clientLossRate ? mixerLossRate : clientLossRate;
+    const int largestLossRate = mixerLossRate > clientLossRate ? mixerLossRate : clientLossRate;
     STAT_UPDATE(audioPacketLoss, audioMixerNode ? largestLossRate : -1);
     STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
     STAT_UPDATE(assetPing, assetServerNode ? assetServerNode->getPingMs() : -1);
