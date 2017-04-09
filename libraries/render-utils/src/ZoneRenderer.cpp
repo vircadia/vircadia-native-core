@@ -17,13 +17,11 @@ using namespace render;
 
 const Selection::Name ZoneRendererTask::ZONES_SELECTION { "RankedZones" };
 
-ZoneRendererTask::ZoneRendererTask(const Inputs& inputs) {
+void ZoneRendererTask::build(render::Task& task, const Varying& input, Varying& ouput) {
 
-    const auto zoneItems = addJob<SelectItems>("FilterZones", inputs, ZONES_SELECTION);
+    const auto zoneItems = task.addJob<render::SelectItems>("FilterZones", input, ZONES_SELECTION.c_str());
 
     // just draw them...
-    addJob<DrawBounds>("DrawZones", zoneItems);
-
+    task.addJob<DrawBounds>("DrawZones", zoneItems);
 }
-
 

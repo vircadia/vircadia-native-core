@@ -194,9 +194,12 @@ public:
 
 class RenderDeferredTask : public render::Task {
 public:
-    using JobModel = Model<RenderDeferredTask>;
+    using Input = RenderFetchCullSortTask::Output;
+    using JobModel = render::Task::ModelI<RenderDeferredTask, Input>;
 
-    RenderDeferredTask(RenderFetchCullSortTask::Output items);
+    RenderDeferredTask() {}
+
+    void build(render::Task& task, const render::Varying& inputs, render::Varying& outputs);
 };
 
 #endif // hifi_RenderDeferredTask_h

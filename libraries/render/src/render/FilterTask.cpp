@@ -57,6 +57,7 @@ void SliceItems::run(const SceneContextPointer& sceneContext, const RenderContex
 void SelectItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
     auto& scene = sceneContext->_scene;
 
+    outItems.clear();
     auto selection = scene->getSelection(_name);
     const auto& selectedItems = selection.getItems();
     if (!selectedItems.empty()) {

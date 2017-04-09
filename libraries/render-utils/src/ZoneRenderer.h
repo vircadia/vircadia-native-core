@@ -14,7 +14,7 @@
 
 #include "render/Engine.h"
 
-class ZoneRendererConfig : public render::Job::Config {
+class ZoneRendererConfig : public render::Task::Config {
     Q_OBJECT
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
 public:
@@ -37,7 +37,9 @@ public:
     using Config = ZoneRendererConfig;
     using JobModel = Model<ZoneRendererTask, Config>;
 
-    ZoneRendererTask(const Inputs& inputs);
+    ZoneRendererTask() {}
+
+    void build(render::Task& task, const render::Varying& inputs, render::Varying& outputs);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
 

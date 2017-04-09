@@ -368,7 +368,7 @@ bool EntityTreeRenderer::applyLayeredZones() {
         qCWarning(entitiesrenderer) << "EntityTreeRenderer::applyLayeredZones(), Unexpected null scene, possibly during application shutdown";
     }
      
-
+     return true;
 }
 
 

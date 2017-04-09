@@ -542,7 +542,10 @@ public:
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
-            Concept(std::make_shared<C>()), _data(Data(std::forward<A>(args)...)), _input(input), _output(Output()) {
+            Concept(std::make_shared<C>()),
+            _data(Data(std::forward<A>(args)...)),
+            _input(input),
+            _output(Output()) {
             applyConfiguration();
         }
 
@@ -585,10 +588,15 @@ public:
         _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000.0);
     }
 
-    protected:
+protected:
     ConceptPointer _concept;
     std::string _name = "";
 };
+
+
+template <class T, class... A> void jobBuild(T& data, const Varying& input, Varying& output, A&&... args) {
+    data.build(*(dynamic_cast<Task*>(&data)), input, output, std::forward<A>(args)...);
+}
 
 // A task is a specialized job to run a collection of other jobs
 // It is defined with JobModel = Task::Model<T>
@@ -596,20 +604,31 @@ class Task {
 public:
     using Config = TaskConfig;
     using QConfigPointer = Job::QConfigPointer;
+    using None = Job::None;
+    using Concept = Job::Concept;
+    using Jobs = std::vector<Job>;
 
-    template <class T, class C = Config> class Model : public Job::Concept {
+    template <class T, class C = Config, class I = None, class O = None> class Model : public Concept {
     public:
         using Data = T;
-        using Config = C;
-        using Input = Job::None;
+        using Input = I;
+        using Output = O;
 
         Data _data;
+        Varying _input;
+        Varying _output;
 
-        const Varying getOutput() const override { return _data._output; }
+        const Varying getInput() const override { return _input; }
+        const Varying getOutput() const override { return _output; }
 
         template <class... A>
         Model(const Varying& input, A&&... args) :
-            Concept(nullptr), _data(Data(std::forward<A>(args)...)) {
+            Concept(nullptr),
+            _data(Data()),
+            _input(input) {
+
+            jobBuild(_data, _input, _output, std::forward<A>(args)...);
+
             // Recreate the Config to use the templated type
             _data.template createConfiguration<C>();
             _config = _data.getConfiguration();
@@ -621,7 +640,7 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) override {
-            auto config = std::static_pointer_cast<Config>(_config);
+            auto config = std::static_pointer_cast<C>(_config);
             if (config->alwaysEnabled || config->enabled) {
                 for (auto job : _data._jobs) {
                     job.run(sceneContext, renderContext);
@@ -629,9 +648,9 @@ public:
             }
         }
     };
-    template <class T, class C = Config> using ModelO = Model<T, C>;
-
-    using Jobs = std::vector<Job>;
+    template <class T, class I, class C = Config> using ModelI = Model<T, C, I, None>;
+    template <class T, class O, class C = Config> using ModelO = Model<T, C, None, O>;
+    template <class T, class I, class O, class C = Config> using ModelIO = Model<T, C, I, O>;
 
     // Create a new job in the container's queue; returns the job's output
     template <class T, class... A> const Varying addJob(std::string name, const Varying& input, A&&... args) {
@@ -656,7 +675,7 @@ public:
     }
 
     template <class O> void setOutput(O&& output) {
-        _output = Varying(output);
+        _concept->_output = Varying(output);
     }
 
     template <class C> void createConfiguration() {
@@ -688,7 +707,6 @@ public:
     void configure(const QObject& configuration) {
         for (auto& job : _jobs) {
             job.applyConfiguration();
-
         }
     }
 
@@ -698,12 +716,11 @@ public:
         }
     }
 
+
 protected:
-    template <class T, class C> friend class Model;
 
     QConfigPointer _config;
     Jobs _jobs;
-    Varying _output;
 };
 
 }
