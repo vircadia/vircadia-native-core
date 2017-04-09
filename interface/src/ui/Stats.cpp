@@ -165,8 +165,8 @@ void Stats::updateStats(bool force) {
     SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
     SharedNodePointer messageMixerNode = nodeList->soloNodeOfType(NodeType::MessagesMixer);
     STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1); 
-    int mixerLossRate = (int)roundf(_audioStats->data()->getMixerStream()->lossRateWindow() * 100.0f);
-    int clientLossRate = (int)roundf(_audioStats->data()->getClientStream()->lossRateWindow() * 100.0f);
+    const int mixerLossRate = (int)roundf(_audioStats->data()->getMixerStream()->lossRateWindow() * 100.0f);
+    const int clientLossRate = (int)roundf(_audioStats->data()->getClientStream()->lossRateWindow() * 100.0f);
     int largestLossRate = mixerLossRate > clientLossRate ? mixerLossRate : clientLossRate;
     STAT_UPDATE(audioPacketLoss, audioMixerNode ? largestLossRate : -1);
     STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
