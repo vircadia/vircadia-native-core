@@ -117,7 +117,7 @@ Item {
     }
 
     function gotoPage(url) {
-        pagesModel.append({webUrl: url})
+        urlAppend(url)
     }
 
     function reloadPage() {
@@ -126,9 +126,20 @@ Item {
         view.setEnabled(true);
     }
 
+    function urlAppend(url) {
+        var lurl = decodeURIComponent(url)
+        if (lurl[lurl.length - 1] !== "/")
+            lurl = lurl + "/"
+        if (currentPage === -1 || pagesModel.get(currentPage).webUrl !== lurl) {
+            pagesModel.append({webUrl: lurl})
+        }
+    }
+
     onCurrentPageChanged: {
         if (currentPage >= 0 && currentPage < pagesModel.count && loader.item !== null) {
             loader.item.url = pagesModel.get(currentPage).webUrl
+            web.url = loader.item.url
+            web.address = loader.item.url
         }
     }
 
@@ -160,6 +171,7 @@ Item {
                 if (currentPage >= 0) {
                     //we got something to load already
                     item.url = pagesModel.get(currentPage).webUrl
+                    web.address = loader.item.url
                 }
             }
         }
