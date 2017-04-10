@@ -207,7 +207,7 @@
         }
 
         function play(recording, position, orientation) {
-            if (Entity.create(recordingFilename, position, orientation, scriptUUID)) {
+            if (Entity.create(recording, position, orientation, scriptUUID)) {
                 log("Play new recording " + recordingFilename);
                 isPlayingRecording = true;
                 recordingFilename = recording;
