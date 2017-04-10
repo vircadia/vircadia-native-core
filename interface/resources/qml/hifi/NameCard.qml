@@ -81,6 +81,25 @@ Item {
             anchors.fill: parent;
             visible: userImage.status != Image.Ready;
         }
+        StateImage {
+            id: infoHoverImage;
+            visible: false;
+            imageURL: "../../images/info-icon-2-state.svg";
+            size: 32;
+            buttonState: 1;
+            anchors.centerIn: parent;
+        }
+        MouseArea {
+            anchors.fill: parent
+            enabled: (selected || isMyCard) && activeTab == "nearbyTab";
+            hoverEnabled: enabled
+            onClicked: {
+                userInfoViewer.url = defaultBaseUrl + "/users/" + userName;
+                userInfoViewer.visible = true;
+            }
+            onEntered: infoHoverImage.visible = true;
+            onExited: infoHoverImage.visible = false;
+        }
     }
 
     // Colored border around avatarImage
