@@ -51,7 +51,10 @@ void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) cons
     qCDebug(entities) << "EntityTreeElement::debugExtraEncodeData()... ";
     qCDebug(entities) << "    element:" << _cube;
 
-    OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
+    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
+    assert(entityNodeData);
+
+    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
 
     if (extraEncodeData->contains(this)) {
@@ -65,7 +68,11 @@ void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) cons
 
 void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params) {
 
-    OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
+    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
+    assert(entityNodeData);
+
+    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
+
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     // Check to see if this element yet has encode data... if it doesn't create it
     if (!extraEncodeData->contains(this)) {
@@ -93,7 +100,11 @@ void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params)
 }
 
 bool EntityTreeElement::shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const {
-    OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
+
+    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
+    assert(entityNodeData);
+
+    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     
     if (extraEncodeData->contains(this)) {
@@ -122,7 +133,10 @@ bool EntityTreeElement::shouldRecurseChildTree(int childIndex, EncodeBitstreamPa
 }
 
 bool EntityTreeElement::alreadyFullyEncoded(EncodeBitstreamParams& params) const {
-    OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
+    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
+    assert(entityNodeData);
+
+    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
 
     if (extraEncodeData->contains(this)) {
@@ -137,8 +151,12 @@ bool EntityTreeElement::alreadyFullyEncoded(EncodeBitstreamParams& params) const
 }
 
 void EntityTreeElement::updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const {
-    OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
+    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
+    assert(entityNodeData);
+
+    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
+
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
                         = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
@@ -161,7 +179,10 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
         qCDebug(entities) << "EntityTreeElement::elementEncodeComplete() element:" << _cube;
     }
 
-    OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
+    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
+    assert(entityNodeData);
+
+    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     assert(extraEncodeData->contains(this));
 
@@ -236,8 +257,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
 
+    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
+    Q_ASSERT_X(entityNodeData, "EntityTreeElement::appendElementData", "expected params.nodeData not to be null");
+
     // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
-    OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
+    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
+
     EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData = NULL;
     bool hadElementExtraData = false;
     if (extraEncodeData && extraEncodeData->contains(this)) {
@@ -285,20 +310,17 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         // need to handle the case where our sibling elements need encoding but we don't.
         if (!entityTreeElementExtraEncodeData->elementCompleted) {
 
-            QJsonObject jsonFilters;
-            auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
 
-            if (entityNodeData) {
-                // we have an EntityNodeData instance
-                // so we should assume that means we might have JSON filters to check
-                jsonFilters = entityNodeData->getJSONParameters();
-            }
+            // we have an EntityNodeData instance
+            // so we should assume that means we might have JSON filters to check
+            auto jsonFilters = entityNodeData->getJSONParameters();
+
 
             for (uint16_t i = 0; i < _entityItems.size(); i++) {
                 EntityItemPointer entity = _entityItems[i];
                 bool includeThisEntity = true;
 
-                if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastQuerySent) {
+                if (!params.forceSendScene && entity->getLastChangedOnServer() < entityNodeData->getLastTimeBagEmpty()) {
                     includeThisEntity = false;
                 }
 
@@ -330,7 +352,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 
                 // we only check the bounds against our frustum and LOD if the query has asked us to check against the frustum
                 // which can sometimes not be the case when JSON filters are sent
-                if (params.usesFrustum && (includeThisEntity || params.recurseEverything)) {
+                if (entityNodeData->getUsesFrustum() && (includeThisEntity || params.recurseEverything)) {
 
                     // we want to use the maximum possible box for this, so that we don't have to worry about the nuance of
                     // simulation changing what's visible. consider the case where the entity contains an angular velocity

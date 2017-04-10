@@ -35,7 +35,7 @@ public:
 
     OctreePersistThread(OctreePointer tree, const QString& filename, const QString& backupDirectory,
                         int persistInterval = DEFAULT_PERSIST_INTERVAL, bool wantBackup = false,
-                        const QJsonObject& settings = QJsonObject(), bool debugTimestampNow = false, QString persistAsFileType="svo");
+                        const QJsonObject& settings = QJsonObject(), bool debugTimestampNow = false, QString persistAsFileType="json.gz");
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
