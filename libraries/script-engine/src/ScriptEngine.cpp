@@ -112,16 +112,6 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
     return QScriptValue();
 }
 
-/*
-QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &in) {
-    return engine->newQObject(in, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
-}
-
-void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
-    out = qobject_cast<AvatarData*>(object.toQObject());
-}
-*/
-
 Q_DECLARE_METATYPE(controller::InputController*)
 //static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
 
