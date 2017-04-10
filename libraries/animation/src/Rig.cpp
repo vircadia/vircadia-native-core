@@ -1174,15 +1174,7 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
         const glm::vec3 bodyCapsuleEnd = bodyCapsuleCenter + glm::vec3(0, params.bodyCapsuleHalfHeight, 0);
 
         if (params.isLeftEnabled) {
-
-            // prevent the hand IK targets from intersecting the body capsule
-            glm::vec3 handPosition = params.leftPosition;
-            glm::vec3 displacement;
-            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
-                handPosition -= displacement;
-            }
-
-            _animVars.set("leftHandPosition", handPosition);
+            _animVars.set("leftHandPosition", params.leftPosition);
             _animVars.set("leftHandRotation", params.leftOrientation);
             _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
@@ -1192,15 +1184,7 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
         }
 
         if (params.isRightEnabled) {
-
-            // prevent the hand IK targets from intersecting the body capsule
-            glm::vec3 handPosition = params.rightPosition;
-            glm::vec3 displacement;
-            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
-                handPosition -= displacement;
-            }
-
-            _animVars.set("rightHandPosition", handPosition);
+            _animVars.set("rightHandPosition", params.rightPosition);
             _animVars.set("rightHandRotation", params.rightOrientation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
