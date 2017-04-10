@@ -37,7 +37,10 @@
             ENTITY_NAME = "Recording",
             ENTITY_DESCRIPTION = "Avatar recording to play back",
             ENTITIY_POSITION = { x: -16382, y: -16382, z: -16382 },  // Near but not right on domain corner.
-            ENTITY_SEARCH_DELTA = { x: 1, y: 1, z: 1 };  // Allow for position imprecision.
+            ENTITY_SEARCH_DELTA = { x: 1, y: 1, z: 1 },  // Allow for position imprecision.
+            isClaiming = false,
+            CLAIM_CHECKS = 2,
+            claimCheckCount;
 
         function onUpdateTimestamp() {
             userData.timestamp = Date.now();
@@ -78,37 +81,66 @@
 
         function find(scriptUUID) {
             // Find a recording that isn't being played.
+            // AC scripts may simultaneously find the same entity to play because octree updates are not instantaneously 
+            // propagated to AC scripts. To address this, when an entity is found an AC script updates the entity data to 
+            // "claim" the entity then waits two find() calls before checking the entity data hasn't changed and returning that 
+            // entity as "found". I.e., the last script to write the entity data wins.
             var isFound = false,
                 entityIDs,
-                index = 0,
+                index,
                 properties;
 
+            // If have putatively claimed an entity, handle that claim.
+            if (isClaiming) {
+                claimCheckCount += 1;
+
+                // Wait for octree updates to propagate.
+                if (claimCheckCount <= CLAIM_CHECKS) {
+                    EntityViewer.queryOctree();  // Update octree ready for next find() call.
+                    return null;
+                }
+                isClaiming = false;
+
+                // Return claim as "found" if still valid.
+                properties = Entities.getEntityProperties(entityID, ["userData"]);
+                userData = JSON.parse(properties.userData);
+                if (userData.scriptUUID === scriptUUID) {
+                    userData.timestamp = Date.now();
+                    Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
+                    EntityViewer.queryOctree();  // Update octree ready for next find() call.
+                    updateTimestampTimer = Script.setInterval(onUpdateTimestamp, TIMESTAMP_UPDATE_INTERVAL);
+                    return { recording: userData.recording, position: userData.position, orientation: userData.orientation };
+                }
+
+                // Otherwise resume searching.
+                EntityViewer.queryOctree();  // Update octree ready for next find() call.
+                return null;
+            }
+
+            // Find an entity to claim.
             entityIDs = Entities.findEntities(ENTITIY_POSITION, ENTITY_SEARCH_DELTA.x);
             if (entityIDs.length > 0) {
+                index = -1;
                 while (!isFound && index < entityIDs.length - 1) {
-                    // Find recording that isn't being played.
+                    // Find recording that isn't being played and hasn't been claimed.
                     index += 1;
                     properties = Entities.getEntityProperties(entityIDs[index], ["name", "userData"]);
                     if (properties.name === ENTITY_NAME) {
                         // TODO: Guard against userData being non-existent or corrupt.
                         userData = JSON.parse(properties.userData);
-                        // TODO: Verify that 2 * TIMESTAMP_UPDATE_INTERVAL is sufficient w.r.t. EntityViewer.queryOctree().
-                        isFound = (Date.now() - userData.timestamp) > (2 * TIMESTAMP_UPDATE_INTERVAL);
+                        isFound = (Date.now() - userData.timestamp) > ((CLAIM_CHECKS + 1) * TIMESTAMP_UPDATE_INTERVAL);
                     }
                 }
             }
 
+            // Claim entity if found.
             if (isFound) {
-                // Claim recording.
-                // TODO: Guard against another AC script claiming the same recording at the same time.
+                isClaiming = true;
+                claimCheckCount = 0;
                 entityID = entityIDs[index];
                 userData.scriptUUID = scriptUUID;
                 userData.timestamp = Date.now();
                 Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
-                updateTimestampTimer = Script.setInterval(onUpdateTimestamp, TIMESTAMP_UPDATE_INTERVAL);
-
-                // Return recording info to play.
-                return { recording: userData.recording, position: userData.position, orientation: userData.orientation };
             }
 
             EntityViewer.queryOctree();  // Update octree ready for next find() call.
