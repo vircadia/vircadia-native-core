@@ -933,6 +933,21 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
     return translation;
 }
 
+glm::quat Avatar::getAbsoluteDefaultJointRotationInObjectFrame(int index) const {
+    glm::quat rotation;
+    auto rig = _skeletonModel->getRig();
+    glm::quat rot = rig->getAnimSkeleton()->getAbsoluteDefaultPose(index).rot();
+    return Quaternions::Y_180 * rot;
+}
+
+glm::vec3 Avatar::getAbsoluteDefaultJointTranslationInObjectFrame(int index) const {
+    glm::vec3 translation;
+    auto rig = _skeletonModel->getRig();
+    glm::vec3 trans = rig->getAnimSkeleton()->getAbsoluteDefaultPose(index).trans();
+    glm::mat4 y180Mat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
+    return transformPoint(y180Mat * rig->getGeometryToRigTransform(), trans);
+}
+
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
     if (index < 0) {
         index += numeric_limits<unsigned short>::max() + 1; // 65536
