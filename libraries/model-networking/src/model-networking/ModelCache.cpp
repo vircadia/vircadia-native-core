@@ -173,7 +173,7 @@ void GeometryReader::run() {
             FBXGeometry::Pointer fbxGeometry;
 
             if (_url.path().toLower().endsWith(".fbx")) {
-                fbxGeometry.reset(readFBX(_data, _mapping, _url));
+                fbxGeometry.reset(readFBX(_data, _mapping, _url.path()));
                 if (fbxGeometry->meshes.size() == 0 && fbxGeometry->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported FBX version");
                 }
