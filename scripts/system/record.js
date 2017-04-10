@@ -43,6 +43,11 @@
 
     }
 
+    function isUsingToolbar() {
+        return ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
+            || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar")));
+    }
+
     CountdownTimer = (function () {
         // Displays countdown overlay.
 
@@ -387,11 +392,6 @@
         };
     }());
 
-    function usingToolbar() {
-        return ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
-            || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar")));
-    }
-
     function onTabletScreenChanged(type, url) {
         // Open/close dialog in tablet or window.
 
@@ -400,7 +400,7 @@
 
         if (type === "Home" && url === HOME_URL) {
             // Start countdown if using toolbar and recording is enabled.
-            if (usingToolbar() && isRecordingEnabled && Recorder.isIdle()) {
+            if (isUsingToolbar() && isRecordingEnabled && Recorder.isIdle()) {
                 Recorder.startCountdown();
             }
             isDialogDisplayed = false;
@@ -446,7 +446,7 @@
                 tablet.emitScriptEvent(JSON.stringify({
                     type: EVENT_BRIDGE_TYPE,
                     action: USING_TOOLBAR_ACTION,
-                    value: usingToolbar()
+                    value: isUsingToolbar()
                 }));
             } else if (message.action === ENABLE_RECORDING_ACTION) {
                 // User update "enable recording" checkbox.

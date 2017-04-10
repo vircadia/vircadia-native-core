@@ -129,7 +129,6 @@
                     index += 1;
                     properties = Entities.getEntityProperties(entityIDs[index], ["name", "userData"]);
                     if (properties.name === ENTITY_NAME) {
-                        // TODO: Guard against userData being non-existent or corrupt.
                         userData = JSON.parse(properties.userData);
                         isFound = (Date.now() - userData.timestamp) > ((CLAIM_CHECKS + 1) * TIMESTAMP_UPDATE_INTERVAL);
                     }
@@ -188,7 +187,7 @@
         var isPlayingRecording = false,
             recordingFilename = "",
             autoPlayTimer = null,
-            AUTOPLAY_SEARCH_INTERVAL = 2000;  // TODO: Final value.
+            AUTOPLAY_SEARCH_INTERVAL = 5000;  // TODO: Final value.
 
         function playRecording(recording, position, orientation) {
             Agent.isAvatar = true;
