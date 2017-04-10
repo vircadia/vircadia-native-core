@@ -90,7 +90,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         }
 
         auto modelCache = DependencyManager::get<ModelCache>();
-        GeometryExtra extra{ mapping, _textureBaseUrl, false }; // XXX
+        GeometryExtra extra{ mapping, _textureBaseUrl, false };
 
         // Get the raw GeometryResource
         _geometryResource = modelCache->getResource(url, QUrl(), &extra).staticCast<GeometryResource>();
@@ -180,8 +180,7 @@ void GeometryReader::run() {
                     throw QString("empty geometry, possibly due to an unsupported FBX version");
                 }
             } else if (_url.path().toLower().endsWith(".obj")) {
-                bool combineParts = false;
-                fbxGeometry.reset(OBJReader().readOBJ(_data, _mapping, combineParts, _url));
+                fbxGeometry.reset(OBJReader().readOBJ(_data, _mapping, _combineParts, _url));
             } else {
                 throw QString("unsupported format");
             }
@@ -277,15 +276,16 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QShar
         const GeometryExtra* geometryExtra = static_cast<const GeometryExtra*>(extra);
         auto mapping = geometryExtra ? geometryExtra->mapping : QVariantHash();
         auto textureBaseUrl = geometryExtra ? geometryExtra->textureBaseUrl : QUrl();
-        bool combineParts = geometryExtra ? geometryExtra->combineParts : false;
+        bool combineParts = geometryExtra ? geometryExtra->combineParts : true;
         resource = new GeometryDefinitionResource(url, mapping, textureBaseUrl, combineParts);
     }
 
     return QSharedPointer<Resource>(resource, &Resource::deleter);
 }
 
-GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) {
-    GeometryExtra geometryExtra = { mapping, textureBaseUrl, false }; // XXX
+GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url, bool combineParts,
+                                                          const QVariantHash& mapping, const QUrl& textureBaseUrl) {
+    GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
     GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra).staticCast<GeometryResource>();
     if (resource) {
         if (resource->isLoaded() && resource->shouldSetTextures()) {

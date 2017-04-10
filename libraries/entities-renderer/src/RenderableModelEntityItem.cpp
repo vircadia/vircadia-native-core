@@ -611,7 +611,7 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
         if (!_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL());
+            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL(), false);
         }
     } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
@@ -621,7 +621,8 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
     auto currentCompoundShapeURL = getCompoundShapeURL();
-    ModelEntityItem::setCompoundShapeURL(url);
+    QString hullURL = url + "?collision-hull";
+    ModelEntityItem::setCompoundShapeURL(hullURL);
 
     if (getCompoundShapeURL() != currentCompoundShapeURL || !_model) {
         EntityTreePointer tree = getTree();
@@ -629,7 +630,7 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
         }
         if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
+            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(hullURL, false);
         }
     }
 }
@@ -661,7 +662,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
                 }
                 return true;
             } else if (!getCompoundShapeURL().isEmpty()) {
-                _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL());
+                _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL(), false);
             }
         }
 
