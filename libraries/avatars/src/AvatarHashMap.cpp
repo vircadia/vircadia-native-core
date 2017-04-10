@@ -41,8 +41,10 @@ AvatarData* AvatarHashMap::getAvatarCopy(QUuid avatarID) {
     avatarDataCopy->setSessionUUID(avatarDataOriginal->getSessionUUID());
     avatarDataCopy->setSessionDisplayName(avatarDataOriginal->getSessionDisplayName());
     avatarDataCopy->setPosition(avatarDataOriginal->getPosition());
+    avatarDataCopy->setRotation(avatarDataOriginal->getRotation());
     avatarDataCopy->setAudioLoudness(avatarDataOriginal->getAudioLoudness());
     avatarDataCopy->setAudioAverageLoudness(avatarDataOriginal->getAudioAverageLoudness());
+    avatarDataCopy->setSkeletonModelURL(avatarDataOriginal->getSkeletonModelURL());
     return avatarDataCopy;
 }
 

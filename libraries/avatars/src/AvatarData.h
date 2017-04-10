@@ -620,7 +620,8 @@ public:
     static float _avatarSortCoefficientCenter;
     static float _avatarSortCoefficientAge;
 
-
+    QHash<QString, int>& getJointIndices() { return _jointIndices };
+    void setJointIndices(QHash<QString, int>& indices) { _jointIndices = indices };
 
 signals:
     void displayNameChanged();
