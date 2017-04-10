@@ -341,7 +341,7 @@
             }));
 
             Script.setTimeout(function () {
-                if (playerRecordings.indexOf(recording) === -1) {
+                if (!playerIsPlaying[index] || playerRecordings[index] !== recording) {
                     error("Didn't start playing recording "
                         + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
                 }
