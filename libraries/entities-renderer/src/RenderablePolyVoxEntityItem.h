@@ -101,16 +101,16 @@ public:
     virtual bool setAll(uint8_t toValue) override;
     virtual bool setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int toValue) override;
 
-    virtual void setXTextureURL(QString xTextureURL) override;
-    virtual void setYTextureURL(QString yTextureURL) override;
-    virtual void setZTextureURL(QString zTextureURL) override;
+    virtual void setXTextureURL(const QString& xTextureURL) override;
+    virtual void setYTextureURL(const QString& yTextureURL) override;
+    virtual void setZTextureURL(const QString& zTextureURL) override;
 
     virtual bool addToScene(EntityItemPointer self,
                             std::shared_ptr<render::Scene> scene,
-                            render::PendingChanges& pendingChanges) override;
+                            render::Transaction& transaction) override;
     virtual void removeFromScene(EntityItemPointer self,
                                  std::shared_ptr<render::Scene> scene,
-                                 render::PendingChanges& pendingChanges) override;
+                                 render::Transaction& transaction) override;
 
     virtual void setXNNeighborID(const EntityItemID& xNNeighborID) override;
     virtual void setYNNeighborID(const EntityItemID& yNNeighborID) override;

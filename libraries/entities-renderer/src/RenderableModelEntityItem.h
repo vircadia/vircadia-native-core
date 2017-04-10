@@ -40,8 +40,8 @@ public:
 
     void doInitialModelSimulation();
 
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
 
 
     void updateModelBounds();

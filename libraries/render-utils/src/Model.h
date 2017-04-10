@@ -42,7 +42,7 @@ class ViewFrustum;
 
 namespace render {
     class Scene;
-    class PendingChanges;
+    class Transaction;
     typedef unsigned int ItemID;
 }
 class MeshPartPayload;
@@ -88,14 +88,14 @@ public:
     bool needsReload() const { return _needsReload; }
     bool initWhenReady(render::ScenePointer scene);
     bool addToScene(std::shared_ptr<render::Scene> scene,
-                    render::PendingChanges& pendingChanges) {
+                    render::Transaction& transaction) {
         auto getters = render::Item::Status::Getters(0);
-        return addToScene(scene, pendingChanges, getters);
+        return addToScene(scene, transaction, getters);
     }
     bool addToScene(std::shared_ptr<render::Scene> scene,
-                    render::PendingChanges& pendingChanges,
+                    render::Transaction& transaction,
                     render::Item::Status::Getters& statusGetters);
-    void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    void removeFromScene(std::shared_ptr<render::Scene> scene, render::Transaction& transaction);
     bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }

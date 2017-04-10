@@ -16,66 +16,92 @@
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
-    text: "SOUNDS"
+    text: "SOUNDS",
+    icon: "http://s3.amazonaws.com/hifi-public/tony/icons/trombone-i.png",
+    activeIcon: "http://s3.amazonaws.com/hifi-public/tony/icons/trombone-a.png"
 });
 
 var WEB_BRIDGE_TEST_HTML = "https://s3.amazonaws.com/hifi-public/tony/webBridgeTest.html?2";
-
 var TROMBONE_URL = "https://s3.amazonaws.com/hifi-public/tony/audio/sad-trombone.wav";
-var tromboneSound = SoundCache.getSound(TROMBONE_URL);
-var tromboneInjector;
-
 var SCREAM_URL = "https://s3.amazonaws.com/hifi-public/tony/audio/wilhelm-scream.wav";
-var screamSound = SoundCache.getSound(SCREAM_URL);
-var screamInjector;
 
 tabletButton.clicked.connect(function () {
-    tablet.gotoWebScreen(WEB_BRIDGE_TEST_HTML);
+    if (shown) {
+        tablet.gotoHomeScreen();
+    } else {
+        tablet.gotoWebScreen(WEB_BRIDGE_TEST_HTML);
+    }
 });
 
-// hook up to the event bridge
-tablet.webEventReceived.connect(function (msg) {
+var shown = false;
+
+function onScreenChanged(type, url) {
+    if (type === "Web" && url === WEB_BRIDGE_TEST_HTML) {
+        tabletButton.editProperties({isActive: true});
+
+        if (!shown) {
+            // hook up to the event bridge
+            tablet.webEventReceived.connect(onWebEventReceived);
+        }
+        shown = true;
+    } else {
+        tabletButton.editProperties({isActive: false});
+
+        if (shown) {
+            // disconnect from the event bridge
+            tablet.webEventReceived.disconnect(onWebEventReceived);
+        }
+        shown = false;
+    }
+}
+
+tablet.screenChanged.connect(onScreenChanged);
+
+// ctor
+function SoundBuddy(url) {
+    this.sound = SoundCache.getSound(url);
+    this.injector = null;
+}
+
+SoundBuddy.prototype.play = function (options, doneCallback) {
+    if (this.sound.downloaded) {
+        if (this.injector) {
+            this.injector.setOptions(options);
+            this.injector.restart();
+        } else {
+            this.injector = Audio.playSound(this.sound, options);
+            this.injector.finished.connect(function () {
+                if (doneCallback) {
+                    doneCallback();
+                }
+            });
+        }
+    }
+};
+
+var tromboneSound = new SoundBuddy(TROMBONE_URL);
+var screamSound = new SoundBuddy(SCREAM_URL);
+var soundOptions = { position: MyAvatar.position, volume: 1.0, loop: false, localOnly: true };
+
+function onWebEventReceived(msg) {
     Script.print("HIFI: recv web event = " + JSON.stringify(msg));
     if (msg === "button-1-play") {
-
-        // play sad trombone
-        if (tromboneSound.downloaded) {
-            if (tromboneInjector) {
-                tromboneInjector.restart();
-            } else {
-                tromboneInjector = Audio.playSound(tromboneSound, { position: MyAvatar.position,
-                                                                    volume: 1.0,
-                                                                    loop: false });
-            }
-        }
-
-        // wait until sound is finished then send a done event
-        Script.setTimeout(function () {
+        soundOptions.position = MyAvatar.position;
+        tromboneSound.play(soundOptions, function () {
             tablet.emitScriptEvent("button-1-done");
-        }, 3500);
-    }
-
-    if (msg === "button-2-play") {
-
-        // play scream
-        if (screamSound.downloaded) {
-            if (screamInjector) {
-                screamInjector.restart();
-            } else {
-                screamInjector = Audio.playSound(screamSound, { position: MyAvatar.position,
-                                                                volume: 1.0,
-                                                                loop: false });
-            }
-        }
-
-        // wait until sound is finished then send a done event
-        Script.setTimeout(function () {
+        });
+    } else if (msg === "button-2-play") {
+        soundOptions.position = MyAvatar.position;
+        screamSound.play(soundOptions, function () {
             tablet.emitScriptEvent("button-2-done");
-        }, 1000);
+        });
     }
-});
+}
 
 Script.scriptEnding.connect(function () {
     tablet.removeButton(tabletButton);
+    if (shown) {
+        tablet.webEventReceived.disconnect(onWebEventReceived);
+    }
 });
 

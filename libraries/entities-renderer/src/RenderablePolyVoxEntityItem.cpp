@@ -660,22 +660,22 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
     });
 }
 
-void RenderablePolyVoxEntityItem::setXTextureURL(QString xTextureURL) {
-    if (xTextureURL != _xTextureURL) {
+void RenderablePolyVoxEntityItem::setXTextureURL(const QString& xTextureURL) {
+    if (xTextureURL != getXTextureURL()) {
         _xTexture.clear();
         PolyVoxEntityItem::setXTextureURL(xTextureURL);
     }
 }
 
-void RenderablePolyVoxEntityItem::setYTextureURL(QString yTextureURL) {
-    if (yTextureURL != _yTextureURL) {
+void RenderablePolyVoxEntityItem::setYTextureURL(const QString& yTextureURL) {
+    if (yTextureURL != getYTextureURL()) {
         _yTexture.clear();
         PolyVoxEntityItem::setYTextureURL(yTextureURL);
     }
 }
 
-void RenderablePolyVoxEntityItem::setZTextureURL(QString zTextureURL) {
-    if (zTextureURL != _zTextureURL) {
+void RenderablePolyVoxEntityItem::setZTextureURL(const QString& zTextureURL) {
+    if (zTextureURL != getZTextureURL()) {
         _zTexture.clear();
         PolyVoxEntityItem::setZTextureURL(zTextureURL);
     }
@@ -817,7 +817,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
 
 bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
                                              std::shared_ptr<render::Scene> scene,
-                                             render::PendingChanges& pendingChanges) {
+                                             render::Transaction& transaction) {
     _myItem = scene->allocateID();
 
     auto renderItem = std::make_shared<PolyVoxPayload>(getThisPointer());
@@ -828,15 +828,15 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
     makeEntityItemStatusGetters(getThisPointer(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
 
-    pendingChanges.resetItem(_myItem, renderPayload);
+    transaction.resetItem(_myItem, renderPayload);
 
     return true;
 }
 
 void RenderablePolyVoxEntityItem::removeFromScene(EntityItemPointer self,
                                                   std::shared_ptr<render::Scene> scene,
-                                                  render::PendingChanges& pendingChanges) {
-    pendingChanges.removeItem(_myItem);
+                                                  render::Transaction& transaction) {
+    transaction.removeItem(_myItem);
     render::Item::clearID(_myItem);
 }
 
@@ -1615,10 +1615,10 @@ void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
         return;
     }
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-    render::PendingChanges pendingChanges;
-    pendingChanges.updateItem<PolyVoxPayload>(_myItem, [](PolyVoxPayload& payload) {});
+    render::Transaction transaction;
+    transaction.updateItem<PolyVoxPayload>(_myItem, [](PolyVoxPayload& payload) {});
 
-    scene->enqueuePendingChanges(pendingChanges);
+    scene->enqueueTransaction(transaction);
 }
 
 bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {

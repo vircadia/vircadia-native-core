@@ -25,22 +25,33 @@ StackView {
     HifiConstants { id: hifi }
     HifiStyles.HifiConstants { id: hifiStyleConstants }
     initialItem: addressBarDialog
-    width: parent.width
-    height: parent.height
+    width: parent !== null ? parent.width : undefined
+    height: parent !== null ? parent.height : undefined
     property var eventBridge;
     property var allStories: [];
     property int cardWidth: 460;
     property int cardHeight: 320;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
 
+    property var tablet: null;
+    property bool isDesktop: false;
+
     Component { id: tabletStoryCard; TabletStoryCard {} }
     Component.onCompleted: {
         root.currentItem.focus = true;
         root.currentItem.forceActiveFocus();
+        addressLine.focus = true;
+        addressLine.forceActiveFocus();
         fillDestinations();
         updateLocationText(false);
         root.parentChanged.connect(center);
         center();
+        isDesktop = (typeof desktop !== "undefined");
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+
+        if (desktop) {
+            root.title = "GOTO";
+        }
     }
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
@@ -107,7 +118,9 @@ StackView {
                 imageURL: "../../../images/home.svg"
                 onClicked: {
                     addressBarDialog.loadHome();
-                    root.shown = false;
+                    tabletRoot.shown = false;
+                    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+                    tablet.gotoHomeScreen();
                 }
                 anchors {
                     left: parent.left
@@ -142,7 +155,9 @@ StackView {
             anchors {
                 top: navBar.bottom
                 right: parent.right
+                rightMargin: 16
                 left: parent.left
+                leftMargin: 16
             }
 
             property int inputAreaHeight: 70
@@ -291,9 +306,8 @@ StackView {
                     left: parent.left
                     right: parent.right
                     leftMargin: 10
-                    verticalCenter: parent.verticalCenter;
-                    horizontalCenter: parent.horizontalCenter;
                 }
+
                 model: suggestions
                 orientation: ListView.Vertical
 
@@ -547,14 +561,21 @@ StackView {
         if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }
-        root.shown = false;
+        
+        if (isDesktop) {
+            tablet.gotoHomeScreen();
+        } else {
+            HMD.closeTablet();
+        }
+            
+        tabletRoot.shown = false;
     }
 
     Keys.onPressed: {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                root.shown = false
+                tabletRoot.shown = false
                 clearAddressLineTimer.start();
                 event.accepted = true
                 break

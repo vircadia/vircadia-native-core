@@ -297,8 +297,9 @@ function Teleporter() {
             } else if (teleportLocationType === TARGET.SURFACE) {
                 var offset = getAvatarFootOffset();
                 intersection.intersection.y += offset;
-                MyAvatar.position = intersection.intersection;
+                MyAvatar.goToLocation(intersection.intersection, false, {x: 0, y: 0, z: 0, w: 1}, false);
                 HMD.centerUI();
+                MyAvatar.centerBody();
             }
         }
     };

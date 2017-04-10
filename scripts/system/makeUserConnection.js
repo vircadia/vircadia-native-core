@@ -131,13 +131,15 @@ function request(options, callback) { // cb(error, responseOfCorrectContentType)
             var error = (httpRequest.status !== HTTP_OK) && httpRequest.status.toString() + ':' + httpRequest.statusText,
                 response = !error && httpRequest.responseText,
                 contentType = !error && httpRequest.getResponseHeader('content-type');
-            debug('FIXME REMOVE: server response', options, error, response, contentType);
             if (!error && contentType.indexOf('application/json') === 0) { // ignoring charset, etc.
                 try {
                     response = JSON.parse(response);
                 } catch (e) {
                     error = e;
                 }
+            }
+            if (error) {
+                response = {statusCode: httpRequest.status};
             }
             callback(error, response);
         }
@@ -164,7 +166,6 @@ function request(options, callback) { // cb(error, responseOfCorrectContentType)
         options.headers["Content-type"] = "application/json";
         options.body = JSON.stringify(options.body);
     }
-    debug("FIXME REMOVE: final options to send", options);
     for (key in options.headers || {}) {
         httpRequest.setRequestHeader(key, options.headers[key]);
     }
@@ -543,12 +544,14 @@ function connectionRequestCompleted() { // Final result is in. Do effects.
         // don't change state (so animation continues while gripped)
         // but do send a notification, by calling the slot that emits the signal for it
         Window.makeConnection(true, result.connection.new_connection ? "You and " + result.connection.username + " are now connected!" : result.connection.username);
+        UserActivityLogger.makeUserConnection(connectingId, true, result.connection.new_connection ? "new connection" : "already connected");
         return;
     } // failed
     endHandshake();
     debug("failing with result data", result);
     // IWBNI we also did some fail sound/visual effect.
     Window.makeConnection(false, result.connection);
+    UserActivityLogger.makeUserConnection(connectingId, false, result.connection);
 }
 var POLL_INTERVAL_MS = 200, POLL_LIMIT = 5;
 function handleConnectionResponseAndMaybeRepeat(error, response) {
@@ -572,7 +575,11 @@ function handleConnectionResponseAndMaybeRepeat(error, response) {
         }
     } else if (error || (response.status !== 'success')) {
         debug('server fail', error, response.status);
+        if (response && (response.statusCode === 401)) {
+            error = "All participants must be logged in to connect.";
+        }
         result = error ? {status: 'error', connection: error} : response;
+        UserActivityLogger.makeUserConnection(connectingId, false, error || response);
         connectionRequestCompleted();
     } else {
         debug('server success', result);
@@ -600,6 +607,15 @@ function makeConnection(id) {
     // probably, in which we do this.
     Controller.triggerHapticPulse(HAPTIC_DATA.background.strength, MAKING_CONNECTION_TIMEOUT, handToHaptic(currentHand));
     requestBody = {node_id: cleanId(MyAvatar.sessionUUID), proposed_node_id: cleanId(id)}; // for use when repeating
+
+    // It would be "simpler" to skip this and just look at the response, but:
+    // 1. We don't want to bother the metaverse with request that we know will fail.
+    // 2. We don't want our code here to be dependent on precisely how the metaverse responds (400, 401, etc.)
+    if (!Account.isLoggedIn()) {
+        handleConnectionResponseAndMaybeRepeat("401:Unauthorized", {statusCode: 401});
+        return;
+    }
+
     // This will immediately set response if successfull (e.g., the other guy got his request in first), or immediate failure,
     // and will otherwise poll (using the requestBody we just set).
     request({ //
