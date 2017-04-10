@@ -22,6 +22,7 @@ var isUsingToolbar = false,
     ENABLE_RECORDING_ACTION = "enableRecording",
     RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
     NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
+    STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
     TABLET_INSTRUCTIONS = "Close the tablet to start recording",
     WINDOW_INSTRUCTIONS = "Close the window to start recording";
 
@@ -29,24 +30,46 @@ function updateInstructions() {
     elInstructions.innerHTML = elEnableRecording.checked ? (isUsingToolbar ? WINDOW_INSTRUCTIONS : TABLET_INSTRUCTIONS) : "";
 }
 
+function stopPlayingRecording(event) {
+    var playerID = event.target.getElementsByTagName("input")[0].value;
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: EVENT_BRIDGE_TYPE,
+        action: STOP_PLAYING_RECORDING_ACTION,
+        value: playerID
+    }));
+}
+
+function orderRecording(a, b) {
+    return a.filename > b.filename ? 1 : -1;
+}
+
 function updateRecordings() {
     var tbody,
         tr,
         td,
+        span,
+        input,
         length,
         i;
 
-    recordingsBeingPlayed.sort();
+    recordingsBeingPlayed.sort(orderRecording);
 
     tbody = document.createElement("tbody");
 
     for (i = 0, length = recordingsBeingPlayed.length; i < length; i += 1) {
         tr = document.createElement("tr");
         td = document.createElement("td");
-        td.innerHTML = recordingsBeingPlayed[i].slice(4);
+        td.innerHTML = recordingsBeingPlayed[i].filename.slice(4);
         tr.appendChild(td);
         td = document.createElement("td");
-        td.innerHTML = "x";
+        span = document.createElement("span");
+        span.innerHTML = "x";
+        span.addEventListener("click", stopPlayingRecording);
+        input = document.createElement("input");
+        input.setAttribute("type", "hidden");
+        input.setAttribute("value", recordingsBeingPlayed[i].playerID);
+        span.appendChild(input);
+        td.appendChild(span);
         tr.appendChild(td);
         tbody.appendChild(tr);
     }

@@ -291,6 +291,7 @@
         var HIFI_RECORDER_CHANNEL = "HiFi-Recorder-Channel",
             HIFI_PLAYER_CHANNEL = "HiFi-Player-Channel",
             PLAYER_COMMAND_PLAY = "play",
+            PLAYER_COMMAND_STOP = "stop",
 
             playerIDs = [],         // UUIDs of AC player scripts.
             playerIsPlayings = [],  // True if AC player script is playing a recording.
@@ -321,7 +322,7 @@
 
             // Update UI.
             if (playerIDs.length !== countBefore) {
-                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings);
+                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
             }
         }
 
@@ -361,6 +362,13 @@
 
         }
 
+        function stopPlayingRecording(playerID) {
+            Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
+                player: playerID,
+                command: PLAYER_COMMAND_STOP
+            }));
+        }
+
         function onMessageReceived(channel, message, sender) {
             // Heartbeat from AC script.
             var index;
@@ -375,7 +383,7 @@
             playerIsPlayings[index] = message.playing;
             playerRecordings[index] = message.recording;
             playerTimestamps[index] = Date.now();
-            Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings);
+            Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
         }
 
         function setUp() {
@@ -395,6 +403,7 @@
 
         return {
             playRecording: playRecording,
+            stopPlayingRecording: stopPlayingRecording,
             numberOfPlayers: numberOfPlayers,
             setUp: setUp,
             tearDown: tearDown
@@ -407,12 +416,14 @@
             USING_TOOLBAR_ACTION = "usingToolbar",
             ENABLE_RECORDING_ACTION = "enableRecording",
             RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
-            NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers";
+            NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
+            STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording";
 
         function onWebEventReceived(data) {
             var message = JSON.parse(data);
             if (message.type === EVENT_BRIDGE_TYPE) {
-                if (message.action === BODY_LOADED_ACTION) {
+                switch (message.action) {
+                case BODY_LOADED_ACTION:
                     // Dialog's ready; initialize its state.
                     tablet.emitScriptEvent(JSON.stringify({
                         type: EVENT_BRIDGE_TYPE,
@@ -429,23 +440,32 @@
                         action: NUMBER_OF_PLAYERS_ACTION,
                         value: Player.numberOfPlayers()
                     }));
-                } else if (message.action === ENABLE_RECORDING_ACTION) {
+                    break;
+                case ENABLE_RECORDING_ACTION:
                     // User update "enable recording" checkbox.
                     // The recording state must be idle because the dialog is open.
                     isRecordingEnabled = message.value;
                     updateButtonState();
+                    break;
+                case STOP_PLAYING_RECORDING_ACTION:
+                    // Stop the specified player.
+                    Player.stopPlayingRecording(message.value);
+                    break;
                 }
             }
         }
 
-        function updatePlayerDetails(playerIsPlayings, playerRecordings) {
+        function updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs) {
             var recordingsBeingPlayed = [],
                 length,
                 i;
 
             for (i = 0, length = playerIsPlayings.length; i < length; i += 1) {
                 if (playerIsPlayings[i]) {
-                    recordingsBeingPlayed.push(playerRecordings[i]);
+                    recordingsBeingPlayed.push({
+                        filename: playerRecordings[i],
+                        playerID: playerIDs[i]
+                    });
                 }
             }
             tablet.emitScriptEvent(JSON.stringify({
