@@ -829,7 +829,7 @@ void AnimInverseKinematics::initConstraints() {
 
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
-            const float MIN_KNEE_ANGLE = 0.0f;
+            const float MIN_KNEE_ANGLE = 0.097f;  // ~5 deg
             const float MAX_KNEE_ANGLE = 7.0f * PI / 8.0f;
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
             glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_KNEE_ANGLE, hingeAxis) * Vectors::UNIT_Y;
