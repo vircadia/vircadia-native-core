@@ -16,14 +16,14 @@
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
 
-class RenderForwardTask : public render::Task {
+class RenderForwardTask {
 public:
     using Input = RenderFetchCullSortTask::Output;
     using JobModel = render::Task::ModelI<RenderForwardTask, Input>;
 
     RenderForwardTask() {}
 
-    void build(render::Task& task, const render::Varying& inputs, render::Varying& outputs);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 };
 
 class PrepareFramebuffer {

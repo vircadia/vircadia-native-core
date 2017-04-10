@@ -25,7 +25,6 @@ namespace render {
     public:
 
         Engine();
-        void build();
         ~Engine() = default;
 
         // Load any persisted settings, and set up the presets

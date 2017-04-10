@@ -192,14 +192,14 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
-class RenderDeferredTask : public render::Task {
+class RenderDeferredTask {
 public:
     using Input = RenderFetchCullSortTask::Output;
     using JobModel = render::Task::ModelI<RenderDeferredTask, Input>;
 
     RenderDeferredTask() {}
 
-    void build(render::Task& task, const render::Varying& inputs, render::Varying& outputs);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 };
 
 #endif // hifi_RenderDeferredTask_h

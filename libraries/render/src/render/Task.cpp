@@ -21,6 +21,7 @@ void TaskConfig::refresh() {
         return;
     }
 
-    _task->configure(*this);
+  //  _task->configure(*this);
+    _task->applyConfiguration();
 }
 

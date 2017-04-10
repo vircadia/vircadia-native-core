@@ -29,7 +29,7 @@
 using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);
 
-void RenderForwardTask::build(render::Task& task, const render::Varying& input, render::Varying& output) {
+void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     auto items = input.get<Input>();
 
     // Prepare the ShapePipelines

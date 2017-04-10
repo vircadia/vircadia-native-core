@@ -90,7 +90,7 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
     });
 }
 
-void RenderShadowTask::build(render::Task& task, const render::Varying& input, render::Varying& output, CullFunctor cullFunctor) {
+void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, CullFunctor cullFunctor) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // Prepare the ShapePipeline
@@ -136,7 +136,7 @@ void RenderShadowTask::build(render::Task& task, const render::Varying& input, r
 void RenderShadowTask::configure(const Config& configuration) {
     DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
     // This is a task, so must still propogate configure() to its Jobs
-    Task::configure(configuration);
+//    Task::configure(configuration);
 }
 
 void RenderShadowSetup::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, Output& output) {

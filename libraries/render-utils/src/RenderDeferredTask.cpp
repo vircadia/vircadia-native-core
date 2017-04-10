@@ -50,7 +50,7 @@ using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
-void RenderDeferredTask::build(render::Task& task, const render::Varying& input, render::Varying& output) {
+void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     auto items = input.get<Input>();
 
     // Prepare the ShapePipelines

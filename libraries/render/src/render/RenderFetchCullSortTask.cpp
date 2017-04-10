@@ -17,7 +17,7 @@
 
 using namespace render;
 
-void RenderFetchCullSortTask::build(Task& task, const Varying& input, Varying& output, CullFunctor cullFunctor) {
+void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varying& output, CullFunctor cullFunctor) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // CPU jobs:

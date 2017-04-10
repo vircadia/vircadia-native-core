@@ -27,7 +27,7 @@ signals:
 protected:
 };
 
-class ZoneRendererTask : public render::Task {
+class ZoneRendererTask {
 public:
 
     static const render::Selection::Name ZONES_SELECTION;
@@ -35,11 +35,11 @@ public:
 
     using Inputs = render::ItemBounds;
     using Config = ZoneRendererConfig;
-    using JobModel = Model<ZoneRendererTask, Config>;
+    using JobModel = render::Task::ModelI<ZoneRendererTask, Inputs, Config>;
 
     ZoneRendererTask() {}
 
-    void build(render::Task& task, const render::Varying& inputs, render::Varying& outputs);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
 

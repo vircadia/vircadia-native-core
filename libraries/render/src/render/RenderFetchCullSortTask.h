@@ -17,7 +17,7 @@
 #include "Task.h"
 #include "CullTask.h"
 
-class RenderFetchCullSortTask : public render::Task {
+class RenderFetchCullSortTask {
 public:
 
     enum Buckets {
@@ -38,7 +38,7 @@ public:
 
     RenderFetchCullSortTask() {}
 
-    void build(render::Task& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor);
 };
 
 #endif // hifi_RenderFetchCullSortTask_h

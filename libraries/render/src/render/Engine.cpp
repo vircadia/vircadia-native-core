@@ -22,13 +22,22 @@
 
 using namespace render;
 
-Engine::Engine() :
-    _sceneContext(std::make_shared<SceneContext>()),
-    _renderContext(std::make_shared<RenderContext>()) {
-}
+class EngineTask {
+public:
 
-void Engine::build() {
-    addJob<EngineStats>("Stats");
+    using JobModel = Task::Model<EngineTask>;
+
+    EngineTask() {}
+
+    void build(JobModel& task, const Varying& in, Varying& out) {
+        task.addJob<EngineStats>("Stats");
+    }
+};
+
+Engine::Engine() : Task("Engine", EngineTask::JobModel::factoryModel()),
+    _sceneContext(std::make_shared<SceneContext>()),
+    _renderContext(std::make_shared<RenderContext>())
+{
 }
 
 void Engine::load() {
