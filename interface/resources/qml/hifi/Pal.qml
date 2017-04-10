@@ -924,7 +924,7 @@ Rectangle {
                 // Text
                 text:
                     Account.isLoggedIn() ? ( HMD.mounted ? instructions + hmdMountedInstructions : instructions + hmdNotMountedInstructions)
-                    : ( HMD.mounted ? notLoggedInInstructions + instructions + hmdMountedInstructions : notLoggedInInstructions + instructions + hmdNotMountedInstructions
+                    : ( HMD.mounted ? notLoggedInInstructions + instructions + hmdMountedInstructions : notLoggedInInstructions + instructions + hmdNotMountedInstructions)
             }
 
         }
