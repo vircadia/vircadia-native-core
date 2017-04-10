@@ -1033,6 +1033,9 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     } else {
         _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
     }
+
+    // by default this IK target is disabled.
+    _animVars.set("spine2Type", (int)IKTarget::Type::Unknown);
 }
 
 void Rig::updateFromEyeParameters(const EyeParameters& params) {

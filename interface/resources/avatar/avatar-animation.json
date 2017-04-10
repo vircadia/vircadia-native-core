@@ -81,10 +81,10 @@
                                     "typeVar": "leftFootType"
                                 },
                                 {
-                                    "jointName": "Neck",
-                                    "positionVar": "neckPosition",
-                                    "rotationVar": "neckRotation",
-                                    "typeVar": "neckType"
+                                    "jointName": "Spine2",
+                                    "positionVar": "spine2Position",
+                                    "rotationVar": "spine2Rotation",
+                                    "typeVar": "spine2Type"
                                 },
                                 {
                                     "jointName": "Head",
