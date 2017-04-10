@@ -37,13 +37,15 @@ function showFeedWindow() {
             || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
         DialogsManager.showFeed();
     } else {
-        tablet.loadQMLSource("TabletAddressDialog.qml");
+         tablet.initialScreen("TabletAddressDialog.qml");
         HMD.openTablet();
     }
 }
 
 var outstanding;
 var readyData;
+var shareAfterLogin = false;
+var snapshotToShareAfterLogin;     
 function onMessage(message) {
     // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
     // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
@@ -82,24 +84,27 @@ function onMessage(message) {
         default:
             //tablet.webEventReceived.disconnect(onMessage);  // <<< It's probably this that's missing?!
             HMD.closeTablet();
-            tablet.gotoHomeScreen();
             isLoggedIn = Account.isLoggedIn();
             message.action.forEach(function (submessage) {
                 if (submessage.share && !isLoggedIn) {
                     needsLogin = true;
                     submessage.share = false;
+                    shareAfterLogin = true;
+                    snapshotToShareAfterLogin = {path: submessage.localPath, href: submessage.href};
                 }
                 if (submessage.share) {
                     print('sharing', submessage.localPath);
-                    outstanding++;
-                    Window.shareSnapshot(submessage.localPath, submessage.href);
+                    outstanding = true;
+                    //Window.shareSnapshot(submessage.localPath, submessage.href);
                 } else {
                     print('not sharing', submessage.localPath);
                 }
                 
             });
-            if (!outstanding && shouldOpenFeedAfterShare()) {
-                //showFeedWindow();
+        print(shouldOpenFeedAfterShare());
+            if (outstanding && shouldOpenFeedAfterShare()) {
+                showFeedWindow();
+                outstanding = false;
             }
             if (needsLogin) { // after the possible feed, so that the login is on top
                 var isLoggedIn = Account.isLoggedIn();
@@ -241,13 +246,22 @@ function onTabletScreenChanged(type, url) {
         isInSnapshotReview = false;
     }
 }
+function onConnected() {
+    if (shareAfterLogin && Account.isLoggedIn()) {
+        print('sharing', snapshotToShareAfterLogin.path);
+        Window.shareSnapshot(snapshotToShareAfterLogin.path, snapshotToShareAfterLogin.href);
+        shareAfterLogin = false;
+        showFeedWindow();
+    }
+    
+}
 
 button.clicked.connect(onClicked);
 buttonConnected = true;
 Window.snapshotShared.connect(snapshotShared);
 Window.processingGif.connect(processingGif);
 tablet.screenChanged.connect(onTabletScreenChanged);
-
+Account.usernameChanged.connect(onConnected);
 Script.scriptEnding.connect(function () {
     if (buttonConnected) {
         button.clicked.disconnect(onClicked);

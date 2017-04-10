@@ -99,7 +99,7 @@ public:
     bool getToolbarMode() const { return _toolbarMode; }
     void setToolbarMode(bool toolbarMode);
 
-    void initialScreen(const QVariant& url);
+    Q_INVOKABLE void initialScreen(const QVariant& url);
 
     /**jsdoc
      * transition to the home screen
