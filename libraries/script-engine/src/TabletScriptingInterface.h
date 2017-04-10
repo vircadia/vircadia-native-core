@@ -190,6 +190,8 @@ public:
     Q_INVOKABLE void setLandscape(bool landscape) { _landscape = landscape; }
     Q_INVOKABLE bool getLandscape() { return _landscape; }
 
+    Q_INVOKABLE bool isPathLoaded(QVariant path);
+
     QQuickItem* getTabletRoot() const { return _qmlTabletRoot; }
 
     QObject* getTabletSurface();
@@ -242,6 +244,7 @@ protected:
 
     bool _initialScreen { false };
     QVariant _initialPath { "" };
+    QVariant _currentPathLoaded { "" };
     QString _name;
     std::mutex _mutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;

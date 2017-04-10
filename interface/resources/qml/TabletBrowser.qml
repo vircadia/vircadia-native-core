@@ -104,18 +104,13 @@ Item {
 
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+                urlAppend(loadRequest.url.toString())
                 var url = loadRequest.url.toString();
                 if (urlHandler.canHandleUrl(url)) {
                     if (urlHandler.handleUrl(url)) {
                         root.stop();
                     }
                 }
-            }
-        }
-
-        onNavigationRequested: {
-            if (request.navigationType == WebEngineNavigationRequest.LinkClickedNavigation) {
-                pagesModel.append({webUrl: request.url.toString()})
             }
         }
 

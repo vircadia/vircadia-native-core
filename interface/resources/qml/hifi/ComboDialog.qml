@@ -12,6 +12,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import "../styles-uit"
+import "../controls-uit"
 
 Item {
     property var dialogTitleText : "";
@@ -67,6 +68,29 @@ Item {
             verticalAlignment: Text.AlignTop;
         }
 
+        HiFiGlyphs {
+            id: closeGlyphButton;
+            text: hifi.glyphs.close;
+            size: 32;
+            anchors.verticalCenter: dialogTitle.verticalCenter;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            MouseArea {
+                anchors.fill: closeGlyphButton;
+                hoverEnabled: true;
+                onEntered: {
+                    parent.text = hifi.glyphs.closeInverted;
+                }
+                onExited: {
+                    parent.text = hifi.glyphs.close;
+                }
+                onClicked: {
+                    combo.visible = false;
+                }
+            }
+        }
+
+
         ListModel {
             id: comboListViewModel;
         }
@@ -92,8 +116,7 @@ Item {
                     color: selectedOptionIndex === index ? '#cee6ff' : 'white';
                     Rectangle {
                         id: comboOptionSelected;
-                        visible: selectedOptionIndex === index ? true : false;
-                        color: hifi.colors.blueAccent;
+                        color: selectedOptionIndex == index ? hifi.colors.blueAccent : 'white';
                         anchors.left: parent.left;
                         anchors.leftMargin: 20;
                         anchors.top: parent.top;
@@ -102,7 +125,7 @@ Item {
                         height: width;
                         radius: width;
                         border.width: 3;
-                        border.color: hifi.colors.blueHighlight;
+                        border.color: selectedOptionIndex === index ? hifi.colors.blueHighlight: hifi.colors.lightGrayText;
                     }
 
 
