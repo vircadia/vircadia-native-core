@@ -35,7 +35,7 @@ function shouldOpenFeedAfterShare() {
 function showFeedWindow() {
     if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
             || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
-        DialogsManager.showFeed();
+        tablet.loadQMLSource("TabletAddressDialog.qml");
     } else {
          tablet.initialScreen("TabletAddressDialog.qml");
         HMD.openTablet();
@@ -109,8 +109,13 @@ function onMessage(message) {
                 var isLoggedIn = Account.isLoggedIn();
 
                 if (!isLoggedIn) {
-                    tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
-                    HMD.openTablet();
+                    if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
+                        || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
+                        Menu.triggerOption("Login / Sign Up");
+                    } else {
+                        tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
+                        HMD.openTablet();
+                    }
                 }
             }
     }
