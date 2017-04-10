@@ -302,7 +302,7 @@ Item {
         height: usernameTextPixelSize + 4
         // Anchors
         anchors.top: isMyCard ? myDisplayName.bottom : pal.activeTab == "nearbyTab" ? displayNameContainer.bottom : undefined //(parent.height - displayNameTextPixelSize/2));
-        anchors.verticalCenter: pal.activeTab == "connectionsTab" ? avatarImage.verticalCenter : undefined
+        anchors.verticalCenter: pal.activeTab == "connectionsTab" && !isMyCard ? avatarImage.verticalCenter : undefined
         anchors.left: avatarImage.right;
         anchors.leftMargin: avatarImage.visible ? 5 : 0;
         anchors.rightMargin: 5;
