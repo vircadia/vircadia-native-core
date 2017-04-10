@@ -95,13 +95,12 @@ function onMessage(message) {
                 if (submessage.share) {
                     print('sharing', submessage.localPath);
                     outstanding = true;
-                    //Window.shareSnapshot(submessage.localPath, submessage.href);
+                    Window.shareSnapshot(submessage.localPath, submessage.href);
                 } else {
                     print('not sharing', submessage.localPath);
                 }
                 
             });
-        print(shouldOpenFeedAfterShare());
             if (outstanding && shouldOpenFeedAfterShare()) {
                 showFeedWindow();
                 outstanding = false;
