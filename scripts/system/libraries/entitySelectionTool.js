@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad hefta-Gaub on 10/1/14.
-//	Modified by Daniela Fontes @DanielaFifo and Tiago Andrade @TagoWill on 4/7/2017
+//    Modified by Daniela Fontes @DanielaFifo and Tiago Andrade @TagoWill on 4/7/2017
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  This script implements a class useful for building tools for editing entities.
@@ -2593,17 +2593,17 @@ SelectionDisplay = (function() {
     // pivot - point to use as a pivot
     // offset - the position of the overlay tool relative to the selections center position
     var makeStretchTool = function(stretchMode, direction, pivot, offset, customOnMove) {
-		//  directionFor3DStretch - direction and pivot for 3D stretch
-		//  distanceFor3DStretch - distance from the intersection point and the handController 
-		//     used to increase the scale taking into account the distance to the object
-		//	DISTANCE_INFLUENCE_THRESHOLD - constant that holds the minimum distance where the 
-		//     distance to the object will influence the stretch/resize/scale
+        //  directionFor3DStretch - direction and pivot for 3D stretch
+        //  distanceFor3DStretch - distance from the intersection point and the handController 
+        //     used to increase the scale taking into account the distance to the object
+        //    DISTANCE_INFLUENCE_THRESHOLD - constant that holds the minimum distance where the 
+        //     distance to the object will influence the stretch/resize/scale
         var directionFor3DStretch = getDirectionsFor3DStretch(stretchMode);
-		var distanceFor3DStretch = 0;
-		var DISTANCE_INFLUENCE_THRESHOLD = 1.2;
-		
-		
-		var signs = {
+        var distanceFor3DStretch = 0;
+        var DISTANCE_INFLUENCE_THRESHOLD = 1.2;
+        
+        
+        var signs = {
             x: direction.x < 0 ? -1 : (direction.x > 0 ? 1 : 0),
             y: direction.y < 0 ? -1 : (direction.y > 0 ? 1 : 0),
             z: direction.z < 0 ? -1 : (direction.z > 0 ? 1 : 0),
@@ -2614,23 +2614,23 @@ SelectionDisplay = (function() {
             y: Math.abs(direction.y) > 0 ? 1 : 0,
             z: Math.abs(direction.z) > 0 ? 1 : 0,
         };
-		
-		
+        
+        
 
         var numDimensions = mask.x + mask.y + mask.z;
 
         var planeNormal = null;
         var lastPick = null;
-		var lastPick3D = null;
+        var lastPick3D = null;
         var initialPosition = null;
         var initialDimensions = null;
         var initialIntersection = null;
         var initialProperties = null;
         var registrationPoint = null;
         var deltaPivot = null;
-		var deltaPivot3D = null;
+        var deltaPivot3D = null;
         var pickRayPosition = null;
-		var pickRayPosition3D = null;
+        var pickRayPosition3D = null;
         var rotation = null;
 
         var onBegin = function(event) {
@@ -2668,18 +2668,20 @@ SelectionDisplay = (function() {
 
             // Scaled offset in world coordinates
             var scaledOffsetWorld = vec3Mult(initialDimensions, offsetRP);
-			
+            
             pickRayPosition = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffsetWorld));
-			// Scaled offset in world coordinates for 3D manipulation
-			if (directionFor3DStretch){
-				// Scale pivot to be in the same range as registrationPoint
-				var scaledPivot3D = Vec3.multiply(0.5, Vec3.multiply(1.0, directionFor3DStretch));
-				deltaPivot3D = Vec3.subtract(centeredRP, scaledPivot3D);
-				
-				var scaledOffsetWorld3D = vec3Mult(initialDimensions, 
-				Vec3.subtract(Vec3.multiply(0.5, Vec3.multiply(-1.0, directionFor3DStretch)), centeredRP));
-				pickRayPosition3D = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffsetWorld));
-			}
+            
+            if (directionFor3DStretch) {
+                // pivot, offset and pickPlanePosition for 3D manipulation
+                var scaledPivot3D = Vec3.multiply(0.5, Vec3.multiply(1.0, directionFor3DStretch));
+                deltaPivot3D = Vec3.subtract(centeredRP, scaledPivot3D);
+                
+                var scaledOffsetWorld3D = vec3Mult(initialDimensions, 
+                Vec3.subtract(Vec3.multiply(0.5, Vec3.multiply(-1.0, directionFor3DStretch)), 
+                centeredRP));
+                
+                pickRayPosition3D = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffsetWorld));
+            }
             var start = null;
             var end = null;
             if (numDimensions == 1 && mask.x) {
@@ -2780,25 +2782,25 @@ SelectionDisplay = (function() {
                     };
                 }
             }
-			
+            
             planeNormal = Vec3.multiplyQbyV(rotation, planeNormal);
             var pickRay = generalComputePickRay(event.x, event.y);
             lastPick = rayPlaneIntersection(pickRay,
                 pickRayPosition,
                 planeNormal);
-				
-			var planeNormal3D = {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    };
-			if (directionFor3DStretch){
-				lastPick3D = rayPlaneIntersection(pickRay,
+                
+            var planeNormal3D = {
+                x: 0,
+                y: 0,
+                z: 0
+            };
+            if (directionFor3DStretch) {
+                lastPick3D = rayPlaneIntersection(pickRay,
                 pickRayPosition3D,
                 planeNormal3D);
-				distanceFor3DStretch = Vec3.length(Vec3.subtract(pickRayPosition3D, pickRay.origin));
-			}
-		
+                distanceFor3DStretch = Vec3.length(Vec3.subtract(pickRayPosition3D, pickRay.origin));
+            }
+        
             SelectionManager.saveProperties();
         };
 
@@ -2829,104 +2831,103 @@ SelectionDisplay = (function() {
                 dimensions = SelectionManager.worldDimensions;
                 rotation = SelectionManager.worldRotation;
             }
-			
-			var localDeltaPivot = deltaPivot;
-			var localSigns = signs;
+            
+            var localDeltaPivot = deltaPivot;
+            var localSigns = signs;
 
             var pickRay = generalComputePickRay(event.x, event.y);
-			
-			// Are we using handControllers or Mouse - only relevant for 3D tools
-			var controllerPose = getControllerWorldLocation(activeHand, true);
-			if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && controllerPose.valid && that.triggered && directionFor3DStretch ){
-				localDeltaPivot = deltaPivot3D;
+            
+            // Are we using handControllers or Mouse - only relevant for 3D tools
+            var controllerPose = getControllerWorldLocation(activeHand, true);
+            if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && controllerPose.valid && that.triggered && directionFor3DStretch ) {
+                localDeltaPivot = deltaPivot3D;
 
-				newPick = pickRay.origin;
-			
-				var vector = Vec3.subtract(newPick, lastPick3D);
-				
-				vector = Vec3.multiplyQbyV(Quat.inverse(rotation), vector);
-			
-				// Range of Motion
-				if (distanceFor3DStretch > DISTANCE_INFLUENCE_THRESHOLD){
-					// Range of Motion
-					vector = Vec3.multiply(distanceFor3DStretch , vector);
-				}
-				
-				localSigns = directionFor3DStretch;
-				
-			}else{
-				newPick = rayPlaneIntersection(pickRay,
+                newPick = pickRay.origin;
+            
+                var vector = Vec3.subtract(newPick, lastPick3D);
+                
+                vector = Vec3.multiplyQbyV(Quat.inverse(rotation), vector);
+            
+                if (distanceFor3DStretch > DISTANCE_INFLUENCE_THRESHOLD) {
+                    // Range of Motion
+                    vector = Vec3.multiply(distanceFor3DStretch , vector);
+                }
+                
+                localSigns = directionFor3DStretch;
+                
+            } else {
+                newPick = rayPlaneIntersection(pickRay,
                 pickRayPosition,
                 planeNormal);
-				var vector = Vec3.subtract(newPick, lastPick);
+                var vector = Vec3.subtract(newPick, lastPick);
 
-				vector = Vec3.multiplyQbyV(Quat.inverse(rotation), vector);
+                vector = Vec3.multiplyQbyV(Quat.inverse(rotation), vector);
 
-				vector = vec3Mult(mask, vector);
-				
+                vector = vec3Mult(mask, vector);
+                
             }
-			
-			if (customOnMove) {
-				var change = Vec3.multiply(-1, vec3Mult(localSigns, vector));
-				customOnMove(vector, change);
-			} else {
-				vector = grid.snapToSpacing(vector);
+            
+            if (customOnMove) {
+                var change = Vec3.multiply(-1, vec3Mult(localSigns, vector));
+                customOnMove(vector, change);
+            } else {
+                vector = grid.snapToSpacing(vector);
 
-				var changeInDimensions = Vec3.multiply(-1, vec3Mult(localSigns, vector));
-				var newDimensions;
-				if (proportional) {
-					var absX = Math.abs(changeInDimensions.x);
-					var absY = Math.abs(changeInDimensions.y);
-					var absZ = Math.abs(changeInDimensions.z);
-					var pctChange = 0;
-					if (absX > absY && absX > absZ) {
-						pctChange = changeInDimensions.x / initialProperties.dimensions.x;
-						pctChange = changeInDimensions.x / initialDimensions.x;
-					} else if (absY > absZ) {
-						pctChange = changeInDimensions.y / initialProperties.dimensions.y;
-						pctChange = changeInDimensions.y / initialDimensions.y;
-					} else {
-						pctChange = changeInDimensions.z / initialProperties.dimensions.z;
-						pctChange = changeInDimensions.z / initialDimensions.z;
-					}
-					pctChange += 1.0;
-					newDimensions = Vec3.multiply(pctChange, initialDimensions);
-				} else {
-					newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
-				}
-			}
-		
-		
-			newDimensions.x = Math.max(newDimensions.x, MINIMUM_DIMENSION);
-			newDimensions.y = Math.max(newDimensions.y, MINIMUM_DIMENSION);
-			newDimensions.z = Math.max(newDimensions.z, MINIMUM_DIMENSION);
+                var changeInDimensions = Vec3.multiply(-1, vec3Mult(localSigns, vector));
+                var newDimensions;
+                if (proportional) {
+                    var absX = Math.abs(changeInDimensions.x);
+                    var absY = Math.abs(changeInDimensions.y);
+                    var absZ = Math.abs(changeInDimensions.z);
+                    var pctChange = 0;
+                    if (absX > absY && absX > absZ) {
+                        pctChange = changeInDimensions.x / initialProperties.dimensions.x;
+                        pctChange = changeInDimensions.x / initialDimensions.x;
+                    } else if (absY > absZ) {
+                        pctChange = changeInDimensions.y / initialProperties.dimensions.y;
+                        pctChange = changeInDimensions.y / initialDimensions.y;
+                    } else {
+                        pctChange = changeInDimensions.z / initialProperties.dimensions.z;
+                        pctChange = changeInDimensions.z / initialDimensions.z;
+                    }
+                    pctChange += 1.0;
+                    newDimensions = Vec3.multiply(pctChange, initialDimensions);
+                } else {
+                    newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
+                }
+            }
+        
+        
+            newDimensions.x = Math.max(newDimensions.x, MINIMUM_DIMENSION);
+            newDimensions.y = Math.max(newDimensions.y, MINIMUM_DIMENSION);
+            newDimensions.z = Math.max(newDimensions.z, MINIMUM_DIMENSION);
 
-			var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(localDeltaPivot, changeInDimensions));
-			var newPosition = Vec3.sum(initialPosition, changeInPosition);
+            var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(localDeltaPivot, changeInDimensions));
+            var newPosition = Vec3.sum(initialPosition, changeInPosition);
 
-			for (var i = 0; i < SelectionManager.selections.length; i++) {
-				Entities.editEntity(SelectionManager.selections[i], {
-					position: newPosition,
-					dimensions: newDimensions,
-				});
-			}
-			
+            for (var i = 0; i < SelectionManager.selections.length; i++) {
+                Entities.editEntity(SelectionManager.selections[i], {
+                    position: newPosition,
+                    dimensions: newDimensions,
+                });
+            }
+            
 
-			var wantDebug = false;
-			if (wantDebug) {
-				print(stretchMode);
-				//Vec3.print("        newIntersection:", newIntersection);
-				Vec3.print("                 vector:", vector);
-				//Vec3.print("           oldPOS:", oldPOS);
-				//Vec3.print("                newPOS:", newPOS);
-				Vec3.print("            changeInDimensions:", changeInDimensions);
-				Vec3.print("                 newDimensions:", newDimensions);
+            var wantDebug = false;
+            if (wantDebug) {
+                print(stretchMode);
+                //Vec3.print("        newIntersection:", newIntersection);
+                Vec3.print("                 vector:", vector);
+                //Vec3.print("           oldPOS:", oldPOS);
+                //Vec3.print("                newPOS:", newPOS);
+                Vec3.print("            changeInDimensions:", changeInDimensions);
+                Vec3.print("                 newDimensions:", newDimensions);
 
-				Vec3.print("              changeInPosition:", changeInPosition);
-				Vec3.print("                   newPosition:", newPosition);
-			}
+                Vec3.print("              changeInPosition:", changeInPosition);
+                Vec3.print("                   newPosition:", newPosition);
+            }
 
-			SelectionManager._update();
+            SelectionManager._update();
 
         };
 
@@ -2937,9 +2938,9 @@ SelectionDisplay = (function() {
             onEnd: onEnd
         };
     };
-	
-	// Direction for the stretch tool when using hand controller
-	var directionsFor3DGrab = {
+    
+    // Direction for the stretch tool when using hand controller
+    var directionsFor3DGrab = {
         LBN: {
             x: 1,
             y: 1,
@@ -2960,7 +2961,7 @@ SelectionDisplay = (function() {
             y: 1,
             z: -1
         },
-		LTN: {
+        LTN: {
             x: 1,
             y: -1,
             z: 1
@@ -2981,31 +2982,31 @@ SelectionDisplay = (function() {
             z: -1
         }
     };
-	
-	// Returns a vector with directions for the stretch tool in 3D using hand controllers
-    function getDirectionsFor3DStretch(mode){
-        if(mode === "STRETCH_LBN"){
+    
+    // Returns a vector with directions for the stretch tool in 3D using hand controllers
+    function getDirectionsFor3DStretch(mode) {
+        if (mode === "STRETCH_LBN") {
             return directionsFor3DGrab.LBN;
-        } else if(mode === "STRETCH_RBN"){
+        } else if (mode === "STRETCH_RBN") {
             return directionsFor3DGrab.RBN;
-        }else if(mode === "STRETCH_LBF"){
+        } else if (mode === "STRETCH_LBF") {
             return directionsFor3DGrab.LBF;
-        }else if(mode === "STRETCH_RBF"){
+        } else if (mode === "STRETCH_RBF") {
             return directionsFor3DGrab.RBF;
-		}else if(mode === "STRETCH_LTN"){
+        } else if (mode === "STRETCH_LTN") {
             return directionsFor3DGrab.LTN;
-		}else if(mode === "STRETCH_RTN"){
+        } else if (mode === "STRETCH_RTN") {
             return directionsFor3DGrab.RTN;
-		}else if(mode === "STRETCH_LTF"){
+        } else if (mode === "STRETCH_LTF") {
             return directionsFor3DGrab.LTF;
-		}else if(mode === "STRETCH_RTF"){
+        } else if (mode === "STRETCH_RTF") {
             return directionsFor3DGrab.RTF;
-        }else{
+        } else {
             return null;
         }
     }
-	
-	
+    
+    
 
     function addStretchTool(overlay, mode, pivot, direction, offset, handleMove) {
         if (!pivot) {
