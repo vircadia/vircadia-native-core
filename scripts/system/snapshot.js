@@ -255,7 +255,9 @@ function onConnected() {
         print('sharing', snapshotToShareAfterLogin.path);
         Window.shareSnapshot(snapshotToShareAfterLogin.path, snapshotToShareAfterLogin.href);
         shareAfterLogin = false;
-        showFeedWindow();
+        if (shouldOpenFeedAfterShare()) {
+            showFeedWindow();
+        }
     }
     
 }
