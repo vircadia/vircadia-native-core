@@ -612,7 +612,7 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
         if (!_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL(), false);
+            _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCompoundShapeURL());
         }
     } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
@@ -638,7 +638,7 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
         }
         if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(hullURL, false);
+            _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
         }
     }
 }
@@ -670,7 +670,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
                 }
                 return true;
             } else if (!getCompoundShapeURL().isEmpty()) {
-                _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL(), false);
+                _compoundShapeResource =
+                    DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCompoundShapeURL());
             }
         }
 

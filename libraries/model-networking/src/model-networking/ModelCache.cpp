@@ -283,8 +283,22 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QShar
     return QSharedPointer<Resource>(resource, &Resource::deleter);
 }
 
-GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url, bool combineParts,
+GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url,
                                                           const QVariantHash& mapping, const QUrl& textureBaseUrl) {
+    bool combineParts = true;
+    GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
+    GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra).staticCast<GeometryResource>();
+    if (resource) {
+        if (resource->isLoaded() && resource->shouldSetTextures()) {
+            resource->setTextures();
+        }
+    }
+    return resource;
+}
+
+GeometryResource::Pointer ModelCache::getCollisionGeometryResource(const QUrl& url,
+                                                                   const QVariantHash& mapping, const QUrl& textureBaseUrl) {
+    bool combineParts = false;
     GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
     GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra).staticCast<GeometryResource>();
     if (resource) {

@@ -136,9 +136,12 @@ class ModelCache : public ResourceCache, public Dependency {
 
 public:
     GeometryResource::Pointer getGeometryResource(const QUrl& url,
-                                                  bool combineParts,
                                                   const QVariantHash& mapping = QVariantHash(),
                                                   const QUrl& textureBaseUrl = QUrl());
+
+    GeometryResource::Pointer getCollisionGeometryResource(const QUrl& url,
+                                                           const QVariantHash& mapping = QVariantHash(),
+                                                           const QUrl& textureBaseUrl = QUrl());
 
 protected:
     friend class GeometryMappingResource;
