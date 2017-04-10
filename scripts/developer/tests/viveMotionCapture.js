@@ -33,12 +33,14 @@ var FEET_ONLY = 0;
 var FEET_AND_HIPS = 1;
 var FEET_AND_CHEST = 2;
 var FEET_HIPS_AND_CHEST = 3;
+var AUTO = 4;
 
 var SENSOR_CONFIG_NAMES = [
     "FeetOnly",
     "FeetAndHips",
     "FeetAndChest",
-    "FeetHipsAndChest"
+    "FeetHipsAndChest",
+    "Auto"
 ];
 
 var ANIM_VARS = [
@@ -56,29 +58,46 @@ var ANIM_VARS = [
     "spine2Rotation"
 ];
 
-var sensorConfig = FEET_HIPS_AND_CHEST;
+var sensorConfig = AUTO;
 
 var Y_180 = {x: 0, y: 1, z: 0, w: 0};
 var Y_180_XFORM = new Xform(Y_180, {x: 0, y: 0, z: 0});
 
-function computeOffsetXform(pose, jointIndex) {
+function computeOffsetXform(defaultToReferenceXform, pose, jointIndex) {
     var poseXform = new Xform(pose.rotation, pose.translation);
 
-    // TODO: we can do better here...
-    // one idea, hang default pose skeleton from HMD head.
-    var referenceXform = new Xform(MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame(jointIndex),
-                                   MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(jointIndex));
+    var defaultJointXform = new Xform(MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame(jointIndex),
+                                      MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(jointIndex));
 
-    return Xform.mul(poseXform.inv(), referenceXform);
+    var referenceJointXform = Xform.mul(defaultToReferenceXform, defaultJointXform);
+
+    return Xform.mul(poseXform.inv(), referenceJointXform);
+}
+
+function computeDefaultToReferenceXform() {
+    var headIndex = MyAvatar.getJointIndex("Head");
+    if (headIndex >= 0) {
+        var defaultHeadXform = new Xform(MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame(headIndex),
+                                         MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(headIndex));
+        var currentHeadXform = new Xform(Quat.cancelOutRollAndPitch(MyAvatar.getAbsoluteJointRotationInObjectFrame(headIndex)),
+                                         MyAvatar.getAbsoluteJointTranslationInObjectFrame(headIndex));
+
+        var defaultToReferenceXform = Xform.mul(currentHeadXform, defaultHeadXform.inv());
+
+        return defaultToReferenceXform;
+    } else {
+        return new Xform.ident();
+    }
 }
 
 function calibrate() {
-    print("AJT: calibrating...");
 
     leftFoot = undefined;
     rightFoot = undefined;
     hips = undefined;
     spine2 = undefined;
+
+    var defaultToReferenceXform = computeDefaultToReferenceXform();
 
     var poses = [];
     if (Controller.Hardware.Vive) {
@@ -92,6 +111,23 @@ function calibrate() {
                 });
             }
         });
+    }
+
+    print("AJT: calibrating, num tracked poses = " + poses.length + ", sensorConfig = " + SENSOR_CONFIG_NAMES[sensorConfig]);
+
+    var config = sensorConfig;
+
+    if (config === AUTO) {
+        if (poses.length === 2) {
+            config = FEET_ONLY;
+        } else if (poses.length === 3) {
+            config = FEET_AND_HIPS;
+        } else if (poses.length >= 4) {
+            config = FEET_HIPS_AND_CHEST;
+        } else {
+            print("AJT: auto config failed: poses.length = " + poses.length);
+            config = FEET_ONLY;
+        }
     }
 
     if (poses.length >= 2) {
@@ -111,33 +147,33 @@ function calibrate() {
         }
 
         // compute offsets
-        rightFoot.offsetXform = computeOffsetXform(rightFoot.pose, MyAvatar.getJointIndex("RightFoot"));
-        leftFoot.offsetXform = computeOffsetXform(leftFoot.pose, MyAvatar.getJointIndex("LeftFoot"));
+        rightFoot.offsetXform = computeOffsetXform(defaultToReferenceXform, rightFoot.pose, MyAvatar.getJointIndex("RightFoot"));
+        leftFoot.offsetXform = computeOffsetXform(defaultToReferenceXform, leftFoot.pose, MyAvatar.getJointIndex("LeftFoot"));
 
         print("AJT: rightFoot = " + JSON.stringify(rightFoot));
         print("AJT: leftFoot = " + JSON.stringify(leftFoot));
 
-        if (sensorConfig === FEET_ONLY) {
+        if (config === FEET_ONLY) {
             // we're done!
-        } else if (sensorConfig === FEET_AND_HIPS && poses.length >= 3) {
+        } else if (config === FEET_AND_HIPS && poses.length >= 3) {
             hips = poses[2];
-        } else if (sensorConfig === FEET_AND_CHEST && poses.length >= 3) {
+        } else if (config === FEET_AND_CHEST && poses.length >= 3) {
             spine2 = poses[2];
-        } else if (sensorConfig === FEET_HIPS_AND_CHEST && poses.length >= 4) {
+        } else if (config === FEET_HIPS_AND_CHEST && poses.length >= 4) {
             hips = poses[2];
             spine2 = poses[3];
         } else {
             // TODO: better error messages
-            print("AJT: could not calibrate for sensor config " + SENSOR_CONFIG_NAMES[sensorConfig] + ", please try again!");
+            print("AJT: could not calibrate for sensor config " + SENSOR_CONFIG_NAMES[config] + ", please try again!");
         }
 
         if (hips) {
-            hips.offsetXform = computeOffsetXform(hips.pose, MyAvatar.getJointIndex("Hips"));
+            hips.offsetXform = computeOffsetXform(defaultToReferenceXform, hips.pose, MyAvatar.getJointIndex("Hips"));
             print("AJT: hips = " + JSON.stringify(hips));
         }
 
         if (spine2) {
-            spine2.offsetXform = computeOffsetXform(spine2.pose, MyAvatar.getJointIndex("Spine2"));
+            spine2.offsetXform = computeOffsetXform(defaultToReferenceXform, spine2.pose, MyAvatar.getJointIndex("Spine2"));
             print("AJT: spine2 = " + JSON.stringify(spine2));
         }
 
@@ -246,6 +282,20 @@ function update(dt) {
             DebugDraw.addMyAvatarMarker("hipsTracker", hipsPose.rotation, hipsPose.translation, GREEN);
         }
     }
+
+    var drawReferencePose = false;
+    if (drawReferencePose) {
+        var GREEN = {x: 0, y: 1, z: 0, w: 1};
+        var defaultToReferenceXform = computeDefaultToReferenceXform();
+        var leftFootIndex = MyAvatar.getJointIndex("LeftFoot");
+        if (leftFootIndex > 0) {
+            var defaultLeftFootXform = new Xform(MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame(leftFootIndex),
+                                                 MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(leftFootIndex));
+            var referenceLeftFootXform = Xform.mul(defaultToReferenceXform, defaultLeftFootXform);
+            DebugDraw.addMyAvatarMarker("leftFootTracker", referenceLeftFootXform.rot, referenceLeftFootXform.pos, GREEN);
+        }
+    }
+
 }
 
 Script.update.connect(update);
