@@ -59,6 +59,7 @@
 #include "FileScriptingInterface.h" // unzip project
 #include "MenuItemProperties.h"
 #include "ScriptAudioInjector.h"
+#include "ScriptAvatarData.h"
 #include "ScriptCache.h"
 #include "ScriptEngineLogging.h"
 #include "ScriptEngine.h"
@@ -111,15 +112,15 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
     return QScriptValue();
 }
 
-QScriptValue avatarDataToScriptValue(QScriptEngine* engine, const AvatarSharedPointer& in) {
-    return engine->newQObject(new AvatarDataScriptingInterface(in), QScriptEngine::ScriptOwnership);
+/*
+QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &in) {
+    return engine->newQObject(in, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
 }
 
 void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
-    if (auto avatarDataInterface = qobject_cast<AvatarDataScriptingInterface*>(object.toQObject())) {
-        out = avatarDataInterface->getAvatarData();
-    }
+    out = qobject_cast<AvatarData*>(object.toQObject());
 }
+*/
 
 Q_DECLARE_METATYPE(controller::InputController*)
 //static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
