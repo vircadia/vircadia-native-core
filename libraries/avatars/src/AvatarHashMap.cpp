@@ -35,14 +35,14 @@ AvatarData* AvatarHashMap::getAvatar(QUuid avatarID) {
     return getAvatarBySessionID(avatarID).get();
 }
 
-QSharedPointer<AvatarData> AvatarHashMap::getAvatarCopy(QUuid avatarID) {
+AvatarData* AvatarHashMap::getAvatarCopy(QUuid avatarID) {
     AvatarData* avatarDataOriginal = getAvatarBySessionID(avatarID).get();
-    QSharedPointer<AvatarData> avatarDataCopy{ new AvatarData };
+    AvatarData* avatarDataCopy { new AvatarData };
     avatarDataCopy->setSessionUUID(avatarDataOriginal->getSessionUUID());
     avatarDataCopy->setSessionDisplayName(avatarDataOriginal->getSessionDisplayName());
     avatarDataCopy->setPosition(avatarDataOriginal->getPosition());
-    //avatarDataCopy->setAudioLoudness(avatarDataOriginal->getAudioLoudness());
-    //avatarDataCopy->setAudioAverageLoudness(avatarDataOriginal->getAudioAverageLoudness());
+    avatarDataCopy->setAudioLoudness(avatarDataOriginal->getAudioLoudness());
+    avatarDataCopy->setAudioAverageLoudness(avatarDataOriginal->getAudioAverageLoudness());
     return avatarDataCopy;
 }
 
