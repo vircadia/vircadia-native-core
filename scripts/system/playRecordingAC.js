@@ -74,9 +74,12 @@
             };
 
             entityID = Entities.addEntity(properties);
-            // TODO: Handle failure adding entity?
+            if (!Uuid.isNull(entityID)) {
+                updateTimestampTimer = Script.setInterval(onUpdateTimestamp, TIMESTAMP_UPDATE_INTERVAL);
+                return true;
+            }
 
-            updateTimestampTimer = Script.setInterval(onUpdateTimestamp, TIMESTAMP_UPDATE_INTERVAL);
+            return false;
         }
 
         function find(scriptUUID) {
@@ -205,13 +208,14 @@
         }
 
         function play(recording, position, orientation) {
-            isPlayingRecording = true;
-            recordingFilename = recording;
-
-            log("Play new recording " + recordingFilename);
-
-            Entity.create(recordingFilename, position, orientation, scriptUUID);
-            playRecording(recordingFilename, position, orientation);
+            if (Entity.create(recordingFilename, position, orientation, scriptUUID)) {
+                log("Play new recording " + recordingFilename);
+                isPlayingRecording = true;
+                recordingFilename = recording;
+                playRecording(recordingFilename, position, orientation);
+            } else {
+                log("Could not create entity to play new recording " + recordingFilename);
+            }
         }
 
         function autoPlay() {
