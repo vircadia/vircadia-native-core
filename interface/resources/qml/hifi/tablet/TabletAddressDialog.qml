@@ -255,7 +255,7 @@ StackView {
                 TabletTextButton {
                     id: allTab;
                     text: "ALL";
-                    property string includeActions: 'snapshot, concurrency';
+                    property string includeActions: 'snapshot,concurrency';
                     selected: allTab === selectedTab;
                     action: tabSelect;
                 }
