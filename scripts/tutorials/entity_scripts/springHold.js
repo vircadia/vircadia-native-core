@@ -74,7 +74,6 @@
     }
 
     function deleteCopy() {
-        print("Delete copy");
         Entities.deleteEntity(_this.copy);
     }
 
@@ -101,7 +100,6 @@
             _this.entityID = entityID;
         },
         startNearGrab: function(entityID, data) {
-            print("start spring grab");
             createCopy();
             createSpringAction(TIMESCALE);
             makeOriginalInvisible();
@@ -110,7 +108,6 @@
             updateSpringAction(TIMESCALE);
         },
         releaseGrab: function() {
-            print("end spring grab");
             deleteSpringAction();
             deleteCopy();
             makeOriginalVisible();
