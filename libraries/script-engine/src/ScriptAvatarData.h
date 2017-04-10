@@ -103,11 +103,16 @@ public:
     const QString getSkeletonModelURLFromScript();
     const QVector<AttachmentData> getAttachmentData();
     const QStringList getJointNames();
-    /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
-    Q_INVOKABLE virtual int getJointIndex(const QString& name) const;
     Q_INVOKABLE char getHandState() const;
     Q_INVOKABLE virtual glm::quat getJointRotation(int index) const;
     Q_INVOKABLE virtual glm::vec3 getJointTranslation(int index) const;
+    Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
+    Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
+    Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
+    Q_INVOKABLE bool isJointDataValid(const QString& name) const;
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const;
+    Q_INVOKABLE virtual QStringList getJointNames() const;
+    Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
 
     //
     // AUDIO PROPERTIES

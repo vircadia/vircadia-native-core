@@ -195,13 +195,6 @@ const QStringList ScriptAvatarData::getJointNames() {
         return QStringList();
     }
 }
-int ScriptAvatarData::getJointIndex(const QString& name) const {
-    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
-        return sharedAvatarData->getJointIndex(name);
-    } else {
-        return -1;
-    }
-}
 char ScriptAvatarData::getHandState() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getHandState();
@@ -221,6 +214,55 @@ glm::vec3 ScriptAvatarData::getJointTranslation(int index) const {
         return sharedAvatarData->getJointTranslation(index);
     } else {
         return glm::vec3();
+    }
+}
+glm::quat ScriptAvatarData::getJointRotation(const QString& name) const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getJointRotation(name);
+    } else {
+        return glm::quat();
+    }
+}
+glm::vec3 ScriptAvatarData::getJointTranslation(const QString& name) const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getJointTranslation(name);
+    } else {
+        return glm::vec3();
+    }
+}
+QVector<glm::quat> ScriptAvatarData::getJointRotations() const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getJointRotations();
+    } else {
+        return QVector<glm::quat>();
+    }
+}
+bool ScriptAvatarData::isJointDataValid(const QString& name) const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->isJointDataValid(name);
+    } else {
+        return false;
+    }
+}
+int ScriptAvatarData::getJointIndex(const QString& name) const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getJointIndex(name);
+    } else {
+        return -1;
+    }
+}
+QStringList ScriptAvatarData::getJointNames() const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getJointNames();
+    } else {
+        return QStringList();
+    }
+}
+QVector<AttachmentData> ScriptAvatarData::getAttachmentData() const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getAttachmentData();
+    } else {
+        return QVector<AttachmentData>();
     }
 }
 //
