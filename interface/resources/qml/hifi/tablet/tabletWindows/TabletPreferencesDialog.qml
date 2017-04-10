@@ -55,7 +55,7 @@ Item {
     }
 
     function closeDialog() {
-        Tablet.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
+        Tablet.getTablet("com.highfidelity.interface.tablet.system").returnToPreviousApp();
     }
 
     Rectangle {
