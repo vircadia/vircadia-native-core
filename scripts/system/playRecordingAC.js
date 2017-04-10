@@ -245,6 +245,7 @@
 
             if (Recording.isPlaying()) {
                 Recording.stopPlaying();
+                Agent.isAvatar = false;
             }
             isPlayingRecording = false;
             recordingFilename = "";
