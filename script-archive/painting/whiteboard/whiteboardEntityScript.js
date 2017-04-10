@@ -77,6 +77,8 @@
             //Comment out above line and uncomment below line to see difference in performance between using a whitelist, and not using one
             // this.intersection = Entities.findRayIntersection(pickRay, true);
 
+            var type = Entites.getEntityProperties(this.intersection.entityID, "type").type;
+
             if (this.intersection.intersects) {
                 var distance = Vec3.distance(handPosition, this.intersection.intersection);
                 if (distance < MAX_DISTANCE) {
@@ -98,7 +100,7 @@
                         this.oldPosition = null;
                     }
                 }
-            } else if (this.intersection.properties.type !== "Unknown") {
+            } else if (type !== "Unknown") {
                 //Sometimes ray will pick against an invisible object with type unkown... so if type is unknown, ignore
                 this.stopPainting();
             }

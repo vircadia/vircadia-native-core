@@ -69,7 +69,7 @@
             var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
             this.position = gunProps.position;
             this.rotation = gunProps.rotation;
-            this.firingDirection = Quat.getFront(this.rotation);
+            this.firingDirection = Quat.getForward(this.rotation);
             var upVec = Quat.getUp(this.rotation);
             this.barrelPoint = Vec3.sum(this.position, Vec3.multiply(upVec, this.laserOffsets.y));
             this.laserTip = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.laserLength));
@@ -151,8 +151,9 @@
                         });
                     }, randFloat(10, 200));
                 }
-                if (intersection.properties.dynamic === 1) {
-                    // Any dynaic entity can be shot
+                var isDynamic = Entities.getEntityProperties(intersection.entityID, "dynamic").dynamic;
+                if (isDynamic === 1) {
+                    // Any dynamic entity can be shot
                     Entities.editEntity(intersection.entityID, {
                         velocity: Vec3.multiply(this.firingDirection, this.bulletForce)
                     });
@@ -347,7 +348,7 @@
             this.laser = Overlays.addOverlay("line3d", {
                 start: ZERO_VECTOR,
                 end: ZERO_VECTOR,
-                color: COLORS.RED,
+                color: { red: 255, green: 0, blue: 0},
                 alpha: 1,
                 visible: true,
                 lineWidth: 2

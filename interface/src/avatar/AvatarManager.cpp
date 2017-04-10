@@ -104,11 +104,11 @@ void AvatarManager::init() {
             this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
 
     render::ScenePointer scene = qApp->getMain3DScene();
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
-        _myAvatar->addToScene(_myAvatar, scene, pendingChanges);
+        _myAvatar->addToScene(_myAvatar, scene, transaction);
     }
-    scene->enqueuePendingChanges(pendingChanges);
+    scene->enqueueTransaction(transaction);
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
@@ -192,7 +192,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             return false;
         });
 
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
     uint64_t startTime = usecTimestampNow();
     const uint64_t UPDATE_BUDGET = 2000; // usec
     uint64_t updateExpiry = startTime + UPDATE_BUDGET;
@@ -228,7 +228,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 numAvatarsUpdated++;
             }
             avatar->simulate(deltaTime, inView);
-            avatar->updateRenderItem(pendingChanges);
+            avatar->updateRenderItem(transaction);
             avatar->setLastRenderUpdateTime(startTime);
         } else {
             // we've spent our full time budget --> bail on the rest of the avatar updates
@@ -262,7 +262,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
-    qApp->getMain3DScene()->enqueuePendingChanges(pendingChanges);
+    qApp->getMain3DScene()->enqueueTransaction(transaction);
 
     simulateAvatarFades(deltaTime);
 }
@@ -283,13 +283,13 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     const float MIN_FADE_SCALE = MIN_AVATAR_SCALE;
 
     render::ScenePointer scene = qApp->getMain3DScene();
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
         avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
         avatar->animateScaleChanges(deltaTime);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
-            avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
+            avatar->removeFromScene(*fadingIterator, scene, transaction);
             // only remove from _avatarFades if we're sure its motionState has been removed from PhysicsEngine
             if (_motionStatesToRemoveFromPhysics.empty()) {
                 fadingIterator = _avatarFades.erase(fadingIterator);
@@ -302,7 +302,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
             ++fadingIterator;
         }
     }
-    scene->enqueuePendingChanges(pendingChanges);
+    scene->enqueueTransaction(transaction);
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
@@ -329,7 +329,7 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
-    AvatarHashMap::handleRemovedAvatar(removedAvatar);
+    AvatarHashMap::handleRemovedAvatar(removedAvatar, removalReason);
 
     // removedAvatar is a shared pointer to an AvatarData but we need to get to the derived Avatar
     // class in this context so we can call methods that don't exist at the base class.
@@ -424,7 +424,7 @@ void AvatarManager::getObjectsToChange(VectorOfMotionStates& result) {
     }
 }
 
-void AvatarManager::handleOutgoingChanges(const VectorOfMotionStates& motionStates) {
+void AvatarManager::handleChangedMotionStates(const VectorOfMotionStates& motionStates) {
     // TODO: extract the MyAvatar results once we use a MotionState for it.
 }
 
@@ -479,17 +479,17 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
         for (auto avatarData : _avatarHash) {
             auto avatar = std::static_pointer_cast<Avatar>(avatarData);
             render::ScenePointer scene = qApp->getMain3DScene();
-            render::PendingChanges pendingChanges;
-            avatar->addToScene(avatar, scene, pendingChanges);
-            scene->enqueuePendingChanges(pendingChanges);
+            render::Transaction transaction;
+            avatar->addToScene(avatar, scene, transaction);
+            scene->enqueueTransaction(transaction);
         }
     } else {
         for (auto avatarData : _avatarHash) {
             auto avatar = std::static_pointer_cast<Avatar>(avatarData);
             render::ScenePointer scene = qApp->getMain3DScene();
-            render::PendingChanges pendingChanges;
-            avatar->removeFromScene(avatar, scene, pendingChanges);
-            scene->enqueuePendingChanges(pendingChanges);
+            render::Transaction transaction;
+            avatar->removeFromScene(avatar, scene, transaction);
+            scene->enqueueTransaction(transaction);
         }
     }
 }

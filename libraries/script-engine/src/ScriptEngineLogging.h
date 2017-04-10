@@ -15,6 +15,7 @@
 #include <QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(scriptengine)
+Q_DECLARE_LOGGING_CATEGORY(scriptengine_module)
 
 #endif // hifi_ScriptEngineLogging_h
 

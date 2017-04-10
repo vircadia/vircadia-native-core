@@ -376,10 +376,10 @@ public:
 };
 
 bool checkMaterialsHaveTextures(const QHash<QString, FBXMaterial>& materials,
-        const QHash<QString, QByteArray>& textureFilenames, const QMultiMap<QString, QString>& _connectionChildMap) {
+        const QHash<QString, QByteArray>& textureFilepaths, const QMultiMap<QString, QString>& _connectionChildMap) {
     foreach (const QString& materialID, materials.keys()) {
         foreach (const QString& childID, _connectionChildMap.values(materialID)) {
-            if (textureFilenames.contains(childID)) {
+            if (textureFilepaths.contains(childID)) {
                 return true;
             }
         }
@@ -443,21 +443,48 @@ FBXLight extractLight(const FBXNode& object) {
     return light;
 }
 
-QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
-    QString path = QFileInfo(url).path();
-    QByteArray filename = filepath;
-    QFileInfo checkFile(path + "/" + filepath);
+QByteArray fixedTextureFilepath(QByteArray fbxRelativeFilepath, QUrl url) {
+    // first setup a QFileInfo for the passed relative filepath, with backslashes replaced by forward slashes
+    auto fileInfo = QFileInfo { fbxRelativeFilepath.replace("\\", "/") };
 
-    // check if the file exists at the RelativeFilename
-    if (!(checkFile.exists() && checkFile.isFile())) {
-        // if not, assume it is in the fbx directory
-        filename = filename.mid(filename.lastIndexOf('/') + 1);
+#ifndef Q_OS_WIN
+    // it turns out that absolute windows paths starting with drive letters look like relative paths to QFileInfo on UNIX
+    // so we add a check for that here to work around it
+    bool isRelative = fbxRelativeFilepath[1] != ':' && fileInfo.isRelative();
+#else
+    bool isRelative = fileInfo.isRelative();
+#endif
+
+    if (isRelative) {
+        // the RelativeFilename pulled from the FBX is already correctly relative
+        // so simply return this as the filepath to use
+        return fbxRelativeFilepath;
+    } else {
+        // the RelativeFilename pulled from the FBX is an absolute path
+
+        // use the URL to figure out where the FBX is being loaded from
+        auto filename = fileInfo.fileName();
+
+        if (url.isLocalFile()) {
+            // the FBX is being loaded from the local filesystem
+
+            if (fileInfo.exists() && fileInfo.isFile()) {
+                // found a file at the absolute path in the FBX, return that path
+                return fbxRelativeFilepath;
+            } else {
+                // didn't find a file at the absolute path, assume it is right beside the FBX
+                // return just the filename as the relative path
+                return filename.toUtf8();
+            }
+        } else {
+            // this is a remote file, meaning we can't really do anything with the absolute path to the texture
+            // so assume it will be right beside the fbx
+            return filename.toUtf8();
+        }
     }
-
-    return filename;
 }
 
-FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
+FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QUrl& url) {
     const FBXNode& node = _fbxNode;
     QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
@@ -833,11 +860,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         const int MODEL_UV_SCALING_MIN_SIZE = 2;
                         const int CROPPING_MIN_SIZE = 4;
                         if (subobject.name == "RelativeFilename" && subobject.properties.length() >= RELATIVE_FILENAME_MIN_SIZE) {
-                            QByteArray filename = subobject.properties.at(0).toByteArray();
-                            QByteArray filepath = filename.replace('\\', '/');
-                            filename = fileOnUrl(filepath, url);
+                            auto filepath = fixedTextureFilepath(subobject.properties.at(0).toByteArray(), url);
+                            
                             _textureFilepaths.insert(getID(object.properties), filepath);
-                            _textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName" && subobject.properties.length() >= TEXTURE_NAME_MIN_SIZE) {
                             // trim the name from the timestamp
                             QString name = QString(subobject.properties.at(0).toByteArray());
@@ -930,7 +955,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     QByteArray content;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            filepath= subobject.properties.at(0).toByteArray();
+                            filepath = subobject.properties.at(0).toByteArray();
                             filepath = filepath.replace('\\', '/');
 
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
@@ -1468,6 +1493,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     // Create the Material Library
     consolidateFBXMaterials(mapping);
 
+    // We can't allow the scaling of a given image to different sizes, because the hash used for the KTX cache is based on the original image
+    // Allowing scaling of the same image to different sizes would cause different KTX files to target the same cache key
+#if 0
     // HACK: until we get proper LOD management we're going to cap model textures
     // according to how many unique textures the model uses:
     //   1 - 8 textures --> 2048
@@ -1481,6 +1509,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     int numTextures = uniqueTextures.size();
     const int MAX_NUM_TEXTURES_AT_MAX_RESOLUTION = 8;
     int maxWidth = sqrt(MAX_NUM_PIXELS_FOR_FBX_TEXTURE);
+
     if (numTextures > MAX_NUM_TEXTURES_AT_MAX_RESOLUTION) {
         int numTextureThreshold = MAX_NUM_TEXTURES_AT_MAX_RESOLUTION;
         const int MIN_MIP_TEXTURE_WIDTH = 64;
@@ -1494,11 +1523,11 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             material.setMaxNumPixelsPerTexture(maxWidth * maxWidth);
         }
     }
-
+#endif
     geometry.materials = _fbxMaterials;
 
     // see if any materials have texture children
-    bool materialsHaveTextures = checkMaterialsHaveTextures(_fbxMaterials, _textureFilenames, _connectionChildMap);
+    bool materialsHaveTextures = checkMaterialsHaveTextures(_fbxMaterials, _textureFilepaths, _connectionChildMap);
 
     for (QMap<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
@@ -1543,7 +1572,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
                 materialIndex++;
 
-            } else if (_textureFilenames.contains(childID)) {
+            } else if (_textureFilepaths.contains(childID)) {
                 FBXTexture texture = getTexture(childID);
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
                     int partTexture = extracted.partMaterialTextures.at(j).second;
@@ -1627,13 +1656,15 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
         // whether we're skinned depends on how many clusters are attached
         const FBXCluster& firstFBXCluster = extracted.mesh.clusters.at(0);
-        int maxJointIndex = firstFBXCluster.jointIndex;
         glm::mat4 inverseModelTransform = glm::inverse(modelTransform);
         if (clusterIDs.size() > 1) {
             // this is a multi-mesh joint
-            extracted.mesh.clusterIndices.resize(extracted.mesh.vertices.size());
-            extracted.mesh.clusterWeights.resize(extracted.mesh.vertices.size());
-            float maxWeight = 0.0f;
+            const int WEIGHTS_PER_VERTEX = 4;
+            int numClusterIndices = extracted.mesh.vertices.size() * WEIGHTS_PER_VERTEX;
+            extracted.mesh.clusterIndices.fill(0, numClusterIndices);
+            QVector<float> weightAccumulators;
+            weightAccumulators.fill(0.0f, numClusterIndices);
+
             for (int i = 0; i < clusterIDs.size(); i++) {
                 QString clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
@@ -1658,61 +1689,69 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
                 ShapeVertices& points = shapeVertices.at(jointIndex);
 
-                float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int oldIndex = cluster.indices.at(j);
                     float weight = cluster.weights.at(j);
-                    totalWeight += weight;
                     for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
                             it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
+                        int newIndex = it.value();
 
                         // remember vertices with at least 1/4 weight
                         const float EXPANSION_WEIGHT_THRESHOLD = 0.99f;
                         if (weight > EXPANSION_WEIGHT_THRESHOLD) {
                             // transform to joint-frame and save for later
-                            const glm::mat4 vertexTransform = meshToJoint * glm::translate(extracted.mesh.vertices.at(it.value()));
+                            const glm::mat4 vertexTransform = meshToJoint * glm::translate(extracted.mesh.vertices.at(newIndex));
                             points.push_back(extractTranslation(vertexTransform) * clusterScale);
                         }
 
                         // look for an unused slot in the weights vector
-                        glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
+                        int weightIndex = newIndex * WEIGHTS_PER_VERTEX;
                         int lowestIndex = -1;
                         float lowestWeight = FLT_MAX;
                         int k = 0;
-                        for (; k < 4; k++) {
-                            if (weights[k] == 0.0f) {
-                                extracted.mesh.clusterIndices[it.value()][k] = i;
-                                weights[k] = weight;
+                        for (; k < WEIGHTS_PER_VERTEX; k++) {
+                            if (weightAccumulators[weightIndex + k] == 0.0f) {
+                                extracted.mesh.clusterIndices[weightIndex + k] = i;
+                                weightAccumulators[weightIndex + k] = weight;
                                 break;
                             }
-                            if (weights[k] < lowestWeight) {
+                            if (weightAccumulators[weightIndex + k] < lowestWeight) {
                                 lowestIndex = k;
-                                lowestWeight = weights[k];
+                                lowestWeight = weightAccumulators[weightIndex + k];
                             }
                         }
-                        if (k == 4 && weight > lowestWeight) {
+                        if (k == WEIGHTS_PER_VERTEX && weight > lowestWeight) {
                             // no space for an additional weight; we must replace the lowest
-                            weights[lowestIndex] = weight;
-                            extracted.mesh.clusterIndices[it.value()][lowestIndex] = i;
+                            weightAccumulators[weightIndex + lowestIndex] = weight;
+                            extracted.mesh.clusterIndices[weightIndex + lowestIndex] = i;
                         }
                     }
                 }
-                if (totalWeight > maxWeight) {
-                    maxWeight = totalWeight;
-                    maxJointIndex = jointIndex;
-                }
             }
-            // normalize the weights if they don't add up to one
-            for (int i = 0; i < extracted.mesh.clusterWeights.size(); i++) {
-                glm::vec4& weights = extracted.mesh.clusterWeights[i];
-                float total = weights.x + weights.y + weights.z + weights.w;
-                if (total != 1.0f && total != 0.0f) {
-                    weights /= total;
+
+            // now that we've accumulated the most relevant weights for each vertex
+            // normalize and compress to 8-bits
+            extracted.mesh.clusterWeights.fill(0, numClusterIndices);
+            int numVertices = extracted.mesh.vertices.size();
+            for (int i = 0; i < numVertices; ++i) {
+                int j = i * WEIGHTS_PER_VERTEX;
+
+                // normalize weights into uint8_t
+                float totalWeight = weightAccumulators[j];
+                for (int k = j + 1; k < j + WEIGHTS_PER_VERTEX; ++k) {
+                    totalWeight += weightAccumulators[k];
+                }
+                if (totalWeight > 0.0f) {
+                    const float ALMOST_HALF = 0.499f;
+                    float weightScalingFactor = (float)(UINT8_MAX) / totalWeight;
+                    for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
+                        extracted.mesh.clusterWeights[k] = (uint8_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
+                    }
                 }
             }
         } else {
             // this is a single-mesh joint
-            int jointIndex = maxJointIndex;
+            int jointIndex = firstFBXCluster.jointIndex;
             FBXJoint& joint = geometry.joints[jointIndex];
 
             // transform cluster vertices to joint-frame and save for later
@@ -1732,17 +1771,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 }
             }
         }
-        extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
-
         buildModelMesh(extracted.mesh, url);
-
-        if (extracted.mesh.isEye) {
-            if (maxJointIndex == geometry.leftEyeJointIndex) {
-                geometry.leftEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
-            } else {
-                geometry.rightEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
-            }
-        }
 
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;
@@ -1795,19 +1824,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
 
-    // Add sitting points
-    QVariantHash sittingPoints = mapping.value("sit").toHash();
-    for (QVariantHash::const_iterator it = sittingPoints.constBegin(); it != sittingPoints.constEnd(); it++) {
-        SittingPoint sittingPoint;
-        sittingPoint.name = it.key();
-
-        QVariantList properties = it->toList();
-        sittingPoint.position = parseVec3(properties.at(0).toString());
-        sittingPoint.rotation = glm::quat(glm::radians(parseVec3(properties.at(1).toString())));
-
-        geometry.sittingPoints.append(sittingPoint);
-    }
-
     // attempt to map any meshes to a named model
     for (QHash<QString, int>::const_iterator m = meshIDsToMeshIndices.constBegin();
             m != meshIDsToMeshIndices.constEnd(); m++) {
@@ -1827,13 +1843,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     return geometryPtr;
 }
 
-FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QUrl& url, bool loadLightmaps, float lightmapLevel) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
     return readFBX(&buffer, mapping, url, loadLightmaps, lightmapLevel);
 }
 
-FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QUrl& url, bool loadLightmaps, float lightmapLevel) {
     FBXReader reader;
     reader._fbxNode = FBXReader::parseFBX(device);
     reader._loadLightmaps = loadLightmaps;

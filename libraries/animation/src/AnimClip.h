@@ -30,7 +30,7 @@ public:
     AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag);
     virtual ~AnimClip() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) override;
 
     void setStartFrameVar(const QString& startFrameVar) { _startFrameVar = startFrameVar; }
     void setEndFrameVar(const QString& endFrameVar) { _endFrameVar = endFrameVar; }

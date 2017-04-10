@@ -31,7 +31,7 @@ void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
     _orientation = orientationAsQuaternion;
     _right = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_RIGHT, 0.0f));
     _up = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_UP,    0.0f));
-    _direction = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_FRONT, 0.0f));
+    _direction = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_FORWARD, 0.0f));
     _view = glm::translate(mat4(), _position) * glm::mat4_cast(_orientation);
 }
 

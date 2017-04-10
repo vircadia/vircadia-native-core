@@ -70,6 +70,10 @@ Item {
         readonly property color indigoAccent: "#9495FF"
         readonly property color magentaHighlight: "#EF93D1"
         readonly property color magentaAccent: "#A2277C"
+        readonly property color checkboxCheckedRed: "#FF0000"
+        readonly property color checkboxCheckedBorderRed: "#D00000"
+        readonly property color lightBlueHighlight: "#d6f6ff"
+
         // Semitransparent
         readonly property color darkGray30: "#4d121212"
         readonly property color darkGray0: "#00121212"
@@ -159,6 +163,7 @@ Item {
         readonly property vector2d menuPadding: Qt.vector2d(14, 102)
         readonly property real scrollbarBackgroundWidth: 18
         readonly property real scrollbarHandleWidth: scrollbarBackgroundWidth - 2
+        readonly property real tabletMenuHeader: 90
     }
 
     Item {
@@ -171,7 +176,7 @@ Item {
         readonly property real textFieldInputLabel: dimensions.largeScreen ? 13 : 9
         readonly property real textFieldSearchIcon: dimensions.largeScreen ? 30 : 24
         readonly property real tableHeading: dimensions.largeScreen ? 12 : 10
-        readonly property real tableHeadingIcon: dimensions.largeScreen ? 40 : 33
+        readonly property real tableHeadingIcon: dimensions.largeScreen ? 60 : 33
         readonly property real tableText: dimensions.largeScreen ? 15 : 12
         readonly property real buttonLabel: dimensions.largeScreen ? 13 : 9
         readonly property real iconButton: dimensions.largeScreen ? 13 : 9

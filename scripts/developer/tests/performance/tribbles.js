@@ -43,7 +43,7 @@ var HOW_FAR_UP = RANGE / 1.5;  // higher (for uneven ground) above range/2 (for 
 
 var totalCreated = 0;
 var offset = Vec3.sum(Vec3.multiply(HOW_FAR_UP, Vec3.UNIT_Y),
-                      Vec3.multiply(HOW_FAR_IN_FRONT_OF_ME, Quat.getFront(Camera.orientation)));
+                      Vec3.multiply(HOW_FAR_IN_FRONT_OF_ME, Quat.getForward(Camera.orientation)));
 var center = Vec3.sum(MyAvatar.position, offset);
 
 function randomVector(range) {

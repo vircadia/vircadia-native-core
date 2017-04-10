@@ -348,6 +348,8 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView && _hasNewJointData) {
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
+            glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
+            _skeletonModel->getRig()->computeExternalPoses(rootTransform);
             _jointDataSimulationRate.increment();
 
             _skeletonModel->simulate(deltaTime, true);
@@ -474,34 +476,34 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
     _renderItemID = scene->allocateID();
-    pendingChanges.resetItem(_renderItemID, avatarPayloadPointer);
-    _skeletonModel->addToScene(scene, pendingChanges);
+    transaction.resetItem(_renderItemID, avatarPayloadPointer);
+    _skeletonModel->addToScene(scene, transaction);
 
     for (auto& attachmentModel : _attachmentModels) {
-        attachmentModel->addToScene(scene, pendingChanges);
+        attachmentModel->addToScene(scene, transaction);
     }
 
     _inScene = true;
     return true;
 }
 
-void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    pendingChanges.removeItem(_renderItemID);
+void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+    transaction.removeItem(_renderItemID);
     render::Item::clearID(_renderItemID);
-    _skeletonModel->removeFromScene(scene, pendingChanges);
+    _skeletonModel->removeFromScene(scene, transaction);
     for (auto& attachmentModel : _attachmentModels) {
-        attachmentModel->removeFromScene(scene, pendingChanges);
+        attachmentModel->removeFromScene(scene, transaction);
     }
     _inScene = false;
 }
 
-void Avatar::updateRenderItem(render::PendingChanges& pendingChanges) {
+void Avatar::updateRenderItem(render::Transaction& transaction) {
     if (render::Item::isValidID(_renderItemID)) {
-        pendingChanges.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {});
+        transaction.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {});
     }
 }
 
@@ -678,24 +680,24 @@ void Avatar::fixupModelsInScene() {
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
     render::ScenePointer scene = qApp->getMain3DScene();
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
-        _skeletonModel->removeFromScene(scene, pendingChanges);
-        _skeletonModel->addToScene(scene, pendingChanges);
+        _skeletonModel->removeFromScene(scene, transaction);
+        _skeletonModel->addToScene(scene, transaction);
     }
     for (auto attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
-            attachmentModel->removeFromScene(scene, pendingChanges);
-            attachmentModel->addToScene(scene, pendingChanges);
+            attachmentModel->removeFromScene(scene, transaction);
+            attachmentModel->addToScene(scene, transaction);
         }
     }
 
     for (auto attachmentModelToRemove : _attachmentsToRemove) {
-        attachmentModelToRemove->removeFromScene(scene, pendingChanges);
+        attachmentModelToRemove->removeFromScene(scene, transaction);
     }
     _attachmentsToDelete.insert(_attachmentsToDelete.end(), _attachmentsToRemove.begin(), _attachmentsToRemove.end());
     _attachmentsToRemove.clear();
-    scene->enqueuePendingChanges(pendingChanges);
+    scene->enqueueTransaction(transaction);
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
@@ -1393,17 +1395,41 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
     }
 }
 
+QList<QVariant> Avatar::getSkeleton() {
+    SkeletonModelPointer skeletonModel = _skeletonModel;
+    if (skeletonModel) {
+        RigPointer rig = skeletonModel->getRig();
+        if (rig) {
+            AnimSkeleton::ConstPointer skeleton = rig->getAnimSkeleton();
+            if (skeleton) {
+                QList<QVariant> list;
+                list.reserve(skeleton->getNumJoints());
+                for (int i = 0; i < skeleton->getNumJoints(); i++) {
+                    QVariantMap obj;
+                    obj["name"] = skeleton->getJointName(i);
+                    obj["index"] = i;
+                    obj["parentIndex"] = skeleton->getParentIndex(i);
+                    list.push_back(obj);
+                }
+                return list;
+            }
+        }
+    }
+
+    return QList<QVariant>();
+}
+
 void Avatar::addToScene(AvatarSharedPointer myHandle) {
     render::ScenePointer scene = qApp->getMain3DScene();
     if (scene) {
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         auto nodelist = DependencyManager::get<NodeList>();
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()
             && !nodelist->isIgnoringNode(getSessionUUID())
             && !nodelist->isRadiusIgnoringNode(getSessionUUID())) {
-            addToScene(myHandle, scene, pendingChanges);
+            addToScene(myHandle, scene, transaction);
         }
-        scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueueTransaction(transaction);
     } else {
         qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
     }

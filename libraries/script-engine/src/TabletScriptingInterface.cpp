@@ -201,7 +201,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
             QObject::connect(quickItem, SIGNAL(windowClosed()), this, SLOT(desktopWindowClosed()));
 
-            QObject::connect(tabletRootWindow, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
+            QObject::connect(tabletRootWindow, SIGNAL(webEventReceived(QVariant)), this, SLOT(emitWebEvent(QVariant)), Qt::DirectConnection);
 
             // forward qml surface events to interface js
             connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
@@ -250,12 +250,41 @@ static QString getUsername() {
     }
 }
 
+void TabletProxy::initialScreen(const QVariant& url) {
+    if (_qmlTabletRoot) {
+        pushOntoStack(url);
+    } else {
+        _initialScreen = true;
+        _initialPath = url;
+    }
+}
+
+bool TabletProxy::isMessageDialogOpen() {
+    if (_qmlTabletRoot) {
+        QVariant result;
+        QMetaObject::invokeMethod(_qmlTabletRoot, "isDialogOpen",Qt::DirectConnection,
+                                  Q_RETURN_ARG(QVariant, result));
+
+        return result.toBool();
+    }
+
+    return false;
+}
+
+void TabletProxy::emitWebEvent(QVariant msg) {
+    emit webEventReceived(msg);
+}
+
+bool TabletProxy::isPathLoaded(QVariant path) {
+    return path.toString() == _currentPathLoaded.toString();
+}
 void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     std::lock_guard<std::mutex> guard(_mutex);
     _qmlOffscreenSurface = qmlOffscreenSurface;
     _qmlTabletRoot = qmlTabletRoot;
     if (_qmlTabletRoot && _qmlOffscreenSurface) {
-        QObject::connect(_qmlOffscreenSurface, SIGNAL(webEventReceived(QVariant)), this, SIGNAL(webEventReceived(QVariant)));
+
+        QObject::connect(_qmlOffscreenSurface, SIGNAL(webEventReceived(QVariant)), this, SLOT(emitWebEvent(QVariant)), Qt::DirectConnection);
 
         // forward qml surface events to interface js
         connect(dynamic_cast<OffscreenQmlSurface*>(_qmlOffscreenSurface), &OffscreenQmlSurface::fromQml, [this](QVariant message) {
@@ -275,7 +304,8 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
         }
 
-        gotoHomeScreen();
+        // force to the tablet to go to the homescreen
+        loadHomeScreen(true);
 
         QMetaObject::invokeMethod(_qmlTabletRoot, "setUsername", Q_ARG(const QVariant&, QVariant(getUsername())));
 
@@ -286,13 +316,22 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
                 QMetaObject::invokeMethod(_qmlTabletRoot, "setUsername", Q_ARG(const QVariant&, QVariant(getUsername())));
             }
         });
+
+        if (_initialScreen) {
+            pushOntoStack(_initialPath);
+            _initialScreen = false;
+        }
     } else {
         removeButtonsFromHomeScreen();
         _state = State::Uninitialized;
         emit screenChanged(QVariant("Closed"), QVariant(""));
+        _currentPathLoaded = "";
     }
 }
 
+void TabletProxy::gotoHomeScreen() {
+    loadHomeScreen(false);
+}
 void TabletProxy::gotoMenuScreen(const QString& submenu) {
 
     QObject* root = nullptr;
@@ -310,6 +349,7 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
         QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
         _state = State::Menu;
         emit screenChanged(QVariant("Menu"), QVariant(VRMENU_SOURCE_URL));
+        _currentPathLoaded = VRMENU_SOURCE_URL;
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
     }
 }
@@ -329,13 +369,56 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
             QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
             _state = State::QML;
             emit screenChanged(QVariant("QML"), path);
+            _currentPathLoaded = path;
             QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
+    } else {
+        qCDebug(scriptengine) << "tablet cannot load QML because _qmlTabletRoot is null";
     }
 }
 
-void TabletProxy::gotoHomeScreen() {
-    if (_state != State::Home) {
+void TabletProxy::pushOntoStack(const QVariant& path) {
+    if (_qmlTabletRoot) {
+        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
+        if (stack) {
+            QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
+        } else {
+            loadQMLSource(path);
+        }
+    } else if (_desktopWindow) {
+        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
+        if (stack) {
+            QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
+        } else {
+            qCDebug(scriptengine) << "tablet cannot push QML because _desktopWindow doesn't have child stack";
+        }
+    } else {
+        qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
+    }
+}
+
+void TabletProxy::popFromStack() {
+    if (_qmlTabletRoot) {
+        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
+        if (stack) {
+            QMetaObject::invokeMethod(stack, "popSource");
+        } else {
+            qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot doesn't have child stack";
+        }
+    } else if (_desktopWindow) {
+        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
+        if (stack) {
+            QMetaObject::invokeMethod(stack, "popSource");
+        } else {
+            qCDebug(scriptengine) << "tablet cannot pop QML because _desktopWindow doesn't have child stack";
+        }
+    } else {
+        qCDebug(scriptengine) << "tablet cannot pop QML because _qmlTabletRoot or _desktopWindow is null";
+    }
+}
+
+void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
+    if ((_state != State::Home && _state != State::Uninitialized) || forceOntoHomeScreen) {
         if (!_toolbarMode && _qmlTabletRoot) {
             auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
             QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()), Qt::DirectConnection);
@@ -349,6 +432,7 @@ void TabletProxy::gotoHomeScreen() {
         }
         _state = State::Home;
         emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
+        _currentPathLoaded = TABLET_SOURCE_URL;
     }
 }
 
@@ -373,6 +457,7 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
     }
     _state = State::Web;
     emit screenChanged(QVariant("Web"), QVariant(url));
+    _currentPathLoaded = QVariant(url);
 }
 
 QObject* TabletProxy::addButton(const QVariant& properties) {
@@ -560,7 +645,7 @@ QQuickItem* TabletProxy::getQmlTablet() const {
 }
 
 QQuickItem* TabletProxy::getQmlMenu() const {
-     if (!_qmlTabletRoot) {
+    if (!_qmlTabletRoot) {
         return nullptr;
     }
 
@@ -590,7 +675,10 @@ const QString OBJECT_NAME_KEY = "objectName";
 const QString STABLE_ORDER_KEY = "stableOrder";
 static int s_stableOrder = 1;
 
-TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) : _uuid(QUuid::createUuid()), _stableOrder(++s_stableOrder), _properties(properties) {
+TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) :
+    _uuid(QUuid::createUuid()),
+    _stableOrder(++s_stableOrder),
+    _properties(properties) {
     // this is used to uniquely identify this button.
     _properties[UUID_KEY] = _uuid;
     _properties[OBJECT_NAME_KEY] = _uuid.toString();
@@ -633,4 +721,3 @@ void TabletButtonProxy::editProperties(QVariantMap properties) {
 }
 
 #include "TabletScriptingInterface.moc"
-

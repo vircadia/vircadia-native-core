@@ -27,9 +27,6 @@ public:
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
 
-    /// Returns the framebuffer object used to render selfie maps;
-    gpu::FramebufferPointer getSelfieFramebuffer();
-
     /// Returns a free framebuffer with a single color attachment for temp or intra-frame operations
     gpu::FramebufferPointer getFramebuffer();
 
@@ -41,8 +38,6 @@ private:
     void createPrimaryFramebuffer();
 
     gpu::FramebufferPointer _shadowFramebuffer;
-
-    gpu::FramebufferPointer _selfieFramebuffer;
 
     QSize _frameBufferSize{ 100, 100 };
 

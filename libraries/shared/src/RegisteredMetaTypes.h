@@ -113,6 +113,10 @@ QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<floa
 void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vector);
 QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array);
 
+// vector<uint32_t>
+QScriptValue qVectorIntToScriptValue(QScriptEngine* engine, const QVector<uint32_t>& vector);
+void qVectorIntFromScriptValue(const QScriptValue& array, QVector<uint32_t>& vector);
+
 QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
 
 QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube);

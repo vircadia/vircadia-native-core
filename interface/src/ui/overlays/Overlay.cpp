@@ -100,6 +100,9 @@ void Overlay::setProperties(const QVariantMap& properties) {
 }
 
 QVariant Overlay::getProperty(const QString& property) {
+    if (property == "type") {
+        return QVariant(getType());
+    }
     if (property == "color") {
         return xColorToVariant(_color);
     }
@@ -193,14 +196,14 @@ float Overlay::updatePulse() {
     return _pulse;
 }
 
-bool Overlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+bool Overlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
     _renderItemID = scene->allocateID();
-    pendingChanges.resetItem(_renderItemID, std::make_shared<Overlay::Payload>(overlay));
+    transaction.resetItem(_renderItemID, std::make_shared<Overlay::Payload>(overlay));
     return true;
 }
 
-void Overlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    pendingChanges.removeItem(_renderItemID);
+void Overlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+    transaction.removeItem(_renderItemID);
     render::Item::clearID(_renderItemID);
 }
 

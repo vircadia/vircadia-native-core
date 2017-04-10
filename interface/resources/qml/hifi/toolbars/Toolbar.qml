@@ -49,7 +49,6 @@ Window {
         id: content
         implicitHeight: horizontal ? row.height : column.height
         implicitWidth: horizontal ? row.width : column.width
-        property bool wasVisibleBeforeBeingPinned: false
 
         Row {
             id: row
@@ -62,18 +61,6 @@ Window {
         }
 
         Component { id: toolbarButtonBuilder; ToolbarButton { } }
-
-        Connections {
-            target: desktop
-            onPinnedChanged: {
-                if (desktop.pinned) {
-                    content.wasVisibleBeforeBeingPinned = window.visible;
-                    window.visible = false;
-                } else {
-                    window.visible = content.wasVisibleBeforeBeingPinned;
-                }
-            }
-        }
     }
 
 
@@ -120,8 +107,6 @@ Window {
     function addButton(properties) {
         properties = properties || {}
 
-        unpinnedAlpha = 1;
-
         // If a name is specified, then check if there's an existing button with that name
         // and return it if so.  This will allow multiple clients to listen to a single button,
         // and allow scripts to be idempotent so they don't duplicate buttons if they're reloaded
@@ -138,9 +123,10 @@ Window {
         buttons.push(result);
 
         result.opacity = 1;
-        updatePinned();
 
         sortButtons();
+
+        shown = true;
 
         return result;
     }
@@ -151,24 +137,12 @@ Window {
             console.warn("Tried to remove non-existent button " + name);
             return;
         }
+
         buttons[index].destroy();
         buttons.splice(index, 1);
-        updatePinned();
 
         if (buttons.length === 0) {
-            unpinnedAlpha = 0;
+            shown = false;
         }
-    }
-
-    function updatePinned() {
-        var newPinned = false;
-        for (var i in buttons) {
-            var child = buttons[i];
-            if (child.pinned) {
-                newPinned = true;
-                break;
-            }
-        }
-        pinned = newPinned;
     }
 }

@@ -59,6 +59,7 @@ function showMarketplace() {
     UserActivityLogger.openedMarketplace();
 
     shouldActivateButton = true;
+
     tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
     onMarketplaceScreen = true;
 
@@ -121,6 +122,7 @@ function onClick() {
     if (onMarketplaceScreen) {
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
+        onMarketplaceScreen = false;
     } else {
         var entity = HMD.tabletID;
         Entities.editEntity(entity, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
@@ -140,6 +142,9 @@ tablet.screenChanged.connect(onScreenChanged);
 Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
 
 Script.scriptEnding.connect(function () {
+    if (onMarketplaceScreen) {
+        tablet.gotoHomeScreen();
+    }
     tablet.removeButton(marketplaceButton);
     tablet.screenChanged.disconnect(onScreenChanged);
     Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);

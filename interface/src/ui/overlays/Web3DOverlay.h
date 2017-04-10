@@ -31,6 +31,7 @@ public:
 
     QString pickURL();
     void loadSourceURL();
+    void setMaxFPS(uint8_t maxFPS);
     virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
 
@@ -39,6 +40,8 @@ public:
     QObject* getEventHandler();
     void setProxyWindow(QWindow* proxyWindow);
     void handlePointerEvent(const PointerEvent& event);
+    void handlePointerEventAsTouch(const PointerEvent& event);
+    void handlePointerEventAsMouse(const PointerEvent& event);
 
     // setters
     void setURL(const QString& url);
@@ -54,6 +57,11 @@ public:
 
     virtual Web3DOverlay* createClone() const override;
 
+    enum InputMode {
+        Touch,
+        Mouse
+    };
+
 public slots:
     void emitScriptEvent(const QVariant& scriptMessage);
 
@@ -62,6 +70,7 @@ signals:
     void webEventReceived(const QVariant& message);
 
 private:
+    InputMode _inputMode { Touch };
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     QMetaObject::Connection _connection;
     gpu::TexturePointer _texture;
@@ -74,6 +83,11 @@ private:
 
     bool _pressed{ false };
     QTouchDevice _touchDevice;
+
+    uint8_t _desiredMaxFPS { 10 };
+    uint8_t _currentMaxFPS { 0 };
+
+    bool _mayNeedResize { false };
 
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;

@@ -14,6 +14,7 @@ Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
 Script.include(Script.resolvePath("../libraries/Xform.js"));
 
+var VEC3_ZERO = {x: 0, y: 0, z: 0};
 var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
 var DEFAULT_DPI = 34;
@@ -22,6 +23,7 @@ var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
 var SENSOR_TO_ROOM_MATRIX = -2;
 var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
+var ROT_IDENT = {x: 0, y: 0, z: 0, w: 1};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
 var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
@@ -33,7 +35,7 @@ var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
 
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
-var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
+// var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
 var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
 
 // returns object with two fields:
@@ -45,42 +47,40 @@ function calcSpawnInfo(hand, height) {
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
     var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
 
+    if (!hand) {
+        hand = NO_HANDS;
+    }
+
     if (HMD.active && hand !== NO_HANDS) {
         var handController = getControllerWorldLocation(hand, true);
-        var controllerPosition = handController.position;
 
-        // base of the tablet is slightly above controller position
-        var TABLET_BASE_DISPLACEMENT = {x: 0, y: 0.1, z: 0};
-        var tabletBase = Vec3.sum(controllerPosition, TABLET_BASE_DISPLACEMENT);
-
-        var d = Vec3.subtract(headPos, tabletBase);
-        var theta = Math.acos(d.y / Vec3.length(d));
-        d.y = 0;
-        if (Vec3.length(d) < 0.0001) {
-            d = {x: 1, y: 0, z: 0};
-        } else {
-            d = Vec3.normalize(d);
+        var TABLET_UP_OFFSET = 0.1;
+        var TABLET_FORWARD_OFFSET = 0.1;
+        var normal = Vec3.multiplyQbyV(handController.rotation, {x: 0, y: -1, z: 0});
+        var pitch = Math.asin(normal.y);
+        var MAX_PITCH = Math.PI / 4;
+        if (pitch < -MAX_PITCH) {
+            pitch = -MAX_PITCH;
+        } else if (pitch > MAX_PITCH) {
+            pitch = MAX_PITCH;
         }
-        var w = Vec3.normalize(Vec3.cross(Y_AXIS, d));
-        var ANGLE_OFFSET = 25;
-        var q = Quat.angleAxis(theta * (180 / Math.PI) - (90 - ANGLE_OFFSET), w);
-        var u = Vec3.multiplyQbyV(q, d);
 
-        // use u to compute a full lookAt quaternion.
-        var lookAtRot = Quat.lookAt(tabletBase, Vec3.sum(tabletBase, u), Y_AXIS);
-        var yDisplacement = (height / 2);
-        var zDisplacement = 0.05;
-        var tabletOffset = Vec3.multiplyQbyV(lookAtRot, {x: 0, y: yDisplacement, z: zDisplacement});
-        finalPosition = Vec3.sum(tabletBase, tabletOffset);
+        // rebuild normal from pitch and heading.
+        var heading = Math.atan2(normal.z, normal.x);
+        normal = {x: Math.cos(heading), y: Math.sin(pitch), z: Math.sin(heading)};
+
+        var position = Vec3.sum(handController.position, {x: 0, y: TABLET_UP_OFFSET, z: 0});
+        var rotation = Quat.lookAt({x: 0, y: 0, z: 0}, normal, Y_AXIS);
+        var offset = Vec3.multiplyQbyV(rotation, {x: 0, y: height / 2, z: TABLET_FORWARD_OFFSET});
 
         return {
-            position: finalPosition,
-            rotation: lookAtRot
+            position: Vec3.sum(offset, position),
+            rotation: rotation
         };
     } else {
-        var front = Quat.getFront(headRot);
-        finalPosition = Vec3.sum(headPos, Vec3.multiply(0.6, front));
-        var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, front, {x: 0, y: 1, z: 0});
+        var forward = Quat.getForward(headRot);
+        finalPosition = Vec3.sum(headPos, Vec3.multiply(0.6, forward));
+        var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, {x: 0, y: 1, z: 0});
         return {
             position: finalPosition,
             rotation: Quat.multiply(orientation, {x: 0, y: 1, z: 0, w: 0})
@@ -96,7 +96,7 @@ function calcSpawnInfo(hand, height) {
  * @param hand [number] -1 indicates no hand, Controller.Standard.RightHand or Controller.Standard.LeftHand
  * @param clientOnly [bool] true indicates tablet model is only visible to client.
  */
-WebTablet = function (url, width, dpi, hand, clientOnly) {
+WebTablet = function (url, width, dpi, hand, clientOnly, location) {
 
     var _this = this;
 
@@ -105,6 +105,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
     this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
     this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    this.landscape = false;
 
     if (dpi) {
         this.dpi = dpi;
@@ -112,13 +113,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
     }
 
-    var modelURL;
-    if (Settings.getValue("tabletVisibleToOthers")) {
-        modelURL = TABLET_MODEL_PATH;
-    } else {
-        modelURL = LOCAL_TABLET_MODEL_PATH;
-    }
-
+    var modelURL = LOCAL_TABLET_MODEL_PATH;
     var tabletProperties = {
         name: "WebTablet Tablet",
         type: "Model",
@@ -128,22 +123,20 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
-        dimensions: {x: this.width, y: this.height, z: this.depth},
+        dimensions: this.getDimensions(),
         parentID: AVATAR_SELF_ID
     };
 
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(hand, true, tabletProperties);
+    if (location) {
+        tabletProperties.localPosition = location.localPosition;
+        tabletProperties.localRotation = location.localRotation;
+    }
 
     this.cleanUpOldTablets();
 
-    if (Settings.getValue("tabletVisibleToOthers")) {
-        this.tabletEntityID = Entities.addEntity(tabletProperties, clientOnly);
-        this.tabletIsOverlay = false;
-    } else {
-        this.tabletEntityID = Overlays.addOverlay("model", tabletProperties);
-        this.tabletIsOverlay = true;
-    }
+    this.tabletEntityID = Overlays.addOverlay("model", tabletProperties);
 
     if (this.webOverlayID) {
         Overlays.deleteOverlay(this.webOverlayID);
@@ -157,7 +150,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         url: url,
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: Quat.angleAxis(180, Y_AXIS),
-        resolution: TABLET_TEXTURE_RESOLUTION,
+        resolution: this.getTabletTextureResolution(),
         dpi: this.dpi,
         color: { red: 255, green: 255, blue: 255 },
         alpha: 1.0,
@@ -167,11 +160,11 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         isAA: HMD.active
     });
 
-    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - 0.009;
+    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
     this.homeButtonID = Overlays.addOverlay("sphere", {
         name: "homeButton",
         localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
-        localRotation: Quat.angleAxis(0, Y_AXIS),
+        localRotation: {x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor},
         alpha: 0.0,
         visible: true,
@@ -184,11 +177,18 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         if (_this.homeButtonID == senderID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             var onHomeScreen = tablet.onHomeScreen();
+            var isMessageOpen;
             if (onHomeScreen) {
-                HMD.closeTablet();
+                isMessageOpen = tablet.isMessageDialogOpen();
+                if (isMessageOpen === false) {
+                    HMD.closeTablet();
+                }
             } else {
-                tablet.gotoHomeScreen();
-                _this.setHomeButtonTexture();
+                isMessageOpen = tablet.isMessageDialogOpen();
+                if (isMessageOpen === false) {
+                    tablet.gotoHomeScreen();
+                    _this.setHomeButtonTexture();
+                }
             }
         }
     };
@@ -199,18 +199,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
         return Entities.getWebViewRoot(_this.tabletEntityID);
     };
 
-    this.getLocation = function() {
-        if (this.tabletIsOverlay) {
-            var location = Overlays.getProperty(this.tabletEntityID, "localPosition");
-            var orientation = Overlays.getProperty(this.tabletEntityID, "localOrientation");
-            return {
-                localPosition: location,
-                localRotation: orientation
-            };
-        } else {
-            return Entities.getEntityProperties(_this.tabletEntityID, ["localPosition", "localRotation"]);
-        }
-    };
     this.clicked = false;
 
     this.myOnHmdChanged = function () {
@@ -249,6 +237,42 @@ WebTablet = function (url, width, dpi, hand, clientOnly) {
     Camera.modeUpdated.connect(this.myCameraModeChanged);
 };
 
+WebTablet.prototype.getDimensions = function() {
+    if (this.landscape) {
+        return { x: this.width * 2, y: this.height, z: this.depth };
+    } else {
+        return { x: this.width, y: this.height, z: this.depth };
+    }
+};
+
+WebTablet.prototype.getTabletTextureResolution = function() {
+    if (this.landscape) {
+        return { x: TABLET_TEXTURE_RESOLUTION.x * 2, y: TABLET_TEXTURE_RESOLUTION.y };
+    } else {
+        return TABLET_TEXTURE_RESOLUTION;
+    }
+};
+
+WebTablet.prototype.setLandscape = function(newLandscapeValue) {
+    if (this.landscape == newLandscapeValue) {
+        return;
+    }
+    this.landscape = newLandscapeValue;
+    Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
+    Overlays.editOverlay(this.webOverlayID, {
+        resolution: this.getTabletTextureResolution()
+    });
+};
+
+WebTablet.prototype.getLocation = function() {
+    var location = Overlays.getProperty(this.tabletEntityID, "localPosition");
+    var orientation = Overlays.getProperty(this.tabletEntityID, "localOrientation");
+    return {
+        localPosition: location,
+        localRotation: orientation
+    };
+};
+
 WebTablet.prototype.setHomeButtonTexture = function() {
     Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
 };
@@ -265,13 +289,37 @@ WebTablet.prototype.getOverlayObject = function () {
     return Overlays.getOverlayObject(this.webOverlayID);
 };
 
+WebTablet.prototype.setWidth = function (width) {
+
+    // scale factor of natural tablet dimensions.
+    this.width = width || DEFAULT_WIDTH;
+    var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
+    this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
+
+    // update tablet model dimensions
+    Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
+
+    // update webOverlay
+    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+    var WEB_ENTITY_Y_OFFSET = 0.004;
+    Overlays.editOverlay(this.webOverlayID, {
+        localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        dpi: this.dpi
+    });
+
+    // update homeButton
+    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
+    Overlays.editOverlay(this.homeButtonID, {
+        localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
+        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor}
+    });
+};
+
 WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
-    if (this.tabletIsOverlay) {
-        Overlays.deleteOverlay(this.tabletEntityID);
-    } else {
-        Entities.deleteEntity(this.tabletEntityID);
-    }
+    Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
@@ -314,15 +362,15 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
 
     // clamp window pos so 2d tablet is not off-screen.
     var TABLET_TEXEL_PADDING = {x: 60, y: 90};
-    var X_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((TABLET_TEXTURE_RESOLUTION.x / 2) + TABLET_TEXEL_PADDING.x);
-    var Y_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((TABLET_TEXTURE_RESOLUTION.y / 2) + TABLET_TEXEL_PADDING.y);
+    var X_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((this.getTabletTextureResolution().x / 2) + TABLET_TEXEL_PADDING.x);
+    var Y_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((this.getTabletTextureResolution().y / 2) + TABLET_TEXEL_PADDING.y);
     windowPos.x = clamp(windowPos.x, X_CLAMP, Window.innerWidth - X_CLAMP);
     windowPos.y = clamp(windowPos.y, Y_CLAMP, Window.innerHeight - Y_CLAMP);
 
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
     var MAX_PADDING_FACTOR = 2.2;
-    var PADDING_FACTOR = Math.min(Window.innerHeight / TABLET_TEXTURE_RESOLUTION.y, MAX_PADDING_FACTOR);
-    var TABLET_HEIGHT = (TABLET_TEXTURE_RESOLUTION.y / this.dpi) * INCHES_TO_METERS;
+    var PADDING_FACTOR = Math.min(Window.innerHeight / this.getTabletTextureResolution().y, MAX_PADDING_FACTOR);
+    var TABLET_HEIGHT = (this.getTabletTextureResolution().y / this.dpi) * INCHES_TO_METERS;
     var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
 
     // calcualte distance from camera
@@ -387,16 +435,6 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
 
 WebTablet.prototype.onHmdChanged = function () {
 
-    if (HMD.active) {
-        Controller.mousePressEvent.disconnect(this.myMousePressEvent);
-        Controller.mouseMoveEvent.disconnect(this.myMouseMoveEvent);
-        Controller.mouseReleaseEvent.disconnect(this.myMouseReleaseEvent);
-    } else {
-        Controller.mousePressEvent.connect(this.myMousePressEvent);
-        Controller.mouseMoveEvent.connect(this.myMouseMoveEvent);
-        Controller.mouseReleaseEvent.connect(this.myMouseReleaseEvent);
-    }
-
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
@@ -456,32 +494,30 @@ WebTablet.prototype.getPosition = function () {
 WebTablet.prototype.mousePressEvent = function (event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
     var entityPickResults;
-    if (this.tabletIsOverlay) {
-        entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
-    } else {
-        entityPickResults = Entities.findRayIntersection(pickRay, true, [this.tabletEntityID]);
-    }
+    entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
     if (entityPickResults.intersects && (entityPickResults.entityID === this.tabletEntityID ||
                                          entityPickResults.overlayID === this.tabletEntityID)) {
         var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.webOverlayID, this.homeButtonID], []);
         if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             var onHomeScreen = tablet.onHomeScreen();
+            var isMessageOpen = tablet.isMessageDialogOpen();
             if (onHomeScreen) {
-                HMD.closeTablet();
+                if (isMessageOpen === false) {
+                    HMD.closeTablet();
+                }
             } else {
-                tablet.gotoHomeScreen();
-                this.setHomeButtonTexture();
+                if (isMessageOpen === false) {
+                    tablet.gotoHomeScreen();
+                    this.setHomeButtonTexture();
+                }
+                Messages.sendLocalMessage("home", this.homeButtonID);
             }
         } else if (!HMD.active && (!overlayPickResults.intersects || overlayPickResults.overlayID !== this.webOverlayID)) {
             this.dragging = true;
             var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
             this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);
-            if (this.tabletIsOverlay) {
-                this.initialLocalPosition = Overlays.getProperty(this.tabletEntityID, "localPosition");
-            } else {
-                this.initialLocalPosition = Entities.getEntityProperties(this.tabletEntityID, ["localPosition"]).localPosition;
-            }
+            this.initialLocalPosition = Overlays.getProperty(this.tabletEntityID, "localPosition");
         }
     }
 };
@@ -527,15 +563,9 @@ WebTablet.prototype.mouseMoveEvent = function (event) {
             var localIntersectionPoint = Vec3.sum(localPickRay.origin, Vec3.multiply(localPickRay.direction, result.distance));
             var localOffset = Vec3.subtract(localIntersectionPoint, this.initialLocalIntersectionPoint);
             var localPosition = Vec3.sum(this.initialLocalPosition, localOffset);
-            if (this.tabletIsOverlay) {
-                Overlays.editOverlay(this.tabletEntityID, {
-                    localPosition: localPosition
-                });
-            } else {
-                Entities.editEntity(this.tabletEntityID, {
-                    localPosition: localPosition
-                });
-            }
+            Overlays.editOverlay(this.tabletEntityID, {
+                localPosition: localPosition
+            });
         }
     }
 };

@@ -101,6 +101,7 @@ public:
     OverlayID addOverlay(Overlay::Pointer overlay);
 
     bool mousePressEvent(QMouseEvent* event);
+    bool mouseDoublePressEvent(QMouseEvent* event);
     bool mouseReleaseEvent(QMouseEvent* event);
     bool mouseMoveEvent(QMouseEvent* event);
 
@@ -212,7 +213,7 @@ public slots:
      * @function Overlays.findOverlays
      * @param {Vec3} center the point to search from.
      * @param {float} radius search radius
-     * @return {List of Overlays.OverlayID} list of overlays withing the radius
+     * @return {Overlays.OverlayID[]} list of overlays withing the radius
      */
     QVector<QUuid> findOverlays(const glm::vec3& center, float radius) const;
 
@@ -300,9 +301,11 @@ signals:
     void panelDeleted(OverlayID id);
 
     void mousePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
+    void mouseDoublePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
     void mouseReleaseOnOverlay(OverlayID overlayID, const PointerEvent& event);
     void mouseMoveOnOverlay(OverlayID overlayID, const PointerEvent& event);
     void mousePressOffOverlay();
+    void mouseDoublePressOffOverlay();
 
     void hoverEnterOverlay(OverlayID overlayID, const PointerEvent& event);
     void hoverOverOverlay(OverlayID overlayID, const PointerEvent& event);

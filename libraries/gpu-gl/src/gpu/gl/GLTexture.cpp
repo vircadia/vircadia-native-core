@@ -8,17 +8,13 @@
 
 #include "GLTexture.h"
 
-#include <NumericalConstants.h>
-
-#include "GLTextureTransfer.h"
 #include "GLBackend.h"
 
 using namespace gpu;
 using namespace gpu::gl;
 
-std::shared_ptr<GLTextureTransferHelper> GLTexture::_textureTransferHelper;
 
-const GLenum GLTexture::CUBE_FACE_LAYOUT[6] = {
+const GLenum GLTexture::CUBE_FACE_LAYOUT[GLTexture::TEXTURE_CUBE_NUM_FACES] = {
     GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
     GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
     GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
@@ -67,6 +63,17 @@ GLenum GLTexture::getGLTextureType(const Texture& texture) {
 }
 
 
+uint8_t GLTexture::getFaceCount(GLenum target) {
+    switch (target) {
+        case GL_TEXTURE_2D:
+            return TEXTURE_2D_NUM_FACES;
+        case GL_TEXTURE_CUBE_MAP:
+            return TEXTURE_CUBE_NUM_FACES;
+        default:
+            Q_UNREACHABLE();
+            break;
+    }
+}
 const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
     static std::vector<GLenum> cubeFaceTargets {
         GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -89,216 +96,34 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
     return faceTargets;
 }
 
-// Default texture memory = GPU total memory - 2GB
-#define GPU_MEMORY_RESERVE_BYTES MB_TO_BYTES(2048)
-// Minimum texture memory = 1GB
-#define TEXTURE_MEMORY_MIN_BYTES MB_TO_BYTES(1024)
-
-
-float GLTexture::getMemoryPressure() {
-    // Check for an explicit memory limit
-    auto availableTextureMemory = Texture::getAllowedGPUMemoryUsage();
-    
-
-    // If no memory limit has been set, use a percentage of the total dedicated memory
-    if (!availableTextureMemory) {
-#if 0
-        auto totalMemory = getDedicatedMemory();
-        if ((GPU_MEMORY_RESERVE_BYTES + TEXTURE_MEMORY_MIN_BYTES) > totalMemory) {
-            availableTextureMemory = TEXTURE_MEMORY_MIN_BYTES;
-        } else {
-            availableTextureMemory = totalMemory - GPU_MEMORY_RESERVE_BYTES;
-        }
-#else 
-        // Hardcode texture limit for sparse textures at 1 GB for now
-        availableTextureMemory = TEXTURE_MEMORY_MIN_BYTES;
-#endif
-    }
-
-    // Return the consumed texture memory divided by the available texture memory.
-    auto consumedGpuMemory = Context::getTextureGPUMemoryUsage() - Context::getTextureGPUFramebufferMemoryUsage();
-    float memoryPressure = (float)consumedGpuMemory / (float)availableTextureMemory;
-    static Context::Size lastConsumedGpuMemory = 0;
-    if (memoryPressure > 1.0f && lastConsumedGpuMemory != consumedGpuMemory) {
-        lastConsumedGpuMemory = consumedGpuMemory;
-        qCDebug(gpugllogging) << "Exceeded max allowed texture memory: " << consumedGpuMemory << " / " << availableTextureMemory;
-    }
-    return memoryPressure;
-}
-
-
-// Create the texture and allocate storage
-GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable) :
-    GLObject(backend, texture, id),
-    _external(false),
-    _source(texture.source()),
-    _storageStamp(texture.getStamp()),
-    _target(getGLTextureType(texture)),
-    _internalFormat(gl::GLTexelFormat::evalGLTexelFormatInternal(texture.getTexelFormat())),
-    _maxMip(texture.maxMip()),
-    _minMip(texture.minMip()),
-    _virtualSize(texture.evalTotalSize()),
-    _transferrable(transferrable)
-{
-    auto strongBackend = _backend.lock();
-    strongBackend->recycle();
-    Backend::incrementTextureGPUCount();
-    Backend::updateTextureGPUVirtualMemoryUsage(0, _virtualSize);
-    Backend::setGPUObject(texture, this);
-}
-
 GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id) :
     GLObject(backend, texture, id),
-    _external(true),
     _source(texture.source()),
-    _storageStamp(0),
-    _target(getGLTextureType(texture)),
-    _internalFormat(GL_RGBA8),
-    // FIXME force mips to 0?
-    _maxMip(texture.maxMip()),
-    _minMip(texture.minMip()),
-    _virtualSize(0),
-    _transferrable(false) 
+    _target(getGLTextureType(texture))
 {
     Backend::setGPUObject(texture, this);
-
-    // FIXME Is this necessary?
-    //withPreservedTexture([this] {
-    //    syncSampler();
-    //    if (_gpuObject.isAutogenerateMips()) {
-    //        generateMips();
-    //    }
-    //});
 }
 
 GLTexture::~GLTexture() {
     auto backend = _backend.lock();
+    if (backend && _id) {
+        backend->releaseTexture(_id, 0);
+    }
+}
+
+
+GLExternalTexture::GLExternalTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id) 
+    : Parent(backend, texture, id) { }
+
+GLExternalTexture::~GLExternalTexture() {
+    auto backend = _backend.lock();
     if (backend) {
-        if (_external) {
-            auto recycler = _gpuObject.getExternalRecycler();
-            if (recycler) {
-                backend->releaseExternalTexture(_id, recycler);
-            } else {
-                qWarning() << "No recycler available for texture " << _id << " possible leak";
-            }
-        } else if (_id) {
-            // WARNING!  Sparse textures do not use this code path.  See GL45BackendTexture for 
-            // the GL45Texture destructor for doing any required work tracking GPU stats
-            backend->releaseTexture(_id, _size);
+        auto recycler = _gpuObject.getExternalRecycler();
+        if (recycler) {
+            backend->releaseExternalTexture(_id, recycler);
+        } else {
+            qWarning() << "No recycler available for texture " << _id << " possible leak";
         }
-
-        if (!_external && !_transferrable) {
-            Backend::updateTextureGPUFramebufferMemoryUsage(_size, 0);
-        }
-    }
-    Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
-}
-
-void GLTexture::createTexture() {
-    withPreservedTexture([&] {
-        allocateStorage();
-        (void)CHECK_GL_ERROR();
-        syncSampler();
-        (void)CHECK_GL_ERROR();
-    });
-}
-
-void GLTexture::withPreservedTexture(std::function<void()> f) const {
-    GLint boundTex = -1;
-    switch (_target) {
-        case GL_TEXTURE_2D:
-            glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
-            break;
-
-        case GL_TEXTURE_CUBE_MAP:
-            glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
-            break;
-
-        default:
-            qFatal("Unsupported texture type");
-    }
-    (void)CHECK_GL_ERROR();
-
-    glBindTexture(_target, _texture);
-    f();
-    glBindTexture(_target, boundTex);
-    (void)CHECK_GL_ERROR();
-}
-
-void GLTexture::setSize(GLuint size) const {
-    if (!_external && !_transferrable) {
-        Backend::updateTextureGPUFramebufferMemoryUsage(_size, size);
-    }
-    Backend::updateTextureGPUMemoryUsage(_size, size);
-    const_cast<GLuint&>(_size) = size;
-}
-
-bool GLTexture::isInvalid() const {
-    return _storageStamp < _gpuObject.getStamp();
-}
-
-bool GLTexture::isOutdated() const {
-    return GLSyncState::Idle == _syncState && _contentStamp < _gpuObject.getDataStamp();
-}
-
-bool GLTexture::isReady() const {
-    // If we have an invalid texture, we're never ready
-    if (isInvalid()) {
-        return false;
-    }
-
-    auto syncState = _syncState.load();
-    if (isOutdated() || Idle != syncState) {
-        return false;
-    }
-
-    return true;
-}
-
-
-// Do any post-transfer operations that might be required on the main context / rendering thread
-void GLTexture::postTransfer() {
-    setSyncState(GLSyncState::Idle);
-    ++_transferCount;
-
-    // At this point the mip pixels have been loaded, we can notify the gpu texture to abandon it's memory
-    switch (_gpuObject.getType()) {
-        case Texture::TEX_2D:
-            for (uint16_t i = 0; i < Sampler::MAX_MIP_LEVEL; ++i) {
-                if (_gpuObject.isStoredMipFaceAvailable(i)) {
-                    _gpuObject.notifyMipFaceGPULoaded(i);
-                }
-            }
-            break;
-
-        case Texture::TEX_CUBE:
-            // transfer pixels from each faces
-            for (uint8_t f = 0; f < CUBE_NUM_FACES; f++) {
-                for (uint16_t i = 0; i < Sampler::MAX_MIP_LEVEL; ++i) {
-                    if (_gpuObject.isStoredMipFaceAvailable(i, f)) {
-                        _gpuObject.notifyMipFaceGPULoaded(i, f);
-                    }
-                    }
-                }
-            break;
-
-        default:
-            qCWarning(gpugllogging) << __FUNCTION__ << " case for Texture Type " << _gpuObject.getType() << " not supported";
-            break;
+        const_cast<GLuint&>(_id) = 0;
     }
 }
-
-void GLTexture::initTextureTransferHelper() {
-    _textureTransferHelper = std::make_shared<GLTextureTransferHelper>();
-}
-
-void GLTexture::startTransfer() {
-    createTexture();
-}
-
-void GLTexture::finishTransfer() {
-    if (_gpuObject.isAutogenerateMips()) {
-        generateMips();
-    }
-}
-

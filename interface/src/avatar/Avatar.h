@@ -55,6 +55,16 @@ class Texture;
 
 class Avatar : public AvatarData {
     Q_OBJECT
+
+    /**jsdoc
+     * An avatar is representation of yourself or another user. The Avatar API can be used to query or manipulate the avatar of a user.
+     * NOTE: Avatar extends AvatarData, see those namespace for more properties/methods.
+     *
+     * @namespace Avatar
+     * @augments AvatarData
+     *
+     * @property skeletonOffset {Vec3} can be used to apply a translation offset between the avatar's position and the registration point of the 3d model.
+     */
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
@@ -72,12 +82,12 @@ public:
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
     bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
-                            render::PendingChanges& pendingChanges);
+                            render::Transaction& transaction);
 
     void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
-                                render::PendingChanges& pendingChanges);
+                                render::Transaction& transaction);
 
-    void updateRenderItem(render::PendingChanges& pendingChanges);
+    void updateRenderItem(render::Transaction& transaction);
 
     virtual void postUpdate(float deltaTime);
 
@@ -169,6 +179,21 @@ public:
     Q_INVOKABLE virtual quint16 getParentJointIndex() const override { return SpatiallyNestable::getParentJointIndex(); }
     Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex) override;
 
+    /**jsdoc
+     * Information about a single joint in an Avatar's skeleton hierarchy.
+     * @typedef Avatar.SkeletonJoint
+     * @property {string} name - name of joint
+     * @property {number} index - joint index
+     * @property {number} parentIndex - index of this joint's parent (-1 if no parent)
+     */
+
+    /**jsdoc
+     * Returns an array of joints, where each joint is an object containing name, index and parentIndex fields.
+     * @function Avatar.getSkeleton
+     * @returns {Avatar.SkeletonJoint[]} returns a list of information about each joint in this avatar's skeleton.
+     */
+    Q_INVOKABLE QList<QVariant> getSkeleton();
+
     // NOT thread safe, must be called on main thread.
     glm::vec3 getUncachedLeftPalmPosition() const;
     glm::quat getUncachedLeftPalmRotation() const;
@@ -236,7 +261,6 @@ protected:
 
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
-    glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void measureMotionDerivatives(float deltaTime);
 

@@ -18,11 +18,11 @@ layout(std140) uniform skinClusterBuffer {
     mat4 clusterMatrices[MAX_CLUSTERS];
 };
 
-void skinPosition(vec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, out vec4 skinnedPosition) {
+void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, out vec4 skinnedPosition) {
     vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
 
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[int(skinClusterIndex[i])];
+        mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
         float clusterWeight = skinClusterWeight[i];
         newPosition += clusterMatrix * inPosition * clusterWeight;
     }
@@ -30,13 +30,13 @@ void skinPosition(vec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition
     skinnedPosition = newPosition;
 }
 
-void skinPositionNormal(vec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal,
+void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal,
                         out vec4 skinnedPosition, out vec3 skinnedNormal) {
     vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 newNormal = vec4(0.0, 0.0, 0.0, 0.0);
 
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[int(skinClusterIndex[i])];
+        mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
         float clusterWeight = skinClusterWeight[i];
         newPosition += clusterMatrix * inPosition * clusterWeight;
         newNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;
@@ -46,14 +46,14 @@ void skinPositionNormal(vec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPo
     skinnedNormal = newNormal.xyz;
 }
 
-void skinPositionNormalTangent(vec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal, vec3 inTangent,
+void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal, vec3 inTangent,
                                out vec4 skinnedPosition, out vec3 skinnedNormal, out vec3 skinnedTangent) {
     vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 newNormal = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 newTangent = vec4(0.0, 0.0, 0.0, 0.0);
 
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[int(skinClusterIndex[i])];
+        mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
         float clusterWeight = skinClusterWeight[i];
         newPosition += clusterMatrix * inPosition * clusterWeight;
         newNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;

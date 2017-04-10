@@ -54,7 +54,7 @@ glm::mat4 Mat4::inverse(const glm::mat4& m) const {
     return glm::inverse(m);
 }
 
-glm::vec3 Mat4::getFront(const glm::mat4& m) const {
+glm::vec3 Mat4::getForward(const glm::mat4& m) const {
     return glm::vec3(-m[0][2], -m[1][2], -m[2][2]);
 }
 

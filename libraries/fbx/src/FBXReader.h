@@ -202,7 +202,7 @@ public:
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
 class FBXMesh {
 public:
-    
+
     QVector<FBXMeshPart> parts;
     
     QVector<glm::vec3> vertices;
@@ -211,16 +211,14 @@ public:
     QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
     QVector<glm::vec2> texCoords1;
-    QVector<glm::vec4> clusterIndices;
-    QVector<glm::vec4> clusterWeights;
-    
+    QVector<uint16_t> clusterIndices;
+    QVector<uint8_t> clusterWeights;
+
     QVector<FBXCluster> clusters;
 
     Extents meshExtents;
     glm::mat4 modelTransform;
 
-    bool isEye;
-    
     QVector<FBXBlendshape> blendshapes;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
@@ -265,30 +263,12 @@ public:
 Q_DECLARE_METATYPE(FBXAnimationFrame)
 Q_DECLARE_METATYPE(QVector<FBXAnimationFrame>)
 
-/// A point where an avatar can sit
-class SittingPoint {
-public:
-    QString name;
-    glm::vec3 position; // relative postion
-    glm::quat rotation; // relative orientation
-};
-
-inline bool operator==(const SittingPoint& lhs, const SittingPoint& rhs)
-{
-    return (lhs.name == rhs.name) && (lhs.position == rhs.position) && (lhs.rotation == rhs.rotation);
-}
-
-inline bool operator!=(const SittingPoint& lhs, const SittingPoint& rhs)
-{
-    return (lhs.name != rhs.name) || (lhs.position != rhs.position) || (lhs.rotation != rhs.rotation);
-}
-
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
 public:
     using Pointer = std::shared_ptr<FBXGeometry>;
 
-    QString originalURL;
+    QUrl originalURL;
     QString author;
     QString applicationName; ///< the name of the application that generated the model
 
@@ -300,7 +280,7 @@ public:
 
     QHash<QString, FBXMaterial> materials;
 
-    glm::mat4 offset;
+    glm::mat4 offset; // This includes offset, rotation, and scale as specified by the FST file
     
     int leftEyeJointIndex = -1;
     int rightEyeJointIndex = -1;
@@ -319,8 +299,6 @@ public:
     QVector<int> humanIKJointIndices;
     
     glm::vec3 palmDirection;
-    
-    QVector<SittingPoint> sittingPoints;
     
     glm::vec3 neckPivot;
     
@@ -352,11 +330,11 @@ Q_DECLARE_METATYPE(FBXGeometry::Pointer)
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QUrl& url = QUrl(), bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QUrl& url = QUrl(), bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 class TextureParam {
 public:
@@ -424,19 +402,17 @@ public:
     FBXNode _fbxNode;
     static FBXNode parseFBX(QIODevice* device);
 
-    FBXGeometry* extractFBXGeometry(const QVariantHash& mapping, const QString& url);
+    FBXGeometry* extractFBXGeometry(const QVariantHash& mapping, const QUrl& url);
 
     ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex);
     QHash<QString, ExtractedMesh> meshes;
-    static void buildModelMesh(FBXMesh& extractedMesh, const QString& url);
+    static void buildModelMesh(FBXMesh& extractedMesh, const QUrl& url);
 
     FBXTexture getTexture(const QString& textureID);
 
     QHash<QString, QString> _textureNames;
     // Hashes the original RelativeFilename of textures
     QHash<QString, QByteArray> _textureFilepaths;
-    // Hashes the place to look for textures, in case they are not inlined
-    QHash<QString, QByteArray> _textureFilenames;
     // Hashes texture content by filepath, in case they are inlined
     QHash<QByteArray, QByteArray> _textureContent;
     QHash<QString, TextureParam> _textureParams;

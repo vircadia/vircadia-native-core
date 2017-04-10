@@ -48,6 +48,7 @@
 #include <gpu/gl/GLTexture.h>
 #include <gpu/StandardShaderLib.h>
 
+#include <GenericThread.h>
 #include <AddressManager.h>
 #include <NodeList.h>
 #include <TextureCache.h>
@@ -455,7 +456,7 @@ protected:
             return;
         }
         auto texture = _textures[_currentTextureIndex];
-        texture->setMinMip(texture->minMip() + 1);
+        texture->setMinMip(texture->getMinMip() + 1);
     }
 
     void loadTexture() {
