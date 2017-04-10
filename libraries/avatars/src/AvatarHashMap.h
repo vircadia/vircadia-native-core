@@ -37,7 +37,8 @@ public:
 
     // Currently, your own avatar will be included as the null avatar id.
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
-    Q_INVOKABLE AvatarSharedPointer getAvatar(QUuid avatarID);
+    // Null/Default-constructed QUuids will return MyAvatar
+    Q_INVOKABLE AvatarSharedPointer getAvatar(QUuid avatarID) { return getAvatarBySessionID(avatarID); }
 
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const { return findAvatar(sessionID); }
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);

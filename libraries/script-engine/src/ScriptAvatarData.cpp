@@ -17,7 +17,7 @@ QScriptValue avatarDataToScriptValue(QScriptEngine* engine, const AvatarSharedPo
 }
 
 void avatarDataFromScriptValue(const QScriptValue& object, AvatarSharedPointer& out) {
-    // Not implemented - this should never happen (yet)
+    // This is not implemented because there are no slots/properties that take expect an AvatarSharedPointer from a script
     assert(false);
     out = AvatarSharedPointer(nullptr);
 }
