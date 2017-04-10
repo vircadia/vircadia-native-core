@@ -111,12 +111,14 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
     return QScriptValue();
 }
 
-QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &in) {
-    return engine->newQObject(in, QScriptEngine::ScriptOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
+QScriptValue avatarDataToScriptValue(QScriptEngine* engine, const AvatarSharedPointer& in) {
+    return engine->newQObject(new AvatarDataScriptingInterface(in), QScriptEngine::ScriptOwnership);
 }
 
 void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
-    out = qobject_cast<AvatarData*>(object.toQObject());
+    if (auto avatarDataInterface = qobject_cast<AvatarDataScriptingInterface*>(object.toQObject())) {
+        out = avatarDataInterface->getAvatarData();
+    }
 }
 
 Q_DECLARE_METATYPE(controller::InputController*)

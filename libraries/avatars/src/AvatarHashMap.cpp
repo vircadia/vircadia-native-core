@@ -30,22 +30,9 @@ QVector<QUuid> AvatarHashMap::getAvatarIdentifiers() {
     return _avatarHash.keys().toVector();
 }
 
-AvatarData* AvatarHashMap::getAvatar(QUuid avatarID) {
+QSharedPointer<AvatarData> AvatarHashMap::getAvatar(QUuid avatarID) {
     // Null/Default-constructed QUuids will return MyAvatar
-    return getAvatarBySessionID(avatarID).get();
-}
-
-AvatarData* AvatarHashMap::getAvatarCopy(QUuid avatarID) {
-    AvatarData* avatarDataOriginal = getAvatarBySessionID(avatarID).get();
-    AvatarData* avatarDataCopy { new AvatarData };
-    avatarDataCopy->setSessionUUID(avatarDataOriginal->getSessionUUID());
-    avatarDataCopy->setSessionDisplayName(avatarDataOriginal->getSessionDisplayName());
-    avatarDataCopy->setPosition(avatarDataOriginal->getPosition());
-    avatarDataCopy->setRotation(avatarDataOriginal->getRotation());
-    avatarDataCopy->setAudioLoudness(avatarDataOriginal->getAudioLoudness());
-    avatarDataCopy->setAudioAverageLoudness(avatarDataOriginal->getAudioAverageLoudness());
-    avatarDataCopy->setSkeletonModelURL(avatarDataOriginal->getSkeletonModelURL());
-    return avatarDataCopy;
+    return QSharedPointer<AvatarData>(getAvatarBySessionID(avatarID).get());
 }
 
 bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
