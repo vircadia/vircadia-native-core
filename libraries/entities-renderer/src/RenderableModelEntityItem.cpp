@@ -14,6 +14,7 @@
 
 #include <QJsonDocument>
 #include <QtCore/QThread>
+#include <QUrlQuery>
 #include <glm/gtx/transform.hpp>
 
 #include <AbstractViewStateInterface.h>
@@ -621,8 +622,11 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
     auto currentCompoundShapeURL = getCompoundShapeURL();
-    QString hullURL = url + "?collision-hull";
-    ModelEntityItem::setCompoundShapeURL(hullURL);
+    QUrl hullURL(url);
+    QUrlQuery queryArgs(hullURL);
+    queryArgs.addQueryItem("collision-hull", "");
+    hullURL.setQuery(queryArgs);
+    ModelEntityItem::setCompoundShapeURL(hullURL.toString());
 
     if (getCompoundShapeURL() != currentCompoundShapeURL || !_model) {
         EntityTreePointer tree = getTree();
