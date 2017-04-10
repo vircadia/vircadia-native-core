@@ -733,3 +733,20 @@ void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
         _timeUntilNextEmit = 0.0f;
     }
 }
+
+QString ParticleEffectEntityItem::getTextures() const { 
+    QString result;
+    withReadLock([&] {
+        result = _textures;
+    });
+    return result;
+}
+
+void ParticleEffectEntityItem::setTextures(const QString& textures) {
+    withWriteLock([&] {
+        if (_textures != textures) {
+            _textures = textures;
+            _texturesChangedFlag = true;
+        }
+    });
+}

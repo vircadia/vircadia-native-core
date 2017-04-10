@@ -660,22 +660,22 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
     });
 }
 
-void RenderablePolyVoxEntityItem::setXTextureURL(QString xTextureURL) {
-    if (xTextureURL != _xTextureURL) {
+void RenderablePolyVoxEntityItem::setXTextureURL(const QString& xTextureURL) {
+    if (xTextureURL != getXTextureURL()) {
         _xTexture.clear();
         PolyVoxEntityItem::setXTextureURL(xTextureURL);
     }
 }
 
-void RenderablePolyVoxEntityItem::setYTextureURL(QString yTextureURL) {
-    if (yTextureURL != _yTextureURL) {
+void RenderablePolyVoxEntityItem::setYTextureURL(const QString& yTextureURL) {
+    if (yTextureURL != getYTextureURL()) {
         _yTexture.clear();
         PolyVoxEntityItem::setYTextureURL(yTextureURL);
     }
 }
 
-void RenderablePolyVoxEntityItem::setZTextureURL(QString zTextureURL) {
-    if (zTextureURL != _zTextureURL) {
+void RenderablePolyVoxEntityItem::setZTextureURL(const QString& zTextureURL) {
+    if (zTextureURL != getZTextureURL()) {
         _zTexture.clear();
         PolyVoxEntityItem::setZTextureURL(zTextureURL);
     }

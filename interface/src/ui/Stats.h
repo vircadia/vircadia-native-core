@@ -81,6 +81,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioSilentOutboundPPS, 0)
     STATS_PROPERTY(int, audioAudioInboundPPS, 0)
     STATS_PROPERTY(int, audioSilentInboundPPS, 0)
+    STATS_PROPERTY(int, audioPacketLoss, 0)
     STATS_PROPERTY(QString, audioCodec, QString())
     STATS_PROPERTY(QString, audioNoiseGate, QString())
 
@@ -204,6 +205,7 @@ signals:
     void audioSilentOutboundPPSChanged();
     void audioAudioInboundPPSChanged();
     void audioSilentInboundPPSChanged();
+    void audioPacketLossChanged();
     void audioCodecChanged();
     void audioNoiseGateChanged();
 
@@ -263,4 +265,3 @@ private:
 };
 
 #endif // hifi_Stats_h
-

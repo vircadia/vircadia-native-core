@@ -79,6 +79,7 @@ private:
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<TestingDialog> _testingDialog;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
+    bool _closeAddressBar { false };
 };
 
 #endif // hifi_DialogsManager_h

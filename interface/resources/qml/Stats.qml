@@ -130,7 +130,7 @@ Item {
                     id: pingCol
                     spacing: 4; x: 4; y: 4;
                     StatText {
-                        text: "Audio ping: " + root.audioPing
+                        text: "Audio ping/loss: " + root.audioPing + "/" + root.audioPacketLoss + "%"
                     }
                     StatText {
                         text: "Avatar ping: " + root.avatarPing
