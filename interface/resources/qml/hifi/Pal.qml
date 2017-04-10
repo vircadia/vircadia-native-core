@@ -310,9 +310,9 @@ Rectangle {
                             hoverEnabled: true;
                             onClicked: letterbox(hifi.glyphs.question,
                                                  "Connections and Friends",
-                                                 "<font color='purple'>Purple borders around profile pictures are <b>Connections</b>.</font><br>" +
+                                                 "<font color='purple'>Purple borders around profile pictures represent <b>Connections</b>.</font><br>" +
                                                  "When your availability is set to Everyone, Connections can see your username and location.<br><br>" +
-                                                 "<font color='green'>Green borders around profile pictures are <b>Friends</b>.</font><br>" +
+                                                 "<font color='green'>Green borders around profile pictures represent <b>Friends</b>.</font><br>" +
                                                  "When your availability is set to Friends, only Friends can see your username and location.");
                             onEntered: connectionsHelpText.color = hifi.colors.blueHighlight;
                             onExited: connectionsHelpText.color = hifi.colors.blueAccent;

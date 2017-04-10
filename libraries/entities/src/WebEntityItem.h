@@ -52,7 +52,7 @@ public:
                          void** intersectedObject, bool precisionPicking) const override;
 
     virtual void setSourceUrl(const QString& value);
-    const QString& getSourceUrl() const;
+    QString getSourceUrl() const;
 
     virtual bool wantsHandControllerPointerEvents() const override { return true; }
 

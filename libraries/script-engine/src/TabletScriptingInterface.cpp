@@ -275,6 +275,9 @@ void TabletProxy::emitWebEvent(QVariant msg) {
     emit webEventReceived(msg);
 }
 
+bool TabletProxy::isPathLoaded(QVariant path) {
+    return path.toString() == _currentPathLoaded.toString();
+}
 void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface) {
     std::lock_guard<std::mutex> guard(_mutex);
     _qmlOffscreenSurface = qmlOffscreenSurface;
@@ -322,6 +325,7 @@ void TabletProxy::setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscr
         removeButtonsFromHomeScreen();
         _state = State::Uninitialized;
         emit screenChanged(QVariant("Closed"), QVariant(""));
+        _currentPathLoaded = "";
     }
 }
 
@@ -345,6 +349,7 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
         QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
         _state = State::Menu;
         emit screenChanged(QVariant("Menu"), QVariant(VRMENU_SOURCE_URL));
+        _currentPathLoaded = VRMENU_SOURCE_URL;
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
     }
 }
@@ -364,6 +369,7 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
             QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
             _state = State::QML;
             emit screenChanged(QVariant("QML"), path);
+            _currentPathLoaded = path;
             QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
     } else {
@@ -426,6 +432,7 @@ void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
         }
         _state = State::Home;
         emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
+        _currentPathLoaded = TABLET_SOURCE_URL;
     }
 }
 
@@ -450,6 +457,7 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
     }
     _state = State::Web;
     emit screenChanged(QVariant("Web"), QVariant(url));
+    _currentPathLoaded = QVariant(url);
 }
 
 QObject* TabletProxy::addButton(const QVariant& properties) {
