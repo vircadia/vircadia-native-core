@@ -416,6 +416,8 @@ signals:
 class TaskConfig : public JobConfig {
     Q_OBJECT
 public:
+    using QConfigPointer = std::shared_ptr<QObject>;
+
     using Persistent = PersistentConfig<TaskConfig>;
 
     TaskConfig() = default ;
@@ -429,11 +431,29 @@ public:
         return findChild<typename T::Config*>(name);
     }
 
+    void connectSubJobConfig(QConfigPointer jobConfig, const std::string& name) {
+       // QConfigPointer config = _jobs.back().getConfiguration();
+        jobConfig->setParent(this);
+        jobConfig->setObjectName(name.c_str());
+
+        // Connect loaded->refresh
+       // QObject::connect(config.get(), SIGNAL(loaded()), getConfiguration().get(), SLOT(refresh()));
+        QObject::connect(jobConfig.get(), SIGNAL(loaded()), this, SLOT(refresh()));
+        static const char* DIRTY_SIGNAL = "dirty()";
+      //  if (config->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
+        if (jobConfig->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
+            // Connect dirty->refresh if defined
+         //   QObject::connect(config.get(), SIGNAL(dirty()), getConfiguration().get(), SLOT(refresh()));
+            QObject::connect(jobConfig.get(), SIGNAL(dirty()), this, SLOT(refresh()));
+        }
+    }
+
 public slots:
     void refresh();
 
 private:
-  JobConcept* _task;
+    friend Task;
+    JobConcept* _task;
 };
 
 template <class T, class C> void jobConfigure(T& data, const C& configuration) {
@@ -595,7 +615,7 @@ public:
         // Create a new job in the container's queue; returns the job's output
         template <class NT, class... NA> const Varying addJob(std::string name, const Varying& input, NA&&... args) {
             _jobs.emplace_back(name, (NT::JobModel::factoryModel(input, std::forward<NA>(args)...)));
-            QConfigPointer config = _jobs.back().getConfiguration();
+           /* QConfigPointer config = _jobs.back().getConfiguration();
             config->setParent(getConfiguration().get());
             config->setObjectName(name.c_str());
 
@@ -605,7 +625,9 @@ public:
             if (config->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
                 // Connect dirty->refresh if defined
                 QObject::connect(config.get(), SIGNAL(dirty()), getConfiguration().get(), SLOT(refresh()));
-            }
+            }*/
+
+            std::static_pointer_cast<TaskConfig>(getConfiguration())->connectSubJobConfig(_jobs.back().getConfiguration(), name);
 
             return _jobs.back().getOutput();
         }
