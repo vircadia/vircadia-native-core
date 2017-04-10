@@ -20,14 +20,11 @@
         isRecordingEnabled = false,
         tablet,
         button,
-        EVENT_BRIDGE_TYPE = "record",
-        BODY_LOADED_ACTION = "bodyLoaded",
-        USING_TOOLBAR_ACTION = "usingToolbar",
-        ENABLE_RECORDING_ACTION = "enableRecording",
 
         CountdownTimer,
         Recorder,
-        Player;
+        Player,
+        Dialog;
 
     function updateButtonState() {
         button.editProperties({ isActive: isRecordingEnabled || !Recorder.isIdle() });
@@ -296,25 +293,35 @@
             PLAYER_COMMAND_PLAY = "play",
 
             playerIDs = [],         // UUIDs of AC player scripts.
-            playerIsPlaying = [],   // True if AC player script is playing a recording.
+            playerIsPlayings = [],  // True if AC player script is playing a recording.
             playerRecordings = [],  // Assignment client mappings of recordings being played.
             playerTimestamps = [],  // Timestamps of last heartbeat update from player script.
 
             updateTimer,
             UPDATE_INTERVAL = 5000;  // Must be > player's HEARTBEAT_INTERVAL. TODO: Final value.
 
+        function numberOfPlayers() {
+            return playerIDs.length;
+        }
+
         function updatePlayers() {
             var now = Date.now(),
+                countBefore = playerIDs.length,
                 i;
 
             // Remove players that haven't sent a heartbeat for a while.
             for (i = playerTimestamps.length - 1; i >= 0; i -= 1) {
                 if (now - playerTimestamps[i] > UPDATE_INTERVAL) {
                     playerIDs.splice(i, 1);
-                    playerIsPlaying.splice(i, 1);
+                    playerIsPlayings.splice(i, 1);
                     playerRecordings.splice(i, 1);
                     playerTimestamps.splice(i, 1);
                 }
+            }
+
+            // Update UI.
+            if (playerIDs.length !== countBefore) {
+                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings);
             }
         }
 
@@ -330,7 +337,7 @@
                 orientation = MyAvatar.orientation;
             }
 
-            index = playerIsPlaying.indexOf(false);
+            index = playerIsPlayings.indexOf(false);
             if (index === -1) {
                 error("No assignment client player available to play recording "
                     + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
@@ -346,7 +353,7 @@
             }));
 
             Script.setTimeout(function () {
-                if (!playerIsPlaying[index] || playerRecordings[index] !== recording) {
+                if (!playerIsPlayings[index] || playerRecordings[index] !== recording) {
                     error("Didn't start playing recording "
                         + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
                 }
@@ -365,9 +372,10 @@
                 index = playerIDs.length;
                 playerIDs[index] = sender;
             }
-            playerIsPlaying[index] = message.playing;
+            playerIsPlayings[index] = message.playing;
             playerRecordings[index] = message.recording;
             playerTimestamps[index] = Date.now();
+            Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings);
         }
 
         function setUp() {
@@ -387,6 +395,82 @@
 
         return {
             playRecording: playRecording,
+            numberOfPlayers: numberOfPlayers,
+            setUp: setUp,
+            tearDown: tearDown
+        };
+    }());
+
+    Dialog = (function () {
+        var EVENT_BRIDGE_TYPE = "record",
+            BODY_LOADED_ACTION = "bodyLoaded",
+            USING_TOOLBAR_ACTION = "usingToolbar",
+            ENABLE_RECORDING_ACTION = "enableRecording",
+            RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
+            NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers";
+
+        function onWebEventReceived(data) {
+            var message = JSON.parse(data);
+            if (message.type === EVENT_BRIDGE_TYPE) {
+                if (message.action === BODY_LOADED_ACTION) {
+                    // Dialog's ready; initialize its state.
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
+                        action: ENABLE_RECORDING_ACTION,
+                        value: isRecordingEnabled
+                    }));
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
+                        action: USING_TOOLBAR_ACTION,
+                        value: isUsingToolbar()
+                    }));
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
+                        action: NUMBER_OF_PLAYERS_ACTION,
+                        value: Player.numberOfPlayers()
+                    }));
+                } else if (message.action === ENABLE_RECORDING_ACTION) {
+                    // User update "enable recording" checkbox.
+                    // The recording state must be idle because the dialog is open.
+                    isRecordingEnabled = message.value;
+                    updateButtonState();
+                }
+            }
+        }
+
+        function updatePlayerDetails(playerIsPlayings, playerRecordings) {
+            var recordingsBeingPlayed = [],
+                length,
+                i;
+
+            for (i = 0, length = playerIsPlayings.length; i < length; i += 1) {
+                if (playerIsPlayings[i]) {
+                    recordingsBeingPlayed.push(playerRecordings[i]);
+                }
+            }
+            tablet.emitScriptEvent(JSON.stringify({
+                type: EVENT_BRIDGE_TYPE,
+                action: RECORDINGS_BEING_PLAYED_ACTION,
+                value: JSON.stringify(recordingsBeingPlayed)
+            }));
+
+            tablet.emitScriptEvent(JSON.stringify({
+                type: EVENT_BRIDGE_TYPE,
+                action: NUMBER_OF_PLAYERS_ACTION,
+                value: playerIsPlayings.length
+            }));
+        }
+
+        function setUp() {
+            tablet.webEventReceived.connect(onWebEventReceived);
+        }
+
+        function tearDown() {
+            tablet.webEventReceived.disconnect(onWebEventReceived);
+        }
+
+        return {
+            updatePlayerDetails: updatePlayerDetails,
             setUp: setUp,
             tearDown: tearDown
         };
@@ -394,7 +478,6 @@
 
     function onTabletScreenChanged(type, url) {
         // Open/close dialog in tablet or window.
-
         var RECORD_URL = "/scripts/system/html/record.html",
             HOME_URL = "Tablet.qml";
 
@@ -433,30 +516,6 @@
         }
     }
 
-    function onWebEventReceived(data) {
-        var message = JSON.parse(data);
-        if (message.type === EVENT_BRIDGE_TYPE) {
-            if (message.action === BODY_LOADED_ACTION) {
-                // Dialog's ready; initialize its state.
-                tablet.emitScriptEvent(JSON.stringify({
-                    type: EVENT_BRIDGE_TYPE,
-                    action: ENABLE_RECORDING_ACTION,
-                    value: isRecordingEnabled
-                }));
-                tablet.emitScriptEvent(JSON.stringify({
-                    type: EVENT_BRIDGE_TYPE,
-                    action: USING_TOOLBAR_ACTION,
-                    value: isUsingToolbar()
-                }));
-            } else if (message.action === ENABLE_RECORDING_ACTION) {
-                // User update "enable recording" checkbox.
-                // The recording state must be idle because the dialog is open.
-                isRecordingEnabled = message.value;
-                updateButtonState();
-            }
-        }
-    }
-
     function onButtonClicked() {
         if (isDialogDisplayed) {
             // Can click icon in toolbar mode; gotoHomeScreen() closes dialog.
@@ -483,13 +542,11 @@
         });
         button.clicked.connect(onButtonClicked);
 
-        // UI communications.
-        tablet.webEventReceived.connect(onWebEventReceived);
-
         // Track showing/hiding tablet/dialog.
         tablet.screenChanged.connect(onTabletScreenChanged);
         tablet.tabletShownChanged.connect(onTabletShownChanged);
 
+        Dialog.setUp();
         Player.setUp();
         Recorder.setUp(Player.playRecording);
     }
@@ -501,8 +558,8 @@
 
         Recorder.tearDown();
         Player.tearDown();
+        Dialog.tearDown();
 
-        tablet.webEventReceived.disconnect(onWebEventReceived);
         tablet.tabletShownChanged.disconnect(onTabletShownChanged);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
         button.clicked.disconnect(onButtonClicked);
