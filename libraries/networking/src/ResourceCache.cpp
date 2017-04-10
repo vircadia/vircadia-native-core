@@ -665,6 +665,7 @@ void Resource::makeRequest() {
     }
 
     PROFILE_ASYNC_BEGIN(resource, "Resource:" + getType(), QString::number(_requestID), { { "url", _url.toString() }, { "activeURL", _activeUrl.toString() } });
+    qDebug() << "Making request to " << _url << " for byte range " << _requestByteRange.fromInclusive << "-" << _requestByteRange.toExclusive;
 
     _request = ResourceManager::createResourceRequest(this, _activeUrl);
 

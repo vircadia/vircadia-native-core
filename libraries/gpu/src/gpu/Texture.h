@@ -270,6 +270,7 @@ public:
         virtual void reset() = 0;
         virtual PixelsPointer getMipFace(uint16 level, uint8 face = 0) const = 0;
         virtual Size getMipFaceSize(uint16 level, uint8 face = 0) const = 0;
+        virtual void assignMipData(uint16 level, const char* data, const size_t length) = 0;
         virtual void assignMipData(uint16 level, const storage::StoragePointer& storage) = 0;
         virtual void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) = 0;
         virtual bool isMipAvailable(uint16 level, uint8 face = 0) const = 0;
@@ -296,6 +297,7 @@ public:
         void reset() override;
         PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
         Size getMipFaceSize(uint16 level, uint8 face = 0) const override;
+        void assignMipData(uint16 level, const char* data, const size_t length) override;
         void assignMipData(uint16 level, const storage::StoragePointer& storage) override;
         void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) override;
         bool isMipAvailable(uint16 level, uint8 face = 0) const override;

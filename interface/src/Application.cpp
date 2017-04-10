@@ -626,7 +626,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     proxy.setType(QNetworkProxy::HttpProxy);
     proxy.setHostName("127.0.0.1");
     proxy.setPort(8888);
-    QNetworkProxy::setApplicationProxy(proxy);
+    //QNetworkProxy::setApplicationProxy(proxy);
 
     // make sure the debug draw singleton is initialized on the main thread.
     DebugDraw::getInstance().removeMarker("");

@@ -393,7 +393,8 @@ void NetworkTexture::loadContent(const QByteArray& content) {
             auto numMipsToGet = glm::min(numMips, 6);
             auto sizeOfTopMips = 0;
             for (int i = 0; i < numMipsToGet; ++i) {
-                auto& img = desc.images[i];
+                auto mipLevel = numMips - 1 - i;
+                auto& img = desc.images[mipLevel];
                 sizeOfTopMips += img._imageSize;
             }
             _requestByteRange.fromInclusive = length - sizeOfTopMips;

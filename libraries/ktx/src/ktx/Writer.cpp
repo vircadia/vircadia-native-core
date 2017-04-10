@@ -141,8 +141,13 @@ namespace ktx {
         }
         currentDestPtr += destHeader->bytesOfKeyValueData;
 
-        for (int i = 0; i < descriptors.size(); ++i) {
-            *currentDestPtr = descriptors[i]._imageSize;
+        for (size_t i = 0; i < descriptors.size(); ++i) {
+            auto ptr = reinterpret_cast<uint32_t*>(currentDestPtr);
+            *ptr = descriptors[i]._imageSize;
+            ptr++;
+            for (size_t k = 0; k < descriptors[i]._imageSize/4; k++) {
+                *(ptr + k) = 0xFFFF0000;
+            }
             currentDestPtr += descriptors[i]._imageSize + sizeof(uint32_t);
         }
 
