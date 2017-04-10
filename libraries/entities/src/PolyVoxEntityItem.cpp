@@ -242,3 +242,129 @@ const QByteArray PolyVoxEntityItem::getVoxelData() const {
     });
     return voxelDataCopy;
 }
+
+
+void PolyVoxEntityItem::setXTextureURL(const QString& xTextureURL) { 
+    withWriteLock([&] {
+        _xTextureURL = xTextureURL;
+    });
+}
+
+QString PolyVoxEntityItem::getXTextureURL() const { 
+    QString result;
+    withReadLock([&] {
+        result = _xTextureURL;
+    });
+    return result;
+}
+
+void PolyVoxEntityItem::setYTextureURL(const QString& yTextureURL) {
+    withWriteLock([&] {
+        _yTextureURL = yTextureURL;
+    });
+}
+
+QString PolyVoxEntityItem::getYTextureURL() const { 
+    QString result;
+    withReadLock([&] {
+        result = _yTextureURL;
+    });
+    return result;
+}
+
+void PolyVoxEntityItem::setZTextureURL(const QString& zTextureURL) {
+    withWriteLock([&] {
+        _zTextureURL = zTextureURL;
+    });
+}
+QString PolyVoxEntityItem::getZTextureURL() const { 
+    QString result;
+    withReadLock([&] {
+        result = _zTextureURL;
+    });
+    return result;
+}
+
+void PolyVoxEntityItem::setXNNeighborID(const EntityItemID& xNNeighborID) { 
+    withWriteLock([&] {
+        _xNNeighborID = xNNeighborID;
+    });
+}
+
+EntityItemID PolyVoxEntityItem::getXNNeighborID() const { 
+    EntityItemID result;
+    withReadLock([&] {
+        result = _xNNeighborID;
+    });
+    return result;
+}
+
+void PolyVoxEntityItem::setYNNeighborID(const EntityItemID& yNNeighborID) { 
+    withWriteLock([&] {
+        _yNNeighborID = yNNeighborID;
+    });
+}
+
+EntityItemID PolyVoxEntityItem::getYNNeighborID() const { 
+    EntityItemID result;
+    withReadLock([&] {
+        result = _yNNeighborID;
+    });
+    return result;
+}
+
+void PolyVoxEntityItem::setZNNeighborID(const EntityItemID& zNNeighborID) { 
+    withWriteLock([&] {
+        _zNNeighborID = zNNeighborID;
+    });
+}
+
+EntityItemID PolyVoxEntityItem::getZNNeighborID() const { 
+    EntityItemID result;
+    withReadLock([&] {
+        result = _zNNeighborID;
+    });
+    return result;
+}
+
+void PolyVoxEntityItem::setXPNeighborID(const EntityItemID& xPNeighborID) { 
+    withWriteLock([&] {
+        _xPNeighborID = xPNeighborID;
+    });
+}
+
+EntityItemID PolyVoxEntityItem::getXPNeighborID() const { 
+    EntityItemID result;
+    withReadLock([&] {
+        result = _xPNeighborID;
+    });
+    return result;
+}
+
+void PolyVoxEntityItem::setYPNeighborID(const EntityItemID& yPNeighborID) { 
+    withWriteLock([&] {
+        _yPNeighborID = yPNeighborID;
+    });
+}
+
+EntityItemID PolyVoxEntityItem::getYPNeighborID() const { 
+    EntityItemID result;
+    withReadLock([&] {
+        result = _yPNeighborID;
+    });
+    return result;
+}
+
+void PolyVoxEntityItem::setZPNeighborID(const EntityItemID& zPNeighborID) { 
+    withWriteLock([&] {
+        _zPNeighborID = zPNeighborID;
+    });
+}
+
+EntityItemID PolyVoxEntityItem::getZPNeighborID() const { 
+    EntityItemID result;
+    withReadLock([&] {
+        result = _zPNeighborID;
+    });
+    return result;
+}

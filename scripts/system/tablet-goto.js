@@ -29,10 +29,15 @@
     }
 
     function onScreenChanged(type, url) {
-        // for toolbar mode: change button to active when window is first openend, false otherwise.
-        button.editProperties({isActive: shouldActivateButton});
-        shouldActivateButton = false;
-        onGotoScreen = false;
+        if (url === gotoQmlSource) {
+            onGotoScreen = true;
+            shouldActivateButton = true;
+            button.editProperties({isActive: shouldActivateButton});
+        } else { 
+            shouldActivateButton = false;
+            onGotoScreen = false;
+            button.editProperties({isActive: shouldActivateButton});
+        }
     }
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");

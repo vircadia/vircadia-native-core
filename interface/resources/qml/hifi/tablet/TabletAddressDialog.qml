@@ -33,14 +33,25 @@ StackView {
     property int cardHeight: 320;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
 
+    property var tablet: null;
+    property bool isDesktop: false;
+
     Component { id: tabletStoryCard; TabletStoryCard {} }
     Component.onCompleted: {
         root.currentItem.focus = true;
         root.currentItem.forceActiveFocus();
+        addressLine.focus = true;
+        addressLine.forceActiveFocus();
         fillDestinations();
         updateLocationText(false);
         root.parentChanged.connect(center);
         center();
+        isDesktop = (typeof desktop !== "undefined");
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+
+        if (desktop) {
+            root.title = "GOTO";
+        }
     }
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
@@ -108,6 +119,8 @@ StackView {
                 onClicked: {
                     addressBarDialog.loadHome();
                     tabletRoot.shown = false;
+                    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+                    tablet.gotoHomeScreen();
                 }
                 anchors {
                     left: parent.left
@@ -294,6 +307,7 @@ StackView {
                     right: parent.right
                     leftMargin: 10
                 }
+
                 model: suggestions
                 orientation: ListView.Vertical
 
@@ -547,6 +561,13 @@ StackView {
         if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
         }
+        
+        if (isDesktop) {
+            tablet.gotoHomeScreen();
+        } else {
+            HMD.closeTablet();
+        }
+            
         tabletRoot.shown = false;
     }
 

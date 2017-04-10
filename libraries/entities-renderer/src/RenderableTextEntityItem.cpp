@@ -77,14 +77,16 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     geometryCache->bindSimpleProgram(batch, false, transparent, false, false, true);
     geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
     
-    float scale = _lineHeight / _textRenderer->getFontSize();
+    float lineheight = getLineHeight();
+    float scale = lineheight / _textRenderer->getFontSize();
     transformToTopLeft.setScale(scale); // Scale to have the correct line height
     batch.setModelTransform(transformToTopLeft);
     
-    float leftMargin = 0.1f * _lineHeight, topMargin = 0.1f * _lineHeight;
+    float leftMargin = 0.1f * lineheight, topMargin = 0.1f * lineheight;
     glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin,
                                  dimensions.y - 2.0f * topMargin);
-    _textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, _text, textColor, bounds / scale);
+    auto text = getText();
+    _textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, text, textColor, bounds / scale);
     
 }
 
