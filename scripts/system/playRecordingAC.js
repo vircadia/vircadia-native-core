@@ -19,13 +19,15 @@
         PLAYER_COMMAND_STOP = "stop",
         heartbeatTimer = null,
         HEARTBEAT_INTERVAL = 3000,  // TODO: Final value.
+        TIMESTAMP_UPDATE_INTERVAL = 2500,  // TODO: Final value.
+        AUTOPLAY_SEARCH_INTERVAL = 5000,  // TODO: Final value.
         scriptUUID,
 
         Entity,
         Player;
 
     function log(message) {
-        print(APP_NAME + ": " + message);
+        print(APP_NAME + " " + scriptUUID + ": " + message);
     }
 
     Entity = (function () {
@@ -33,7 +35,6 @@
         var entityID = null,
             userData,
             updateTimestampTimer = null,
-            TIMESTAMP_UPDATE_INTERVAL = 2000,  // TODO: Final value.
             ENTITY_NAME = "Recording",
             ENTITY_DESCRIPTION = "Avatar recording to play back",
             ENTITIY_POSITION = { x: -16382, y: -16382, z: -16382 },  // Near but not right on domain corner.
@@ -51,6 +52,8 @@
         function create(filename, position, orientation, scriptUUID) {
             // Create a new persistence entity (even if already have one but that should never occur).
             var properties;
+
+            log("Create recording " + filename);
 
             if (updateTimestampTimer !== null) {
                 Script.clearInterval(updateTimestampTimer);  // Just in case.
@@ -104,10 +107,11 @@
                 }
                 isClaiming = false;
 
-                // Return claim as "found" if still valid.
+                // Complete claim as "found" if still valid.
                 properties = Entities.getEntityProperties(entityID, ["userData"]);
                 userData = JSON.parse(properties.userData);
                 if (userData.scriptUUID === scriptUUID) {
+                    log("Complete claim " + entityID);
                     userData.timestamp = Date.now();
                     Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
                     EntityViewer.queryOctree();  // Update octree ready for next find() call.
@@ -116,6 +120,7 @@
                 }
 
                 // Otherwise resume searching.
+                log("Release claim " + entityID);
                 EntityViewer.queryOctree();  // Update octree ready for next find() call.
                 return null;
             }
@@ -130,13 +135,14 @@
                     properties = Entities.getEntityProperties(entityIDs[index], ["name", "userData"]);
                     if (properties.name === ENTITY_NAME) {
                         userData = JSON.parse(properties.userData);
-                        isFound = (Date.now() - userData.timestamp) > ((CLAIM_CHECKS + 1) * TIMESTAMP_UPDATE_INTERVAL);
+                        isFound = (Date.now() - userData.timestamp) > ((CLAIM_CHECKS + 1) * AUTOPLAY_SEARCH_INTERVAL);
                     }
                 }
             }
 
             // Claim entity if found.
             if (isFound) {
+                log("Claim entity " + entityIDs[index]);
                 isClaiming = true;
                 claimCheckCount = 0;
                 entityID = entityIDs[index];
@@ -186,8 +192,7 @@
         // Recording playback functions.
         var isPlayingRecording = false,
             recordingFilename = "",
-            autoPlayTimer = null,
-            AUTOPLAY_SEARCH_INTERVAL = 5000;  // TODO: Final value.
+            autoPlayTimer = null;
 
         function playRecording(recording, position, orientation) {
             Agent.isAvatar = true;
