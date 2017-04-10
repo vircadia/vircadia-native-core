@@ -921,17 +921,10 @@ Rectangle {
                 property string notLoggedInInstructions: "<b><font color='red'>You must be logged into your High Fidelity account to make connections.</b></font><br>"
                 property string instructions:
                     "<b>When you meet someone you want to remember later, you can <font color='purple'>connect</font> with a handshake:</b><br><br>"
-
                 // Text
                 text:
-                    Account.isLoggedIn() ?
-                        HMD.isMounted ?
-                            instructions + hmdMountedInstructions
-                        : instructions + hmdNotMountedInstructions
-                    :
-                        HMD.isMounted ?
-                            notLoggedInInstructions + instructions + hmdMountedInstructions
-                        : notLoggedInInstructions + instructions + hmdNotMountedInstructions
+                    Account.isLoggedIn() ? ( HMD.mounted ? instructions + hmdMountedInstructions : instructions + hmdNotMountedInstructions)
+                    : ( HMD.mounted ? notLoggedInInstructions + instructions + hmdMountedInstructions : notLoggedInInstructions + instructions + hmdNotMountedInstructions
             }
 
         }
