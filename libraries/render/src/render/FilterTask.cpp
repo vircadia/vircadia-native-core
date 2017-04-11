@@ -78,7 +78,7 @@ void SelectSortItems::run(const SceneContextPointer& sceneContext, const RenderC
         indices.reserve(selectedItems.size());
 
         // Collect
-        for (int srcIndex = 0; (srcIndex < inItems.size()) && (indices.size() < selectedItems.size()) ; srcIndex++ ) {
+        for (int srcIndex = 0; ((std::size_t) srcIndex < inItems.size()) && (indices.size() < selectedItems.size()) ; srcIndex++ ) {
             int index = selection.find(inItems[srcIndex].id);
             if (index != Selection::NOT_FOUND) {
                 indices.emplace_back( Pair{ srcIndex, index } );
