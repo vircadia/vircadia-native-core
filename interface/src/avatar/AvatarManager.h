@@ -41,6 +41,10 @@ public:
     void init();
 
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
+
+    // Null/Default-constructed QUuids will return MyAvatar
+    virtual ScriptAvatar* getAvatar(QUuid avatarID) override { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
+
     AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const override;
 
     int getNumAvatarsUpdated() const { return _numAvatarsUpdated; }

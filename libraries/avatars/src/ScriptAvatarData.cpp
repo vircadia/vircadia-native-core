@@ -9,25 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ScriptEngineLogging.h"
 #include "ScriptAvatarData.h"
-
-QScriptValue avatarDataToScriptValue(QScriptEngine* engine, const AvatarSharedPointer& in) {
-    return engine->newQObject(new ScriptAvatarData(in), QScriptEngine::ScriptOwnership);
-}
-
-void avatarDataFromScriptValue(const QScriptValue& object, AvatarSharedPointer& out) {
-    // This is not implemented because there are no slots/properties that take an AvatarSharedPointer from a script
-    assert(false);
-    out = AvatarSharedPointer(nullptr);
-}
 
 ScriptAvatarData::ScriptAvatarData(AvatarSharedPointer avatarData) :
     _avatarData(avatarData)
 {
     QObject::connect(avatarData.get(), &AvatarData::displayNameChanged, this, &ScriptAvatarData::displayNameChanged);
 }
-
 
 //
 // PHYSICAL PROPERTIES: POSITION AND ORIENTATION

@@ -11,16 +11,6 @@
 
 #include "ScriptAvatar.h"
 
-QScriptValue avatarToScriptValue(QScriptEngine* engine, const AvatarSharedPointer& in) {
-    return engine->newQObject(new ScriptAvatar(in), QScriptEngine::ScriptOwnership);
-}
-
-void avatarFromScriptValue(const QScriptValue& object, AvatarSharedPointer& out) {
-    // This is not implemented because there are no slots/properties that take an std::shared_ptr<Avatar> from a script
-    assert(false);
-    out = std::shared_ptr<Avatar>();
-}
-
 ScriptAvatar::ScriptAvatar(AvatarSharedPointer avatarData) :
     ScriptAvatarData(avatarData)
 {

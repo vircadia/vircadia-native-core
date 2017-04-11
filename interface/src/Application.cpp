@@ -5438,9 +5438,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);
 
-    // register meta types for retrieval of Avatar objects
-    qScriptRegisterMetaType(scriptEngine, avatarToScriptValue, avatarFromScriptValue);
-
     if (property(hifi::properties::TEST).isValid()) {
         scriptEngine->registerGlobalObject("Test", TestScriptingInterface::getInstance());
     }

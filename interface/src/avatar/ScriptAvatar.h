@@ -55,7 +55,4 @@ private:
     std::weak_ptr<AvatarData> _avatarData;
 };
 
-QScriptValue avatarToScriptValue(QScriptEngine* engine, const AvatarSharedPointer& in);
-void avatarFromScriptValue(const QScriptValue& object, AvatarSharedPointer& out);
-
 #endif // hifi_ScriptAvatar_h

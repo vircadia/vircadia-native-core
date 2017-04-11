@@ -44,6 +44,7 @@
 #include <PathUtils.h>
 #include <ResourceScriptingInterface.h>
 #include <NodeList.h>
+#include <ScriptAvatarData.h>
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
 #include <ui/Menu.h>
@@ -535,6 +536,16 @@ static QScriptValue createScriptableResourcePrototype(QScriptEngine* engine) {
     return prototype;
 }
 
+QScriptValue avatarDataToScriptValue(QScriptEngine* engine, ScriptAvatarData* const& in) {
+    return engine->newQObject(in, QScriptEngine::ScriptOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
+}
+
+void avatarDataFromScriptValue(const QScriptValue& object, ScriptAvatarData*& out) {
+    // This is not implemented because there are no slots/properties that take an AvatarSharedPointer from a script
+    assert(false);
+    out = nullptr;
+}
+
 void ScriptEngine::resetModuleCache(bool deleteScriptCache) {
     if (QThread::currentThread() != thread()) {
         executeOnScriptThread([=]() { resetModuleCache(deleteScriptCache); });
@@ -614,6 +625,7 @@ void ScriptEngine::init() {
 
     qScriptRegisterMetaType(this, injectorToScriptValue, injectorFromScriptValue);
     qScriptRegisterMetaType(this, inputControllerToScriptValue, inputControllerFromScriptValue);
+    qScriptRegisterMetaType(this, avatarDataToScriptValue, avatarDataFromScriptValue);
     qScriptRegisterMetaType(this, animationDetailsToScriptValue, animationDetailsFromScriptValue);
     qScriptRegisterMetaType(this, webSocketToScriptValue, webSocketFromScriptValue);
     qScriptRegisterMetaType(this, qWSCloseCodeToScriptValue, qWSCloseCodeFromScriptValue);

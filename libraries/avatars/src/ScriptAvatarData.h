@@ -13,7 +13,8 @@
 #define hifi_ScriptAvatarData_h
 
 #include <QtCore/QObject>
-#include <AvatarData.h>
+
+#include "AvatarData.h"
 
 class ScriptAvatarData : public QObject {
     Q_OBJECT
@@ -133,10 +134,5 @@ public slots:
 private:
     std::weak_ptr<AvatarData> _avatarData;
 };
-
-Q_DECLARE_METATYPE(AvatarSharedPointer)
-
-QScriptValue avatarDataToScriptValue(QScriptEngine* engine, const AvatarSharedPointer& in);
-void avatarDataFromScriptValue(const QScriptValue& object, AvatarSharedPointer& out);
 
 #endif // hifi_ScriptAvatarData_h

@@ -25,6 +25,8 @@
 #include <NLPacket.h>
 #include <Node.h>
 
+#include "ScriptAvatarData.h"
+
 #include "AvatarData.h"
 
 class AvatarHashMap : public QObject, public Dependency {
@@ -37,8 +39,9 @@ public:
 
     // Currently, your own avatar will be included as the null avatar id.
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
+
     // Null/Default-constructed QUuids will return MyAvatar
-    Q_INVOKABLE AvatarSharedPointer getAvatar(QUuid avatarID) { return getAvatarBySessionID(avatarID); }
+    virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
 
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const { return findAvatar(sessionID); }
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
