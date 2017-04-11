@@ -14,7 +14,6 @@
 
 #include <QtCore/QObject>
 #include <AvatarData.h>
-#include <SpatiallyNestable.h>
 
 class ScriptAvatarData : public QObject {
     Q_OBJECT
@@ -137,7 +136,7 @@ private:
 
 Q_DECLARE_METATYPE(AvatarSharedPointer)
 
-QScriptValue avatarDataToScriptValue(QScriptEngine* engine, const AvatarSharedPointer& in);
-void avatarDataFromScriptValue(const QScriptValue& object, AvatarSharedPointer& out);
+QScriptValue avatarToScriptValue(QScriptEngine* engine, const AvatarSharedPointer& in);
+void avatarFromScriptValue(const QScriptValue& object, AvatarSharedPointer& out);
 
 #endif // hifi_ScriptAvatarData_h

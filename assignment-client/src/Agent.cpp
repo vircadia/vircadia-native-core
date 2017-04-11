@@ -343,6 +343,9 @@ void Agent::executeScript() {
     // give this AvatarData object to the script engine
     _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
 
+    // register meta types for retrieval of ScriptAvatarData objects
+    qScriptRegisterMetaType(_scriptEngine, avatarDataToScriptValue, avatarDataFromScriptValue);
+
     auto player = DependencyManager::get<recording::Deck>();
     connect(player.data(), &recording::Deck::playbackStateChanged, [=] {
         if (player->isPlaying()) {
