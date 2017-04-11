@@ -129,6 +129,7 @@
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
+#include "avatar/ScriptAvatar.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
@@ -1802,10 +1803,11 @@ Application::~Application() {
     _physicsEngine->setCharacterController(nullptr);
 
     // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearAllAvatars();
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     VectorOfMotionStates motionStates;
     DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
     _physicsEngine->removeObjects(motionStates);
+    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();

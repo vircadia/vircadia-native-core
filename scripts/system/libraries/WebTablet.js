@@ -511,7 +511,6 @@ WebTablet.prototype.mousePressEvent = function (event) {
                     tablet.gotoHomeScreen();
                     this.setHomeButtonTexture();
                 }
-                Messages.sendLocalMessage("home", this.homeButtonID);
             }
         } else if (!HMD.active && (!overlayPickResults.intersects || overlayPickResults.overlayID !== this.webOverlayID)) {
             this.dragging = true;

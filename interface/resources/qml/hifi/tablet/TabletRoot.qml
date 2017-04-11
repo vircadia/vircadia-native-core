@@ -14,6 +14,8 @@ Item {
     property string subMenu: ""
     signal showDesktop();
     property bool shown: true
+    property int currentApp: -1;
+    property alias tabletApps: tabletApps 
 
     function setOption(value) {
         option = value;
@@ -56,13 +58,48 @@ Item {
     }
 
     function loadSource(url) {
+        tabletApps.clear();
         loader.source = "";  // make sure we load the qml fresh each time.
         loader.source = url;
+        tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
+    }
+
+    function loadQMLOnTop(url) {
+        tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
+        loader.source = "";
+        loader.source = tabletApps.get(currentApp).appUrl;
+        if (loader.item.hasOwnProperty("gotoPreviousApp")) {
+            loader.item.gotoPreviousApp = true;
+        }
+    }
+
+    function loadWebOnTop(url, injectJavaScriptUrl) {
+        tabletApps.append({"appUrl": loader.source, "isWebUrl": true, "scriptUrl": injectJavaScriptUrl, "appWebUrl": url});
+        loader.item.url = tabletApps.get(currentApp).appWebUrl;
+        loader.item.scriptUrl = tabletApps.get(currentApp).scriptUrl;
+        if (loader.item.hasOwnProperty("gotoPreviousApp")) {
+            loader.item.gotoPreviousApp = true;
+        }
+    }
+        
+    function returnToPreviousApp() {
+        tabletApps.remove(currentApp);
+        var isWebPage = tabletApps.get(currentApp).isWebUrl;
+        if (isWebPage) {
+	    var webUrl = tabletApps.get(currentApp).appWebUrl;
+	    var scriptUrl = tabletApps.get(currentApp).scriptUrl;
+            loadSource("TabletWebView.qml");
+            loadWebUrl(webUrl, scriptUrl);
+        } else {
+            loader.source = tabletApps.get(currentApp).appUrl;
+        }
     }
 
     function loadWebUrl(url, injectedJavaScriptUrl) {
+        tabletApps.clear();
         loader.item.url = url;
         loader.item.scriptURL = injectedJavaScriptUrl;
+        tabletApps.append({"appUrl": "TabletWebView.qml", "isWebUrl": true, "scriptUrl": injectedJavaScriptUrl, "appWebUrl": url});
     }
 
     // used to send a message from qml to interface script.
@@ -95,6 +132,13 @@ Item {
 
     function setUsername(newUsername) {
         username = newUsername;
+    }
+
+    ListModel {
+        id: tabletApps
+        onCountChanged: {
+            currentApp = count - 1
+        }
     }
 
     Loader {

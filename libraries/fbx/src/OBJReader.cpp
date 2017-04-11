@@ -302,7 +302,8 @@ QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
 }
 
 
-bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess) {
+bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry,
+                              float& scaleGuess, bool combineParts) {
     FaceGroup faces;
     FBXMesh& mesh = geometry.meshes[0];
     mesh.parts.append(FBXMeshPart());
@@ -348,6 +349,9 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
             }
             QByteArray groupName = tokenizer.getDatum();
             currentGroup = groupName;
+            if (!combineParts) {
+                currentMaterialName = QString("part-") + QString::number(_partCounter++);
+            }
         } else if (token == "mtllib" && !_url.isEmpty()) {
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 break;
@@ -361,7 +365,9 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
             }
             QString nextName = tokenizer.getDatum();
             if (nextName != currentMaterialName) {
-                currentMaterialName = nextName;
+                if (combineParts) {
+                    currentMaterialName = nextName;
+                }
                 #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader new current material:" << currentMaterialName;
                 #endif
@@ -419,7 +425,7 @@ done:
 }
 
 
-FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, const QUrl& url) {
+FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
     QBuffer buffer { &model };
     buffer.open(QIODevice::ReadOnly);
@@ -438,7 +444,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
         // add a new meshPart to the geometry's single mesh.
-        while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess)) {}
+        while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess, combineParts)) {}
 
 		FBXMesh& mesh = geometry.meshes[0];
 		mesh.meshIndex = 0;

@@ -44,6 +44,7 @@
 #include <PathUtils.h>
 #include <ResourceScriptingInterface.h>
 #include <NodeList.h>
+#include <ScriptAvatarData.h>
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
 #include <ui/Menu.h>
@@ -59,6 +60,7 @@
 #include "FileScriptingInterface.h" // unzip project
 #include "MenuItemProperties.h"
 #include "ScriptAudioInjector.h"
+#include "ScriptAvatarData.h"
 #include "ScriptCache.h"
 #include "ScriptEngineLogging.h"
 #include "ScriptEngine.h"
@@ -109,14 +111,6 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
         .call(engine->nullValue(), QScriptValueList({ message }));
 
     return QScriptValue();
-}
-
-QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &in) {
-    return engine->newQObject(in, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
-}
-
-void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
-    out = qobject_cast<AvatarData*>(object.toQObject());
 }
 
 Q_DECLARE_METATYPE(controller::InputController*)
@@ -540,6 +534,16 @@ static QScriptValue createScriptableResourcePrototype(QScriptEngine* engine) {
     prototype.setProperty("State", prototypeState);
 
     return prototype;
+}
+
+QScriptValue avatarDataToScriptValue(QScriptEngine* engine, ScriptAvatarData* const& in) {
+    return engine->newQObject(in, QScriptEngine::ScriptOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
+}
+
+void avatarDataFromScriptValue(const QScriptValue& object, ScriptAvatarData*& out) {
+    // This is not implemented because there are no slots/properties that take an AvatarSharedPointer from a script
+    assert(false);
+    out = nullptr;
 }
 
 void ScriptEngine::resetModuleCache(bool deleteScriptCache) {

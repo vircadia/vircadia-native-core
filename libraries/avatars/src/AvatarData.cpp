@@ -123,6 +123,7 @@ void AvatarData::setTargetScale(float targetScale) {
     if (_targetScale != newValue) {
         _targetScale = newValue;
         _scaleChanged = usecTimestampNow();
+        _avatarScaleChanged = _scaleChanged;
     }
 }
 
@@ -351,7 +352,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasAudioLoudness) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
-        data->audioLoudness = packFloatGainToByte(_headData->getAudioLoudness() / AUDIO_LOUDNESS_SCALE);
+        data->audioLoudness = packFloatGainToByte(getAudioLoudness() / AUDIO_LOUDNESS_SCALE);
         destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
 
         int numBytes = destinationBuffer - startSection;
@@ -835,7 +836,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return buffer.size();
         }
-        _headData->setAudioLoudness(audioLoudness);
+        setAudioLoudness(audioLoudness);
         int numBytesRead = sourceBuffer - startSection;
         _audioLoudnessRate.increment(numBytesRead);
         _audioLoudnessUpdateRate.increment();

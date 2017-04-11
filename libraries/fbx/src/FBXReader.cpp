@@ -376,10 +376,10 @@ public:
 };
 
 bool checkMaterialsHaveTextures(const QHash<QString, FBXMaterial>& materials,
-        const QHash<QString, QByteArray>& textureFilepaths, const QMultiMap<QString, QString>& _connectionChildMap) {
+        const QHash<QString, QByteArray>& textureFilenames, const QMultiMap<QString, QString>& _connectionChildMap) {
     foreach (const QString& materialID, materials.keys()) {
         foreach (const QString& childID, _connectionChildMap.values(materialID)) {
-            if (textureFilepaths.contains(childID)) {
+            if (textureFilenames.contains(childID)) {
                 return true;
             }
         }
@@ -443,48 +443,21 @@ FBXLight extractLight(const FBXNode& object) {
     return light;
 }
 
-QByteArray fixedTextureFilepath(QByteArray fbxRelativeFilepath, QUrl url) {
-    // first setup a QFileInfo for the passed relative filepath, with backslashes replaced by forward slashes
-    auto fileInfo = QFileInfo { fbxRelativeFilepath.replace("\\", "/") };
+QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
+    QString path = QFileInfo(url).path();
+    QByteArray filename = filepath;
+    QFileInfo checkFile(path + "/" + filepath);
 
-#ifndef Q_OS_WIN
-    // it turns out that absolute windows paths starting with drive letters look like relative paths to QFileInfo on UNIX
-    // so we add a check for that here to work around it
-    bool isRelative = fbxRelativeFilepath[1] != ':' && fileInfo.isRelative();
-#else
-    bool isRelative = fileInfo.isRelative();
-#endif
-
-    if (isRelative) {
-        // the RelativeFilename pulled from the FBX is already correctly relative
-        // so simply return this as the filepath to use
-        return fbxRelativeFilepath;
-    } else {
-        // the RelativeFilename pulled from the FBX is an absolute path
-
-        // use the URL to figure out where the FBX is being loaded from
-        auto filename = fileInfo.fileName();
-
-        if (url.isLocalFile()) {
-            // the FBX is being loaded from the local filesystem
-
-            if (fileInfo.exists() && fileInfo.isFile()) {
-                // found a file at the absolute path in the FBX, return that path
-                return fbxRelativeFilepath;
-            } else {
-                // didn't find a file at the absolute path, assume it is right beside the FBX
-                // return just the filename as the relative path
-                return filename.toUtf8();
-            }
-        } else {
-            // this is a remote file, meaning we can't really do anything with the absolute path to the texture
-            // so assume it will be right beside the fbx
-            return filename.toUtf8();
-        }
+    // check if the file exists at the RelativeFilename
+    if (!(checkFile.exists() && checkFile.isFile())) {
+        // if not, assume it is in the fbx directory
+        filename = filename.mid(filename.lastIndexOf('/') + 1);
     }
+
+    return filename;
 }
 
-FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QUrl& url) {
+FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
     const FBXNode& node = _fbxNode;
     QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
@@ -860,9 +833,11 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QU
                         const int MODEL_UV_SCALING_MIN_SIZE = 2;
                         const int CROPPING_MIN_SIZE = 4;
                         if (subobject.name == "RelativeFilename" && subobject.properties.length() >= RELATIVE_FILENAME_MIN_SIZE) {
-                            auto filepath = fixedTextureFilepath(subobject.properties.at(0).toByteArray(), url);
-                            
+                            QByteArray filename = subobject.properties.at(0).toByteArray();
+                            QByteArray filepath = filename.replace('\\', '/');
+                            filename = fileOnUrl(filepath, url);
                             _textureFilepaths.insert(getID(object.properties), filepath);
+                            _textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName" && subobject.properties.length() >= TEXTURE_NAME_MIN_SIZE) {
                             // trim the name from the timestamp
                             QString name = QString(subobject.properties.at(0).toByteArray());
@@ -955,7 +930,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QU
                     QByteArray content;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            filepath = subobject.properties.at(0).toByteArray();
+                            filepath= subobject.properties.at(0).toByteArray();
                             filepath = filepath.replace('\\', '/');
 
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
@@ -1527,7 +1502,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QU
     geometry.materials = _fbxMaterials;
 
     // see if any materials have texture children
-    bool materialsHaveTextures = checkMaterialsHaveTextures(_fbxMaterials, _textureFilepaths, _connectionChildMap);
+    bool materialsHaveTextures = checkMaterialsHaveTextures(_fbxMaterials, _textureFilenames, _connectionChildMap);
 
     for (QMap<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
@@ -1572,7 +1547,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QU
 
                 materialIndex++;
 
-            } else if (_textureFilepaths.contains(childID)) {
+            } else if (_textureFilenames.contains(childID)) {
                 FBXTexture texture = getTexture(childID);
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
                     int partTexture = extracted.partMaterialTextures.at(j).second;
@@ -1843,13 +1818,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QU
     return geometryPtr;
 }
 
-FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QUrl& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
     return readFBX(&buffer, mapping, url, loadLightmaps, lightmapLevel);
 }
 
-FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QUrl& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     FBXReader reader;
     reader._fbxNode = FBXReader::parseFBX(device);
     reader._loadLightmaps = loadLightmaps;

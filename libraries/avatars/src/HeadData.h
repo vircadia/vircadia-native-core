@@ -57,18 +57,6 @@ public:
     glm::quat getOrientation() const;
     void setOrientation(const glm::quat& orientation);
 
-    float getAudioLoudness() const { return _audioLoudness; }
-    void setAudioLoudness(float audioLoudness) { 
-        if (audioLoudness != _audioLoudness) {
-            _audioLoudnessChanged = usecTimestampNow();
-        }
-        _audioLoudness = audioLoudness; 
-    }
-    bool audioLoudnessChangedSince(quint64 time) { return _audioLoudnessChanged >= time; }
-
-    float getAudioAverageLoudness() const { return _audioAverageLoudness; }
-    void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
-
     void setBlendshape(QString name, float val);
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
@@ -96,16 +84,13 @@ protected:
     glm::vec3 _lookAtPosition;
     quint64 _lookAtPositionChanged { 0 };
 
-    float _audioLoudness;
-    quint64 _audioLoudnessChanged { 0 };
-
     bool _isFaceTrackerConnected;
     bool _isEyeTrackerConnected;
     float _leftEyeBlink;
     float _rightEyeBlink;
     float _averageLoudness;
     float _browAudioLift;
-    float _audioAverageLoudness;
+
     QVector<float> _blendshapeCoefficients;
     AvatarData* _owningAvatar;
 

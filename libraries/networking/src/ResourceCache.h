@@ -295,8 +295,8 @@ protected:
 
     /// Creates a new resource.
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra) = 0;
-    
+                                                    const void* extra) = 0;
+
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
 
