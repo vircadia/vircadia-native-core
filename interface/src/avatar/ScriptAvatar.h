@@ -51,8 +51,6 @@ public slots:
 
 private:
     std::shared_ptr<Avatar> lockAvatar() const;
-
-    std::weak_ptr<AvatarData> _avatarData;
 };
 
 #endif // hifi_ScriptAvatar_h

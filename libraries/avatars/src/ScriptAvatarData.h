@@ -131,7 +131,7 @@ public slots:
     glm::quat getAbsoluteJointRotationInObjectFrame(int index) const;
     glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const;
 
-private:
+protected:
     std::weak_ptr<AvatarData> _avatarData;
 };
 
