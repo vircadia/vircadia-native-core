@@ -61,7 +61,6 @@ public:
     void setMode(CameraMode m);
 
     void loadViewFrustum(ViewFrustum& frustum) const;
-    ViewFrustum toViewFrustum() const;
 
     const glm::mat4& getTransform() const { return _transform; }
     void setTransform(const glm::mat4& transform);

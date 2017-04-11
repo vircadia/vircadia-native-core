@@ -166,12 +166,6 @@ void Camera::loadViewFrustum(ViewFrustum& frustum) const {
     frustum.calculate();
 }
 
-ViewFrustum Camera::toViewFrustum() const {
-    ViewFrustum result;
-    loadViewFrustum(result);
-    return result;
-}
-
 QVariantMap Camera::getViewFrustum() {
     ViewFrustum frustum;
     loadViewFrustum(frustum);
