@@ -192,7 +192,7 @@ Column {
         CheckBox {
             text: "Zones"
             checked: Render.getConfig("DrawZones")["enabled"]
-            onCheckedChanged: { Render.getConfig("DrawZones")["enabled"] = checked }
+            onCheckedChanged: { Render.getConfig("ZoneRenderer")["enabled"] = checked; Render.getConfig("DrawZones")["enabled"] = checked; }
         }
     }
 }

@@ -431,22 +431,8 @@ public:
         return findChild<typename T::Config*>(name);
     }
 
-    void connectSubJobConfig(QConfigPointer jobConfig, const std::string& name) {
-       // QConfigPointer config = _jobs.back().getConfiguration();
-        jobConfig->setParent(this);
-        jobConfig->setObjectName(name.c_str());
-
-        // Connect loaded->refresh
-       // QObject::connect(config.get(), SIGNAL(loaded()), getConfiguration().get(), SLOT(refresh()));
-        QObject::connect(jobConfig.get(), SIGNAL(loaded()), this, SLOT(refresh()));
-        static const char* DIRTY_SIGNAL = "dirty()";
-      //  if (config->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
-        if (jobConfig->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
-            // Connect dirty->refresh if defined
-         //   QObject::connect(config.get(), SIGNAL(dirty()), getConfiguration().get(), SLOT(refresh()));
-            QObject::connect(jobConfig.get(), SIGNAL(dirty()), this, SLOT(refresh()));
-        }
-    }
+    void connectChildConfig(QConfigPointer childConfig, const std::string& name);
+    void transferChildrenConfigs(QConfigPointer source);
 
 public slots:
     void refresh();
@@ -525,8 +511,8 @@ public:
         const Varying getOutput() const override { return _output; }
 
         template <class... A>
-        Model(const Varying& input, A&&... args) :
-            Concept(std::make_shared<C>()),
+        Model(const Varying& input, QConfigPointer config, A&&... args) :
+            Concept(config),
             _data(Data(std::forward<A>(args)...)),
             _input(input),
             _output(Output()) {
@@ -534,8 +520,8 @@ public:
         }
 
         template <class... A>
-        static std::shared_ptr<Model> factoryModel(const Varying& input, A&&... args) {
-            return std::make_shared<Model>(input, std::forward<A>(args)...);
+        static std::shared_ptr<Model> create(const Varying& input, A&&... args) {
+            return std::make_shared<Model>(input, std::make_shared<C>(), std::forward<A>(args)...);
         }
 
 
@@ -583,11 +569,6 @@ protected:
     std::string _name = "";
 };
 
-/*
-template <class T, class... A> void taskBuild(T& data, typename T::JobModel* task, const Varying& input, Varying& output, A&&... args) {
-    data.build(*(task), input, output, std::forward<A>(args)...);
-}*/
-
 // A task is a specialized job to run a collection of other jobs
 // It is defined with JobModel = Task::Model<T>
 
@@ -614,20 +595,10 @@ public:
 
         // Create a new job in the container's queue; returns the job's output
         template <class NT, class... NA> const Varying addJob(std::string name, const Varying& input, NA&&... args) {
-            _jobs.emplace_back(name, (NT::JobModel::factoryModel(input, std::forward<NA>(args)...)));
-           /* QConfigPointer config = _jobs.back().getConfiguration();
-            config->setParent(getConfiguration().get());
-            config->setObjectName(name.c_str());
+            _jobs.emplace_back(name, (NT::JobModel::create(input, std::forward<NA>(args)...)));
 
-            // Connect loaded->refresh
-            QObject::connect(config.get(), SIGNAL(loaded()), getConfiguration().get(), SLOT(refresh()));
-            static const char* DIRTY_SIGNAL = "dirty()";
-            if (config->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
-                // Connect dirty->refresh if defined
-                QObject::connect(config.get(), SIGNAL(dirty()), getConfiguration().get(), SLOT(refresh()));
-            }*/
-
-            std::static_pointer_cast<TaskConfig>(getConfiguration())->connectSubJobConfig(_jobs.back().getConfiguration(), name);
+            // Conect the child config to this task's config
+            std::static_pointer_cast<TaskConfig>(getConfiguration())->connectChildConfig(_jobs.back().getConfiguration(), name);
 
             return _jobs.back().getOutput();
         }
@@ -645,13 +616,14 @@ public:
 
         Data _data;
 
-        TaskModel(const Varying& input) :
-            TaskConcept(input, nullptr),
+        TaskModel(const Varying& input, QConfigPointer config) :
+            TaskConcept(input, config),
             _data(Data()) {}
 
         template <class... A>
-        static std::shared_ptr<TaskModel> factoryModel(const Varying& input, A&&... args) {
-            auto model = std::make_shared<TaskModel>(input);
+        static std::shared_ptr<TaskModel> create(const Varying& input, A&&... args) {
+            auto model = std::make_shared<TaskModel>(input, std::make_shared<C>());
+          //  std::static_pointer_cast<C>(model->_config)->_task = model.get();
 
             model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
 
@@ -663,27 +635,19 @@ public:
         }
 
         template <class... A>
-        static std::shared_ptr<TaskModel> factoryModel(A&&... args) {
+        static std::shared_ptr<TaskModel> create(A&&... args) {
             const auto input = Varying(Input());
-            return factoryModel(input, std::forward<A>(args)...);
+            return create(input, std::forward<A>(args)...);
         }
 
         void createConfiguration() {
+            // A brand new config
             auto config = std::make_shared<C>();
-            if (_config) {
-                // Transfer children to the new configuration
-                auto children = _config->children();
-                for (auto& child : children) {
-                    child->setParent(config.get());
-                    QObject::connect(child, SIGNAL(loaded()), config.get(), SLOT(refresh()));
-                    static const char* DIRTY_SIGNAL = "dirty()";
-                    if (child->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
-                        // Connect dirty->refresh if defined
-                        QObject::connect(child, SIGNAL(dirty()), config.get(), SLOT(refresh()));
-                    }
-                }
-            }
+            // Make sure we transfer the former children configs to the new config
+            config->transferChildrenConfigs(_config);
+            // swap
             _config = config;
+            // Capture this
             std::static_pointer_cast<C>(_config)->_task = this;
         }
 

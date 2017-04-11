@@ -52,7 +52,7 @@ class DrawBounds {
 public:
     class Config : public render::JobConfig {
     public:
-        Config() : JobConfig(false) {}
+        Config(bool enabled = false) : JobConfig(enabled) {}
     };
 
     using Inputs = render::ItemBounds;
