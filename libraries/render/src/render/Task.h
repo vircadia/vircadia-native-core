@@ -570,8 +570,12 @@ protected:
 };
 
 // A task is a specialized job to run a collection of other jobs
-// It is defined with JobModel = Task::Model<T>
-
+// It can be created on any type T by aliasing the type JobModel in the class T
+// using JobModel = Task::Model<T>
+// The class T is expected to have a "build" method acting as a constructor.
+// The build method is where child Jobs can be added internally to the task 
+// where the input of the task can be setup to feed the child jobs
+// and where the output of the task is defined
 class Task : public Job {
 public:
     using Config = TaskConfig;

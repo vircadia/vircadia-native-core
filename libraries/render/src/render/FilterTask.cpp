@@ -37,9 +37,6 @@ void FilterLayeredItems::run(const SceneContextPointer& sceneContext, const Rend
 }
 
 void SliceItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    auto& scene = sceneContext->_scene;
-
-    // Now we have a selection of items to render
     outItems.clear();
     std::static_pointer_cast<Config>(renderContext->jobConfig)->setNumItems((int)inItems.size());
 
