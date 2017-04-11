@@ -136,7 +136,7 @@ private:
 
 Q_DECLARE_METATYPE(AvatarSharedPointer)
 
-QScriptValue avatarToScriptValue(QScriptEngine* engine, const AvatarSharedPointer& in);
-void avatarFromScriptValue(const QScriptValue& object, AvatarSharedPointer& out);
+QScriptValue avatarDataToScriptValue(QScriptEngine* engine, const AvatarSharedPointer& in);
+void avatarDataFromScriptValue(const QScriptValue& object, AvatarSharedPointer& out);
 
 #endif // hifi_ScriptAvatarData_h

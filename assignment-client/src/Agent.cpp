@@ -28,9 +28,10 @@
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 #include <ResourceCache.h>
+#include <ScriptAvatarData.h>
 #include <ScriptCache.h>
-#include <SoundCache.h>
 #include <ScriptEngines.h>
+#include <SoundCache.h>
 #include <UUID.h>
 
 #include <recording/Deck.h>
@@ -344,7 +345,7 @@ void Agent::executeScript() {
     _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
 
     // register meta types for retrieval of ScriptAvatarData objects
-    qScriptRegisterMetaType(_scriptEngine, avatarDataToScriptValue, avatarDataFromScriptValue);
+    qScriptRegisterMetaType(_scriptEngine.get(), avatarDataToScriptValue, avatarDataFromScriptValue);
 
     auto player = DependencyManager::get<recording::Deck>();
     connect(player.data(), &recording::Deck::playbackStateChanged, [=] {
