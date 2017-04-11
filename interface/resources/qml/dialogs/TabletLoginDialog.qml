@@ -23,7 +23,7 @@ TabletModalWindow {
     property var eventBridge;
     signal sendToScript(var message);
     property bool isHMD: false
-
+    property bool gotoPreviousApp: false;
     color: hifi.colors.baseGray
 
     property int colorScheme: hifi.colorSchemes.dark
@@ -66,8 +66,11 @@ TabletModalWindow {
     HifiConstants { id: hifi }
 
     onCanceled: {
-        if (loginDialogRoot.Stack.view !== null) {
-            loginDialogRoot.Stack.view.pop()
+        if (loginDialogRoot.Stack.view) {
+            loginDialogRoot.Stack.view.pop();
+        } else if (gotoPreviousApp) {
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.returnToPreviousApp();
         } else {
             Tablet.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
         }

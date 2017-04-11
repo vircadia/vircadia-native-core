@@ -99,7 +99,7 @@ public:
     bool getToolbarMode() const { return _toolbarMode; }
     void setToolbarMode(bool toolbarMode);
 
-    void initialScreen(const QVariant& url);
+    Q_INVOKABLE void initialScreen(const QVariant& url);
 
     /**jsdoc
      * transition to the home screen
@@ -119,6 +119,13 @@ public:
     Q_INVOKABLE void loadQMLSource(const QVariant& path);
     Q_INVOKABLE void pushOntoStack(const QVariant& path);
     Q_INVOKABLE void popFromStack();
+
+    Q_INVOKABLE void loadQMLOnTop(const QVariant& path);
+    Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url);
+    Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url, const QString& injectedJavaScriptUrl);
+    Q_INVOKABLE void returnToPreviousApp();
+
+    
 
     /** jsdoc
      * Check if the tablet has a message dialog open
