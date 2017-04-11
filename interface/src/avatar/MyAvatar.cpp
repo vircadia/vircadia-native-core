@@ -54,6 +54,7 @@
 #include "DebugDraw.h"
 #include "EntityEditPacketSender.h"
 #include "MovingEntitiesOperator.h"
+#include "SceneScriptingInterface.h"
 
 using namespace std;
 
@@ -1634,7 +1635,7 @@ void MyAvatar::postUpdate(float deltaTime) {
     Avatar::postUpdate(deltaTime);
 
     render::ScenePointer scene = qApp->getMain3DScene();
-    if (_skeletonModel->initWhenReady(scene)) {
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars() && _skeletonModel->initWhenReady(scene)) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();

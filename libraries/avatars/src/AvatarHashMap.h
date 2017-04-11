@@ -49,11 +49,11 @@ signals:
 
 public slots:
     bool isAvatarInRange(const glm::vec3 & position, const float range);
-    
-private slots:
+
+protected slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
-    
-    void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+
+    virtual void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processExitingSpaceBubble(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
@@ -61,12 +61,13 @@ private slots:
 protected:
     AvatarHashMap();
 
+    virtual AvatarSharedPointer parseAvatarData(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     virtual AvatarSharedPointer findAvatar(const QUuid& sessionUUID) const; // uses a QReadLocker on the hashLock
     virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason);
-    
+
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
 
     AvatarHash _avatarHash;
