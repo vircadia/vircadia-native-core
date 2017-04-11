@@ -121,6 +121,17 @@ namespace render {
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 
+    // Same as SelectItems but reorder the output to match the selection order
+    class SelectSortItems {
+    public:
+        using JobModel = Job::ModelIO<SelectSortItems, ItemBounds, ItemBounds>;
+        
+        std::string _name;
+        SelectSortItems(const Selection::Name& name) : _name(name) {}
+        
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
+    };
+
     // From meta-Items, generate the sub-items
     class MetaToSubItems {
     public:

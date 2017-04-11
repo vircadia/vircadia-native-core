@@ -67,6 +67,7 @@ private:
     gpu::PipelinePointer _boundsPipeline;
     int _cornerLocation { -1 };
     int _scaleLocation { -1 };
+    int _colorLocation { -1 };
 };
 
 }

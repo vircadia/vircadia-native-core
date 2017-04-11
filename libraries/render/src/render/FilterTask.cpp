@@ -52,15 +52,47 @@ void SliceItems::run(const SceneContextPointer& sceneContext, const RenderContex
 }
 
 void SelectItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    auto& scene = sceneContext->_scene;
-
-    outItems.clear();
-    auto selection = scene->getSelection(_name);
+    auto selection = sceneContext->_scene->getSelection(_name);
     const auto& selectedItems = selection.getItems();
+    outItems.clear();
+
     if (!selectedItems.empty()) {
+        outItems.reserve(selectedItems.size());
+
         for (auto src : inItems) {
             if (selection.contains(src.id)) {
                 outItems.emplace_back(src);
+            }
+        }
+    }
+}
+
+void SelectSortItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
+    auto selection = sceneContext->_scene->getSelection(_name);
+    const auto& selectedItems = selection.getItems();
+    outItems.clear();
+
+    if (!selectedItems.empty()) {
+        struct Pair { int src; int dst; };
+        std::vector<Pair> indices;
+        indices.reserve(selectedItems.size());
+
+        // Collect
+        for (int srcIndex = 0; (srcIndex < inItems.size()) && (indices.size() < selectedItems.size()) ; srcIndex++ ) {
+            int index = selection.find(inItems[srcIndex].id);
+            if (index != Selection::NOT_FOUND) {
+                indices.emplace_back( Pair{ srcIndex, index } );
+            }
+        }
+
+        // Then sort
+        if (!indices.empty()) {
+            std::sort(indices.begin(), indices.end(), [] (Pair a, Pair b) { 
+                return (a.dst < b.dst);
+            });
+
+            for (auto& pair: indices) {
+               outItems.emplace_back(inItems[pair.src]);
             }
         }
     }

@@ -34,7 +34,12 @@ namespace render {
         const ItemIDs& getItems() const { return _items; }
 
         bool isEmpty() const { return _items.empty(); }
-        bool contains(ItemID id) const;
+
+        // Test if the ID is in the selection, return the index or -1 if not present
+        static const int NOT_FOUND{ -1 };
+                
+        int find(ItemID id) const;
+        bool contains(ItemID id) const { return find(id) > NOT_FOUND; }
 
     protected:
         Name _name;
