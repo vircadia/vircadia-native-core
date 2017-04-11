@@ -32,7 +32,7 @@ function addImage(data) {
     if (imageCount > 1) { // I'd rather use css, but the included stylesheet is quite particular.
         // Our stylesheet(?) requires input.id to match label.for. Otherwise input doesn't display the check state.
         label.setAttribute('for', id); // cannot do label.for =
-        input.id = id + "check";
+        input.id = id;
         input.type = "checkbox";
         input.checked = false;
         data.share = input.checked;
@@ -86,9 +86,11 @@ window.onload = function () {
                     imageCount = message.action.length + 1; // "+1" for the GIF that'll finish processing soon
                     message.action.unshift({ localPath: '../../../resources/icons/profilePicLoading.gif' });
                     message.action.forEach(addImage);
-                    document.getElementById('p0check').disabled = true;
+                    document.getElementById('p0').disabled = true;
+                    // UX question: Should we also check the box at this point? Might lead to confusing behavior,
+                    // where the animated snapshot is shared without the user meaning to share it.
                 } else {
-                    document.getElementById('p0check').disabled = false;
+                    document.getElementById('p0').disabled = false;
                     document.getElementById('p0img').src = message.action[0].localPath;
                 }
             } else {
