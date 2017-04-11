@@ -71,6 +71,7 @@ namespace render {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         if (avatarPtr->isInitialized() && args) {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
+            // TODO AVATARS_RENDERER: remove need for qApp
             avatarPtr->render(args, qApp->getMain3DScene(), qApp->getCamera());
         }
     }
@@ -641,19 +642,12 @@ void Avatar::render(RenderArgs* renderArgs, render::ScenePointer scene, const Ca
         }
     }
 
-    { // simple frustum check
-        ViewFrustum frustum;
-        if (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
-            qApp->copyShadowViewFrustum(frustum);
-        } else {
-            qApp->copyDisplayViewFrustum(frustum);
-        }
-        if (!frustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())) {
-            return;
-        }
+    ViewFrustum frustum = renderArgs->getViewFrustum();
+    if (!frustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())) {
+        return;
     }
 
-    glm::vec3 toTarget = camera.getPosition() - getPosition();
+    glm::vec3 toTarget = frustum.getPosition() - getPosition();
     float distanceToTarget = glm::length(toTarget);
 
     {
@@ -686,6 +680,7 @@ void Avatar::render(RenderArgs* renderArgs, render::ScenePointer scene, const Ca
     const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(distanceToTarget < DISPLAYNAME_DISTANCE);
 
+    // TODO AVATARS_RENDERER: remove need for 'camera' in this context
     auto cameraMode = camera.getMode();
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
         auto& frustum = renderArgs->getViewFrustum();
