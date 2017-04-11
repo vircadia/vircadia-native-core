@@ -70,7 +70,7 @@ private:
 
 protected:
     std::mutex _mutex;
-    std::map<QString, QSharedPointer<TabletProxy>> _tabletProxies;
+    std::map<QString, TabletProxy*> _tabletProxies;
     QObject* _toolbarScriptingInterface { nullptr };
     bool _toolbarMode { false };
 };

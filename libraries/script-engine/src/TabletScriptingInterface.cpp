@@ -49,13 +49,14 @@ QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
     auto iter = _tabletProxies.find(tabletId);
     if (iter != _tabletProxies.end()) {
         // tablet already exists, just return it.
-        return iter->second.data();
+        return iter->second;
     } else {
         // allocate a new tablet, add it to the map then return it.
-        auto tabletProxy = QSharedPointer<TabletProxy>(new TabletProxy(tabletId));
+        auto tabletProxy = new TabletProxy(tabletId);
+        tabletProxy->setParent(this);
         _tabletProxies[tabletId] = tabletProxy;
         tabletProxy->setToolbarMode(_toolbarMode);
-        return tabletProxy.data();
+        return tabletProxy;
     }
 }
 
@@ -176,7 +177,6 @@ class TabletRootWindow : public QmlWindowClass {
 };
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
-
 }
 
 void TabletProxy::setToolbarMode(bool toolbarMode) {
