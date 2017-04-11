@@ -24,6 +24,7 @@
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
+#include "ScriptAvatar.h"
 
 class MyAvatar;
 class AudioInjector;
@@ -43,7 +44,7 @@ public:
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
 
     // Null/Default-constructed QUuids will return MyAvatar
-    virtual ScriptAvatar* getAvatar(QUuid avatarID) override { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
+    virtual ScriptAvatar* getAvatar(QUuid avatarID) override { return new ScriptAvatar(getAvatarBySessionID(avatarID)); }
 
     AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const override;
 
