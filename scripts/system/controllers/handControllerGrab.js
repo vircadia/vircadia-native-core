@@ -155,6 +155,7 @@ var INCHES_TO_METERS = 1.0 / 39.3701;
 
 // these control how long an abandoned pointer line or action will hang around
 var ACTION_TTL = 15; // seconds
+var ACTION_TTL_ZERO = 0; // seconds
 var ACTION_TTL_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 60;
 var MSECS_PER_SEC = 1000.0;
@@ -189,13 +190,10 @@ var blacklist = [];
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
 
-var MAX_SECONDARY_PRESS_VALUE = 1;
-var MIN_SECONDARY_PRESS_VALUE = 0;
-var farToNearGrab = false;
-
 var holdEnabled = true;
 var nearGrabEnabled = true;
 var farGrabEnabled = true;
+var farToNearGrab = false;
 var myAvatarScalingEnabled = true;
 var objectScalingEnabled = true;
 var mostRecentSearchingHand = RIGHT_HAND;
@@ -2086,7 +2084,7 @@ function MyController(hand) {
         return true;
     };
 
-    this.entityIsFartoNearGrabbable = function (objectPosition, handPosition, maxDistance) {
+    this.entityIsFarToNearGrabbable = function (objectPosition, handPosition, maxDistance) {
         var distanceToObjectFromHand = Vec3.length(Vec3.subtract(handPosition, objectPosition));
 
         if (distanceToObjectFromHand > maxDistance) {
@@ -2677,11 +2675,27 @@ function MyController(hand) {
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var handPosition = controllerLocation.position;
             
+        var ttl = ACTION_TTL;
+
         //Far to Near Grab: If object is draw by user inside NEAR_GRAB_MAX_DISTANCE, grab it
-        if (this.entityIsFartoNearGrabbable(this.currentObjectPosition, handPosition, NEAR_GRAB_MAX_DISTANCE)) {
-            this.secondaryPress(MAX_SECONDARY_PRESS_VALUE);
+        if (this.entityIsFarToNearGrabbable(this.currentObjectPosition, handPosition, NEAR_GRAB_MAX_DISTANCE)) {
             this.farToNearGrab = true;
-            this.setState(STATE_NEAR_GRABBING, "near grab entity '" + this.grabbedThingID + "'");
+            ttl = ACTION_TTL_ZERO; // Overriding ACTION_TTL,Assign ACTION_TTL_ZERO so that the object is dropped down immediately after the trigger is released.
+
+            var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
+                targetPosition: newTargetPosition,
+                linearTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
+                targetRotation: this.currentObjectRotation,
+                angularTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
+                ttl: ttl
+            });
+            if (success) {
+                this.actionTimeout = now + (ttl * MSECS_PER_SEC);
+            } else {
+                print("continueDistanceHolding -- updateAction failed");
+            }
+            this.setState(STATE_NEAR_GRABBING , "near grab entity '" + this.grabbedThingID + "'");
+            return;
         }
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
             targetPosition: newTargetPosition,
@@ -3058,9 +3072,13 @@ function MyController(hand) {
     this.nearGrabbing = function(deltaTime, timestamp) {
         this.grabPointSphereOff();
 
-        if (this.farToNearGrab && !this.triggerClicked) {
-            this.farToNearGrab = false;
-            this.secondaryPress(MIN_SECONDARY_PRESS_VALUE);
+        var ttl = ACTION_TTL;
+
+        if (this.farToNearGrab) {
+            ttl = ACTION_TTL_ZERO; // farToNearGrab - Assign ACTION_TTL_ZERO so that, the object is dropped down immediately after the trigger is released.
+            if(!this.triggerClicked){
+               this.farToNearGrab = false;
+            }
         }
 
         if (this.state == STATE_NEAR_GRABBING && (!this.triggerClicked && this.secondaryReleased())) {
@@ -3230,20 +3248,20 @@ function MyController(hand) {
             this.maybeScale(props);
         }
 
-        if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSECS_PER_SEC) {
+        if (this.actionID && this.actionTimeout - now < ttl * MSECS_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions ttl
             var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
                 hand: this.hand === RIGHT_HAND ? "right" : "left",
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
-                ttl: ACTION_TTL,
+                ttl: ttl,
                 kinematic: NEAR_GRABBING_KINEMATIC,
                 kinematicSetVelocity: true,
                 ignoreIK: this.ignoreIK
             });
             if (success) {
-                this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
+               this.actionTimeout = now + (ttl * MSECS_PER_SEC);
             } else {
                 print("continueNearGrabbing -- updateAction failed");
                 Entities.deleteAction(this.grabbedThingID, this.actionID);
