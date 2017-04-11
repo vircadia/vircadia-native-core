@@ -11,7 +11,6 @@
 #include <glm/gtx/quaternion.hpp>
 #include <gpu/Batch.h>
 
-#include <AudioClient.h>
 #include <NodeList.h>
 #include <recording/Deck.h>
 
@@ -73,8 +72,13 @@ void Head::reset() {
 
 void Head::simulate(float deltaTime, bool isMine) {
     const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
-    // grab the audio loudness from the audio client
-    float audioLoudness = DependencyManager::get<AudioClient>()->getLastInputLoudness();
+
+    // grab the audio loudness from the owning avatar, if we have one
+    float audioLoudness = 0.0f;
+
+    if (_owningAvatar) {
+        _owningAvatar->getAudioLoudness();
+    }
 
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
