@@ -688,10 +688,6 @@ public:
         return std::static_pointer_cast<TaskConcept>( _concept)->addJob<T>(name, input, std::forward<A>(args)...);
     }
 
-    template <class O> void setOutput(O&& output) {
-        _concept->_output = Varying(output);
-    }
-
     std::shared_ptr<Config> getConfiguration() {
         return std::static_pointer_cast<Config>(_concept->getConfiguration());
     }
