@@ -16,7 +16,7 @@
 #include <AvatarData.h>
 #include <SpatiallyNestable.h>
 
-class ScriptAvatarData : public QObject, public SpatiallyNestable {
+class ScriptAvatarData : public QObject {
     Q_OBJECT
 
     //
@@ -72,14 +72,13 @@ public:
     //
     // PHYSICAL PROPERTIES: POSITION AND ORIENTATION
     //
-    using SpatiallyNestable::getPosition;
-    virtual glm::vec3 getPosition() const override;
+    glm::vec3 getPosition() const;
     float getTargetScale() const;
     glm::vec3 getHandPosition() const;
     float getBodyPitch() const;
     float getBodyYaw() const;
     float getBodyRoll() const;
-    virtual glm::quat getOrientation() const override;
+    glm::quat getOrientation() const;
     glm::quat getHeadOrientation() const;
     float getHeadPitch() const;
     float getHeadYaw() const;
@@ -87,8 +86,8 @@ public:
     //
     // PHYSICAL PROPERTIES: VELOCITY
     //
-    virtual glm::vec3 getVelocity() const override;
-    virtual glm::vec3 getAngularVelocity() const override;
+    glm::vec3 getVelocity() const;
+    glm::vec3 getAngularVelocity() const;
 
     //
     // IDENTIFIER PROPERTIES
@@ -102,14 +101,14 @@ public:
     //
     QString getSkeletonModelURLFromScript() const;
     Q_INVOKABLE char getHandState() const;
-    Q_INVOKABLE virtual glm::quat getJointRotation(int index) const;
-    Q_INVOKABLE virtual glm::vec3 getJointTranslation(int index) const;
+    Q_INVOKABLE glm::quat getJointRotation(int index) const;
+    Q_INVOKABLE glm::vec3 getJointTranslation(int index) const;
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
     Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
-    Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
+    Q_INVOKABLE QVector<glm::quat> getJointRotations() const;
     Q_INVOKABLE bool isJointDataValid(const QString& name) const;
-    Q_INVOKABLE virtual int getJointIndex(const QString& name) const;
-    Q_INVOKABLE virtual QStringList getJointNames() const;
+    Q_INVOKABLE int getJointIndex(const QString& name) const;
+    Q_INVOKABLE QStringList getJointNames() const;
     Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
 
     //
@@ -129,8 +128,8 @@ signals:
     void displayNameChanged();
 
 public slots:
-    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
-    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+    glm::quat getAbsoluteJointRotationInObjectFrame(int index) const;
+    glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const;
 
 private:
     std::weak_ptr<AvatarData> _avatarData;

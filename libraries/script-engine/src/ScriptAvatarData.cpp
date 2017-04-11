@@ -23,8 +23,7 @@ void avatarDataFromScriptValue(const QScriptValue& object, AvatarSharedPointer& 
 }
 
 ScriptAvatarData::ScriptAvatarData(AvatarSharedPointer avatarData) :
-    _avatarData(avatarData),
-    SpatiallyNestable(NestableType::Avatar, QUuid())
+    _avatarData(avatarData)
 {
     QObject::connect(avatarData.get(), &AvatarData::displayNameChanged, this, &ScriptAvatarData::displayNameChanged);
 }
