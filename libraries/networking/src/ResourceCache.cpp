@@ -191,7 +191,7 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
     result->setObjectName(url.toString());
 
     result->_resource = resource;
-    if (resource->isLoaded()) {
+    if (resource->isLoaded() || resource->_failedToLoad) {
         result->finished(!resource->_failedToLoad);
     } else {
         result->_progressConnection = connect(

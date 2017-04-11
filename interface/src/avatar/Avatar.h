@@ -81,7 +81,7 @@ public:
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
-    bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
+    void addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
                             render::Transaction& transaction);
 
     void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
@@ -120,6 +120,26 @@ public:
 
     Q_INVOKABLE virtual glm::quat getDefaultJointRotation(int index) const;
     Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
+
+    /**jsdoc
+     * Provides read only access to the default joint rotations in avatar coordinates.
+     * The default pose of the avatar is defined by the position and orientation of all bones
+     * in the avatar's model file.  Typically this is a t-pose.
+     * @function Avatar.getAbsoluteDefaultJointRotationInObjectFrame
+     * @param index {number} index number
+     * @returns {Quat} The rotation of this joint in avatar coordinates.
+     */
+    Q_INVOKABLE virtual glm::quat getAbsoluteDefaultJointRotationInObjectFrame(int index) const;
+
+    /**jsdoc
+     * Provides read only access to the default joint translations in avatar coordinates.
+     * The default pose of the avatar is defined by the position and orientation of all bones
+     * in the avatar's model file.  Typically this is a t-pose.
+     * @function Avatar.getAbsoluteDefaultJointTranslationInObjectFrame
+     * @param index {number} index number
+     * @returns {Vec3} The position of this joint in avatar coordinates.
+     */
+    Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
@@ -285,6 +305,7 @@ protected:
 
     void addToScene(AvatarSharedPointer self);
     void ensureInScene(AvatarSharedPointer self);
+    bool isInScene() const { return render::Item::isValidID(_renderItemID); }
 
     // Some rate tracking support
     RateCounter<> _simulationRate;
@@ -310,7 +331,6 @@ private:
     int _nameRectGeometryID { 0 };
     bool _initialized;
     bool _isLookAtTarget { false };
-    bool _inScene { false };
     bool _isAnimatingScale { false };
 
     float getBoundingRadius() const;

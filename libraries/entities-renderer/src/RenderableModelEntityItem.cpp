@@ -14,6 +14,7 @@
 
 #include <QJsonDocument>
 #include <QtCore/QThread>
+#include <QUrlQuery>
 #include <glm/gtx/transform.hpp>
 
 #include <AbstractViewStateInterface.h>
@@ -607,11 +608,19 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
                                                        face, surfaceNormal, extraInfo, precisionPicking);
 }
 
+void RenderableModelEntityItem::getCollisionGeometryResource() {
+    QUrl hullURL(getCompoundShapeURL());
+    QUrlQuery queryArgs(hullURL);
+    queryArgs.addQueryItem("collision-hull", "");
+    hullURL.setQuery(queryArgs);
+    _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+}
+
 void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
         if (!_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL());
+            getCollisionGeometryResource();
         }
     } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
@@ -620,6 +629,10 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
 }
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
+    // because the caching system only allows one Geometry per url, and because this url might also be used
+    // as a visual model, we need to change this url in some way.  We add a "collision-hull" query-arg so it
+    // will end up in a different hash-key in ResourceCache.  TODO: It would be better to use the same URL and
+    // parse it twice.
     auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
 
@@ -629,7 +642,7 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
         }
         if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
+            getCollisionGeometryResource();
         }
     }
 }
@@ -661,7 +674,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
                 }
                 return true;
             } else if (!getCompoundShapeURL().isEmpty()) {
-                _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL());
+                getCollisionGeometryResource();
             }
         }
 

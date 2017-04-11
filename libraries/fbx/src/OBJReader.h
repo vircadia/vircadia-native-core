@@ -22,7 +22,7 @@ public:
     glm::vec3 getVec3();
     glm::vec2 getVec2();
     float getFloat() { return std::stof((nextToken() != OBJTokenizer::DATUM_TOKEN) ? nullptr : getDatum().data()); }
-    
+
 private:
     QIODevice* _device;
     QByteArray _datum;
@@ -73,15 +73,18 @@ public:
     QHash<QString, OBJMaterial> materials;
 
     QNetworkReply* request(QUrl& url, bool isTest);
-    FBXGeometry* readOBJ(QByteArray& model, const QVariantHash& mapping, const QUrl& url = QUrl());
-    
+    FBXGeometry* readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url = QUrl());
+
 private:
     QUrl _url;
 
     QHash<QByteArray, bool> librariesSeen;
-    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess);
+    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry,
+                       float& scaleGuess, bool combineParts);
     void parseMaterialLibrary(QIODevice* device);
     bool isValidTexture(const QByteArray &filename); // true if the file exists. TODO?: check content-type header and that it is a supported format.
+
+    int _partCounter { 0 };
 };
 
 // What are these utilities doing here? One is used by fbx loading code in VHACD Utils, and the other a general debugging utility.

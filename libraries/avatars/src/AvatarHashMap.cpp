@@ -80,13 +80,10 @@ AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWe
 
 AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     QWriteLocker locker(&_hashLock);
-
     auto avatar = _avatarHash.value(sessionUUID);
-
     if (!avatar) {
         avatar = addAvatar(sessionUUID, mixerWeakPointer);
     }
-
     return avatar;
 }
 
@@ -103,27 +100,33 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> mess
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (message->getBytesLeftToRead()) {
-        QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+        parseAvatarData(message, sendingNode);
+    }
+}
 
-        int positionBeforeRead = message->getPosition();
+AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-        QByteArray byteArray = message->readWithoutCopy(message->getBytesLeftToRead());
+    int positionBeforeRead = message->getPosition();
 
-        // make sure this isn't our own avatar data or for a previously ignored node
-        auto nodeList = DependencyManager::get<NodeList>();
+    QByteArray byteArray = message->readWithoutCopy(message->getBytesLeftToRead());
 
-        if (sessionUUID != _lastOwnerSessionUUID && (!nodeList->isIgnoringNode(sessionUUID) || nodeList->getRequestsDomainListData())) {
-            auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
+    // make sure this isn't our own avatar data or for a previously ignored node
+    auto nodeList = DependencyManager::get<NodeList>();
 
-            // have the matching (or new) avatar parse the data from the packet
-            int bytesRead = avatar->parseDataFromBuffer(byteArray);
-            message->seek(positionBeforeRead + bytesRead);
-        } else {
-            // create a dummy AvatarData class to throw this data on the ground
-            AvatarData dummyData;
-            int bytesRead = dummyData.parseDataFromBuffer(byteArray);
-            message->seek(positionBeforeRead + bytesRead);
-        }
+    if (sessionUUID != _lastOwnerSessionUUID && (!nodeList->isIgnoringNode(sessionUUID) || nodeList->getRequestsDomainListData())) {
+        auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
+
+        // have the matching (or new) avatar parse the data from the packet
+        int bytesRead = avatar->parseDataFromBuffer(byteArray);
+        message->seek(positionBeforeRead + bytesRead);
+        return avatar;
+    } else {
+        // create a dummy AvatarData class to throw this data on the ground
+        AvatarData dummyData;
+        int bytesRead = dummyData.parseDataFromBuffer(byteArray);
+        message->seek(positionBeforeRead + bytesRead);
+        return std::make_shared<AvatarData>();
     }
 }
 
