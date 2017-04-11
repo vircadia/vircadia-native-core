@@ -36,7 +36,7 @@ namespace controller {
         using Factory = hifi::SimpleFactory<Filter, QString>;
 
         virtual float apply(float value) const = 0;
-        virtual Pose apply(Pose value) const { return value; } // most filters don't operate on poses
+        virtual Pose apply(Pose value) const = 0;
 
         // Factory features
         virtual bool parseParameters(const QJsonValue& parameters) { return true; }
