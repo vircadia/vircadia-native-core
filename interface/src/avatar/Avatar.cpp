@@ -193,6 +193,9 @@ void Avatar::animateScaleChanges(float deltaTime) {
         }
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
 
+        // flag the joints as having changed for force update to RenderItem
+        _hasNewJointData = true;
+
         // TODO: rebuilding the shape constantly is somehwat expensive.
         // We should only rebuild after significant change.
         rebuildCollisionShape();
@@ -200,8 +203,12 @@ void Avatar::animateScaleChanges(float deltaTime) {
 }
 
 void Avatar::setTargetScale(float targetScale) {
-    AvatarData::setTargetScale(targetScale);
-    _isAnimatingScale = true;
+    float newValue = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    if (_targetScale != newValue) {
+        _targetScale = newValue;
+        _scaleChanged = usecTimestampNow();
+        _isAnimatingScale = true;
+    }
 }
 
 void Avatar::updateAvatarEntities() {
@@ -476,7 +483,7 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+void Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
     _renderItemID = scene->allocateID();
@@ -486,9 +493,6 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
     }
-
-    _inScene = true;
-    return true;
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
@@ -498,7 +502,6 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, transaction);
     }
-    _inScene = false;
 }
 
 void Avatar::updateRenderItem(render::Transaction& transaction) {
@@ -1450,7 +1453,7 @@ void Avatar::addToScene(AvatarSharedPointer myHandle) {
     }
 }
 void Avatar::ensureInScene(AvatarSharedPointer self) {
-    if (!_inScene) {
+    if (!render::Item::isValidID(_renderItemID)) {
         addToScene(self);
     }
 }

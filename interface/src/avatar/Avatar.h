@@ -81,7 +81,7 @@ public:
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
-    bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
+    void addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
                             render::Transaction& transaction);
 
     void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
@@ -305,6 +305,7 @@ protected:
 
     void addToScene(AvatarSharedPointer self);
     void ensureInScene(AvatarSharedPointer self);
+    bool isInScene() const { return render::Item::isValidID(_renderItemID); }
 
     // Some rate tracking support
     RateCounter<> _simulationRate;
@@ -330,7 +331,6 @@ private:
     int _nameRectGeometryID { 0 };
     bool _initialized;
     bool _isLookAtTarget { false };
-    bool _inScene { false };
     bool _isAnimatingScale { false };
 
     float getBoundingRadius() const;
