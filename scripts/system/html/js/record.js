@@ -11,11 +11,13 @@
 //
 
 var isUsingToolbar = false,
+    numberOfPlayers = 0,
     recordingsBeingPlayed = [],
     elEnableRecording,
     elInstructions,
     elRecordingsPlaying,
     elNumberOfPlayers,
+    elLoadButton,
     EVENT_BRIDGE_TYPE = "record",
     BODY_LOADED_ACTION = "bodyLoaded",
     USING_TOOLBAR_ACTION = "usingToolbar",
@@ -23,6 +25,7 @@ var isUsingToolbar = false,
     RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
     NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
     STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
+    LOAD_RECORDING_ACTION = "loadRecording",
     TABLET_INSTRUCTIONS = "Close the tablet to start recording",
     WINDOW_INSTRUCTIONS = "Close the window to start recording";
 
@@ -77,6 +80,14 @@ function updateRecordings() {
     elRecordingsPlaying.replaceChild(tbody, elRecordingsPlaying.getElementsByTagName("tbody")[0]);
 }
 
+function updateLoadButton() {
+    if (numberOfPlayers > recordingsBeingPlayed.length) {
+        elLoadButton.removeAttribute("disabled");
+    } else {
+        elLoadButton.setAttribute("disabled", "disabled");
+    }
+}
+
 function onScriptEventReceived(data) {
     var message = JSON.parse(data);
     if (message.type === EVENT_BRIDGE_TYPE) {
@@ -92,9 +103,12 @@ function onScriptEventReceived(data) {
         case RECORDINGS_BEING_PLAYED_ACTION:
             recordingsBeingPlayed = JSON.parse(message.value);
             updateRecordings();
+            updateLoadButton();
             break;
         case NUMBER_OF_PLAYERS_ACTION:
-            elNumberOfPlayers.innerHTML = message.value;
+            numberOfPlayers = message.value;
+            elNumberOfPlayers.innerHTML = numberOfPlayers;
+            updateLoadButton();
             break;
         }
     }
@@ -117,6 +131,14 @@ function onBodyLoaded() {
     elInstructions = document.getElementById("instructions");
     elRecordingsPlaying = document.getElementById("recordings-playing");
     elNumberOfPlayers = document.getElementById("number-of-players");
+
+    elLoadButton = document.getElementById("load-button");
+    elLoadButton.onclick = function () {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: EVENT_BRIDGE_TYPE,
+            action: LOAD_RECORDING_ACTION
+        }));
+    }
 
     EventBridge.emitWebEvent(JSON.stringify({
         type: EVENT_BRIDGE_TYPE,

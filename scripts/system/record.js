@@ -417,7 +417,8 @@
             ENABLE_RECORDING_ACTION = "enableRecording",
             RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
             NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
-            STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording";
+            STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
+            LOAD_RECORDING_ACTION = "loadRecording";
 
         function onWebEventReceived(data) {
             var message = JSON.parse(data);
@@ -450,6 +451,10 @@
                 case STOP_PLAYING_RECORDING_ACTION:
                     // Stop the specified player.
                     Player.stopPlayingRecording(message.value);
+                    break;
+                case LOAD_RECORDING_ACTION:
+                    // User wants to select an ATP recording to play.
+                    log("TODO: Open dialog for user to select ATP recording to play");
                     break;
                 }
             }
