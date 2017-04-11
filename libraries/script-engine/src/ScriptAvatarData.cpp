@@ -41,70 +41,70 @@ glm::vec3 ScriptAvatarData::getPosition() const {
         return glm::vec3();
     }
 }
-const float ScriptAvatarData::getTargetScale() {
+float ScriptAvatarData::getTargetScale() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getTargetScale();
     } else {
         return 0.0f;
     }
 }
-const glm::vec3 ScriptAvatarData::getHandPosition() {
+glm::vec3 ScriptAvatarData::getHandPosition() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getHandPosition();
     } else {
         return glm::vec3();
     }
 }
-const float ScriptAvatarData::getBodyPitch() {
+float ScriptAvatarData::getBodyPitch() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getBodyPitch();
     } else {
         return 0.0f;
     }
 }
-const float ScriptAvatarData::getBodyYaw() {
+float ScriptAvatarData::getBodyYaw() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getBodyYaw();
     } else {
         return 0.0f;
     }
 }
-const float ScriptAvatarData::getBodyRoll() {
+float ScriptAvatarData::getBodyRoll() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getBodyRoll();
     } else {
         return 0.0f;
     }
 }
-const glm::quat ScriptAvatarData::getOrientation() {
+glm::quat ScriptAvatarData::getOrientation() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getOrientation();
     } else {
         return glm::quat();
     }
 }
-const glm::quat ScriptAvatarData::getHeadOrientation() {
+glm::quat ScriptAvatarData::getHeadOrientation() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getHeadOrientation();
     } else {
         return glm::quat();
     }
 }
-const float ScriptAvatarData::getHeadPitch() {
+float ScriptAvatarData::getHeadPitch() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getHeadPitch();
     } else {
         return 0.0f;
     }
 }
-const float ScriptAvatarData::getHeadYaw() {
+float ScriptAvatarData::getHeadYaw() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getHeadYaw();
     } else {
         return 0.0f;
     }
 }
-const float ScriptAvatarData::getHeadRoll() {
+float ScriptAvatarData::getHeadRoll() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getHeadRoll();
     } else {
@@ -120,14 +120,14 @@ const float ScriptAvatarData::getHeadRoll() {
 // PHYSICAL PROPERTIES: VELOCITY
 // START
 //
-const glm::vec3 ScriptAvatarData::getVelocity() {
+glm::vec3 ScriptAvatarData::getVelocity() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getVelocity();
     } else {
         return glm::vec3();
     }
 }
-const glm::vec3 ScriptAvatarData::getAngularVelocity() {
+glm::vec3 ScriptAvatarData::getAngularVelocity() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getAngularVelocity();
     } else {
@@ -144,21 +144,21 @@ const glm::vec3 ScriptAvatarData::getAngularVelocity() {
 // IDENTIFIER PROPERTIES
 // START
 //
-const QUuid ScriptAvatarData::getSessionUUID() const {
+QUuid ScriptAvatarData::getSessionUUID() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getSessionUUID();
     } else {
         return QUuid();
     }
 }
-const QString ScriptAvatarData::getDisplayName() {
+QString ScriptAvatarData::getDisplayName() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getDisplayName();
     } else {
         return QString();
     }
 }
-const QString ScriptAvatarData::getSessionDisplayName() {
+QString ScriptAvatarData::getSessionDisplayName() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getSessionDisplayName();
     } else {
@@ -174,25 +174,11 @@ const QString ScriptAvatarData::getSessionDisplayName() {
 // ATTACHMENT AND JOINT PROPERTIES
 // START
 //
-const QString ScriptAvatarData::getSkeletonModelURLFromScript() {
+QString ScriptAvatarData::getSkeletonModelURLFromScript() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getSkeletonModelURLFromScript();
     } else {
         return QString();
-    }
-}
-const QVector<AttachmentData> ScriptAvatarData::getAttachmentData() {
-    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
-        return sharedAvatarData->getAttachmentData();
-    } else {
-        return QVector<AttachmentData>();
-    }
-}
-const QStringList ScriptAvatarData::getJointNames() {
-    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
-        return sharedAvatarData->getJointNames();
-    } else {
-        return QStringList();
     }
 }
 char ScriptAvatarData::getHandState() const {
@@ -275,14 +261,14 @@ QVector<AttachmentData> ScriptAvatarData::getAttachmentData() const {
 // AUDIO PROPERTIES
 // START
 //
-const float ScriptAvatarData::getAudioLoudness() {
+float ScriptAvatarData::getAudioLoudness() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getAudioLoudness();
     } else {
         return 0.0f;
     }
 }
-const float ScriptAvatarData::getAudioAverageLoudness() {
+float ScriptAvatarData::getAudioAverageLoudness() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getAudioAverageLoudness();
     } else {
@@ -298,21 +284,21 @@ const float ScriptAvatarData::getAudioAverageLoudness() {
 // MATRIX PROPERTIES
 // START
 //
-const glm::mat4 ScriptAvatarData::getSensorToWorldMatrix() {
+glm::mat4 ScriptAvatarData::getSensorToWorldMatrix() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getSensorToWorldMatrix();
     } else {
         return glm::mat4();
     }
 }
-const glm::mat4 ScriptAvatarData::getControllerLeftHandMatrix() {
+glm::mat4 ScriptAvatarData::getControllerLeftHandMatrix() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getControllerLeftHandMatrix();
     } else {
         return glm::mat4();
     }
 }
-const glm::mat4 ScriptAvatarData::getControllerRightHandMatrix() {
+glm::mat4 ScriptAvatarData::getControllerRightHandMatrix() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getControllerRightHandMatrix();
     } else {

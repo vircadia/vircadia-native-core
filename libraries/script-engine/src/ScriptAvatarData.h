@@ -74,35 +74,33 @@ public:
     //
     using SpatiallyNestable::getPosition;
     virtual glm::vec3 getPosition() const override;
-    const float getTargetScale();
-    const glm::vec3 getHandPosition();
-    const float getBodyPitch();
-    const float getBodyYaw();
-    const float getBodyRoll();
-    const glm::quat getOrientation();
-    const glm::quat getHeadOrientation();
-    const float getHeadPitch();
-    const float getHeadYaw();
-    const float getHeadRoll();
+    float getTargetScale() const;
+    glm::vec3 getHandPosition() const;
+    float getBodyPitch() const;
+    float getBodyYaw() const;
+    float getBodyRoll() const;
+    virtual glm::quat getOrientation() const override;
+    glm::quat getHeadOrientation() const;
+    float getHeadPitch() const;
+    float getHeadYaw() const;
+    float getHeadRoll() const;
     //
     // PHYSICAL PROPERTIES: VELOCITY
     //
-    const glm::vec3 getVelocity();
-    const glm::vec3 getAngularVelocity();
+    virtual glm::vec3 getVelocity() const override;
+    virtual glm::vec3 getAngularVelocity() const override;
 
     //
     // IDENTIFIER PROPERTIES
     //
-    const QUuid getSessionUUID() const;
-    const QString getDisplayName();
-    const QString getSessionDisplayName();
+    QUuid getSessionUUID() const;
+    QString getDisplayName() const;
+    QString getSessionDisplayName() const;
 
     //
     // ATTACHMENT AND JOINT PROPERTIES
     //
-    const QString getSkeletonModelURLFromScript();
-    const QVector<AttachmentData> getAttachmentData();
-    const QStringList getJointNames();
+    QString getSkeletonModelURLFromScript() const;
     Q_INVOKABLE char getHandState() const;
     Q_INVOKABLE virtual glm::quat getJointRotation(int index) const;
     Q_INVOKABLE virtual glm::vec3 getJointTranslation(int index) const;
@@ -117,22 +115,22 @@ public:
     //
     // AUDIO PROPERTIES
     //
-    const float getAudioLoudness();
-    const float getAudioAverageLoudness();
+    float getAudioLoudness() const;
+    float getAudioAverageLoudness() const;
 
     //
     // MATRIX PROPERTIES
     //
-    const glm::mat4 getSensorToWorldMatrix();
-    const glm::mat4 getControllerLeftHandMatrix();
-    const glm::mat4 getControllerRightHandMatrix();
+    glm::mat4 getSensorToWorldMatrix() const;
+    glm::mat4 getControllerLeftHandMatrix() const;
+    glm::mat4 getControllerRightHandMatrix() const;
     
 signals:
     void displayNameChanged();
 
 public slots:
-    glm::quat getAbsoluteJointRotationInObjectFrame(int index) const;
-    glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const;
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
 private:
     std::weak_ptr<AvatarData> _avatarData;
