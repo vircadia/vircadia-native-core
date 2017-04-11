@@ -188,9 +188,10 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
         float numItems = (float) items.size();
         float itemNum = 0.0f;
         for (const auto& item : items) {
+            glm::vec4 color(glm::vec3(itemNum / numItems), 1.0f);
             batch._glUniform3fv(_cornerLocation, 1, (const float*)(&item.bound.getCorner()));
             batch._glUniform3fv(_scaleLocation, 1, (const float*)(&item.bound.getScale()));
-            batch._glUniform4fv(_colorLocation, 1, (const float*)(&glm::vec4(glm::vec3(itemNum / numItems), 1.0f)));
+            batch._glUniform4fv(_colorLocation, 1, (const float*)(&color));
 
             static const int NUM_VERTICES_PER_CUBE = 24;
             batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE, 0);
