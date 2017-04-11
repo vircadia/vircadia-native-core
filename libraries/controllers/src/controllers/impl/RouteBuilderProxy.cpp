@@ -27,6 +27,8 @@
 #include "filters/PulseFilter.h"
 #include "filters/ScaleFilter.h"
 #include "filters/TranslateFilter.h"
+#include "filters/TransformFilter.h"
+#include "filters/RotateFilter.h"
 #include "conditionals/AndConditional.h"
 
 using namespace controller;
@@ -105,8 +107,17 @@ QObject* RouteBuilderProxy::deadZone(float min) {
 }
 
 QObject* RouteBuilderProxy::translate(glm::vec3 translate) {
-    qDebug() << __FUNCTION__ << "translate:" << translate;
     addFilter(std::make_shared<TranslateFilter>(translate));
+    return this;
+}
+
+QObject* RouteBuilderProxy::transform(glm::mat4 transform) {
+    addFilter(std::make_shared<TransformFilter>(transform));
+    return this;
+}
+
+QObject* RouteBuilderProxy::rotate(glm::quat rotation) {
+    addFilter(std::make_shared<RotateFilter>(rotation));
     return this;
 }
 

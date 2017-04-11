@@ -47,6 +47,8 @@ namespace controller {
 
         static bool parseSingleFloatParameter(const QJsonValue& parameters, const QString& name, float& output);
         static bool parseVec3Parameter(const QJsonValue& parameters, const QString& name, glm::vec3& output);
+        static bool parseMat4Parameter(const QJsonValue& parameters, const QString& name, glm::mat4& output);
+        static bool parseQuatParameter(const QJsonValue& parameters, const QString& name, glm::quat& output);
     protected:
         static Factory _factory;
     };

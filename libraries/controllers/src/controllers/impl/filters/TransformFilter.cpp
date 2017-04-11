@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "TranslateFilter.h"
+#include "TransformFilter.h"
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
@@ -15,7 +15,7 @@
 
 using namespace controller;
 
-bool TranslateFilter::parseParameters(const QJsonValue& parameters) {
-    static const QString JSON_TRANSLATE = QStringLiteral("translate");
-    return parseVec3Parameter(parameters, JSON_TRANSLATE, _translate);
+bool TransformFilter::parseParameters(const QJsonValue& parameters) {
+    static const QString JSON_TRANSFORM = QStringLiteral("transform");
+    return parseMat4Parameter(parameters, JSON_TRANSFORM, _transform);
 }

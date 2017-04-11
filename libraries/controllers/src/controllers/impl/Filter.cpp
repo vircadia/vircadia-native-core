@@ -25,6 +25,7 @@
 #include "filters/PulseFilter.h"
 #include "filters/ScaleFilter.h"
 #include "filters/TranslateFilter.h"
+#include "filters/TransformFilter.h"
 
 using namespace controller;
 
@@ -39,6 +40,7 @@ REGISTER_FILTER_CLASS_INSTANCE(InvertFilter, "invert")
 REGISTER_FILTER_CLASS_INSTANCE(ScaleFilter, "scale")
 REGISTER_FILTER_CLASS_INSTANCE(PulseFilter, "pulse")
 REGISTER_FILTER_CLASS_INSTANCE(TranslateFilter, "translate")
+REGISTER_FILTER_CLASS_INSTANCE(TransformFilter, "transform")
 
 const QString JSON_FILTER_TYPE = QStringLiteral("type");
 const QString JSON_FILTER_PARAMS = QStringLiteral("params");
@@ -109,6 +111,69 @@ bool Filter::parseVec3Parameter(const QJsonValue& parameters, const QString& nam
             return true;
         }
     } 
+    return false;
+}
+
+bool Filter::parseMat4Parameter(const QJsonValue& parameters, const QString& name, glm::mat4& output) {
+    if (parameters.isObject()) {
+        auto objectParameters = parameters.toObject();
+
+
+        if (objectParameters.contains("r0c0") && 
+            objectParameters.contains("r1c0") &&
+            objectParameters.contains("r2c0") &&
+            objectParameters.contains("r3c0") &&
+            objectParameters.contains("r0c1") &&
+            objectParameters.contains("r1c1") &&
+            objectParameters.contains("r2c1") &&
+            objectParameters.contains("r3c1") &&
+            objectParameters.contains("r0c2") &&
+            objectParameters.contains("r1c2") &&
+            objectParameters.contains("r2c2") &&
+            objectParameters.contains("r3c2") &&
+            objectParameters.contains("r0c3") &&
+            objectParameters.contains("r1c3") &&
+            objectParameters.contains("r2c3") &&
+            objectParameters.contains("r3c3")) {
+
+            output[0][0] = objectParameters["r0c0"].toDouble();
+            output[0][1] = objectParameters["r1c0"].toDouble();
+            output[0][2] = objectParameters["r2c0"].toDouble();
+            output[0][3] = objectParameters["r3c0"].toDouble();
+            output[1][0] = objectParameters["r0c1"].toDouble();
+            output[1][1] = objectParameters["r1c1"].toDouble();
+            output[1][2] = objectParameters["r2c1"].toDouble();
+            output[1][3] = objectParameters["r3c1"].toDouble();
+            output[2][0] = objectParameters["r0c2"].toDouble();
+            output[2][1] = objectParameters["r1c2"].toDouble();
+            output[2][2] = objectParameters["r2c2"].toDouble();
+            output[2][3] = objectParameters["r3c2"].toDouble();
+            output[3][0] = objectParameters["r0c3"].toDouble();
+            output[3][1] = objectParameters["r1c3"].toDouble();
+            output[3][2] = objectParameters["r2c3"].toDouble();
+            output[3][3] = objectParameters["r3c3"].toDouble();
+
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Filter::parseQuatParameter(const QJsonValue& parameters, const QString& name, glm::quat& output) {
+    if (parameters.isObject()) {
+        auto objectParameters = parameters.toObject();
+        if (objectParameters.contains("w") && 
+            objectParameters.contains("x") && 
+            objectParameters.contains("y") && 
+            objectParameters.contains("z")) {
+
+            output = glm::quat(objectParameters["w"].toDouble(),
+                               objectParameters["x"].toDouble(),
+                               objectParameters["y"].toDouble(),
+                               objectParameters["z"].toDouble());
+            return true;
+        }
+    }
     return false;
 }
 

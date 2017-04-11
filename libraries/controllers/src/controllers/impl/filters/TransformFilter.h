@@ -7,8 +7,8 @@
 //
 
 #pragma once
-#ifndef hifi_Controllers_Filters_Translate_h
-#define hifi_Controllers_Filters_Translate_h
+#ifndef hifi_Controllers_Filters_Transform_h
+#define hifi_Controllers_Filters_Transform_h
 
 #include <glm/gtx/transform.hpp>
 
@@ -16,24 +16,24 @@
 
 namespace controller {
 
-class TranslateFilter : public Filter {
-    REGISTER_FILTER_CLASS(TranslateFilter);
+class TransformFilter : public Filter {
+    REGISTER_FILTER_CLASS(TransformFilter);
 public:
-    TranslateFilter() { }
-    TranslateFilter(glm::vec3 translate) : _translate(translate) {}
+    TransformFilter() { }
+    TransformFilter(glm::mat4 transform) : _transform(transform) {}
 
     virtual float apply(float value) const override {
         return value;
     }
 
     virtual Pose apply(Pose value) const override {
-        return value.transform(glm::translate(_translate));
+        return value.transform(_transform);
     }
 
     virtual bool parseParameters(const QJsonValue& parameters) override;
 
 private:
-    glm::vec3 _translate { 0.0f };
+    glm::mat4 _transform;
 };
 
 }
