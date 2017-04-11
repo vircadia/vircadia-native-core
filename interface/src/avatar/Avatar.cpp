@@ -59,7 +59,6 @@ namespace render {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         if (avatarPtr->isInitialized() && args) {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
-            // TODO AVATARS_RENDERER: remove need for qApp
             avatarPtr->render(args);
         }
     }

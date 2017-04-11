@@ -13,9 +13,6 @@
 
 #include "Camera.h"
 
-#include <EntityItem.h>
-
-// TODO: come up with a better name than "FancyCamera"
 class FancyCamera : public Camera {
     Q_OBJECT
 
