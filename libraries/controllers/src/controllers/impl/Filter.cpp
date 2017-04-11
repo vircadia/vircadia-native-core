@@ -24,6 +24,7 @@
 #include "filters/InvertFilter.h"
 #include "filters/PulseFilter.h"
 #include "filters/ScaleFilter.h"
+#include "filters/TranslateFilter.h"
 
 using namespace controller;
 
@@ -37,6 +38,7 @@ REGISTER_FILTER_CLASS_INSTANCE(HysteresisFilter, "hysteresis")
 REGISTER_FILTER_CLASS_INSTANCE(InvertFilter, "invert")
 REGISTER_FILTER_CLASS_INSTANCE(ScaleFilter, "scale")
 REGISTER_FILTER_CLASS_INSTANCE(PulseFilter, "pulse")
+REGISTER_FILTER_CLASS_INSTANCE(TranslateFilter, "translate")
 
 const QString JSON_FILTER_TYPE = QStringLiteral("type");
 const QString JSON_FILTER_PARAMS = QStringLiteral("params");
@@ -76,7 +78,6 @@ bool Filter::parseSingleFloatParameter(const QJsonValue& parameters, const QStri
             return true;
         }
     } else if (parameters.isObject()) {
-        static const QString JSON_MIN = QStringLiteral("interval");
         auto objectParameters = parameters.toObject();
         if (objectParameters.contains(name)) {
             output = objectParameters[name].toDouble();
@@ -86,6 +87,30 @@ bool Filter::parseSingleFloatParameter(const QJsonValue& parameters, const QStri
     return false;
 }
 
+// FIXME - we're not really using the name 
+bool Filter::parseVec3Parameter(const QJsonValue& parameters, const QString& name, glm::vec3& output) {
+    if (parameters.isDouble()) {
+        output = glm::vec3(parameters.toDouble());
+        return true;
+    } else if (parameters.isArray()) {
+        auto arrayParameters = parameters.toArray();
+        if (arrayParameters.size() == 3) {
+            output = glm::vec3(arrayParameters[0].toDouble(),
+                               arrayParameters[1].toDouble(),
+                               arrayParameters[2].toDouble());
+            return true;
+        }
+    } else if (parameters.isObject()) {
+        auto objectParameters = parameters.toObject();
+        if (objectParameters.contains("x") && objectParameters.contains("y") && objectParameters.contains("z")) {
+            output = glm::vec3(objectParameters["x"].toDouble(),
+                               objectParameters["y"].toDouble(),
+                               objectParameters["z"].toDouble());
+            return true;
+        }
+    } 
+    return false;
+}
 
 
 #if 0

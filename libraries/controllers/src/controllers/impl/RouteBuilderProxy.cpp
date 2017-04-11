@@ -26,6 +26,7 @@
 #include "filters/InvertFilter.h"
 #include "filters/PulseFilter.h"
 #include "filters/ScaleFilter.h"
+#include "filters/TranslateFilter.h"
 #include "conditionals/AndConditional.h"
 
 using namespace controller;
@@ -100,6 +101,12 @@ QObject* RouteBuilderProxy::hysteresis(float min, float max) {
 
 QObject* RouteBuilderProxy::deadZone(float min) {
     addFilter(std::make_shared<DeadZoneFilter>(min));
+    return this;
+}
+
+QObject* RouteBuilderProxy::translate(glm::vec3 translate) {
+    qDebug() << __FUNCTION__ << "translate:" << translate;
+    addFilter(std::make_shared<TranslateFilter>(translate));
     return this;
 }
 
