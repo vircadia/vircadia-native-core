@@ -28,6 +28,7 @@
 #include <OctreeUtils.h>
 #include <udt/PacketHeaders.h>
 #include <PerfStat.h>
+#include <Rig.h>
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
 #include <TextureCache.h>
@@ -46,7 +47,6 @@
 #include "InterfaceLogging.h"
 #include "SceneScriptingInterface.h"
 #include "SoftAttachmentModel.h"
-#include <Rig.h>
 
 using namespace std;
 
@@ -71,7 +71,7 @@ namespace render {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         if (avatarPtr->isInitialized() && args) {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
-            avatarPtr->render(args, qApp->getCamera()->getPosition());
+            avatarPtr->render(args, qApp->getMain3DScene(), qApp->getCamera());
         }
     }
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
@@ -85,7 +85,7 @@ namespace render {
     }
 }
 
-Avatar::Avatar(RigPointer rig) :
+Avatar::Avatar(QThread* thread, RigPointer rig) :
     AvatarData(),
     _skeletonOffset(0.0f),
     _bodyYawDelta(0.0f),
@@ -108,7 +108,7 @@ Avatar::Avatar(RigPointer rig) :
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
-    moveToThread(qApp->thread());
+    moveToThread(thread);
 
     setScale(glm::vec3(1.0f)); // avatar scale is uniform
 
@@ -128,7 +128,7 @@ Avatar::Avatar(RigPointer rig) :
 Avatar::~Avatar() {
     assert(isDead()); // mark dead before calling the dtor
 
-    auto treeRenderer = qApp->getEntities();
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
         entityTree->withWriteLock([&] {
@@ -237,7 +237,7 @@ void Avatar::updateAvatarEntities() {
         return; // wait until MyAvatar gets an ID before doing this.
     }
 
-    auto treeRenderer = qApp->getEntities();
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (!entityTree) {
         return;
@@ -578,7 +578,7 @@ void Avatar::postUpdate(float deltaTime) {
     }
 }
 
-void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
+void Avatar::render(RenderArgs* renderArgs, render::ScenePointer scene, const Camera& camera) {
     auto& batch = *renderArgs->_batch;
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
@@ -653,11 +653,11 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         }
     }
 
-    glm::vec3 toTarget = cameraPosition - getPosition();
+    glm::vec3 toTarget = camera.getPosition() - getPosition();
     float distanceToTarget = glm::length(toTarget);
 
     {
-        fixupModelsInScene();
+        fixupModelsInScene(scene);
 
         if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights
@@ -686,7 +686,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(distanceToTarget < DISPLAYNAME_DISTANCE);
 
-    auto cameraMode = qApp->getCamera()->getMode();
+    auto cameraMode = camera.getMode();
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
         auto& frustum = renderArgs->getViewFrustum();
         auto textPosition = getDisplayNamePosition();
@@ -712,12 +712,11 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::fixupModelsInScene() {
+void Avatar::fixupModelsInScene(render::ScenePointer scene) {
     _attachmentsToDelete.clear();
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
-    render::ScenePointer scene = qApp->getMain3DScene();
     render::Transaction transaction;
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
@@ -1490,8 +1489,7 @@ QList<QVariant> Avatar::getSkeleton() {
     return QList<QVariant>();
 }
 
-void Avatar::addToScene(AvatarSharedPointer myHandle) {
-    render::ScenePointer scene = qApp->getMain3DScene();
+void Avatar::addToScene(AvatarSharedPointer myHandle, render::ScenePointer scene) {
     if (scene) {
         render::Transaction transaction;
         auto nodelist = DependencyManager::get<NodeList>();
@@ -1505,8 +1503,9 @@ void Avatar::addToScene(AvatarSharedPointer myHandle) {
         qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
     }
 }
-void Avatar::ensureInScene(AvatarSharedPointer self) {
+
+void Avatar::ensureInScene(AvatarSharedPointer self, render::ScenePointer scene) {
     if (!render::Item::isValidID(_renderItemID)) {
-        addToScene(self);
+        addToScene(self, scene);
     }
 }

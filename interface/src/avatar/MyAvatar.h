@@ -146,7 +146,7 @@ public:
     };
     Q_ENUM(DriveKeys)
 
-    explicit MyAvatar(RigPointer rig);
+    explicit MyAvatar(QThread* thread, RigPointer rig);
     ~MyAvatar();
 
     void registerMetaTypes(QScriptEngine* engine);
@@ -525,7 +525,7 @@ private:
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
-    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
+    virtual void render(RenderArgs* renderArgs, render::ScenePointer scene, const Camera& camera) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }

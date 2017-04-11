@@ -69,7 +69,7 @@ void AvatarManager::registerMetaTypes(QScriptEngine* engine) {
 
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
-    _myAvatar(std::make_shared<MyAvatar>(std::make_shared<Rig>()))
+    _myAvatar(std::make_shared<MyAvatar>(qApp->thread(), std::make_shared<Rig>()))
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
@@ -198,7 +198,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
         // for ALL avatars...
         if (_shouldRender) {
-            avatar->ensureInScene(avatar);
+            render::ScenePointer scene = qApp->getMain3DScene();
+            avatar->ensureInScene(avatar, scene);
         }
         if (!avatar->getMotionState()) {
             ShapeInfo shapeInfo;
@@ -329,7 +330,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return std::make_shared<Avatar>(std::make_shared<Rig>());
+    return std::make_shared<Avatar>(qApp->thread(), std::make_shared<Rig>());
 }
 
 void AvatarManager::processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {

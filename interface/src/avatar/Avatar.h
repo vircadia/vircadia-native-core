@@ -22,6 +22,8 @@
 
 #include <render/Scene.h>
 
+
+#include "Camera.h"
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "world.h"
@@ -68,7 +70,7 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
-    explicit Avatar(RigPointer rig = nullptr);
+    explicit Avatar(QThread* thread, RigPointer rig = nullptr);
     ~Avatar();
 
     typedef render::Payload<AvatarData> Payload;
@@ -79,7 +81,7 @@ public:
     void simulate(float deltaTime, bool inView);
     virtual void simulateAttachments(float deltaTime);
 
-    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
+    virtual void render(RenderArgs* renderArgs, render::ScenePointer scene, const Camera& camera);
 
     void addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
                             render::Transaction& transaction);
@@ -305,7 +307,7 @@ protected:
     Transform calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const;
     void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
-    virtual void fixupModelsInScene();
+    virtual void fixupModelsInScene(render::ScenePointer scene);
 
     virtual void updatePalms();
 
@@ -316,8 +318,8 @@ protected:
     ThreadSafeValueCache<glm::vec3> _rightPalmPositionCache { glm::vec3() };
     ThreadSafeValueCache<glm::quat> _rightPalmRotationCache { glm::quat() };
 
-    void addToScene(AvatarSharedPointer self);
-    void ensureInScene(AvatarSharedPointer self);
+    void addToScene(AvatarSharedPointer self, render::ScenePointer scene);
+    void ensureInScene(AvatarSharedPointer self, render::ScenePointer scene);
     bool isInScene() const { return render::Item::isValidID(_renderItemID); }
 
     // Some rate tracking support
