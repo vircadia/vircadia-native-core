@@ -212,6 +212,7 @@ function snapshotTaken(pathStillSnapshot, notify) {
         { localPath: pathStillSnapshot, href: href },
         {
             containsGif: false,
+            processingGif: false,
             canShare: !!isDomainOpen(domainId),
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }];
@@ -222,7 +223,7 @@ function snapshotTaken(pathStillSnapshot, notify) {
     HMD.openTablet();
 }
 
-function processingGifStarted() {
+function processingGifStarted(pathStillSnapshot) {
     Window.processingGifStarted.disconnect(processingGifStarted);
     button.clicked.disconnect(onClicked);
     buttonConnected = false;
@@ -248,7 +249,7 @@ function processingGifStarted() {
     HMD.openTablet();
 }
 
-function processingGifCompleted() {
+function processingGifCompleted(pathAnimatedSnapshot) {
     Window.processingGifCompleted.disconnect(processingGifCompleted);
     button.clicked.connect(onClicked);
     buttonConnected = true;
@@ -257,7 +258,9 @@ function processingGifCompleted() {
         { localPath: pathAnimatedSnapshot, href: href },
         {
             containsGif: true,
-            processingGif: false
+            processingGif: false,
+            canShare: !!isDomainOpen(domainId),
+            openFeedAfterShare: shouldOpenFeedAfterShare()
         }];
     readyData = confirmShareContents;
 

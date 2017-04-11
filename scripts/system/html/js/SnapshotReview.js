@@ -21,6 +21,7 @@ function addImage(data) {
         img = document.createElement("IMG"),
         div2 = document.createElement("DIV"),
         id = "p" + idCounter++;
+        img.id = id + "img";
     function toggle() { data.share = input.checked; }
     div.style.height = "" + Math.floor(100 / imageCount) + "%";
     if (imageCount > 1) {
@@ -31,7 +32,7 @@ function addImage(data) {
     if (imageCount > 1) { // I'd rather use css, but the included stylesheet is quite particular.
         // Our stylesheet(?) requires input.id to match label.for. Otherwise input doesn't display the check state.
         label.setAttribute('for', id); // cannot do label.for =
-        input.id = id;
+        input.id = id + "check";
         input.type = "checkbox";
         input.checked = false;
         data.share = input.checked;
@@ -81,15 +82,14 @@ window.onload = function () {
             handleShareButtons(messageOptions);
 
             if (messageOptions.containsGif) {
-                var gifCheckbox = document.getElementById('p0');
                 if (messageOptions.processingGif) {
-                    gifCheckbox.disabled = true;
                     imageCount = message.action.length + 1; // "+1" for the GIF that'll finish processing soon
-                    message.action.unshift({ localPath: 'http://lorempixel.com/1512/1680' });
+                    message.action.unshift({ localPath: '../../../resources/icons/profilePicLoading.gif' });
                     message.action.forEach(addImage);
+                    document.getElementById('p0check').disabled = true;
                 } else {
-                    gifCheckbox.disabled = false;
-                    gifCheckbox.img.src = message.action.localPath;
+                    document.getElementById('p0check').disabled = false;
+                    document.getElementById('p0img').src = message.action[0].localPath;
                 }
             } else {
                 imageCount = message.action.length;
