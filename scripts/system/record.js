@@ -17,7 +17,6 @@
         APP_ICON_ACTIVE = "icons/tablet-icons/edit-a.svg",  // FIXME: Record icon.
         APP_URL = Script.resolvePath("html/record.html"),
         isDialogDisplayed = false,
-        isRecordingEnabled = false,
         tablet,
         button,
 
@@ -25,10 +24,6 @@
         Recorder,
         Player,
         Dialog;
-
-    function updateButtonState() {
-        button.editProperties({ isActive: isRecordingEnabled || !Recorder.isIdle() });
-    }
 
     function log(message) {
         print(APP_NAME + ": " + message);
@@ -38,11 +33,6 @@
         print(APP_NAME + ": " + message + (info !== "" ? " - " + info : ""));
         Window.alert(message);
 
-    }
-
-    function isUsingToolbar() {
-        return ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
-            || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar")));
     }
 
     CountdownTimer = (function () {
@@ -205,7 +195,6 @@
 
         function startRecording() {
             recordingState = RECORDING;
-            updateButtonState();
             log("Start recording");
             startPosition = MyAvatar.position;
             startOrientation = MyAvatar.orientation;
@@ -217,7 +206,6 @@
                 error;
 
             recordingState = IDLE;
-            updateButtonState();
             log("Finish recording");
             Recording.stopRecording();
             success = Recording.saveRecordingToAsset(saveRecordingToAssetCallback);
@@ -229,26 +217,22 @@
         function cancelRecording() {
             Recording.stopRecording();
             recordingState = IDLE;
-            updateButtonState();
             log("Cancel recording");
         }
 
         function finishCountdown() {
             recordingState = RECORDING;
-            updateButtonState();
             startRecording();
         }
 
         function cancelCountdown() {
             recordingState = IDLE;
-            updateButtonState();
             CountdownTimer.cancel();
             log("Cancel countdown");
         }
 
         function startCountdown() {
             recordingState = COUNTING_DOWN;
-            updateButtonState();
             log("Start countdown");
             CountdownTimer.start(finishCountdown);
         }
@@ -413,8 +397,6 @@
     Dialog = (function () {
         var EVENT_BRIDGE_TYPE = "record",
             BODY_LOADED_ACTION = "bodyLoaded",
-            USING_TOOLBAR_ACTION = "usingToolbar",
-            ENABLE_RECORDING_ACTION = "enableRecording",
             RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
             NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
             STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
@@ -428,25 +410,9 @@
                     // Dialog's ready; initialize its state.
                     tablet.emitScriptEvent(JSON.stringify({
                         type: EVENT_BRIDGE_TYPE,
-                        action: ENABLE_RECORDING_ACTION,
-                        value: isRecordingEnabled
-                    }));
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
-                        action: USING_TOOLBAR_ACTION,
-                        value: isUsingToolbar()
-                    }));
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
                         action: NUMBER_OF_PLAYERS_ACTION,
                         value: Player.numberOfPlayers()
                     }));
-                    break;
-                case ENABLE_RECORDING_ACTION:
-                    // User update "enable recording" checkbox.
-                    // The recording state must be idle because the dialog is open.
-                    isRecordingEnabled = message.value;
-                    updateButtonState();
                     break;
                 case STOP_PLAYING_RECORDING_ACTION:
                     // Stop the specified player.
@@ -503,35 +469,26 @@
 
     function onTabletScreenChanged(type, url) {
         // Open/close dialog in tablet or window.
-        var RECORD_URL = "/scripts/system/html/record.html",
-            HOME_URL = "Tablet.qml";
+        var RECORD_URL = "/scripts/system/html/record.html";
 
-        if (type === "Home" && url === HOME_URL) {
-            // Start countdown if using toolbar and recording is enabled.
-            if (isUsingToolbar() && isRecordingEnabled && Recorder.isIdle()) {
-                Recorder.startCountdown();
-            }
-            isDialogDisplayed = false;
-        } else if (type === "Web" && url.slice(-RECORD_URL.length) === RECORD_URL) {
+        if (type === "Web" && url.slice(-RECORD_URL.length) === RECORD_URL) {
             // Cancel countdown or finish recording.
             if (Recorder.isCountingDown()) {
                 Recorder.cancelCountdown();
             } else if (Recorder.isRecording()) {
                 Recorder.finishRecording();
             }
+            isDialogDisplayed = true;
+        } else {
+            isDialogDisplayed = false;
         }
+        button.editProperties({ isActive: isDialogDisplayed });
     }
 
     function onTabletShownChanged() {
         // Open/close tablet.
-        isDialogDisplayed = false;
 
-        if (!tablet.tabletShown) {
-            // Start countdown if recording is enabled.
-            if (isRecordingEnabled && Recorder.isIdle()) {
-                Recorder.startCountdown();
-            }
-        } else {
+        if (tablet.tabletShown) {
             // Cancel countdown or finish recording.
             if (Recorder.isCountingDown()) {
                 Recorder.cancelCountdown();
