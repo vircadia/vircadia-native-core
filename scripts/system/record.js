@@ -21,6 +21,7 @@
         button,
 
         CountdownTimer,
+        RecordingIndicator,
         Recorder,
         Player,
         Dialog;
@@ -151,6 +152,68 @@
         };
     }());
 
+    RecordingIndicator = (function () {
+        // Displays "recording" overlay.
+
+        var hmdOverlay,
+            HMD_FONT_SIZE = 0.08,
+            desktopOverlay,
+            DESKTOP_FONT_SIZE = 24;
+
+        function show() {
+            // Create both overlays in case user switches desktop/HMD mode.
+            var screenSize = Controller.getViewportDimensions(),
+                recordingText = "REC",  // Unicode circle \u25cf doesn't render in HMD.
+                AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
+
+            if (HMD.active) {
+                // 3D overlay attached to avatar.
+                hmdOverlay = Overlays.addOverlay("text3d", {
+                    text: recordingText,
+                    dimensions: { x: 3 * HMD_FONT_SIZE, y: HMD_FONT_SIZE },
+                    parentID: AVATAR_SELF_ID,
+                    localPosition: { x: -1.0, y: 1.1, z: 2.0 },
+                    color: { red: 255, green: 0, blue: 0 },
+                    alpha: 0.9,
+                    lineHeight: HMD_FONT_SIZE,
+                    backgroundAlpha: 0,
+                    ignoreRayIntersection: true,
+                    isFacingAvatar: true,
+                    drawInFront: true,
+                    visible: true
+                });
+            } else {
+                // 2D overlay on desktop.
+                desktopOverlay = Overlays.addOverlay("text", {
+                    text: recordingText,
+                    width: 3 * DESKTOP_FONT_SIZE,
+                    height: DESKTOP_FONT_SIZE,
+                    x: screenSize.x - 4 * DESKTOP_FONT_SIZE,
+                    y: DESKTOP_FONT_SIZE,
+                    font: { size: DESKTOP_FONT_SIZE },
+                    color: { red: 255, green: 8, blue: 8 },
+                    alpha: 1.0,
+                    backgroundAlpha: 0,
+                    visible: true
+                });
+            }
+        }
+
+        function hide() {
+            if (desktopOverlay) {
+                Overlays.deleteOverlay(desktopOverlay);
+            }
+            if (hmdOverlay) {
+                Overlays.deleteOverlay(hmdOverlay);
+            }
+        }
+
+        return {
+            show: show,
+            hide: hide
+        };
+    }());
+
     Recorder = (function () {
         // Makes the recording and uploads it to the domain's Asset Server.
 
@@ -199,6 +262,7 @@
             startPosition = MyAvatar.position;
             startOrientation = MyAvatar.orientation;
             Recording.startRecording();
+            RecordingIndicator.show();
         }
 
         function finishRecording() {
@@ -208,6 +272,7 @@
             recordingState = IDLE;
             log("Finish recording");
             Recording.stopRecording();
+            RecordingIndicator.hide();
             success = Recording.saveRecordingToAsset(saveRecordingToAssetCallback);
             if (!success) {
                 error("Error saving recording to Asset Server!");
@@ -216,6 +281,7 @@
 
         function cancelRecording() {
             Recording.stopRecording();
+            RecordingIndicator.hide();
             recordingState = IDLE;
             log("Cancel recording");
         }
