@@ -16,31 +16,31 @@
 
 using namespace render;
 
-void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
+void Transaction::resetItem(ItemID id, const PayloadPointer& payload) {
     if (payload) {
         _resetItems.push_back(id);
         _resetPayloads.push_back(payload);
     } else {
-        qCDebug(renderlogging) << "WARNING: PendingChanges::resetItem with a null payload!";
+        qCDebug(renderlogging) << "WARNING: Transaction::resetItem with a null payload!";
         removeItem(id);
     }
 }
 
-void PendingChanges::removeItem(ItemID id) {
+void Transaction::removeItem(ItemID id) {
     _removedItems.push_back(id);
 }
 
-void PendingChanges::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
+void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
     _updatedItems.push_back(id);
     _updateFunctors.push_back(functor);
 }
 
-void PendingChanges::merge(const PendingChanges& changes) {
-    _resetItems.insert(_resetItems.end(), changes._resetItems.begin(), changes._resetItems.end());
-    _resetPayloads.insert(_resetPayloads.end(), changes._resetPayloads.begin(), changes._resetPayloads.end());
-    _removedItems.insert(_removedItems.end(), changes._removedItems.begin(), changes._removedItems.end());
-    _updatedItems.insert(_updatedItems.end(), changes._updatedItems.begin(), changes._updatedItems.end());
-    _updateFunctors.insert(_updateFunctors.end(), changes._updateFunctors.begin(), changes._updateFunctors.end());
+void Transaction::merge(const Transaction& transaction) {
+    _resetItems.insert(_resetItems.end(), transaction._resetItems.begin(), transaction._resetItems.end());
+    _resetPayloads.insert(_resetPayloads.end(), transaction._resetPayloads.begin(), transaction._resetPayloads.end());
+    _removedItems.insert(_removedItems.end(), transaction._removedItems.begin(), transaction._removedItems.end());
+    _updatedItems.insert(_updatedItems.end(), transaction._updatedItems.begin(), transaction._updatedItems.end());
+    _updateFunctors.insert(_updateFunctors.end(), transaction._updateFunctors.begin(), transaction._updateFunctors.end());
 }
 
 Scene::Scene(glm::vec3 origin, float size) :
@@ -63,27 +63,27 @@ bool Scene::isAllocatedID(const ItemID& id) const {
 }
 
 /// Enqueue change batch to the scene
-void Scene::enqueuePendingChanges(const PendingChanges& pendingChanges) {
-    _changeQueueMutex.lock();
-    _changeQueue.push(pendingChanges);
-    _changeQueueMutex.unlock();
+void Scene::enqueueTransaction(const Transaction& transaction) {
+    _transactionQueueMutex.lock();
+    _transactionQueue.push(transaction);
+    _transactionQueueMutex.unlock();
 }
 
-void consolidateChangeQueue(PendingChangesQueue& queue, PendingChanges& singleBatch) {
+void consolidateTransaction(TransactionQueue& queue, Transaction& singleBatch) {
     while (!queue.empty()) {
-        const auto& pendingChanges = queue.front();
-        singleBatch.merge(pendingChanges);
+        const auto& transaction = queue.front();
+        singleBatch.merge(transaction);
         queue.pop();
     };
 }
  
-void Scene::processPendingChangesQueue() {
+void Scene::processTransactionQueue() {
     PROFILE_RANGE(render, __FUNCTION__);
-    PendingChanges consolidatedPendingChanges;
+    Transaction consolidatedTransaction;
 
     {
-        std::unique_lock<std::mutex> lock(_changeQueueMutex);
-        consolidateChangeQueue(_changeQueue, consolidatedPendingChanges);
+        std::unique_lock<std::mutex> lock(_transactionQueueMutex);
+        consolidateTransaction(_transactionQueue, consolidatedTransaction);
     }
     
     {
@@ -95,19 +95,19 @@ void Scene::processPendingChangesQueue() {
             _items.resize(maxID + 100); // allocate the maxId and more
         }
         // Now we know for sure that we have enough items in the array to
-        // capture anything coming from the pendingChanges
+        // capture anything coming from the transaction
 
         // resets and potential NEW items
-        resetItems(consolidatedPendingChanges._resetItems, consolidatedPendingChanges._resetPayloads);
+        resetItems(consolidatedTransaction._resetItems, consolidatedTransaction._resetPayloads);
 
         // Update the numItemsAtomic counter AFTER the reset changes went through
         _numAllocatedItems.exchange(maxID);
 
         // updates
-        updateItems(consolidatedPendingChanges._updatedItems, consolidatedPendingChanges._updateFunctors);
+        updateItems(consolidatedTransaction._updatedItems, consolidatedTransaction._updateFunctors);
 
         // removes
-        removeItems(consolidatedPendingChanges._removedItems);
+        removeItems(consolidatedTransaction._removedItems);
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);

@@ -10,6 +10,7 @@
 //
 
 #include <QCommandLineParser>
+#include <Trace.h>
 #include <VHACD.h>
 #include "VHACDUtilApp.h"
 #include "VHACDUtil.h"
@@ -97,6 +98,8 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
 {
     vhacd::VHACDUtil vUtil;
+
+    DependencyManager::set<tracing::Tracer>();
 
     // parse command-line
     QCommandLineParser parser;

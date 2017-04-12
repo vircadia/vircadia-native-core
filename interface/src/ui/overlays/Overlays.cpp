@@ -78,7 +78,7 @@ void Overlays::update(float deltatime) {
 void Overlays::cleanupOverlaysToDelete() {
     if (!_overlaysToDelete.isEmpty()) {
         render::ScenePointer scene = qApp->getMain3DScene();
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
 
         {
             QWriteLocker lock(&_deleteLock);
@@ -88,13 +88,13 @@ void Overlays::cleanupOverlaysToDelete() {
 
                 auto itemID = overlay->getRenderItemID();
                 if (render::Item::isValidID(itemID)) {
-                    overlay->removeFromScene(overlay, scene, pendingChanges);
+                    overlay->removeFromScene(overlay, scene, transaction);
                 }
             } while (!_overlaysToDelete.isEmpty());
         }
 
-        if (pendingChanges._removedItems.size() > 0) {
-            scene->enqueuePendingChanges(pendingChanges);
+        if (transaction._removedItems.size() > 0) {
+            scene->enqueueTransaction(transaction);
         }
     }
 }
@@ -197,9 +197,9 @@ OverlayID Overlays::addOverlay(Overlay::Pointer overlay) {
         _overlaysWorld[thisID] = overlay;
 
         render::ScenePointer scene = qApp->getMain3DScene();
-        render::PendingChanges pendingChanges;
-        overlay->addToScene(overlay, scene, pendingChanges);
-        scene->enqueuePendingChanges(pendingChanges);
+        render::Transaction transaction;
+        overlay->addToScene(overlay, scene, transaction);
+        scene->enqueueTransaction(transaction);
     } else {
         _overlaysHUD[thisID] = overlay;
     }
@@ -431,7 +431,9 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
                                                           thisFace, thisSurfaceNormal, thisExtraInfo)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
-                if (thisDistance < bestDistance && (!bestIsFront || isDrawInFront)) {
+                if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
+                    || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {
+
                     bestIsFront = isDrawInFront;
                     bestDistance = thisDistance;
                     result.intersects = true;
@@ -711,10 +713,9 @@ PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay r
     auto dimensions = thisOverlay->getSize();
 
     glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
-    PointerEvent pointerEvent(eventType, MOUSE_POINTER_ID,
-        pos2D, rayPickResult.intersection,
-        rayPickResult.surfaceNormal, ray.direction,
-        toPointerButton(*event), toPointerButtons(*event));
+
+    PointerEvent pointerEvent(eventType, MOUSE_POINTER_ID, pos2D, rayPickResult.intersection, rayPickResult.surfaceNormal,
+                              ray.direction, toPointerButton(*event), toPointerButtons(*event), event->modifiers());
 
     return pointerEvent;
 }
@@ -766,6 +767,26 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
         }
     }
     emit mousePressOffOverlay();
+    return false;
+}
+
+bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
+    if (rayPickResult.intersects) {
+        _currentClickingOnOverlayID = rayPickResult.overlayID;
+
+        // Only Web overlays can have focus.
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
+        if (thisOverlay) {
+            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Press);
+            emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
+            return true;
+        }
+    }
+    emit mouseDoublePressOffOverlay();
     return false;
 }
 

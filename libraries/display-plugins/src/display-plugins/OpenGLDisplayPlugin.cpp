@@ -355,14 +355,17 @@ void OpenGLDisplayPlugin::customizeContext() {
             if ((image.width() > 0) && (image.height() > 0)) {
 
                 cursorData.texture.reset(
-                    gpu::Texture::create2D(
-                        gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), 
-                        image.width(), image.height(), 
-                        gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+                    gpu::Texture::createStrict(
+                    gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
+                    image.width(), image.height(),
+                    gpu::Texture::MAX_NUM_MIPS,
+                    gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
                 cursorData.texture->setSource("cursor texture");
                 auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
                 cursorData.texture->setUsage(usage.build());
-                cursorData.texture->assignStoredMip(0, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), image.byteCount(), image.constBits());
+                cursorData.texture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
+                cursorData.texture->assignStoredMip(0, image.byteCount(), image.constBits());
+                cursorData.texture->setAutoGenerateMips(true);
             }
         }
     }
@@ -568,10 +571,15 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeScene();
     }
 
+
+#ifdef HIFI_ENABLE_NSIGHT_DEBUG
+    if (false) // do not compositeoverlay if running nsight debug
+#endif
     {
         PROFILE_RANGE_EX(render_detail, "compositeOverlay", 0xff0077ff, (uint64_t)presentCount())
         compositeOverlay();
     }
+
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     if (compositorHelper->getReticleVisible()) {
         PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
@@ -652,6 +660,11 @@ float OpenGLDisplayPlugin::droppedFrameRate() const {
 
 float OpenGLDisplayPlugin::presentRate() const {
     return _presentRate.rate();
+}
+
+void OpenGLDisplayPlugin::resetPresentRate() {
+    // FIXME
+    // _presentRate = RateCounter<100>();
 }
 
 float OpenGLDisplayPlugin::renderRate() const { 

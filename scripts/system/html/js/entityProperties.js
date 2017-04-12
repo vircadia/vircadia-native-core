@@ -758,16 +758,16 @@ function loaded() {
                     }
                 } else if (data.type == "update") {
 
-                    if (data.selections.length == 0) {
+                    if (!data.selections || data.selections.length == 0) {
                         if (editor !== null && lastEntityID !== null) {
                             saveJSONUserData(true);
                             deleteJSONEditor();
                         }
                         elTypeIcon.style.display = "none";
                         elType.innerHTML = "<i>No selection</i>";
-                        elID.innerHTML = "";
+                        elID.value = "";
                         disableProperties();
-                    } else if (data.selections.length > 1) {
+                    } else if (data.selections && data.selections.length > 1) {
                         deleteJSONEditor();
                         var selections = data.selections;
 
@@ -795,7 +795,7 @@ function loaded() {
                         elTypeIcon.innerHTML = ICON_FOR_TYPE[type];
                         elTypeIcon.style.display = "inline-block";
 
-                        elID.innerHTML = ids.join("<br>");
+                        elID.value = "";
 
                         disableProperties();
                     } else {
@@ -808,7 +808,7 @@ function loaded() {
                         //the event bridge and json parsing handle our avatar id string differently.
 
                         lastEntityID = '"' + properties.id + '"';
-                        elID.innerHTML = properties.id;
+                        elID.value = properties.id;
 
                         elType.innerHTML = properties.type;
                         elTypeIcon.innerHTML = ICON_FOR_TYPE[properties.type];
@@ -879,7 +879,7 @@ function loaded() {
                         elCloneable.checked = false;
                         elCloneableDynamic.checked = false;
                         elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
-                        elCloneableLimit.value = 10;
+                        elCloneableLimit.value = 0;
                         elCloneableLifetime.value = 300;
 
                         var parsedUserData = {}
@@ -899,8 +899,6 @@ function loaded() {
                                 if ("cloneable" in parsedUserData["grabbableKey"]) {
                                     elCloneable.checked = parsedUserData["grabbableKey"].cloneable;
                                     elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
-                                    elCloneableLimit.value = elCloneable.checked ? 10: 0;
-                                    elCloneableLifetime.value = elCloneable.checked ? 300: 0;
                                     elCloneableDynamic.checked = parsedUserData["grabbableKey"].cloneDynamic ? parsedUserData["grabbableKey"].cloneDynamic : properties.dynamic;
                                     elDynamic.checked = elCloneable.checked ? false: properties.dynamic;
                                     if (elCloneable.checked) {
@@ -908,7 +906,7 @@ function loaded() {
                                           elCloneableLifetime.value = parsedUserData["grabbableKey"].cloneLifetime ? parsedUserData["grabbableKey"].cloneLifetime : 300;
                                       }
                                       if ("cloneLimit" in parsedUserData["grabbableKey"]) {
-                                          elCloneableLimit.value = parsedUserData["grabbableKey"].cloneLimit ? parsedUserData["grabbableKey"].cloneLimit : 10;
+                                          elCloneableLimit.value = parsedUserData["grabbableKey"].cloneLimit ? parsedUserData["grabbableKey"].cloneLimit : 0;
                                       }
                                     }
                                 }
@@ -1706,4 +1704,8 @@ function loaded() {
     document.addEventListener("contextmenu", function(event) {
         event.preventDefault();
     }, false);
+
+    setTimeout(function() {
+        EventBridge.emitWebEvent(JSON.stringify({ type: 'propertiesPageReady' }));
+    }, 1000);
 }

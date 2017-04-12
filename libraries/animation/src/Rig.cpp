@@ -558,15 +558,15 @@ static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState) {
 
-    glm::vec3 front = worldRotation * IDENTITY_FRONT;
+    glm::vec3 forward = worldRotation * IDENTITY_FORWARD;
     glm::vec3 workingVelocity = worldVelocity;
 
     {
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
 
-        float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
+        float forwardSpeed = glm::dot(localVel, IDENTITY_FORWARD);
         float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
-        float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
+        float turningSpeed = glm::orientedAngle(forward, _lastForward, IDENTITY_UP) / deltaTime;
 
         // filter speeds using a simple moving average.
         _averageForwardSpeed.updateAverage(forwardSpeed);
@@ -852,7 +852,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         _lastEnableInverseKinematics = _enableInverseKinematics;
     }
 
-    _lastFront = front;
+    _lastForward = forward;
     _lastPosition = worldPosition;
     _lastVelocity = workingVelocity;
 }
@@ -950,9 +950,11 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
 
+        AnimContext context(_enableDebugDrawIKTargets, getGeometryToRigTransform());
+
         // evaluate the animation
         AnimNode::Triggers triggersOut;
-        _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
+        _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
             // animations haven't fully loaded yet.
             _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -1144,9 +1146,8 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
     }
 }
 
-void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
+void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, float dt) {
     if (_animSkeleton && _animNode) {
-
         const float HAND_RADIUS = 0.05f;
         int hipsIndex = indexOfJoint("Hips");
         glm::vec3 hipsTrans;
@@ -1195,6 +1196,27 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             _animVars.unset("rightHandRotation");
             _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
+
+        if (params.isLeftFootEnabled) {
+            _animVars.set("leftFootPosition", params.leftFootPosition);
+            _animVars.set("leftFootRotation", params.leftFootOrientation);
+            _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+        } else {
+            _animVars.unset("leftFootPosition");
+            _animVars.unset("leftFootRotation");
+            _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+        }
+
+        if (params.isRightFootEnabled) {
+            _animVars.set("rightFootPosition", params.rightFootPosition);
+            _animVars.set("rightFootRotation", params.rightFootOrientation);
+            _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
+        } else {
+            _animVars.unset("rightFootPosition");
+            _animVars.unset("rightFootRotation");
+            _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
+        }
+
     }
 }
 
@@ -1310,17 +1332,18 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     if (!_animSkeleton) {
         return;
     }
-    if (jointDataVec.size() != (int)_internalPoseSet._relativePoses.size()) {
-        // animations haven't fully loaded yet.
-        _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
+    int numJoints = jointDataVec.size();
+    const AnimPoseVec& absoluteDefaultPoses = _animSkeleton->getAbsoluteDefaultPoses();
+    if (numJoints != (int)absoluteDefaultPoses.size()) {
+        // jointData is incompatible
+        return;
     }
 
     // make a vector of rotations in absolute-geometry-frame
-    const AnimPoseVec& absoluteDefaultPoses = _animSkeleton->getAbsoluteDefaultPoses();
     std::vector<glm::quat> rotations;
-    rotations.reserve(absoluteDefaultPoses.size());
+    rotations.reserve(numJoints);
     const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
-    for (int i = 0; i < jointDataVec.size(); i++) {
+    for (int i = 0; i < numJoints; i++) {
         const JointData& data = jointDataVec.at(i);
         if (data.rotationSet) {
             // JointData rotations are in absolute rig-frame so we rotate them to absolute geometry-frame
@@ -1334,8 +1357,11 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     _animSkeleton->convertAbsoluteRotationsToRelative(rotations);
 
     // store new relative poses
+    if (numJoints != (int)_internalPoseSet._relativePoses.size()) {
+        _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
+    }
     const AnimPoseVec& relativeDefaultPoses = _animSkeleton->getRelativeDefaultPoses();
-    for (int i = 0; i < jointDataVec.size(); i++) {
+    for (int i = 0; i < numJoints; i++) {
         const JointData& data = jointDataVec.at(i);
         _internalPoseSet._relativePoses[i].scale() = Vectors::ONE;
         _internalPoseSet._relativePoses[i].rot() = rotations[i];
@@ -1423,9 +1449,10 @@ void Rig::computeAvatarBoundingCapsule(
 
     // call overlay twice: once to verify AnimPoseVec joints and again to do the IK
     AnimNode::Triggers triggersOut;
+    AnimContext context(false, glm::mat4());
     float dt = 1.0f; // the value of this does not matter
-    ikNode.overlay(animVars, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
-    AnimPoseVec finalPoses =  ikNode.overlay(animVars, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
+    ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
+    AnimPoseVec finalPoses =  ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
 
     // convert relative poses to absolute
     _animSkeleton->convertRelativePosesToAbsolute(finalPoses);

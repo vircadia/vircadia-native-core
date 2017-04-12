@@ -2,6 +2,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.2
 import QtWebChannel 1.0
 import QtWebEngine 1.2
+import FileTypeProfile 1.0
 
 import "controls-uit"
 import "styles" as HifiStyles
@@ -31,6 +32,10 @@ ScrollingWindow {
     Component.onCompleted: {
         shown = true
         addressBar.text = webview.url
+    }
+
+    function setProfile(profile) {
+        webview.profile = profile;
     }
 
     function showPermissionsBar(){
@@ -211,6 +216,11 @@ ScrollingWindow {
                 id: eventBridgeWrapper
                 WebChannel.id: "eventBridgeWrapper"
                 property var eventBridge;
+            }
+            
+            profile: FileTypeProfile {
+                id: webviewProfile
+                storageName: "qmlWebEngine"
             }
 
             webChannel.registeredObjects: [eventBridgeWrapper]

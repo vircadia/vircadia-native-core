@@ -40,20 +40,59 @@ public:
 
     class GL41Texture : public GLTexture {
         using Parent = GLTexture;
-        GLuint allocate();
-    public:
-        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, GLuint externalId);
-        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, bool transferrable);
-
+        friend class GL41Backend;
+        static GLuint allocate(const Texture& texture);
     protected:
-        void transferMip(uint16_t mipLevel, uint8_t face) const;
-        void startTransfer() override;
-        void allocateStorage() const override;
-        void updateSize() const override;
-        void syncSampler() const override;
+        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         void generateMips() const override;
+        void copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const;
+        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const;
+        virtual void syncSampler() const;
+
+        void withPreservedTexture(std::function<void()> f) const;
     };
 
+    //
+    // Textures that have fixed allocation sizes and cannot be managed at runtime
+    //
+
+    class GL41FixedAllocationTexture : public GL41Texture {
+        using Parent = GL41Texture;
+        friend class GL41Backend;
+
+    public:
+        GL41FixedAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41FixedAllocationTexture();
+
+    protected:
+        Size size() const override { return _size; }
+        void allocateStorage() const;
+        void syncSampler() const override;
+        const Size _size { 0 };
+    };
+
+    class GL41AttachmentTexture : public GL41FixedAllocationTexture {
+        using Parent = GL41FixedAllocationTexture;
+        friend class GL41Backend;
+    protected:
+        GL41AttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41AttachmentTexture();
+    };
+
+    class GL41StrictResourceTexture : public GL41FixedAllocationTexture {
+        using Parent = GL41FixedAllocationTexture;
+        friend class GL41Backend;
+    protected:
+        GL41StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+    };
+
+    class GL41ResourceTexture : public GL41FixedAllocationTexture {
+        using Parent = GL41FixedAllocationTexture;
+        friend class GL41Backend;
+    protected:
+        GL41ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41ResourceTexture();
+    };
 
 protected:
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
@@ -62,8 +101,7 @@ protected:
     GLuint getBufferID(const Buffer& buffer) override;
     GLBuffer* syncGPUObject(const Buffer& buffer) override;
 
-    GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) override;
-    GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) override;
+    GLTexture* syncGPUObject(const TexturePointer& texture) override;
 
     GLuint getQueryID(const QueryPointer& query) override;
     GLQuery* syncGPUObject(const Query& query) override;

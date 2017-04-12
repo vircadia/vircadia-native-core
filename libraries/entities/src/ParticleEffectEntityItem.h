@@ -205,13 +205,8 @@ public:
     void computeAndUpdateDimensions();
 
     static const QString DEFAULT_TEXTURES;
-    const QString& getTextures() const { return _textures; }
-    void setTextures(const QString& textures) {
-        if (_textures != textures) {
-            _textures = textures;
-            _texturesChangedFlag = true;
-        }
-    }
+    QString getTextures() const;
+    void setTextures(const QString& textures);
 
     static const bool DEFAULT_EMITTER_SHOULD_TRAIL;
     bool getEmitterShouldTrail() const { return _emitterShouldTrail; }

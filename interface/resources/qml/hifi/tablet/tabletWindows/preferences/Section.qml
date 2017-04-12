@@ -89,14 +89,17 @@ Preference {
             if (categoryPreferences) {
                 console.log("Category " + root.name + " with " + categoryPreferences.length + " preferences");
                 for (var j = 0; j < categoryPreferences.length; ++j) {
-                    buildPreference(categoryPreferences[j]);
+                    //provide component position within column
+                    //lowest numbers on top
+                    buildPreference(categoryPreferences[j], j);
                 }
             }
         }
 
-        function buildPreference(preference) {
+        function buildPreference(preference, itemNum) {
             console.log("\tPreference type " + preference.type + " name " + preference.name)
             var builder;
+            var zpos;
             switch (preference.type) {
                 case Preference.Editable:
                     checkBoxCount = 0;
@@ -136,11 +139,14 @@ Preference {
                 case Preference.ComboBox:
                     checkBoxCount = 0;
                     builder = comboBoxBuilder;
+                    //make sure that combo boxes sitting higher will have higher z coordinate
+                    //to be not overlapped when drop down is active
+                    zpos = root.z + 1000 - itemNum
                     break;
             };
 
             if (builder) {
-                preferences.push(builder.createObject(contentContainer, { preference: preference, isFirstCheckBox: (checkBoxCount === 1) }));
+                preferences.push(builder.createObject(contentContainer, { preference: preference, isFirstCheckBox: (checkBoxCount === 1) , z: zpos}));
             }
         }
     }

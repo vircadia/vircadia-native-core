@@ -4,7 +4,7 @@ var DIV = NUM_ENTITIES / Math.PI / 2;
 var PASS_SCRIPT_URL = Script.resolvePath('').replace('.js', '-entity.js');
 var FAIL_SCRIPT_URL = Script.resolvePath('').replace('.js', '-entity-fail.js');
 
-var origin = Vec3.sum(MyAvatar.position, Vec3.multiply(5, Quat.getFront(MyAvatar.orientation)));
+var origin = Vec3.sum(MyAvatar.position, Vec3.multiply(5, Quat.getForward(MyAvatar.orientation)));
 origin.y += HMD.eyeHeight;
 
 var uuids = [];

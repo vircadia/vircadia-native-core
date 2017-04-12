@@ -28,15 +28,19 @@ class AvatarInputs : public QQuickItem {
     AI_PROPERTY(bool, audioMuted, false)
     AI_PROPERTY(bool, audioClipping, false)
     AI_PROPERTY(float, audioLevel, 0)
-    AI_PROPERTY(bool, mirrorVisible, false)
-    AI_PROPERTY(bool, mirrorZoomed, true)
     AI_PROPERTY(bool, isHMD, false)
-    AI_PROPERTY(bool, showAudioTools, true)
+
+    Q_PROPERTY(bool showAudioTools READ showAudioTools WRITE setShowAudioTools NOTIFY showAudioToolsChanged)
 
 public:
     static AvatarInputs* getInstance();
+    float loudnessToAudioLevel(float loudness);
     AvatarInputs(QQuickItem* parent = nullptr);
     void update();
+    bool showAudioTools() const   { return _showAudioTools; }
+
+public slots:
+    void setShowAudioTools(bool showAudioTools);
 
 signals:
     void cameraEnabledChanged();
@@ -44,20 +48,17 @@ signals:
     void audioMutedChanged();
     void audioClippingChanged();
     void audioLevelChanged();
-    void mirrorVisibleChanged();
-    void mirrorZoomedChanged();
     void isHMDChanged();
-    void showAudioToolsChanged();
+    void showAudioToolsChanged(bool showAudioTools);
 
 protected:
     Q_INVOKABLE void resetSensors();
     Q_INVOKABLE void toggleCameraMute();
     Q_INVOKABLE void toggleAudioMute();
-    Q_INVOKABLE void toggleZoom();
-    Q_INVOKABLE void closeMirror();
 
 private: 
     float _trailingAudioLoudness{ 0 };
+    bool _showAudioTools { false };
 };
 
 #endif // hifi_AvatarInputs_h

@@ -25,7 +25,7 @@ Column {
                      "Lightmap:LightingModel:enableLightmap",
                      "Background:LightingModel:enableBackground",                      
                      "ssao:AmbientOcclusion:enabled",                      
-                     "Textures:LightingModel:enableMaterialTexturing",                      
+                     "Textures:LightingModel:enableMaterialTexturing"                     
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
@@ -45,6 +45,7 @@ Column {
                      "Diffuse:LightingModel:enableDiffuse",
                      "Specular:LightingModel:enableSpecular",
                      "Albedo:LightingModel:enableAlbedo",
+                     "Wireframe:LightingModel:enableWireframe"
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
@@ -62,7 +63,8 @@ Column {
                      "Directional:LightingModel:enableDirectionalLight",
                      "Point:LightingModel:enablePointLight",
                      "Spot:LightingModel:enableSpotLight",
-                     "Light Contour:LightingModel:showLightContour"
+                     "Light Contour:LightingModel:showLightContour",
+                     "Shadow:RenderShadowTask:enabled"
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
@@ -149,6 +151,7 @@ Column {
                 ListElement { text: "Mid Normal"; color: "White" }
                 ListElement { text: "Low Curvature"; color: "White" }
                 ListElement { text: "Low Normal"; color: "White" }
+                ListElement { text: "Curvature Occlusion"; color: "White" }
                 ListElement { text: "Debug Scattering"; color: "White" }
                 ListElement { text: "Ambient Occlusion"; color: "White" }
                 ListElement { text: "Ambient Occlusion Blurred"; color: "White" }

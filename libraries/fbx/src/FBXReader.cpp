@@ -1468,6 +1468,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     // Create the Material Library
     consolidateFBXMaterials(mapping);
 
+    // We can't allow the scaling of a given image to different sizes, because the hash used for the KTX cache is based on the original image
+    // Allowing scaling of the same image to different sizes would cause different KTX files to target the same cache key
+#if 0
     // HACK: until we get proper LOD management we're going to cap model textures
     // according to how many unique textures the model uses:
     //   1 - 8 textures --> 2048
@@ -1481,6 +1484,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     int numTextures = uniqueTextures.size();
     const int MAX_NUM_TEXTURES_AT_MAX_RESOLUTION = 8;
     int maxWidth = sqrt(MAX_NUM_PIXELS_FOR_FBX_TEXTURE);
+
     if (numTextures > MAX_NUM_TEXTURES_AT_MAX_RESOLUTION) {
         int numTextureThreshold = MAX_NUM_TEXTURES_AT_MAX_RESOLUTION;
         const int MIN_MIP_TEXTURE_WIDTH = 64;
@@ -1494,7 +1498,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             material.setMaxNumPixelsPerTexture(maxWidth * maxWidth);
         }
     }
-
+#endif
     geometry.materials = _fbxMaterials;
 
     // see if any materials have texture children
@@ -1627,13 +1631,15 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
         // whether we're skinned depends on how many clusters are attached
         const FBXCluster& firstFBXCluster = extracted.mesh.clusters.at(0);
-        int maxJointIndex = firstFBXCluster.jointIndex;
         glm::mat4 inverseModelTransform = glm::inverse(modelTransform);
         if (clusterIDs.size() > 1) {
             // this is a multi-mesh joint
-            extracted.mesh.clusterIndices.resize(extracted.mesh.vertices.size());
-            extracted.mesh.clusterWeights.resize(extracted.mesh.vertices.size());
-            float maxWeight = 0.0f;
+            const int WEIGHTS_PER_VERTEX = 4;
+            int numClusterIndices = extracted.mesh.vertices.size() * WEIGHTS_PER_VERTEX;
+            extracted.mesh.clusterIndices.fill(0, numClusterIndices);
+            QVector<float> weightAccumulators;
+            weightAccumulators.fill(0.0f, numClusterIndices);
+
             for (int i = 0; i < clusterIDs.size(); i++) {
                 QString clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
@@ -1658,61 +1664,69 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
                 ShapeVertices& points = shapeVertices.at(jointIndex);
 
-                float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int oldIndex = cluster.indices.at(j);
                     float weight = cluster.weights.at(j);
-                    totalWeight += weight;
                     for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
                             it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
+                        int newIndex = it.value();
 
                         // remember vertices with at least 1/4 weight
                         const float EXPANSION_WEIGHT_THRESHOLD = 0.99f;
                         if (weight > EXPANSION_WEIGHT_THRESHOLD) {
                             // transform to joint-frame and save for later
-                            const glm::mat4 vertexTransform = meshToJoint * glm::translate(extracted.mesh.vertices.at(it.value()));
+                            const glm::mat4 vertexTransform = meshToJoint * glm::translate(extracted.mesh.vertices.at(newIndex));
                             points.push_back(extractTranslation(vertexTransform) * clusterScale);
                         }
 
                         // look for an unused slot in the weights vector
-                        glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
+                        int weightIndex = newIndex * WEIGHTS_PER_VERTEX;
                         int lowestIndex = -1;
                         float lowestWeight = FLT_MAX;
                         int k = 0;
-                        for (; k < 4; k++) {
-                            if (weights[k] == 0.0f) {
-                                extracted.mesh.clusterIndices[it.value()][k] = i;
-                                weights[k] = weight;
+                        for (; k < WEIGHTS_PER_VERTEX; k++) {
+                            if (weightAccumulators[weightIndex + k] == 0.0f) {
+                                extracted.mesh.clusterIndices[weightIndex + k] = i;
+                                weightAccumulators[weightIndex + k] = weight;
                                 break;
                             }
-                            if (weights[k] < lowestWeight) {
+                            if (weightAccumulators[weightIndex + k] < lowestWeight) {
                                 lowestIndex = k;
-                                lowestWeight = weights[k];
+                                lowestWeight = weightAccumulators[weightIndex + k];
                             }
                         }
-                        if (k == 4 && weight > lowestWeight) {
+                        if (k == WEIGHTS_PER_VERTEX && weight > lowestWeight) {
                             // no space for an additional weight; we must replace the lowest
-                            weights[lowestIndex] = weight;
-                            extracted.mesh.clusterIndices[it.value()][lowestIndex] = i;
+                            weightAccumulators[weightIndex + lowestIndex] = weight;
+                            extracted.mesh.clusterIndices[weightIndex + lowestIndex] = i;
                         }
                     }
                 }
-                if (totalWeight > maxWeight) {
-                    maxWeight = totalWeight;
-                    maxJointIndex = jointIndex;
-                }
             }
-            // normalize the weights if they don't add up to one
-            for (int i = 0; i < extracted.mesh.clusterWeights.size(); i++) {
-                glm::vec4& weights = extracted.mesh.clusterWeights[i];
-                float total = weights.x + weights.y + weights.z + weights.w;
-                if (total != 1.0f && total != 0.0f) {
-                    weights /= total;
+
+            // now that we've accumulated the most relevant weights for each vertex
+            // normalize and compress to 8-bits
+            extracted.mesh.clusterWeights.fill(0, numClusterIndices);
+            int numVertices = extracted.mesh.vertices.size();
+            for (int i = 0; i < numVertices; ++i) {
+                int j = i * WEIGHTS_PER_VERTEX;
+
+                // normalize weights into uint8_t
+                float totalWeight = weightAccumulators[j];
+                for (int k = j + 1; k < j + WEIGHTS_PER_VERTEX; ++k) {
+                    totalWeight += weightAccumulators[k];
+                }
+                if (totalWeight > 0.0f) {
+                    const float ALMOST_HALF = 0.499f;
+                    float weightScalingFactor = (float)(UINT8_MAX) / totalWeight;
+                    for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
+                        extracted.mesh.clusterWeights[k] = (uint8_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
+                    }
                 }
             }
         } else {
             // this is a single-mesh joint
-            int jointIndex = maxJointIndex;
+            int jointIndex = firstFBXCluster.jointIndex;
             FBXJoint& joint = geometry.joints[jointIndex];
 
             // transform cluster vertices to joint-frame and save for later
@@ -1732,17 +1746,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 }
             }
         }
-        extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
-
         buildModelMesh(extracted.mesh, url);
-
-        if (extracted.mesh.isEye) {
-            if (maxJointIndex == geometry.leftEyeJointIndex) {
-                geometry.leftEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
-            } else {
-                geometry.rightEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
-            }
-        }
 
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;
@@ -1794,19 +1798,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         }
     }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
-
-    // Add sitting points
-    QVariantHash sittingPoints = mapping.value("sit").toHash();
-    for (QVariantHash::const_iterator it = sittingPoints.constBegin(); it != sittingPoints.constEnd(); it++) {
-        SittingPoint sittingPoint;
-        sittingPoint.name = it.key();
-
-        QVariantList properties = it->toList();
-        sittingPoint.position = parseVec3(properties.at(0).toString());
-        sittingPoint.rotation = glm::quat(glm::radians(parseVec3(properties.at(1).toString())));
-
-        geometry.sittingPoints.append(sittingPoint);
-    }
 
     // attempt to map any meshes to a named model
     for (QHash<QString, int>::const_iterator m = meshIDsToMeshIndices.constBegin();

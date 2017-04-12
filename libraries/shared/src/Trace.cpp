@@ -179,7 +179,7 @@ void Tracer::serialize(const QString& originalPath) {
     {
 
         // "traceEvents":[
-        // {"args":{"nv_payload":0},"cat":"hifi.render","name":"render::Scene::processPendingChangesQueue","ph":"B","pid":14796,"tid":21636,"ts":68795933487}
+        // {"args":{"nv_payload":0},"cat":"hifi.render","name":"render::Scene::processTransactionQueue","ph":"B","pid":14796,"tid":21636,"ts":68795933487}
 
         QJsonArray traceEvents;
 

@@ -34,8 +34,14 @@ public:
     void render(RenderArgs* renderArgs, int width, int height);
     
 public slots:
-    void toggle();
+    void toggle() { setVisible(!_isEnabled); }
+    void setVisible(bool visible);
+    bool getVisible() const { return _isEnabled; }
+
     void togglePause() { _isPaused = !_isPaused; }
+    void setPause(bool paused) { _isPaused = paused; }
+    bool getPause() { return _isPaused; }
+
     void selectAudioScopeFiveFrames();
     void selectAudioScopeTwentyFrames();
     void selectAudioScopeFiftyFrames();
@@ -74,7 +80,6 @@ private:
     int _inputID;
     int _outputLeftID;
     int _outputRightD;
-
 };
 
 #endif // hifi_AudioScope_h

@@ -30,7 +30,7 @@
     } else {
         // default to friends if it can't be determined
         myVisibility = "friends";
-        GlobalServices.findableBy = myVisibilty;
+        GlobalServices.findableBy = myVisibility;
     }
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -67,9 +67,12 @@
     }
 
     function onWebEventReceived(event) {
-        print("Script received a web event, its type is " + typeof event);
         if (typeof event === "string") {
-            event = JSON.parse(event);
+            try {
+                event = JSON.parse(event);
+            } catch(e) {
+                return;
+            }
         }
         if (event.type === "ready") {
             // send username to html
@@ -115,6 +118,9 @@
     tablet.screenChanged.connect(onScreenChanged);
 
     function cleanup() {
+        if (onUsersScreen) {
+            tablet.gotoHomeScreen();
+        }
         button.clicked.disconnect(onClicked);
         tablet.removeButton(button);
     }

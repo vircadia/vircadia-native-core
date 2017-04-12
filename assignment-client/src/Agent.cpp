@@ -29,8 +29,8 @@
 #include <udt/PacketHeaders.h>
 #include <ResourceCache.h>
 #include <ScriptCache.h>
-#include <SoundCache.h>
 #include <ScriptEngines.h>
+#include <SoundCache.h>
 #include <UUID.h>
 
 #include <recording/Deck.h>
@@ -62,6 +62,7 @@ Agent::Agent(ReceivedMessage& message) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<AudioScriptingInterface>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
@@ -335,6 +336,10 @@ void Agent::executeScript() {
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar->setSkeletonModelURL(QUrl());
 
+    // force lazy initialization of the head data for the scripted avatar
+    // since it is referenced below by computeLoudness and getAudioLoudness
+    scriptedAvatar->getHeadOrientation();
+
     // give this AvatarData object to the script engine
     _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
 
@@ -371,15 +376,28 @@ void Agent::executeScript() {
     using namespace recording;
     static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::getAudioFrameName());
     Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &scriptedAvatar](Frame::ConstPointer frame) {
-        const QByteArray& audio = frame->data;
         static quint16 audioSequenceNumber{ 0 };
-        Transform audioTransform;
 
+        QByteArray audio(frame->data);
+
+        if (_isNoiseGateEnabled) {
+            static int numSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+            _noiseGate.gateSamples(reinterpret_cast<int16_t*>(audio.data()), numSamples);
+        }
+
+        computeLoudness(&audio, scriptedAvatar);
+
+        // the codec needs a flush frame before sending silent packets, so
+        // do not send one if the gate closed in this block (eventually this can be crossfaded).
+        auto packetType = PacketType::MicrophoneAudioNoEcho;
+        if (scriptedAvatar->getAudioLoudness() == 0.0f && !_noiseGate.closedInLastBlock()) {
+            packetType = PacketType::SilentAudioFrame;
+        }
+
+        Transform audioTransform;
         auto headOrientation = scriptedAvatar->getHeadOrientation();
         audioTransform.setTranslation(scriptedAvatar->getPosition());
         audioTransform.setRotation(headOrientation);
-
-        computeLoudness(&audio, scriptedAvatar);
 
         QByteArray encodedBuffer;
         if (_encoder) {
@@ -387,9 +405,10 @@ void Agent::executeScript() {
         } else {
             encodedBuffer = audio;
         }
+
         AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber,
             audioTransform, scriptedAvatar->getPosition(), glm::vec3(0),
-            PacketType::MicrophoneAudioNoEcho, _selectedCodecName);
+            packetType, _selectedCodecName);
     });
 
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
@@ -404,6 +423,7 @@ void Agent::executeScript() {
     _scriptEngine->registerGlobalObject("Agent", this);
 
     _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
+    _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
 
     QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
     _scriptEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
@@ -481,6 +501,14 @@ void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
 
     }
     _isListeningToAudioStream = isListeningToAudioStream;
+}
+
+void Agent::setIsNoiseGateEnabled(bool isNoiseGateEnabled) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setIsNoiseGateEnabled", Q_ARG(bool, isNoiseGateEnabled));
+        return;
+    }
+    _isNoiseGateEnabled = isNoiseGateEnabled;
 }
 
 void Agent::setIsAvatar(bool isAvatar) {

@@ -137,7 +137,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 }
 
 
-// TODO: eventually only include properties changed since the params.lastQuerySent time
+// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
@@ -208,10 +208,12 @@ ShapeType ZoneEntityItem::getShapeType() const {
 }
 
 void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
-    _compoundShapeURL = url;
-    if (_compoundShapeURL.isEmpty() && _shapeType == SHAPE_TYPE_COMPOUND) {
-        _shapeType = DEFAULT_SHAPE_TYPE;
-    }
+    withWriteLock([&] {
+        _compoundShapeURL = url;
+        if (_compoundShapeURL.isEmpty() && _shapeType == SHAPE_TYPE_COMPOUND) {
+            _shapeType = DEFAULT_SHAPE_TYPE;
+        }
+    });
 }
 
 bool ZoneEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -223,7 +225,9 @@ bool ZoneEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
 }
 
 void ZoneEntityItem::setFilterURL(QString url) {
-    _filterURL = url;
+    withWriteLock([&] {
+        _filterURL = url;
+    });
     if (DependencyManager::isSet<EntityEditFilters>()) {
         auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
         qCDebug(entities) << "adding filter " << url << "for zone" << getEntityItemID();
@@ -231,3 +235,22 @@ void ZoneEntityItem::setFilterURL(QString url) {
     }
 }
 
+QString ZoneEntityItem::getFilterURL() const { 
+    QString result;
+    withReadLock([&] {
+        result = _filterURL;
+    });
+    return result;
+}
+
+bool ZoneEntityItem::hasCompoundShapeURL() const { 
+    return !getCompoundShapeURL().isEmpty();
+}
+
+QString ZoneEntityItem::getCompoundShapeURL() const { 
+    QString result;
+    withReadLock([&] {
+        result = _compoundShapeURL;
+    });
+    return result;
+}

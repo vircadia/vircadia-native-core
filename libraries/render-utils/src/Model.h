@@ -42,7 +42,7 @@ class ViewFrustum;
 
 namespace render {
     class Scene;
-    class PendingChanges;
+    class Transaction;
     typedef unsigned int ItemID;
 }
 class MeshPartPayload;
@@ -88,14 +88,14 @@ public:
     bool needsReload() const { return _needsReload; }
     bool initWhenReady(render::ScenePointer scene);
     bool addToScene(std::shared_ptr<render::Scene> scene,
-                    render::PendingChanges& pendingChanges) {
+                    render::Transaction& transaction) {
         auto getters = render::Item::Status::Getters(0);
-        return addToScene(scene, pendingChanges, getters);
+        return addToScene(scene, transaction, getters);
     }
     bool addToScene(std::shared_ptr<render::Scene> scene,
-                    render::PendingChanges& pendingChanges,
+                    render::Transaction& transaction,
                     render::Item::Status::Getters& statusGetters);
-    void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    void removeFromScene(std::shared_ptr<render::Scene> scene, render::Transaction& transaction);
     bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }
@@ -248,7 +248,7 @@ public:
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
 
     uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
-    const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItems; }
+    const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
 
     void renderDebugMeshBoxes(gpu::Batch& batch);
 
@@ -373,11 +373,11 @@ protected:
 
     static AbstractViewStateInterface* _viewState;
 
-    QSet<std::shared_ptr<MeshPartPayload>> _collisionRenderItemsSet;
-    QMap<render::ItemID, render::PayloadPointer> _collisionRenderItems;
+    QVector<std::shared_ptr<MeshPartPayload>> _collisionRenderItems;
+    QMap<render::ItemID, render::PayloadPointer> _collisionRenderItemsMap;
 
-    QSet<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItemsSet;
-    QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItems;
+	QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
+	QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
 
     render::ItemIDs _modelMeshRenderItemIDs;
 

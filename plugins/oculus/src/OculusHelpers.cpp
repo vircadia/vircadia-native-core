@@ -88,7 +88,11 @@ ovrSession acquireOculusSession() {
     }
 
     if (!session) {
-        if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
+    	ovrInitParams initParams {
+            ovrInit_RequestVersion | ovrInit_MixedRendering, OVR_MINOR_VERSION, nullptr, 0, 0
+        };
+
+        if (!OVR_SUCCESS(ovr_Initialize(&initParams))) {
             logWarning("Failed to initialize Oculus SDK");
             return session;
         }
@@ -260,6 +264,40 @@ controller::Pose ovrControllerPoseToHandPose(
     pose.rotation = rotation * rotationOffset;
     pose.angularVelocity = toGlm(handPose.AngularVelocity);
     pose.velocity = toGlm(handPose.LinearVelocity);
+    pose.valid = true;
+    return pose;
+}
+
+controller::Pose ovrControllerRotationToHandRotation(ovrHandType hand, const ovrPoseStatef& handPose,
+                                                    const ovrPoseStatef& lastHandPose) {
+    static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
+    static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
+    static const glm::quat touchToHand = yFlip * quarterX;
+    
+    static const glm::quat leftQuarterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
+    static const glm::quat rightQuarterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
+
+    static const glm::quat leftRotationOffset = glm::inverse(leftQuarterZ) * touchToHand;
+    static const glm::quat rightRotationOffset = glm::inverse(rightQuarterZ) * touchToHand;
+
+    static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
+    static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
+        -CONTROLLER_LENGTH_OFFSET / 2.0f,
+        CONTROLLER_LENGTH_OFFSET * 1.5f);
+    static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
+    static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
+
+    auto translationOffset = (hand == ovrHand_Left ? leftTranslationOffset : rightTranslationOffset);
+    auto rotationOffset = (hand == ovrHand_Left ? leftRotationOffset : rightRotationOffset);
+
+    glm::quat rotation = toGlm(handPose.ThePose.Orientation);
+
+    controller::Pose pose;
+    pose.translation = toGlm(lastHandPose.ThePose.Position);
+    pose.translation += rotation * translationOffset;
+    pose.rotation = rotation * rotationOffset;
+    pose.angularVelocity = toGlm(lastHandPose.AngularVelocity);
+    pose.velocity = toGlm(lastHandPose.LinearVelocity);
     pose.valid = true;
     return pose;
 }

@@ -15,12 +15,11 @@ import Qt.labs.settings 1.0
 Hifi.AvatarInputs {
     id: root
     objectName: "AvatarInputs"
-    width: mirrorWidth
-    height: controls.height + mirror.height 
+    width: rootWidth
+    height: controls.height
     x: 10; y: 5
 
-    readonly property int mirrorHeight: 215
-    readonly property int mirrorWidth: 265
+    readonly property int rootWidth: 265
     readonly property int iconSize: 24
     readonly property int iconPadding: 5
 
@@ -40,60 +39,14 @@ Hifi.AvatarInputs {
     }
 
     Item {
-        id: mirror
-        width: root.mirrorWidth
-        height: root.mirrorVisible ? root.mirrorHeight : 0
-        visible: root.mirrorVisible
-        anchors.left: parent.left
-        clip: true
-
-        Image {
-            id: closeMirror
-            visible: hover.containsMouse
-            width: root.iconSize
-            height: root.iconSize
-            anchors.top: parent.top
-            anchors.topMargin: root.iconPadding
-            anchors.left: parent.left
-            anchors.leftMargin: root.iconPadding
-            source: "../images/close.svg"
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    root.closeMirror();
-                }
-            }
-        }
-
-        Image {
-            id: zoomIn
-            visible: hover.containsMouse
-            width: root.iconSize
-            height: root.iconSize
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: root.iconPadding
-            anchors.left: parent.left
-            anchors.leftMargin: root.iconPadding
-            source: root.mirrorZoomed ? "../images/minus.svg" : "../images/plus.svg"
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    root.toggleZoom();
-                }
-            }
-        }
-    }
-
-    Item {
         id: controls
-        width: root.mirrorWidth
+        width: root.rootWidth
         height: 44
         visible: root.showAudioTools
-        anchors.top: mirror.bottom
 
         Rectangle {
             anchors.fill: parent
-            color: root.mirrorVisible ? (root.audioClipping ? "red" : "#696969") : "#00000000"
+            color: "#00000000"
 
             Item {
                 id: audioMeter

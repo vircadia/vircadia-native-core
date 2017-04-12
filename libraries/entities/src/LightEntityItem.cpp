@@ -69,38 +69,59 @@ EntityItemProperties LightEntityItem::getProperties(EntityPropertyFlags desiredP
 }
 
 void LightEntityItem::setFalloffRadius(float value) {
-    _falloffRadius = glm::max(value, 0.0f);
-    _lightPropertiesChanged = true;
+    value = glm::max(value, 0.0f);
+    if (value == getFalloffRadius()) {
+        return;
+    }
+    withWriteLock([&] {
+        _falloffRadius = value;
+        _lightPropertiesChanged = true;
+    });
 }
 
 void LightEntityItem::setIsSpotlight(bool value) {
-    if (value != _isSpotlight) {
-        _isSpotlight = value;
-
-        glm::vec3 dimensions = getDimensions();
-        if (_isSpotlight) {
-            const float length = dimensions.z;
-            const float width = length * glm::sin(glm::radians(_cutoff));
-            setDimensions(glm::vec3(width, width, length));
-        } else {
-            float maxDimension = glm::compMax(dimensions);
-            setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
-        }
-        _lightPropertiesChanged = true;
+    if (value == getIsSpotlight()) {
+        return;
     }
+
+    glm::vec3 dimensions = getDimensions();
+    glm::vec3 newDimensions;
+    if (value) {
+        const float length = dimensions.z;
+        const float width = length * glm::sin(glm::radians(getCutoff()));
+        newDimensions = glm::vec3(width, width, length);
+    } else {
+        newDimensions = glm::vec3(glm::compMax(dimensions));
+    }
+
+    withWriteLock([&] {
+        _isSpotlight = value;
+        _lightPropertiesChanged = true;
+    });
+    setDimensions(newDimensions);
 }
 
 void LightEntityItem::setCutoff(float value) {
-    _cutoff = glm::clamp(value, 0.0f, 90.0f);
+    value = glm::clamp(value, 0.0f, 90.0f);
+    if (value == getCutoff()) {
+        return;
+    }
 
-    if (_isSpotlight) {
+    withWriteLock([&] {
+        _cutoff = value;
+    });
+
+    if (getIsSpotlight()) {
         // If we are a spotlight, adjusting the cutoff will affect the area we encapsulate,
         // so update the dimensions to reflect this.
         const float length = getDimensions().z;
         const float width = length * glm::sin(glm::radians(_cutoff));
         setDimensions(glm::vec3(width, width, length));
     }
-    _lightPropertiesChanged = true;
+    
+    withWriteLock([&] {
+        _lightPropertiesChanged = true;
+    });
 }
 
 bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
@@ -174,7 +195,7 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 }
 
 
-// TODO: eventually only include properties changed since the params.lastQuerySent time
+// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags LightEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_IS_SPOTLIGHT;
@@ -205,5 +226,86 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 void LightEntityItem::somethingChangedNotification() {
     EntityItem::somethingChangedNotification();
-    _lightPropertiesChanged = false;
+    withWriteLock([&] {
+        _lightPropertiesChanged = false;
+    });
 }
+
+const rgbColor& LightEntityItem::getColor() const { 
+    return _color; 
+}
+
+xColor LightEntityItem::getXColor() const {
+    xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color;
+}
+
+void LightEntityItem::setColor(const rgbColor& value) { 
+    withWriteLock([&] {
+        memcpy(_color, value, sizeof(_color));
+        _lightPropertiesChanged = true;
+    });
+}
+
+void LightEntityItem::setColor(const xColor& value) {
+    withWriteLock([&] {
+        _color[RED_INDEX] = value.red;
+        _color[GREEN_INDEX] = value.green;
+        _color[BLUE_INDEX] = value.blue;
+        _lightPropertiesChanged = true;
+    });
+}
+
+bool LightEntityItem::getIsSpotlight() const {
+    bool result;
+    withReadLock([&] {
+        result = _isSpotlight;
+    });
+    return result;
+}
+
+float LightEntityItem::getIntensity() const { 
+    float result;
+    withReadLock([&] {
+        result = _intensity;
+    });
+    return result;
+}
+
+void LightEntityItem::setIntensity(float value) {
+    withWriteLock([&] {
+        _intensity = value;
+        _lightPropertiesChanged = true;
+    });
+}
+
+float LightEntityItem::getFalloffRadius() const { 
+    float result;
+    withReadLock([&] {
+        result = _falloffRadius;
+    });
+    return result;
+}
+
+float LightEntityItem::getExponent() const { 
+    float result;
+    withReadLock([&] {
+        result = _exponent;
+    });
+    return result;
+}
+
+void LightEntityItem::setExponent(float value) {
+    withWriteLock([&] {
+        _exponent = value;
+        _lightPropertiesChanged = true;
+    });
+}
+
+float LightEntityItem::getCutoff() const { 
+    float result;
+    withReadLock([&] {
+        result = _cutoff;
+    });
+    return result;
+}
+

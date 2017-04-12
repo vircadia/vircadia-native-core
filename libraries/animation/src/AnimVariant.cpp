@@ -109,7 +109,7 @@ void AnimVariantMap::animVariantMapFromScriptValue(const QScriptValue& source) {
                         if (z.isNumber()) {
                             QScriptValue w = value.property("w");
                             if (w.isNumber()) {
-                                set(property.name(), glm::quat(x.toNumber(), y.toNumber(), z.toNumber(), w.toNumber()));
+                                set(property.name(), glm::quat(w.toNumber(), x.toNumber(), y.toNumber(), z.toNumber()));
                             } else {
                                 set(property.name(), glm::vec3(x.toNumber(), y.toNumber(), z.toNumber()));
                             }

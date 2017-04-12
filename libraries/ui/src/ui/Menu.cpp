@@ -470,11 +470,11 @@ void Menu::removeSeparator(const QString& menuName, const QString& separatorName
     if (menu) {
         int textAt = findPositionOfMenuItem(menu, separatorName);
         QList<QAction*> menuActions = menu->actions();
-        QAction* separatorText = menuActions[textAt];
         if (textAt > 0 && textAt < menuActions.size()) {
             QAction* separatorLine = menuActions[textAt - 1];
             if (separatorLine) {
                 if (separatorLine->isSeparator()) {
+                    QAction* separatorText = menuActions[textAt];
                     menu->removeAction(separatorText);
                     menu->removeAction(separatorLine);
                     separatorRemoved = true;

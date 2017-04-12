@@ -8,12 +8,20 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+
 #include "EntityScriptingInterface.h"
+
+#include <QFutureWatcher>
+#include <QtConcurrent/QtConcurrentRun>
 
 #include "EntityItemID.h"
 #include <VariantMapToScriptValue.h>
 #include <SharedUtil.h>
 #include <SpatialParentFinder.h>
+#include <model-networking/MeshProxy.h>
 
 #include "EntitiesLogging.h"
 #include "EntityActionFactoryInterface.h"
@@ -289,13 +297,11 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 
                 results = entity->getProperties(desiredProperties);
 
-                // TODO: improve sitting points and naturalDimensions in the future,
-                //       for now we've included the old sitting points model behavior for entity types that are models
-                //        we've also added this hack for setting natural dimensions of models
+                // TODO: improve naturalDimensions in the future,
+                //       for now we've added this hack for setting natural dimensions of models
                 if (entity->getType() == EntityTypes::Model) {
                     const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
                     if (geometry) {
-                        results.setSittingPoints(geometry->sittingPoints);
                         Extents meshExtents = geometry->getUnscaledMeshExtents();
                         results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
                         results.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
@@ -668,7 +674,6 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
             (void**)&intersectedEntity, lockType, &result.accurate);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
-            result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);
         }
     }
@@ -678,6 +683,118 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
 bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
     auto client = DependencyManager::get<EntityScriptClient>();
     return client->reloadServerScript(entityID);
+}
+
+bool EntityPropertyMetadataRequest::script(EntityItemID entityID, QScriptValue handler) {
+    using LocalScriptStatusRequest = QFutureWatcher<QVariant>;
+
+    LocalScriptStatusRequest* request = new LocalScriptStatusRequest;
+    QObject::connect(request, &LocalScriptStatusRequest::finished, _engine, [=]() mutable {
+        auto details = request->result().toMap();
+        QScriptValue err, result;
+        if (details.contains("isError")) {
+            if (!details.contains("message")) {
+                details["message"] = details["errorInfo"];
+            }
+            err = _engine->makeError(_engine->toScriptValue(details));
+        } else {
+            details["success"] = true;
+            result = _engine->toScriptValue(details);
+        }
+        callScopedHandlerObject(handler, err, result);
+        request->deleteLater();
+    });
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    entityScriptingInterface->withEntitiesScriptEngine([&](EntitiesScriptEngineProvider* entitiesScriptEngine) {
+        if (entitiesScriptEngine) {
+            request->setFuture(entitiesScriptEngine->getLocalEntityScriptDetails(entityID));
+        }
+    });
+    if (!request->isStarted()) {
+        request->deleteLater();
+        callScopedHandlerObject(handler, _engine->makeError("Entities Scripting Provider unavailable", "InternalError"), QScriptValue());
+        return false;
+    }
+    return true;
+}
+
+bool EntityPropertyMetadataRequest::serverScripts(EntityItemID entityID, QScriptValue handler) {
+    auto client = DependencyManager::get<EntityScriptClient>();
+    auto request = client->createScriptStatusRequest(entityID);
+    QPointer<BaseScriptEngine> engine = _engine;
+    QObject::connect(request, &GetScriptStatusRequest::finished, _engine, [=](GetScriptStatusRequest* request) mutable {
+        auto engine = _engine;
+        if (!engine) {
+            qCDebug(entities) << __FUNCTION__ << " -- engine destroyed while inflight" << entityID;
+            return;
+        }
+        QVariantMap details;
+        details["success"] = request->getResponseReceived();
+        details["isRunning"] = request->getIsRunning();
+        details["status"] = EntityScriptStatus_::valueToKey(request->getStatus()).toLower();
+        details["errorInfo"] = request->getErrorInfo();
+
+        QScriptValue err, result;
+        if (!details["success"].toBool()) {
+            if (!details.contains("message") && details.contains("errorInfo")) {
+                details["message"] = details["errorInfo"];
+            }
+            if (details["message"].toString().isEmpty()) {
+                details["message"] = "entity server script details not found";
+            }
+            err = engine->makeError(engine->toScriptValue(details));
+        } else {
+            result = engine->toScriptValue(details);
+        }
+        callScopedHandlerObject(handler, err, result);
+        request->deleteLater();
+    });
+    request->start();
+    return true;
+}
+
+bool EntityScriptingInterface::queryPropertyMetadata(QUuid entityID, QScriptValue property, QScriptValue scopeOrCallback, QScriptValue methodOrName) {
+    auto name = property.toString();
+    auto handler = makeScopedHandlerObject(scopeOrCallback, methodOrName);
+    QPointer<BaseScriptEngine> engine = dynamic_cast<BaseScriptEngine*>(handler.engine());
+    if (!engine) {
+        qCDebug(entities) << "queryPropertyMetadata without detectable engine" << entityID << name;
+        return false;
+    }
+#ifdef DEBUG_ENGINE_STATE
+    connect(engine, &QObject::destroyed, this, [=]() {
+        qDebug() << "queryPropertyMetadata -- engine destroyed!" << (!engine ? "nullptr" : "engine");
+    });
+#endif
+    if (!handler.property("callback").isFunction()) {
+        qDebug() << "!handler.callback.isFunction" << engine;
+        engine->raiseException(engine->makeError("callback is not a function", "TypeError"));
+        return false;
+    }
+
+    // NOTE: this approach is a work-in-progress and for now just meant to work 100% correctly and provide
+    // some initial structure for organizing metadata adapters around.
+
+    // The extra layer of indirection is *essential* because in real world conditions errors are often introduced
+    // by accident and sometimes without exact memory of "what just changed."
+
+    // Here the scripter only needs to know an entityID and a property name -- which means all scripters can
+    // level this method when stuck in dead-end scenarios or to learn more about "magic" Entity properties
+    // like .script that work in terms of side-effects.
+
+    // This is an async callback pattern -- so if needed C++ can easily throttle or restrict queries later.
+
+    EntityPropertyMetadataRequest request(engine);
+
+    if (name == "script") {
+        return request.script(entityID, handler);
+    } else if (name == "serverScripts") {
+        return request.serverScripts(entityID, handler);
+    } else {
+        engine->raiseException(engine->makeError("metadata for property " + name + " is not yet queryable"));
+        engine->maybeEmitUncaughtException(__FUNCTION__);
+        return false;
+    }
 }
 
 bool EntityScriptingInterface::getServerScriptStatus(QUuid entityID, QScriptValue callback) {
@@ -721,7 +838,6 @@ RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
     intersects(false),
     accurate(true), // assume it's accurate
     entityID(),
-    properties(),
     distance(0),
     face(),
     entity(NULL)
@@ -736,9 +852,6 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
     obj.setProperty("accurate", value.accurate);
     QScriptValue entityItemValue = EntityItemIDtoScriptValue(engine, value.entityID);
     obj.setProperty("entityID", entityItemValue);
-
-    QScriptValue propertiesValue = EntityItemPropertiesToScriptValue(engine, value.properties);
-    obj.setProperty("properties", propertiesValue);
 
     obj.setProperty("distance", value.distance);
 
@@ -785,10 +898,6 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     QScriptValue entityIDValue = object.property("entityID");
     // EntityItemIDfromScriptValue(entityIDValue, value.entityID);
     quuidFromScriptValue(entityIDValue, value.entityID);
-    QScriptValue entityPropertiesValue = object.property("properties");
-    if (entityPropertiesValue.isValid()) {
-        EntityItemPropertiesFromScriptValueHonorReadOnly(entityPropertiesValue, value.properties);
-    }
     value.distance = object.property("distance").toVariant().toFloat();
 
     QString faceName = object.property("face").toVariant().toString();
@@ -815,8 +924,7 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     }
 }
 
-bool EntityScriptingInterface::setVoxels(QUuid entityID,
-                                         std::function<bool(PolyVoxEntityItem&)> actor) {
+bool EntityScriptingInterface::polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     if (!_entityTree) {
@@ -882,11 +990,9 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     return success;
 }
 
-
 bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
-
-    return setVoxels(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setSphere(center, radius, value);
     });
 }
@@ -896,7 +1002,7 @@ bool EntityScriptingInterface::setVoxelCapsule(QUuid entityID,
                                                float radius, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return setVoxels(entityID, [start, end, radius, value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [start, end, radius, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setCapsule(start, end, radius, value);
     });
 }
@@ -904,7 +1010,7 @@ bool EntityScriptingInterface::setVoxelCapsule(QUuid entityID,
 bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return setVoxels(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setVoxelInVolume(position, value);
     });
 }
@@ -912,7 +1018,7 @@ bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& positio
 bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return setVoxels(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setAll(value);
     });
 }
@@ -921,7 +1027,7 @@ bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3
                                                  const glm::vec3& cuboidSize, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return setVoxels(entityID, [lowPosition, cuboidSize, value](PolyVoxEntityItem& polyVoxEntity) {
+    return polyVoxWorker(entityID, [lowPosition, cuboidSize, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setCuboid(lowPosition, cuboidSize, value);
     });
 }
@@ -1540,4 +1646,62 @@ bool EntityScriptingInterface::AABoxIntersectsCapsule(const glm::vec3& low, cons
     glm::vec3 penetration;
     AABox aaBox(low, dimensions);
     return aaBox.findCapsulePenetration(start, end, radius, penetration);
+}
+
+void EntityScriptingInterface::getMeshes(QUuid entityID, QScriptValue callback) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
+    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::getMeshes no entity with ID" << entityID;
+        QScriptValueList args { callback.engine()->undefinedValue(), false };
+        callback.call(QScriptValue(), args);
+        return;
+    }
+
+    MeshProxyList result;
+    bool success = entity->getMeshes(result);
+
+    if (success) {
+        QScriptValue resultAsScriptValue = meshesToScriptValue(callback.engine(), result);
+        QScriptValueList args { resultAsScriptValue, true };
+        callback.call(QScriptValue(), args);
+    } else {
+        QScriptValueList args { callback.engine()->undefinedValue(), false };
+        callback.call(QScriptValue(), args);
+    }
+}
+
+glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {
+    glm::mat4 result;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                glm::mat4 translation = glm::translate(entity->getPosition());
+                glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
+                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
+                                                        entity->getRegistrationPoint());
+                result = translation * rotation * registration;
+            }
+        });
+    }
+    return result;
+}
+
+glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityID) {
+    glm::mat4 result;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                glm::mat4 translation = glm::translate(entity->getLocalPosition());
+                glm::mat4 rotation = glm::mat4_cast(entity->getLocalOrientation());
+                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
+                                                        entity->getRegistrationPoint());
+                result = translation * rotation * registration;
+            }
+        });
+    }
+    return result;
 }

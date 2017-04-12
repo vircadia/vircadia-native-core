@@ -1,19 +1,47 @@
 import QtQuick 2.0
 import Hifi 1.0
+import QtQuick.Controls 1.4
+import "../../dialogs"
 
 Item {
     id: tabletRoot
     objectName: "tabletRoot"
     property string username: "Unknown user"
     property var eventBridge;
-
     property var rootMenu;
+    property var openModal: null;
+    property var openMessage: null;
     property string subMenu: ""
-
     signal showDesktop();
+    property bool shown: true
+    property int currentApp: -1;
+    property alias tabletApps: tabletApps 
 
     function setOption(value) {
         option = value;
+    }
+
+    Component { id: inputDialogBuilder; TabletQueryDialog { } }
+    function inputDialog(properties) {
+        openModal = inputDialogBuilder.createObject(tabletRoot, properties);
+        return openModal;
+    }
+    Component { id: messageBoxBuilder; TabletMessageBox { } }
+    function messageBox(properties) {
+        openMessage  = messageBoxBuilder.createObject(tabletRoot, properties);
+        return openMessage;
+    }
+
+    Component { id: customInputDialogBuilder; TabletCustomQueryDialog { } }
+    function customInputDialog(properties) {
+        openModal = customInputDialogBuilder.createObject(tabletRoot, properties);
+        return openModal;
+    }
+
+    Component { id: fileDialogBuilder; TabletFileDialog { } }
+    function fileDialog(properties) {
+        openModal = fileDialogBuilder.createObject(tabletRoot, properties);
+        return openModal; 
     }
 
     function setMenuProperties(rootMenu, subMenu) {
@@ -21,14 +49,57 @@ Item {
         tabletRoot.subMenu = subMenu;
     }
 
+    function isDialogOpen() {
+        if (openMessage !== null || openModal !== null) {
+            return true;
+        }
+
+        return false;
+    }
+
     function loadSource(url) {
+        tabletApps.clear();
         loader.source = "";  // make sure we load the qml fresh each time.
         loader.source = url;
+        tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
+    }
+
+    function loadQMLOnTop(url) {
+        tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
+        loader.source = "";
+        loader.source = tabletApps.get(currentApp).appUrl;
+        if (loader.item.hasOwnProperty("gotoPreviousApp")) {
+            loader.item.gotoPreviousApp = true;
+        }
+    }
+
+    function loadWebOnTop(url, injectJavaScriptUrl) {
+        tabletApps.append({"appUrl": loader.source, "isWebUrl": true, "scriptUrl": injectJavaScriptUrl, "appWebUrl": url});
+        loader.item.url = tabletApps.get(currentApp).appWebUrl;
+        loader.item.scriptUrl = tabletApps.get(currentApp).scriptUrl;
+        if (loader.item.hasOwnProperty("gotoPreviousApp")) {
+            loader.item.gotoPreviousApp = true;
+        }
+    }
+        
+    function returnToPreviousApp() {
+        tabletApps.remove(currentApp);
+        var isWebPage = tabletApps.get(currentApp).isWebUrl;
+        if (isWebPage) {
+	    var webUrl = tabletApps.get(currentApp).appWebUrl;
+	    var scriptUrl = tabletApps.get(currentApp).scriptUrl;
+            loadSource("TabletWebView.qml");
+            loadWebUrl(webUrl, scriptUrl);
+        } else {
+            loader.source = tabletApps.get(currentApp).appUrl;
+        }
     }
 
     function loadWebUrl(url, injectedJavaScriptUrl) {
+        tabletApps.clear();
         loader.item.url = url;
         loader.item.scriptURL = injectedJavaScriptUrl;
+        tabletApps.append({"appUrl": "TabletWebView.qml", "isWebUrl": true, "scriptUrl": injectedJavaScriptUrl, "appWebUrl": url});
     }
 
     // used to send a message from qml to interface script.
@@ -63,11 +134,19 @@ Item {
         username = newUsername;
     }
 
+    ListModel {
+        id: tabletApps
+        onCountChanged: {
+            currentApp = count - 1
+        }
+    }
+
     Loader {
         id: loader
         objectName: "loader"
         asynchronous: false
 
+        
         width: parent.width
         height: parent.height
 
@@ -89,6 +168,12 @@ Item {
                 loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
             }
             loader.item.forceActiveFocus();
+
+            if (openModal) {
+                openModal.canceled();
+                openModal.destroy();
+                openModal = null;
+            }
         }
     }
 

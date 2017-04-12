@@ -14,7 +14,6 @@ import QtQuick.Controls.Styles 1.4
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
-import "." as VrControls
 
 FocusScope {
     id: root
@@ -25,12 +24,15 @@ FocusScope {
     readonly property alias currentText: comboBox.currentText;
     property alias currentIndex: comboBox.currentIndex;
 
+    property int dropdownHeight: 480
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property string label: ""
     property real controlHeight: height + (comboBoxLabel.visible ? comboBoxLabel.height + comboBoxLabel.anchors.bottomMargin : 0)
 
     readonly property ComboBox control: comboBox
+
+    property bool isDesktop: true
 
     signal accepted();
 
@@ -119,11 +121,17 @@ FocusScope {
     }
 
     function showList() {
-        var r = desktop.mapFromItem(root, 0, 0, root.width, root.height);
+        var r;
+        if (isDesktop) {
+            r = desktop.mapFromItem(root, 0, 0, root.width, root.height);
+        } else {
+            r = mapFromItem(root, 0, 0, root.width, root.height);
+        }
         var y = r.y + r.height;
         var bottom = y + scrollView.height;
-        if (bottom > desktop.height) {
-            y -= bottom - desktop.height + 8;
+        var height = isDesktop ? desktop.height : tabletRoot.height;
+        if (bottom > height) {
+            y -= bottom - height + 8;
         }
         scrollView.x = r.x;
         scrollView.y = y;
@@ -141,9 +149,9 @@ FocusScope {
 
     FocusScope {
         id: popup
-        parent: desktop
+        parent: isDesktop ? desktop : root
         anchors.fill: parent
-        z: desktop.zLevels.menu
+        z: isDesktop ? desktop.zLevels.menu : 12
         visible: false
         focus: true
 
@@ -166,7 +174,7 @@ FocusScope {
 
         ScrollView {
             id: scrollView
-            height: 480
+            height: root.dropdownHeight
             width: root.width + 4
             property bool hoverEnabled: false;
 
@@ -178,18 +186,18 @@ FocusScope {
                     visible: false
                 }
                 scrollBarBackground: Rectangle{
-                    implicitWidth: 14
+                    implicitWidth: 20
                     color: hifi.colors.baseGray
                 }
 
                 handle:
                     Rectangle {
-                    implicitWidth: 8
+                    implicitWidth: 16
                     anchors.left: parent.left
                     anchors.leftMargin: 3
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
-                    radius: 3
+                    radius: 6
                     color: hifi.colors.lightGrayText
                 }
             }
@@ -208,7 +216,7 @@ FocusScope {
                         anchors.leftMargin: hifi.dimensions.textPadding
                         anchors.verticalCenter: parent.verticalCenter
                         id: popupText
-                        text: listView.model[index] ? listView.model[index] : ""
+                        text: listView.model[index] ? listView.model[index] : (listView.model.get(index).text ? listView.model.get(index).text : "")
                         size: hifi.fontSizes.textFieldInput
                         color: hifi.colors.baseGray
                     }
@@ -232,5 +240,9 @@ FocusScope {
         anchors.bottom: parent.top
         anchors.bottomMargin: 4
         visible: label != ""
+    }
+
+    Component.onCompleted: {
+        isDesktop = (typeof desktop !== "undefined");
     }
 }

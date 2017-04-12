@@ -32,7 +32,7 @@ Framebuffer* Framebuffer::create(const std::string& name) {
 Framebuffer* Framebuffer::create(const std::string& name, const Format& colorBufferFormat, uint16 width, uint16 height) {
     auto framebuffer = Framebuffer::create(name);
 
-    auto colorTexture = TexturePointer(Texture::create2D(colorBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+    auto colorTexture = TexturePointer(Texture::createRenderBuffer(colorBufferFormat, width, height, Texture::SINGLE_MIP, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
     colorTexture->setSource("Framebuffer::colorTexture");
 
     framebuffer->setRenderBuffer(0, colorTexture);
@@ -43,8 +43,8 @@ Framebuffer* Framebuffer::create(const std::string& name, const Format& colorBuf
 Framebuffer* Framebuffer::create(const std::string& name, const Format& colorBufferFormat, const Format& depthStencilBufferFormat, uint16 width, uint16 height) {
     auto framebuffer = Framebuffer::create(name);
 
-    auto colorTexture = TexturePointer(Texture::create2D(colorBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
-    auto depthTexture = TexturePointer(Texture::create2D(depthStencilBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+    auto colorTexture = TexturePointer(Texture::createRenderBuffer(colorBufferFormat, width, height, Texture::SINGLE_MIP, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+    auto depthTexture = TexturePointer(Texture::createRenderBuffer(depthStencilBufferFormat, width, height, Texture::SINGLE_MIP, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
     framebuffer->setRenderBuffer(0, colorTexture);
     framebuffer->setDepthStencilBuffer(depthTexture, depthStencilBufferFormat);
 
@@ -55,7 +55,7 @@ Framebuffer* Framebuffer::createShadowmap(uint16 width) {
     auto framebuffer = Framebuffer::create("Shadowmap");
 
     auto depthFormat = Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH); // Depth32 texel format
-    auto depthTexture = TexturePointer(Texture::create2D(depthFormat, width, width));
+    auto depthTexture = TexturePointer(Texture::createRenderBuffer(depthFormat, width, width));
     Sampler::Desc samplerDesc;
     samplerDesc._borderColor = glm::vec4(1.0f);
     samplerDesc._wrapModeU = Sampler::WRAP_BORDER;
@@ -143,6 +143,8 @@ int Framebuffer::setRenderBuffer(uint32 slot, const TexturePointer& texture, uin
         return -1;
     }
 
+    Q_ASSERT(!texture || TextureUsageType::RENDERBUFFER == texture->getUsageType());
+
     // Check for the slot
     if (slot >= getMaxNumRenderBuffers()) {
         return -1;
@@ -221,6 +223,8 @@ bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, const For
     if (isSwapchain()) {
         return false;
     }
+
+    Q_ASSERT(!texture || TextureUsageType::RENDERBUFFER == texture->getUsageType());
 
     // Check for the compatibility of size
     if (texture) {

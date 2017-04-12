@@ -168,8 +168,6 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, textureCache->getGrayTexture());
         }
-    } else {
-        batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, textureCache->getWhiteTexture());
     }
 
     // Roughness map
@@ -182,8 +180,6 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, textureCache->getWhiteTexture());
         }
-    } else {
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, textureCache->getWhiteTexture());
     }
 
     // Normal map
@@ -196,8 +192,6 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, textureCache->getBlueTexture());
         }
-    } else {
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, nullptr);
     }
 
     // Metallic map
@@ -210,8 +204,6 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, textureCache->getBlackTexture());
         }
-    } else {
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, nullptr);
     }
 
     // Occlusion map
@@ -224,8 +216,6 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, textureCache->getWhiteTexture());
         }
-    } else {
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, nullptr);
     }
 
     // Scattering map
@@ -238,8 +228,6 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, textureCache->getWhiteTexture());
         }
-    } else {
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, nullptr);
     }
 
     // Emissive / Lightmap
@@ -259,8 +247,6 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getBlackTexture());
         }
-    } else {
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, nullptr);
     }
 }
 
@@ -372,19 +358,12 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const QVector<glm::mat4>& clusterMatrices) {
-    _transform = transform;
-
-    if (clusterMatrices.size() > 0) {
-        _worldBound = _adjustedLocalBound;
-        _worldBound.transform(_transform);
-        if (clusterMatrices.size() == 1) {
-            _transform = _transform.worldTransform(Transform(clusterMatrices[0]));
-        }
-    } else {
-        _worldBound = _localBound;
-        _worldBound.transform(_transform);
-    }
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform,
+        const gpu::BufferPointer& buffer) {
+    _transform = renderTransform;
+    _worldBound = _adjustedLocalBound;
+    _worldBound.transform(boundTransform);
+    _clusterBuffer = buffer;
 }
 
 ItemKey ModelMeshPartPayload::getKey() const {
@@ -532,9 +511,8 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
     // Still relying on the raw data from the model
-    const Model::MeshState& state = _model->getMeshState(_meshIndex);
-    if (state.clusterBuffer) {
-        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, state.clusterBuffer);
+    if (_clusterBuffer) {
+        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
     }
     batch.setModelTransform(_transform);
 }
@@ -590,8 +568,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     auto locations =  args->_pipeline->locations;
     assert(locations);
 
-    // Bind the model transform and the skinCLusterMatrices if needed
-    _model->updateClusterMatrices();
     bindTransform(batch, locations, args->_renderMode);
 
     //Bind the index buffer and vertex buffer and Blend shapes if needed

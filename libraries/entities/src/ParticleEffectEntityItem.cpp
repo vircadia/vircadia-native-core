@@ -469,7 +469,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
 }
 
 
-// TODO: eventually only include properties changed since the params.lastQuerySent time
+// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
@@ -732,4 +732,21 @@ void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
         // effectively clear all particles and start emitting new ones from scratch.
         _timeUntilNextEmit = 0.0f;
     }
+}
+
+QString ParticleEffectEntityItem::getTextures() const { 
+    QString result;
+    withReadLock([&] {
+        result = _textures;
+    });
+    return result;
+}
+
+void ParticleEffectEntityItem::setTextures(const QString& textures) {
+    withWriteLock([&] {
+        if (_textures != textures) {
+            _textures = textures;
+            _texturesChangedFlag = true;
+        }
+    });
 }

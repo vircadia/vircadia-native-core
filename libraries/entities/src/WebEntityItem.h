@@ -29,7 +29,7 @@ public:
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.lastQuerySent time
+    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -52,7 +52,7 @@ public:
                          void** intersectedObject, bool precisionPicking) const override;
 
     virtual void setSourceUrl(const QString& value);
-    const QString& getSourceUrl() const;
+    QString getSourceUrl() const;
 
     virtual bool wantsHandControllerPointerEvents() const override { return true; }
 

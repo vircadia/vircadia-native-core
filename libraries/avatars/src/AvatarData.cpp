@@ -47,9 +47,6 @@ quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
 using namespace std;
 
-const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
-const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
-
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
@@ -126,6 +123,7 @@ void AvatarData::setTargetScale(float targetScale) {
     if (_targetScale != newValue) {
         _targetScale = newValue;
         _scaleChanged = usecTimestampNow();
+        _avatarScaleChanged = _scaleChanged;
     }
 }
 
@@ -354,7 +352,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasAudioLoudness) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
-        data->audioLoudness = packFloatGainToByte(_headData->getAudioLoudness() / AUDIO_LOUDNESS_SCALE);
+        data->audioLoudness = packFloatGainToByte(getAudioLoudness() / AUDIO_LOUDNESS_SCALE);
         destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
 
         int numBytes = destinationBuffer - startSection;
@@ -838,7 +836,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return buffer.size();
         }
-        _headData->setAudioLoudness(audioLoudness);
+        setAudioLoudness(audioLoudness);
         int numBytesRead = sourceBuffer - startSection;
         _audioLoudnessRate.increment(numBytesRead);
         _audioLoudnessUpdateRate.increment();
@@ -1498,6 +1496,9 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
         setAvatarEntityData(identity.avatarEntityData);
         identityChanged = true;
     }
+    // flag this avatar as non-stale by updating _averageBytesReceived
+    const int BOGUS_NUM_BYTES = 1;
+    _averageBytesReceived.updateAverage(BOGUS_NUM_BYTES);
 }
 
 QByteArray AvatarData::identityByteArray() const {
@@ -2000,6 +2001,11 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         }
     }
 
+    auto currentBasis = getRecordingBasis();
+    if (!currentBasis) {
+        currentBasis = std::make_shared<Transform>(Transform::fromJson(json[JSON_AVATAR_BASIS]));
+    }
+
     if (json.contains(JSON_AVATAR_RELATIVE)) {
         // During playback you can either have the recording basis set to the avatar current state
         // meaning that all playback is relative to this avatars starting position, or
@@ -2008,15 +2014,14 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         // The first is more useful for playing back recordings on your own avatar, while
         // the latter is more useful for playing back other avatars within your scene.
 
-        auto currentBasis = getRecordingBasis();
-        if (!currentBasis) {
-            currentBasis = std::make_shared<Transform>(Transform::fromJson(json[JSON_AVATAR_BASIS]));
-        }
-
         auto relativeTransform = Transform::fromJson(json[JSON_AVATAR_RELATIVE]);
         auto worldTransform = currentBasis->worldTransform(relativeTransform);
         setPosition(worldTransform.getTranslation());
         setOrientation(worldTransform.getRotation());
+    } else {
+        // We still set the position in the case that there is no movement.
+        setPosition(currentBasis->getTranslation());
+        setOrientation(currentBasis->getRotation());
     }
 
     if (json.contains(JSON_AVATAR_SCALE)) {

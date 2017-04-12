@@ -130,7 +130,7 @@ Item {
                     id: pingCol
                     spacing: 4; x: 4; y: 4;
                     StatText {
-                        text: "Audio ping: " + root.audioPing
+                        text: "Audio ping/loss: " + root.audioPing + "/" + root.audioPacketLoss + "%"
                     }
                     StatText {
                         text: "Avatar ping: " + root.avatarPing
@@ -180,6 +180,31 @@ Item {
                         text: "Avatar Mixer Out: " + root.avatarMixerOutKbps + " kbps, " +
                             root.avatarMixerOutPps + "pps, " +
                             root.myAvatarSendRate.toFixed(2) + "hz";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio Mixer In: " + root.audioMixerInKbps + " kbps, " +
+                            root.audioMixerInPps + "pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
+                            "Silent: " + root.audioSilentInboundPPS + " pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio Mixer Out: " + root.audioMixerOutKbps + " kbps, " +
+                            root.audioMixerOutPps + "pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio Out Mic: " + root.audioOutboundPPS + " pps, " +
+                            "Silent: " + root.audioSilentOutboundPPS + " pps";
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Audio Codec: " + root.audioCodec + " Noise Gate: " +
+                            root.audioNoiseGate;
                     }
                     StatText {
                         visible: root.expanded;
@@ -241,7 +266,7 @@ Item {
                         text: "GPU Textures: ";
                     }
                     StatText {
-                        text: "  Sparse Enabled: " + (0 == root.gpuSparseTextureEnabled ? "false" : "true");
+                        text: "  Pressure State: " + root.gpuTextureMemoryPressureState;
                     }
                     StatText {
                         text: "  Count: " + root.gpuTextures;
@@ -253,14 +278,10 @@ Item {
                         text: "  Decimated: " + root.decimatedTextureCount;
                     }
                     StatText {
-                        text: "  Sparse Count: " + root.gpuTexturesSparse;
-                        visible: 0 != root.gpuSparseTextureEnabled;
+                        text: "  Pending Transfer: " + root.texturePendingTransfers + " MB";
                     }
                     StatText {
-                        text: "  Virtual Memory: " + root.gpuTextureVirtualMemory + " MB";
-                    }
-                    StatText {
-                        text: "  Commited Memory: " + root.gpuTextureMemory + " MB";
+                        text: "  Resource Memory: " + root.gpuTextureMemory + " MB";
                     }
                     StatText {
                         text: "  Framebuffer Memory: " + root.gpuTextureFramebufferMemory + " MB";

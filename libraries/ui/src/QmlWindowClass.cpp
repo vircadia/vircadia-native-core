@@ -122,12 +122,15 @@ void QmlWindowClass::initQml(QVariantMap properties) {
             object->setProperty(OFFSCREEN_VISIBILITY_PROPERTY, visible);
             object->setProperty(SOURCE_PROPERTY, _source);
 
+            const QMetaObject *metaObject = _qmlWindow->metaObject();
             // Forward messages received from QML on to the script
             connect(_qmlWindow, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
             connect(_qmlWindow, SIGNAL(visibleChanged()), this, SIGNAL(visibleChanged()), Qt::QueuedConnection);
 
-            connect(_qmlWindow, SIGNAL(resized(QSizeF)), this, SIGNAL(resized(QSizeF)), Qt::QueuedConnection);
-            connect(_qmlWindow, SIGNAL(moved(QVector2D)), this, SLOT(hasMoved(QVector2D)), Qt::QueuedConnection);
+            if (metaObject->indexOfSignal("resized") >= 0)
+                connect(_qmlWindow, SIGNAL(resized(QSizeF)), this, SIGNAL(resized(QSizeF)), Qt::QueuedConnection);
+            if (metaObject->indexOfSignal("moved") >= 0)
+                connect(_qmlWindow, SIGNAL(moved(QVector2D)), this, SLOT(hasMoved(QVector2D)), Qt::QueuedConnection);
             connect(_qmlWindow, SIGNAL(windowClosed()), this, SLOT(hasClosed()), Qt::QueuedConnection);
         });
     }
