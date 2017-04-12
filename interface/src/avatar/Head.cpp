@@ -77,7 +77,7 @@ void Head::simulate(float deltaTime, bool isMine) {
     float audioLoudness = 0.0f;
 
     if (_owningAvatar) {
-        _owningAvatar->getAudioLoudness();
+        audioLoudness = _owningAvatar->getAudioLoudness();
     }
 
     //  Update audio trailing average for rendering facial animations
