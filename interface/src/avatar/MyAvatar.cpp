@@ -48,7 +48,6 @@
 #include "AvatarActionHold.h"
 #include "Menu.h"
 #include "MyAvatar.h"
-#include "Physics.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
 #include "DebugDraw.h"

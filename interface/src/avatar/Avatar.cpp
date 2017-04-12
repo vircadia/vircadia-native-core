@@ -9,20 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <vector>
+#include "Avatar.h"
 
-#include <QDesktopWidget>
-#include <QWindow>
-
-#include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/vector_angle.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <QtCore/QThread>
+#include <glm/gtx/transform.hpp>
 #include <glm/gtx/vector_query.hpp>
 
 #include <DeferredLightingEffect.h>
-#include <GeometryUtil.h>
-#include <LODManager.h>
+#include <EntityTreeRenderer.h>
 #include <NodeList.h>
 #include <NumericalConstants.h>
 #include <OctreeUtils.h>
@@ -31,19 +25,13 @@
 #include <Rig.h>
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
-#include <TextureCache.h>
 #include <VariantMapToScriptValue.h>
 #include <DebugDraw.h>
 
-#include "Application.h"
-#include "Avatar.h"
 #include "AvatarManager.h"
 #include "AvatarMotionState.h"
-#include "Head.h"
+#include "Camera.h"
 #include "Menu.h"
-#include "Physics.h"
-#include "Util.h"
-#include "world.h"
 #include "InterfaceLogging.h"
 #include "SceneScriptingInterface.h"
 #include "SoftAttachmentModel.h"
@@ -583,7 +571,7 @@ void Avatar::render(RenderArgs* renderArgs) {
     auto& batch = *renderArgs->_batch;
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
-    if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), getPosition()) < 10.0f) {
+    if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatarPosition(), getPosition()) < 10.0f) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
         // render pointing lasers

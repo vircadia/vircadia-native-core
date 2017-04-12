@@ -14,19 +14,15 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <QtCore/QScopedPointer>
 #include <QtCore/QUuid>
 
 #include <AvatarData.h>
 #include <ShapeInfo.h>
-
 #include <render/Scene.h>
 
 
-#include "Camera.h"
 #include "Head.h"
 #include "SkeletonModel.h"
-#include "world.h"
 #include "Rig.h"
 #include <ThreadSafeValueCache.h>
 
