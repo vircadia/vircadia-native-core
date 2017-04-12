@@ -16,6 +16,5 @@
 using namespace controller;
 
 bool TransformFilter::parseParameters(const QJsonValue& parameters) {
-    static const QString JSON_TRANSFORM = QStringLiteral("transform");
-    return parseMat4Parameter(parameters, JSON_TRANSFORM, _transform);
+    return parseMat4Parameter(parameters, _transform);
 }

@@ -28,6 +28,7 @@
 #include "filters/ScaleFilter.h"
 #include "filters/TranslateFilter.h"
 #include "filters/TransformFilter.h"
+#include "filters/PostTransformFilter.h"
 #include "filters/RotateFilter.h"
 #include "conditionals/AndConditional.h"
 
@@ -113,6 +114,11 @@ QObject* RouteBuilderProxy::translate(glm::vec3 translate) {
 
 QObject* RouteBuilderProxy::transform(glm::mat4 transform) {
     addFilter(std::make_shared<TransformFilter>(transform));
+    return this;
+}
+
+QObject* RouteBuilderProxy::postTransform(glm::mat4 transform) {
+    addFilter(std::make_shared<PostTransformFilter>(transform));
     return this;
 }
 

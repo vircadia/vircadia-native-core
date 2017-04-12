@@ -26,6 +26,8 @@
 #include "filters/ScaleFilter.h"
 #include "filters/TranslateFilter.h"
 #include "filters/TransformFilter.h"
+#include "filters/PostTransformFilter.h"
+#include "filters/RotateFilter.h"
 
 using namespace controller;
 
@@ -41,6 +43,8 @@ REGISTER_FILTER_CLASS_INSTANCE(ScaleFilter, "scale")
 REGISTER_FILTER_CLASS_INSTANCE(PulseFilter, "pulse")
 REGISTER_FILTER_CLASS_INSTANCE(TranslateFilter, "translate")
 REGISTER_FILTER_CLASS_INSTANCE(TransformFilter, "transform")
+REGISTER_FILTER_CLASS_INSTANCE(PostTransformFilter, "postTransform")
+REGISTER_FILTER_CLASS_INSTANCE(RotateFilter, "rotate")
 
 const QString JSON_FILTER_TYPE = QStringLiteral("type");
 const QString JSON_FILTER_PARAMS = QStringLiteral("params");
@@ -114,7 +118,7 @@ bool Filter::parseVec3Parameter(const QJsonValue& parameters, const QString& nam
     return false;
 }
 
-bool Filter::parseMat4Parameter(const QJsonValue& parameters, const QString& name, glm::mat4& output) {
+bool Filter::parseMat4Parameter(const QJsonValue& parameters, glm::mat4& output) {
     if (parameters.isObject()) {
         auto objectParameters = parameters.toObject();
 

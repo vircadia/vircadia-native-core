@@ -69,5 +69,24 @@ namespace controller {
         pose.valid = valid;
         return pose;
     }
+
+    Pose Pose::postTransform(const glm::mat4& mat) const {
+        glm::mat4 original = getMat4();
+        glm::mat4 result = original * mat;
+
+        auto translationOut = ::extractTranslation(result);
+        auto rotationOut = ::glmExtractRotation(result);
+        auto velocityOut = velocity + glm::cross(angularVelocity, translation - translationOut); // warning: this may be completely wrong
+        auto angularVelocityOut = angularVelocity;
+
+        Pose pose(translationOut,
+            rotationOut,
+            velocityOut,
+            angularVelocityOut);
+
+        pose.valid = valid;
+        return pose;
+    }
+
 }
 
