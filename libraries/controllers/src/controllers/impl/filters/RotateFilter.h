@@ -25,11 +25,10 @@ public:
     virtual float apply(float value) const override { return value; }
 
     virtual Pose apply(Pose value) const override {
-        glm::quat temp = _rotation;
-        return value.transform(glm::mat4(temp));
+        return value.transform(glm::mat4(glm::quat(_rotation)));
     }
 
-    virtual bool parseParameters(const QJsonValue& parameters) override;
+    virtual bool parseParameters(const QJsonValue& parameters) override { return parseQuatParameter(parameters, _rotation); }
 
 private:
     glm::quat _rotation;

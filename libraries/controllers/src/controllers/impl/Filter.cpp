@@ -93,8 +93,7 @@ bool Filter::parseSingleFloatParameter(const QJsonValue& parameters, const QStri
     return false;
 }
 
-// FIXME - we're not really using the name 
-bool Filter::parseVec3Parameter(const QJsonValue& parameters, const QString& name, glm::vec3& output) {
+bool Filter::parseVec3Parameter(const QJsonValue& parameters, glm::vec3& output) {
     if (parameters.isDouble()) {
         output = glm::vec3(parameters.toDouble());
         return true;
@@ -163,7 +162,7 @@ bool Filter::parseMat4Parameter(const QJsonValue& parameters, glm::mat4& output)
     return false;
 }
 
-bool Filter::parseQuatParameter(const QJsonValue& parameters, const QString& name, glm::quat& output) {
+bool Filter::parseQuatParameter(const QJsonValue& parameters, glm::quat& output) {
     if (parameters.isObject()) {
         auto objectParameters = parameters.toObject();
         if (objectParameters.contains("w") && 

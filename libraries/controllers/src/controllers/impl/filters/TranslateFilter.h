@@ -22,15 +22,9 @@ public:
     TranslateFilter() { }
     TranslateFilter(glm::vec3 translate) : _translate(translate) {}
 
-    virtual float apply(float value) const override {
-        return value;
-    }
-
-    virtual Pose apply(Pose value) const override {
-        return value.transform(glm::translate(_translate));
-    }
-
-    virtual bool parseParameters(const QJsonValue& parameters) override;
+    virtual float apply(float value) const override { return value; }
+    virtual Pose apply(Pose value) const override { return value.transform(glm::translate(_translate)); }
+    virtual bool parseParameters(const QJsonValue& parameters) override { return parseVec3Parameter(parameters, _translate); }
 
 private:
     glm::vec3 _translate { 0.0f };

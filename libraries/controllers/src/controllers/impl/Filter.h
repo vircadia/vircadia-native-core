@@ -46,8 +46,8 @@ namespace controller {
         static Factory& getFactory() { return _factory; }
 
         static bool parseSingleFloatParameter(const QJsonValue& parameters, const QString& name, float& output);
-        static bool parseVec3Parameter(const QJsonValue& parameters, const QString& name, glm::vec3& output);
-        static bool parseQuatParameter(const QJsonValue& parameters, const QString& name, glm::quat& output);
+        static bool parseVec3Parameter(const QJsonValue& parameters, glm::vec3& output);
+        static bool parseQuatParameter(const QJsonValue& parameters, glm::quat& output);
         static bool parseMat4Parameter(const QJsonValue& parameters, glm::mat4& output);
     protected:
         static Factory _factory;

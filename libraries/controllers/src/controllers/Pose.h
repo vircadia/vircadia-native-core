@@ -43,8 +43,6 @@ namespace controller {
         Pose transform(const glm::mat4& mat) const;
         Pose postTransform(const glm::mat4& mat) const;
 
-        glm::mat4 getMat4() const { return ::createMatFromQuatAndPos(rotation, translation); }
-
         static QScriptValue toScriptValue(QScriptEngine* engine, const Pose& event);
         static void fromScriptValue(const QScriptValue& object, Pose& event);
     };
