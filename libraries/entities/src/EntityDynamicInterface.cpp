@@ -87,7 +87,7 @@ deserializer in the ObjectDynamic subclass to be called with the new data, there
 variables.  These argument variables are used by the code which is run when bullet does a callback.
 
 
- */
+*/
 
 #include "EntityItem.h"
 
@@ -115,7 +115,8 @@ EntityDynamicType EntityDynamicInterface::dynamicTypeFromString(QString dynamicT
         return DYNAMIC_TYPE_HINGE;
     }
 
-    qCDebug(entities) << "Warning -- EntityDynamicInterface::dynamicTypeFromString got unknown dynamic-type name" << dynamicTypeString;
+    qCDebug(entities) << "Warning -- EntityDynamicInterface::dynamicTypeFromString got unknown dynamic-type name"
+                      << dynamicTypeString;
     return DYNAMIC_TYPE_NONE;
 }
 
@@ -139,7 +140,7 @@ QString EntityDynamicInterface::dynamicTypeToString(EntityDynamicType dynamicTyp
 }
 
 glm::vec3 EntityDynamicInterface::extractVec3Argument(QString objectName, QVariantMap arguments,
-                                                     QString argumentName, bool& ok, bool required) {
+                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
             qCDebug(entities) << objectName << "requires argument:" << argumentName;
@@ -188,7 +189,7 @@ glm::vec3 EntityDynamicInterface::extractVec3Argument(QString objectName, QVaria
 }
 
 glm::quat EntityDynamicInterface::extractQuatArgument(QString objectName, QVariantMap arguments,
-                                                     QString argumentName, bool& ok, bool required) {
+                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
             qCDebug(entities) << objectName << "requires argument:" << argumentName;
@@ -226,7 +227,7 @@ glm::quat EntityDynamicInterface::extractQuatArgument(QString objectName, QVaria
     float w = wV.toFloat(&wOk);
     if (!xOk || !yOk || !zOk || !wOk) {
         qCDebug(entities) << objectName << "argument" << argumentName
-                 << "must be a map with keys: x, y, z, and w of type float.";
+                          << "must be a map with keys: x, y, z, and w of type float.";
         ok = false;
         return glm::quat();
     }
@@ -241,7 +242,7 @@ glm::quat EntityDynamicInterface::extractQuatArgument(QString objectName, QVaria
 }
 
 float EntityDynamicInterface::extractFloatArgument(QString objectName, QVariantMap arguments,
-                                                  QString argumentName, bool& ok, bool required) {
+                                                   QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
             qCDebug(entities) << objectName << "requires argument:" << argumentName;
@@ -263,7 +264,7 @@ float EntityDynamicInterface::extractFloatArgument(QString objectName, QVariantM
 }
 
 int EntityDynamicInterface::extractIntegerArgument(QString objectName, QVariantMap arguments,
-                                                  QString argumentName, bool& ok, bool required) {
+                                                   QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
             qCDebug(entities) << objectName << "requires argument:" << argumentName;
@@ -285,7 +286,7 @@ int EntityDynamicInterface::extractIntegerArgument(QString objectName, QVariantM
 }
 
 QString EntityDynamicInterface::extractStringArgument(QString objectName, QVariantMap arguments,
-                                                     QString argumentName, bool& ok, bool required) {
+                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
             qCDebug(entities) << objectName << "requires argument:" << argumentName;
@@ -297,7 +298,7 @@ QString EntityDynamicInterface::extractStringArgument(QString objectName, QVaria
 }
 
 bool EntityDynamicInterface::extractBooleanArgument(QString objectName, QVariantMap arguments,
-                                                   QString argumentName, bool& ok, bool required) {
+                                                    QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
             qCDebug(entities) << objectName << "requires argument:" << argumentName;
@@ -308,15 +309,11 @@ bool EntityDynamicInterface::extractBooleanArgument(QString objectName, QVariant
     return arguments[argumentName].toBool();
 }
 
-
-
-QDataStream& operator<<(QDataStream& stream, const EntityDynamicType& entityDynamicType)
-{
+QDataStream& operator<<(QDataStream& stream, const EntityDynamicType& entityDynamicType) {
     return stream << (quint16)entityDynamicType;
 }
 
-QDataStream& operator>>(QDataStream& stream, EntityDynamicType& entityDynamicType)
-{
+QDataStream& operator>>(QDataStream& stream, EntityDynamicType& entityDynamicType) {
     quint16 dynamicTypeAsInt;
     stream >> dynamicTypeAsInt;
     entityDynamicType = (EntityDynamicType)dynamicTypeAsInt;
