@@ -725,39 +725,43 @@ void Resource::handleReplyFinished() {
         emit loaded(data);
         downloadFinished(data);
     } else {
-        switch (result) {
-            case ResourceRequest::Result::Timeout: {
-                qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
-                // Fall through to other cases
-            }
-            case ResourceRequest::Result::ServerUnavailable: {
-                // retry with increasing delays
-                const int BASE_DELAY_MS = 1000;
-                if (_attempts++ < MAX_ATTEMPTS) {
-                    auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
-
-                    qCDebug(networking).noquote() << "Server unavailable for" << _url << "- may retry in" << waitTime << "ms"
-                        << "if resource is still needed";
-
-                    QTimer::singleShot(waitTime, this, &Resource::attemptRequest);
-                    break;
-                }
-                // fall through to final failure
-            }
-            default: {
-                qCDebug(networking) << "Error loading " << _url;
-                auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError
-                                                                  : QNetworkReply::UnknownNetworkError;
-                emit failed(error);
-                finishedLoading(false);
-                break;
-            }
-        }
+        handleFailedRequest(result);
     }
     
     _request->disconnect(this);
     _request->deleteLater();
     _request = nullptr;
+}
+
+void Resource::handleFailedRequest(ResourceRequest::Result result) {
+    switch (result) {
+        case ResourceRequest::Result::Timeout: {
+            qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
+            // Fall through to other cases
+        }
+        case ResourceRequest::Result::ServerUnavailable: {
+            // retry with increasing delays
+            const int BASE_DELAY_MS = 1000;
+            if (_attempts++ < MAX_ATTEMPTS) {
+                auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
+
+                qCDebug(networking).noquote() << "Server unavailable for" << _url << "- may retry in" << waitTime << "ms"
+                    << "if resource is still needed";
+
+                QTimer::singleShot(waitTime, this, &Resource::attemptRequest);
+                break;
+            }
+            // fall through to final failure
+        }
+        default: {
+            qCDebug(networking) << "Error loading " << _url;
+            auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError
+                                                              : QNetworkReply::UnknownNetworkError;
+            emit failed(error);
+            finishedLoading(false);
+            break;
+        }
+    }
 }
 
 uint qHash(const QPointer<QObject>& value, uint seed) {

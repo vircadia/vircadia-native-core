@@ -424,6 +424,8 @@ protected slots:
 protected:
     virtual void init();
 
+    virtual void makeRequest();
+
     /// Checks whether the resource is cacheable.
     virtual bool isCacheable() const { return true; }
 
@@ -440,6 +442,8 @@ protected:
 
     Q_INVOKABLE void allReferencesCleared();
 
+    void handleFailedRequest(ResourceRequest::Result result);
+
     QUrl _url;
     QUrl _activeUrl;
     ByteRange _requestByteRange;
@@ -449,8 +453,15 @@ protected:
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
+
+    qint64 _bytesReceived{ 0 };
+    qint64 _bytesTotal{ 0 };
+    qint64 _bytes{ 0 };
+
+    int _requestID;
+    ResourceRequest* _request{ nullptr };
     
-private slots:
+public slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);
     void handleReplyFinished();
 
@@ -460,20 +471,14 @@ private:
     
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
     
-    void makeRequest();
     void retry();
     void reinsert();
 
     bool isInScript() const { return _isInScript; }
     void setInScript(bool isInScript) { _isInScript = isInScript; }
     
-    int _requestID;
-    ResourceRequest* _request{ nullptr };
     int _lruKey{ 0 };
     QTimer* _replyTimer{ nullptr };
-    qint64 _bytesReceived{ 0 };
-    qint64 _bytesTotal{ 0 };
-    qint64 _bytes{ 0 };
     int _attempts{ 0 };
     bool _isInScript{ false };
 };

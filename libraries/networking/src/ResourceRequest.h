@@ -21,7 +21,7 @@ struct ByteRange {
     int64_t fromInclusive { 0 };
     int64_t toExclusive { 0 };
 
-    bool isSet() { return fromInclusive < -1 || fromInclusive < toExclusive; }
+    bool isSet() { return fromInclusive < 0 || fromInclusive < toExclusive; }
 };
 
 class ResourceRequest : public QObject {

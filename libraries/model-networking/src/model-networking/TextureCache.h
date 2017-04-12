@@ -59,13 +59,25 @@ public:
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
+public slots:
+    void ktxHeaderRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
+    void ktxHeaderRequestFinished();
+
+    void ktxMipRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
+    void ktxMipRequestFinished();
+
 protected:
+    void makeRequest() override;
+
     virtual bool isCacheable() const override { return _loaded; }
 
     virtual void downloadFinished(const QByteArray& data) override;
 
     Q_INVOKABLE void loadContent(const QByteArray& content);
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
+
+    void startMipRangeRequest(uint16_t low, uint16_t high);
+    void maybeCreateKTX();
 
 private:
     friend class KTXReader;
@@ -79,9 +91,18 @@ private:
         DONE_LOADING 
     };
 
+
     KTXLoadState _ktxLoadState { LOADING_HEADER };
     KTXFilePointer _file;
+    static const uint16_t NULL_MIP_LEVEL;
     bool _sourceIsKTX { false };
+    bool _ktxHeaderLoaded { false };
+    std::pair<uint16_t, uint16_t> _ktxMipLevelRangeInFlight{ NULL_MIP_LEVEL, NULL_MIP_LEVEL };
+    ResourceRequest* _ktxHeaderRequest { nullptr };
+    ResourceRequest* _ktxMipRequest { nullptr };
+    QByteArray _ktxHeaderData;
+    QByteArray _ktxHighMipData;
+
     int _originalWidth { 0 };
     int _originalHeight { 0 };
     int _width { 0 };

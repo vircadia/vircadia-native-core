@@ -60,7 +60,12 @@ void HTTPResourceRequest::doSend() {
     }
 
     if (_byteRange.isSet()) {
-        auto byteRange = QString("bytes=%1-%2").arg(_byteRange.fromInclusive).arg(_byteRange.toExclusive);
+        QString byteRange;
+        if (_byteRange.fromInclusive < 0) {
+            auto byteRange = QString("bytes=%1").arg(_byteRange.fromInclusive);
+        } else {
+            auto byteRange = QString("bytes=%1-%2").arg(_byteRange.fromInclusive).arg(_byteRange.toExclusive);
+        }
         networkRequest.setRawHeader("Range", byteRange.toLatin1());
     }
     networkRequest.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);

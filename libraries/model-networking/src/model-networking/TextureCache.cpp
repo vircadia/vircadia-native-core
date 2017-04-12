@@ -330,6 +330,166 @@ private:
     int _maxNumPixels;
 };
 
+const uint16_t NetworkTexture::NULL_MIP_LEVEL = std::numeric_limits<uint16_t>::max();
+void NetworkTexture::makeRequest() {
+    if (!_sourceIsKTX) {
+        Resource::makeRequest();
+        return;
+    } 
+
+    // We special-handle ktx requests to run 2 concurrent requests right off the bat
+    PROFILE_ASYNC_BEGIN(resource, "Resource:" + getType(), QString::number(_requestID), { { "url", _url.toString() }, { "activeURL", _activeUrl.toString() } });
+
+    if (!_ktxHeaderLoaded) {
+        qDebug() << ">>> Making request to " << _url << " for header";
+        _ktxHeaderRequest = ResourceManager::createResourceRequest(this, _activeUrl);
+
+        if (!_ktxHeaderRequest) {
+            //qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
+            ResourceCache::requestCompleted(_self);
+            finishedLoading(false);
+            PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID));
+            return;
+        }
+
+        ByteRange range;
+        range.fromInclusive = 0;
+        range.toExclusive = 1000;
+        _ktxHeaderRequest->setByteRange(range);
+
+        //qCDebug(resourceLog).noquote() << "Starting request for:" << _url.toDisplayString();
+        emit loading();
+
+        connect(_ktxHeaderRequest, &ResourceRequest::progress, this, &NetworkTexture::ktxHeaderRequestProgress);
+        //connect(this, &Resource::onProgress, this, &NetworkTexture::ktxHeaderRequestFinished);
+
+        connect(_ktxHeaderRequest, &ResourceRequest::finished, this, &NetworkTexture::ktxHeaderRequestFinished);
+
+        _bytesReceived = _bytesTotal = _bytes = 0;
+
+        _ktxHeaderRequest->send();
+    }
+
+    startMipRangeRequest(NULL_MIP_LEVEL, NULL_MIP_LEVEL);
+}
+
+// Load mips in the range [low, high] (inclusive)
+void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
+    if (_ktxMipRequest) {
+        return;
+    }
+
+    bool isHighMipRequest = low == NULL_MIP_LEVEL && high == NULL_MIP_LEVEL;
+    
+    if (!isHighMipRequest && !_ktxHeaderLoaded) {
+        return;
+    }
+
+    _ktxMipRequest = ResourceManager::createResourceRequest(this, _activeUrl);
+    qDebug() << ">>> Making request to " << _url << " for " << low << " to " << high;
+
+    if (isHighMipRequest) {
+        // This is a special case where we load the high 7 mips
+        ByteRange range;
+        range.fromInclusive = -15000;
+        _ktxMipRequest->setByteRange(range);
+    } else {
+        // TODO: Discover range for other mips
+    }
+
+    connect(_ktxMipRequest, &ResourceRequest::progress, this, &NetworkTexture::ktxMipRequestProgress);
+    connect(_ktxMipRequest, &ResourceRequest::finished, this, &NetworkTexture::ktxMipRequestFinished);
+
+    _ktxMipRequest->send();
+}
+
+
+void NetworkTexture::ktxHeaderRequestFinished() {
+    assert(!_ktxHeaderLoaded);
+
+    if (_ktxHeaderRequest->getResult() == ResourceRequest::Success) {
+        _ktxHeaderLoaded = true;
+        _ktxHeaderData = _ktxHeaderRequest->getData();
+        maybeCreateKTX();
+    } else {
+        handleFailedRequest(_ktxHeaderRequest->getResult());
+    }
+    _ktxHeaderRequest->deleteLater();
+    _ktxHeaderRequest = nullptr;
+}
+
+void NetworkTexture::ktxMipRequestFinished() {
+    bool isHighMipRequest = _ktxMipLevelRangeInFlight.first == NULL_MIP_LEVEL
+                            && _ktxMipLevelRangeInFlight.second == NULL_MIP_LEVEL;
+
+    if (_ktxMipRequest->getResult() == ResourceRequest::Success) {
+        _ktxHighMipData = _ktxMipRequest->getData();
+        maybeCreateKTX();
+    } else {
+        handleFailedRequest(_ktxHeaderRequest->getResult());
+    }
+    _ktxMipRequest->deleteLater();
+    _ktxMipRequest = nullptr;
+}
+
+// This is called when the header or top mips have been loaded
+void NetworkTexture::maybeCreateKTX() {
+    qDebug() << "Maybe create ktx...";
+    if (_ktxHeaderData.size() > 0 && _ktxHighMipData.size() > 0) {
+        // create ktx...
+        auto header = reinterpret_cast<const ktx::Header*>(_ktxHeaderData.data());
+
+        qDebug() << "Identifier:" << QString(QByteArray((char*)header->identifier, 12));
+        qDebug() << "Type:" << header->glType;
+        qDebug() << "TypeSize:" << header->glTypeSize;
+        qDebug() << "numberOfArrayElements:" << header->numberOfArrayElements;
+        qDebug() << "numberOfFaces:" << header->numberOfFaces;
+        qDebug() << "numberOfMipmapLevels:" << header->numberOfMipmapLevels;
+        auto kvSize = header->bytesOfKeyValueData;
+        if (kvSize > _ktxHeaderData.size() - ktx::KTX_HEADER_SIZE) {
+            qWarning() << "Cannot load " << _url << ", did not receive all kv data with initial request";
+            return;
+        }
+
+        auto keyValues = ktx::KTX::parseKeyValues(header->bytesOfKeyValueData, reinterpret_cast<const ktx::Byte*>(_ktxHeaderData.data()) + ktx::KTX_HEADER_SIZE);
+
+        // Create bare ktx in memory
+        std::string filename = "test";
+        auto memKtx = ktx::KTX::createBare(*header, keyValues);
+
+        auto d = const_cast<uint8_t*>(memKtx->getStorage()->data());
+        memcpy(d + memKtx->_storage->size() - _ktxHighMipData.size(), _ktxHighMipData.data(), _ktxHighMipData.size());
+
+        auto textureCache = DependencyManager::get<TextureCache>();
+
+        // Move ktx to file
+        const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
+        size_t length = memKtx->_storage->size();
+        KTXFilePointer file;
+        auto& ktxCache = textureCache->_ktxCache;
+        if (!memKtx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(filename, length)))) {
+            qCWarning(modelnetworking) << _url << "file cache failed";
+        } else {
+            _file = file;
+        }
+
+        //auto texture = gpu::Texture::serializeHeader("test.ktx", *header, keyValues);
+        gpu::TexturePointer texture;
+        texture.reset(gpu::Texture::unserialize(_file->getFilepath(), memKtx->toDescriptor()));
+        texture->setKtxBacking(file->getFilepath());
+
+        // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
+        // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
+        // be the winner
+        if (textureCache) {
+            texture = textureCache->cacheTextureByHash(filename, texture);
+        }
+
+        setImage(texture, header->getPixelWidth(), header->getPixelHeight());
+
+    }
+}
+
 void NetworkTexture::downloadFinished(const QByteArray& data) {
     loadContent(data);
 }

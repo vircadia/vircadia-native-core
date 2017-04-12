@@ -72,6 +72,25 @@ Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
     return _ktxDescriptor->getMipFaceTexelsSize(level, face);
 }
 
+
+bool KtxStorage::isMipAvailable(uint16 level, uint8 face) const {
+    auto numLevels = _ktxDescriptor->header.numberOfMipmapLevels;
+    auto minLevel = 7 > numLevels ? 0 : numLevels - 7;
+    auto avail = level >= minLevel;
+    qDebug() << "isMipAvailable: " << level << " " << face << avail << minLevel << " " << _ktxDescriptor->header.numberOfMipmapLevels;
+    //return true;
+    return level > _ktxDescriptor->header.numberOfMipmapLevels - 7;
+}
+
+void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& storage) {
+    throw std::runtime_error("Invalid call");
+}
+
+void KtxStorage::assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) {
+    throw std::runtime_error("Invalid call");
+}
+
+
 void Texture::setKtxBacking(const std::string& filename) {
     // Check the KTX file for validity before using it as backing storage
     {
@@ -85,6 +104,7 @@ void Texture::setKtxBacking(const std::string& filename) {
     auto newBacking = std::unique_ptr<Storage>(new KtxStorage(filename));
     setStorage(newBacking);
 }
+
 
 ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     ktx::Header header;
