@@ -13,31 +13,39 @@
 
 /*
 
-
-
-
-     +-----------------------+        +-------------------+                 +---------------------------------+
-     |                       |        |                   |                 |                                 |
-     | EntityDynamicInterface |        | btDynamicInterface |               | EntityDynamicFactoryInterface   |
-     |     (entities)        |        |    (bullet)       |                 |         (entities)              |
-     +-----------------------+        +-------------------+                 +---------------------------------+
-                  |       |                    |                                  |                   |
-             +----+       +--+      +----------+                                  |                   |
-             |               |      |                                             |                   |
- +-------------------+    +--------------+                  +---------------------------+     +--------------------------+
- |                   |    |              |                  |                           |     |                          |
- |  AssignmentDynamic |    | ObjectDynamic |                  | InterfaceDynamicFactory |     | AssignmentDynamicFactory |
- |(assignment client)|    |   (physics)  |                  |       (interface)         |     |   (assignment client)    |
- +-------------------+    +--------------+                  +---------------------------+     +--------------------------+
-                                 |
-                                 |
-                                 |
-                       +--------------------+
-                       |                    |
-                       | ObjectDynamicSpring |
-                       |     (physics)      |
-                       +--------------------+
-
+     +-------------------------+                               +--------------------------------+
+     |                         |                               |                                |
+     | EntityDynamicsInterface |                               | EntityDynamicsFactoryInterface |
+     |     (entities)          |                               |         (entities)             |
+     +-------------------------+                               +--------------------------------+
+                  |       |                                           |                   |
+             +----+       +--+                                        |                   |
+             |               |                                        |                   |
+ +---------------------+   +----------------+       +--------------------------+     +---------------------------+
+ |                     |   |                |       |                          |     |                           |
+ |  AssignmentDynamics |   | ObjectDynamics |       | InterfaceDynamicsFactory |     | AssignmentDynamicsFactory |
+ |(assignment client)  |   |   (physics)    |       |       (interface)        |     |   (assignment client)     |
+ +---------------------+   +----------------+       +--------------------------+     +---------------------------+
+                              |          |
+                              |          |
+  +---------------------+     |          |
+  |                     |     |          |
+  | btActionInterface   |     |          |
+  |    (bullet)         |     |          |
+  +---------------------+     |          |
+                    |         |          |
+                 +--------------+     +------------------+    +-------------------+
+                 |              |     |                  |    |                   |
+                 | ObjectAction |     | ObjectConstraint |    | btTypedConstraint |
+                 |   (physics)  |     |   (physics)    --|--->|   (bullet)        |
+                 +--------------+     +------------------+    +-------------------+
+                         |                        |
+                         |                        |
+              +--------------------+     +-----------------------+
+              |                    |     |                       |
+              | ObjectActionSpring |     | ObjectConstraintHinge |
+              |     (physics)      |     |       (physics)       |
+              +--------------------+     +-----------------------+
 
 
 
