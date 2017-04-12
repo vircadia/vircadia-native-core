@@ -84,7 +84,7 @@ window.onload = function () {
             if (messageOptions.containsGif) {
                 if (messageOptions.processingGif) {
                     imageCount = message.action.length + 1; // "+1" for the GIF that'll finish processing soon
-                    message.action.unshift({ localPath: '../../../resources/icons/profilePicLoading.gif' });
+                    message.action.unshift({ localPath: '../../../resources/icons/loading.gif' });
                     message.action.forEach(addImage);
                     document.getElementById('p0').disabled = true;
                     // UX question: Should we also check the box at this point? Might lead to confusing behavior,
