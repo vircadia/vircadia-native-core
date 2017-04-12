@@ -2121,8 +2121,36 @@ function MyController(hand) {
             return null;
         }
     };
+        
+    this.chooseNearEquipHotspotsForDistanceToNearEquip = function(candidateEntities, distance) {
+        var equippableHotspots = flatten(candidateEntities.map(function(entityID) {
+                return _this.collectEquipHotspots(entityID);
+            })).filter(function(hotspot) {
+                return (Vec3.distance(hotspot.worldPosition, getControllerWorldLocation(_this.handToController(), true).position) <
+                    hotspot.radius + distance);
+            });
+            return equippableHotspots;
+    };
 
-    this.searchEnter = function() {
+    this.chooseBestEquipHotspotForDistanceToNearEquip = function(candidateEntities) {
+        var DISTANCE = 1;
+        var equippableHotspots = this.chooseNearEquipHotspotsForDistanceToNearEquip(candidateEntities, DISTANCE);
+        var _this = this;
+        if (equippableHotspots.length > 0) {
+            // sort by distance
+            equippableHotspots.sort(function(a, b) {
+                var handControllerLocation = getControllerWorldLocation(_this.handToController(), true);
+                var aDistance = Vec3.distance(a.worldPosition, handControllerLocation.position);
+                var bDistance = Vec3.distance(b.worldPosition, handControllerLocation.position);
+                return aDistance - bDistance;
+            });
+            return equippableHotspots[0];
+        } else {
+            return null;
+        }
+    };
+
+	this.searchEnter = function() {
         mostRecentSearchingHand = this.hand;
         var rayPickInfo = this.calcRayPickInfo(this.hand);
         if (rayPickInfo.entityID || rayPickInfo.overlayID) {
@@ -2675,22 +2703,47 @@ function MyController(hand) {
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var handPosition = controllerLocation.position;
             
-        var ttl = ACTION_TTL;
+        var candidateHotSpotEntities = Entities.findEntities(handPosition,MAX_EQUIP_HOTSPOT_RADIUS);
+        entityPropertiesCache.addEntities(candidateHotSpotEntities);
+
+        var potentialEquipHotspot = this.chooseBestEquipHotspotForDistanceToNearEquip(candidateHotSpotEntities);
+        if (potentialEquipHotspot) {
+            if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && holdEnabled) {
+                this.grabbedHotspot = potentialEquipHotspot;
+                this.grabbedThingID = potentialEquipHotspot.entityID;
+                this.grabbedIsOverlay = false;
+
+                var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
+                    targetPosition: newTargetPosition,
+                    linearTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
+                    targetRotation: this.currentObjectRotation,
+                    angularTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
+                    ttl: ACTION_TTL_ZERO
+                });
+                
+                if (success) {
+                    this.actionTimeout = now + (ACTION_TTL_ZERO * MSECS_PER_SEC);
+                } else {
+                    print("continueDistanceHolding -- updateAction failed");
+                }
+                this.setState(STATE_HOLD, "equipping '" + entityPropertiesCache.getProps(this.grabbedThingID).name + "'");
+                return;
+             }
+        }
 
         //Far to Near Grab: If object is draw by user inside NEAR_GRAB_MAX_DISTANCE, grab it
         if (this.entityIsFarToNearGrabbable(this.currentObjectPosition, handPosition, NEAR_GRAB_MAX_DISTANCE)) {
             this.farToNearGrab = true;
-            ttl = ACTION_TTL_ZERO; // Overriding ACTION_TTL,Assign ACTION_TTL_ZERO so that the object is dropped down immediately after the trigger is released.
 
             var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
                 targetPosition: newTargetPosition,
                 linearTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
                 targetRotation: this.currentObjectRotation,
                 angularTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
-                ttl: ttl
+                ttl: ACTION_TTL_ZERO  // Overriding ACTION_TTL,Assign ACTION_TTL_ZERO so that the object is dropped down immediately after the trigger is released.
             });
             if (success) {
-                this.actionTimeout = now + (ttl * MSECS_PER_SEC);
+                this.actionTimeout = now + (ACTION_TTL_ZERO * MSECS_PER_SEC);
             } else {
                 print("continueDistanceHolding -- updateAction failed");
             }
