@@ -75,7 +75,7 @@ namespace controller {
         glm::mat4 result = original * mat;
         auto translationOut = ::extractTranslation(result);
         auto rotationOut = ::glmExtractRotation(result);
-        auto velocityOut = velocity + glm::cross(angularVelocity, translation - translationOut); // warning: this may be completely wrong
+        auto velocityOut = velocity + glm::cross(angularVelocity, translationOut - translation); // warning: this may be completely wrong
         auto angularVelocityOut = angularVelocity;
 
         Pose pose(translationOut,
