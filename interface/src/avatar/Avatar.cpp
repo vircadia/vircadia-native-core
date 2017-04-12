@@ -72,7 +72,7 @@ namespace render {
         if (avatarPtr->isInitialized() && args) {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
             // TODO AVATARS_RENDERER: remove need for qApp
-            avatarPtr->render(args, qApp->getMain3DScene());
+            avatarPtr->render(args);
         }
     }
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
@@ -579,7 +579,7 @@ void Avatar::postUpdate(float deltaTime) {
     }
 }
 
-void Avatar::render(RenderArgs* renderArgs, const render::ScenePointer& scene) {
+void Avatar::render(RenderArgs* renderArgs) {
     auto& batch = *renderArgs->_batch;
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
@@ -651,7 +651,7 @@ void Avatar::render(RenderArgs* renderArgs, const render::ScenePointer& scene) {
     float distanceToTarget = glm::length(toTarget);
 
     {
-        fixupModelsInScene(scene);
+        fixupModelsInScene(renderArgs->_scene);
 
         if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights

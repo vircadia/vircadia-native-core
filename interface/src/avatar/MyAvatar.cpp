@@ -752,13 +752,12 @@ controller::Pose MyAvatar::getRightHandTipPose() const {
 }
 
 // virtual
-void MyAvatar::render(RenderArgs* renderArgs, const render::ScenePointer& scene) {
+void MyAvatar::render(RenderArgs* renderArgs) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
-
-    Avatar::render(renderArgs, scene);
+    Avatar::render(renderArgs);
 }
 
 void MyAvatar::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {

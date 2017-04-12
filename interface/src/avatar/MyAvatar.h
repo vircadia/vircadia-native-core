@@ -525,7 +525,7 @@ private:
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
-    virtual void render(RenderArgs* renderArgs, const render::ScenePointer& scene) override;
+    virtual void render(RenderArgs* renderArgs) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }
