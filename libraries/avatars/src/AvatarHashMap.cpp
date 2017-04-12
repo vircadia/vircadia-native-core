@@ -30,11 +30,6 @@ QVector<QUuid> AvatarHashMap::getAvatarIdentifiers() {
     return _avatarHash.keys().toVector();
 }
 
-AvatarData* AvatarHashMap::getAvatar(QUuid avatarID) {
-    // Null/Default-constructed QUuids will return MyAvatar
-    return getAvatarBySessionID(avatarID).get();
-}
-
 bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
     auto hashCopy = getHashCopy();
     foreach(const AvatarSharedPointer& sharedAvatar, hashCopy) {
