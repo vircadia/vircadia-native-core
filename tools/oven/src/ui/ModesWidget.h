@@ -21,6 +21,7 @@ public:
 
 private slots:
     void showModelBakingWidget();
+    void showDomainBakingWidget();
 
 private:
     void setupUI();

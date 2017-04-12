@@ -1,30 +1,30 @@
 //
-//  ModelBakeWidget.h
+//  DomainBakeWidget.h
 //  tools/oven/src/ui
 //
-//  Created by Stephen Birarda on 4/6/17.
+//  Created by Stephen Birarda on 4/12/17.
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ModelBakeWidget_h
-#define hifi_ModelBakeWidget_h
+#ifndef hifi_DomainBakeWidget_h
+#define hifi_DomainBakeWidget_h
 
 #include <QtWidgets/QWidget>
 
 #include <SettingHandle.h>
 
-#include <FBXBaker.h>
+#include "../DomainBaker.h"
 
 class QLineEdit;
 
-class ModelBakeWidget : public QWidget {
+class DomainBakeWidget : public QWidget {
     Q_OBJECT
 
 public:
-    ModelBakeWidget(QWidget* parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
+    DomainBakeWidget(QWidget* parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
 
 private slots:
     void chooseFileButtonClicked();
@@ -37,13 +37,13 @@ private slots:
 private:
     void setupUI();
 
-    std::list<std::unique_ptr<FBXBaker>> _bakers;
+    std::unique_ptr<DomainBaker> _baker;
 
-    QLineEdit* _modelLineEdit;
+    QLineEdit* _entitiesFileLineEdit;
     QLineEdit* _outputDirLineEdit;
 
     Setting::Handle<QString> _exportDirectory;
-    Setting::Handle<QString> _modelStartDirectory;
+    Setting::Handle<QString> _browseStartDirectory;
 };
 
 #endif // hifi_ModelBakeWidget_h

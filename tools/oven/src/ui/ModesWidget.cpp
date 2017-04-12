@@ -13,6 +13,7 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QStackedWidget>
 
+#include "DomainBakeWidget.h"
 #include "ModelBakeWidget.h"
 
 #include "ModesWidget.h"
@@ -34,6 +35,7 @@ void ModesWidget::setupUI() {
 
     // add a button for domain baking
     QPushButton* domainButton = new QPushButton("Bake Domain");
+    connect(domainButton, &QPushButton::clicked, this, &ModesWidget::showDomainBakingWidget);
     horizontalLayout->addWidget(domainButton);
 
     // add a button for texture baking
@@ -48,4 +50,11 @@ void ModesWidget::showModelBakingWidget() {
 
     // add a new widget for making baking to the stack, and switch to it
     stackedWidget->setCurrentIndex(stackedWidget->addWidget(new ModelBakeWidget));
+}
+
+void ModesWidget::showDomainBakingWidget() {
+    auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
+
+    // add a new widget for making baking to the stack, and switch to it
+    stackedWidget->setCurrentIndex(stackedWidget->addWidget(new DomainBakeWidget));
 }
