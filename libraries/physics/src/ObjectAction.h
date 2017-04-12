@@ -21,10 +21,12 @@ class ObjectAction : public btActionInterface, public ObjectDynamic {
 public:
     ObjectAction(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity);
 
+    virtual bool isAction() const override { return true; }
+
     // this is called from updateAction and should be overridden by subclasses
     virtual void updateActionWorker(float deltaTimeStep) = 0;
 
-    // these are from btDynamicInterface
+    // these are from btActionInterface
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) override;
     virtual void debugDraw(btIDebugDraw* debugDrawer) override;
 };
