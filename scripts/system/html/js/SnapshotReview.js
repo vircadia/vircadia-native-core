@@ -87,8 +87,6 @@ window.onload = function () {
                     message.action.unshift({ localPath: '../../../resources/icons/loadingDark.gif' });
                     message.action.forEach(addImage);
                     document.getElementById('p0').disabled = true;
-                    // UX question: Should we also check the box at this point? Might lead to confusing behavior,
-                    // where the animated snapshot is shared without the user meaning to share it.
                 } else {
                     document.getElementById('p0').disabled = false;
                     document.getElementById('p0img').src = message.action[0].localPath;
