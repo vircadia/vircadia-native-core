@@ -81,7 +81,7 @@ public:
     void simulate(float deltaTime, bool inView);
     virtual void simulateAttachments(float deltaTime);
 
-    virtual void render(RenderArgs* renderArgs, const render::ScenePointer& scene, const Camera& camera);
+    virtual void render(RenderArgs* renderArgs, const render::ScenePointer& scene);
 
     void addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
                             render::Transaction& transaction);

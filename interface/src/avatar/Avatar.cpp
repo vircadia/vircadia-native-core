@@ -72,7 +72,7 @@ namespace render {
         if (avatarPtr->isInitialized() && args) {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
             // TODO AVATARS_RENDERER: remove need for qApp
-            avatarPtr->render(args, qApp->getMain3DScene(), qApp->getCamera());
+            avatarPtr->render(args, qApp->getMain3DScene());
         }
     }
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
@@ -579,7 +579,7 @@ void Avatar::postUpdate(float deltaTime) {
     }
 }
 
-void Avatar::render(RenderArgs* renderArgs, const render::ScenePointer& scene, const Camera& camera) {
+void Avatar::render(RenderArgs* renderArgs, const render::ScenePointer& scene) {
     auto& batch = *renderArgs->_batch;
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
@@ -680,9 +680,7 @@ void Avatar::render(RenderArgs* renderArgs, const render::ScenePointer& scene, c
     const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(distanceToTarget < DISPLAYNAME_DISTANCE);
 
-    // TODO AVATARS_RENDERER: remove need for 'camera' in this context
-    auto cameraMode = camera.getMode();
-    if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
+    if (!isMyAvatar() || renderArgs->_cameraMode != (int8_t)CAMERA_MODE_FIRST_PERSON) {
         auto& frustum = renderArgs->getViewFrustum();
         auto textPosition = getDisplayNamePosition();
         if (frustum.pointIntersectsFrustum(textPosition)) {

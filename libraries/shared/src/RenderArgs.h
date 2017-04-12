@@ -126,6 +126,7 @@ public:
     bool _enableTexturing { true };
 
     RenderDetails _details;
+    int8_t _cameraMode { -1 }; // HACK
 };
 
 #endif // hifi_RenderArgs_h
