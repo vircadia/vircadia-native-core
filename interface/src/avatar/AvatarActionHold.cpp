@@ -323,7 +323,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     bool ignoreIK;
     bool needUpdate = false;
 
-    bool somethingChanged = ObjectAction::updateArguments(arguments);
+    bool somethingChanged = ObjectDynamic::updateArguments(arguments);
     withReadLock([&]{
         bool ok = true;
         relativePosition = EntityDynamicInterface::extractVec3Argument("hold", arguments, "relativePosition", ok, false);
@@ -410,7 +410,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap AvatarActionHold::getArguments() {
-    QVariantMap arguments = ObjectAction::getArguments();
+    QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&]{
         arguments["holderID"] = _holderID;
         arguments["relativePosition"] = glmToQMap(_relativePosition);

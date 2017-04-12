@@ -190,7 +190,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     float angularTimeScale;
 
     bool needUpdate = false;
-    bool somethingChanged = ObjectAction::updateArguments(arguments);
+    bool somethingChanged = ObjectDynamic::updateArguments(arguments);
     withReadLock([&]{
         // targets are required, spring-constants are optional
         bool ok = true;
@@ -248,7 +248,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap ObjectActionSpring::getArguments() {
-    QVariantMap arguments = ObjectAction::getArguments();
+    QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
         arguments["linearTimeScale"] = _linearTimeScale;
         arguments["targetPosition"] = glmToQMap(_desiredPositionalTarget);

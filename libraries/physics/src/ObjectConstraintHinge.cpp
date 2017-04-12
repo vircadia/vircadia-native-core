@@ -42,6 +42,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
+        qCDebug(physics) << "ObjectConstraintHinge::getConstraint -- no rigidBodyA";
         return nullptr;
     }
 
@@ -49,8 +50,14 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
 
     btTransform rigidBodyAFrame(glmToBullet(_rbARotation), glmToBullet(_rbATranslation));
 
-    _constraint = new btHingeConstraint(*rigidBodyA, rigidBodyAFrame, useReferenceFrameA);
-    return _constraint;
+    btHingeConstraint* constraint = new btHingeConstraint(*rigidBodyA, rigidBodyAFrame, useReferenceFrameA);
+    _constraint = constraint;
+    // constraint->setAngularOnly(true);
+
+    btVector3 axisInA = glmToBullet(glm::vec3(0.0f, 1.0f, 0.0f));
+    constraint->setAxis(axisInA);
+
+    return constraint;
 }
 
 
@@ -61,15 +68,14 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
     bool needUpdate = false;
     bool somethingChanged = ObjectConstraint::updateArguments(arguments);
     withReadLock([&]{
-        // targets are required, hinge-constants are optional
         bool ok = true;
-        rbATranslation = EntityDynamicInterface::extractVec3Argument("hinge constraint", arguments, "targetPosition", ok, false);
+        rbATranslation = EntityDynamicInterface::extractVec3Argument("hinge constraint", arguments, "aTranslation", ok, false);
         if (!ok) {
             rbATranslation = _rbATranslation;
         }
 
         ok = true;
-        rbARotation = EntityDynamicInterface::extractQuatArgument("hinge constraint", arguments, "targetRotation", ok, false);
+        rbARotation = EntityDynamicInterface::extractQuatArgument("hinge constraint", arguments, "aRotation", ok, false);
         if (!ok) {
             rbARotation = _rbARotation;
         }
@@ -94,7 +100,7 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
                 ownerEntity->setDynamicDataNeedsTransmit(true);
             }
         });
-        activateBody();
+        // activateBody();
     }
 
     return true;
@@ -103,8 +109,8 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintHinge::getArguments() {
     QVariantMap arguments = ObjectConstraint::getArguments();
     withReadLock([&] {
-        arguments["targetPosition"] = glmToQMap(_rbATranslation);
-        arguments["targetRotation"] = glmToQMap(_rbARotation);
+        arguments["aTranslation"] = glmToQMap(_rbATranslation);
+        arguments["aRotation"] = glmToQMap(_rbARotation);
     });
     return arguments;
 }

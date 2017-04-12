@@ -88,7 +88,7 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
     float linearDistance;
 
     bool needUpdate = false;
-    bool somethingChanged = ObjectAction::updateArguments(arguments);
+    bool somethingChanged = ObjectDynamic::updateArguments(arguments);
 
     withReadLock([&]{
         bool ok = true;
@@ -143,7 +143,7 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap ObjectActionOffset::getArguments() {
-    QVariantMap arguments = ObjectAction::getArguments();
+    QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
         arguments["pointToOffsetFrom"] = glmToQMap(_pointToOffsetFrom);
         arguments["linearTimeScale"] = _linearTimeScale;

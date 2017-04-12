@@ -106,7 +106,7 @@ bool ObjectActionTravelOriented::updateArguments(QVariantMap arguments) {
     float angularTimeScale;
 
     bool needUpdate = false;
-    bool somethingChanged = ObjectAction::updateArguments(arguments);
+    bool somethingChanged = ObjectDynamic::updateArguments(arguments);
     withReadLock([&]{
         bool ok = true;
         forward = EntityDynamicInterface::extractVec3Argument("travel oriented action", arguments, "forward", ok, true);
@@ -147,7 +147,7 @@ bool ObjectActionTravelOriented::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap ObjectActionTravelOriented::getArguments() {
-    QVariantMap arguments = ObjectAction::getArguments();
+    QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
         arguments["forward"] = glmToQMap(_forward);
         arguments["angularTimeScale"] = _angularTimeScale;
