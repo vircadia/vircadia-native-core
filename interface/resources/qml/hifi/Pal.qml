@@ -1406,7 +1406,7 @@ Rectangle {
             } else if (!aValue) {
                 return after;
             } else if (!bValue) {
-                return before
+                return before;
             }
             switch (true) {
             case (aValue < bValue): return before;
