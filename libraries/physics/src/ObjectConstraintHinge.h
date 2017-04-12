@@ -32,8 +32,8 @@ public:
 protected:
     static const uint16_t constraintVersion;
 
-    glm::vec3 _rbATranslation;
-    glm::quat _rbARotation;
+    glm::vec3 _pivotInA;
+    glm::vec3 _axis;
 };
 
 #endif // hifi_ObjectConstraintHinge_h

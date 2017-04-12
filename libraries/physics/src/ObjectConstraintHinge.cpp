@@ -21,8 +21,8 @@ const uint16_t ObjectConstraintHinge::constraintVersion = 1;
 
 ObjectConstraintHinge::ObjectConstraintHinge(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectConstraint(DYNAMIC_TYPE_HINGE, id, ownerEntity),
-    _rbATranslation(glm::vec3(0.0f)),
-    _rbARotation(glm::quat())
+    _pivotInA(glm::vec3(0.0f)),
+    _axis(glm::vec3(0.0f))
 {
     #if WANT_DEBUG
     qCDebug(physics) << "ObjectConstraintHinge::ObjectConstraintHinge";
@@ -48,13 +48,13 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
 
     bool useReferenceFrameA { false };
 
-    btTransform rigidBodyAFrame(glmToBullet(_rbARotation), glmToBullet(_rbATranslation));
+    btTransform rigidBodyAFrame(btQuaternion(0.0f, 0.0f, 0.0f, 1.0f), glmToBullet(_pivotInA));
 
     btHingeConstraint* constraint = new btHingeConstraint(*rigidBodyA, rigidBodyAFrame, useReferenceFrameA);
     _constraint = constraint;
     // constraint->setAngularOnly(true);
 
-    btVector3 axisInA = glmToBullet(glm::vec3(0.0f, 1.0f, 0.0f));
+    btVector3 axisInA = glmToBullet(_axis);
     constraint->setAxis(axisInA);
 
     return constraint;
@@ -62,27 +62,27 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
 
 
 bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
-    glm::vec3 rbATranslation;
-    glm::quat rbARotation;
+    glm::vec3 pivotInA;
+    glm::vec3 axis;
 
     bool needUpdate = false;
     bool somethingChanged = ObjectConstraint::updateArguments(arguments);
     withReadLock([&]{
         bool ok = true;
-        rbATranslation = EntityDynamicInterface::extractVec3Argument("hinge constraint", arguments, "aTranslation", ok, false);
+        pivotInA = EntityDynamicInterface::extractVec3Argument("hinge constraint", arguments, "pivot", ok, false);
         if (!ok) {
-            rbATranslation = _rbATranslation;
+            pivotInA = _pivotInA;
         }
 
         ok = true;
-        rbARotation = EntityDynamicInterface::extractQuatArgument("hinge constraint", arguments, "aRotation", ok, false);
+        axis = EntityDynamicInterface::extractVec3Argument("hinge constraint", arguments, "axis", ok, false);
         if (!ok) {
-            rbARotation = _rbARotation;
+            axis = _axis;
         }
 
         if (somethingChanged ||
-            rbATranslation != _rbATranslation ||
-            rbARotation != _rbARotation) {
+            pivotInA != _pivotInA ||
+            axis != _axis) {
             // something changed
             needUpdate = true;
         }
@@ -90,8 +90,8 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
 
     if (needUpdate) {
         withWriteLock([&] {
-            _rbATranslation = rbATranslation;
-            _rbARotation = rbARotation;
+            _pivotInA = pivotInA;
+            _axis = axis;
             _active = true;
 
             auto ownerEntity = _ownerEntity.lock();
@@ -109,8 +109,8 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintHinge::getArguments() {
     QVariantMap arguments = ObjectConstraint::getArguments();
     withReadLock([&] {
-        arguments["aTranslation"] = glmToQMap(_rbATranslation);
-        arguments["aRotation"] = glmToQMap(_rbARotation);
+        arguments["pivot"] = glmToQMap(_pivotInA);
+        arguments["axis"] = glmToQMap(_axis);
     });
     return arguments;
 }
@@ -124,8 +124,8 @@ QByteArray ObjectConstraintHinge::serialize() const {
     dataStream << ObjectConstraintHinge::constraintVersion;
 
     withReadLock([&] {
-        dataStream << _rbATranslation;
-        dataStream << _rbARotation;
+        dataStream << _pivotInA;
+        dataStream << _axis;
         dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
     });
@@ -152,8 +152,8 @@ void ObjectConstraintHinge::deserialize(QByteArray serializedArguments) {
     }
 
     withWriteLock([&] {
-        dataStream >> _rbATranslation;
-        dataStream >> _rbARotation;
+        dataStream >> _pivotInA;
+        dataStream >> _axis;
 
         quint64 serverExpires;
         dataStream >> serverExpires;
