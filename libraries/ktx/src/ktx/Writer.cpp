@@ -235,4 +235,11 @@ namespace ktx {
         return destImages;
     }
 
+    void KTX::writeMipData(uint16_t level, const Byte* sourceBytes, size_t sourceSize) {
+        Q_ASSERT(level > 0);
+        Q_ASSERT(level < _images.size());
+        Q_ASSERT(sourceSize == _images[level]._imageSize);
+
+        //memcpy(reinterpret_cast<void*>(_images[level]._faceBytes[0]), sourceBytes, sourceSize);
+    }
 }

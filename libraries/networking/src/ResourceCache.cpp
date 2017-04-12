@@ -698,6 +698,7 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 }
 
 void Resource::handleReplyFinished() {
+    qDebug() << "Got response for " << _activeUrl;
     Q_ASSERT_X(_request, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
 
     PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID), {

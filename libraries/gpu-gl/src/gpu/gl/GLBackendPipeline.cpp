@@ -259,7 +259,9 @@ void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, to);
 
-        (void) CHECK_GL_ERROR();
+        if (CHECK_GL_ERROR()) {
+            qDebug() << "slot: " << slot << ", target: " << target << ", to: " << to;
+        }
 
         _resource._textures[slot] = resourceTexture;
 

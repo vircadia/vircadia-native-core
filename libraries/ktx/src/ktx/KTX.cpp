@@ -211,6 +211,7 @@ Image ImageDescriptor::toImage(const ktx::StoragePointer& storage) const {
     FaceBytes faces;
     faces.resize(_faceOffsets.size());
     for (size_t face = 0; face < _numFaces; ++face) {
+        // TODO Should we be storing pointers to unowned data?
         faces[face] = storage->data() + _faceOffsets[face];
     }
     // Note, implicit cast of *this to const ImageHeader&

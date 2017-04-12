@@ -22,6 +22,7 @@
 #include "NetworkLogging.h"
 
 HTTPResourceRequest::~HTTPResourceRequest() {
+    qDebug() << "Cleaning up:" << _url << " " << _byteRange.fromInclusive << "-" << _byteRange.toExclusive;
     if (_reply) {
         _reply->disconnect(this);
         _reply->deleteLater();
@@ -76,9 +77,12 @@ void HTTPResourceRequest::doSend() {
     connect(_reply, &QNetworkReply::downloadProgress, this, &HTTPResourceRequest::onDownloadProgress);
 
     setupTimer();
+    qDebug() << "Sent: " << _url;
 }
 
 void HTTPResourceRequest::onRequestFinished() {
+    qDebug() << "On request finished: " << _url;
+
     Q_ASSERT(_state == InProgress);
     Q_ASSERT(_reply);
 
@@ -181,6 +185,7 @@ void HTTPResourceRequest::onRequestFinished() {
 }
 
 void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
+    qDebug() << "Progress: " << _url;
     Q_ASSERT(_state == InProgress);
     
     // We've received data, so reset the timer
@@ -190,6 +195,7 @@ void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesT
 }
 
 void HTTPResourceRequest::onTimeout() {
+    qDebug() << "Timeout: " << _url << ":" << _reply->isFinished();
     Q_ASSERT(_state == InProgress);
     _reply->disconnect(this);
     _reply->abort();

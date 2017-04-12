@@ -384,7 +384,7 @@ namespace ktx {
         ImageDescriptors generateImageDescriptors() const;
     };
     static const size_t KTX_HEADER_SIZE = 64;
-    static_assert(sizeof(Header) == KTX_HEADER_SIZE, "KTX Header size is static");
+    static_assert(sizeof(Header) == KTX_HEADER_SIZE, "KTX Header size is static and should not change from the spec");
 
     // Key Values
     struct KeyValue {
@@ -496,6 +496,8 @@ namespace ktx {
         static size_t writeWithoutImages(Byte* destBytes, size_t destByteSize, const Header& header, const ImageDescriptors& descriptors, const KeyValues& keyValues = KeyValues());
         static size_t writeKeyValues(Byte* destBytes, size_t destByteSize, const KeyValues& keyValues);
         static Images writeImages(Byte* destBytes, size_t destByteSize, const Images& images);
+
+        void writeMipData(uint16_t level, const Byte* sourceBytes, size_t source_size);
 
         // Parse a block of memory and create a KTX object from it
         static std::unique_ptr<KTX> create(const StoragePointer& src);

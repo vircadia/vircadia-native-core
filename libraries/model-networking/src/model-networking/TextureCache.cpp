@@ -545,7 +545,6 @@ void NetworkTexture::loadContent(const QByteArray& content) {
                 texture = textureCache->cacheTextureByHash(filename, texture);
             }
 
-            setImage(texture, header->getPixelWidth(), header->getPixelHeight());
 
 
             auto desc = memKtx->toDescriptor();
@@ -559,10 +558,24 @@ void NetworkTexture::loadContent(const QByteArray& content) {
             }
             _requestByteRange.fromInclusive = length - sizeOfTopMips;
             _requestByteRange.toExclusive = length;
-            attemptRequest();
+            QMetaObject::invokeMethod(this, "attemptRequest", Qt::QueuedConnection);
+
+
+            //texture->setMinMip(desc.images.size() - 1);
+            setImage(texture, header->getPixelWidth(), header->getPixelHeight());
 
         } else {
             qDebug() << "Got highest 6 mips";
+
+            ktx::StoragePointer storage { new storage::FileStorage(QString::fromStdString(_file->getFilepath())) };
+            auto data = storage->mutableData();
+            auto size = storage->getSize();
+            //*data = 'H';
+            memcpy(data + _requestByteRange.fromInclusive, content.data(), content.size());
+            //getGPUTexture()->setMinMip(getGPUTexture()->getMinMip() - 6);
+            //auto ktxPointer = ktx::KTX::create(storage);
+
+            //ktxPointer->writeMipData(level, data, size);
         }
         return;
     }

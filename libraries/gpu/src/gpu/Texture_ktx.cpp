@@ -45,6 +45,7 @@ std::string GPUKTXPayload::KEY { "hifi.gpu" };
 
 KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
     {
+        // We are doing a lot of work here just to get descriptor data
         ktx::StoragePointer storage { new storage::FileStorage(_filename.c_str()) };
         auto ktxPointer = ktx::KTX::create(storage);
         _ktxDescriptor.reset(new ktx::KTXDescriptor(ktxPointer->toDescriptor()));
@@ -74,8 +75,9 @@ Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
 
 
 bool KtxStorage::isMipAvailable(uint16 level, uint8 face) const {
+    return true;
     auto numLevels = _ktxDescriptor->header.numberOfMipmapLevels;
-    auto minLevel = 7 > numLevels ? 0 : numLevels - 7;
+    auto minLevel = 7 > numLevels ? 0 : numLevels - 10;
     auto avail = level >= minLevel;
     qDebug() << "isMipAvailable: " << level << " " << face << avail << minLevel << " " << _ktxDescriptor->header.numberOfMipmapLevels;
     //return true;
