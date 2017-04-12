@@ -39,9 +39,14 @@
             ENTITY_DESCRIPTION = "Avatar recording to play back",
             ENTITIY_POSITION = { x: -16382, y: -16382, z: -16382 },  // Near but not right on domain corner.
             ENTITY_SEARCH_DELTA = { x: 1, y: 1, z: 1 },  // Allow for position imprecision.
-            isClaiming = false,
-            CLAIM_CHECKS = 2,
-            claimCheckCount;
+            SEARCH_IDLE = 0,
+            SEARCH_SEARCHING = 1,
+            SEARCH_CLAIMING = 2,
+            SEARCH_PAUSING = 3,
+            searchState = SEARCH_IDLE,
+            otherPlayersPlaying,
+            otherPlayersPlayingCounts,
+            pauseCount;
 
         function onUpdateTimestamp() {
             userData.timestamp = Date.now();
@@ -49,7 +54,31 @@
             EntityViewer.queryOctree();  // Keep up to date ready for find().
         }
 
-        function create(filename, position, orientation, scriptUUID) {
+        function id() {
+            return entityID;
+        }
+
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+
+        function onMessageReceived(channel, message, sender) {
+            var index;
+
+            if (sender !== scriptUUID) {
+                message = JSON.parse(message);
+                index = otherPlayersPlaying.indexOf(message.entity);
+                if (index !== -1) {
+                    otherPlayersPlayingCounts[index] += 1;
+                } else {
+                    otherPlayersPlaying.push(message.entity);
+                    otherPlayersPlayingCounts.push(1);
+                }
+            }
+        }
+
+        function create(filename, position, orientation) {
             // Create a new persistence entity (even if already have one but that should never occur).
             var properties;
 
@@ -58,6 +87,8 @@
             if (updateTimestampTimer !== null) {
                 Script.clearInterval(updateTimestampTimer);  // Just in case.
             }
+
+            searchState = SEARCH_IDLE;
 
             userData = {
                 recording: filename,
@@ -85,74 +116,111 @@
             return false;
         }
 
-        function find(scriptUUID) {
-            // Find a recording that isn't being played.
-            // AC scripts may simultaneously find the same entity to play because octree updates are not instantaneously 
-            // propagated to AC scripts. To address this, when an entity is found an AC script updates the entity data to 
-            // "claim" the entity then waits two find() calls before checking the entity data hasn't changed and returning that 
-            // entity as "found". I.e., the last script to write the entity data wins.
-            var isFound = false,
-                entityIDs,
+        function find() {
+            // Find a persistence entity that isn't being played.
+            // AC scripts may simultaneously find the same entity to play because octree updates aren't instantaneously 
+            // propagated. Additionally, messages are not instantaneous. To address these issues the "find" progresses through 
+            // the following search states:
+            // - SEARCH_IDLE
+            //      No searching is being performed.
+            //      Return null.
+            // - SEARCH_SEARCHING
+            //      Looking for an entity that isn't being played (as reported in entity properties) and isn't being claimed (as
+            //      reported by heartbeat messages. If one is found transition to SEARCH_CLAIMING and start reporting the entity
+            //      in heartbeat messages.
+            //      Return null.
+            // - SEARCH_CLAIMING
+            //      An entity has been found and is reported in heartbeat messages but isn't being played yet. After a period of
+            //      time, if no other players report they're playing that entity then transition to SEARCH_IDLE otherwise 
+            //      transition to SEARCH_PAUSING.
+            //      If transitioning to SEARCH_IDLE update the entity userData and return the recording details, otherwise 
+            //      return null;
+            // - SEARCH_PAUSING
+            //      Two or more players have tried to play the same entity. Wait for a randomized period of time before 
+            //      transitioning to SEARCH_SEARCHING.
+            //      Return null.
+            // One of these states is processed each find() call.
+            var entityIDs,
                 index,
-                properties;
+                found = false,
+                properties,
+                numberOfClaims,
+                result = null;
 
-            // If have putatively claimed an entity, handle that claim.
-            if (isClaiming) {
-                claimCheckCount += 1;
+            switch (searchState) {
 
-                // Wait for octree updates to propagate.
-                if (claimCheckCount <= CLAIM_CHECKS) {
-                    EntityViewer.queryOctree();  // Update octree ready for next find() call.
-                    return null;
-                }
-                isClaiming = false;
+            case SEARCH_IDLE:
+                log("Start searching");
+                otherPlayersPlaying = [];
+                otherPlayersPlayingCounts = [];
+                Messages.subscribe(HIFI_RECORDER_CHANNEL);
+                Messages.messageReceived.connect(onMessageReceived);
+                searchState = SEARCH_SEARCHING;
+                break;
 
-                // Complete claim as "found" if still valid.
-                properties = Entities.getEntityProperties(entityID, ["userData"]);
-                userData = JSON.parse(properties.userData);
-                if (userData.scriptUUID === scriptUUID) {
-                    log("Complete claim " + entityID);
-                    userData.timestamp = Date.now();
-                    Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
-                    EntityViewer.queryOctree();  // Update octree ready for next find() call.
-                    updateTimestampTimer = Script.setInterval(onUpdateTimestamp, TIMESTAMP_UPDATE_INTERVAL);
-                    return { recording: userData.recording, position: userData.position, orientation: userData.orientation };
-                }
-
-                // Otherwise resume searching.
-                log("Release claim " + entityID);
-                EntityViewer.queryOctree();  // Update octree ready for next find() call.
-                return null;
-            }
-
-            // Find an entity to claim.
-            entityIDs = Entities.findEntities(ENTITIY_POSITION, ENTITY_SEARCH_DELTA.x);
-            if (entityIDs.length > 0) {
-                index = -1;
-                while (!isFound && index < entityIDs.length - 1) {
-                    // Find recording that isn't being played and hasn't been claimed.
-                    index += 1;
-                    properties = Entities.getEntityProperties(entityIDs[index], ["name", "userData"]);
-                    if (properties.name === ENTITY_NAME) {
-                        userData = JSON.parse(properties.userData);
-                        isFound = (Date.now() - userData.timestamp) > ((CLAIM_CHECKS + 1) * AUTOPLAY_SEARCH_INTERVAL);
+            case SEARCH_SEARCHING:
+                // Find an entity that isn't being played or claimed.
+                entityIDs = Entities.findEntities(ENTITIY_POSITION, ENTITY_SEARCH_DELTA.x);
+                if (entityIDs.length > 0) {
+                    index = -1;
+                    while (!found && index < entityIDs.length - 1) {
+                        index += 1;
+                        if (otherPlayersPlaying.indexOf(entityIDs[index]) === -1) {
+                            properties = Entities.getEntityProperties(entityIDs[index], ["name", "userData"]);
+                            userData = JSON.parse(properties.userData);
+                            found = properties.name === ENTITY_NAME && userData.recording !== undefined;
+                        }
                     }
                 }
+
+                // Claim entity if found.
+                if (found) {
+                    log("Claim entity " + entityIDs[index]);
+                    entityID = entityIDs[index];
+                    searchState = SEARCH_CLAIMING;
+                }
+                break;
+
+            case SEARCH_CLAIMING:
+                // How many other players are claiming (or playing) this entity?
+                index = otherPlayersPlaying.indexOf(entityID);
+                numberOfClaims = index !== -1 ? otherPlayersPlayingCounts[index] : 0;
+
+                // Have found an entity to play if no other players are also claiming it.
+                if (numberOfClaims === 0) {
+                    log("Complete claim " + entityID);
+                    Messages.messageReceived.disconnect(onMessageReceived);
+                    Messages.unsubscribe(HIFI_RECORDER_CHANNEL);
+                    searchState = SEARCH_IDLE;
+                    userData.scriptUUID = scriptUUID;
+                    userData.timestamp = Date.now();
+                    Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
+                    updateTimestampTimer = Script.setInterval(onUpdateTimestamp, TIMESTAMP_UPDATE_INTERVAL);
+                    result = { recording: userData.recording, position: userData.position, orientation: userData.orientation };
+                    break;
+                }
+
+                // Otherwise back off for a bit before resuming search.
+                log("Release claim " + entityID + " and pause searching");
+                entityID = null;
+                pauseCount = randomInt(0, otherPlayersPlaying.length);
+                searchState = SEARCH_PAUSING;
+                break;
+
+            case SEARCH_PAUSING:
+                // Resume searching if have paused long enough.
+                pauseCount -= 1;
+                if (pauseCount < 0) {
+                    log("Resume searching");
+                    otherPlayersPlaying = [];
+                    otherPlayersPlayingCounts = [];
+                    searchState = SEARCH_SEARCHING;
+                }
+                break;
             }
 
-            // Claim entity if found.
-            if (isFound) {
-                log("Claim entity " + entityIDs[index]);
-                isClaiming = true;
-                claimCheckCount = 0;
-                entityID = entityIDs[index];
-                userData.scriptUUID = scriptUUID;
-                userData.timestamp = Date.now();
-                Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
-            }
-
-            EntityViewer.queryOctree();  // Update octree ready for next find() call.
-            return null;
+            EntityViewer.queryOctree();
+            return result;
         }
 
         function destroy() {
@@ -160,6 +228,7 @@
             if (entityID !== null) {  // Just in case.
                 Entities.deleteEntity(entityID);
                 entityID = null;
+                searchState = SEARCH_IDLE;
             }
             if (updateTimestampTimer !== null) {  // Just in case.
                 Script.clearInterval(updateTimestampTimer);
@@ -180,6 +249,7 @@
         }
 
         return {
+            id: id,
             create: create,
             find: find,
             destroy: destroy,
@@ -212,7 +282,7 @@
         }
 
         function play(recording, position, orientation) {
-            if (Entity.create(recording, position, orientation, scriptUUID)) {
+            if (Entity.create(recording, position, orientation)) {
                 log("Play new recording " + recordingFilename);
                 isPlayingRecording = true;
                 recordingFilename = recording;
@@ -225,7 +295,7 @@
         function autoPlay() {
             var recording;
 
-            recording = Entity.find(scriptUUID);
+            recording = Entity.find();
             if (recording) {
                 isPlayingRecording = true;
                 recordingFilename = recording.recording;
@@ -285,7 +355,8 @@
     function sendHeartbeat() {
         Messages.sendMessage(HIFI_RECORDER_CHANNEL, JSON.stringify({
             playing: Player.isPlaying(),
-            recording: Player.recording()
+            recording: Player.recording(),
+            entity: Entity.id()
         }));
         heartbeatTimer = Script.setTimeout(sendHeartbeat, HEARTBEAT_INTERVAL);
     }
