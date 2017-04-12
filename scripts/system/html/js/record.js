@@ -16,12 +16,14 @@ var isUsingToolbar = false,
     elRecordingsPlaying,
     elNumberOfPlayers,
     elLoadButton,
+    elRecordButton,
     EVENT_BRIDGE_TYPE = "record",
     BODY_LOADED_ACTION = "bodyLoaded",
     RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
     NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
     STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
-    LOAD_RECORDING_ACTION = "loadRecording";
+    LOAD_RECORDING_ACTION = "loadRecording",
+    START_RECORDING_ACTION = "startRecording";
 
 function stopPlayingRecording(event) {
     var playerID = event.target.getElementsByTagName("input")[0].value;
@@ -108,6 +110,14 @@ function onBodyLoaded() {
         EventBridge.emitWebEvent(JSON.stringify({
             type: EVENT_BRIDGE_TYPE,
             action: LOAD_RECORDING_ACTION
+        }));
+    }
+
+    elRecordButton = document.getElementById("record-button");
+    elRecordButton.onclick = function () {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: EVENT_BRIDGE_TYPE,
+            action: START_RECORDING_ACTION
         }));
     }
 

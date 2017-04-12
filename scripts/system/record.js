@@ -400,7 +400,8 @@
             RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
             NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
             STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
-            LOAD_RECORDING_ACTION = "loadRecording";
+            LOAD_RECORDING_ACTION = "loadRecording",
+            START_RECORDING_ACTION = "startRecording";
 
         function onWebEventReceived(data) {
             var message = JSON.parse(data);
@@ -421,6 +422,14 @@
                 case LOAD_RECORDING_ACTION:
                     // User wants to select an ATP recording to play.
                     log("TODO: Open dialog for user to select ATP recording to play");
+                    break;
+                case START_RECORDING_ACTION:
+                    // Start making a recording.
+                    tablet.gotoHomeScreen();  // Closes window dialog.
+                    HMD.closeTablet();
+                    if (Recorder.isIdle()) {
+                        Recorder.startCountdown();
+                    }
                     break;
                 }
             }
