@@ -507,7 +507,7 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
     _renderItemID = scene->allocateID();
@@ -519,7 +519,7 @@ void Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
     }
 }
 
-void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     transaction.removeItem(_renderItemID);
     render::Item::clearID(_renderItemID);
     _skeletonModel->removeFromScene(scene, transaction);
@@ -693,7 +693,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::fixupModelsInScene(render::ScenePointer scene) {
+void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     _attachmentsToDelete.clear();
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
@@ -1470,7 +1470,7 @@ QList<QVariant> Avatar::getSkeleton() {
     return QList<QVariant>();
 }
 
-void Avatar::addToScene(AvatarSharedPointer myHandle, render::ScenePointer scene) {
+void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer& scene) {
     if (scene) {
         render::Transaction transaction;
         auto nodelist = DependencyManager::get<NodeList>();
@@ -1485,7 +1485,7 @@ void Avatar::addToScene(AvatarSharedPointer myHandle, render::ScenePointer scene
     }
 }
 
-void Avatar::ensureInScene(AvatarSharedPointer self, render::ScenePointer scene) {
+void Avatar::ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene) {
     if (!render::Item::isValidID(_renderItemID)) {
         addToScene(self, scene);
     }

@@ -81,21 +81,21 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
-    void setLayeredInFront(bool layered, std::shared_ptr<render::Scene> scene);
+    void setVisibleInScene(bool newValue, const render::ScenePointer& scene);
+    void setLayeredInFront(bool layered, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
-    bool initWhenReady(render::ScenePointer scene);
-    bool addToScene(std::shared_ptr<render::Scene> scene,
+    bool initWhenReady(const render::ScenePointer& scene);
+    bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction) {
         auto getters = render::Item::Status::Getters(0);
         return addToScene(scene, transaction, getters);
     }
-    bool addToScene(std::shared_ptr<render::Scene> scene,
+    bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction,
                     render::Item::Status::Getters& statusGetters);
-    void removeFromScene(std::shared_ptr<render::Scene> scene, render::Transaction& transaction);
+    void removeFromScene(const render::ScenePointer& scene, render::Transaction& transaction);
     bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }

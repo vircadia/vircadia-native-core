@@ -79,10 +79,10 @@ public:
 
     virtual void render(RenderArgs* renderArgs);
 
-    void addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
+    void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene,
                             render::Transaction& transaction);
 
-    void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
+    void removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene,
                                 render::Transaction& transaction);
 
     void updateRenderItem(render::Transaction& transaction);
@@ -303,7 +303,7 @@ protected:
     Transform calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const;
     void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
-    virtual void fixupModelsInScene(render::ScenePointer scene);
+    virtual void fixupModelsInScene(const render::ScenePointer& scene);
 
     virtual void updatePalms();
 
@@ -314,8 +314,8 @@ protected:
     ThreadSafeValueCache<glm::vec3> _rightPalmPositionCache { glm::vec3() };
     ThreadSafeValueCache<glm::quat> _rightPalmRotationCache { glm::quat() };
 
-    void addToScene(AvatarSharedPointer self, render::ScenePointer scene);
-    void ensureInScene(AvatarSharedPointer self, render::ScenePointer scene);
+    void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
+    void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     bool isInScene() const { return render::Item::isValidID(_renderItemID); }
 
     // Some rate tracking support

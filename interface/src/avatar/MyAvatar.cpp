@@ -925,8 +925,7 @@ void MyAvatar::setEnableDebugDrawIKTargets(bool isEnabled) {
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
-    render::ScenePointer scene = qApp->getMain3DScene();
-    _skeletonModel->setVisibleInScene(isEnabled, scene);
+    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene());
 }
 
 void MyAvatar::setUseAnimPreAndPostRotations(bool isEnabled) {
@@ -1223,8 +1222,7 @@ void MyAvatar::clearJointsData() {
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
-    render::ScenePointer scene = qApp->getMain3DScene();
-    _skeletonModel->setVisibleInScene(true, scene);
+    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene());
     _headBoneSet.clear();
 }
 
@@ -1538,7 +1536,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
     Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
 }
 
-void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
+void MyAvatar::setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visible) {
     if (model->isActive() && model->isRenderable()) {
         model->setVisibleInScene(visible, scene);
     }
@@ -1632,8 +1630,7 @@ void MyAvatar::postUpdate(float deltaTime) {
 
     Avatar::postUpdate(deltaTime);
 
-    render::ScenePointer scene = qApp->getMain3DScene();
-    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars() && _skeletonModel->initWhenReady(scene)) {
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars() && _skeletonModel->initWhenReady(qApp->getMain3DScene())) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();

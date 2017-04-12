@@ -551,7 +551,7 @@ private:
     // These are made private for MyAvatar so that you will use the "use" methods instead
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
-    void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
+    void setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visiblity);
 
     // derive avatar body position and orientation from the current HMD Sensor location.
     // results are in HMD frame
