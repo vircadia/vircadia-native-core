@@ -187,7 +187,6 @@ bool FBXBaker::importScene() {
     return true;
 }
 
-static const QString BAKED_TEXTURE_DIRECTORY = "textures/";
 static const QString BAKED_TEXTURE_EXT = ".ktx";
 
 QString texturePathRelativeToFBX(QUrl fbxURL, QUrl textureURL) {
@@ -364,7 +363,7 @@ bool FBXBaker::rewriteAndBakeSceneTextures() {
                                 // even if there was another texture with the same name at a different path
                                 auto bakedTextureFileName = createBakedTextureFileName(textureFileInfo);
                                 QString bakedTextureFilePath {
-                                    _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER + BAKED_TEXTURE_DIRECTORY + bakedTextureFileName
+                                    _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER + bakedTextureFileName
                                 };
 
                                 qCDebug(model_baking).noquote() << "Re-mapping" << fileTexture->GetFileName() << "to" << bakedTextureFilePath;
