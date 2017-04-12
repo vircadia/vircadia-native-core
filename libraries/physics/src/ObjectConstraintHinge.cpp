@@ -51,12 +51,12 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
     btTransform rigidBodyAFrame(btQuaternion(0.0f, 0.0f, 0.0f, 1.0f), glmToBullet(_pivotInA));
 
     btHingeConstraint* constraint = new btHingeConstraint(*rigidBodyA, rigidBodyAFrame, useReferenceFrameA);
-    _constraint = constraint;
     // constraint->setAngularOnly(true);
 
     btVector3 axisInA = glmToBullet(_axis);
     constraint->setAxis(axisInA);
 
+    _constraint = constraint;
     return constraint;
 }
 
@@ -66,7 +66,7 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
     glm::vec3 axis;
 
     bool needUpdate = false;
-    bool somethingChanged = ObjectConstraint::updateArguments(arguments);
+    bool somethingChanged = ObjectDynamic::updateArguments(arguments);
     withReadLock([&]{
         bool ok = true;
         pivotInA = EntityDynamicInterface::extractVec3Argument("hinge constraint", arguments, "pivot", ok, false);
@@ -107,7 +107,7 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap ObjectConstraintHinge::getArguments() {
-    QVariantMap arguments = ObjectConstraint::getArguments();
+    QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
         arguments["pivot"] = glmToQMap(_pivotInA);
         arguments["axis"] = glmToQMap(_axis);
