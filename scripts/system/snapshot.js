@@ -157,7 +157,7 @@ function onClicked() {
     resetOverlays = Menu.isOptionChecked("Overlays"); // For completness. Certainly true if the button is visible to be clicke.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
-    Window.snapshotTaken.connect(snapshotTaken);
+    Window.stillSnapshotTaken.connect(stillSnapshotTaken);
     Window.processingGifStarted.connect(processingGifStarted);
     Window.processingGifCompleted.connect(processingGifCompleted);
 
@@ -195,14 +195,14 @@ function isDomainOpen(id) {
         response.total_entries;
 }
 
-function snapshotTaken(pathStillSnapshot, notify) {
+function stillSnapshotTaken(pathStillSnapshot, notify) {
     // show hud
     Reticle.visible = reticleVisible;
     // show overlays if they were on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true);
     }
-    Window.snapshotTaken.disconnect(snapshotTaken);
+    Window.stillSnapshotTaken.disconnect(stillSnapshotTaken);
 
     // A Snapshot Review dialog might be left open indefinitely after taking the picture,
     // during which time the user may have moved. So stash that info in the dialog so that

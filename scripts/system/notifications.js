@@ -656,7 +656,7 @@ Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
 Window.domainConnectionRefused.connect(onDomainConnectionRefused);
-Window.snapshotTaken.connect(onSnapshotTaken);
+Window.stillSnapshotTaken.connect(onSnapshotTaken);
 Window.processingGifStarted.connect(processingGif);
 Window.connectionAdded.connect(connectionAdded);
 Window.connectionError.connect(connectionError);
