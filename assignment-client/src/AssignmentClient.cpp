@@ -32,7 +32,7 @@
 #include <ResourceScriptingInterface.h>
 
 #include "AssignmentFactory.h"
-#include "AssignmentActionFactory.h"
+#include "AssignmentDynamicFactory.h"
 
 #include "AssignmentClient.h"
 #include "AssignmentClientLogging.h"
@@ -63,8 +63,8 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>(false);
 
-    DependencyManager::registerInheritance<EntityActionFactoryInterface, AssignmentActionFactory>();
-    auto actionFactory = DependencyManager::set<AssignmentActionFactory>();
+    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
+    auto dynamicFactory = DependencyManager::set<AssignmentDynamicFactory>();
     DependencyManager::set<ResourceScriptingInterface>();
 
     // setup a thread for the NodeList and its PacketReceiver

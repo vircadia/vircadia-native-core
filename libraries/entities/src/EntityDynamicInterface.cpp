@@ -1,5 +1,5 @@
 //
-//  EntityActionInterface.cpp
+//  EntityDynamicInterface.cpp
 //  libraries/entities/src
 //
 //  Created by Seth Alves on 2015-6-4
@@ -16,66 +16,66 @@
 
 
 
-     +-----------------------+        +-------------------+      +------------------------------+
-     |                       |        |                   |      |                              |
-     | EntityActionInterface |        | btActionInterface |      | EntityActionFactoryInterface |
-     |     (entities)        |        |    (bullet)       |      |         (entities)           |
-     +-----------------------+        +-------------------+      +------------------------------+
-                  |       |                    |                      |                   |
-             +----+       +--+      +----------+                      |                   |
-             |               |      |                                 |                   |
- +-------------------+    +--------------+         +------------------------+     +-------------------------+
- |                   |    |              |         |                        |     |                         |
- |  AssignmentAction |    | ObjectAction |         | InterfaceActionFactory |     | AssignmentActionFactory |
- |(assignment client)|    |   (physics)  |         |       (interface)      |     |   (assignment client)   |
- +-------------------+    +--------------+         +------------------------+     +-------------------------+
+     +-----------------------+        +-------------------+                 +---------------------------------+
+     |                       |        |                   |                 |                                 |
+     | EntityDynamicInterface |        | btDynamicInterface |               | EntityDynamicFactoryInterface   |
+     |     (entities)        |        |    (bullet)       |                 |         (entities)              |
+     +-----------------------+        +-------------------+                 +---------------------------------+
+                  |       |                    |                                  |                   |
+             +----+       +--+      +----------+                                  |                   |
+             |               |      |                                             |                   |
+ +-------------------+    +--------------+                  +---------------------------+     +--------------------------+
+ |                   |    |              |                  |                           |     |                          |
+ |  AssignmentDynamic |    | ObjectDynamic |                  | InterfaceDynamicFactory |     | AssignmentDynamicFactory |
+ |(assignment client)|    |   (physics)  |                  |       (interface)         |     |   (assignment client)    |
+ +-------------------+    +--------------+                  +---------------------------+     +--------------------------+
                                  |
                                  |
                                  |
                        +--------------------+
                        |                    |
-                       | ObjectActionSpring |
+                       | ObjectDynamicSpring |
                        |     (physics)      |
                        +--------------------+
 
 
 
 
-An action is a callback which is registered with bullet.  An action is called-back every physics
+An dynamic is a callback which is registered with bullet.  An dynamic is called-back every physics
 simulation step and can do whatever it wants with the various datastructures it has available.  An
-action, for example, can pull an EntityItem toward a point as if that EntityItem were connected to that
+dynamic, for example, can pull an EntityItem toward a point as if that EntityItem were connected to that
 point by a spring.
 
-In this system, an action is a property of an EntityItem (rather, an EntityItem has a property which
-encodes a list of actions).  Each action has a type and some arguments.  Actions can be created by a
+In this system, an dynamic is a property of an EntityItem (rather, an EntityItem has a property which
+encodes a list of dynamics).  Each dynamic has a type and some arguments.  Dynamics can be created by a
 script or when receiving information via an EntityTree data-stream (either over the network or from an
 svo file).
 
-In the interface, if an EntityItem has actions, this EntityItem will have pointers to ObjectAction
-subclass (like ObjectActionSpring) instantiations.  Code in the entities library affects an action-object
-via the EntityActionInterface (which knows nothing about bullet).  When the ObjectAction subclass
-instance is created, it is registered as an action with bullet.  Bullet will call into code in this
-instance with the btActionInterface every physics-simulation step.
+In the interface, if an EntityItem has dynamics, this EntityItem will have pointers to ObjectDynamic
+subclass (like ObjectDynamicSpring) instantiations.  Code in the entities library affects an dynamic-object
+via the EntityDynamicInterface (which knows nothing about bullet).  When the ObjectDynamic subclass
+instance is created, it is registered as an dynamic with bullet.  Bullet will call into code in this
+instance with the btDynamicInterface every physics-simulation step.
 
-Because the action can exist next to the interface's EntityTree or the entity-server's EntityTree,
-parallel versions of the factories and actions are needed.
+Because the dynamic can exist next to the interface's EntityTree or the entity-server's EntityTree,
+parallel versions of the factories and dynamics are needed.
 
-In an entity-server, any type of action is instantiated as an AssignmentAction.  This action isn't called
+In an entity-server, any type of dynamic is instantiated as an AssignmentDynamic.  This dynamic isn't called
 by bullet (which isn't part of an assignment-client).  It does nothing but remember its type and its
 arguments.  This may change as we try to make the entity-server's simple physics simulation better, but
-right now the AssignmentAction class is a place-holder.
+right now the AssignmentDynamic class is a place-holder.
 
-The action-objects are instantiated by singleton (dependecy) subclasses of EntityActionFactoryInterface.
-In the interface, the subclass is an InterfaceActionFactory and it will produce things like
-ObjectActionSpring.  In an entity-server the subclass is an AssignmentActionFactory and it always
-produces AssignmentActions.
+The dynamic-objects are instantiated by singleton (dependecy) subclasses of EntityDynamicFactoryInterface.
+In the interface, the subclass is an InterfaceDynamicFactory and it will produce things like
+ObjectDynamicSpring.  In an entity-server the subclass is an AssignmentDynamicFactory and it always
+produces AssignmentDynamics.
 
-Depending on the action's type, it will have various arguments.  When a script changes an argument of an
-action, the argument-holding member-variables of ObjectActionSpring (in this example) are updated and
-also serialized into _actionData in the EntityItem.  Each subclass of ObjectAction knows how to serialize
-and deserialize its own arguments.  _actionData is what gets sent over the wire or saved in an svo file.
-When a packet-reader receives data for _actionData, it will save it in the EntityItem; this causes the
-deserializer in the ObjectAction subclass to be called with the new data, thereby updating its argument
+Depending on the dynamic's type, it will have various arguments.  When a script changes an argument of an
+dynamic, the argument-holding member-variables of ObjectDynamicSpring (in this example) are updated and
+also serialized into _dynamicData in the EntityItem.  Each subclass of ObjectDynamic knows how to serialize
+and deserialize its own arguments.  _dynamicData is what gets sent over the wire or saved in an svo file.
+When a packet-reader receives data for _dynamicData, it will save it in the EntityItem; this causes the
+deserializer in the ObjectDynamic subclass to be called with the new data, thereby updating its argument
 variables.  These argument variables are used by the code which is run when bullet does a callback.
 
 
@@ -83,49 +83,54 @@ variables.  These argument variables are used by the code which is run when bull
 
 #include "EntityItem.h"
 
-#include "EntityActionInterface.h"
+#include "EntityDynamicInterface.h"
 
 
-EntityActionType EntityActionInterface::actionTypeFromString(QString actionTypeString) {
-    QString normalizedActionTypeString = actionTypeString.toLower().remove('-').remove('_');
-    if (normalizedActionTypeString == "none") {
-        return ACTION_TYPE_NONE;
+EntityDynamicType EntityDynamicInterface::dynamicTypeFromString(QString dynamicTypeString) {
+    QString normalizedDynamicTypeString = dynamicTypeString.toLower().remove('-').remove('_');
+    if (normalizedDynamicTypeString == "none") {
+        return DYNAMIC_TYPE_NONE;
     }
-    if (normalizedActionTypeString == "offset") {
-        return ACTION_TYPE_OFFSET;
+    if (normalizedDynamicTypeString == "offset") {
+        return DYNAMIC_TYPE_OFFSET;
     }
-    if (normalizedActionTypeString == "spring") {
-        return ACTION_TYPE_SPRING;
+    if (normalizedDynamicTypeString == "spring") {
+        return DYNAMIC_TYPE_SPRING;
     }
-    if (normalizedActionTypeString == "hold") {
-        return ACTION_TYPE_HOLD;
+    if (normalizedDynamicTypeString == "hold") {
+        return DYNAMIC_TYPE_HOLD;
     }
-    if (normalizedActionTypeString == "traveloriented") {
-        return ACTION_TYPE_TRAVEL_ORIENTED;
+    if (normalizedDynamicTypeString == "traveloriented") {
+        return DYNAMIC_TYPE_TRAVEL_ORIENTED;
+    }
+    if (normalizedDynamicTypeString == "hinge") {
+        return DYNAMIC_TYPE_HINGE;
     }
 
-    qCDebug(entities) << "Warning -- EntityActionInterface::actionTypeFromString got unknown action-type name" << actionTypeString;
-    return ACTION_TYPE_NONE;
+    qCDebug(entities) << "Warning -- EntityDynamicInterface::dynamicTypeFromString got unknown dynamic-type name" << dynamicTypeString;
+    return DYNAMIC_TYPE_NONE;
 }
 
-QString EntityActionInterface::actionTypeToString(EntityActionType actionType) {
-    switch(actionType) {
-        case ACTION_TYPE_NONE:
+QString EntityDynamicInterface::dynamicTypeToString(EntityDynamicType dynamicType) {
+    switch(dynamicType) {
+        case DYNAMIC_TYPE_NONE:
             return "none";
-        case ACTION_TYPE_OFFSET:
+        case DYNAMIC_TYPE_OFFSET:
             return "offset";
-        case ACTION_TYPE_SPRING:
+        case DYNAMIC_TYPE_SPRING:
             return "spring";
-        case ACTION_TYPE_HOLD:
+        case DYNAMIC_TYPE_HOLD:
             return "hold";
-        case ACTION_TYPE_TRAVEL_ORIENTED:
+        case DYNAMIC_TYPE_TRAVEL_ORIENTED:
             return "travel-oriented";
+        case DYNAMIC_TYPE_HINGE:
+            return "hinge";
     }
     assert(false);
     return "none";
 }
 
-glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVariantMap arguments,
+glm::vec3 EntityDynamicInterface::extractVec3Argument(QString objectName, QVariantMap arguments,
                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
@@ -174,7 +179,7 @@ glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVarian
     return glm::vec3(x, y, z);
 }
 
-glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVariantMap arguments,
+glm::quat EntityDynamicInterface::extractQuatArgument(QString objectName, QVariantMap arguments,
                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
@@ -227,7 +232,7 @@ glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVarian
     return glm::normalize(glm::quat(w, x, y, z));
 }
 
-float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMap arguments,
+float EntityDynamicInterface::extractFloatArgument(QString objectName, QVariantMap arguments,
                                                   QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
@@ -249,7 +254,7 @@ float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMa
     return value;
 }
 
-int EntityActionInterface::extractIntegerArgument(QString objectName, QVariantMap arguments,
+int EntityDynamicInterface::extractIntegerArgument(QString objectName, QVariantMap arguments,
                                                   QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
@@ -271,7 +276,7 @@ int EntityActionInterface::extractIntegerArgument(QString objectName, QVariantMa
     return value;
 }
 
-QString EntityActionInterface::extractStringArgument(QString objectName, QVariantMap arguments,
+QString EntityDynamicInterface::extractStringArgument(QString objectName, QVariantMap arguments,
                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
@@ -283,7 +288,7 @@ QString EntityActionInterface::extractStringArgument(QString objectName, QVarian
     return arguments[argumentName].toString();
 }
 
-bool EntityActionInterface::extractBooleanArgument(QString objectName, QVariantMap arguments,
+bool EntityDynamicInterface::extractBooleanArgument(QString objectName, QVariantMap arguments,
                                                    QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
         if (required) {
@@ -297,35 +302,35 @@ bool EntityActionInterface::extractBooleanArgument(QString objectName, QVariantM
 
 
 
-QDataStream& operator<<(QDataStream& stream, const EntityActionType& entityActionType)
+QDataStream& operator<<(QDataStream& stream, const EntityDynamicType& entityDynamicType)
 {
-    return stream << (quint16)entityActionType;
+    return stream << (quint16)entityDynamicType;
 }
 
-QDataStream& operator>>(QDataStream& stream, EntityActionType& entityActionType)
+QDataStream& operator>>(QDataStream& stream, EntityDynamicType& entityDynamicType)
 {
-    quint16 actionTypeAsInt;
-    stream >> actionTypeAsInt;
-    entityActionType = (EntityActionType)actionTypeAsInt;
+    quint16 dynamicTypeAsInt;
+    stream >> dynamicTypeAsInt;
+    entityDynamicType = (EntityDynamicType)dynamicTypeAsInt;
     return stream;
 }
 
-QString serializedActionsToDebugString(QByteArray data) {
+QString serializedDynamicsToDebugString(QByteArray data) {
     if (data.size() == 0) {
         return QString();
     }
-    QVector<QByteArray> serializedActions;
-    QDataStream serializedActionsStream(data);
-    serializedActionsStream >> serializedActions;
+    QVector<QByteArray> serializedDynamics;
+    QDataStream serializedDynamicsStream(data);
+    serializedDynamicsStream >> serializedDynamics;
 
     QString result;
-    foreach(QByteArray serializedAction, serializedActions) {
-        QDataStream serializedActionStream(serializedAction);
-        EntityActionType actionType;
-        QUuid actionID;
-        serializedActionStream >> actionType;
-        serializedActionStream >> actionID;
-        result += EntityActionInterface::actionTypeToString(actionType) + "-" + actionID.toString() + " ";
+    foreach(QByteArray serializedDynamic, serializedDynamics) {
+        QDataStream serializedDynamicStream(serializedDynamic);
+        EntityDynamicType dynamicType;
+        QUuid dynamicID;
+        serializedDynamicStream >> dynamicType;
+        serializedDynamicStream >> dynamicID;
+        result += EntityDynamicInterface::dynamicTypeToString(dynamicType) + "-" + dynamicID.toString() + " ";
     }
 
     return result;

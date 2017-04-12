@@ -24,6 +24,7 @@
 #include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "ObjectAction.h"
+#include "ObjectConstraint.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
@@ -84,10 +85,10 @@ public:
 
     void dumpNextStats() { _dumpNextStats = true; }
 
-    EntityActionPointer getActionByID(const QUuid& actionID) const;
-    void addAction(EntityActionPointer action);
-    void removeAction(const QUuid actionID);
-    void forEachAction(std::function<void(EntityActionPointer)> actor);
+    EntityDynamicPointer getDynamicByID(const QUuid& dynamicID) const;
+    void addDynamic(EntityDynamicPointer dynamic);
+    void removeDynamic(const QUuid dynamicID);
+    void forEachDynamic(std::function<void(EntityDynamicPointer)> actor);
 
 private:
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);
@@ -110,7 +111,7 @@ private:
 
     ContactMap _contactMap;
     CollisionEvents _collisionEvents;
-    QHash<QUuid, EntityActionPointer> _objectActions;
+    QHash<QUuid, EntityDynamicPointer> _objectDynamics;
     std::vector<btRigidBody*> _activeStaticBodies;
 
     glm::vec3 _originOffset;

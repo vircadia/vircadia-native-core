@@ -548,42 +548,62 @@ void PhysicsEngine::setCharacterController(CharacterController* character) {
     }
 }
 
-EntityActionPointer PhysicsEngine::getActionByID(const QUuid& actionID) const {
-    if (_objectActions.contains(actionID)) {
-        return _objectActions[actionID];
+EntityDynamicPointer PhysicsEngine::getDynamicByID(const QUuid& dynamicID) const {
+    if (_objectDynamics.contains(dynamicID)) {
+        return _objectDynamics[dynamicID];
     }
     return nullptr;
 }
 
-void PhysicsEngine::addAction(EntityActionPointer action) {
-    assert(action);
-    const QUuid& actionID = action->getID();
-    if (_objectActions.contains(actionID)) {
-        if (_objectActions[actionID] == action) {
+void PhysicsEngine::addDynamic(EntityDynamicPointer dynamic) {
+    assert(dynamic);
+    const QUuid& dynamicID = dynamic->getID();
+    if (_objectDynamics.contains(dynamicID)) {
+        if (_objectDynamics[dynamicID] == dynamic) {
             return;
         }
-        removeAction(action->getID());
+        removeDynamic(dynamic->getID());
     }
 
-    _objectActions[actionID] = action;
+    _objectDynamics[dynamicID] = dynamic;
 
-    // bullet needs a pointer to the action, but it doesn't use shared pointers.
+    // bullet needs a pointer to the dynamic, but it doesn't use shared pointers.
     // is there a way to bump the reference count?
-    ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
-    _dynamicsWorld->addAction(objectAction);
-}
-
-void PhysicsEngine::removeAction(const QUuid actionID) {
-    if (_objectActions.contains(actionID)) {
-        EntityActionPointer action = _objectActions[actionID];
-        ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
-        _dynamicsWorld->removeAction(objectAction);
-        _objectActions.remove(actionID);
+    if (dynamic->isAction()) {
+        ObjectAction* objectAction = static_cast<ObjectAction*>(dynamic.get());
+        _dynamicsWorld->addAction(objectAction);
+    } else if (dynamic->isConstraint()) {
+        ObjectConstraint* objectConstraint = static_cast<ObjectConstraint*>(dynamic.get());
+        btTypedConstraint* constraint = objectConstraint->getConstraint();
+        if (constraint) {
+            _dynamicsWorld->addConstraint(constraint);
+        } else {
+            qDebug() << "PhysicsEngine::addDynamic of constraint failed"; // XXX
+        }
     }
 }
 
-void PhysicsEngine::forEachAction(std::function<void(EntityActionPointer)> actor) {
-    QHashIterator<QUuid, EntityActionPointer> iter(_objectActions);
+void PhysicsEngine::removeDynamic(const QUuid dynamicID) {
+    if (_objectDynamics.contains(dynamicID)) {
+        EntityDynamicPointer dynamic = _objectDynamics[dynamicID];
+        if (dynamic->isAction()) {
+            ObjectAction* objectAction = static_cast<ObjectAction*>(dynamic.get());
+            _dynamicsWorld->removeAction(objectAction);
+        } else {
+            ObjectConstraint* objectConstraint = static_cast<ObjectConstraint*>(dynamic.get());
+            btTypedConstraint* constraint = objectConstraint->getConstraint();
+            if (constraint) {
+                _dynamicsWorld->removeConstraint(constraint);
+            } else {
+                qDebug() << "PhysicsEngine::removeDynamic of constraint failed"; // XXX
+            }
+        }
+        _objectDynamics.remove(dynamicID);
+    }
+}
+
+void PhysicsEngine::forEachDynamic(std::function<void(EntityDynamicPointer)> actor) {
+    QHashIterator<QUuid, EntityDynamicPointer> iter(_objectDynamics);
     while (iter.hasNext()) {
         iter.next();
         actor(iter.value());

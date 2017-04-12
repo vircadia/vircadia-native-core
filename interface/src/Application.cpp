@@ -137,7 +137,7 @@
 #include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
-#include "InterfaceActionFactory.h"
+#include "InterfaceDynamicFactory.h"
 #include "InterfaceLogging.h"
 #include "LODManager.h"
 #include "ModelPackager.h"
@@ -459,7 +459,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
-    DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
+    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, InterfaceDynamicFactory>();
     DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
 
     // Set dependencies
@@ -512,7 +512,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<OffscreenUi>();
     DependencyManager::set<AutoUpdater>();
     DependencyManager::set<PathUtils>();
-    DependencyManager::set<InterfaceActionFactory>();
+    DependencyManager::set<InterfaceDynamicFactory>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
@@ -4423,7 +4423,7 @@ void Application::update(float deltaTime) {
                 _entitySimulation->setObjectsToChange(stillNeedChange);
             });
 
-            _entitySimulation->applyActionChanges();
+            _entitySimulation->applyDynamicChanges();
 
              avatarManager->getObjectsToRemoveFromPhysics(motionStates);
             _physicsEngine->removeObjects(motionStates);
@@ -4433,8 +4433,8 @@ void Application::update(float deltaTime) {
             _physicsEngine->changeObjects(motionStates);
 
             myAvatar->prepareForPhysicsSimulation();
-            _physicsEngine->forEachAction([&](EntityActionPointer action) {
-                action->prepareForPhysicsSimulation();
+            _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
+                dynamic->prepareForPhysicsSimulation();
             });
         }
         {
