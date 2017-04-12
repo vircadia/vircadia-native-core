@@ -752,7 +752,7 @@ controller::Pose MyAvatar::getRightHandTipPose() const {
 }
 
 // virtual
-void MyAvatar::render(RenderArgs* renderArgs, render::ScenePointer scene, const Camera& camera) {
+void MyAvatar::render(RenderArgs* renderArgs, const render::ScenePointer& scene, const Camera& camera) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early

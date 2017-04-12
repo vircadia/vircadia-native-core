@@ -579,7 +579,7 @@ void Avatar::postUpdate(float deltaTime) {
     }
 }
 
-void Avatar::render(RenderArgs* renderArgs, render::ScenePointer scene, const Camera& camera) {
+void Avatar::render(RenderArgs* renderArgs, const render::ScenePointer& scene, const Camera& camera) {
     auto& batch = *renderArgs->_batch;
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
