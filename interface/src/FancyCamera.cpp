@@ -1,5 +1,5 @@
 //
-//  Camera.cpp
+//  FancyCamera.cpp
 //  interface/src
 //
 //  Copyright 2017 High Fidelity, Inc.
@@ -8,15 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-//#include <glm/gtx/quaternion.hpp>
-
-//#include <SharedUtil.h>
-//#include <EventTypes.h>
+#include "FancyCamera.h"
 
 #include "Application.h"
-#include "FancyCamera.h"
-//#include "Menu.h"
-//#include "Util.h"
 
 
 QUuid FancyCamera::getCameraEntity() const {

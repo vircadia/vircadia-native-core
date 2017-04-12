@@ -13,6 +13,7 @@
 
 #include "Camera.h"
 
+// TODO: come up with a better name than "FancyCamera"
 class FancyCamera : public Camera {
     Q_OBJECT
 
