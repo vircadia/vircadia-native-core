@@ -14,7 +14,7 @@ var isUsingToolbar = false,
     numberOfPlayers = 0,
     recordingsBeingPlayed = [],
     elRecordingsPlaying,
-    elNumberOfPlayers,
+    elPlayersUnused,
     elLoadButton,
     elRecordButton,
     EVENT_BRIDGE_TYPE = "record",
@@ -36,6 +36,10 @@ function stopPlayingRecording(event) {
 
 function orderRecording(a, b) {
     return a.filename > b.filename ? 1 : -1;
+}
+
+function updatePlayersUnused() {
+    elPlayersUnused.innerHTML = numberOfPlayers - recordingsBeingPlayed.length;
 }
 
 function updateRecordings() {
@@ -70,6 +74,8 @@ function updateRecordings() {
     }
 
     elRecordingsPlaying.replaceChild(tbody, elRecordingsPlaying.getElementsByTagName("tbody")[0]);
+
+    updatePlayersUnused();
 }
 
 function updateLoadButton() {
@@ -91,7 +97,7 @@ function onScriptEventReceived(data) {
             break;
         case NUMBER_OF_PLAYERS_ACTION:
             numberOfPlayers = message.value;
-            elNumberOfPlayers.innerHTML = numberOfPlayers;
+            updatePlayersUnused();
             updateLoadButton();
             break;
         }
@@ -103,7 +109,7 @@ function onBodyLoaded() {
     EventBridge.scriptEventReceived.connect(onScriptEventReceived);
 
     elRecordingsPlaying = document.getElementById("recordings-playing");
-    elNumberOfPlayers = document.getElementById("number-of-players");
+    elPlayersUnused = document.getElementById("players-unused");
 
     elLoadButton = document.getElementById("load-button");
     elLoadButton.onclick = function () {
