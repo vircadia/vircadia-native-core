@@ -43,12 +43,19 @@ namespace ktx {
     std::unique_ptr<KTX> KTX::createBare(const Header& header, const KeyValues& keyValues) {
         auto descriptors = header.generateImageDescriptors();
 
+        auto newHeader = header;
+
+        Byte minMip = header.numberOfMipmapLevels - 6;
+        auto newKeyValues = keyValues;
+        //newKeyValues.emplace_back(KeyValue(HIFI_MIN_POPULATED_MIP_KEY, sizeof(Byte), &minMip));
+        //newHeader.bytesOfKeyValueData = KeyValue::serializedKeyValuesByteSize(newKeyValues);
+
         StoragePointer storagePointer;
         {
-            auto storageSize = ktx::KTX::evalStorageSize(header, descriptors, keyValues);
+            auto storageSize = ktx::KTX::evalStorageSize(header, descriptors, newKeyValues);
             auto memoryStorage = new storage::MemoryStorage(storageSize);
             qDebug() << "Memory storage size is: " << storageSize;
-            ktx::KTX::writeWithoutImages(memoryStorage->data(), memoryStorage->size(), header, descriptors, keyValues);
+            ktx::KTX::writeWithoutImages(memoryStorage->data(), memoryStorage->size(), header, descriptors, newKeyValues);
             storagePointer.reset(memoryStorage);
         }
         return create(storagePointer);
@@ -132,6 +139,7 @@ namespace ktx {
         memcpy(currentDestPtr, &header, sizeof(Header));
         currentDestPtr += sizeof(Header);
 
+
         // KeyValues
         if (!keyValues.empty()) {
             destHeader->bytesOfKeyValueData = (uint32_t) writeKeyValues(currentDestPtr, destByteSize - sizeof(Header), keyValues);
@@ -145,9 +153,11 @@ namespace ktx {
             auto ptr = reinterpret_cast<uint32_t*>(currentDestPtr);
             *ptr = descriptors[i]._imageSize;
             ptr++;
+#ifdef DEBUG
             for (size_t k = 0; k < descriptors[i]._imageSize/4; k++) {
-                *(ptr + k) = 0xFFFF0000;
+                *(ptr + k) = 0xFFFF00FF;
             }
+#endif
             currentDestPtr += descriptors[i]._imageSize + sizeof(uint32_t);
         }
 

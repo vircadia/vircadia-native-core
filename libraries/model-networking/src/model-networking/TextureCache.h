@@ -103,6 +103,11 @@ private:
     ResourceRequest* _ktxMipRequest { nullptr };
     QByteArray _ktxHeaderData;
     QByteArray _ktxHighMipData;
+
+    // This is a copy of the original KTX descriptor from the source url.
+    // We need this because the KTX that will be cached will likely include extra data
+    // in its key/value data, and so will not match up with the original, causing
+    // mip offsets to change.
     ktx::KTXDescriptorPointer _ktxDescriptor;
 
 

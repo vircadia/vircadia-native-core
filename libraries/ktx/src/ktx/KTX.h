@@ -70,6 +70,9 @@ end
 
 
 namespace ktx {
+    const std::string HIFI_MIN_POPULATED_MIP_KEY = "hifiMinMip";
+
+
     const uint32_t PACKING_SIZE { sizeof(uint32_t) };
     using Byte = uint8_t;
 

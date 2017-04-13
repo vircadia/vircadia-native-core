@@ -63,10 +63,11 @@ void HTTPResourceRequest::doSend() {
     if (_byteRange.isSet()) {
         QString byteRange;
         if (_byteRange.fromInclusive < 0) {
-            auto byteRange = QString("bytes=%1").arg(_byteRange.fromInclusive);
+            byteRange = QString("bytes=%1").arg(_byteRange.fromInclusive);
         } else {
-            auto byteRange = QString("bytes=%1-%2").arg(_byteRange.fromInclusive).arg(_byteRange.toExclusive);
+            byteRange = QString("bytes=%1-%2").arg(_byteRange.fromInclusive).arg(_byteRange.toExclusive);
         }
+        qDebug() << "Setting http range to " << byteRange;
         networkRequest.setRawHeader("Range", byteRange.toLatin1());
     }
     networkRequest.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);

@@ -425,7 +425,7 @@ void NetworkTexture::ktxMipRequestFinished() {
         _ktxHighMipData = _ktxMipRequest->getData();
         maybeCreateKTX();
     } else {
-        handleFailedRequest(_ktxHeaderRequest->getResult());
+        handleFailedRequest(_ktxMipRequest->getResult());
     }
     _ktxMipRequest->deleteLater();
     _ktxMipRequest = nullptr;
@@ -433,7 +433,6 @@ void NetworkTexture::ktxMipRequestFinished() {
 
 // This is called when the header or top mips have been loaded
 void NetworkTexture::maybeCreateKTX() {
-    qDebug() << "Maybe create ktx...";
     if (_ktxHeaderData.size() > 0 && _ktxHighMipData.size() > 0) {
         // create ktx...
         auto header = reinterpret_cast<const ktx::Header*>(_ktxHeaderData.data());
@@ -478,6 +477,7 @@ void NetworkTexture::maybeCreateKTX() {
         gpu::TexturePointer texture;
         texture.reset(gpu::Texture::unserialize(_file->getFilepath(), *_ktxDescriptor));
         texture->setKtxBacking(file->getFilepath());
+        texture->setSource(filename);
 
         // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
         // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will

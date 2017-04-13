@@ -30,7 +30,7 @@ struct GPUKTXPayload {
     }
 
     static bool findInKeyValues(const ktx::KeyValues& keyValues, GPUKTXPayload& payload) {
-        auto found = std::find_if(keyValues.begin(), keyValues.end(), isGPUKTX); 
+        auto found = std::find_if(keyValues.begin(), keyValues.end(), isGPUKTX);
         if (found != keyValues.end()) {
             if ((*found)._value.size() == sizeof(GPUKTXPayload)) {
                 memcpy(&payload, (*found)._value.data(), sizeof(GPUKTXPayload));
@@ -41,14 +41,23 @@ struct GPUKTXPayload {
     }
 };
 
-std::string GPUKTXPayload::KEY { "hifi.gpu" };
+std::string GPUKTXPayload::KEY{ "hifi.gpu" };
 
 KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
     {
         // We are doing a lot of work here just to get descriptor data
-        ktx::StoragePointer storage { new storage::FileStorage(_filename.c_str()) };
+        ktx::StoragePointer storage{ new storage::FileStorage(_filename.c_str()) };
         auto ktxPointer = ktx::KTX::create(storage);
         _ktxDescriptor.reset(new ktx::KTXDescriptor(ktxPointer->toDescriptor()));
+        auto& keyValues = _ktxDescriptor->keyValues;
+        auto found = std::find_if(keyValues.begin(), keyValues.end(), [](const ktx::KeyValue& val) -> bool {
+            return val._key.compare(ktx::HIFI_MIN_POPULATED_MIP_KEY) == 0;
+        });
+        if (found != keyValues.end()) {
+            _minMipLevelAvailable = found->_value[0];
+        } else {
+            _minMipLevelAvailable = 4;// _ktxDescriptor->header.numberOfMipmapLevels;
+        }
     }
 
     // now that we know the ktx, let's get the header info to configure this Texture::Storage:
@@ -76,12 +85,11 @@ Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
 
 
 bool KtxStorage::isMipAvailable(uint16 level, uint8 face) const {
-    auto numLevels = _ktxDescriptor->header.numberOfMipmapLevels;
-    auto minLevel = 7 > numLevels ? 0 : numLevels - 10;
+    auto minLevel = _minMipLevelAvailable;
     auto avail = level >= minLevel;
     qDebug() << "isMipAvailable: " << QString::fromStdString(_filename) << ": " << level << " " << face << avail << minLevel << " " << _ktxDescriptor->header.numberOfMipmapLevels;
     //return true;
-    return level > _ktxDescriptor->header.numberOfMipmapLevels - 7;
+    return avail;
 }
 
 void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& storage) {
