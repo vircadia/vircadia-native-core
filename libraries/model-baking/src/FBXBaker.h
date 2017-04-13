@@ -47,7 +47,7 @@ class TextureBaker;
 class FBXBaker : public QObject {
     Q_OBJECT
 public:
-    FBXBaker(QUrl fbxURL, QString baseOutputPath, bool copyOriginals = true);
+    FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath, bool copyOriginals = true);
     ~FBXBaker();
 
     void start();

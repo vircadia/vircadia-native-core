@@ -21,7 +21,7 @@
 class DomainBaker : public QObject {
     Q_OBJECT
 public:
-    DomainBaker(const QUrl& localEntitiesFileURL, QString baseOutputPath);
+    DomainBaker(const QUrl& localEntitiesFileURL, const QString& domainName, const QString& baseOutputPath);
 
 public slots:
     void start();
@@ -30,13 +30,16 @@ signals:
     void finished();
 
 private:
+    void setupOutputFolder();
     void loadLocalFile();
     void enumerateEntities();
 
     QUrl _localEntitiesFileURL;
+    QString _domainName;
     QString _baseOutputPath;
-    QJsonArray _entities;
+    QString _uniqueOutputPath;
 
+    QJsonArray _entities;
 
     QHash<QUrl, QSharedPointer<FBXBaker>> _bakers;
 };

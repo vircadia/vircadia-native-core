@@ -22,7 +22,7 @@
 #include "FBXBaker.h"
 
 
-FBXBaker::FBXBaker(QUrl fbxURL, QString baseOutputPath, bool copyOriginals) :
+FBXBaker::FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath, bool copyOriginals) :
     _fbxURL(fbxURL),
     _baseOutputPath(baseOutputPath),
     _copyOriginals(copyOriginals)

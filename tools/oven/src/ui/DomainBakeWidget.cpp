@@ -38,6 +38,17 @@ void DomainBakeWidget::setupUI() {
 
     int rowIndex = 0;
 
+    // setup a section to enter the name of the domain being baked
+    QLabel* domainNameLabel = new QLabel("Domain Name");
+
+    _domainNameLineEdit = new QLineEdit;
+    _domainNameLineEdit->setPlaceholderText("welcome");
+
+    gridLayout->addWidget(domainNameLabel);
+    gridLayout->addWidget(_domainNameLineEdit, rowIndex, 1, 1, -1);
+
+    ++rowIndex;
+
     // setup a section to choose the file being baked
     QLabel* entitiesFileLabel = new QLabel("Entities File");
 
@@ -160,7 +171,9 @@ void DomainBakeWidget::bakeButtonClicked() {
     if (!_entitiesFileLineEdit->text().isEmpty()) {
         // everything seems to be in place, kick off a bake for this entities file now
         auto fileToBakeURL = QUrl::fromLocalFile(_entitiesFileLineEdit->text());
-        _baker = std::unique_ptr<DomainBaker> { new DomainBaker(fileToBakeURL, outputDirectory.absolutePath()) };
+        _baker = std::unique_ptr<DomainBaker> {
+                new DomainBaker(fileToBakeURL, _domainNameLineEdit->text(), outputDirectory.absolutePath())
+        };
         _baker->start();
 
         return;

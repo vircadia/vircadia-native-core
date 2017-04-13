@@ -39,6 +39,7 @@ private:
 
     std::unique_ptr<DomainBaker> _baker;
 
+    QLineEdit* _domainNameLineEdit;
     QLineEdit* _entitiesFileLineEdit;
     QLineEdit* _outputDirLineEdit;
 

@@ -20,16 +20,43 @@
 
 #include "DomainBaker.h"
 
-DomainBaker::DomainBaker(const QUrl& localModelFileURL, QString baseOutputPath) :
+DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainName, const QString& baseOutputPath) :
     _localEntitiesFileURL(localModelFileURL),
+    _domainName(domainName),
     _baseOutputPath(baseOutputPath)
 {
     
 }
 
 void DomainBaker::start() {
+    setupOutputFolder();
     loadLocalFile();
     enumerateEntities();
+}
+
+void DomainBaker::setupOutputFolder() {
+    // in order to avoid overwriting previous bakes, we create a special output folder with the domain name and timestamp
+
+    // first, construct the directory name
+    auto domainPrefix = !_domainName.isEmpty() ? _domainName + "-" : "";
+    auto timeNow = QDateTime::currentDateTime();
+
+    static const QString FOLDER_TIMESTAMP_FORMAT = "yyyyMMdd-hhmmss";
+    QString outputDirectoryName = domainPrefix + timeNow.toString(FOLDER_TIMESTAMP_FORMAT);
+
+    //  make sure we can create that directory
+    QDir baseDir { _baseOutputPath };
+
+    if (!baseDir.mkpath(outputDirectoryName)) {
+
+        // add an error to specify that the output directory could not be created
+
+        return;
+    }
+
+    // store the unique output path so we can re-use it when saving baked models
+    baseDir.cd(outputDirectoryName);
+    _uniqueOutputPath = baseDir.absolutePath();
 }
 
 void DomainBaker::loadLocalFile() {
@@ -96,7 +123,7 @@ void DomainBaker::enumerateEntities() {
 
                     // setup an FBXBaker for this URL, as long as we don't already have one
                     if (!_bakers.contains(modelURL)) {
-                        QSharedPointer<FBXBaker> baker { new FBXBaker(modelURL, _baseOutputPath) };
+                        QSharedPointer<FBXBaker> baker { new FBXBaker(modelURL, _uniqueOutputPath) };
 
                         // start the baker
                         baker->start();
