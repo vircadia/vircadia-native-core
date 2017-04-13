@@ -338,6 +338,10 @@
             // Heartbeat from AC script.
             var index;
 
+            if (channel !== HIFI_RECORDER_CHANNEL) {
+                return;
+            }
+
             message = JSON.parse(message);
 
             index = playerIDs.indexOf(sender);

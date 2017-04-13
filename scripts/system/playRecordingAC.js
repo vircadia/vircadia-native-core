@@ -369,6 +369,10 @@
     }
 
     function onMessageReceived(channel, message, sender) {
+        if (channel !== HIFI_RECORDER_CHANNEL) {
+            return;
+        }
+
         message = JSON.parse(message);
         if (message.player === scriptUUID) {
             switch (message.command) {
