@@ -395,7 +395,8 @@
             LOAD_RECORDING_ACTION = "loadRecording",
             START_RECORDING_ACTION = "startRecording",
             STOP_RECORDING_ACTION = "stopRecording",
-            FINISH_ON_OPEN_ACTION = "finishOnOpen";
+            FINISH_ON_OPEN_ACTION = "finishOnOpen",
+            SETTINGS_FINISH_ON_OPEN = "record/finishOnOpen";
 
         function isUsingToolbar() {
             return ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
@@ -449,6 +450,7 @@
                 case FINISH_ON_OPEN_ACTION:
                     // Set behavior on dialog open.
                     isFinishOnOpen = message.value;
+                    Settings.setValue(SETTINGS_FINISH_ON_OPEN, isFinishOnOpen);
                     break;
                 }
             }
@@ -485,6 +487,7 @@
         }
 
         function setUp() {
+            isFinishOnOpen = Settings.getValue(SETTINGS_FINISH_ON_OPEN) === true;
             tablet.webEventReceived.connect(onWebEventReceived);
         }
 
