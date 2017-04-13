@@ -424,6 +424,11 @@
                         action: NUMBER_OF_PLAYERS_ACTION,
                         value: Player.numberOfPlayers()
                     }));
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
+                        action: START_RECORDING_ACTION,
+                        value: !Recorder.isIdle()
+                    }));
                     break;
                 case STOP_PLAYING_RECORDING_ACTION:
                     // Stop the specified player.

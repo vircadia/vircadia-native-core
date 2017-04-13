@@ -154,6 +154,12 @@ function onScriptEventReceived(data) {
         case FINISH_ON_OPEN_ACTION:
             elFinishOnOpen.checked = message.value;
             break;
+        case START_RECORDING_ACTION:
+            isRecording = message.value;
+            if (isRecording) {
+                elRecordButton.classList.add("pressed");
+            }
+            break;
         case RECORDINGS_BEING_PLAYED_ACTION:
             recordingsBeingPlayed = JSON.parse(message.value);
             updateRecordings();
