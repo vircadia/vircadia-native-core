@@ -27,11 +27,30 @@
                         <th>Unload</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="recordings">
+                </tbody>
+                <tbody id="instructions" class="hidden">
+                    <tr>
+                        <td colspan="2">
+                            <p>
+                                If you're in your own sandbox or are a domain administrator:<br />
+                                Right-click the High Fidelity Sandbox icon in your system tray <br />and click "Settings".<br />
+                                In the "Scripts" section add a new Script URL, <br />playRecordingAC.js, and set # instances to 1 or more.<br />
+                                Click "Save and restart".<br />
+                                Now you can play recordings in the domain!
+                            </p>
+                            <p>
+                                <input id="hide-info-button" type="button" value="OK" />
+                            </p>
+                        </td>
+                    </tr>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td id="footer-text" colspan="2">Number of available instances: <span id="players-unused"></span></td>
+                        <td id="footer-text" colspan="2">
+                            Number of available instances: <span id="players-unused"></span>
+                            <input id="show-info-button" type="button" value="i" />
+                        </td>
                     </tr>
                 </tfoot>
             </table>
