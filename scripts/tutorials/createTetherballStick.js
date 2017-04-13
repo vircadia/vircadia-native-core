@@ -21,6 +21,9 @@ var BALL_DAMPING = 0.5;
 var BALL_ANGULAR_DAMPING = 0.5;
 var BALL_RESTITUTION = 0.4;
 var BALL_DENSITY = 1000;
+var ACTION_DISTANCE = 0.35;
+var ACTION_TIMESCALE = 0.035;
+var MAX_DISTANCE_MULTIPLIER = 4;
 var STICK_SCRIPT_URL = Script.resolvePath("./entity_scripts/tetherballStick.js?v=" + Date.now());
 var STICK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/caitlyn/production/raveStick/newRaveStick2.fbx";
 var COLLISION_SOUND_URL = "http://public.highfidelity.io/sounds/Footsteps/FootstepW3Left-12db.wav";
@@ -62,6 +65,30 @@ var ballID = Entities.addEntity({
             grabbable: false
         }
     })
+});
+
+var lineID = Entities.addEntity({
+    type: "PolyLine",
+    name: "TetherballStick Line",
+    color: {
+        red: 0,
+        green: 120,
+        blue: 250
+    },
+    textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+    position: ballStartPosition,
+    dimensions: {
+        x: 10,
+        y: 10,
+        z: 10
+    },
+    lifetime: LIFETIME
+});
+
+var actionID = Entities.addAction("offset", ballID, {
+    pointToOffsetFrom: stickStartPosition,
+    linearDistance: ACTION_DISTANCE,
+    linearTimeScale: ACTION_TIMESCALE
 });
 
 var STICK_PROPERTIES = {
@@ -115,7 +142,10 @@ var STICK_PROPERTIES = {
         },
         ownerID: MyAvatar.sessionUUID,
         ballID: ballID,
-        lifetime: LIFETIME
+        lineID: lineID,
+        actionID: actionID,
+        lifetime: LIFETIME,
+        maxDistanceBetweenBallAndStick: ACTION_DISTANCE * MAX_DISTANCE_MULTIPLIER
     })
 };
 
