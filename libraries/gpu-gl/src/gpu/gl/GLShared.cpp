@@ -510,7 +510,7 @@ ElementResource getFormatFromGLUniform(GLenum gltype) {
 };
 
 int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
-    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
+    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers, Shader::SlotSet& resourceBuffers) {
     GLint uniformsCount = 0;
 
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
@@ -562,6 +562,24 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
                 textures.insert(Shader::Slot(name, binding, elementResource._element, elementResource._resource));
                 samplers.insert(Shader::Slot(name, binding, elementResource._element, elementResource._resource));
             }
+        }
+    }
+
+    GLint ssboCount = 0;
+    glGetProgramInterfaceiv(glprogram, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &ssboCount);
+    if (ssboCount > 0) {
+        GLint maxNameLength = 0;
+        glGetProgramInterfaceiv(glprogram, GL_SHADER_STORAGE_BLOCK, GL_MAX_NAME_LENGTH, &maxNameLength);
+        std::vector<GLchar> nameBytes(maxNameLength);
+
+        for (GLint b = 0; b < ssboCount; b++) {
+            GLint  length;
+            glGetProgramResourceName(glprogram, GL_SHADER_STORAGE_BLOCK, b, maxNameLength, &length, nameBytes.data());
+
+            std::string bufferName(nameBytes.data());
+            qCWarning(gpugllogging) << "GLShader::makeBindings - " << bufferName.c_str();
+
+
         }
     }
 

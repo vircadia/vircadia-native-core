@@ -42,7 +42,7 @@ struct ShaderObject {
 };
 
 int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
-    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers);
+    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers, Shader::SlotSet& resourceBuffers);
 int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers);
 int makeInputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs);
 int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs);

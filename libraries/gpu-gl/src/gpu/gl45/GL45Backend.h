@@ -277,6 +277,10 @@ protected:
     void initTransform() override;
     void updateTransform(const Batch& batch) override;
 
+    // Resource Stage
+    bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) override;
+    void releaseResourceBuffer(uint32_t slot) override;
+
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
 

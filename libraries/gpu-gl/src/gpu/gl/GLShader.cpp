@@ -32,7 +32,8 @@ GLShader::~GLShader() {
 
 // GLSL version
 static const std::string glslVersion {
-    "#version 410 core"
+//    "#version 410 core"
+    "#version 450 core"
 };
 
 // Shader domain
@@ -185,7 +186,8 @@ bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::Bin
             Shader::SlotSet uniforms;
             Shader::SlotSet textures;
             Shader::SlotSet samplers;
-            makeUniformSlots(shaderObject.glprogram, slotBindings, uniforms, textures, samplers);
+            Shader::SlotSet resourceBuffers;
+            makeUniformSlots(shaderObject.glprogram, slotBindings, uniforms, textures, samplers, resourceBuffers);
 
             Shader::SlotSet inputs;
             makeInputSlots(shaderObject.glprogram, slotBindings, inputs);

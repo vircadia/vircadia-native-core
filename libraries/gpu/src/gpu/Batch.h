@@ -189,8 +189,11 @@ public:
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
     void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
 
-    void setResourceTexture(uint32 slot, const TexturePointer& view);
+    void setResourceBuffer(uint32 slot, const BufferPointer& buffer);
+
+    void setResourceTexture(uint32 slot, const TexturePointer& texture);
     void setResourceTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
+
 
     // Ouput Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
@@ -290,6 +293,7 @@ public:
         COMMAND_setStateScissorRect,
 
         COMMAND_setUniformBuffer,
+        COMMAND_setResourceBuffer,
         COMMAND_setResourceTexture,
 
         COMMAND_setFramebuffer,
