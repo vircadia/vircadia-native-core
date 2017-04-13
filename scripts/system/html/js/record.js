@@ -15,13 +15,15 @@ var isUsingToolbar = false,
     isRecording = false,
     numberOfPlayers = 0,
     recordingsBeingPlayed = [],
-    elRecordingsPlaying,
     elRecordings,
+    elRecordingsPlaying,
+    elRecordingsList,
     elInstructions,
     elPlayersUnused,
     elHideInfoButton,
     elShowInfoButton,
     elLoadButton,
+    elSpinner,
     elRecordButton,
     elFinishOnOpen,
     elFinishOnOpenLabel,
@@ -65,7 +67,7 @@ function updateRecordings() {
     recordingsBeingPlayed.sort(orderRecording);
 
     tbody = document.createElement("tbody");
-    tbody.id = "recordings";
+    tbody.id = "recordings-list";
 
     for (i = 0, length = recordingsBeingPlayed.length; i < length; i += 1) {
         tr = document.createElement("tr");
@@ -94,8 +96,8 @@ function updateRecordings() {
         tbody.appendChild(tr);
     }
 
-    elRecordingsPlaying.replaceChild(tbody, elRecordings);
-    elRecordings = document.getElementById("recordings");
+    elRecordingsPlaying.replaceChild(tbody, elRecordingsList);
+    elRecordingsList = document.getElementById("recordings-list");
 }
 
 function updateInstructions() {
@@ -110,11 +112,11 @@ function updateInstructions() {
 
     // Display instructions if user requested or no players available.
     if (isDisplayingInstructions || numberOfPlayers === 0) {
-        elRecordings.classList.add("hidden");
+        elRecordingsList.classList.add("hidden");
         elInstructions.classList.remove("hidden");
     } else {
         elInstructions.classList.add("hidden");
-        elRecordings.classList.remove("hidden");
+        elRecordingsList.classList.remove("hidden");
     }
 }
 
@@ -133,6 +135,16 @@ function updateLoadButton() {
         elLoadButton.removeAttribute("disabled");
     } else {
         elLoadButton.setAttribute("disabled", "disabled");
+    }
+}
+
+function updateSpinner() {
+    if (isRecording) {
+        elRecordings.classList.add("hidden");
+        elSpinner.classList.remove("hidden");
+    } else {
+        elSpinner.classList.add("hidden");
+        elRecordings.classList.remove("hidden");
     }
 }
 
@@ -159,6 +171,7 @@ function onScriptEventReceived(data) {
             if (isRecording) {
                 elRecordButton.classList.add("pressed");
             }
+            updateSpinner();
             break;
         case RECORDINGS_BEING_PLAYED_ACTION:
             recordingsBeingPlayed = JSON.parse(message.value);
@@ -193,6 +206,7 @@ function onRecordButtonClicked() {
             action: START_RECORDING_ACTION
         }));
         isRecording = true;
+        updateSpinner();
     } else {
         elRecordButton.classList.remove("pressed");
         EventBridge.emitWebEvent(JSON.stringify({
@@ -200,6 +214,7 @@ function onRecordButtonClicked() {
             action: STOP_RECORDING_ACTION
         }));
         isRecording = false;
+        updateSpinner();
     }
 }
 
@@ -222,8 +237,10 @@ function onBodyLoaded() {
 
     EventBridge.scriptEventReceived.connect(onScriptEventReceived);
 
-    elRecordingsPlaying = document.getElementById("recordings-playing");
     elRecordings = document.getElementById("recordings");
+
+    elRecordingsPlaying = document.getElementById("recordings-playing");
+    elRecordingsList = document.getElementById("recordings-list");
     elInstructions = document.getElementById("instructions");
     elPlayersUnused = document.getElementById("players-unused");
 
@@ -234,6 +251,8 @@ function onBodyLoaded() {
 
     elLoadButton = document.getElementById("load-button");
     elLoadButton.onclick = onLoadButtonClicked;
+
+    elSpinner = document.getElementById("spinner");
 
     elRecordButton = document.getElementById("record-button");
     elRecordButton.onclick = onRecordButtonClicked;

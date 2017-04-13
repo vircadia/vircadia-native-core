@@ -19,44 +19,48 @@
         <div class="title">
             <label>Record</label>
         </div>
-        <div>
-            <table id="recordings-playing">
-                <thead>
-                    <tr>
-                        <th>Recordings Being Played</th>
-                        <th>Unload</th>
-                    </tr>
-                </thead>
-                <tbody id="recordings">
-                </tbody>
-                <tbody id="instructions" class="hidden">
-                    <tr>
-                        <td colspan="2">
-                            <p>
-                                If you're in your own sandbox or are a domain administrator:<br />
-                                Right-click the High Fidelity Sandbox icon in your system tray <br />and click "Settings".<br />
-                                In the "Scripts" section add a new Script URL, <br />playRecordingAC.js, and set # instances to 1 or more.<br />
-                                Click "Save and restart".<br />
-                                Now you can play recordings in the domain!
-                            </p>
-                            <p>
-                                <input id="hide-info-button" type="button" value="OK" />
-                            </p>
-                        </td>
-                    </tr>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td id="footer-text" colspan="2">
-                            Number of available instances: <span id="players-unused"></span>
-                            <input id="show-info-button" type="button" value="i" />
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
+        <div id="recordings">
+            <div>
+                <table id="recordings-playing">
+                    <thead>
+                        <tr>
+                            <th>Recordings Being Played</th>
+                            <th>Unload</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordings-list"></tbody>
+                    <tbody id="instructions" class="hidden">
+                        <tr>
+                            <td colspan="2">
+                                <p>
+                                    If you're in your own sandbox or are a domain administrator:<br />
+                                    Right-click the High Fidelity Sandbox icon in your system tray <br />and click "Settings".<br />
+                                    In the "Scripts" section add a new Script URL, <br />playRecordingAC.js, and set # instances to 1 or more.<br />
+                                    Click "Save and restart".<br />
+                                    Now you can play recordings in the domain!
+                                </p>
+                                <p>
+                                    <input id="hide-info-button" type="button" value="OK" />
+                                </p>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td id="footer-text" colspan="2">
+                                Number of available instances: <span id="players-unused"></span>
+                                <input id="show-info-button" type="button" value="i" />
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div>
+                <input id="load-button" type="button" value="Load" disabled />
+            </div>
         </div>
-        <div>
-            <input id="load-button" type="button" value="Load" disabled />
+        <div id="spinner" class="hidden">
+            <p>TODO: Spinner</p>
         </div>
         <div>
             <input id="record-button" class="red" type="button" value="Record" />
