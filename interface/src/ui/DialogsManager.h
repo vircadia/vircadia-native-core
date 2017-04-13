@@ -43,6 +43,7 @@ public:
 public slots:
     void toggleAddressBar();
     void showAddressBar();
+    void hideAddressBar();
     void showFeed();
     void setDomainConnectionFailureVisibility(bool visible);
     void toggleLoginDialog();

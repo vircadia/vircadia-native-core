@@ -22,9 +22,25 @@ DialogsManagerScriptingInterface::DialogsManagerScriptingInterface() {
             this, &DialogsManagerScriptingInterface::addressBarShown);
 }
 
+
+DialogsManagerScriptingInterface* DialogsManagerScriptingInterface::getInstance() {
+    static DialogsManagerScriptingInterface sharedInstance;
+    return &sharedInstance;
+}
+
 void DialogsManagerScriptingInterface::toggleAddressBar() {
     QMetaObject::invokeMethod(DependencyManager::get<DialogsManager>().data(),
                               "toggleAddressBar", Qt::QueuedConnection);
+}
+
+void DialogsManagerScriptingInterface::showAddressBar() {
+    QMetaObject::invokeMethod(DependencyManager::get<DialogsManager>().data(),
+        "showAddressBar", Qt::QueuedConnection);
+}
+
+void DialogsManagerScriptingInterface::hideAddressBar() {
+    QMetaObject::invokeMethod(DependencyManager::get<DialogsManager>().data(),
+        "hideAddressBar", Qt::QueuedConnection);
 }
 
 void DialogsManagerScriptingInterface::showFeed() {

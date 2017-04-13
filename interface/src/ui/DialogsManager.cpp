@@ -67,12 +67,14 @@ void DialogsManager::toggleAddressBar() {
                 emit addressBarToggled();
             } else {
                 tablet->loadQMLSource(TABLET_ADDRESS_DIALOG);
+                qApp->setKeyboardFocusOverlay(hmd->getCurrentTabletScreenID());
                 _closeAddressBar = true;
                 emit addressBarToggled();
             }
         } else {
             tablet->loadQMLSource(TABLET_ADDRESS_DIALOG);
             hmd->openTablet();
+            qApp->setKeyboardFocusOverlay(hmd->getCurrentTabletScreenID());
             _closeAddressBar = true;
             emit addressBarToggled();
         }
@@ -84,11 +86,28 @@ void DialogsManager::showAddressBar() {
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-    tablet->loadQMLSource(TABLET_ADDRESS_DIALOG);
 
+    if (!tablet->isPathLoaded(TABLET_ADDRESS_DIALOG)) {
+        tablet->loadQMLSource(TABLET_ADDRESS_DIALOG);
+    }
     if (!hmd->getShouldShowTablet()) {
         hmd->openTablet();
     }
+    qApp->setKeyboardFocusOverlay(hmd->getCurrentTabletScreenID());
+    emit addressBarShown(true);
+}
+
+void DialogsManager::hideAddressBar() {
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+
+    if (tablet->isPathLoaded(TABLET_ADDRESS_DIALOG)) {
+        tablet->gotoHomeScreen();
+        hmd->closeTablet();
+    }
+    qApp->setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+    emit addressBarShown(false);
 }
 
 void DialogsManager::showFeed() {
