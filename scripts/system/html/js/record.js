@@ -149,8 +149,8 @@ function updateSpinner() {
 }
 
 function updateFinishOnOpenLabel() {
-    var WINDOW_FINISH_ON_OPEN_LABEL = "Finish recording when open dialog",
-        TABLET_FINISH_ON_OPEN_LABEL = "Finish recording when open tablet";
+    var WINDOW_FINISH_ON_OPEN_LABEL = "Finish recording when reopen dialog",
+        TABLET_FINISH_ON_OPEN_LABEL = "Finish recording when reopen dialog or tablet";
 
     elFinishOnOpenLabel.innerHTML = isUsingToolbar ? WINDOW_FINISH_ON_OPEN_LABEL : TABLET_FINISH_ON_OPEN_LABEL;
 }
