@@ -108,6 +108,7 @@ private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
 
+    void getCollisionGeometryResource();
     GeometryResource::Pointer _compoundShapeResource;
     ModelPointer _model = nullptr;
     bool _needsInitialSimulation = true;

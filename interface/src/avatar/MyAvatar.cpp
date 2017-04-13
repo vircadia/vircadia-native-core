@@ -404,8 +404,8 @@ void MyAvatar::update(float deltaTime) {
     // Also get the AudioClient so we can update the avatar bounding box data
     // on the AudioClient side.
     auto audio = DependencyManager::get<AudioClient>();
-    head->setAudioLoudness(audio->getLastInputLoudness());
-    head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
+    setAudioLoudness(audio->getLastInputLoudness());
+    setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
     glm::vec3 halfBoundingBoxDimensions(_characterController.getCapsuleRadius(), _characterController.getCapsuleHalfHeight(), _characterController.getCapsuleRadius());
     halfBoundingBoxDimensions += _characterController.getCapsuleLocalOffset();

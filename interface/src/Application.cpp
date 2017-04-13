@@ -129,6 +129,7 @@
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
+#include "avatar/ScriptAvatar.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
@@ -6416,7 +6417,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated || !(SnapshotAnimated::alsoTakeAnimatedSnapshot.get())) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
-            emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, "", notify);
+            emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
         } else {
             // Get an animated GIF snapshot and save it
             SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());

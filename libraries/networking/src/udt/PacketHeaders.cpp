@@ -56,7 +56,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AvatarAsChildFixes);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::StickAndBallDefaultAvatar);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         case PacketType::ICEServerHeartbeat:

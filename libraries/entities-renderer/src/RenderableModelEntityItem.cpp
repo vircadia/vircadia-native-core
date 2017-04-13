@@ -608,11 +608,19 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
                                                        face, surfaceNormal, extraInfo, precisionPicking);
 }
 
+void RenderableModelEntityItem::getCollisionGeometryResource() {
+    QUrl hullURL(getCompoundShapeURL());
+    QUrlQuery queryArgs(hullURL);
+    queryArgs.addQueryItem("collision-hull", "");
+    hullURL.setQuery(queryArgs);
+    _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+}
+
 void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
         if (!_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCompoundShapeURL());
+            getCollisionGeometryResource();
         }
     } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
@@ -626,11 +634,7 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
     // will end up in a different hash-key in ResourceCache.  TODO: It would be better to use the same URL and
     // parse it twice.
     auto currentCompoundShapeURL = getCompoundShapeURL();
-    QUrl hullURL(url);
-    QUrlQuery queryArgs(hullURL);
-    queryArgs.addQueryItem("collision-hull", "");
-    hullURL.setQuery(queryArgs);
-    ModelEntityItem::setCompoundShapeURL(hullURL.toString());
+    ModelEntityItem::setCompoundShapeURL(url);
 
     if (getCompoundShapeURL() != currentCompoundShapeURL || !_model) {
         EntityTreePointer tree = getTree();
@@ -638,7 +642,7 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
         }
         if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+            getCollisionGeometryResource();
         }
     }
 }
@@ -670,8 +674,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
                 }
                 return true;
             } else if (!getCompoundShapeURL().isEmpty()) {
-                _compoundShapeResource =
-                    DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCompoundShapeURL());
+                getCollisionGeometryResource();
             }
         }
 
