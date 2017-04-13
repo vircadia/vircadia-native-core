@@ -198,10 +198,11 @@ StackView {
                 color: hifiStyleConstants.colors.lightGray
                 opacity: 0.1
                 MouseArea {
-                    anchors.fill: parent
+                    anchors.fill: parent;
                     onClicked: {
                         if (!addressLine.focus || !HMD.active) {
                             addressLine.focus = true;
+                            addressLine.forceActiveFocus();
                             addressBarDialog.keyboardEnabled = HMD.active;
                         } else {
                             addressLine.focus = false;
@@ -516,7 +517,7 @@ StackView {
 
     function updateLocationText(enteringAddress) {
         if (enteringAddress) {
-            notice.text = "Go to a place, @user, path or network address";
+            notice.text = "Go To a place, @user, path, or network address:";
             notice.color = hifiStyleConstants.colors.baseGrayHighlight;
         } else {
             notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
