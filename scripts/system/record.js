@@ -21,7 +21,6 @@
         button,
         isConnected,
 
-        CountdownTimer,
         RecordingIndicator,
         Recorder,
         Player,
@@ -36,37 +35,6 @@
         Window.alert(message);
 
     }
-
-    CountdownTimer = (function () {
-        // Counts down a few seconds.
-        var countdownTimer,
-            countdownSeconds,
-            COUNTDOWN_SECONDS = 3,
-            finishCallback;
-
-        function start(onFinishCallback) {
-            finishCallback = onFinishCallback;
-            countdownSeconds = COUNTDOWN_SECONDS;
-            countdownTimer = Script.setInterval(function () {
-                countdownSeconds -= 1;
-                if (countdownSeconds <= 0) {
-                    Script.clearInterval(countdownTimer);
-                    finishCallback();
-                } else {
-                    // TODO: Tick.
-                }
-            }, 1000);
-        }
-
-        function cancel() {
-            Script.clearInterval(countdownTimer);
-        }
-
-        return {
-            start: start,
-            cancel: cancel
-        };
-    }());
 
     RecordingIndicator = (function () {
         // Displays "recording" overlay.
@@ -139,7 +107,27 @@
             mappingPath,
             startPosition,
             startOrientation,
-            play;
+            play,
+
+            countdownTimer,
+            countdownSeconds,
+            COUNTDOWN_SECONDS = 3,
+
+            tickSound,
+            startRecordingSound,
+            finishRecordingSound,
+            TICK_SOUND = "assets/sounds/countdown-tick.wav",
+            START_RECORDING_SOUND = "assets/sounds/start-recording.wav",
+            FINISH_RECORDING_SOUND = "assets/sounds/finish-recording.wav",
+            SOUND_VOLUME = 0.2;
+
+        function playSound(sound) {
+            Audio.playSound(sound, {
+                position: MyAvatar.position,
+                localOnly: true,
+                volume: SOUND_VOLUME
+            });
+        }
 
         function setMappingCallback(status) {
             if (status !== "") {
@@ -174,6 +162,7 @@
         function startRecording() {
             recordingState = RECORDING;
             log("Start recording");
+            playSound(startRecordingSound);
             startPosition = MyAvatar.position;
             startOrientation = MyAvatar.orientation;
             Recording.startRecording();
@@ -186,6 +175,7 @@
 
             recordingState = IDLE;
             log("Finish recording");
+            playSound(finishRecordingSound);
             Recording.stopRecording();
             RecordingIndicator.hide();
             success = Recording.saveRecordingToAsset(saveRecordingToAssetCallback);
@@ -208,14 +198,24 @@
 
         function cancelCountdown() {
             recordingState = IDLE;
-            CountdownTimer.cancel();
+            Script.clearInterval(countdownTimer);
             log("Cancel countdown");
         }
 
         function startCountdown() {
             recordingState = COUNTING_DOWN;
             log("Start countdown");
-            CountdownTimer.start(finishCountdown);
+            playSound(tickSound);
+            countdownSeconds = COUNTDOWN_SECONDS;
+            countdownTimer = Script.setInterval(function () {
+                countdownSeconds -= 1;
+                if (countdownSeconds <= 0) {
+                    Script.clearInterval(countdownTimer);
+                    finishCountdown();
+                } else {
+                    playSound(tickSound);
+                }
+            }, 1000);
         }
 
         function isIdle() {
@@ -232,6 +232,10 @@
 
         function setUp(playerCallback) {
             play = playerCallback;
+
+            tickSound = SoundCache.getSound(Script.resolvePath(TICK_SOUND));
+            startRecordingSound = SoundCache.getSound(Script.resolvePath(START_RECORDING_SOUND));
+            finishRecordingSound = SoundCache.getSound(Script.resolvePath(FINISH_RECORDING_SOUND));
         }
 
         function tearDown() {
