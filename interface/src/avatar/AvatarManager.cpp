@@ -105,7 +105,7 @@ void AvatarManager::init() {
             this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
 
     if (_shouldRender) {
-        render::ScenePointer scene = qApp->getMain3DScene();
+        const render::ScenePointer& scene = qApp->getMain3DScene();
         render::Transaction transaction;
         _myAvatar->addToScene(_myAvatar, scene, transaction);
         scene->enqueueTransaction(transaction);
@@ -198,8 +198,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
         // for ALL avatars...
         if (_shouldRender) {
-            render::ScenePointer scene = qApp->getMain3DScene();
-            avatar->ensureInScene(avatar, scene);
+            avatar->ensureInScene(avatar, qApp->getMain3DScene());
         }
         if (!avatar->getMotionState()) {
             ShapeInfo shapeInfo;
@@ -307,12 +306,10 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             // fading to zero is such a rare event we push unique transaction for each one
             if (avatar->isInScene()) {
-                render::ScenePointer scene = qApp->getMain3DScene();
+                const render::ScenePointer& scene = qApp->getMain3DScene();
                 render::Transaction transaction;
                 avatar->removeFromScene(*itr, scene, transaction);
-                if (scene) {
-                    scene->enqueueTransaction(transaction);
-                }
+                scene->enqueueTransaction(transaction);
             }
 
             // only remove from _avatarsToFade if we're sure its motionState has been removed from PhysicsEngine
@@ -344,21 +341,17 @@ void AvatarManager::processAvatarDataPacket(QSharedPointer<ReceivedMessage> mess
             if (avatar->isInScene()) {
                 if (!_shouldRender) {
                     // rare transition so we process the transaction immediately
-                    render::ScenePointer scene = qApp->getMain3DScene();
-                    if (scene) {
-                        render::Transaction transaction;
-                        avatar->removeFromScene(avatar, scene, transaction);
-                        scene->enqueueTransaction(transaction);
-                    }
+                    const render::ScenePointer& scene = qApp->getMain3DScene();
+                    render::Transaction transaction;
+                    avatar->removeFromScene(avatar, scene, transaction);
+                    scene->enqueueTransaction(transaction);
                 }
             } else if (_shouldRender) {
                 // very rare transition so we process the transaction immediately
-                render::ScenePointer scene = qApp->getMain3DScene();
-                if (scene) {
-                    render::Transaction transaction;
-                    avatar->addToScene(avatar, scene, transaction);
-                    scene->enqueueTransaction(transaction);
-                }
+                const render::ScenePointer& scene = qApp->getMain3DScene();
+                render::Transaction transaction;
+                avatar->addToScene(avatar, scene, transaction);
+                scene->enqueueTransaction(transaction);
             }
         }
     }
@@ -395,7 +388,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 void AvatarManager::clearOtherAvatars() {
     // Remove other avatars from the world but don't actually remove them from _avatarHash
     // each will either be removed on timeout or will re-added to the world on receipt of update.
-    render::ScenePointer scene = qApp->getMain3DScene();
+    const render::ScenePointer& scene = qApp->getMain3DScene();
     render::Transaction transaction;
 
     QReadLocker locker(&_hashLock);
@@ -415,9 +408,7 @@ void AvatarManager::clearOtherAvatars() {
         }
         ++avatarIterator;
     }
-    if (scene) {
-        scene->enqueueTransaction(transaction);
-    }
+    scene->enqueueTransaction(transaction);
     _myAvatar->clearLookAtTargetAvatar();
 }
 
@@ -523,7 +514,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 
 void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
     _shouldRender = shouldRenderAvatars;
-    render::ScenePointer scene = qApp->getMain3DScene();
+    const render::ScenePointer& scene = qApp->getMain3DScene();
     render::Transaction transaction;
     if (_shouldRender) {
         for (auto avatarData : _avatarHash) {
@@ -536,9 +527,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
             avatar->removeFromScene(avatar, scene, transaction);
         }
     }
-    if (scene) {
-        scene->enqueueTransaction(transaction);
-    }
+    scene->enqueueTransaction(transaction);
 }
 
 AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) const {
