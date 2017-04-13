@@ -391,7 +391,7 @@
 
             index = playerIsPlayings.indexOf(false);
             if (index === -1) {
-                error("No assignment client player available to play recording "
+                error("No player instance available to play recording "
                     + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
                 return;
             }
