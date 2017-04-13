@@ -24,11 +24,12 @@ public:
     DomainBaker(const QUrl& localEntitiesFileURL, const QString& domainName,
                 const QString& baseOutputPath, const QUrl& destinationPath);
 
-public slots:
-    void start();
+public:
+    void bake();
 
 signals:
     void finished();
+    void allModelsFinished();
 
 private slots:
     void handleFinishedBaker();
@@ -37,7 +38,7 @@ private:
     void setupOutputFolder();
     void loadLocalFile();
     void enumerateEntities();
-    void possiblyOutputEntitiesFile();
+    void writeNewEntitiesFile();
 
     QUrl _localEntitiesFileURL;
     QString _domainName;
@@ -50,8 +51,6 @@ private:
 
     QHash<QUrl, QSharedPointer<FBXBaker>> _bakers;
     QMultiHash<QUrl, QJsonValueRef> _entitiesNeedingRewrite;
-
-    bool _enumeratedAllEntities { false };
 };
 
 #endif // hifi_DomainBaker_h

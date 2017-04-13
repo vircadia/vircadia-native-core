@@ -176,7 +176,7 @@ void ModelBakeWidget::bakeButtonClicked() {
 
         // everything seems to be in place, kick off a bake for this model now
         auto baker = new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), false);
-        baker->start();
+        baker->bake();
         _bakers.emplace_back(baker);
     }
 }

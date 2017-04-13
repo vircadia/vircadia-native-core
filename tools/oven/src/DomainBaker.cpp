@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QDebug>
+#include <QtConcurrent>
+#include <QtCore/QEventLoop>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
-
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 
@@ -34,10 +34,22 @@ DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainNam
     }
 }
 
-void DomainBaker::start() {
+void DomainBaker::bake() {
     setupOutputFolder();
     loadLocalFile();
     enumerateEntities();
+
+    if (!_entitiesNeedingRewrite.isEmpty()) {
+        // use a QEventLoop to wait for all entity rewrites to be completed before writing the final models file
+        QEventLoop eventLoop;
+        connect(this, &DomainBaker::allModelsFinished, &eventLoop, &QEventLoop::quit);
+        eventLoop.exec();
+    }
+
+    writeNewEntitiesFile();
+
+    // we've now written out our new models file - time to say that we are finished up
+    emit finished();
 }
 
 void DomainBaker::setupOutputFolder() {
@@ -147,11 +159,11 @@ void DomainBaker::enumerateEntities() {
                         // make sure our handler is called when the baker is done
                         connect(baker.data(), &FBXBaker::finished, this, &DomainBaker::handleFinishedBaker);
 
-                        // start the baker
-                        baker->start();
-
                         // insert it into our bakers hash so we hold a strong pointer to it
                         _bakers.insert(modelURL, baker);
+
+                        // send the FBXBaker to the thread pool
+                        QtConcurrent::run(baker.data(), &FBXBaker::bake);
                     }
 
                     // add this QJsonValueRef to our multi hash so that we can easily re-write
@@ -161,11 +173,6 @@ void DomainBaker::enumerateEntities() {
             }
         }
     }
-
-    _enumeratedAllEntities = true;
-
-    // check if it's time to write out the final entities file with re-written URLs
-    possiblyOutputEntitiesFile();
 }
 
 void DomainBaker::handleFinishedBaker() {
@@ -201,49 +208,45 @@ void DomainBaker::handleFinishedBaker() {
         // remove the baked URL from the multi hash of entities needing a re-write
         _entitiesNeedingRewrite.remove(baker->getFBXUrl());
 
-        // check if it's time to write out the final entities file with re-written URLs
-        possiblyOutputEntitiesFile();
+        if (_entitiesNeedingRewrite.isEmpty()) {
+            emit allModelsFinished();
+        }
     }
 }
 
-void DomainBaker::possiblyOutputEntitiesFile() {
-    if (_enumeratedAllEntities && _entitiesNeedingRewrite.isEmpty()) {
-        // we've enumerated all of our entities and re-written all the URLs we'll be able to re-write
-        // time to write out a main models.json.gz file
+void DomainBaker::writeNewEntitiesFile() {
+    // we've enumerated all of our entities and re-written all the URLs we'll be able to re-write
+    // time to write out a main models.json.gz file
 
-        // first setup a document with the entities array below the entities key
-        QJsonDocument entitiesDocument;
+    // first setup a document with the entities array below the entities key
+    QJsonDocument entitiesDocument;
 
-        QJsonObject rootObject;
-        rootObject[ENTITIES_OBJECT_KEY] = _entities;
+    QJsonObject rootObject;
+    rootObject[ENTITIES_OBJECT_KEY] = _entities;
 
-        entitiesDocument.setObject(rootObject);
+    entitiesDocument.setObject(rootObject);
 
-        // turn that QJsonDocument into a byte array ready for compression
-        QByteArray jsonByteArray = entitiesDocument.toJson();
+    // turn that QJsonDocument into a byte array ready for compression
+    QByteArray jsonByteArray = entitiesDocument.toJson();
 
-        // compress the json byte array using gzip
-        QByteArray compressedJson;
-        gzip(jsonByteArray, compressedJson);
+    // compress the json byte array using gzip
+    QByteArray compressedJson;
+    gzip(jsonByteArray, compressedJson);
 
-        // write the gzipped json to a new models file
-        static const QString MODELS_FILE_NAME = "models.json.gz";
+    // write the gzipped json to a new models file
+    static const QString MODELS_FILE_NAME = "models.json.gz";
 
-        auto bakedEntitiesFilePath = QDir(_uniqueOutputPath).filePath(MODELS_FILE_NAME);
-        QFile compressedEntitiesFile { bakedEntitiesFilePath };
+    auto bakedEntitiesFilePath = QDir(_uniqueOutputPath).filePath(MODELS_FILE_NAME);
+    QFile compressedEntitiesFile { bakedEntitiesFilePath };
 
-        if (!compressedEntitiesFile.open(QIODevice::WriteOnly)
-            || (compressedEntitiesFile.write(compressedJson) == -1)) {
-            qWarning() << "Failed to export baked entities file to" << bakedEntitiesFilePath;
-            // add an error to our list to state that the output models file could not be created or could not be written to
+    if (!compressedEntitiesFile.open(QIODevice::WriteOnly)
+        || (compressedEntitiesFile.write(compressedJson) == -1)) {
+        qWarning() << "Failed to export baked entities file to" << bakedEntitiesFilePath;
+        // add an error to our list to state that the output models file could not be created or could not be written to
 
-            return;
-        }
-
-        qDebug() << "Exported entities file with baked model URLs to" << bakedEntitiesFilePath;
-
-        // we've now written out our new models file - time to say that we are finished up
-        emit finished();
+        return;
     }
+
+    qDebug() << "Exported entities file with baked model URLs to" << bakedEntitiesFilePath;
 }
 

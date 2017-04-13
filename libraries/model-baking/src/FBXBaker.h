@@ -12,6 +12,7 @@
 #ifndef hifi_FBXBaker_h
 #define hifi_FBXBaker_h
 
+#include <QtCore/QFutureSynchronizer>
 #include <QtCore/QDir>
 #include <QtCore/QUrl>
 #include <QtNetwork/QNetworkReply>
@@ -52,28 +53,29 @@ public:
     FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath, bool copyOriginals = true);
     ~FBXBaker();
 
-    void start();
+    void bake();
 
     QUrl getFBXUrl() const { return _fbxURL; }
     QString getBakedFBXRelativePath() const { return _bakedFBXRelativePath; }
 
 signals:
     void finished();
+    void allTexturesBaked();
 
 private slots:
-    void handleFBXNetworkReply();
     void handleBakedTexture();
     
 private:
-    void bake();
+    void setupOutputFolder();
 
-    bool setupOutputFolder();
+    void loadSourceFBX();
+    void handleFBXNetworkReply(QNetworkReply* requestReply);
+
     bool importScene();
     bool rewriteAndBakeSceneTextures();
     bool exportScene();
     void removeEmbeddedMediaFolder();
     void possiblyCleanupOriginals();
-    void checkIfFinished();
 
     QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
     QUrl getTextureURL(const QFileInfo& textureFileInfo, fbxsdk::FbxFileTexture* fileTexture);
@@ -99,10 +101,9 @@ private:
     QHash<uint64_t, TextureType> _textureTypes;
 
     std::list<std::unique_ptr<TextureBaker>> _bakingTextures;
+    QFutureSynchronizer<void> _textureBakeSynchronizer;
 
     bool _copyOriginals { true };
-
-    bool _finishedNonTextureOperations { false };
 };
 
 #endif // hifi_FBXBaker_h

@@ -1,6 +1,6 @@
 set(TARGET_NAME model-baking)
 
-setup_hifi_library()
+setup_hifi_library(Concurrent)
 
 link_hifi_libraries(networking)
 

@@ -21,7 +21,7 @@ class TextureBaker : public QObject {
 public:
     TextureBaker(const QUrl& textureURL);
 
-    void start();
+    void bake();
 
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 
@@ -30,11 +30,9 @@ public:
 signals:
     void finished();
 
-private slots:
-    void handleTextureNetworkReply();
-
 private:
-    void bake();
+    void loadTexture();
+    void handleTextureNetworkReply(QNetworkReply* requestReply);
 
     QUrl _textureURL;
     QByteArray _originalTexture;

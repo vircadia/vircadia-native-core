@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QEventLoop>
 #include <QtCore/QFile>
 #include <QtNetwork/QNetworkReply>
 
@@ -24,8 +25,16 @@ TextureBaker::TextureBaker(const QUrl& textureURL) :
     
 }
 
-void TextureBaker::start() {
+void TextureBaker::bake() {
+    // first load the texture (either locally or remotely)
+    loadTexture();
 
+    qCDebug(model_baking) << "Baking texture at" << _textureURL;
+
+    emit finished();
+}
+
+void TextureBaker::loadTexture() {
     // check if the texture is local or first needs to be downloaded
     if (_textureURL.isLocalFile()) {
         // load up the local file
@@ -39,9 +48,6 @@ void TextureBaker::start() {
         }
 
         _originalTexture = localTexture.readAll();
-
-        // start the bake now that we have everything in place
-        bake();
     } else {
         // remote file, kick off a download
         auto& networkAccessManager = NetworkAccessManager::getInstance();
@@ -57,13 +63,17 @@ void TextureBaker::start() {
         qCDebug(model_baking) << "Downloading" << _textureURL;
 
         auto networkReply = networkAccessManager.get(networkRequest);
-        connect(networkReply, &QNetworkReply::finished, this, &TextureBaker::handleTextureNetworkReply);
+
+        // use an event loop to process events while we wait for the network reply
+        QEventLoop eventLoop;
+        connect(networkReply, &QNetworkReply::finished, &eventLoop, &QEventLoop::quit);
+        eventLoop.exec();
+
+        handleTextureNetworkReply(networkReply);
     }
 }
 
-void TextureBaker::handleTextureNetworkReply() {
-    QNetworkReply* requestReply = qobject_cast<QNetworkReply*>(sender());
-
+void TextureBaker::handleTextureNetworkReply(QNetworkReply* requestReply) {
     if (requestReply->error() == QNetworkReply::NoError) {
         qCDebug(model_baking) << "Downloaded texture at" << _textureURL;
 
@@ -75,14 +85,5 @@ void TextureBaker::handleTextureNetworkReply() {
     } else {
         // add an error to our list stating that this texture could not be downloaded
         qCDebug(model_baking) << "Error downloading texture" << requestReply->errorString();
-
-        emit finished();
     }
-}
-
-void TextureBaker::bake() {
-    qCDebug(model_baking) << "Baking texture at" << _textureURL;
-
-    // call image library to asynchronously bake this texture
-    emit finished();
 }

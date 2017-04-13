@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtConcurrent>
+
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QLabel>
@@ -207,7 +209,9 @@ void DomainBakeWidget::bakeButtonClicked() {
                 new DomainBaker(fileToBakeURL, _domainNameLineEdit->text(),
                                 outputDirectory.absolutePath(), _destinationPathLineEdit->text())
         };
-        _baker->start();
+
+        // run the baker in our thread pool
+        QtConcurrent::run(_baker.get(), &DomainBaker::bake);
 
         return;
     }
