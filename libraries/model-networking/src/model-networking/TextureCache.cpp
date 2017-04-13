@@ -30,7 +30,6 @@
 
 #include <gpu/Batch.h>
 
-#include <ktx/KTX.h>
 
 #include <image/Image.h>
 
@@ -473,9 +472,11 @@ void NetworkTexture::maybeCreateKTX() {
             _file = file;
         }
 
+        _ktxDescriptor.reset(new ktx::KTXDescriptor(memKtx->toDescriptor()));
+
         //auto texture = gpu::Texture::serializeHeader("test.ktx", *header, keyValues);
         gpu::TexturePointer texture;
-        texture.reset(gpu::Texture::unserialize(_file->getFilepath(), memKtx->toDescriptor()));
+        texture.reset(gpu::Texture::unserialize(_file->getFilepath(), *_ktxDescriptor));
         texture->setKtxBacking(file->getFilepath());
 
         // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
@@ -496,6 +497,7 @@ void NetworkTexture::downloadFinished(const QByteArray& data) {
 
 void NetworkTexture::loadContent(const QByteArray& content) {
     if (_sourceIsKTX) {
+        assert(false);
         if (_ktxLoadState == LOADING_HEADER) {
             // TODO Handle case where we already have the source hash texture on disk
             // TODO Handle case where data isn't as large as the ktx header

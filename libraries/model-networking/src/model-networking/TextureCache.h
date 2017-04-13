@@ -23,6 +23,7 @@
 #include <ResourceCache.h>
 #include <model/TextureMap.h>
 #include <image/Image.h>
+#include <ktx/KTX.h>
 
 #include "KTXCache.h"
 
@@ -102,6 +103,8 @@ private:
     ResourceRequest* _ktxMipRequest { nullptr };
     QByteArray _ktxHeaderData;
     QByteArray _ktxHighMipData;
+    ktx::KTXDescriptorPointer _ktxDescriptor;
+
 
     int _originalWidth { 0 };
     int _originalHeight { 0 };

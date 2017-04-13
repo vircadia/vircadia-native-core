@@ -60,6 +60,7 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
 }
 
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
+    qDebug() << "getMipFace: " << QString::fromStdString(_filename) << ": " << level << " " << face;
     storage::StoragePointer result;
     auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
@@ -75,11 +76,10 @@ Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
 
 
 bool KtxStorage::isMipAvailable(uint16 level, uint8 face) const {
-    return true;
     auto numLevels = _ktxDescriptor->header.numberOfMipmapLevels;
     auto minLevel = 7 > numLevels ? 0 : numLevels - 10;
     auto avail = level >= minLevel;
-    qDebug() << "isMipAvailable: " << level << " " << face << avail << minLevel << " " << _ktxDescriptor->header.numberOfMipmapLevels;
+    qDebug() << "isMipAvailable: " << QString::fromStdString(_filename) << ": " << level << " " << face << avail << minLevel << " " << _ktxDescriptor->header.numberOfMipmapLevels;
     //return true;
     return level > _ktxDescriptor->header.numberOfMipmapLevels - 7;
 }
