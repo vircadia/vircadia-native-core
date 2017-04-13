@@ -40,7 +40,7 @@ StackView {
         fillDestinations();
         updateLocationText(false);
         fillDestinations();
-        addressLine.focus = true;
+        addressLine.focus = !HMD.active;
         root.parentChanged.connect(center);
         center();
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -200,8 +200,13 @@ StackView {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        addressLine.focus = true;
-                        addressBarDialog.keyboardEnabled = HMD.active;
+                        if (!addressLine.focus || !HMD.active) {
+                            addressLine.focus = true;
+                            addressBarDialog.keyboardEnabled = HMD.active;
+                        } else {
+                            addressLine.focus = false;
+                            addressBarDialog.keyboardEnabled = false;
+                        }
                         tabletRoot.playButtonClickSound();
                     }
                 }
