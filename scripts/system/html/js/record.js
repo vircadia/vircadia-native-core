@@ -73,9 +73,16 @@ function updateRecordings() {
         tbody.appendChild(tr);
     }
 
-    elRecordingsPlaying.replaceChild(tbody, elRecordingsPlaying.getElementsByTagName("tbody")[0]);
+    // Empty rows representing available players.
+    for (i = recordingsBeingPlayed.length, length = numberOfPlayers; i < length; i += 1) {
+        tr = document.createElement("tr");
+        td = document.createElement("td");
+        td.colSpan = 2;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+    }
 
-    updatePlayersUnused();
+    elRecordingsPlaying.replaceChild(tbody, elRecordingsPlaying.getElementsByTagName("tbody")[0]);
 }
 
 function updateLoadButton() {
@@ -93,10 +100,12 @@ function onScriptEventReceived(data) {
         case RECORDINGS_BEING_PLAYED_ACTION:
             recordingsBeingPlayed = JSON.parse(message.value);
             updateRecordings();
+            updatePlayersUnused();
             updateLoadButton();
             break;
         case NUMBER_OF_PLAYERS_ACTION:
             numberOfPlayers = message.value;
+            updateRecordings();
             updatePlayersUnused();
             updateLoadButton();
             break;
