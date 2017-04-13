@@ -111,12 +111,12 @@ var EQUIP_RADIUS = 0.2; // radius used for palm vs equip-hotspot for equipping.
 // has reached the required position, and then grow larger once the hand is close enough to equip.
 var EQUIP_HOTSPOT_RENDER_RADIUS = 0.0; // radius used for palm vs equip-hotspot for rendering hot-spots
 var MAX_EQUIP_HOTSPOT_RADIUS = 1.0;
-
+var MAX_FAR_TO_NEAR_EQUIP_HOTSPOT_RADIUS = 0.5; // radius used for far to near equipping object.
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
 var NEAR_GRAB_RADIUS = 0.1; // radius used for palm vs object for near grabbing.
 var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
-
+var FAR_TO_NEAR_GRAB_MAX_DISTANCE = 0.75; // In far to near grabbing conversion,grab the object if distancetoObject from hand is less than this.
 var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 
@@ -2122,7 +2122,7 @@ function MyController(hand) {
         }
     };
         
-    this.chooseNearEquipHotspotsForDistanceToNearEquip = function(candidateEntities, distance) {
+    this.chooseNearEquipHotspotsForFarToNearEquip = function(candidateEntities, distance) {
         var equippableHotspots = flatten(candidateEntities.map(function(entityID) {
                 return _this.collectEquipHotspots(entityID);
             })).filter(function(hotspot) {
@@ -2132,9 +2132,9 @@ function MyController(hand) {
             return equippableHotspots;
     };
 
-    this.chooseBestEquipHotspotForDistanceToNearEquip = function(candidateEntities) {
+    this.chooseBestEquipHotspotForFarToNearEquip = function(candidateEntities) {
         var DISTANCE = 1;
-        var equippableHotspots = this.chooseNearEquipHotspotsForDistanceToNearEquip(candidateEntities, DISTANCE);
+        var equippableHotspots = this.chooseNearEquipHotspotsForFarToNearEquip(candidateEntities, DISTANCE);
         var _this = this;
         if (equippableHotspots.length > 0) {
             // sort by distance
@@ -2700,14 +2700,12 @@ function MyController(hand) {
                            this.grabbedThingID);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
-        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
-        var handPosition = controllerLocation.position;
             
-        var candidateHotSpotEntities = Entities.findEntities(handPosition,MAX_EQUIP_HOTSPOT_RADIUS);
+        var candidateHotSpotEntities = Entities.findEntities(controllerLocation.position,MAX_FAR_TO_NEAR_EQUIP_HOTSPOT_RADIUS);
         entityPropertiesCache.addEntities(candidateHotSpotEntities);
 
-        var potentialEquipHotspot = this.chooseBestEquipHotspotForDistanceToNearEquip(candidateHotSpotEntities);
-        if (potentialEquipHotspot) {
+        var potentialEquipHotspot = this.chooseBestEquipHotspotForFarToNearEquip(candidateHotSpotEntities);
+        if (potentialEquipHotspot && (potentialEquipHotspot.entityID == this.grabbedThingID)) {
             if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && holdEnabled) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.grabbedThingID = potentialEquipHotspot.entityID;
@@ -2731,8 +2729,8 @@ function MyController(hand) {
              }
         }
 
-        //Far to Near Grab: If object is draw by user inside NEAR_GRAB_MAX_DISTANCE, grab it
-        if (this.entityIsFarToNearGrabbable(this.currentObjectPosition, handPosition, NEAR_GRAB_MAX_DISTANCE)) {
+        //Far to Near Grab: If object is draw by user inside FAR_TO_NEAR_GRAB_MAX_DISTANCE, grab it
+        if (this.entityIsFarToNearGrabbable(this.currentObjectPosition, controllerLocation.position, FAR_TO_NEAR_GRAB_MAX_DISTANCE)) {
             this.farToNearGrab = true;
 
             var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
