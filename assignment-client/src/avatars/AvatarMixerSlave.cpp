@@ -67,15 +67,13 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
 
 
 int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    int bytesSent = 0;
     QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
-    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size(), true, true);
     individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-    bytesSent += individualData.size();
-    identityPacket->write(individualData);
-    DependencyManager::get<NodeList>()->sendPacket(std::move(identityPacket), *destinationNode);
+    auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+    identityPackets->write(individualData);
+    DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
     _stats.numIdentityPackets++;
-    return bytesSent;
+    return individualData.size();
 }
 
 static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
@@ -175,7 +173,6 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             }
         });
 
-        const uint64_t MIN_KEEP_ALIVE_PERIOD_FOR_OTHER_AVATAR = (AVATAR_UPDATE_TIMEOUT - 1) * USECS_PER_SECOND;
         AvatarSharedPointer thisAvatar = nodeData->getAvatarSharedPointer();
         ViewFrustum cameraView = nodeData->getViewFrustom();
         std::priority_queue<AvatarPriority> sortedAvatars;
@@ -263,17 +260,11 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                         //         have 15 (45hz-30hz) duplicate frames. In this case, the stat
                         //         avg_other_av_skips_per_second does report 15.
                         //
-                        // make sure we haven't already sent this data from this sender to that receiver
+                        // make sure we haven't already sent this data from this sender to this receiver
                         // or that somehow we haven't sent
                         if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
-                            // don't ignore this avatar if we haven't sent any update for a long while
-                            uint64_t lastBroadcastTime = nodeData->getLastBroadcastTime(avatarNode->getUUID());
-                            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
-                            if (lastBroadcastTime > otherNodeData->getIdentityChangeTimestamp() &&
-                                    lastBroadcastTime > startIgnoreCalculation - MIN_KEEP_ALIVE_PERIOD_FOR_OTHER_AVATAR) {
-                                ++numAvatarsHeldBack;
-                                shouldIgnore = true;
-                            }
+                            ++numAvatarsHeldBack;
+                            shouldIgnore = true;
                         } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                             // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                             ++numAvatarsWithSkippedFrames;
@@ -312,9 +303,10 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             // the time that Avatar B flagged an IDENTITY DATA change
             // or if no packet of any type has been sent for some time
             // send IDENTITY DATA about Avatar B to Avatar A
+            const uint64_t AVATAR_UPDATE_STALE = AVATAR_UPDATE_TIMEOUT - USECS_PER_SECOND;
             uint64_t lastBroadcastTime = nodeData->getLastBroadcastTime(otherNode->getUUID());
             if (lastBroadcastTime <= otherNodeData->getIdentityChangeTimestamp() ||
-                    startAvatarDataPacking > lastBroadcastTime + MIN_KEEP_ALIVE_PERIOD_FOR_OTHER_AVATAR) {
+                    startAvatarDataPacking > lastBroadcastTime + AVATAR_UPDATE_STALE) {
                 identityBytesSent += sendIdentityPacket(otherNodeData, node);
             }
 
