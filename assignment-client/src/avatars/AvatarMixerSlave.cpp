@@ -175,6 +175,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             }
         });
 
+        const uint64_t MIN_KEEP_ALIVE_PERIOD_FOR_OTHER_AVATAR = (AVATAR_UPDATE_TIMEOUT - 1) * USECS_PER_SECOND;
         AvatarSharedPointer thisAvatar = nodeData->getAvatarSharedPointer();
         ViewFrustum cameraView = nodeData->getViewFrustom();
         std::priority_queue<AvatarPriority> sortedAvatars;
@@ -262,11 +263,17 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                         //         have 15 (45hz-30hz) duplicate frames. In this case, the stat
                         //         avg_other_av_skips_per_second does report 15.
                         //
-                        // make sure we haven't already sent this data from this sender to this receiver
+                        // make sure we haven't already sent this data from this sender to that receiver
                         // or that somehow we haven't sent
                         if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
-                            ++numAvatarsHeldBack;
-                            shouldIgnore = true;
+                            // don't ignore this avatar if we haven't sent any update for a long while
+                            uint64_t lastBroadcastTime = nodeData->getLastBroadcastTime(avatarNode->getUUID());
+                            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
+                            if (lastBroadcastTime > otherNodeData->getIdentityChangeTimestamp() &&
+                                    lastBroadcastTime > startIgnoreCalculation - MIN_KEEP_ALIVE_PERIOD_FOR_OTHER_AVATAR) {
+                                ++numAvatarsHeldBack;
+                                shouldIgnore = true;
+                            }
                         } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                             // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                             ++numAvatarsWithSkippedFrames;
@@ -302,8 +309,12 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
 
             // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
-            // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
-            if (nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
+            // the time that Avatar B flagged an IDENTITY DATA change
+            // or if no packet of any type has been sent for some time
+            // send IDENTITY DATA about Avatar B to Avatar A
+            uint64_t lastBroadcastTime = nodeData->getLastBroadcastTime(otherNode->getUUID());
+            if (lastBroadcastTime <= otherNodeData->getIdentityChangeTimestamp() ||
+                    startAvatarDataPacking > lastBroadcastTime + MIN_KEEP_ALIVE_PERIOD_FOR_OTHER_AVATAR) {
                 identityBytesSent += sendIdentityPacket(otherNodeData, node);
             }
 
