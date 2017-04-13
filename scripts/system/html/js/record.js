@@ -12,6 +12,7 @@
 
 var isUsingToolbar = false,
     isDisplayingInstructions = false,
+    isRecording = false,
     numberOfPlayers = 0,
     recordingsBeingPlayed = [],
     elRecordingsPlaying,
@@ -28,7 +29,8 @@ var isUsingToolbar = false,
     NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
     STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
     LOAD_RECORDING_ACTION = "loadRecording",
-    START_RECORDING_ACTION = "startRecording";
+    START_RECORDING_ACTION = "startRecording",
+    STOP_RECORDING_ACTION = "stopRecording";
 
 function stopPlayingRecording(event) {
     var playerID = event.target.getElementsByTagName("input")[0].value;
@@ -152,6 +154,38 @@ function onScriptEventReceived(data) {
     }
 }
 
+function onLoadButtonClicked() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: EVENT_BRIDGE_TYPE,
+        action: LOAD_RECORDING_ACTION
+    }));
+}
+
+function onRecordButtonClicked() {
+    if (!isRecording) {
+        elRecordButton.classList.add("pressed");
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: EVENT_BRIDGE_TYPE,
+            action: START_RECORDING_ACTION
+        }));
+        isRecording = true;
+    } else {
+        elRecordButton.classList.remove("pressed");
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: EVENT_BRIDGE_TYPE,
+            action: STOP_RECORDING_ACTION
+        }));
+        isRecording = false;
+    }
+}
+
+function signalBodyLoaded() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: EVENT_BRIDGE_TYPE,
+        action: BODY_LOADED_ACTION
+    }));
+}
+
 function onBodyLoaded() {
 
     EventBridge.scriptEventReceived.connect(onScriptEventReceived);
@@ -167,23 +201,10 @@ function onBodyLoaded() {
     elShowInfoButton.onclick = showInstructions;
 
     elLoadButton = document.getElementById("load-button");
-    elLoadButton.onclick = function () {
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: EVENT_BRIDGE_TYPE,
-            action: LOAD_RECORDING_ACTION
-        }));
-    };
+    elLoadButton.onclick = onLoadButtonClicked;
 
     elRecordButton = document.getElementById("record-button");
-    elRecordButton.onclick = function () {
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: EVENT_BRIDGE_TYPE,
-            action: START_RECORDING_ACTION
-        }));
-    };
+    elRecordButton.onclick = onRecordButtonClicked;
 
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: EVENT_BRIDGE_TYPE,
-        action: BODY_LOADED_ACTION
-    }));
+    signalBodyLoaded();
 }

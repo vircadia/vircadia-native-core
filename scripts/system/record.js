@@ -391,7 +391,8 @@
             NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
             STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
             LOAD_RECORDING_ACTION = "loadRecording",
-            START_RECORDING_ACTION = "startRecording";
+            START_RECORDING_ACTION = "startRecording",
+            STOP_RECORDING_ACTION = "stopRecording";
 
         function onWebEventReceived(data) {
             var message = JSON.parse(data);
@@ -415,10 +416,16 @@
                     break;
                 case START_RECORDING_ACTION:
                     // Start making a recording.
-                    tablet.gotoHomeScreen();  // Closes window dialog.
-                    HMD.closeTablet();
                     if (Recorder.isIdle()) {
                         Recorder.startCountdown();
+                    }
+                    break;
+                case STOP_RECORDING_ACTION:
+                    // Cancel or finish a recording.
+                    if (Recorder.isCountingDown()) {
+                        Recorder.cancelCountdown();
+                    } else if (Recorder.isRecording()) {
+                        Recorder.finishRecording();
                     }
                     break;
                 }
