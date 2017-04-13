@@ -369,7 +369,7 @@
     }
 
     function onMessageReceived(channel, message, sender) {
-        if (channel !== HIFI_RECORDER_CHANNEL) {
+        if (channel !== HIFI_PLAYER_CHANNEL) {
             return;
         }
 
