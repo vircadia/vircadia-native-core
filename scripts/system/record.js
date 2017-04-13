@@ -19,6 +19,7 @@
         isDialogDisplayed = false,
         tablet,
         button,
+        isConnected,
 
         CountdownTimer,
         RecordingIndicator,
@@ -436,6 +437,14 @@
             Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
         }
 
+        function reset() {
+            playerIDs = [];
+            playerIsPlayings = [];
+            playerRecordings = [];
+            playerTimestamps = [];
+            Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
+        }
+
         function setUp() {
             // Messaging with AC scripts.
             Messages.messageReceived.connect(onMessageReceived);
@@ -455,6 +464,7 @@
             playRecording: playRecording,
             stopPlayingRecording: stopPlayingRecording,
             numberOfPlayers: numberOfPlayers,
+            reset: reset,
             setUp: setUp,
             tearDown: tearDown
         };
@@ -584,6 +594,17 @@
         }
     }
 
+    function onUpdate() {
+        if (isConnected !== Window.location.isConnected) {
+            // Server restarted or domain changed.
+            isConnected = !isConnected;
+            if (!isConnected) {
+                // Clear dialog.
+                Player.reset();
+            }
+        }
+    }
+
     function setUp() {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
@@ -606,12 +627,17 @@
         Dialog.setUp();
         Player.setUp();
         Recorder.setUp(Player.playRecording);
+
+        isConnected = Window.location.isConnected;
+        Script.update.connect(onUpdate);
     }
 
     function tearDown() {
         if (!tablet) {
             return;
         }
+
+        Script.update.disconnect(onUpdate);
 
         Recorder.tearDown();
         Player.tearDown();
