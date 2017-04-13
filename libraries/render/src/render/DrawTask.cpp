@@ -166,6 +166,18 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
     const Inputs& items) {
     RenderArgs* args = renderContext->args;
 
+    auto numItems = items.size();
+    if (numItems == 0) {
+        return;
+    }
+
+    static const uint32_t sizeOfItemBound = sizeof(ItemBound);
+    if (!_drawBuffer) {
+        _drawBuffer = std::make_shared<gpu::Buffer>(sizeOfItemBound);
+    }
+    
+    _drawBuffer->setData(numItems * sizeOfItemBound, (const gpu::Byte*) items.data());
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
@@ -180,17 +192,23 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
 
         // Bind program
         batch.setPipeline(getPipeline());
-        assert(_cornerLocation >= 0);
-        assert(_scaleLocation >= 0);
+//        assert(_cornerLocation >= 0);
+   //     assert(_scaleLocation >= 0);
 
         // Render bounds
-        for (const auto& item : items) {
+       /* for (const auto& item : items) {
             batch._glUniform3fv(_cornerLocation, 1, (const float*)(&item.bound.getCorner()));
             batch._glUniform3fv(_scaleLocation, 1, (const float*)(&item.bound.getScale()));
 
             static const int NUM_VERTICES_PER_CUBE = 24;
             batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE, 0);
         }
+        */
+
+        batch.setResourceBuffer(0, _drawBuffer);
+
+        static const int NUM_VERTICES_PER_CUBE = 24;
+        batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE * numItems, 0);
     });
 }
 

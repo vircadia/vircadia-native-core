@@ -22,8 +22,14 @@ uniform vec3 inBoundPos;
 uniform vec3 inBoundDim;
 uniform ivec4 inCellLocation;
 
+
+struct ItemBound {
+    vec4 id_boundPos;
+    vec4 boundDim_s;
+};
+
 layout(std140) buffer ssbo0Buffer {
-    vec4 perBoundData[];
+    ItemBound bounds[];
 };
 
 
@@ -55,11 +61,17 @@ void main(void) {
         0, 4,
         1, 5
     );
-    vec4 cubeVec = UNIT_BOX[UNIT_BOX_LINE_INDICES[gl_VertexID]];
 
-    vec4 offset = perBoundData[gl_VertexID];
+    int boundID = gl_VertexID / 24;
+    int vertexID = gl_VertexID - boundID * 24;
 
-    vec4 pos = vec4(inBoundPos + inBoundDim * cubeVec.xyz, 1.0);
+    vec4 cubeVec = UNIT_BOX[UNIT_BOX_LINE_INDICES[vertexID]];
+
+    ItemBound bound = bounds[boundID];
+    vec3 boundPos = bound.id_boundPos.yzw;
+    vec3 boundDim = bound.boundDim_s.xyz;
+
+    vec4 pos = vec4(boundPos + boundDim * cubeVec.xyz, 1.0);
 
     // standard transform
     TransformCamera cam = getTransformCamera();
@@ -68,7 +80,7 @@ void main(void) {
 
     bool subcell = bool((inCellLocation.z));
     float cellDepth = float(inCellLocation.w);
-    varColor = vec4(colorWheel(fract(cellDepth / 5.0)), 1.0 - float(subcell)) + offset;
-    varTexcoord = vec2(cubeVec.w, length(inBoundDim));
+    varColor = vec4(colorWheel(fract(cellDepth / 5.0)), 1.0 - float(subcell));
+    varTexcoord = vec2(cubeVec.w, length(boundDim));
 
 }
