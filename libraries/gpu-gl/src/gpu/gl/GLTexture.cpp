@@ -120,11 +120,12 @@ void GLTexture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, u
     }
     auto size = _gpuObject.evalMipDimensions(sourceMip);
     auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
+    auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
     if (mipData) {
         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.format, texelFormat.type, mipData->readData());
+        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.format, texelFormat.internalFormat, texelFormat.type, mipSize, mipData->readData());
     } else {
-         qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
+        qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
     }
 }
 
@@ -203,9 +204,11 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
 
     auto transferDimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
     GLenum format;
+    GLenum internalFormat;
     GLenum type;
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_parent._gpuObject.getTexelFormat(), _parent._gpuObject.getStoredMipFormat());
     format = texelFormat.format;
+    internalFormat = texelFormat.internalFormat;
     type = texelFormat.type;
     auto mipSize = _parent._gpuObject.getStoredMipFaceSize(sourceMip, face);
 
@@ -236,7 +239,7 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
     Backend::updateTextureTransferPendingSize(0, _transferSize);
 
     _transferLambda = [=] {
-        _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, format, type, _buffer.data());
+        _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, format, internalFormat, type, _buffer.size(), _buffer.data());
         std::vector<uint8_t> emptyVector;
         _buffer.swap(emptyVector);
     };

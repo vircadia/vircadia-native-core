@@ -645,6 +645,18 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::COMPRESSED_SRGBA:
                 texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA;
                 break;
+            case gpu::COMPRESSED_BC3_RGBA:
+                texel.internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+                break;
+            case gpu::COMPRESSED_BC3_SRGBA:
+                texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+                break;
+            case gpu::COMPRESSED_BC7_RGBA:
+                texel.internalFormat = GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
+                break;
+            case gpu::COMPRESSED_BC7_SRGBA:
+                texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
+                break;
             default:
                 qCWarning(gpugllogging) << "Unknown combination of texel format";
             }

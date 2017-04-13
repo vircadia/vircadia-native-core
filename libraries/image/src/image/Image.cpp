@@ -27,6 +27,9 @@ using namespace gpu;
 
 // FIXME: Declare this to enable compression
 //#define COMPRESS_TEXTURES
+#define CPU_MIPMAPS 1
+#define DEBUG_NVTT 1
+
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
 static const glm::uvec2 MAX_TEXTURE_SIZE(4096);
 bool DEV_DECIMATE_TEXTURES = false;
@@ -219,6 +222,10 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
 
 void TextureUsage::defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element& formatMip,
                                            const QImage& image, bool isLinear, bool doCompress) {
+#ifdef COMPRESS_TEXTURES
+#else
+    doCompress = false;
+#endif
 
     if (image.hasAlphaChannel()) {
         gpu::Semantic gpuSemantic;
@@ -226,14 +233,14 @@ void TextureUsage::defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element
         if (isLinear) {
             mipSemantic = gpu::BGRA;
             if (doCompress) {
-                gpuSemantic = gpu::COMPRESSED_BC3_RGBA;
+                gpuSemantic = gpu::COMPRESSED_RGBA;
             } else {
                 gpuSemantic = gpu::RGBA;
             }
         } else {
             mipSemantic = gpu::SBGRA;
             if (doCompress) {
-                gpuSemantic = gpu::COMPRESSED_BC3_SRGBA;
+                gpuSemantic = gpu::COMPRESSED_SRGBA;
             } else {
                 gpuSemantic = gpu::SRGBA;
             }
@@ -263,9 +270,6 @@ void TextureUsage::defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element
     }
 }
 
-#define CPU_MIPMAPS 1
-#define DEBUG_NVTT 0
-
 void generateMips(gpu::Texture* texture, QImage& image, bool fastResize) {
 #if CPU_MIPMAPS
     PROFILE_RANGE(resource_parse, "generateMips");
@@ -275,6 +279,8 @@ void generateMips(gpu::Texture* texture, QImage& image, bool fastResize) {
     debug << Q_FUNC_INFO << "\n";
     debug << (QList<int>() << image.byteCount() << image.width() << image.height() << image.depth()) << "\n";
 #endif // DEBUG_NVTT
+
+    texture->assignStoredMip(0, image.byteCount(), image.constBits());
 
     auto numMips = texture->getNumMips();
     for (uint16 level = 1; level < numMips; ++level) {
@@ -305,6 +311,8 @@ void generateMips(gpu::Texture* texture, QImage& image, bool fastResize) {
 void generateFaceMips(gpu::Texture* texture, QImage& image, uint8 face) {
 #if CPU_MIPMAPS
     PROFILE_RANGE(resource_parse, "generateFaceMips");
+
+
     auto numMips = texture->getNumMips();
     for (uint16 level = 1; level < numMips; ++level) {
         QSize mipSize(texture->evalMipWidth(level), texture->evalMipHeight(level));
@@ -390,6 +398,7 @@ void generateNVTTMips(gpu::Texture* texture, QImage& image) {
     return;
     /**/
 
+
 #if DEBUG_NVTT
     QDebug debug = qDebug();
     QDebug* debugPtr = &debug;
@@ -409,7 +418,7 @@ void generateNVTTMips(gpu::Texture* texture, QImage& image) {
     nvtt::InputFormat inputFormat = nvtt::InputFormat_BGRA_8UB;
     nvtt::AlphaMode alphaMode = image.hasAlphaChannel() ? nvtt::AlphaMode_Transparency : nvtt::AlphaMode_None;
     nvtt::WrapMode wrapMode = nvtt::WrapMode_Repeat;
-    nvtt::Format compressionFormat = image.hasAlphaChannel() ? nvtt::Format_RGBA : nvtt::Format_RGB;
+    nvtt::Format compressionFormat = nvtt::Format_BC3;
     float inputGamma = 1.0f;
     float outputGamma = 2.2f;
 
@@ -436,7 +445,7 @@ void generateNVTTMips(gpu::Texture* texture, QImage& image) {
 
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setFormat(compressionFormat);
-    compressionOptions.setQuality(nvtt::Quality_Production);
+    compressionOptions.setQuality(nvtt::Quality_Fastest);
 
     nvtt::Compressor compressor;
     compressor.process(inputOptions, compressionOptions, outputOptions);
@@ -457,6 +466,8 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         gpu::Element formatGPU;
         gpu::Element formatMip;
         defineColorTexelFormats(formatGPU, formatMip, image, isLinear, doCompress);
+        formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA;
+        formatMip = gpu::Element::COLOR_COMPRESSED_SRGBA;
 
         if (isStrict) {
             theTexture = (gpu::Texture::createStrict(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
@@ -484,11 +495,11 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
 }
 
 gpu::Texture* TextureUsage::createStrict2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    return process2DTextureColorFromImage(srcImage, srcImageName, false, true, true, true);
+    return process2DTextureColorFromImage(srcImage, srcImageName, false, false, true, true);
 }
 
 gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    return process2DTextureColorFromImage(srcImage, srcImageName, false, true, true);
+    return process2DTextureColorFromImage(srcImage, srcImageName, false, false, true);
 }
 
 gpu::Texture* TextureUsage::createAlbedoTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {

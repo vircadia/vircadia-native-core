@@ -101,8 +101,6 @@ namespace ktx {
         UNSIGNED_INT_10F_11F_11F_REV    = 0x8C3B,
         UNSIGNED_INT_5_9_9_9_REV        = 0x8C3E,
         FLOAT_32_UNSIGNED_INT_24_8_REV  = 0x8DAD,
-
-        NUM_GLTYPES = 25,
     };
 
     enum class GLFormat : uint32_t {
@@ -130,8 +128,6 @@ namespace ktx {
         RGBA_INTEGER                    = 0x8D99,
         BGR_INTEGER                     = 0x8D9A,
         BGRA_INTEGER                    = 0x8D9B,
-
-        NUM_GLFORMATS = 20,
     };
 
     enum class GLInternalFormat_Uncompressed : uint32_t {
@@ -232,8 +228,6 @@ namespace ktx {
         STENCIL_INDEX4 = 0x8D47,
         STENCIL_INDEX8 = 0x8D48,
         STENCIL_INDEX16 = 0x8D49,
-
-        NUM_UNCOMPRESSED_GLINTERNALFORMATS = 74,
     };
 
     enum class GLInternalFormat_Compressed : uint32_t {
@@ -267,8 +261,6 @@ namespace ktx {
         COMPRESSED_SIGNED_R11_EAC = 0x9271,
         COMPRESSED_RG11_EAC = 0x9272,
         COMPRESSED_SIGNED_RG11_EAC = 0x9273,
-
-         NUM_COMPRESSED_GLINTERNALFORMATS = 24,
     };
  
     enum class GLBaseInternalFormat : uint32_t {
@@ -280,8 +272,6 @@ namespace ktx {
         RGB = 0x1907,
         RGBA = 0x1908,
         STENCIL_INDEX = 0x1901,
-
-        NUM_GLBASEINTERNALFORMATS = 7,
     };
 
     enum CubeMapFace {

@@ -19,6 +19,8 @@ const Element Element::COLOR_SRGBA_32{ VEC4, NUINT8, SRGBA };
 const Element Element::COLOR_BGRA_32{ VEC4, NUINT8, BGRA };
 const Element Element::COLOR_SBGRA_32{ VEC4, NUINT8, SBGRA };
 
+const Element Element::COLOR_COMPRESSED_SRGBA{ VEC4, NUINT8, COMPRESSED_BC3_SRGBA };
+
 const Element Element::COLOR_R11G11B10{ SCALAR, FLOAT, R11G11B10 };
 const Element Element::VEC4F_COLOR_RGBA{ VEC4, FLOAT, RGBA };
 const Element Element::VEC2F_UV{ VEC2, FLOAT, UV };
