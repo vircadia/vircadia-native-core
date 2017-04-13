@@ -73,7 +73,10 @@ void TextureBaker::handleTextureNetworkReply() {
         // kickoff the texture bake now that everything is ready to go
         bake();
     } else {
+        // add an error to our list stating that this texture could not be downloaded
         qCDebug(model_baking) << "Error downloading texture" << requestReply->errorString();
+
+        emit finished();
     }
 }
 

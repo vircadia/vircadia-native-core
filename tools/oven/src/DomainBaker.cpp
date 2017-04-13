@@ -20,12 +20,18 @@
 
 #include "DomainBaker.h"
 
-DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainName, const QString& baseOutputPath) :
+DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainName,
+                         const QString& baseOutputPath, const QUrl& destinationPath) :
     _localEntitiesFileURL(localModelFileURL),
     _domainName(domainName),
     _baseOutputPath(baseOutputPath)
 {
-    
+    // make sure the destination path has a trailing slash
+    if (!destinationPath.toString().endsWith('/')) {
+        _destinationPath = destinationPath.toString() + '/';
+    } else {
+        _destinationPath = destinationPath;
+    }
 }
 
 void DomainBaker::start() {
@@ -45,9 +51,9 @@ void DomainBaker::setupOutputFolder() {
     QString outputDirectoryName = domainPrefix + timeNow.toString(FOLDER_TIMESTAMP_FORMAT);
 
     //  make sure we can create that directory
-    QDir baseDir { _baseOutputPath };
+    QDir outputDir { _baseOutputPath };
 
-    if (!baseDir.mkpath(outputDirectoryName)) {
+    if (!outputDir.mkpath(outputDirectoryName)) {
 
         // add an error to specify that the output directory could not be created
 
@@ -55,9 +61,21 @@ void DomainBaker::setupOutputFolder() {
     }
 
     // store the unique output path so we can re-use it when saving baked models
-    baseDir.cd(outputDirectoryName);
-    _uniqueOutputPath = baseDir.absolutePath();
+    outputDir.cd(outputDirectoryName);
+    _uniqueOutputPath = outputDir.absolutePath();
+
+    // add a content folder inside the unique output folder
+    static const QString CONTENT_OUTPUT_FOLDER_NAME = "content";
+    if (!outputDir.mkpath(CONTENT_OUTPUT_FOLDER_NAME)) {
+        // add an error to specify that the content output directory could not be created
+
+        return;
+    }
+
+    _contentOutputPath = outputDir.absoluteFilePath(CONTENT_OUTPUT_FOLDER_NAME);
 }
+
+const QString ENTITIES_OBJECT_KEY = "Entities";
 
 void DomainBaker::loadLocalFile() {
     // load up the local entities file
@@ -86,7 +104,7 @@ void DomainBaker::loadLocalFile() {
     auto jsonDocument = QJsonDocument::fromJson(fileContents);
 
     // grab the entities object from the root JSON object
-    _entities = jsonDocument.object()["Entities"].toArray();
+    _entities = jsonDocument.object()[ENTITIES_OBJECT_KEY].toArray();
 
     if (_entities.isEmpty()) {
         // add an error to our list stating that the models file was empty
@@ -96,19 +114,20 @@ void DomainBaker::loadLocalFile() {
     }
 }
 
+static const QString ENTITY_MODEL_URL_KEY = "modelURL";
+
 void DomainBaker::enumerateEntities() {
     qDebug() << "Enumerating" << _entities.size() << "entities from domain";
 
-    foreach(QJsonValue entityValue, _entities) {
+    for (auto it = _entities.begin(); it != _entities.end(); ++it) {
         // make sure this is a JSON object
-        if (entityValue.isObject()) {
-            auto entity = entityValue.toObject();
+        if (it->isObject()) {
+            auto entity = it->toObject();
 
             // check if this is an entity with a model URL
-            static const QString ENTITY_MODEL_URL_KEY = "modelURL";
             if (entity.contains(ENTITY_MODEL_URL_KEY)) {
                 // grab a QUrl for the model URL
-                auto modelURL = QUrl(entity[ENTITY_MODEL_URL_KEY].toString());
+                QUrl modelURL { entity[ENTITY_MODEL_URL_KEY].toString() };
 
                 // check if the file pointed to by this URL is a bakeable model, by comparing extensions
                 auto modelFileName = modelURL.fileName();
@@ -118,12 +137,15 @@ void DomainBaker::enumerateEntities() {
 
                 if (BAKEABLE_MODEL_EXTENSIONS.contains(completeLowerExtension)) {
                     // grab a clean version of the URL without a query or fragment
-                    modelURL.setFragment("");
-                    modelURL.setQuery("");
+                    modelURL.setFragment(QString());
+                    modelURL.setQuery(QString());
 
                     // setup an FBXBaker for this URL, as long as we don't already have one
                     if (!_bakers.contains(modelURL)) {
-                        QSharedPointer<FBXBaker> baker { new FBXBaker(modelURL, _uniqueOutputPath) };
+                        QSharedPointer<FBXBaker> baker { new FBXBaker(modelURL, _contentOutputPath) };
+
+                        // make sure our handler is called when the baker is done
+                        connect(baker.data(), &FBXBaker::finished, this, &DomainBaker::handleFinishedBaker);
 
                         // start the baker
                         baker->start();
@@ -131,8 +153,97 @@ void DomainBaker::enumerateEntities() {
                         // insert it into our bakers hash so we hold a strong pointer to it
                         _bakers.insert(modelURL, baker);
                     }
+
+                    // add this QJsonValueRef to our multi hash so that we can easily re-write
+                    // the model URL to the baked version once the baker is complete
+                    _entitiesNeedingRewrite.insert(modelURL, *it);
                 }
             }
         }
     }
+
+    _enumeratedAllEntities = true;
+
+    // check if it's time to write out the final entities file with re-written URLs
+    possiblyOutputEntitiesFile();
 }
+
+void DomainBaker::handleFinishedBaker() {
+    auto baker = qobject_cast<FBXBaker*>(sender());
+
+    if (baker) {
+        // this FBXBaker is done and everything went according to plan
+
+        // enumerate the QJsonRef values for the URL of this FBX from our multi hash of
+        // entity objects needing a URL re-write
+        for (QJsonValueRef entityValue : _entitiesNeedingRewrite.values(baker->getFBXUrl())) {
+
+            // convert the entity QJsonValueRef to a QJsonObject so we can modify its URL
+            auto entity = entityValue.toObject();
+
+            // grab the old URL
+            QUrl oldModelURL { entity[ENTITY_MODEL_URL_KEY].toString() };
+
+            // setup a new URL using the prefix we were passed
+            QUrl newModelURL = _destinationPath.resolved(baker->getBakedFBXRelativePath().mid(1));
+
+            // copy the fragment and query from the old model URL
+            newModelURL.setQuery(oldModelURL.query());
+            newModelURL.setFragment(oldModelURL.fragment());
+
+            // set the new model URL as the value in our temp QJsonObject
+            entity[ENTITY_MODEL_URL_KEY] = newModelURL.toString();
+
+            // replace our temp object with the value referenced by our QJsonValueRef
+            entityValue = entity;
+        }
+
+        // remove the baked URL from the multi hash of entities needing a re-write
+        _entitiesNeedingRewrite.remove(baker->getFBXUrl());
+
+        // check if it's time to write out the final entities file with re-written URLs
+        possiblyOutputEntitiesFile();
+    }
+}
+
+void DomainBaker::possiblyOutputEntitiesFile() {
+    if (_enumeratedAllEntities && _entitiesNeedingRewrite.isEmpty()) {
+        // we've enumerated all of our entities and re-written all the URLs we'll be able to re-write
+        // time to write out a main models.json.gz file
+
+        // first setup a document with the entities array below the entities key
+        QJsonDocument entitiesDocument;
+
+        QJsonObject rootObject;
+        rootObject[ENTITIES_OBJECT_KEY] = _entities;
+
+        entitiesDocument.setObject(rootObject);
+
+        // turn that QJsonDocument into a byte array ready for compression
+        QByteArray jsonByteArray = entitiesDocument.toJson();
+
+        // compress the json byte array using gzip
+        QByteArray compressedJson;
+        gzip(jsonByteArray, compressedJson);
+
+        // write the gzipped json to a new models file
+        static const QString MODELS_FILE_NAME = "models.json.gz";
+
+        auto bakedEntitiesFilePath = QDir(_uniqueOutputPath).filePath(MODELS_FILE_NAME);
+        QFile compressedEntitiesFile { bakedEntitiesFilePath };
+
+        if (!compressedEntitiesFile.open(QIODevice::WriteOnly)
+            || (compressedEntitiesFile.write(compressedJson) == -1)) {
+            qWarning() << "Failed to export baked entities file to" << bakedEntitiesFilePath;
+            // add an error to our list to state that the output models file could not be created or could not be written to
+
+            return;
+        }
+
+        qDebug() << "Exported entities file with baked model URLs to" << bakedEntitiesFilePath;
+
+        // we've now written out our new models file - time to say that we are finished up
+        emit finished();
+    }
+}
+

@@ -140,7 +140,10 @@ void FBXBaker::handleFBXNetworkReply() {
         // kick off the bake process now that everything is ready to go
         bake();
     } else {
-        qDebug() << "ERROR DOWNLOADING FBX" << requestReply->errorString();
+        // add an error to our list stating that the FBX could not be downloaded
+
+
+        emit finished();
     }
 }
 
@@ -155,6 +158,12 @@ void FBXBaker::bake() {
 
     removeEmbeddedMediaFolder();
     possiblyCleanupOriginals();
+
+    // at this point we are sure that we've finished everything that does not relate to textures
+    // so set that flag now
+    _finishedNonTextureOperations = true;
+
+    checkIfFinished();
 }
 
 bool FBXBaker::importScene() {
@@ -225,6 +234,8 @@ QString FBXBaker::createBakedTextureFileName(const QFileInfo& textureFileInfo) {
 
 QUrl FBXBaker::getTextureURL(const QFileInfo& textureFileInfo, FbxFileTexture* fileTexture) {
     QUrl urlToTexture;
+
+    qDebug() << "Looking at" << textureFileInfo.absoluteFilePath();
 
     if (textureFileInfo.exists() && textureFileInfo.isFile()) {
         // set the texture URL to the local texture that we have confirmed exists
@@ -355,8 +366,9 @@ bool FBXBaker::rewriteAndBakeSceneTextures() {
                             // use QFileInfo to easily split up the existing texture filename into its components
                             QFileInfo textureFileInfo { fileTexture->GetFileName() };
 
-                            // make sure this texture points to something
-                            if (!textureFileInfo.filePath().isEmpty()) {
+                            // make sure this texture points to something and isn't one we've already re-mapped
+                            if (!textureFileInfo.filePath().isEmpty()
+                                && textureFileInfo.completeSuffix() != BAKED_TEXTURE_EXT.mid(1)) {
 
                                 // construct the new baked texture file name and file path
                                 // ensuring that the baked texture will have a unique name
@@ -438,15 +450,25 @@ void FBXBaker::handleBakedTexture() {
             << "for" << _fbxURL;
         }
     }
-}
 
-static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
+    // now that this texture has been baked and handled, we can remove that TextureBaker from our list
+    _unbakedTextures.remove(bakedTexture->getTextureURL());
+
+    // since this could have been the last texture we were waiting for
+    // we should perform a quick check now to see if we are done baking this model
+    checkIfFinished();
+}
 
 bool FBXBaker::exportScene() {
     // setup the exporter
     FbxExporter* exporter = FbxExporter::Create(_sdkManager, "");
 
     auto rewrittenFBXPath = _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER + _fbxName + BAKED_FBX_EXTENSION;
+
+    // save the relative path to this FBX inside our passed output folder
+    _bakedFBXRelativePath = rewrittenFBXPath;
+    _bakedFBXRelativePath.remove(_baseOutputPath + "/");
+
     bool exportStatus = exporter->Initialize(rewrittenFBXPath.toLocal8Bit().data());
 
     if (!exportStatus) {
@@ -476,5 +498,11 @@ void FBXBaker::possiblyCleanupOriginals() {
     if (!_copyOriginals) {
         // caller did not ask us to keep the original around, so delete the original output folder now
         QDir(_uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER).removeRecursively();
+    }
+}
+
+void FBXBaker::checkIfFinished() {
+    if (_unbakedTextures.isEmpty() && _finishedNonTextureOperations) {
+        emit finished();
     }
 }

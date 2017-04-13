@@ -44,6 +44,8 @@ enum TextureType {
 
 class TextureBaker;
 
+static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
+
 class FBXBaker : public QObject {
     Q_OBJECT
 public:
@@ -51,6 +53,9 @@ public:
     ~FBXBaker();
 
     void start();
+
+    QUrl getFBXUrl() const { return _fbxURL; }
+    QString getBakedFBXRelativePath() const { return _bakedFBXRelativePath; }
 
 signals:
     void finished();
@@ -68,6 +73,7 @@ private:
     bool exportScene();
     void removeEmbeddedMediaFolder();
     void possiblyCleanupOriginals();
+    void checkIfFinished();
 
     QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
     QUrl getTextureURL(const QFileInfo& textureFileInfo, fbxsdk::FbxFileTexture* fileTexture);
@@ -81,6 +87,7 @@ private:
     
     QString _baseOutputPath;
     QString _uniqueOutputPath;
+    QString _bakedFBXRelativePath;
 
     fbxsdk::FbxManager* _sdkManager;
     fbxsdk::FbxScene* _scene { nullptr };
@@ -94,6 +101,8 @@ private:
     std::list<std::unique_ptr<TextureBaker>> _bakingTextures;
 
     bool _copyOriginals { true };
+
+    bool _finishedNonTextureOperations { false };
 };
 
 #endif // hifi_FBXBaker_h

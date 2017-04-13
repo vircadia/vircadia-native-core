@@ -42,9 +42,12 @@ private:
     QLineEdit* _domainNameLineEdit;
     QLineEdit* _entitiesFileLineEdit;
     QLineEdit* _outputDirLineEdit;
+    QLineEdit* _destinationPathLineEdit;
 
+    Setting::Handle<QString> _domainNameSetting;
     Setting::Handle<QString> _exportDirectory;
     Setting::Handle<QString> _browseStartDirectory;
+    Setting::Handle<QString> _destinationPathSetting;
 };
 
 #endif // hifi_ModelBakeWidget_h

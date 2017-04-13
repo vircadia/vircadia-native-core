@@ -21,7 +21,8 @@
 class DomainBaker : public QObject {
     Q_OBJECT
 public:
-    DomainBaker(const QUrl& localEntitiesFileURL, const QString& domainName, const QString& baseOutputPath);
+    DomainBaker(const QUrl& localEntitiesFileURL, const QString& domainName,
+                const QString& baseOutputPath, const QUrl& destinationPath);
 
 public slots:
     void start();
@@ -29,19 +30,28 @@ public slots:
 signals:
     void finished();
 
+private slots:
+    void handleFinishedBaker();
+
 private:
     void setupOutputFolder();
     void loadLocalFile();
     void enumerateEntities();
+    void possiblyOutputEntitiesFile();
 
     QUrl _localEntitiesFileURL;
     QString _domainName;
     QString _baseOutputPath;
     QString _uniqueOutputPath;
+    QString _contentOutputPath;
+    QUrl _destinationPath;
 
     QJsonArray _entities;
 
     QHash<QUrl, QSharedPointer<FBXBaker>> _bakers;
+    QMultiHash<QUrl, QJsonValueRef> _entitiesNeedingRewrite;
+
+    bool _enumeratedAllEntities { false };
 };
 
 #endif // hifi_DomainBaker_h

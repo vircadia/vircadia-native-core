@@ -21,13 +21,17 @@
 
 #include "DomainBakeWidget.h"
 
+static const QString DOMAIN_NAME_SETTING_KEY = "domain_name";
 static const QString EXPORT_DIR_SETTING_KEY = "domain_export_directory";
 static const QString BROWSE_START_DIR_SETTING_KEY = "domain_search_directory";
+static const QString DESTINATION_PATH_SETTING_KEY = "destination_path";
 
 DomainBakeWidget::DomainBakeWidget(QWidget* parent, Qt::WindowFlags flags) :
     QWidget(parent, flags),
+    _domainNameSetting(DOMAIN_NAME_SETTING_KEY),
     _exportDirectory(EXPORT_DIR_SETTING_KEY),
-    _browseStartDirectory(BROWSE_START_DIR_SETTING_KEY)
+    _browseStartDirectory(BROWSE_START_DIR_SETTING_KEY),
+    _destinationPathSetting(DESTINATION_PATH_SETTING_KEY)
 {
     setupUI();
 }
@@ -43,6 +47,11 @@ void DomainBakeWidget::setupUI() {
 
     _domainNameLineEdit = new QLineEdit;
     _domainNameLineEdit->setPlaceholderText("welcome");
+
+    // set the text of the domain name from whatever was used during last bake
+    if (!_domainNameSetting.get().isEmpty()) {
+        _domainNameLineEdit->setText(_domainNameSetting.get());
+    }
 
     gridLayout->addWidget(domainNameLabel);
     gridLayout->addWidget(_domainNameLineEdit, rowIndex, 1, 1, -1);
@@ -84,6 +93,22 @@ void DomainBakeWidget::setupUI() {
     gridLayout->addWidget(outputDirectoryLabel, rowIndex, 0);
     gridLayout->addWidget(_outputDirLineEdit, rowIndex, 1, 1, 3);
     gridLayout->addWidget(chooseOutputDirectoryButton, rowIndex, 4);
+
+    // start a new row for the next component
+    ++rowIndex;
+
+    // setup a section to choose the upload prefix - the URL where baked models will be made available
+    QLabel* uploadPrefixLabel = new QLabel("Destination URL Path");
+
+    _destinationPathLineEdit = new QLineEdit;
+    _destinationPathLineEdit->setPlaceholderText("http://cdn.example.com/baked-domain/");
+
+    if (!_destinationPathSetting.get().isEmpty()) {
+        _destinationPathLineEdit->setText(_destinationPathSetting.get());
+    }
+
+    gridLayout->addWidget(uploadPrefixLabel, rowIndex, 0);
+    gridLayout->addWidget(_destinationPathLineEdit, rowIndex, 1, 1, -1);
 
     // start a new row for the next component
     ++rowIndex;
@@ -160,6 +185,13 @@ void DomainBakeWidget::outputDirectoryChanged(const QString& newDirectory) {
 }
 
 void DomainBakeWidget::bakeButtonClicked() {
+
+    // save whatever the current domain name is in settings, we'll re-use it next time the widget is shown
+    _domainNameSetting.set(_domainNameLineEdit->text());
+
+    // save whatever the current destination path is in settings, we'll re-use it next time the widget is shown
+    _destinationPathSetting.set(_destinationPathLineEdit->text());
+
     // make sure we have a valid output directory
     QDir outputDirectory(_outputDirLineEdit->text());
 
@@ -172,7 +204,8 @@ void DomainBakeWidget::bakeButtonClicked() {
         // everything seems to be in place, kick off a bake for this entities file now
         auto fileToBakeURL = QUrl::fromLocalFile(_entitiesFileLineEdit->text());
         _baker = std::unique_ptr<DomainBaker> {
-                new DomainBaker(fileToBakeURL, _domainNameLineEdit->text(), outputDirectory.absolutePath())
+                new DomainBaker(fileToBakeURL, _domainNameLineEdit->text(),
+                                outputDirectory.absolutePath(), _destinationPathLineEdit->text())
         };
         _baker->start();
 
