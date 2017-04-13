@@ -263,8 +263,16 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                         // make sure we haven't already sent this data from this sender to this receiver
                         // or that somehow we haven't sent
                         if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
-                            ++numAvatarsHeldBack;
-                            shouldIgnore = true;
+                            // don't ignore this avatar if we haven't sent any update for a long while
+                            // in an effort to prevent other interfaces from deleting a stale avatar instance
+                            uint64_t lastBroadcastTime = nodeData->getLastBroadcastTime(avatarNode->getUUID());
+                            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
+                            const uint64_t AVATAR_UPDATE_STALE = AVATAR_UPDATE_TIMEOUT - USECS_PER_SECOND;
+                            if (lastBroadcastTime > otherNodeData->getIdentityChangeTimestamp() &&
+                                    lastBroadcastTime + AVATAR_UPDATE_STALE > startIgnoreCalculation) {
+                                ++numAvatarsHeldBack;
+                                shouldIgnore = true;
+                            }
                         } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                             // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                             ++numAvatarsWithSkippedFrames;
@@ -300,13 +308,8 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
 
             // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
-            // the time that Avatar B flagged an IDENTITY DATA change
-            // or if no packet of any type has been sent for some time
-            // send IDENTITY DATA about Avatar B to Avatar A
-            const uint64_t AVATAR_UPDATE_STALE = AVATAR_UPDATE_TIMEOUT - USECS_PER_SECOND;
-            uint64_t lastBroadcastTime = nodeData->getLastBroadcastTime(otherNode->getUUID());
-            if (lastBroadcastTime <= otherNodeData->getIdentityChangeTimestamp() ||
-                    startAvatarDataPacking > lastBroadcastTime + AVATAR_UPDATE_STALE) {
+            // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
+            if (nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
                 identityBytesSent += sendIdentityPacket(otherNodeData, node);
             }
 
