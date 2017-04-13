@@ -157,7 +157,9 @@ function onClicked() {
     resetOverlays = Menu.isOptionChecked("Overlays"); // For completness. Certainly true if the button is visible to be clicke.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
-    Window.snapshotTaken.connect(resetButtons);
+    Window.stillSnapshotTaken.connect(stillSnapshotTaken);
+    Window.processingGifStarted.connect(processingGifStarted);
+    Window.processingGifCompleted.connect(processingGifCompleted);
 
     // hide overlays if they are on
     if (resetOverlays) {
@@ -193,25 +195,14 @@ function isDomainOpen(id) {
         response.total_entries;
 }
 
-function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
-    // If we're not taking an animated snapshot, we have to show the HUD.
-    // If we ARE taking an animated snapshot, we've already re-enabled the HUD by this point.
-    if (pathAnimatedSnapshot === "") {
-        // show hud
-
-        Reticle.visible = reticleVisible;
-        // show overlays if they were on
-        if (resetOverlays) {
-            Menu.setIsOptionChecked("Overlays", true);
-        }
-    } else {
-        // Allow the user to click the snapshot HUD button again
-        if (!buttonConnected) {
-            button.clicked.connect(onClicked);
-            buttonConnected = true;
-        }
+function stillSnapshotTaken(pathStillSnapshot, notify) {
+    // show hud
+    Reticle.visible = reticleVisible;
+    // show overlays if they were on
+    if (resetOverlays) {
+        Menu.setIsOptionChecked("Overlays", true);
     }
-    Window.snapshotTaken.disconnect(resetButtons);
+    Window.stillSnapshotTaken.disconnect(stillSnapshotTaken);
 
     // A Snapshot Review dialog might be left open indefinitely after taking the picture,
     // during which time the user may have moved. So stash that info in the dialog so that
@@ -220,12 +211,11 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     var confirmShareContents = [
         { localPath: pathStillSnapshot, href: href },
         {
+            containsGif: false,
+            processingGif: false,
             canShare: !!isDomainOpen(domainId),
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }];
-    if (pathAnimatedSnapshot !== "") {
-        confirmShareContents.unshift({ localPath: pathAnimatedSnapshot, href: href });
-    }
     confirmShare(confirmShareContents);
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
@@ -233,15 +223,51 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     HMD.openTablet();
 }
 
-function processingGif() {
-    // show hud
-    Reticle.visible = reticleVisible;
+function processingGifStarted(pathStillSnapshot) {
+    Window.processingGifStarted.disconnect(processingGifStarted);
     button.clicked.disconnect(onClicked);
     buttonConnected = false;
+    // show hud
+    Reticle.visible = reticleVisible;
     // show overlays if they were on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true);
     }
+
+    var confirmShareContents = [
+        { localPath: pathStillSnapshot, href: href },
+        {
+            containsGif: true,
+            processingGif: true,
+            canShare: !!isDomainOpen(domainId),
+            openFeedAfterShare: shouldOpenFeedAfterShare()
+        }];
+    confirmShare(confirmShareContents);
+    if (clearOverlayWhenMoving) {
+        MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
+    }
+    HMD.openTablet();
+}
+
+function processingGifCompleted(pathAnimatedSnapshot) {
+    Window.processingGifCompleted.disconnect(processingGifCompleted);
+    button.clicked.connect(onClicked);
+    buttonConnected = true;
+
+    var confirmShareContents = [
+        { localPath: pathAnimatedSnapshot, href: href },
+        {
+            containsGif: true,
+            processingGif: false,
+            canShare: !!isDomainOpen(domainId),
+            openFeedAfterShare: shouldOpenFeedAfterShare()
+        }];
+    readyData = confirmShareContents;
+
+    tablet.emitScriptEvent(JSON.stringify({
+        type: "snapshot",
+        action: readyData
+    }));
 }
 
 function onTabletScreenChanged(type, url) {
@@ -265,7 +291,6 @@ function onConnected() {
 button.clicked.connect(onClicked);
 buttonConnected = true;
 Window.snapshotShared.connect(snapshotShared);
-Window.processingGif.connect(processingGif);
 tablet.screenChanged.connect(onTabletScreenChanged);
 Account.usernameChanged.connect(onConnected);
 Script.scriptEnding.connect(function () {
@@ -277,7 +302,6 @@ Script.scriptEnding.connect(function () {
         tablet.removeButton(button);
     }
     Window.snapshotShared.disconnect(snapshotShared);
-    Window.processingGif.disconnect(processingGif);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
 });
 
