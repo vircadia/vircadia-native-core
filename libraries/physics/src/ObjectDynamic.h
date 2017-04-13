@@ -47,6 +47,7 @@ protected:
     quint64 localTimeToServerTime(quint64 timeValue) const;
     quint64 serverTimeToLocalTime(quint64 timeValue) const;
 
+    EntityItemPointer getEntityByID(EntityItemID entityID) const;
     virtual btRigidBody* getRigidBody();
     virtual glm::vec3 getPosition() override;
     virtual void setPosition(glm::vec3 position) override;

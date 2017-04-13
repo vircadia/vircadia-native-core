@@ -555,12 +555,17 @@ EntityDynamicPointer PhysicsEngine::getDynamicByID(const QUuid& dynamicID) const
     return nullptr;
 }
 
-void PhysicsEngine::addDynamic(EntityDynamicPointer dynamic) {
+bool PhysicsEngine::addDynamic(EntityDynamicPointer dynamic) {
     assert(dynamic);
+
+    if (!dynamic->isReadyForAdd()) {
+        return false;
+    }
+
     const QUuid& dynamicID = dynamic->getID();
     if (_objectDynamics.contains(dynamicID)) {
         if (_objectDynamics[dynamicID] == dynamic) {
-            return;
+            return true;
         }
         removeDynamic(dynamic->getID());
     }
@@ -572,13 +577,16 @@ void PhysicsEngine::addDynamic(EntityDynamicPointer dynamic) {
     if (dynamic->isAction()) {
         ObjectAction* objectAction = static_cast<ObjectAction*>(dynamic.get());
         _dynamicsWorld->addAction(objectAction);
+        return true;
     } else if (dynamic->isConstraint()) {
         ObjectConstraint* objectConstraint = static_cast<ObjectConstraint*>(dynamic.get());
         btTypedConstraint* constraint = objectConstraint->getConstraint();
         if (constraint) {
             _dynamicsWorld->addConstraint(constraint);
+            return true;
         } else {
-            qDebug() << "PhysicsEngine::addDynamic of constraint failed"; // XXX
+            // perhaps not all the rigid bodies are available, yet
+            return false;
         }
     }
 }

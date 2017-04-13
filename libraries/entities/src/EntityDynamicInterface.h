@@ -42,6 +42,7 @@ public:
     EntityDynamicType getType() const { return _type; }
     virtual bool isAction() const { return false; }
     virtual bool isConstraint() const { return false; }
+    virtual bool isReadyForAdd() const { return true; }
 
     bool isActive() { return _active; }
 

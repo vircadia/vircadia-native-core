@@ -33,7 +33,12 @@ protected:
     static const uint16_t constraintVersion;
 
     glm::vec3 _pivotInA;
-    glm::vec3 _axis;
+    glm::vec3 _axisInA;
+
+    QUuid _otherEntityID;
+    EntityItemWeakPointer _otherEntity;
+    glm::vec3 _pivotInB;
+    glm::vec3 _axisInB;
 };
 
 #endif // hifi_ObjectConstraintHinge_h

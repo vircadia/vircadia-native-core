@@ -106,6 +106,20 @@ void ObjectDynamic::removeFromSimulation(EntitySimulationPointer simulation) con
     simulation->removeDynamic(myID);
 }
 
+EntityItemPointer ObjectDynamic::getEntityByID(EntityItemID entityID) const {
+    EntityItemPointer ownerEntity;
+    withReadLock([&]{
+        ownerEntity = _ownerEntity.lock();
+    });
+    EntityTreeElementPointer element = ownerEntity ? ownerEntity->getElement() : nullptr;
+    EntityTreePointer tree = element ? element->getTree() : nullptr;
+    if (!tree) {
+        return nullptr;
+    }
+    return tree->findEntityByID(entityID);
+}
+
+
 btRigidBody* ObjectDynamic::getRigidBody() {
     ObjectMotionState* motionState = nullptr;
     withReadLock([&]{

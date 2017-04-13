@@ -346,6 +346,7 @@ void PhysicalEntitySimulation::addDynamic(EntityDynamicPointer dynamic) {
 }
 
 void PhysicalEntitySimulation::applyDynamicChanges() {
+    QList<EntityDynamicPointer> dynamicsFailedToAdd;
     if (_physicsEngine) {
         // FIXME put fine grain locking into _physicsEngine
         QMutexLocker lock(&_mutex);
@@ -354,9 +355,16 @@ void PhysicalEntitySimulation::applyDynamicChanges() {
         }
         foreach (EntityDynamicPointer dynamicToAdd, _dynamicsToAdd) {
             if (!_dynamicsToRemove.contains(dynamicToAdd->getID())) {
-                _physicsEngine->addDynamic(dynamicToAdd);
+                if (!_physicsEngine->addDynamic(dynamicToAdd)) {
+                    dynamicsFailedToAdd += dynamicToAdd;
+                }
             }
         }
     }
+    // applyDynamicChanges will clear _dynamicsToRemove and _dynamicsToAdd
     EntitySimulation::applyDynamicChanges();
+    // put back the ones that couldn't yet be added
+    foreach (EntityDynamicPointer dynamicFailedToAdd, dynamicsFailedToAdd) {
+        addDynamic(dynamicFailedToAdd);
+    }
 }

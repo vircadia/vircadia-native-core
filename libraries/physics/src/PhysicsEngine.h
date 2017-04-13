@@ -86,7 +86,7 @@ public:
     void dumpNextStats() { _dumpNextStats = true; }
 
     EntityDynamicPointer getDynamicByID(const QUuid& dynamicID) const;
-    void addDynamic(EntityDynamicPointer dynamic);
+    bool addDynamic(EntityDynamicPointer dynamic);
     void removeDynamic(const QUuid dynamicID);
     void forEachDynamic(std::function<void(EntityDynamicPointer)> actor);
 
