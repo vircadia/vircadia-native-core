@@ -385,14 +385,22 @@
     }());
 
     Dialog = (function () {
-        var EVENT_BRIDGE_TYPE = "record",
+        var isFinishOnOpen = false,
+            EVENT_BRIDGE_TYPE = "record",
             BODY_LOADED_ACTION = "bodyLoaded",
+            USING_TOOLBAR_ACTION = "usingToolbar",
             RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
             NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
             STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
             LOAD_RECORDING_ACTION = "loadRecording",
             START_RECORDING_ACTION = "startRecording",
-            STOP_RECORDING_ACTION = "stopRecording";
+            STOP_RECORDING_ACTION = "stopRecording",
+            FINISH_ON_OPEN_ACTION = "finishOnOpen";
+
+        function isUsingToolbar() {
+            return ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
+                || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar")));
+        }
 
         function onWebEventReceived(data) {
             var message = JSON.parse(data);
@@ -400,6 +408,16 @@
                 switch (message.action) {
                 case BODY_LOADED_ACTION:
                     // Dialog's ready; initialize its state.
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
+                        action: USING_TOOLBAR_ACTION,
+                        value: isUsingToolbar()
+                    }));
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
+                        action: FINISH_ON_OPEN_ACTION,
+                        value: isFinishOnOpen
+                    }));
                     tablet.emitScriptEvent(JSON.stringify({
                         type: EVENT_BRIDGE_TYPE,
                         action: NUMBER_OF_PLAYERS_ACTION,
@@ -427,6 +445,10 @@
                     } else if (Recorder.isRecording()) {
                         Recorder.finishRecording();
                     }
+                    break;
+                case FINISH_ON_OPEN_ACTION:
+                    // Set behavior on dialog open.
+                    isFinishOnOpen = message.value;
                     break;
                 }
             }
@@ -458,6 +480,10 @@
             }));
         }
 
+        function finishOnOpen() {
+            return isFinishOnOpen;
+        }
+
         function setUp() {
             tablet.webEventReceived.connect(onWebEventReceived);
         }
@@ -468,21 +494,24 @@
 
         return {
             updatePlayerDetails: updatePlayerDetails,
+            finishOnOpen: finishOnOpen,
             setUp: setUp,
             tearDown: tearDown
         };
     }());
 
     function onTabletScreenChanged(type, url) {
-        // Open/close dialog in tablet or window.
+        // Opened/closed dialog in tablet or window.
         var RECORD_URL = "/scripts/system/html/record.html";
 
         if (type === "Web" && url.slice(-RECORD_URL.length) === RECORD_URL) {
-            // Cancel countdown or finish recording.
-            if (Recorder.isCountingDown()) {
-                Recorder.cancelCountdown();
-            } else if (Recorder.isRecording()) {
-                Recorder.finishRecording();
+            if (Dialog.finishOnOpen()) {
+                // Cancel countdown or finish recording.
+                if (Recorder.isCountingDown()) {
+                    Recorder.cancelCountdown();
+                } else if (Recorder.isRecording()) {
+                    Recorder.finishRecording();
+                }
             }
             isDialogDisplayed = true;
         } else {
@@ -492,9 +521,8 @@
     }
 
     function onTabletShownChanged() {
-        // Open/close tablet.
-
-        if (tablet.tabletShown) {
+        // Opened/closed tablet.
+        if (tablet.tabletShown && Dialog.finishOnOpen()) {
             // Cancel countdown or finish recording.
             if (Recorder.isCountingDown()) {
                 Recorder.cancelCountdown();

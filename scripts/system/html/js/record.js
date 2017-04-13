@@ -23,14 +23,18 @@ var isUsingToolbar = false,
     elShowInfoButton,
     elLoadButton,
     elRecordButton,
+    elFinishOnOpen,
+    elFinishOnOpenLabel,
     EVENT_BRIDGE_TYPE = "record",
     BODY_LOADED_ACTION = "bodyLoaded",
+    USING_TOOLBAR_ACTION = "usingToolbar",
     RECORDINGS_BEING_PLAYED_ACTION = "recordingsBeingPlayed",
     NUMBER_OF_PLAYERS_ACTION = "numberOfPlayers",
     STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
     LOAD_RECORDING_ACTION = "loadRecording",
     START_RECORDING_ACTION = "startRecording",
-    STOP_RECORDING_ACTION = "stopRecording";
+    STOP_RECORDING_ACTION = "stopRecording",
+    FINISH_ON_OPEN_ACTION = "finishOnOpen";
 
 function stopPlayingRecording(event) {
     var playerID = event.target.getElementsByTagName("input")[0].value;
@@ -41,12 +45,12 @@ function stopPlayingRecording(event) {
     }));
 }
 
-function orderRecording(a, b) {
-    return a.filename > b.filename ? 1 : -1;
-}
-
 function updatePlayersUnused() {
     elPlayersUnused.innerHTML = numberOfPlayers - recordingsBeingPlayed.length;
+}
+
+function orderRecording(a, b) {
+    return a.filename > b.filename ? 1 : -1;
 }
 
 function updateRecordings() {
@@ -132,10 +136,24 @@ function updateLoadButton() {
     }
 }
 
+function updateFinishOnOpenLabel() {
+    var WINDOW_FINISH_ON_OPEN_LABEL = "Finish recording when open dialog",
+        TABLET_FINISH_ON_OPEN_LABEL = "Finish recording when open tablet";
+
+    elFinishOnOpenLabel.innerHTML = isUsingToolbar ? WINDOW_FINISH_ON_OPEN_LABEL : TABLET_FINISH_ON_OPEN_LABEL;
+}
+
 function onScriptEventReceived(data) {
     var message = JSON.parse(data);
     if (message.type === EVENT_BRIDGE_TYPE) {
         switch (message.action) {
+        case USING_TOOLBAR_ACTION:
+            isUsingToolbar = message.value;
+            updateFinishOnOpenLabel();
+            break;
+        case FINISH_ON_OPEN_ACTION:
+            elFinishOnOpen.checked = message.value;
+            break;
         case RECORDINGS_BEING_PLAYED_ACTION:
             recordingsBeingPlayed = JSON.parse(message.value);
             updateRecordings();
@@ -179,6 +197,14 @@ function onRecordButtonClicked() {
     }
 }
 
+function onFinishOnOpenClicked() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: EVENT_BRIDGE_TYPE,
+        action: FINISH_ON_OPEN_ACTION,
+        value: elFinishOnOpen.checked
+    }));
+}
+
 function signalBodyLoaded() {
     EventBridge.emitWebEvent(JSON.stringify({
         type: EVENT_BRIDGE_TYPE,
@@ -205,6 +231,11 @@ function onBodyLoaded() {
 
     elRecordButton = document.getElementById("record-button");
     elRecordButton.onclick = onRecordButtonClicked;
+
+    elFinishOnOpen = document.getElementById("finish-on-open");
+    elFinishOnOpen.onclick = onFinishOnOpenClicked;
+
+    elFinishOnOpenLabel = document.getElementById("finish-on-open-label");
 
     signalBodyLoaded();
 }
