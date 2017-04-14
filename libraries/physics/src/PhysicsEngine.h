@@ -91,6 +91,7 @@ public:
     void forEachDynamic(std::function<void(EntityDynamicPointer)> actor);
 
 private:
+    QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);
     void recursivelyHarvestPerformanceStats(CProfileIterator* profileIterator, QString contextName);
 
@@ -112,7 +113,7 @@ private:
     ContactMap _contactMap;
     CollisionEvents _collisionEvents;
     QHash<QUuid, EntityDynamicPointer> _objectDynamics;
-    QHash<btRigidBody*, EntityDynamicPointer> _objectDynamicsByBody;
+    QHash<btRigidBody*, QSet<EntityDynamicPointer>> _objectDynamicsByBody;
     std::vector<btRigidBody*> _activeStaticBodies;
 
     glm::vec3 _originOffset;

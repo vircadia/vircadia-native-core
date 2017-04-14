@@ -19,3 +19,7 @@ ObjectConstraint::ObjectConstraint(EntityDynamicType type, const QUuid& id, Enti
     ObjectDynamic(type, id, ownerEntity)
 {
 }
+
+void ObjectConstraint::invalidate() {
+    _constraint = nullptr;
+}

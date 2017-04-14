@@ -142,6 +142,18 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     motionState->clearIncomingDirtyFlags();
 }
 
+QList<EntityDynamicPointer> PhysicsEngine::removeDynamicsForBody(btRigidBody* body) {
+    // remove dynamics that are attached to this body
+    QList<EntityDynamicPointer> removedDynamics;
+    QMutableSetIterator<EntityDynamicPointer> i(_objectDynamicsByBody[body]);
+    while (i.hasNext()) {
+        EntityDynamicPointer dynamic = i.next();
+        removeDynamic(dynamic->getID());
+        removedDynamics += dynamic;
+    }
+    return removedDynamics;
+}
+
 void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
     // bump and prune contacts for all objects in the list
     for (auto object : objects) {
@@ -175,6 +187,7 @@ void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
         if (body) {
+            removeDynamicsForBody(body);
             _dynamicsWorld->removeRigidBody(body);
 
             // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
@@ -191,6 +204,7 @@ void PhysicsEngine::removeObjects(const SetOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
         if (body) {
+            removeDynamicsForBody(body);
             _dynamicsWorld->removeRigidBody(body);
 
             // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
@@ -239,10 +253,17 @@ void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
     bumpAndPruneContacts(object);
     btRigidBody* body = object->getRigidBody();
     if (body) {
+        QList<EntityDynamicPointer> removedDynamics = removeDynamicsForBody(body);
         _dynamicsWorld->removeRigidBody(body);
 
         // add it back
         addObjectToDynamicsWorld(object);
+        foreach(EntityDynamicPointer dynamic, removedDynamics) {
+            bool success = addDynamic(dynamic);
+            if (!success) {
+                qCDebug(physics) << "PhysicsEngine::reinsertObject failed to recreate dynamic";
+            }
+        }
     }
 }
 
@@ -587,7 +608,7 @@ bool PhysicsEngine::addDynamic(EntityDynamicPointer dynamic) {
     if (success) {
         _objectDynamics[dynamicID] = dynamic;
         foreach(btRigidBody* rigidBody, std::static_pointer_cast<ObjectDynamic>(dynamic)->getRigidBodies()) {
-            _objectDynamicsByBody[rigidBody] = dynamic;
+            _objectDynamicsByBody[rigidBody] += dynamic;
         }
     }
     return success;
@@ -595,7 +616,8 @@ bool PhysicsEngine::addDynamic(EntityDynamicPointer dynamic) {
 
 void PhysicsEngine::removeDynamic(const QUuid dynamicID) {
     if (_objectDynamics.contains(dynamicID)) {
-        EntityDynamicPointer dynamic = _objectDynamics[dynamicID];
+        ObjectDynamicPointer dynamic = std::static_pointer_cast<ObjectDynamic>(_objectDynamics[dynamicID]);
+        QList<btRigidBody*> rigidBodies = dynamic->getRigidBodies();
         if (dynamic->isAction()) {
             ObjectAction* objectAction = static_cast<ObjectAction*>(dynamic.get());
             _dynamicsWorld->removeAction(objectAction);
@@ -605,10 +627,14 @@ void PhysicsEngine::removeDynamic(const QUuid dynamicID) {
             if (constraint) {
                 _dynamicsWorld->removeConstraint(constraint);
             } else {
-                qDebug() << "PhysicsEngine::removeDynamic of constraint failed"; // XXX
+                qCDebug(physics) << "PhysicsEngine::removeDynamic of constraint failed";
             }
         }
         _objectDynamics.remove(dynamicID);
+        foreach(btRigidBody* rigidBody, rigidBodies) {
+            _objectDynamicsByBody[rigidBody].remove(dynamic);
+        }
+        dynamic->invalidate();
     }
 }
 

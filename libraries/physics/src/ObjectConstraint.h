@@ -24,6 +24,7 @@ public:
     virtual btTypedConstraint* getConstraint() = 0;
 
     virtual bool isConstraint() const override { return true; }
+    virtual void invalidate() override;
 
 protected:
     btTypedConstraint* _constraint { nullptr };

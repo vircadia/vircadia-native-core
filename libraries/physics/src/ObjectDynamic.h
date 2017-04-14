@@ -33,6 +33,8 @@ public:
     virtual EntityItemWeakPointer getOwnerEntity() const override { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) override { _ownerEntity = ownerEntity; }
 
+    virtual void invalidate() {};
+
     virtual bool updateArguments(QVariantMap arguments) override;
     virtual QVariantMap getArguments() override;
 
@@ -70,5 +72,7 @@ protected:
 private:
     qint64 getEntityServerClockSkew() const;
 };
+
+typedef std::shared_ptr<ObjectDynamic> ObjectDynamicPointer;
 
 #endif // hifi_ObjectDynamic_h
