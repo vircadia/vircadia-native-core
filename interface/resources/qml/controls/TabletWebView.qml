@@ -132,9 +132,7 @@ Item {
         if (lurl[lurl.length - 1] !== "/") {
             lurl = lurl + "/"
         }
-        console.log("-------------> is time running " + timer.running + " <--------------");
         if (currentPage === -1 || (pagesModel.get(currentPage).webUrl !== lurl && !timer.running)) {
-            console.log("--------->  appending the url  ----------> " + lurl);
             timer.start();
             pagesModel.append({webUrl: lurl});
         }
