@@ -149,7 +149,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
 
     float maxError = FLT_MAX;
     int numLoops = 0;
-    const int MAX_IK_LOOPS = 16;
+    const int MAX_IK_LOOPS = 48;
     const float MAX_ERROR_TOLERANCE = 0.1f; // cm
     while (maxError > MAX_ERROR_TOLERANCE && numLoops < MAX_IK_LOOPS) {
         ++numLoops;
@@ -365,7 +365,9 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
         }
 
         // store the relative rotation change in the accumulator
-        _accumulators[pivotIndex].add(newRot, target.getWeight());
+        // AJT: Hack give head more weight.
+        float weight = (target.getIndex() == _headIndex) ? 2.0f : 1.0f;
+        _accumulators[pivotIndex].add(newRot, weight);
 
         // this joint has been changed so we check to see if it has the lowest index
         if (pivotIndex < lowestMovedIndex) {
@@ -445,8 +447,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             computeTargets(animVars, targets, underPoses);
         }
 
-        _previousEnableDebugIKTargets = context.getEnableDebugDrawIKTargets();
-
         if (targets.empty()) {
             // no IK targets but still need to enforce constraints
             std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
@@ -510,6 +510,8 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                         DebugDraw::getInstance().removeMyAvatarMarker(name);
                     }
                 }
+
+                _previousEnableDebugIKTargets = context.getEnableDebugDrawIKTargets();
             }
 
             {
@@ -549,6 +551,22 @@ void AnimInverseKinematics::clearConstraints() {
         ++constraintItr;
     }
     _constraints.clear();
+}
+
+// set up swing limits around a swingTwistConstraint in an ellipse, where lateralSwingTheta is the swing limit for lateral swings (side to side)
+// anteriorSwingTheta is swing limit for forward and backward swings.  (where x-axis of reference rotation is sideways and -z-axis is forward)
+static void setEllipticalSwingLimits(SwingTwistConstraint* stConstraint, float lateralSwingTheta, float anteriorSwingTheta) {
+    assert(stConstraint);
+    const int NUM_SUBDIVISIONS = 8;
+    std::vector<float> minDots;
+    minDots.reserve(NUM_SUBDIVISIONS);
+    float dTheta = (2.0f * PI) / NUM_SUBDIVISIONS;
+    float theta = 0.0f;
+    for (int i = 0; i < NUM_SUBDIVISIONS; i++) {
+        minDots.push_back(cosf(glm::length(glm::vec2(anteriorSwingTheta * cosf(theta), lateralSwingTheta * sinf(theta)))));
+        theta += dTheta;
+    }
+    stConstraint->setSwingLimits(minDots);
 }
 
 void AnimInverseKinematics::initConstraints() {
@@ -740,41 +758,40 @@ void AnimInverseKinematics::initConstraints() {
         } else if (baseName.startsWith("Spine", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            const float MAX_SPINE_TWIST = PI / 12.0f;
+            const float MAX_SPINE_TWIST = PI / 20.0f;
             stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
 
+            /*
             std::vector<float> minDots;
             const float MAX_SPINE_SWING = PI / 10.0f;
             minDots.push_back(cosf(MAX_SPINE_SWING));
             stConstraint->setSwingLimits(minDots);
+            */
+
+            // AJT: limit lateral swings more then forward-backward swings
+            setEllipticalSwingLimits(stConstraint, PI / 30.0f, PI / 20.0f);
+
             if (0 == baseName.compare("Spine1", Qt::CaseSensitive)
                     || 0 == baseName.compare("Spine", Qt::CaseSensitive)) {
                 stConstraint->setLowerSpine(true);
             }
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (baseName.startsWith("Hips2", Qt::CaseSensitive)) {
-            SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
-            stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            const float MAX_SPINE_TWIST = PI / 8.0f;
-            stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
 
-            std::vector<float> minDots;
-            const float MAX_SPINE_SWING = PI / 14.0f;
-            minDots.push_back(cosf(MAX_SPINE_SWING));
-            stConstraint->setSwingLimits(minDots);
-
-            constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (0 == baseName.compare("Neck", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            const float MAX_NECK_TWIST = PI / 9.0f;
+            const float MAX_NECK_TWIST = PI / 10.0f;
             stConstraint->setTwistLimits(-MAX_NECK_TWIST, MAX_NECK_TWIST);
 
+            /*
             std::vector<float> minDots;
             const float MAX_NECK_SWING = PI / 8.0f;
             minDots.push_back(cosf(MAX_NECK_SWING));
             stConstraint->setSwingLimits(minDots);
+            */
+
+            setEllipticalSwingLimits(stConstraint, PI / 10.0f, PI / 8.0f);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (0 == baseName.compare("Head", Qt::CaseSensitive)) {
