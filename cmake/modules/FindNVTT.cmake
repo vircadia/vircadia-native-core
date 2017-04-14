@@ -27,15 +27,12 @@ if (WIN32)
   find_library(NVTT_LIBRARY_RELEASE nvtt PATH_SUFFIXES "Release.x64/lib" HINTS ${NVTT_SEARCH_DIRS})
   find_library(NVTT_LIBRARY_DEBUG nvtt PATH_SUFFIXES "Debug.x64/lib" HINTS ${NVTT_SEARCH_DIRS})
 
-  find_path(NVTT_RELEASE_DLL_PATH nvtt.dll PATH_SUFFIXES "Release.x64/bin" HINTS ${NVTT_SEARCH_DIRS})
-  find_path(NVTT_DEBUG_DLL_PATH nvtt.dll PATH_SUFFIXES "Debug.x64/lib" HINTS ${NVTT_SEARCH_DIRS})
+  find_path(NVTT_DLL_PATH nvtt.dll PATH_SUFFIXES "Release.x64/bin" HINTS ${NVTT_SEARCH_DIRS})
 
   include(SelectLibraryConfigurations)
   select_library_configurations(NVTT)
 
-  find_package_handle_standard_args(NVTT DEFAULT_MSG NVTT_INCLUDE_DIRS NVTT_LIBRARIES NVTT_RELEASE_DLL_PATH NVTT_DEBUG_DLL_PATH)
-
-  set(NVTT_DLL_PATH "$<$<NOT:$<CONFIG:Debug>>:${NVTT_RELEASE_DLL_PATH}>$<$<CONFIG:Debug>:${NVTT_DEBUG_DLL_PATH}>")
+  find_package_handle_standard_args(NVTT DEFAULT_MSG NVTT_INCLUDE_DIRS NVTT_LIBRARIES NVTT_DLL_PATH)
 else ()
   find_library(NVTT_BASE_LIBRARY nvtt PATH_SUFFIXES "lib/static" HINTS ${NVTT_SEARCH_DIRS})
   find_library(NVTT_CORE_LIBRARY nvcore PATH_SUFFIXES "lib/static" HINTS ${NVTT_SEARCH_DIRS})
