@@ -16,8 +16,6 @@
 
 #include <OctreeUtils.h>
 #include <PerfStat.h>
-#include <ViewFrustum.h>
-#include <gpu/Context.h>
 
 using namespace render;
 
@@ -305,20 +303,4 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     }
 
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
-}
-
-
-void FilterItemLayer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    auto& scene = sceneContext->_scene;
-
-    // Clear previous values
-    outItems.clear();
-
-    // For each item, filter it into one bucket
-    for (auto itemBound : inItems) {
-        auto& item = scene->getItem(itemBound.id);
-        if (item.getLayer() == _keepLayer) {
-            outItems.emplace_back(itemBound);
-        }
-    }
 }
