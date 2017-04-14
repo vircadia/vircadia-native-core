@@ -62,6 +62,50 @@ body {
 }
 
 
+#recordings tfoot tr {
+    height: 24px;
+}
+
+
+#instructions td {
+    white-space: normal;
+}
+
+#instructions p, #instructions ul {
+    margin-top: 21px;
+    font-size: 14px;
+}
+
+#instructions li {
+    margin-top: 7px;
+}
+
+#instructions p {
+    font-family: Raleway-Bold;
+}
+
+#instructions ul {
+    font-family: Raleway-SemiBold;
+    margin-left: 21px;
+    font-weight: normal;
+}
+
+
+#show-info-button {
+    font-weight: bold;
+    font-size: 14px;
+    text-transform: lowercase;
+    padding: 0;
+    min-width: 40px;
+    height: 16px;
+    margin-left: 14px;
+}
+
+#show-info-button:hover {
+    color: #00b4ef;
+}
+
+
 #load-button {
     margin-top: 14px;
 }
