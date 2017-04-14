@@ -90,12 +90,12 @@ function onMessage(message) {
                     needsLogin = true;
                     submessage.share = false;
                     shareAfterLogin = true;
-                    snapshotToShareAfterLogin = {path: submessage.localPath, href: submessage.href};
+                    snapshotToShareAfterLogin = {path: submessage.localPath, href: submessage.href || href};
                 }
                 if (submessage.share) {
                     print('sharing', submessage.localPath);
                     outstanding = true;
-                    Window.shareSnapshot(submessage.localPath, submessage.href);
+                    Window.shareSnapshot(submessage.localPath, submessage.href || href);
                 } else {
                     print('not sharing', submessage.localPath);
                 }
