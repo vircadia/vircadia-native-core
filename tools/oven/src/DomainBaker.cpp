@@ -37,6 +37,7 @@ DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainNam
 void DomainBaker::bake() {
     setupOutputFolder();
     loadLocalFile();
+    setupBakerThread();
     enumerateEntities();
 
     if (!_entitiesNeedingRewrite.isEmpty()) {
@@ -47,6 +48,9 @@ void DomainBaker::bake() {
     }
 
     writeNewEntitiesFile();
+
+    // stop the FBX baker thread now that all our bakes have completed
+    _fbxBakerThread->quit();
 
     // we've now written out our new models file - time to say that we are finished up
     emit finished();
@@ -126,6 +130,15 @@ void DomainBaker::loadLocalFile() {
     }
 }
 
+void DomainBaker::setupBakerThread() {
+    // This is a real bummer, but the FBX SDK is not thread safe - even with separate FBXManager objects.
+    // This means that we need to put all of the FBX importing/exporting on the same thread.
+    // We'll setup that thread now and then move the FBXBaker objects to the thread later when enumerating entities.
+    _fbxBakerThread = std::unique_ptr<QThread>(new QThread);
+    _fbxBakerThread->setObjectName("Domain FBX Baker Thread");
+    _fbxBakerThread->start();
+}
+
 static const QString ENTITY_MODEL_URL_KEY = "modelURL";
 
 void DomainBaker::enumerateEntities() {
@@ -162,8 +175,10 @@ void DomainBaker::enumerateEntities() {
                         // insert it into our bakers hash so we hold a strong pointer to it
                         _bakers.insert(modelURL, baker);
 
-                        // send the FBXBaker to the thread pool
-                        QtConcurrent::run(baker.data(), &FBXBaker::bake);
+                        // move the baker to the baker thread
+                        // and kickoff the bake
+                        baker->moveToThread(_fbxBakerThread.get());
+                        QMetaObject::invokeMethod(baker.data(), "bake");
                     }
 
                     // add this QJsonValueRef to our multi hash so that we can easily re-write

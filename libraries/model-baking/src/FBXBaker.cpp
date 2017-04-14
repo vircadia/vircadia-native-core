@@ -50,39 +50,59 @@ QString FBXBaker::pathToCopyOfOriginal() const {
     return _uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER + _fbxURL.fileName();
 }
 
+void FBXBaker::handleError(const QString& error) {
+    qCCritical(model_baking) << error;
+    _errorList << error;
+    emit finished();
+}
+
 void FBXBaker::bake() {
     qCDebug(model_baking) << "Baking" << _fbxURL;
 
     // setup the output folder for the results of this bake
     setupOutputFolder();
 
+    if (hasErrors()) {
+        return;
+    }
+
+    connect(this, &FBXBaker::sourceCopyReadyToLoad, this, &FBXBaker::bakeSourceCopy);
+
     // make a local copy of the FBX file
     loadSourceFBX();
+}
 
+void FBXBaker::bakeSourceCopy() {
     // load the scene from the FBX file
     importScene();
+
+    if (hasErrors()) {
+        return;
+    }
 
     // enumerate the textures found in the scene and start a bake for them
     rewriteAndBakeSceneTextures();
 
+    if (hasErrors()) {
+        return;
+    }
+
     // export the FBX with re-written texture references
     exportScene();
+
+    if (hasErrors()) {
+        return;
+    }
 
     // remove the embedded media folder that the FBX SDK produces when reading the original
     removeEmbeddedMediaFolder();
 
-    // cleanup the originals if we weren't asked to keep them around
-    possiblyCleanupOriginals();
-
-    // if the texture baking operations are not complete
-    // use a QEventLoop to process events until texture bake operations are complete
-    if (!_unbakedTextures.isEmpty()) {
-        QEventLoop eventLoop;
-        connect(this, &FBXBaker::allTexturesBaked, &eventLoop, &QEventLoop::quit);
-        eventLoop.exec();
+    if (hasErrors()) {
+        return;
     }
 
-    emit finished();
+    // cleanup the originals if we weren't asked to keep them around
+    possiblyCleanupOriginals();
 }
 
 void FBXBaker::setupOutputFolder() {
@@ -100,16 +120,14 @@ void FBXBaker::setupOutputFolder() {
 
     // attempt to make the output folder
     if (!QDir().mkdir(_uniqueOutputPath)) {
-        qCCritical(model_baking) << "Failed to create FBX output folder" << _uniqueOutputPath;
-
+        handleError("Failed to create FBX output folder " + _uniqueOutputPath);
         return;
     }
 
     // make the baked and original sub-folders used during export
     QDir uniqueOutputDir = _uniqueOutputPath;
     if (!uniqueOutputDir.mkdir(BAKED_OUTPUT_SUBFOLDER) || !uniqueOutputDir.mkdir(ORIGINAL_OUTPUT_SUBFOLDER)) {
-        qCCritical(model_baking) << "Failed to create baked/original subfolders in" << _uniqueOutputPath;
-
+        handleError("Failed to create baked/original subfolders in " + _uniqueOutputPath);
         return;
     }
 }
@@ -123,8 +141,8 @@ void FBXBaker::loadSourceFBX() {
         // make a copy in the output folder
         localFBX.copy(pathToCopyOfOriginal());
 
-        // start the bake now that we have everything in place
-        bake();
+        // emit our signal to start the import of the FBX source copy
+        emit sourceCopyReadyToLoad();
     } else {
         // remote file, kick off a download
         auto& networkAccessManager = NetworkAccessManager::getInstance();
@@ -140,16 +158,13 @@ void FBXBaker::loadSourceFBX() {
         qCDebug(model_baking) << "Downloading" << _fbxURL;
         auto networkReply = networkAccessManager.get(networkRequest);
 
-        // start a QEventLoop so we process events while waiting for the request to complete
-        QEventLoop eventLoop;
-        connect(networkReply, &QNetworkReply::finished, &eventLoop, &QEventLoop::quit);
-        eventLoop.exec();
-
-        handleFBXNetworkReply(networkReply);
+        connect(networkReply, &QNetworkReply::finished, this, &FBXBaker::handleFBXNetworkReply);
     }
 }
 
-void FBXBaker::handleFBXNetworkReply(QNetworkReply* requestReply) {
+void FBXBaker::handleFBXNetworkReply() {
+    auto requestReply = qobject_cast<QNetworkReply*>(sender());
+
     if (requestReply->error() == QNetworkReply::NoError) {
         qCDebug(model_baking) << "Downloaded" << _fbxURL;
 
@@ -159,21 +174,23 @@ void FBXBaker::handleFBXNetworkReply(QNetworkReply* requestReply) {
         qDebug(model_baking) << "Writing copy of original FBX to" << copyOfOriginal.fileName();
 
         if (!copyOfOriginal.open(QIODevice::WriteOnly) || (copyOfOriginal.write(requestReply->readAll()) == -1)) {
-
             // add an error to the error list for this FBX stating that a duplicate of the original FBX could not be made
-            emit finished();
+            handleError("Could not create copy of " + _fbxURL.toString());
             return;
         }
 
         // close that file now that we are done writing to it
         copyOfOriginal.close();
+
+        // emit our signal to start the import of the FBX source copy
+        emit sourceCopyReadyToLoad();
     } else {
         // add an error to our list stating that the FBX could not be downloaded
-
+        handleError("Failed to download " + _fbxURL.toString());
     }
 }
 
-bool FBXBaker::importScene() {
+void FBXBaker::importScene() {
     // create an FBX SDK importer
     FbxImporter* importer = FbxImporter::Create(_sdkManager, "");
 
@@ -183,10 +200,8 @@ bool FBXBaker::importScene() {
 
     if (!importStatus) {
         // failed to initialize importer, print an error and return
-        qCCritical(model_baking) << "Failed to import FBX file at" << _fbxURL
-            << "- error:" << importer->GetStatus().GetErrorString();
-
-        return false;
+        handleError("Failed to import FBX file at" + _fbxURL.toString() + " - error:" + importer->GetStatus().GetErrorString());
+        return;
     } else {
         qCDebug(model_baking) << "Imported" << _fbxURL << "to FbxScene";
     }
@@ -199,8 +214,6 @@ bool FBXBaker::importScene() {
 
     // destroy the importer that is no longer needed
     importer->Destroy();
-
-    return true;
 }
 
 static const QString BAKED_TEXTURE_EXT = ".ktx";
@@ -344,7 +357,7 @@ TextureType textureTypeForMaterialProperty(FbxProperty& property, FbxSurfaceMate
     return UNUSED_TEXTURE;
 }
 
-bool FBXBaker::rewriteAndBakeSceneTextures() {
+void FBXBaker::rewriteAndBakeSceneTextures() {
 
     // enumerate the surface materials to find the textures used in the scene
     int numMaterials = _scene->GetMaterialCount();
@@ -406,8 +419,6 @@ bool FBXBaker::rewriteAndBakeSceneTextures() {
             }
         }
     }
-
-    return true;
 }
 
 void FBXBaker::bakeTexture(const QUrl& textureURL) {
@@ -449,22 +460,24 @@ void FBXBaker::handleBakedTexture() {
 
         if (originalTextureFile.open(QIODevice::WriteOnly) && originalTextureFile.write(bakedTexture->getOriginalTexture()) != -1) {
             qCDebug(model_baking) << "Saved original texture file" << originalTextureFile.fileName()
-            << "for" << _fbxURL;
+                << "for" << _fbxURL;
         } else {
-            qCWarning(model_baking) << "Could not save original external texture" << originalTextureFile.fileName()
-            << "for" << _fbxURL;
+            handleError("Could not save original external texture " + originalTextureFile.fileName()
+                       + " for " + _fbxURL.toString());
+            return;
         }
     }
 
     // now that this texture has been baked and handled, we can remove that TextureBaker from our list
     _unbakedTextures.remove(bakedTexture->getTextureURL());
 
+    // check if we're done everything we need to do for this FBX
     if (_unbakedTextures.isEmpty()) {
-        emit allTexturesBaked();
+        emit finished();
     }
 }
 
-bool FBXBaker::exportScene() {
+void FBXBaker::exportScene() {
     // setup the exporter
     FbxExporter* exporter = FbxExporter::Create(_sdkManager, "");
 
@@ -478,18 +491,14 @@ bool FBXBaker::exportScene() {
 
     if (!exportStatus) {
         // failed to initialize exporter, print an error and return
-         qCCritical(model_baking) << "Failed to export FBX file at" << _fbxURL
-            << "to" << rewrittenFBXPath << "- error:" << exporter->GetStatus().GetErrorString();
-
-        return false;
+        handleError("Failed to export FBX file at " + _fbxURL.toString() + " to " + rewrittenFBXPath
+                    + "- error: " + exporter->GetStatus().GetErrorString());
     }
 
     // export the scene
     exporter->Export(_scene);
 
     qCDebug(model_baking) << "Exported" << _fbxURL << "with re-written paths to" << rewrittenFBXPath;
-
-    return true;
 }
 
 

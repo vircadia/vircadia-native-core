@@ -53,7 +53,9 @@ public:
     FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath, bool copyOriginals = true);
     ~FBXBaker();
 
-    void bake();
+    Q_INVOKABLE void bake();
+
+    bool hasErrors() const { return !_errorList.isEmpty(); }
 
     QUrl getFBXUrl() const { return _fbxURL; }
     QString getBakedFBXRelativePath() const { return _bakedFBXRelativePath; }
@@ -62,18 +64,23 @@ signals:
     void finished();
     void allTexturesBaked();
 
+    void sourceCopyReadyToLoad();
+
 private slots:
+    void bakeSourceCopy();
+    void handleFBXNetworkReply();
     void handleBakedTexture();
-    
+
 private:
     void setupOutputFolder();
 
     void loadSourceFBX();
-    void handleFBXNetworkReply(QNetworkReply* requestReply);
 
-    bool importScene();
-    bool rewriteAndBakeSceneTextures();
-    bool exportScene();
+    void bakeCopiedFBX();
+
+    void importScene();
+    void rewriteAndBakeSceneTextures();
+    void exportScene();
     void removeEmbeddedMediaFolder();
     void possiblyCleanupOriginals();
 
@@ -83,6 +90,8 @@ private:
     void bakeTexture(const QUrl& textureURL);
 
     QString pathToCopyOfOriginal() const;
+
+    void handleError(const QString& error);
 
     QUrl _fbxURL;
     QString _fbxName;
@@ -104,6 +113,8 @@ private:
     QFutureSynchronizer<void> _textureBakeSynchronizer;
 
     bool _copyOriginals { true };
+
+    bool _finishedNonTextureOperations { false };
 };
 
 #endif // hifi_FBXBaker_h

@@ -15,6 +15,7 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtCore/QThread>
 
 #include <FBXBaker.h>
 
@@ -37,6 +38,7 @@ private slots:
 private:
     void setupOutputFolder();
     void loadLocalFile();
+    void setupBakerThread();
     void enumerateEntities();
     void writeNewEntitiesFile();
 
@@ -49,6 +51,7 @@ private:
 
     QJsonArray _entities;
 
+    std::unique_ptr<QThread> _fbxBakerThread;
     QHash<QUrl, QSharedPointer<FBXBaker>> _bakers;
     QMultiHash<QUrl, QJsonValueRef> _entitiesNeedingRewrite;
 };
