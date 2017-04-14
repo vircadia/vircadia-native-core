@@ -66,6 +66,7 @@ bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
 
     QList<EntityDynamicPointer> springDerivedActions;
     springDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_SPRING));
+    springDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_FAR_GRAB));
     springDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_HOLD));
 
     foreach (EntityDynamicPointer action, springDerivedActions) {
@@ -259,7 +260,7 @@ QVariantMap ObjectActionSpring::getArguments() {
     return arguments;
 }
 
-QByteArray ObjectActionSpring::serializeParameters(QDataStream& dataStream) const {
+void ObjectActionSpring::serializeParameters(QDataStream& dataStream) const {
     withReadLock([&] {
         dataStream << _desiredPositionalTarget;
         dataStream << _linearTimeScale;

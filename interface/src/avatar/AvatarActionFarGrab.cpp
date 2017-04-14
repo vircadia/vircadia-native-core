@@ -15,13 +15,13 @@ AvatarActionFarGrab::AvatarActionFarGrab(const QUuid& id, EntityItemPointer owne
     ObjectActionSpring(id, ownerEntity) {
     _type = DYNAMIC_TYPE_FAR_GRAB;
 #if WANT_DEBUG
-    qCDebug(physics) << "AvatarActionFarGrab::AvatarActionFarGrab";
+    qDebug() << "AvatarActionFarGrab::AvatarActionFarGrab";
 #endif
 }
 
 AvatarActionFarGrab::~AvatarActionFarGrab() {
 #if WANT_DEBUG
-    qCDebug(physics) << "AvatarActionFarGrab::~AvatarActionFarGrab";
+    qDebug() << "AvatarActionFarGrab::~AvatarActionFarGrab";
 #endif
 }
 
@@ -32,7 +32,7 @@ QByteArray AvatarActionFarGrab::serialize() const {
 
     dataStream << DYNAMIC_TYPE_FAR_GRAB;
     dataStream << getID();
-    dataStream << AvatarActionFarGrab::springVersion;
+    dataStream << ObjectActionSpring::springVersion;
 
     serializeParameters(dataStream);
 
@@ -52,7 +52,7 @@ void AvatarActionFarGrab::deserialize(QByteArray serializedArguments) {
 
     uint16_t serializationVersion;
     dataStream >> serializationVersion;
-    if (serializationVersion != AvatarActionFarGrab::springVersion) {
+    if (serializationVersion != ObjectActionSpring::springVersion) {
         assert(false);
         return;
     }

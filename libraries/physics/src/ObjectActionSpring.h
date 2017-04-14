@@ -48,7 +48,7 @@ protected:
 
     virtual bool prepareForSpringUpdate(btScalar deltaTimeStep);
 
-    QByteArray serializeParameters(QDataStream& dataStream) const;
+    void serializeParameters(QDataStream& dataStream) const;
     void deserializeParameters(QByteArray serializedArguments, QDataStream& dataStream);
 };
 
