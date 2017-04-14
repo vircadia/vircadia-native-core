@@ -69,10 +69,6 @@ body {
     display: inline-block;
 }
 
-#recordings-list tr td:last-child span:hover {
-    color: #00b4ef;
-}
-
 
 #recordings tfoot tr {
     height: 24px;
