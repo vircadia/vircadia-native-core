@@ -450,7 +450,7 @@
     }
     
     /**
-     * A controller in made up of parts, and each part can have multiple "layers,"
+     * A controller is made up of parts, and each part can have multiple "layers,"
      * which are really just different texures. For example, the "trigger" part
      * has "normal" and "highlight" layers.
      */
