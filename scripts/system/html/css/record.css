@@ -8,6 +8,80 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
+
+body {
+    padding: 0;
+}
+
+.title {
+    padding-left: 21px;
+}
+
+.title label {
+    font-size: 18px;
+    position: relative;
+    top: 12px;
+}
+
+
+#recordings {
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 63px 21px 158px 21px;
+    box-sizing: border-box;
+}
+
+#recordings table {
+    height: 100%;
+    table-layout: fixed;
+    background: none !important;
+}
+
+#recordings thead, #recordings thead tr {
+    background: none !important;
+}
+
+#recordings table col#unload-column {
+    width: 100px;
+}
+
+#recordings table td {
+    text-overflow: ellipsis;
+}
+
+#recordings table td:nth-child(2) {
+    text-align: center;
+}
+
+#recordings tbody tr.filler td {
+    height: auto;
+    background-color: #2e2e2e;
+    border-top: 1px solid #1c1c1c;
+}
+
+
+#load-button {
+    margin-top: 14px;
+}
+
+
+#record-controls {
+    position: absolute;
+    bottom: 7px;
+    width: 100%;
+}
+
+#record-controls div:first-child {
+    text-align: center;
+}
+
+#record-controls div.property {
+    padding-left: 21px;
+}
+
+
 .hidden {
     display: none;
 }

@@ -96,6 +96,14 @@ function updateRecordings() {
         tbody.appendChild(tr);
     }
 
+    // Filler row for extra table space.
+    tr = document.createElement("tr");
+    tr.classList.add("filler");
+    td = document.createElement("td");
+    td.colSpan = 2;
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+
     elRecordingsPlaying.replaceChild(tbody, elRecordingsList);
     elRecordingsList = document.getElementById("recordings-list");
 }
