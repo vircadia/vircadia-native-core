@@ -55,6 +55,11 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
     glm::vec3 axisInA;
     glm::vec3 pivotInB;
     glm::vec3 axisInB;
+    float low;
+    float high;
+    float softness;
+    float biasFactor;
+    float relaxationFactor;
 
     withReadLock([&]{
         constraint = static_cast<btHingeConstraint*>(_constraint);
@@ -63,6 +68,11 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         otherEntityID = _otherEntityID;
         pivotInB = _pivotInB;
         axisInB = _axisInB;
+        low = _low;
+        high = _high;
+        softness = _softness;
+        biasFactor = _biasFactor;
+        relaxationFactor = _relaxationFactor;
     });
     if (constraint) {
         return constraint;
@@ -90,29 +100,22 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
                                            rigidBodyAFrame, rigidBodyBFrame,
                                            useReferenceFrameA);
 
-        btVector3 bulletAxisInA = glmToBullet(axisInA);
-        constraint->setAxis(bulletAxisInA);
-
-        withWriteLock([&]{
-            _constraint = constraint;
-        });
-
-        return constraint;
     } else {
         // This hinge is between an entity and the world-frame.
         btTransform rigidBodyAFrame(btQuaternion(0.0f, 0.0f, 0.0f, 1.0f), glmToBullet(pivotInA));
 
         constraint = new btHingeConstraint(*rigidBodyA, rigidBodyAFrame, useReferenceFrameA);
-        // constraint->setAngularOnly(true);
-
-        btVector3 bulletAxisInA = glmToBullet(axisInA);
-        constraint->setAxis(bulletAxisInA);
-
-        withWriteLock([&]{
-            _constraint = constraint;
-        });
-        return constraint;
     }
+
+    btVector3 bulletAxisInA = glmToBullet(axisInA);
+    constraint->setAxis(bulletAxisInA);
+    constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
+
+    withWriteLock([&]{
+        _constraint = constraint;
+    });
+
+    return constraint;
 }
 
 
@@ -122,6 +125,13 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
     QUuid otherEntityID;
     glm::vec3 pivotInB;
     glm::vec3 axisInB;
+    float low;
+    float high;
+    float softness;
+    float biasFactor;
+    float relaxationFactor;
+    float angle;
+    float angleSet { false };
 
     bool needUpdate = false;
     bool somethingChanged = ObjectDynamic::updateArguments(arguments);
@@ -157,11 +167,55 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             axisInB = _axisInB;
         }
 
+        ok = true;
+        low = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "low", ok, false);
+        if (!ok) {
+            low = _low;
+        }
+
+        ok = true;
+        high = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "high", ok, false);
+        if (!ok) {
+            high = _high;
+        }
+
+        ok = true;
+        softness = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "softness", ok, false);
+        if (!ok) {
+            softness = _softness;
+        }
+
+        ok = true;
+        biasFactor = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "biasFactor", ok, false);
+        if (!ok) {
+            biasFactor = _biasFactor;
+        }
+
+        ok = true;
+        relaxationFactor = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments,
+                                                                        "relaxationFactor", ok, false);
+        if (!ok) {
+            relaxationFactor = _relaxationFactor;
+        }
+
+        ok = true;
+        angle = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "angle", ok, false);
+        if (ok) {
+            angleSet = true;
+        }
+
+
         if (somethingChanged ||
             pivotInA != _pivotInA ||
             axisInA != _axisInA ||
             pivotInB != _pivotInB ||
-            axisInB != _axisInB) {
+            axisInB != _axisInB ||
+            low != _low ||
+            high != _high ||
+            softness != _softness ||
+            biasFactor != _biasFactor ||
+            relaxationFactor != _relaxationFactor ||
+            angleSet) {
             // something changed
             needUpdate = true;
         }
@@ -174,6 +228,11 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             _otherEntityID = otherEntityID;
             _pivotInB = pivotInB;
             _axisInB = axisInB;
+            _low = low;
+            _high = high;
+            _softness = softness;
+            _biasFactor = biasFactor;
+            _relaxationFactor = relaxationFactor;
 
             _active = true;
 
@@ -182,6 +241,8 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
                 ownerEntity->setDynamicDataDirty(true);
                 ownerEntity->setDynamicDataNeedsTransmit(true);
             }
+
+            // _constraint->setAngle(angle);
         });
         // activateBody();
     }
@@ -192,11 +253,19 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintHinge::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        arguments["pivot"] = glmToQMap(_pivotInA);
-        arguments["axis"] = glmToQMap(_axisInA);
-        arguments["otherEntityID"] = _otherEntityID;
-        arguments["otherPivot"] = glmToQMap(_pivotInB);
-        arguments["otherAxis"] = glmToQMap(_axisInB);
+        if (_constraint) {
+            arguments["pivot"] = glmToQMap(_pivotInA);
+            arguments["axis"] = glmToQMap(_axisInA);
+            arguments["otherEntityID"] = _otherEntityID;
+            arguments["otherPivot"] = glmToQMap(_pivotInB);
+            arguments["otherAxis"] = glmToQMap(_axisInB);
+            arguments["low"] = _low;
+            arguments["high"] = _high;
+            arguments["softness"] = _softness;
+            arguments["biasFactor"] = _biasFactor;
+            arguments["relaxationFactor"] = _relaxationFactor;
+            arguments["angle"] = static_cast<btHingeConstraint*>(_constraint)->getHingeAngle(); // [-PI,PI]
+        }
     });
     return arguments;
 }
@@ -215,6 +284,12 @@ QByteArray ObjectConstraintHinge::serialize() const {
         dataStream << _otherEntityID;
         dataStream << _pivotInB;
         dataStream << _axisInB;
+        dataStream << _low;
+        dataStream << _high;
+        dataStream << _softness;
+        dataStream << _biasFactor;
+        dataStream << _relaxationFactor;
+
         dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
     });
@@ -246,6 +321,11 @@ void ObjectConstraintHinge::deserialize(QByteArray serializedArguments) {
         dataStream >> _otherEntityID;
         dataStream >> _pivotInB;
         dataStream >> _axisInB;
+        dataStream >> _low;
+        dataStream >> _high;
+        dataStream >> _softness;
+        dataStream >> _biasFactor;
+        dataStream >> _relaxationFactor;
 
         quint64 serverExpires;
         dataStream >> serverExpires;
