@@ -2527,7 +2527,7 @@ function MyController(hand) {
         var timeScale = this.distanceGrabTimescale(this.mass, distanceToObject);
 
         this.actionID = NULL_UUID;
-        this.actionID = Entities.addAction("spring", this.grabbedThingID, {
+        this.actionID = Entities.addAction("far-grab", this.grabbedThingID, {
             targetPosition: this.currentObjectPosition,
             linearTimeScale: timeScale,
             targetRotation: this.currentObjectRotation,
