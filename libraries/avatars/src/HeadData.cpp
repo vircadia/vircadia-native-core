@@ -38,7 +38,8 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _rightEyeBlink(0.0f),
     _averageLoudness(0.0f),
     _browAudioLift(0.0f),
-    _owningAvatar(owningAvatar)
+    _owningAvatar(owningAvatar),
+    _baseBlendshapeCoefficients(0, 0),
 {
 
 }
@@ -86,17 +87,23 @@ static const QMap<QString, int>& getBlendshapesLookupMap() {
     return blendshapeLookupMap;
 }
 
+const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
+    for (int i = 0; i < _baseBlendshapeCoefficients.size(); i++) {
+        _blendshapeCoefficients[i] += _baseBlendshapeCoefficients[i];
+    }
+    return _blendshapeCoefficients;
+}
 
 void HeadData::setBlendshape(QString name, float val) {
     const auto& blendshapeLookupMap = getBlendshapesLookupMap();
-
     //Check to see if the named blendshape exists, and then set its value if it does
     auto it = blendshapeLookupMap.find(name);
     if (it != blendshapeLookupMap.end()) {
         if (_blendshapeCoefficients.size() <= it.value()) {
             _blendshapeCoefficients.resize(it.value() + 1);
+            _baseBlendshapeCoefficients.resize(it.value() + 1);
         }
-        _blendshapeCoefficients[it.value()] = val;
+        _baseBlendshapeCoefficients[it.value()] = val;
     }
 }
 
