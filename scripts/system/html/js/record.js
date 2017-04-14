@@ -62,7 +62,8 @@ function updateRecordings() {
         span,
         input,
         length,
-        i;
+        i,
+        HIFI_GLYPH_CLOSE_SMALL = "C";
 
     recordingsBeingPlayed.sort(orderRecording);
 
@@ -76,7 +77,7 @@ function updateRecordings() {
         tr.appendChild(td);
         td = document.createElement("td");
         span = document.createElement("span");
-        span.innerHTML = "x";
+        span.innerHTML = HIFI_GLYPH_CLOSE_SMALL;
         span.addEventListener("click", stopPlayingRecording);
         input = document.createElement("input");
         input.setAttribute("type", "hidden");

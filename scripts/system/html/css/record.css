@@ -62,6 +62,18 @@ body {
 }
 
 
+#recordings-list tr td:last-child span {
+    font-family: HiFi-Glyphs;
+    font-size: 24px;
+    height: 24px;
+    display: inline-block;
+}
+
+#recordings-list tr td:last-child span:hover {
+    color: #00b4ef;
+}
+
+
 #recordings tfoot tr {
     height: 24px;
 }
