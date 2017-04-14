@@ -123,6 +123,8 @@ void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
             case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
             case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
                 glCompressedTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat, sourceSize, sourcePointer);
                 break;
             default:

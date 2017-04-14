@@ -266,6 +266,10 @@ bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat
         header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, ktx::GLBaseInternalFormat::RGBA);
     } else if (texelFormat == Format::COLOR_COMPRESSED_SRGBA && mipFormat == Format::COLOR_COMPRESSED_SRGBA) {
         header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_RED && mipFormat == Format::COLOR_COMPRESSED_RED) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1, ktx::GLBaseInternalFormat::RED);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_XY && mipFormat == Format::COLOR_COMPRESSED_XY) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2, ktx::GLBaseInternalFormat::RG);
     } else {
         return false;
     }
@@ -311,6 +315,12 @@ bool Texture::evalTextureFormat(const ktx::Header& header, Element& mipFormat, E
         } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT) {
             mipFormat = Format::COLOR_COMPRESSED_SRGBA;
             texelFormat = Format::COLOR_COMPRESSED_SRGBA;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1) {
+            mipFormat = Format::COLOR_COMPRESSED_RED;
+            texelFormat = Format::COLOR_COMPRESSED_RED;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2) {
+            mipFormat = Format::COLOR_COMPRESSED_XY;
+            texelFormat = Format::COLOR_COMPRESSED_XY;
         } else {
             return false;
         }
