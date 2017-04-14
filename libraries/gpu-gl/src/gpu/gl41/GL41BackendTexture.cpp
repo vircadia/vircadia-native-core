@@ -94,12 +94,15 @@ void GL41Texture::generateMips() const {
 
 void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum internalFormat, GLenum type, Size sourceSize, const void* sourcePointer) const {
     if (GL_TEXTURE_2D == _target) {
-        if (GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT == internalFormat) {
-            qCDebug(gpugllogging) << "Compressed mipData level=" << mip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
-            qCDebug(gpugllogging) << "Compressed mipData" << internalFormat << size.x << size.y << sourceSize << sourcePointer;
-            glCompressedTexImage2D(_target, mip, internalFormat, size.x, size.y, 0, sourceSize, sourcePointer);
-        } else {
-            glTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+                glCompressedTexSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat, sourceSize, sourcePointer);
+                break;
+            default:
+                glTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                break;
         }
     } else if (GL_TEXTURE_CUBE_MAP == _target) {
         auto target = GLTexture::CUBE_FACE_LAYOUT[face];

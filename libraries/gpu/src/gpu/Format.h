@@ -165,11 +165,9 @@ enum Semantic {
     COMPRESSED_SRGB,
     COMPRESSED_SRGBA,
 
-    COMPRESSED_BC3_RGBA,  // RGBA_S3TC_DXT5_EXT,
-    COMPRESSED_BC3_SRGBA, // SRGB_ALPHA_S3TC_DXT5_EXT
-
-    COMPRESSED_BC7_RGBA,
-    COMPRESSED_BC7_SRGBA,
+    COMPRESSED_BC1_SRGB,
+    COMPRESSED_BC1_SRGBA,
+    COMPRESSED_BC3_SRGBA,
 
     _LAST_COMPRESSED,
 
@@ -236,6 +234,8 @@ public:
     static const Element COLOR_BGRA_32;
     static const Element COLOR_SBGRA_32;
     static const Element COLOR_R11G11B10;
+    static const Element COLOR_COMPRESSED_SRGB;
+    static const Element COLOR_COMPRESSED_SRGBA_MASK;
     static const Element COLOR_COMPRESSED_SRGBA;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;

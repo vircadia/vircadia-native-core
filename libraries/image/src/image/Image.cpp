@@ -91,7 +91,7 @@ TextureLoader getTextureLoaderForType(gpu::TextureType type, const QVariantMap& 
             break;
         }
         case gpu::ROUGHNESS_TEXTURE: {
-            return image::TextureUsage::createRoughnessTextureFromGlossImage;
+            return image::TextureUsage::createRoughnessTextureFromImage;
             break;
         }
         case gpu::GLOSS_TEXTURE: {
@@ -389,7 +389,7 @@ struct MyErrorHandler : public nvtt::ErrorHandler {
     }
 };
 
-void generateNVTTMips(gpu::Texture* texture, QImage& image) {
+void generateNVTTMips(gpu::Texture* texture, QImage& image, bool validAlpha, bool alphaAsMask) {
 #if CPU_MIPMAPS
     PROFILE_RANGE(resource_parse, "generateMips");
 
@@ -416,10 +416,18 @@ void generateNVTTMips(gpu::Texture* texture, QImage& image) {
 
     nvtt::TextureType textureType = nvtt::TextureType_2D;
     nvtt::InputFormat inputFormat = nvtt::InputFormat_BGRA_8UB;
-    nvtt::AlphaMode alphaMode = image.hasAlphaChannel() ? nvtt::AlphaMode_Transparency : nvtt::AlphaMode_None;
+    nvtt::AlphaMode alphaMode = validAlpha ? nvtt::AlphaMode_Transparency : nvtt::AlphaMode_None;
     nvtt::WrapMode wrapMode = nvtt::WrapMode_Repeat;
-    nvtt::Format compressionFormat = nvtt::Format_BC3;
-    float inputGamma = 1.0f;
+    nvtt::RoundMode roundMode = nvtt::RoundMode_None;
+    nvtt::Format compressionFormat = nvtt::Format_BC1;
+    if (validAlpha) {
+        if (alphaAsMask) {
+            compressionFormat = nvtt::Format_BC1a;
+        } else {
+            compressionFormat = nvtt::Format_BC3;
+        }
+    }
+    float inputGamma = 2.2f;
     float outputGamma = 2.2f;
 
     nvtt::InputOptions inputOptions;
@@ -430,8 +438,8 @@ void generateNVTTMips(gpu::Texture* texture, QImage& image) {
     inputOptions.setGamma(inputGamma, outputGamma);
     inputOptions.setAlphaMode(alphaMode);
     inputOptions.setWrapMode(wrapMode);
+    inputOptions.setRoundMode(roundMode);
     // inputOptions.setMaxExtents(int d);
-    // inputOptions.setRoundMode(RoundMode mode);
 
     inputOptions.setMipmapGeneration(true);
     inputOptions.setMipmapFilter(nvtt::MipmapFilter_Box);
@@ -445,7 +453,7 @@ void generateNVTTMips(gpu::Texture* texture, QImage& image) {
 
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setFormat(compressionFormat);
-    compressionOptions.setQuality(nvtt::Quality_Fastest);
+    compressionOptions.setQuality(nvtt::Quality_Production);
 
     nvtt::Compressor compressor;
     compressor.process(inputOptions, compressionOptions, outputOptions);
@@ -464,10 +472,12 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
 
     if ((image.width() > 0) && (image.height() > 0)) {
         gpu::Element formatGPU;
-        gpu::Element formatMip;
-        defineColorTexelFormats(formatGPU, formatMip, image, isLinear, doCompress);
-        formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA;
-        formatMip = gpu::Element::COLOR_COMPRESSED_SRGBA;
+        if (validAlpha) {
+            formatGPU = alphaAsMask ? gpu::Element::COLOR_COMPRESSED_SRGBA_MASK : gpu::Element::COLOR_COMPRESSED_SRGBA;
+        } else {
+            formatGPU = gpu::Element::COLOR_COMPRESSED_SRGB;
+        }
+        gpu::Element formatMip = formatGPU;
 
         if (isStrict) {
             theTexture = (gpu::Texture::createStrict(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
@@ -486,7 +496,7 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         theTexture->setStoredMipFormat(formatMip);
 
         if (generateMips) {
-            generateNVTTMips(theTexture, image);
+            generateNVTTMips(theTexture, image, validAlpha, alphaAsMask);
         }
         theTexture->setSource(srcImageName);
     }

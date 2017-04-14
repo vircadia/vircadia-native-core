@@ -119,15 +119,15 @@ void GL45Texture::generateMips() const {
 
 void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum internalFormat, GLenum type, Size sourceSize, const void* sourcePointer) const {
     if (GL_TEXTURE_2D == _target) {
-        if (GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT == internalFormat) {
-            qCDebug(gpugllogging) << "Compressed mipData level=" << mip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
-            qCDebug(gpugllogging) << "Compressed mipData" << internalFormat << size.x << size.y << sourceSize << sourcePointer << "4.5";
-            glCompressedTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat, sourceSize, sourcePointer);
-        }
-        else {
-            qCDebug(gpugllogging) << "Uncompressed mipData level=" << mip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
-            qCDebug(gpugllogging) << "Uncompressed mipData" << internalFormat << size.x << size.y << sourceSize << sourcePointer << "4.5";
-            glTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+                glCompressedTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat, sourceSize, sourcePointer);
+                break;
+            default:
+                glTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                break;
         }
     } else if (GL_TEXTURE_CUBE_MAP == _target) {
         // DSA ARB does not work on AMD, so use EXT
