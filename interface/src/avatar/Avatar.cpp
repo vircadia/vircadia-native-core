@@ -28,7 +28,6 @@
 #include <VariantMapToScriptValue.h>
 #include <DebugDraw.h>
 
-#include "AvatarManager.h"
 #include "AvatarMotionState.h"
 #include "Camera.h"
 #include "Menu.h"
@@ -71,6 +70,12 @@ namespace render {
         }
         return 0;
     }
+}
+
+// static
+bool showReceiveStats = false;
+void Avatar::setShowReceiveStats(bool receiveStats) {
+    showReceiveStats = receiveStats;
 }
 
 Avatar::Avatar(QThread* thread, RigPointer rig) :
@@ -582,7 +587,6 @@ void Avatar::render(RenderArgs* renderArgs) {
         bool havePosition, haveRotation;
 
         if (_handState & LEFT_HAND_POINTING_FLAG) {
-
             if (_handState & IS_FINGER_POINTING_FLAG) {
                 int leftIndexTip = getJointIndex("LeftHandIndex4");
                 int leftIndexTipJoint = getJointIndex("LeftHandIndex3");
@@ -809,7 +813,7 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& view, const g
 void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const {
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
-    bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
+    bool shouldShowReceiveStats = showReceiveStats && !isMyAvatar();
 
     // If we have nothing to draw, or it's totally transparent, or it's too close or behind the camera, return
     static const float CLIP_DISTANCE = 0.2f;
@@ -1473,16 +1477,16 @@ QList<QVariant> Avatar::getSkeleton() {
 
 void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer& scene) {
     if (scene) {
-        render::Transaction transaction;
         auto nodelist = DependencyManager::get<NodeList>();
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()
             && !nodelist->isIgnoringNode(getSessionUUID())
             && !nodelist->isRadiusIgnoringNode(getSessionUUID())) {
+            render::Transaction transaction;
             addToScene(myHandle, scene, transaction);
+            scene->enqueueTransaction(transaction);
         }
-        scene->enqueueTransaction(transaction);
     } else {
-        qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
+        qCWarning(interfaceapp) << "Avatar::addAvatar() : Unexpected null scene, possibly during application shutdown";
     }
 }
 

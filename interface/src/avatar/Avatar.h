@@ -66,6 +66,8 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
+    static void setShowReceiveStats(bool receiveStats);
+
     explicit Avatar(QThread* thread, RigPointer rig = nullptr);
     ~Avatar();
 
@@ -251,7 +253,6 @@ public slots:
     void setModelURLFinished(bool success);
 
 protected:
-    friend class AvatarManager;
 
     const float SMOOTH_TIME_POSITION = 0.125f;
     const float SMOOTH_TIME_ORIENTATION = 0.075f;

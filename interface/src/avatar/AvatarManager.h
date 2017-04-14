@@ -62,8 +62,6 @@ public:
     void clearOtherAvatars();
     void deleteAllAvatars();
 
-    bool shouldShowReceiveStats() const { return _shouldShowReceiveStats; }
-
     void getObjectsToRemoveFromPhysics(VectorOfMotionStates& motionStates);
     void getObjectsToAddToPhysics(VectorOfMotionStates& motionStates);
     void getObjectsToChange(VectorOfMotionStates& motionStates);
@@ -85,7 +83,7 @@ public:
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
 
 public slots:
-    void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
+    void setShouldShowReceiveStats(bool shouldShowReceiveStats) const { Avatar::setShowReceiveStats(shouldShowReceiveStats); }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private:
@@ -105,8 +103,6 @@ private:
 
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
-
-    bool _shouldShowReceiveStats = false;
 
     std::list<QPointer<AudioInjector>> _collisionInjectors;
 
