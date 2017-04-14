@@ -130,8 +130,6 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
     float softness;
     float biasFactor;
     float relaxationFactor;
-    float angle;
-    float angleSet { false };
 
     bool needUpdate = false;
     bool somethingChanged = ObjectDynamic::updateArguments(arguments);
@@ -198,24 +196,17 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             relaxationFactor = _relaxationFactor;
         }
 
-        ok = true;
-        angle = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "angle", ok, false);
-        if (ok) {
-            angleSet = true;
-        }
-
-
         if (somethingChanged ||
             pivotInA != _pivotInA ||
             axisInA != _axisInA ||
+            otherEntityID != _otherEntityID ||
             pivotInB != _pivotInB ||
             axisInB != _axisInB ||
             low != _low ||
             high != _high ||
             softness != _softness ||
             biasFactor != _biasFactor ||
-            relaxationFactor != _relaxationFactor ||
-            angleSet) {
+            relaxationFactor != _relaxationFactor) {
             // something changed
             needUpdate = true;
         }
@@ -241,10 +232,7 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
                 ownerEntity->setDynamicDataDirty(true);
                 ownerEntity->setDynamicDataNeedsTransmit(true);
             }
-
-            // _constraint->setAngle(angle);
         });
-        // activateBody();
     }
 
     return true;
