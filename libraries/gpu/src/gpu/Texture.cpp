@@ -118,6 +118,7 @@ Texture::Size Texture::getAllowedGPUMemoryUsage() {
     return _allowedCPUMemoryUsage;
 }
 
+
 void Texture::setAllowedGPUMemoryUsage(Size size) {
     qCDebug(gpulogging) << "New MAX texture memory " << BYTES_TO_MB(size) << " MB";
     _allowedCPUMemoryUsage = size;

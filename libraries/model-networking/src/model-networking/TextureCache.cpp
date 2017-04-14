@@ -387,6 +387,7 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
     _ktxMipRequest = ResourceManager::createResourceRequest(this, _activeUrl);
     qDebug() << ">>> Making request to " << _url << " for " << low << " to " << high;
 
+    _ktxMipLevelRangeInFlight = { low, high };
     if (isHighMipRequest) {
         // This is a special case where we load the high 7 mips
         ByteRange range;
@@ -478,6 +479,23 @@ void NetworkTexture::maybeCreateKTX() {
         texture.reset(gpu::Texture::unserialize(_file->getFilepath(), *_ktxDescriptor));
         texture->setKtxBacking(file->getFilepath());
         texture->setSource(filename);
+
+        auto& images = _ktxDescriptor->images;
+        size_t imageSizeRemaining = _ktxHighMipData.size();
+        uint8_t* ktxData = reinterpret_cast<uint8_t*>(_ktxHighMipData.data());
+        ktxData += _ktxHighMipData.size();
+        // TODO Move image offset calculation to ktx ImageDescriptor
+        for (uint16_t i = images.size() - 1; i >= 0; --i) {
+            auto& image = images[i];
+            if (image._imageSize > imageSizeRemaining) {
+                break;
+            }
+            qDebug() << "Transferring " << i;
+            ktxData -= image._imageSize;
+            texture->assignStoredMip(i, image._imageSize, ktxData);
+            ktxData -= 4;
+            imageSizeRemaining - image._imageSize - 4;
+        }
 
         // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
         // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will

@@ -56,7 +56,8 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
         if (found != keyValues.end()) {
             _minMipLevelAvailable = found->_value[0];
         } else {
-            _minMipLevelAvailable = 4;// _ktxDescriptor->header.numberOfMipmapLevels;
+            // Assume all mip levels are available
+            _minMipLevelAvailable = 0;
         }
     }
 
@@ -93,7 +94,32 @@ bool KtxStorage::isMipAvailable(uint16 level, uint8 face) const {
 }
 
 void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& storage) {
-    throw std::runtime_error("Invalid call");
+    if (level != _minMipLevelAvailable - 1) {
+        qWarning() << "Invalid level to be stored";
+        return;
+    }
+
+    if (level >= _ktxDescriptor->images.size()) {
+        throw std::runtime_error("Invalid level");
+    }
+
+    if (storage->size() != _ktxDescriptor->images[level]._imageSize) {
+        throw std::runtime_error("Invalid image size for level");
+    }
+
+
+    ktx::StoragePointer file { new storage::FileStorage(_filename.c_str()) };
+    auto data = file->mutableData();
+    data += file->size();
+
+    // TODO Cache this data inside Image or ImageDescriptor?
+    for (auto i = _ktxDescriptor->header.numberOfMipmapLevels - 1; i >= level; --i) {
+        data -= _ktxDescriptor->images[i]._imageSize;
+        data -= 4;
+    }
+    data += 4;
+    memcpy(data, storage->data(), _ktxDescriptor->images[level]._imageSize);
+    _minMipLevelAvailable = level;
 }
 
 void KtxStorage::assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) {

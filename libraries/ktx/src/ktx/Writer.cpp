@@ -45,10 +45,10 @@ namespace ktx {
 
         auto newHeader = header;
 
-        Byte minMip = header.numberOfMipmapLevels - 6;
+        Byte minMip = header.numberOfMipmapLevels;
         auto newKeyValues = keyValues;
-        //newKeyValues.emplace_back(KeyValue(HIFI_MIN_POPULATED_MIP_KEY, sizeof(Byte), &minMip));
-        //newHeader.bytesOfKeyValueData = KeyValue::serializedKeyValuesByteSize(newKeyValues);
+        newKeyValues.emplace_back(KeyValue(HIFI_MIN_POPULATED_MIP_KEY, sizeof(Byte), &minMip));
+        newHeader.bytesOfKeyValueData = KeyValue::serializedKeyValuesByteSize(newKeyValues);
 
         StoragePointer storagePointer;
         {
