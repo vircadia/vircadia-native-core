@@ -43,10 +43,13 @@ public:
     virtual bool lifetimeIsOver() override;
     virtual quint64 getExpires() override { return _expires; }
 
+    virtual QList<btRigidBody*> getRigidBodies();
+
 protected:
     quint64 localTimeToServerTime(quint64 timeValue) const;
     quint64 serverTimeToLocalTime(quint64 timeValue) const;
 
+    btRigidBody* getOtherRigidBody(EntityItemID otherEntityID);
     EntityItemPointer getEntityByID(EntityItemID entityID) const;
     virtual btRigidBody* getRigidBody();
     virtual glm::vec3 getPosition() override;

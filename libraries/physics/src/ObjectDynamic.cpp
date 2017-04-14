@@ -271,3 +271,28 @@ quint64 ObjectDynamic::serverTimeToLocalTime(quint64 timeValue) const {
 
     return timeValue - serverClockSkew;
 }
+
+btRigidBody* ObjectDynamic::getOtherRigidBody(EntityItemID otherEntityID) {
+    EntityItemPointer otherEntity = getEntityByID(otherEntityID);
+    if (!otherEntity) {
+        return nullptr;
+    }
+
+    void* otherPhysicsInfo = otherEntity->getPhysicsInfo();
+    if (!otherPhysicsInfo) {
+        return nullptr;
+    }
+
+    ObjectMotionState* otherMotionState = static_cast<ObjectMotionState*>(otherPhysicsInfo);
+    if (!otherMotionState) {
+        return nullptr;
+    }
+
+    return otherMotionState->getRigidBody();
+}
+
+QList<btRigidBody*> ObjectDynamic::getRigidBodies() {
+    QList<btRigidBody*> result;
+    result += getRigidBody();
+    return result;
+}

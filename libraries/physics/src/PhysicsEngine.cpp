@@ -570,25 +570,27 @@ bool PhysicsEngine::addDynamic(EntityDynamicPointer dynamic) {
         removeDynamic(dynamic->getID());
     }
 
-    _objectDynamics[dynamicID] = dynamic;
-
-    // bullet needs a pointer to the dynamic, but it doesn't use shared pointers.
-    // is there a way to bump the reference count?
+    bool success { false };
     if (dynamic->isAction()) {
         ObjectAction* objectAction = static_cast<ObjectAction*>(dynamic.get());
         _dynamicsWorld->addAction(objectAction);
-        return true;
+        success = true;
     } else if (dynamic->isConstraint()) {
         ObjectConstraint* objectConstraint = static_cast<ObjectConstraint*>(dynamic.get());
         btTypedConstraint* constraint = objectConstraint->getConstraint();
         if (constraint) {
             _dynamicsWorld->addConstraint(constraint);
-            return true;
-        } else {
-            // perhaps not all the rigid bodies are available, yet
-            return false;
+            success = true;
+        } // else perhaps not all the rigid bodies are available, yet
+    }
+
+    if (success) {
+        _objectDynamics[dynamicID] = dynamic;
+        foreach(btRigidBody* rigidBody, std::static_pointer_cast<ObjectDynamic>(dynamic)->getRigidBodies()) {
+            _objectDynamicsByBody[rigidBody] = dynamic;
         }
     }
+    return success;
 }
 
 void PhysicsEngine::removeDynamic(const QUuid dynamicID) {

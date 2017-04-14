@@ -112,6 +112,7 @@ private:
     ContactMap _contactMap;
     CollisionEvents _collisionEvents;
     QHash<QUuid, EntityDynamicPointer> _objectDynamics;
+    QHash<btRigidBody*, EntityDynamicPointer> _objectDynamicsByBody;
     std::vector<btRigidBody*> _activeStaticBodies;
 
     glm::vec3 _originOffset;
@@ -123,6 +124,7 @@ private:
 
     bool _dumpNextStats = false;
     bool _hasOutgoingChanges = false;
+
 };
 
 typedef std::shared_ptr<PhysicsEngine> PhysicsEnginePointer;

@@ -35,6 +35,19 @@ ObjectConstraintHinge::~ObjectConstraintHinge() {
     #endif
 }
 
+QList<btRigidBody*> ObjectConstraintHinge::getRigidBodies() {
+    QList<btRigidBody*> result;
+    result += getRigidBody();
+    QUuid otherEntityID;
+    withReadLock([&]{
+        otherEntityID = _otherEntityID;
+    });
+    if (!otherEntityID.isNull()) {
+        result += getOtherRigidBody(otherEntityID);
+    }
+    return result;
+}
+
 btTypedConstraint* ObjectConstraintHinge::getConstraint() {
     btHingeConstraint* constraint { nullptr };
     QUuid otherEntityID;
@@ -65,20 +78,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
 
     if (!otherEntityID.isNull()) {
         // This hinge is between two entities... find the other rigid body.
-        EntityItemPointer otherEntity = getEntityByID(otherEntityID);
-        if (!otherEntity) {
-            return nullptr;
-        }
-
-        void* otherPhysicsInfo = otherEntity->getPhysicsInfo();
-        if (!otherPhysicsInfo) {
-            return nullptr;
-        }
-        ObjectMotionState* otherMotionState = static_cast<ObjectMotionState*>(otherPhysicsInfo);
-        if (!otherMotionState) {
-            return nullptr;
-        }
-        btRigidBody* rigidBodyB = otherMotionState->getRigidBody();
+        btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
             return nullptr;
         }
@@ -94,7 +94,6 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         constraint->setAxis(bulletAxisInA);
 
         withWriteLock([&]{
-            _otherEntity = otherEntity; // save weak-pointer to the other entity
             _constraint = constraint;
         });
 
@@ -110,7 +109,6 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         constraint->setAxis(bulletAxisInA);
 
         withWriteLock([&]{
-            _otherEntity.reset();
             _constraint = constraint;
         });
         return constraint;

@@ -27,6 +27,7 @@ public:
     virtual QByteArray serialize() const override;
     virtual void deserialize(QByteArray serializedArguments) override;
 
+    virtual QList<btRigidBody*> getRigidBodies() override;
     virtual btTypedConstraint* getConstraint() override;
 
 protected:
@@ -35,8 +36,7 @@ protected:
     glm::vec3 _pivotInA;
     glm::vec3 _axisInA;
 
-    QUuid _otherEntityID;
-    EntityItemWeakPointer _otherEntity;
+    EntityItemID _otherEntityID;
     glm::vec3 _pivotInB;
     glm::vec3 _axisInB;
 };
