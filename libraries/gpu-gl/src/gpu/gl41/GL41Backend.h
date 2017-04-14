@@ -35,6 +35,11 @@ class GL41Backend : public GLBackend {
     friend class Context;
 
 public:
+    static const GLint TRANSFORM_OBJECT_SLOT  { 31 };
+    static const GLint RESOURCE_TRANSFER_TEX_UNIT { 32 };
+    static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 33 };
+    static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 34 };
+
     explicit GL41Backend(bool syncCache) : Parent(syncCache) {}
     GL41Backend() : Parent() {}
 
@@ -99,6 +104,7 @@ protected:
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 
     GLuint getBufferID(const Buffer& buffer) override;
+    GLuint getResourceBufferID(const Buffer& buffer);
     GLBuffer* syncGPUObject(const Buffer& buffer) override;
 
     GLTexture* syncGPUObject(const TexturePointer& texture) override;
@@ -129,6 +135,11 @@ protected:
 
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
+
+    std::string getBackendShaderHeader() const override;
+    void makeProgramBindings(ShaderObject& shaderObject) override;
+    int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
+
 };
 
 } }

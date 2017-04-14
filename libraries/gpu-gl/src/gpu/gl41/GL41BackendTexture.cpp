@@ -75,8 +75,7 @@ GLuint GL41Texture::allocate(const Texture& texture) {
 
 
 void GL41Texture::withPreservedTexture(std::function<void()> f) const {
-    const GLint TRANSFER_TEXTURE_UNIT = 32;
-    glActiveTexture(GL_TEXTURE0 + TRANSFER_TEXTURE_UNIT);
+    glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_TRANSFER_TEX_UNIT);
     glBindTexture(_target, _texture);
     (void)CHECK_GL_ERROR();
 

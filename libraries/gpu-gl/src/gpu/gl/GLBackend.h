@@ -409,6 +409,26 @@ protected:
         }
     } _pipeline;
 
+    // Backend dependant compilation of the shader
+    virtual GLShader* compileBackendProgram(const Shader& program);
+    virtual GLShader* compileBackendShader(const Shader& shader);
+    virtual std::string getBackendShaderHeader() const;
+    virtual void makeProgramBindings(ShaderObject& shaderObject);
+    class ElementResource {
+    public:
+        gpu::Element _element;
+        uint16 _resource;
+        ElementResource(Element&& elem, uint16 resource) : _element(elem), _resource(resource) {}
+    };
+    ElementResource getFormatFromGLUniform(GLenum gltype);
+    virtual int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
+        Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers);
+    virtual int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers);
+    virtual int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& resourceBuffers) = 0;
+    virtual int makeInputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs);
+    virtual int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs);
+
+
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncOutputStateCache();
     void resetOutputStage();
@@ -434,6 +454,7 @@ protected:
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
     friend class GLState;
     friend class GLTexture;
+    friend class GLShader;
 };
 
 } }
