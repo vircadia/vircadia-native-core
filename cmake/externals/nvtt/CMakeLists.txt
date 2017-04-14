@@ -24,13 +24,9 @@ if (NOT ANDROID)
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE PATH "Location of NVTT include directory")
 
   if (WIN32)
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/Debug/x64/nvtt.lib CACHE FILEPATH "Path to NVTT Debug library")
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/Release/x64/nvtt.lib CACHE FILEPATH "Path to NVTT Release library")
-
-    set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${INSTALL_DIR}/Release/x64 CACHE PATH "Location of NVTT DLL")
-    add_paths_to_fixup_libs(${${EXTERNAL_NAME_UPPER}_DLL_PATH})
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY ${INSTALL_DIR}/lib/static/libnvtt.a CACHE FILEPATH "Path to NVTT static library")
   else ()
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/static/libnvtt.a CACHE FILEPATH "Path to NVTT static library")
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY ${INSTALL_DIR}/lib/static/libnvtt.a CACHE FILEPATH "Path to NVTT static library")
   endif ()
 
 endif()

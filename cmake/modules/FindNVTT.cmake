@@ -6,7 +6,7 @@
 #
 #  NVTT_FOUND
 #  NVTT_INCLUDE_DIRS
-#  NVTT_LIBRARIES
+#  NVTT_LIBRARY
 #
 #  Created on 4/14/2017 by Stephen Birarda
 #  Copyright 2017 High Fidelity, Inc.
@@ -20,11 +20,7 @@ hifi_library_search_hints("nvtt")
 
 find_path(NVTT_INCLUDE_DIRS nvtt/nvtt.h PATH_SUFFIXES include HINTS ${NVTT_SEARCH_DIRS})
 
-find_library(NVTT_LIBRARY_RELEASE nvtt PATH_SUFFIXES "lib/static" "Release/x64" HINTS ${NVTT_SEARCH_DIRS})
-find_library(NVTT_LIBRARY_DEBUG nvtt PATH_SUFFIXES "Debug/x64" HINTS ${NVTT_SEARCH_DIRS})
-
-include(SelectLibraryConfigurations)
-select_library_configurations(NVTT)
+find_library(NVTT_LIBRARY nvtt PATH_SUFFIXES "lib/static" HINTS ${NVTT_SEARCH_DIRS})
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(NVTT DEFAULT_MSG NVTT_INCLUDE_DIRS NVTT_LIBRARIES)
+find_package_handle_standard_args(NVTT DEFAULT_MSG NVTT_INCLUDE_DIRS NVTT_LIBRARY)
