@@ -20,6 +20,8 @@ import "../toolbars"
 import "../../styles-uit" as HifiStyles
 import "../../controls-uit" as HifiControls
 
+// references HMD, AddressManager, AddressBarDialog from root context
+
 StackView {
     id: root;
     HifiConstants { id: hifi }
@@ -114,8 +116,14 @@ StackView {
             }
             ToolbarButton {
                 id: backArrow;
+                buttonState: addressBarDialog.backEnabled;
                 imageURL: "../../../images/backward.svg";
-                onClicked: addressBarDialog.loadBack();
+                buttonEnabled: addressBarDialog.backEnabled;
+                onClicked: {
+                    if (buttonEnabled) {
+                        addressBarDialog.loadBack();
+                    }
+                }
                 anchors {
                     left: homeButton.right
                     verticalCenter: parent.verticalCenter
@@ -123,8 +131,14 @@ StackView {
             }
             ToolbarButton {
                 id: forwardArrow;
+                buttonState: addressBarDialog.forwardEnabled;
                 imageURL: "../../../images/forward.svg";
-                onClicked: addressBarDialog.loadForward();
+                buttonEnabled: addressBarDialog.forwardEnabled;
+                onClicked: {
+                    if (buttonEnabled) {
+                        addressBarDialog.loadForward();
+                    }
+                }
                 anchors {
                     left: backArrow.right
                     verticalCenter: parent.verticalCenter
