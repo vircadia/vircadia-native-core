@@ -23,23 +23,15 @@ find_path(NVTT_INCLUDE_DIRS nvtt/nvtt.h PATH_SUFFIXES include HINTS ${NVTT_SEARC
 
 include(FindPackageHandleStandardArgs)
 
+find_library(NVTT_LIBRARY_RELEASE nvtt PATH_SUFFIXES "lib" "Release.x64/lib" HINTS ${NVTT_SEARCH_DIRS})
+find_library(NVTT_LIBRARY_DEBUG nvtt PATH_SUFFIXES "lib" "Debug.x64/lib" HINTS ${NVTT_SEARCH_DIRS})
+
+include(SelectLibraryConfigurations)
+select_library_configurations(NVTT)
+
 if (WIN32)
-  find_library(NVTT_LIBRARY_RELEASE nvtt PATH_SUFFIXES "Release.x64/lib" HINTS ${NVTT_SEARCH_DIRS})
-  find_library(NVTT_LIBRARY_DEBUG nvtt PATH_SUFFIXES "Debug.x64/lib" HINTS ${NVTT_SEARCH_DIRS})
-
   find_path(NVTT_DLL_PATH nvtt.dll PATH_SUFFIXES "Release.x64/bin" HINTS ${NVTT_SEARCH_DIRS})
-
-  include(SelectLibraryConfigurations)
-  select_library_configurations(NVTT)
-
   find_package_handle_standard_args(NVTT DEFAULT_MSG NVTT_INCLUDE_DIRS NVTT_LIBRARIES NVTT_DLL_PATH)
 else ()
-  find_library(NVTT_BASE_LIBRARY nvtt PATH_SUFFIXES "lib/static" HINTS ${NVTT_SEARCH_DIRS})
-  find_library(NVTT_CORE_LIBRARY nvcore PATH_SUFFIXES "lib/static" HINTS ${NVTT_SEARCH_DIRS})
-  find_library(NVTT_IMAGE_LIBRARY nvimage PATH_SUFFIXES "lib/static" HINTS ${NVTT_SEARCH_DIRS})
-  find_library(NVTT_MATH_LIBRARY nvmath PATH_SUFFIXES "lib/static" HINTS ${NVTT_SEARCH_DIRS})
-  find_library(NVTT_THREAD_LIBRARY nvthread PATH_SUFFIXES "lib/static" HINTS ${NVTT_SEARCH_DIRS})
-
-  find_package_handle_standard_args(NVTT DEFAULT_MSG NVTT_INCLUDE_DIRS NVTT_BASE_LIBRARY NVTT_CORE_LIBRARY NVTT_IMAGE_LIBRARY NVTT_MATH_LIBRARY NVTT_THREAD_LIBRARY)
-  set(NVTT_LIBRARIES ${NVTT_BASE_LIBRARY} ${NVTT_CORE_LIBRARY} ${NVTT_IMAGE_LIBRARY} ${NVTT_MATH_LIBRARY} ${NVTT_THREAD_LIBRARY})
+  find_package_handle_standard_args(NVTT DEFAULT_MSG NVTT_INCLUDE_DIRS NVTT_LIBRARIES)
 endif ()
