@@ -12,6 +12,7 @@
 
 
 #include <avatar/AvatarActionHold.h>
+#include <avatar/AvatarActionFarGrab.h>
 #include <ObjectActionOffset.h>
 #include <ObjectActionSpring.h>
 #include <ObjectActionTravelOriented.h>
@@ -35,6 +36,8 @@ EntityDynamicPointer interfaceDynamicFactory(EntityDynamicType type, const QUuid
             return std::make_shared<ObjectActionTravelOriented>(id, ownerEntity);
         case DYNAMIC_TYPE_HINGE:
             return std::make_shared<ObjectConstraintHinge>(id, ownerEntity);
+        case DYNAMIC_TYPE_FAR_GRAB:
+            return std::make_shared<AvatarActionFarGrab>(id, ownerEntity);
     }
 
     Q_ASSERT_X(false, Q_FUNC_INFO, "Unknown entity dynamic type");

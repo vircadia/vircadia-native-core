@@ -47,6 +47,9 @@ protected:
     glm::vec3 _angularVelocityTarget;
 
     virtual bool prepareForSpringUpdate(btScalar deltaTimeStep);
+
+    QByteArray serializeParameters(QDataStream& dataStream) const;
+    void deserializeParameters(QByteArray serializedArguments, QDataStream& dataStream);
 };
 
 #endif // hifi_ObjectActionSpring_h

@@ -114,6 +114,9 @@ EntityDynamicType EntityDynamicInterface::dynamicTypeFromString(QString dynamicT
     if (normalizedDynamicTypeString == "hinge") {
         return DYNAMIC_TYPE_HINGE;
     }
+    if (normalizedDynamicTypeString == "fargrab") {
+        return DYNAMIC_TYPE_FAR_GRAB;
+    }
 
     qCDebug(entities) << "Warning -- EntityDynamicInterface::dynamicTypeFromString got unknown dynamic-type name"
                       << dynamicTypeString;
@@ -134,6 +137,8 @@ QString EntityDynamicInterface::dynamicTypeToString(EntityDynamicType dynamicTyp
             return "travel-oriented";
         case DYNAMIC_TYPE_HINGE:
             return "hinge";
+        case DYNAMIC_TYPE_FAR_GRAB:
+            return "far-grab";
     }
     assert(false);
     return "none";

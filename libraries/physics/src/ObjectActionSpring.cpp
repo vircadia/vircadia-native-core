@@ -259,14 +259,7 @@ QVariantMap ObjectActionSpring::getArguments() {
     return arguments;
 }
 
-QByteArray ObjectActionSpring::serialize() const {
-    QByteArray serializedActionArguments;
-    QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
-
-    dataStream << DYNAMIC_TYPE_SPRING;
-    dataStream << getID();
-    dataStream << ObjectActionSpring::springVersion;
-
+QByteArray ObjectActionSpring::serializeParameters(QDataStream& dataStream) const {
     withReadLock([&] {
         dataStream << _desiredPositionalTarget;
         dataStream << _linearTimeScale;
@@ -277,8 +270,39 @@ QByteArray ObjectActionSpring::serialize() const {
         dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
     });
+}
+
+QByteArray ObjectActionSpring::serialize() const {
+    QByteArray serializedActionArguments;
+    QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
+
+    dataStream << DYNAMIC_TYPE_SPRING;
+    dataStream << getID();
+    dataStream << ObjectActionSpring::springVersion;
+
+    serializeParameters(dataStream);
 
     return serializedActionArguments;
+}
+
+void ObjectActionSpring::deserializeParameters(QByteArray serializedArguments, QDataStream& dataStream) {
+    withWriteLock([&] {
+        dataStream >> _desiredPositionalTarget;
+        dataStream >> _linearTimeScale;
+        dataStream >> _positionalTargetSet;
+
+        dataStream >> _desiredRotationalTarget;
+        dataStream >> _angularTimeScale;
+        dataStream >> _rotationalTargetSet;
+
+        quint64 serverExpires;
+        dataStream >> serverExpires;
+        _expires = serverTimeToLocalTime(serverExpires);
+
+        dataStream >> _tag;
+
+        _active = true;
+    });
 }
 
 void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
@@ -299,21 +323,5 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
         return;
     }
 
-    withWriteLock([&] {
-        dataStream >> _desiredPositionalTarget;
-        dataStream >> _linearTimeScale;
-        dataStream >> _positionalTargetSet;
-
-        dataStream >> _desiredRotationalTarget;
-        dataStream >> _angularTimeScale;
-        dataStream >> _rotationalTargetSet;
-
-        quint64 serverExpires;
-        dataStream >> serverExpires;
-        _expires = serverTimeToLocalTime(serverExpires);
-
-        dataStream >> _tag;
-
-        _active = true;
-    });
+    deserializeParameters(serializedArguments, dataStream);
 }

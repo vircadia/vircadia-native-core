@@ -1882,6 +1882,16 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
                 }
                 i++;
             }
+            QList<EntityDynamicPointer> farGrabActions = getActionsOfType(DYNAMIC_TYPE_FAR_GRAB);
+            i = farGrabActions.begin();
+            while (i != farGrabActions.end()) {
+                EntityDynamicPointer action = *i;
+                if (action->isMine()) {
+                    iAmHoldingThis = true;
+                    break;
+                }
+                i++;
+            }
 
             if (iAmHoldingThis) {
                 userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
