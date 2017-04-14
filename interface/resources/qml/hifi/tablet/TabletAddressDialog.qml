@@ -35,8 +35,8 @@ StackView {
 
     property var tablet: null;
     property bool isDesktop: false;
-
-    Component { id: tabletStoryCard; TabletStoryCard {} }
+    
+    Component { id: tabletWebView; TabletWebView {} }
     Component.onCompleted: {
         root.currentItem.focus = true;
         root.currentItem.forceActiveFocus();
@@ -68,9 +68,9 @@ StackView {
     }
     function goCard(targetString) {
         if (0 !== targetString.indexOf('hifi://')) {
-            var card = tabletStoryCard.createObject();
-            card.setUrl(addressBarDialog.metaverseServerUrl + targetString);
-            card.eventBridge = root.eventBridge;
+            var card = tabletWebView.createObject();
+            card.url = addressBarDialog.metaverseServerUrl + targetString;
+            card.parentStackItem = root;
             root.push(card);
             return;
         }
