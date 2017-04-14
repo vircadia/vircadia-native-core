@@ -23,6 +23,8 @@ Agent.isAvatar = true;
 Recording.loadRecording(recordingFile, function(success) {
     if (success) {
         Script.update.connect(update);
+    } else {
+        print("Failed to load recording from " + recordingFile);
     }
 });
 

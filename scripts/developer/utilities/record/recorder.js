@@ -284,6 +284,8 @@ function mousePressEvent(event) {
                 Recording.loadRecording(recordingFile, function(success) {
                     if (success) {
                         setDefaultPlayerOptions();
+                    } else {
+                        print("Failed to load recording from " + recordingFile);
                     }
                 });
             }

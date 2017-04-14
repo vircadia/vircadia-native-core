@@ -49,7 +49,7 @@ function getAction(channel, message, senderID) {
 
             case SHOW:
                 print("Show");
-                Recording.loadRecording(clip_url, function(success){
+                Recording.loadRecording(clip_url, function(success) {
                     if (success) {
                         Agent.isAvatar = true;
                         Recording.setPlayerTime(0.0);

@@ -10,9 +10,13 @@ Agent.isAvatar = true;
 
 Script.setTimeout(function () {
     Avatar.position = origin;
-    Recording.loadRecording("d:/hifi.rec", function(success){
-        Recording.setPlayerLoop(true);
-        Recording.startPlaying();
+    Recording.loadRecording("d:/hifi.rec", function(success) {
+        if (success) {
+            Recording.setPlayerLoop(true);
+            Recording.startPlaying();
+        } else {
+            print("Failed to load recording");
+        }
     });
 
 }, millisecondsToWaitBeforeStarting);

@@ -10,6 +10,7 @@
 
 #include "ClipCache.h"
 #include "impl/PointerClip.h"
+#include "Logging.h"
 
 using namespace recording;
 NetworkClipLoader::NetworkClipLoader(const QUrl& url) :
@@ -45,7 +46,7 @@ NetworkClipLoaderPointer ClipCache::getClipLoader(const QUrl& url) {
 }
 
 QSharedPointer<Resource> ClipCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback, const void* extra) {
-    qDebug() << "Loading recording at" << url;
+    qCDebug(recordingLog) << "Loading recording at" << url;
     return QSharedPointer<Resource>(new NetworkClipLoader(url), &Resource::deleter);
 }
 

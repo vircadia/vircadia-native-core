@@ -60,6 +60,8 @@ function update(deltaTime) {
                     Recording.setPlayerUseHeadModel(false);
                     Recording.setPlayerUseSkeletonModel(useAvatarModel);
                     Agent.isAvatar = true;
+                } else {
+                    print("Failed to load recording from " + clip_url);
                 }
             });
         }

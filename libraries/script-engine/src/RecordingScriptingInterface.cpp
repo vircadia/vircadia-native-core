@@ -61,7 +61,8 @@ void RecordingScriptingInterface::loadRecording(const QString& url, QScriptValue
     auto weakClipLoader = clipLoader.toWeakRef();
 
     // when clip loaded, call the callback with the URL and success boolean
-    connect(clipLoader.data(), &recording::NetworkClipLoader::clipLoaded, this, [this, weakClipLoader, url, callback]() mutable {
+    connect(clipLoader.data(), &recording::NetworkClipLoader::clipLoaded, this,
+            [this, weakClipLoader, url, callback]() mutable {
 
         if (auto clipLoader = weakClipLoader.toStrongRef()) {
             qCDebug(scriptengine) << "Loaded recording from" << url;

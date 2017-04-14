@@ -31,7 +31,6 @@ public:
     void setScriptEngine(QScriptEngine* scriptEngine) { _scriptEngine = scriptEngine; }
 
 public slots:
-
     void loadRecording(const QString& url, QScriptValue callback = QScriptValue());
 
     void startPlaying();

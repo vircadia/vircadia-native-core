@@ -47,6 +47,8 @@ var playRecording = function() {
             Recording.startPlaying();
             isPlaying = true;
             isPlayable = false; // Set this true again after the cooldown period
+        } else {
+              print("Failed to load recording from " + CLIP_URL);
         }
     });
 };
