@@ -138,7 +138,13 @@ Agent.isAvatar = true;
 Agent.isListeningToAudioStream = true;
 Avatar.skeletonModelURL = AVATAR_URL; // FIXME - currently setting an avatar while playing a recording doesn't work it will be ignored
 
-Recording.loadRecording(RECORDING_URL);
+Recording.loadRecording(RECORDING_URL, function(success) {
+    if (success) {
+        Script.update.connect(update);
+    } else {
+        print("Failed to load recording from " + RECORDING_URL);
+    }
+});
 
 count = 300; // This is necessary to wait for the audio mixer to connect
 function update(event) {
@@ -174,10 +180,8 @@ function update(event) {
             +" FT: " + Avatar.getDataRate("faceTrackerOutbound").toFixed(2) + "\n"
             +" JD: " + Avatar.getDataRate("jointDataOutbound").toFixed(2));
     }
-    
+
     if (!Recording.isPlaying()) {
         Script.update.disconnect(update);
     }
 }
-
-Script.update.connect(update);
