@@ -115,6 +115,10 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         _constraint = constraint;
     });
 
+    // if we don't wake up rigidBodyA, we may not send the dynamicData property over the network
+    forceBodyNonStatic();
+    activateBody();
+
     return constraint;
 }
 

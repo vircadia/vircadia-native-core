@@ -625,6 +625,9 @@ bool PhysicsEngine::addDynamic(EntityDynamicPointer dynamic) {
 void PhysicsEngine::removeDynamic(const QUuid dynamicID) {
     if (_objectDynamics.contains(dynamicID)) {
         ObjectDynamicPointer dynamic = std::static_pointer_cast<ObjectDynamic>(_objectDynamics[dynamicID]);
+        if (!dynamic) {
+            return;
+        }
         QList<btRigidBody*> rigidBodies = dynamic->getRigidBodies();
         if (dynamic->isAction()) {
             ObjectAction* objectAction = static_cast<ObjectAction*>(dynamic.get());
