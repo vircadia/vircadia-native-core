@@ -73,12 +73,18 @@ size_t Header::evalImageSize(uint32_t level) const {
 ImageDescriptors Header::generateImageDescriptors() const {
     ImageDescriptors descriptors;
 
+    uint32_t imageOffset = 0;
     for (auto level = 0; level < numberOfMipmapLevels; ++level) {
+        auto imageSize = static_cast<uint32_t>(evalImageSize(level));
         ImageHeader header {
             numberOfFaces == NUM_CUBEMAPFACES,
-            static_cast<uint32_t>(evalImageSize(level)),
+            imageOffset,
+            imageSize,
             0
         };
+
+        imageOffset += imageSize + 4;
+
         ImageHeader::FaceOffsets offsets;
         for (auto i = 0; i < numberOfFaces; ++i) {
             offsets.push_back(0);

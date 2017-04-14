@@ -108,7 +108,8 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     }
 
 
-    ktx::StoragePointer file { new storage::FileStorage(_filename.c_str()) };
+    auto fileStorage = new storage::FileStorage(_filename.c_str());
+    ktx::StoragePointer file { fileStorage };
     auto data = file->mutableData();
     data += file->size();
 
@@ -197,19 +198,21 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     header.numberOfMipmapLevels = texture.getNumMips();
 
     ktx::Images images;
+    uint32_t imageOffset = 0;
     for (uint32_t level = 0; level < header.numberOfMipmapLevels; level++) {
         auto mip = texture.accessStoredMipFace(level);
         if (mip) {
             if (numFaces == 1) {
-                images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, mip->readData()));
+                images.emplace_back(ktx::Image(imageOffset, (uint32_t)mip->getSize(), 0, mip->readData()));
             } else {
                 ktx::Image::FaceBytes cubeFaces(Texture::CUBE_FACE_COUNT);
                 cubeFaces[0] = mip->readData();
                 for (uint32_t face = 1; face < Texture::CUBE_FACE_COUNT; face++) {
                     cubeFaces[face] = texture.accessStoredMipFace(level, face)->readData();
                 }
-                images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, cubeFaces));
+                images.emplace_back(ktx::Image(imageOffset, (uint32_t)mip->getSize(), 0, cubeFaces));
             }
+            imageOffset += mip->getSize() + 4;
         }
     }
 

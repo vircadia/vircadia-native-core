@@ -414,12 +414,17 @@ namespace ktx {
     struct ImageHeader {
         using FaceOffsets = std::vector<size_t>;
         using FaceBytes = std::vector<const Byte*>;
+        // This is the byte offset from the _start_ of the image region. For example, level 0
+        // will have a byte offset of 0.
+        const uint32_t _imageOffset;
+
         const uint32_t _numFaces;
         const uint32_t _imageSize;
         const uint32_t _faceSize;
         const uint32_t _padding;
-        ImageHeader(bool cube, uint32_t imageSize, uint32_t padding) : 
+        ImageHeader(bool cube, uint32_t imageOffset, uint32_t imageSize, uint32_t padding) :
             _numFaces(cube ? NUM_CUBEMAPFACES : 1),
+            _imageOffset(imageOffset),
             _imageSize(imageSize * _numFaces),
             _faceSize(imageSize),
             _padding(padding) {
@@ -439,11 +444,11 @@ namespace ktx {
     struct Image : public ImageHeader {
         FaceBytes _faceBytes;
         Image(const ImageHeader& header, const FaceBytes& faces) : ImageHeader(header), _faceBytes(faces) {}
-        Image(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
-            ImageHeader(false, imageSize, padding),
+        Image(uint32_t imageOffset, uint32_t imageSize, uint32_t padding, const Byte* bytes) :
+            ImageHeader(false, imageOffset, imageSize, padding),
             _faceBytes(1, bytes) {}
-        Image(uint32_t pageSize, uint32_t padding, const FaceBytes& cubeFaceBytes) :
-            ImageHeader(true, pageSize, padding)
+        Image(uint32_t imageOffset, uint32_t pageSize, uint32_t padding, const FaceBytes& cubeFaceBytes) :
+            ImageHeader(true, imageOffset, pageSize, padding)
             {
                 if (cubeFaceBytes.size() == NUM_CUBEMAPFACES) {
                     _faceBytes = cubeFaceBytes;

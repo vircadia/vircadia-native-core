@@ -93,7 +93,8 @@ private:
     };
 
 
-    KTXLoadState _ktxLoadState { LOADING_HEADER };
+    bool _initialKtxLoaded { false };
+    //KTXLoadState _ktxLoadState;
     KTXFilePointer _file;
     static const uint16_t NULL_MIP_LEVEL;
     bool _sourceIsKTX { false };

@@ -65,7 +65,8 @@ void HTTPResourceRequest::doSend() {
         if (_byteRange.fromInclusive < 0) {
             byteRange = QString("bytes=%1").arg(_byteRange.fromInclusive);
         } else {
-            byteRange = QString("bytes=%1-%2").arg(_byteRange.fromInclusive).arg(_byteRange.toExclusive);
+            // HTTP byte ranges are inclusive on the `to` end: [from, to]
+            byteRange = QString("bytes=%1-%2").arg(_byteRange.fromInclusive).arg(_byteRange.toExclusive - 1);
         }
         qDebug() << "Setting http range to " << byteRange;
         networkRequest.setRawHeader("Range", byteRange.toLatin1());

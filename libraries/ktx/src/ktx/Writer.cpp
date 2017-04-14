@@ -211,6 +211,7 @@ namespace ktx {
 
         for (uint32_t l = 0; l < srcImages.size(); l++) {
             if (currentDataSize + sizeof(uint32_t) < allocatedImagesDataSize) {
+                uint32_t imageOffset = currentPtr - destBytes;
                 size_t imageSize = srcImages[l]._imageSize;
                 *(reinterpret_cast<uint32_t*> (currentPtr)) = (uint32_t) imageSize;
                 currentPtr += sizeof(uint32_t);
@@ -223,7 +224,7 @@ namespace ktx {
                     // Single face vs cubes
                     if (srcImages[l]._numFaces == 1) {
                         memcpy(currentPtr, srcImages[l]._faceBytes[0], imageSize);
-                        destImages.emplace_back(Image((uint32_t) imageSize, padding, currentPtr));
+                        destImages.emplace_back(Image(imageOffset, (uint32_t) imageSize, padding, currentPtr));
                         currentPtr += imageSize;
                     } else {
                         Image::FaceBytes faceBytes(NUM_CUBEMAPFACES);
@@ -233,7 +234,7 @@ namespace ktx {
                              faceBytes[face] = currentPtr;
                              currentPtr += faceSize;
                         }
-                        destImages.emplace_back(Image(faceSize, padding, faceBytes));
+                        destImages.emplace_back(Image(imageOffset, faceSize, padding, faceBytes));
                     }
 
                     currentPtr += padding;
