@@ -15,6 +15,7 @@
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
+#include <QVector>
 
 #include <FaceshiftConstants.h>
 #include <GLMHelpers.h>
@@ -39,7 +40,7 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _averageLoudness(0.0f),
     _browAudioLift(0.0f),
     _owningAvatar(owningAvatar),
-    _baseBlendshapeCoefficients(0, 0)
+    _baseBlendshapeCoefficients(QVector<float>(0, 0))
 {
 
 }
@@ -102,6 +103,8 @@ void HeadData::setBlendshape(QString name, float val) {
     if (it != blendshapeLookupMap.end()) {
         if (_blendshapeCoefficients.size() <= it.value()) {
             _blendshapeCoefficients.resize(it.value() + 1);
+        }
+        if (_baseBlendshapeCoefficients.size() <= it.value()) {
             _baseBlendshapeCoefficients.resize(it.value() + 1);
         }
         _baseBlendshapeCoefficients[it.value()] = val;
