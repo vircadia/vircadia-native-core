@@ -8,8 +8,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 if (NOT ANDROID)
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL "C:/Users/Clement/dev/nvidia-texture-tools/project/vc12/package"
-    # URL_MD5 "e7f0a941c9a873f2c4334367454485da"
+    URL "https://s3-us-west-1.amazonaws.com/hifi-content/clement/dev/nvtt.zip"
+    URL_MD5 "3ea6eeadbcc69071acf9c49ba565760e"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
