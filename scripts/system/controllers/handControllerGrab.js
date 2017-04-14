@@ -1051,8 +1051,6 @@ function MyController(hand) {
     this.homeButtonTouched = false;
     this.editTriggered = false;
 
-    this.controllerJointIndex = getControllerJointIndex(this.hand);
-
     // Until there is some reliable way to keep track of a "stack" of parentIDs, we'll have problems
     // when more than one avatar does parenting grabs on things.  This script tries to work
     // around this with two associative arrays: previousParentID and previousParentJointIndex.  If
@@ -1736,6 +1734,7 @@ function MyController(hand) {
 
     this.off = function(deltaTime, timestamp) {
 
+        this.controllerJointIndex = getControllerJointIndex(this.hand);
         this.checkForUnexpectedChildren();
 
         if (this.editTriggered) {
