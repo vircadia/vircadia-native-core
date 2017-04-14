@@ -70,6 +70,12 @@ body {
 }
 
 
+#spinner {
+    text-align: center;
+    margin-top: 25%;
+}
+
+
 #recordings tfoot tr {
     height: 24px;
 }
