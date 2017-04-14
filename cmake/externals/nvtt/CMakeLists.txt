@@ -11,6 +11,9 @@ if (NOT ANDROID)
       ${EXTERNAL_NAME}
       URL http://s3.amazonaws.com/hifi-public/dependencies/nvtt-win-2.1.0.zip
       URL_MD5 3ea6eeadbcc69071acf9c49ba565760e
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND ""
+      INSTALL_COMMAND ""
       LOG_DOWNLOAD 1
     )
 
