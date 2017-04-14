@@ -30,11 +30,15 @@ private:
 };
 
 class NetworkClipLoader : public Resource {
+    Q_OBJECT
 public:
     NetworkClipLoader(const QUrl& url);
     virtual void downloadFinished(const QByteArray& data) override;
     ClipPointer getClip() { return _clip; }
     bool completed() { return _failedToLoad || isLoaded(); }
+
+signals:
+    void clipLoaded();
 
 private:
     const NetworkClip::Pointer _clip;
@@ -42,14 +46,18 @@ private:
 
 using NetworkClipLoaderPointer = QSharedPointer<NetworkClipLoader>;
 
-class ClipCache : public ResourceCache {
-public:
-    static ClipCache& instance();
-
+class ClipCache : public ResourceCache, public Dependency {
+    Q_OBJECT
+    SINGLETON_DEPENDENCY
+    
+public slots:
     NetworkClipLoaderPointer getClipLoader(const QUrl& url);
 
 protected:
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback, const void* extra) override;
+
+private:
+    ClipCache(QObject* parent = nullptr);
 };
 
 }
