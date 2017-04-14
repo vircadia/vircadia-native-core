@@ -239,6 +239,7 @@ function processingGifStarted(pathStillSnapshot) {
         {
             containsGif: true,
             processingGif: true,
+            loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
             canShare: !!isDomainOpen(domainId),
             openFeedAfterShare: shouldOpenFeedAfterShare()
         }];

@@ -11,7 +11,6 @@
 //
 
 var paths = [], idCounter = 0, imageCount;
-var loadingGifPath = '../../../resources/icons/loadingDark.gif';
 function addImage(data) {
     if (!data.localPath) {
         return;
@@ -85,7 +84,7 @@ window.onload = function () {
             if (messageOptions.containsGif) {
                 if (messageOptions.processingGif) {
                     imageCount = message.action.length + 1; // "+1" for the GIF that'll finish processing soon
-                    message.action.unshift({ localPath: loadingGifPath });
+                    message.action.unshift({ localPath: messageOptions.loadingGifPath });
                     message.action.forEach(addImage);
                     document.getElementById('p0').disabled = true;
                 } else {
