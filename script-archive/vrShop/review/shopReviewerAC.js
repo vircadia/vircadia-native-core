@@ -9,7 +9,7 @@
 
 
 var command = null;
-var clip_url = null; 
+var clip_url = null;
 
 var REVIEW_CHANNEL = "reviewChannel";
 var playFromCurrentLocation = true;
@@ -28,16 +28,16 @@ var HIDE = "Hide";
 function getAction(channel, message, senderID) {
     if(subscribed) {
         print("I'm the agent and I received this: " + message);
-        
+
         if (Recording.isPlaying()) {
             Recording.stopPlaying();
         }
-        
+
         m = JSON.parse(message);
-        
+
         command = m.command;
         clip_url = m.clip_url;
-        
+
         switch(command) {
             case PLAY:
                 print("Play");
@@ -46,21 +46,25 @@ function getAction(channel, message, senderID) {
                     Recording.startPlaying();
                 }
                 break;
-                
+
             case SHOW:
                 print("Show");
-                Recording.loadRecording(clip_url);
-                Agent.isAvatar = true;
-                Recording.setPlayerTime(0.0);
-                Recording.startPlaying();
-                Recording.stopPlaying();
+                Recording.loadRecording(clip_url, function(success) {
+                    if (success) {
+                        Agent.isAvatar = true;
+                        Recording.setPlayerTime(0.0);
+                        Recording.startPlaying();
+                        Recording.stopPlaying();
+                    }
+                });
+
                 break;
-              
+
             case HIDE:
                 print("Hide");
                 Agent.isAvatar = false;
                 break;
-                
+
             default:
                 print("Unknown action: " + action);
                 break;
@@ -74,7 +78,7 @@ function update(deltaTime) {
     totalTime += deltaTime;
 
     if (totalTime > WAIT_FOR_AUDIO_MIXER) {
-        if (!subscribed) {            
+        if (!subscribed) {
             Messages.subscribe(REVIEW_CHANNEL);
             subscribed = true;
             Recording.setPlayFromCurrentLocation(playFromCurrentLocation);
