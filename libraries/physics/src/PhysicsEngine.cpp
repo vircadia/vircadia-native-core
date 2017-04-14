@@ -145,10 +145,18 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
 QList<EntityDynamicPointer> PhysicsEngine::removeDynamicsForBody(btRigidBody* body) {
     // remove dynamics that are attached to this body
     QList<EntityDynamicPointer> removedDynamics;
-    QMutableSetIterator<EntityDynamicPointer> i(_objectDynamicsByBody[body]);
+    QMutableSetIterator<QUuid> i(_objectDynamicsByBody[body]);
+
     while (i.hasNext()) {
-        EntityDynamicPointer dynamic = i.next();
-        removeDynamic(dynamic->getID());
+        QUuid dynamicID = i.next();
+        if (dynamicID.isNull()) {
+            continue;
+        }
+        EntityDynamicPointer dynamic = _objectDynamics[dynamicID];
+        if (!dynamic) {
+            continue;
+        }
+        removeDynamic(dynamicID);
         removedDynamics += dynamic;
     }
     return removedDynamics;
@@ -608,7 +616,7 @@ bool PhysicsEngine::addDynamic(EntityDynamicPointer dynamic) {
     if (success) {
         _objectDynamics[dynamicID] = dynamic;
         foreach(btRigidBody* rigidBody, std::static_pointer_cast<ObjectDynamic>(dynamic)->getRigidBodies()) {
-            _objectDynamicsByBody[rigidBody] += dynamic;
+            _objectDynamicsByBody[rigidBody] += dynamic->getID();
         }
     }
     return success;
@@ -632,16 +640,18 @@ void PhysicsEngine::removeDynamic(const QUuid dynamicID) {
         }
         _objectDynamics.remove(dynamicID);
         foreach(btRigidBody* rigidBody, rigidBodies) {
-            _objectDynamicsByBody[rigidBody].remove(dynamic);
+            _objectDynamicsByBody[rigidBody].remove(dynamic->getID());
         }
         dynamic->invalidate();
     }
 }
 
 void PhysicsEngine::forEachDynamic(std::function<void(EntityDynamicPointer)> actor) {
-    QHashIterator<QUuid, EntityDynamicPointer> iter(_objectDynamics);
+    QMutableHashIterator<QUuid, EntityDynamicPointer> iter(_objectDynamics);
     while (iter.hasNext()) {
         iter.next();
-        actor(iter.value());
+        if (iter.value()) {
+            actor(iter.value());
+        }
     }
 }

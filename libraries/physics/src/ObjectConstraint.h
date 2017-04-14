@@ -21,6 +21,8 @@ class ObjectConstraint : public ObjectDynamic
 {
 public:
     ObjectConstraint(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity);
+    virtual ~ObjectConstraint() {}
+
     virtual btTypedConstraint* getConstraint() = 0;
 
     virtual bool isConstraint() const override { return true; }

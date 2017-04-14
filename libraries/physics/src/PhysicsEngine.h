@@ -113,7 +113,7 @@ private:
     ContactMap _contactMap;
     CollisionEvents _collisionEvents;
     QHash<QUuid, EntityDynamicPointer> _objectDynamics;
-    QHash<btRigidBody*, QSet<EntityDynamicPointer>> _objectDynamicsByBody;
+    QHash<btRigidBody*, QSet<QUuid>> _objectDynamicsByBody;
     std::vector<btRigidBody*> _activeStaticBodies;
 
     glm::vec3 _originOffset;

@@ -20,6 +20,7 @@
 class ObjectAction : public btActionInterface, public ObjectDynamic {
 public:
     ObjectAction(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity);
+    virtual ~ObjectAction() {}
 
     virtual bool isAction() const override { return true; }
 
