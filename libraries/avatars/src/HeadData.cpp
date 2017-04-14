@@ -39,7 +39,7 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _averageLoudness(0.0f),
     _browAudioLift(0.0f),
     _owningAvatar(owningAvatar),
-    _baseBlendshapeCoefficients(0, 0),
+    _baseBlendshapeCoefficients(0, 0)
 {
 
 }
@@ -96,6 +96,7 @@ const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
 
 void HeadData::setBlendshape(QString name, float val) {
     const auto& blendshapeLookupMap = getBlendshapesLookupMap();
+
     //Check to see if the named blendshape exists, and then set its value if it does
     auto it = blendshapeLookupMap.find(name);
     if (it != blendshapeLookupMap.end()) {

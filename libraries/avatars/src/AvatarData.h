@@ -438,12 +438,6 @@ public:
             _headData->setBlendshapeCoefficients(blendshapeCoefficients);
         }
     }
-    
-    void setSummedBlendshapeCoefficients(QVector<float>& blendshapeCoefficients) {
-        if (_headData) {
-            _headData->setSummedBlendshapeCoefficients(blendshapeCoefficients);
-        }
-    }
 
     // access to Head().set/getMousePitch (degrees)
     float getHeadPitch() const { return _headData->getBasePitch(); }
