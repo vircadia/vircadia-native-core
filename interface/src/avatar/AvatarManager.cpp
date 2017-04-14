@@ -50,23 +50,6 @@ static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key
 
-static QScriptValue localLightToScriptValue(QScriptEngine* engine, const AvatarManager::LocalLight& light) {
-    QScriptValue object = engine->newObject();
-    object.setProperty("direction", vec3toScriptValue(engine, light.direction));
-    object.setProperty("color", vec3toScriptValue(engine, light.color));
-    return object;
-}
-
-static void localLightFromScriptValue(const QScriptValue& value, AvatarManager::LocalLight& light) {
-    vec3FromScriptValue(value.property("direction"), light.direction);
-    vec3FromScriptValue(value.property("color"), light.color);
-}
-
-void AvatarManager::registerMetaTypes(QScriptEngine* engine) {
-    qScriptRegisterMetaType(engine, localLightToScriptValue, localLightFromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<AvatarManager::LocalLight> >(engine);
-}
-
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
     _myAvatar(std::make_shared<MyAvatar>(qApp->thread(), std::make_shared<Rig>()))
@@ -385,24 +368,6 @@ void AvatarManager::deleteAllAvatars() {
         avatarIterator = _avatarHash.erase(avatarIterator);
         avatar->die();
     }
-}
-
-void AvatarManager::setLocalLights(const QVector<AvatarManager::LocalLight>& localLights) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setLocalLights", Q_ARG(const QVector<AvatarManager::LocalLight>&, localLights));
-        return;
-    }
-    _localLights = localLights;
-}
-
-QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
-    if (QThread::currentThread() != thread()) {
-        QVector<AvatarManager::LocalLight> result;
-        QMetaObject::invokeMethod(const_cast<AvatarManager*>(this), "getLocalLights", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QVector<AvatarManager::LocalLight>, result));
-        return result;
-    }
-    return _localLights;
 }
 
 void AvatarManager::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {

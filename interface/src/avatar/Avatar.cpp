@@ -638,36 +638,17 @@ void Avatar::render(RenderArgs* renderArgs) {
     glm::vec3 toTarget = frustum.getPosition() - getPosition();
     float distanceToTarget = glm::length(toTarget);
 
-    {
-        fixupModelsInScene(renderArgs->_scene);
+    fixupModelsInScene(renderArgs->_scene);
 
-        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
-            // add local lights
-            const float BASE_LIGHT_DISTANCE = 2.0f;
-            const float LIGHT_FALLOFF_RADIUS = 0.01f;
-            const float LIGHT_EXPONENT = 1.0f;
-            const float LIGHT_CUTOFF = glm::radians(80.0f);
-            float distance = BASE_LIGHT_DISTANCE * getUniformScale();
-            glm::vec3 position = _skeletonModel->getTranslation();
-            glm::quat orientation = getOrientation();
-            foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
-                glm::vec3 direction = orientation * light.direction;
-                DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
-                    distance * 2.0f, light.color, 0.5f, LIGHT_FALLOFF_RADIUS, orientation, LIGHT_EXPONENT, LIGHT_CUTOFF);
-            }
-        }
-
-        bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
-        if (renderBounding && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
-            PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
-            const float BOUNDING_SHAPE_ALPHA = 0.7f;
-            _skeletonModel->renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
-        }
+    bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
+    if (renderBounding && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
+        PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
+        const float BOUNDING_SHAPE_ALPHA = 0.7f;
+        _skeletonModel->renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
     }
 
     const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(distanceToTarget < DISPLAYNAME_DISTANCE);
-
     if (!isMyAvatar() || renderArgs->_cameraMode != (int8_t)CAMERA_MODE_FIRST_PERSON) {
         auto& frustum = renderArgs->getViewFrustum();
         auto textPosition = getDisplayNamePosition();

@@ -64,16 +64,6 @@ public:
 
     bool shouldShowReceiveStats() const { return _shouldShowReceiveStats; }
 
-    class LocalLight {
-    public:
-        glm::vec3 color;
-        glm::vec3 direction;
-    };
-
-    Q_INVOKABLE void setLocalLights(const QVector<AvatarManager::LocalLight>& localLights);
-    Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
-
-
     void getObjectsToRemoveFromPhysics(VectorOfMotionStates& motionStates);
     void getObjectsToAddToPhysics(VectorOfMotionStates& motionStates);
     void getObjectsToChange(VectorOfMotionStates& motionStates);
@@ -116,8 +106,6 @@ private:
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
 
-    QVector<AvatarManager::LocalLight> _localLights;
-
     bool _shouldShowReceiveStats = false;
 
     std::list<QPointer<AudioInjector>> _collisionInjectors;
@@ -128,8 +116,5 @@ private:
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
 };
-
-Q_DECLARE_METATYPE(AvatarManager::LocalLight)
-Q_DECLARE_METATYPE(QVector<AvatarManager::LocalLight>)
 
 #endif // hifi_AvatarManager_h
