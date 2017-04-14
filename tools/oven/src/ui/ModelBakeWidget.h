@@ -19,12 +19,14 @@
 #include <FBXBaker.h>
 
 class QLineEdit;
+class QThread;
 
 class ModelBakeWidget : public QWidget {
     Q_OBJECT
 
 public:
     ModelBakeWidget(QWidget* parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
+    ~ModelBakeWidget();
 
 private slots:
     void chooseFileButtonClicked();
@@ -44,6 +46,8 @@ private:
 
     Setting::Handle<QString> _exportDirectory;
     Setting::Handle<QString> _modelStartDirectory;
+
+    QThread* _bakerThread;
 };
 
 #endif // hifi_ModelBakeWidget_h

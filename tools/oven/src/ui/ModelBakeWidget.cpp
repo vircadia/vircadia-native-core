@@ -18,6 +18,7 @@
 
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
+#include <QtCore/QThread>
 
 #include "ModelBakeWidget.h"
 
@@ -27,9 +28,16 @@ static const QString MODEL_START_DIR_SETTING_KEY = "model_search_directory";
 ModelBakeWidget::ModelBakeWidget(QWidget* parent, Qt::WindowFlags flags) :
     QWidget(parent, flags),
     _exportDirectory(EXPORT_DIR_SETTING_KEY),
-    _modelStartDirectory(MODEL_START_DIR_SETTING_KEY)
+    _modelStartDirectory(MODEL_START_DIR_SETTING_KEY),
+    _bakerThread(new QThread(this))
 {
     setupUI();
+}
+
+ModelBakeWidget::~ModelBakeWidget() {
+    // before we go down, stop the baker thread and make sure it's done
+    _bakerThread->quit();
+    _bakerThread->wait();
 }
 
 void ModelBakeWidget::setupUI() {
@@ -115,13 +123,12 @@ void ModelBakeWidget::chooseFileButtonClicked() {
         // set the contents of the model file text box to be the path to the selected file
         _modelLineEdit->setText(selectedFiles.join(','));
 
-        auto directoryOfModel = QFileInfo(selectedFiles[0]).absolutePath();
+        if (_outputDirLineEdit->text().isEmpty()) {
+            auto directoryOfModel = QFileInfo(selectedFiles[0]).absolutePath();
 
-        // save the directory containing this model so we can default to it next time we show the file dialog
-        _modelStartDirectory.set(directoryOfModel);
-
-        // if our output directory is not yet set, set it to the directory of this model
-        _outputDirLineEdit->setText(directoryOfModel);
+            // if our output directory is not yet set, set it to the directory of this model
+            _outputDirLineEdit->setText(directoryOfModel);
+        }
     }
 }
 
@@ -153,13 +160,11 @@ void ModelBakeWidget::bakeButtonClicked() {
     QDir outputDirectory(_outputDirLineEdit->text());
 
     if (!outputDirectory.exists()) {
-
         return;
     }
 
     // make sure we have a non empty URL to a model to bake
     if (_modelLineEdit->text().isEmpty()) {
-
         return;
     }
 
@@ -176,7 +181,19 @@ void ModelBakeWidget::bakeButtonClicked() {
 
         // everything seems to be in place, kick off a bake for this model now
         auto baker = new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), false);
-        baker->bake();
+
+        // move the baker to the baker thread
+        baker->moveToThread(_bakerThread);
+
+        // make sure we start the baker thread if it isn't already running
+        if (!_bakerThread->isRunning()) {
+            _bakerThread->start();
+        }
+
+        // invoke the bake method on the baker thread
+        QMetaObject::invokeMethod(baker, "bake");
+
+        // keep a unique_ptr to this baker
         _bakers.emplace_back(baker);
     }
 }
