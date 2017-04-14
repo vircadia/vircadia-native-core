@@ -64,7 +64,7 @@ namespace gpu {
                     glGenTextures(1, &_texBuffer);
                     glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_BUFFER_TEXBUF_TEX_UNIT);
                     glBindTexture(GL_TEXTURE_BUFFER, _texBuffer);
-                    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, _texBuffer);
+                    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, _buffer);
                     glBindTexture(GL_TEXTURE_BUFFER, 0);
                     (void)CHECK_GL_ERROR();
                 }

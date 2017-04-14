@@ -28,14 +28,7 @@ struct ItemBound {
     vec4 boundDim_s;
 };
 
-#if __VERSION__ == 450
-layout(std140) buffer ssbo0Buffer {
-    ItemBound bounds[];
-};
-ItemBound getItemBound(int i) {
-    return bounds[i];
-}
-#else
+#if defined(GPU_GL410)
 uniform samplerBuffer ssbo0Buffer;
 ItemBound getItemBound(int i) {
     int offset = 2 * i;
@@ -43,6 +36,13 @@ ItemBound getItemBound(int i) {
     bound.id_boundPos = texelFetch(ssbo0Buffer, offset);
     bound.boundDim_s = texelFetch(ssbo0Buffer, offset + 1);
     return bound;
+}
+#else
+layout(std140) buffer ssbo0Buffer {
+    ItemBound bounds[];
+};
+ItemBound getItemBound(int i) {
+    return bounds[i];
 }
 #endif
 

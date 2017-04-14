@@ -14,7 +14,7 @@ using namespace gpu::gl41;
 
 // GLSL version
 std::string GL41Backend::getBackendShaderHeader() const {
-    return std::string("#version 410 core");
+    return std::string("#version 410 core\n#define GPU_GL410 1");
 }
 
 int GL41Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
@@ -68,11 +68,12 @@ int GL41Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::Binding
                         GLint requestedLoc = (*requestedBinding)._location + GL41Backend::RESOURCE_BUFFER_SLOT0_TEX_UNIT;
                         if (binding != requestedLoc) {
                             binding = requestedLoc;
-                            glProgramUniform1i(glprogram, location, binding);
                         }
                     } else {
                         binding += GL41Backend::RESOURCE_BUFFER_SLOT0_TEX_UNIT;
                     }
+                    glProgramUniform1i(glprogram, location, binding);
+
                     ssboCount++;
                     resourceBuffers.insert(Shader::Slot(name, binding, elementResource._element, elementResource._resource));
                 }
