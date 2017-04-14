@@ -30,7 +30,6 @@
 
 #include "AvatarMotionState.h"
 #include "Camera.h"
-#include "Menu.h"
 #include "InterfaceLogging.h"
 #include "SceneScriptingInterface.h"
 #include "SoftAttachmentModel.h"
@@ -76,6 +75,26 @@ namespace render {
 bool showReceiveStats = false;
 void Avatar::setShowReceiveStats(bool receiveStats) {
     showReceiveStats = receiveStats;
+}
+
+// static
+bool renderMyLookAtVectors = false;
+bool renderOtherLookAtVectors = false;
+void Avatar::setShowLookAtVectors(bool showMine, bool showOthers) {
+    renderMyLookAtVectors = showMine;
+    renderOtherLookAtVectors = showOthers;
+}
+
+// static
+bool renderCollisionShapes = false;
+void Avatar::setRenderCollisionShapes(bool render) {
+    renderCollisionShapes = render;
+}
+
+// static
+bool showNamesAboveHeads = false;
+void Avatar::setShowNamesAboveHeads(bool show) {
+    showNamesAboveHeads = show;
 }
 
 Avatar::Avatar(QThread* thread, RigPointer rig) :
@@ -354,7 +373,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             _smoothPositionTimer += deltaTime;
             if (_smoothPositionTimer < _smoothPositionTime) {
                 AvatarData::setPosition(
-                    lerp(_smoothPositionInitial, 
+                    lerp(_smoothPositionInitial,
                         _smoothPositionTarget,
                         easeInOutQuad(glm::clamp(_smoothPositionTimer / _smoothPositionTime, 0.0f, 1.0f)))
                 );
@@ -367,7 +386,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             _smoothOrientationTimer += deltaTime;
             if (_smoothOrientationTimer < _smoothOrientationTime) {
                 AvatarData::setOrientation(
-                    slerp(_smoothOrientationInitial, 
+                    slerp(_smoothOrientationInitial,
                         _smoothOrientationTarget,
                         easeInOutQuad(glm::clamp(_smoothOrientationTimer / _smoothOrientationTime, 0.0f, 1.0f)))
                 );
@@ -541,9 +560,9 @@ void Avatar::postUpdate(float deltaTime) {
 
     bool renderLookAtVectors;
     if (isMyAvatar()) {
-        renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderMyLookAtVectors);
+        renderLookAtVectors = renderMyLookAtVectors;
     } else {
-        renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderOtherLookAtVectors);
+        renderLookAtVectors = renderOtherLookAtVectors;
     }
 
     if (renderLookAtVectors) {
@@ -644,8 +663,7 @@ void Avatar::render(RenderArgs* renderArgs) {
 
     fixupModelsInScene(renderArgs->_scene);
 
-    bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
-    if (renderBounding && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
+    if (renderCollisionShapes && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
         PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
         const float BOUNDING_SHAPE_ALPHA = 0.7f;
         _skeletonModel->renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
@@ -1269,7 +1287,7 @@ float Avatar::getPelvisFloatingHeight() const {
 }
 
 void Avatar::setShowDisplayName(bool showDisplayName) {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::NamesAboveHeads)) {
+    if (!showNamesAboveHeads) {
         _displayNameAlpha = 0.0f;
         return;
     }

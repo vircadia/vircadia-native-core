@@ -147,6 +147,12 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     ViewFrustum cameraView;
     qApp->copyDisplayViewFrustum(cameraView);
 
+    // HACK: update Avatar namespace settings
+    Avatar::setShowLookAtVectors(
+            Menu::getInstance()->isOptionChecked(MenuOption::RenderMyLookAtVectors),
+            Menu::getInstance()->isOptionChecked(MenuOption::RenderOtherLookAtVectors));
+    Avatar::setRenderCollisionShapes(Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes));
+
     std::priority_queue<AvatarPriority> sortedAvatars;
     AvatarData::sortAvatars(avatarList, cameraView, sortedAvatars,
 
