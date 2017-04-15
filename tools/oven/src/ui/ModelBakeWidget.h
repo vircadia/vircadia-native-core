@@ -41,7 +41,9 @@ private slots:
 private:
     void setupUI();
 
-    QHash<QSharedPointer<FBXBaker>, int> _bakers;
+    using BakerRowPair = std::pair<std::unique_ptr<FBXBaker>, int>;
+    using BakerRowPairList = std::list<BakerRowPair>;
+    BakerRowPairList _bakers;
 
     QLineEdit* _modelLineEdit;
     QLineEdit* _outputDirLineEdit;

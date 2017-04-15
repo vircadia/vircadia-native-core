@@ -183,7 +183,7 @@ void ModelBakeWidget::bakeButtonClicked() {
         }
 
         // everything seems to be in place, kick off a bake for this model now
-        auto baker = QSharedPointer<FBXBaker> { new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), false) };
+        auto baker = std::unique_ptr<FBXBaker> { new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), false) };
 
         // move the baker to the baker thread
         baker->moveToThread(_bakerThread);
@@ -194,10 +194,10 @@ void ModelBakeWidget::bakeButtonClicked() {
         }
 
         // invoke the bake method on the baker thread
-        QMetaObject::invokeMethod(baker.data(), "bake");
+        QMetaObject::invokeMethod(baker.get(), "bake");
 
         // make sure we hear about the results of this baker when it is done
-        connect(baker.data(), &FBXBaker::finished, this, &ModelBakeWidget::handleFinishedBaker);
+        connect(baker.get(), &FBXBaker::finished, this, &ModelBakeWidget::handleFinishedBaker);
 
         // add a pending row to the results window to show that this bake is in process
         auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
@@ -205,24 +205,26 @@ void ModelBakeWidget::bakeButtonClicked() {
 
         // keep a unique_ptr to this baker
         // and remember the row that represents it in the results table
-        _bakers.insert(baker, resultsRow);
+        _bakers.emplace_back(std::move(baker), resultsRow);
     }
 }
 
 void ModelBakeWidget::handleFinishedBaker() {
     if (auto baker = qobject_cast<FBXBaker*>(sender())) {
-        // turn this baker into a shared pointer
-        auto sharedBaker = QSharedPointer<FBXBaker>(baker);
-
         // add the results of this bake to the results window
-        auto resultRow = _bakers.value(sharedBaker);
+        auto it = std::remove_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
+            return value.first.get() == baker;
+        });
 
-        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+        if (it != _bakers.end()) {
+            auto resultRow = it->second;
+            auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
 
-        if (sharedBaker->hasErrors()) {
-            resultsWindow->changeStatusForRow(resultRow, baker->getErrors().join("\n"));
-        } else {
-            resultsWindow->changeStatusForRow(resultRow, "Success");
+            if (baker->hasErrors()) {
+                resultsWindow->changeStatusForRow(resultRow, baker->getErrors().join("\n"));
+            } else {
+                resultsWindow->changeStatusForRow(resultRow, "Success");
+            }
         }
     }
 }
