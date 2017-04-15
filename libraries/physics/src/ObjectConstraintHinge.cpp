@@ -84,31 +84,24 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         return nullptr;
     }
 
-    bool useReferenceFrameA { false };
-
     if (!otherEntityID.isNull()) {
         // This hinge is between two entities... find the other rigid body.
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
             return nullptr;
         }
-
-        btTransform rigidBodyAFrame(btQuaternion(0.0f, 0.0f, 0.0f, 1.0f), glmToBullet(pivotInA));
-        btTransform rigidBodyBFrame(btQuaternion(0.0f, 0.0f, 0.0f, 1.0f), glmToBullet(pivotInB));
-
         constraint = new btHingeConstraint(*rigidBodyA, *rigidBodyB,
-                                           rigidBodyAFrame, rigidBodyBFrame,
-                                           useReferenceFrameA);
+                                           glmToBullet(pivotInA), glmToBullet(pivotInB),
+                                           glmToBullet(axisInA), glmToBullet(axisInB),
+                                           true); // useReferenceFrameA
 
     } else {
         // This hinge is between an entity and the world-frame.
-        btTransform rigidBodyAFrame(btQuaternion(0.0f, 0.0f, 0.0f, 1.0f), glmToBullet(pivotInA));
-
-        constraint = new btHingeConstraint(*rigidBodyA, rigidBodyAFrame, useReferenceFrameA);
+        constraint = new btHingeConstraint(*rigidBodyA,
+                                           glmToBullet(pivotInA), glmToBullet(axisInA),
+                                           true); // useReferenceFrameA
     }
 
-    btVector3 bulletAxisInA = glmToBullet(axisInA);
-    constraint->setAxis(bulletAxisInA);
     constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
 
     withWriteLock([&]{
