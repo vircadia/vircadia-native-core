@@ -17,9 +17,9 @@
 
 namespace gl {
 #ifdef SEPARATE_PROGRAM
-    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject, std::string& error = std::string());
+    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject, std::string& error);
 #else
-    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, std::string& error = std::string());
+    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, std::string& error);
 #endif
 
     GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& error = std::string());

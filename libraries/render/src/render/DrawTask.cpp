@@ -165,7 +165,7 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
     const Inputs& items) {
     RenderArgs* args = renderContext->args;
 
-    auto numItems = items.size();
+    uint32_t numItems = (uint32_t) items.size();
     if (numItems == 0) {
         return;
     }
