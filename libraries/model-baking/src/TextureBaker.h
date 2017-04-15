@@ -15,7 +15,9 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
-class TextureBaker : public QObject {
+#include "Baker.h"
+
+class TextureBaker : public Baker {
     Q_OBJECT
 
 public:

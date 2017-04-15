@@ -50,12 +50,6 @@ QString FBXBaker::pathToCopyOfOriginal() const {
     return _uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER + _fbxURL.fileName();
 }
 
-void FBXBaker::handleError(const QString& error) {
-    qCCritical(model_baking).noquote() << error;
-    _errorList.append(error);
-    emit finished();
-}
-
 void FBXBaker::bake() {
     qCDebug(model_baking) << "Baking" << _fbxURL;
 

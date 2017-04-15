@@ -17,16 +17,17 @@
 #include <QtCore/QUrl>
 #include <QtCore/QThread>
 
+#include <Baker.h>
 #include <FBXBaker.h>
 
-class DomainBaker : public QObject {
+class DomainBaker : public Baker {
     Q_OBJECT
 public:
     DomainBaker(const QUrl& localEntitiesFileURL, const QString& domainName,
                 const QString& baseOutputPath, const QUrl& destinationPath);
 
 public:
-    void bake();
+    virtual void bake() override;
 
 signals:
     void finished();

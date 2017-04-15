@@ -34,10 +34,14 @@ private slots:
 
     void outputDirectoryChanged(const QString& newDirectory);
 
+    void handleFinishedBaker();
+
 private:
     void setupUI();
 
-    std::unique_ptr<DomainBaker> _baker;
+    using BakerRowPair = std::pair<std::unique_ptr<DomainBaker>, int>;
+    using BakerRowPairList = std::list<BakerRowPair>;
+    BakerRowPairList _bakers;
 
     QLineEdit* _domainNameLineEdit;
     QLineEdit* _entitiesFileLineEdit;

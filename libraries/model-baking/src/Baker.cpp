@@ -1,0 +1,20 @@
+//
+//  Baker.cpp
+//  libraries/model-baking/src
+//
+//  Created by Stephen Birarda on 4/14/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#include "ModelBakingLoggingCategory.h"
+
+#include "Baker.h"
+
+void Baker::handleError(const QString& error) {
+    qCCritical(model_baking).noquote() << error;
+    _errorList.append(error);
+    emit finished();
+}

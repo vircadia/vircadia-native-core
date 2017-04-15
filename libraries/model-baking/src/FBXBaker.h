@@ -17,6 +17,8 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QNetworkReply>
 
+#include "Baker.h"
+
 namespace fbxsdk {
     class FbxManager;
     class FbxProperty;
@@ -47,16 +49,13 @@ class TextureBaker;
 
 static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
 
-class FBXBaker : public QObject {
+class FBXBaker : public Baker {
     Q_OBJECT
 public:
     FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath, bool copyOriginals = true);
     ~FBXBaker();
 
-    Q_INVOKABLE void bake();
-
-    bool hasErrors() const { return !_errorList.isEmpty(); }
-    QStringList getErrors() const { return _errorList; }
+    Q_INVOKABLE virtual void bake() override;
 
     QUrl getFBXUrl() const { return _fbxURL; }
     QString getBakedFBXRelativePath() const { return _bakedFBXRelativePath; }
@@ -91,8 +90,6 @@ private:
     void bakeTexture(const QUrl& textureURL);
 
     QString pathToCopyOfOriginal() const;
-
-    void handleError(const QString& error);
 
     QUrl _fbxURL;
     QString _fbxName;

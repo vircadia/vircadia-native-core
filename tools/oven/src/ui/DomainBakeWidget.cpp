@@ -21,6 +21,9 @@
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
 
+#include "../Oven.h"
+#include "OvenMainWindow.h"
+
 #include "DomainBakeWidget.h"
 
 static const QString DOMAIN_NAME_SETTING_KEY = "domain_name";
@@ -205,15 +208,44 @@ void DomainBakeWidget::bakeButtonClicked() {
     if (!_entitiesFileLineEdit->text().isEmpty()) {
         // everything seems to be in place, kick off a bake for this entities file now
         auto fileToBakeURL = QUrl::fromLocalFile(_entitiesFileLineEdit->text());
-        _baker = std::unique_ptr<DomainBaker> {
+        auto domainBaker = std::unique_ptr<DomainBaker> {
                 new DomainBaker(fileToBakeURL, _domainNameLineEdit->text(),
                                 outputDirectory.absolutePath(), _destinationPathLineEdit->text())
         };
 
-        // run the baker in our thread pool
-        QtConcurrent::run(_baker.get(), &DomainBaker::bake);
+        // make sure we hear from the baker when it is done
+        connect(domainBaker.get(), &DomainBaker::finished, this, &DomainBakeWidget::handleFinishedBaker);
 
-        return;
+        // run the baker in our thread pool
+        QtConcurrent::run(domainBaker.get(), &DomainBaker::bake);
+
+        // add a pending row to the results window to show that this bake is in process
+        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+        auto resultsRowName = _domainNameLineEdit->text().isEmpty() ? fileToBakeURL.fileName() : _domainNameLineEdit->text();
+        auto resultsRow = resultsWindow->addPendingResultRow(resultsRowName);
+
+        // keep the unique ptr to the domain baker and the index to the row representing it in the results table
+        _bakers.emplace_back(std::move(domainBaker), resultsRow);
+    }
+}
+
+void DomainBakeWidget::handleFinishedBaker() {
+    if (auto baker = qobject_cast<DomainBaker*>(sender())) {
+        // add the results of this bake to the results window
+        auto it = std::remove_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
+            return value.first.get() == baker;
+        });
+
+        if (it != _bakers.end()) {
+            auto resultRow = it->second;
+            auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+
+            if (baker->hasErrors()) {
+                resultsWindow->changeStatusForRow(resultRow, baker->getErrors().join("\n"));
+            } else {
+                resultsWindow->changeStatusForRow(resultRow, "Success");
+            }
+        }
     }
 }
 
