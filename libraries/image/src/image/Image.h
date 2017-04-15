@@ -45,8 +45,8 @@ gpu::Texture* createLightmapTextureFromImage(const QImage& image, const std::str
 
 const QImage process2DImageColor(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask);
 void defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element& formatMip, const QImage& srcImage, bool isLinear);
-gpu::Texture* process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool generateMips, bool isStrict = false);
-gpu::Texture* processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool generateMips, bool generateIrradiance);
+gpu::Texture* process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool isStrict = false);
+gpu::Texture* processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool generateIrradiance);
 
 } // namespace TextureUsage
 

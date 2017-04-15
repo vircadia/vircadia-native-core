@@ -752,7 +752,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
             boffset = 0;
         }
 
-        auto data = cubeTexture.accessStoredMipFace(0,face)->readData();
+        auto data = cubeTexture.accessStoredMipFace(0, face)->readData();
         if (data == nullptr) {
             continue;
         }
