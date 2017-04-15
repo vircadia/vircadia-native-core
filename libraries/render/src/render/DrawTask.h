@@ -52,7 +52,7 @@ class DrawBounds {
 public:
     class Config : public render::JobConfig {
     public:
-        Config() : JobConfig(false) {}
+        Config(bool enabled = false) : JobConfig(enabled) {}
     };
 
     using Inputs = render::ItemBounds;
@@ -68,6 +68,8 @@ private:
     int _cornerLocation { -1 };
     int _scaleLocation { -1 };
     gpu::BufferPointer _drawBuffer;
+
+    int _colorLocation { -1 };
 };
 
 }

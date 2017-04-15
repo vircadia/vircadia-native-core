@@ -18,6 +18,7 @@
 
 #define INCREMENTAL_TRANSFER 0
 #define THREADED_TEXTURE_BUFFERING 1
+#define GPU_SSBO_TRANSFORM_OBJECT 1
 
 namespace gpu { namespace gl45 {
     
@@ -30,6 +31,13 @@ class GL45Backend : public GLBackend {
     friend class Context;
 
 public:
+
+#ifdef GPU_SSBO_TRANSFORM_OBJECT
+    static const GLint TRANSFORM_OBJECT_SLOT  { 14 }; // SSBO binding slot
+#else
+    static const GLint TRANSFORM_OBJECT_SLOT  { 31 }; // TBO binding slot
+#endif
+
     explicit GL45Backend(bool syncCache) : Parent(syncCache) {}
     GL45Backend() : Parent() {}
 

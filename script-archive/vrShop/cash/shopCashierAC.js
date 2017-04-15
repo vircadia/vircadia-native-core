@@ -26,7 +26,7 @@ var PLAY = "Play";
 function getAction(channel, message, senderID) {
     if(subscribed) {
         print("I'm the agent and I received this: " + message);
-        
+
         switch(message) {
             case PLAY:
                 print("Play");
@@ -35,7 +35,7 @@ function getAction(channel, message, senderID) {
                     Recording.startPlaying();
                 }
                 break;
-                
+
             default:
                 print("Unknown action: " + action);
                 break;
@@ -49,16 +49,21 @@ function update(deltaTime) {
     totalTime += deltaTime;
 
     if (totalTime > WAIT_FOR_AUDIO_MIXER) {
-        if (!subscribed) {            
+        if (!subscribed) {
             Messages.subscribe(PLAYBACK_CHANNEL);
             subscribed = true;
-            Recording.loadRecording(clip_url);
-            Recording.setPlayFromCurrentLocation(playFromCurrentLocation);
-            Recording.setPlayerUseDisplayName(useDisplayName);
-            Recording.setPlayerUseAttachments(useAttachments);
-            Recording.setPlayerUseHeadModel(false);
-            Recording.setPlayerUseSkeletonModel(useAvatarModel);
-            Agent.isAvatar = true;
+            Recording.loadRecording(clip_url, function(success) {
+                if (success) {
+                    Recording.setPlayFromCurrentLocation(playFromCurrentLocation);
+                    Recording.setPlayerUseDisplayName(useDisplayName);
+                    Recording.setPlayerUseAttachments(useAttachments);
+                    Recording.setPlayerUseHeadModel(false);
+                    Recording.setPlayerUseSkeletonModel(useAvatarModel);
+                    Agent.isAvatar = true;
+                } else {
+                    print("Failed to load recording from " + clip_url);
+                }
+            });
         }
     }
 

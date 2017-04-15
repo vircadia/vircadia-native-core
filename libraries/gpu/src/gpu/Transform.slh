@@ -119,15 +119,14 @@ struct TransformObject {
 
 layout(location=15) in ivec2 _drawCallInfo;
 
-<@if FALSE @>
-// Disable SSBOs for now
+#if defined(GPU_SSBO_TRANSFORM_OBJECT)
 layout(std140) buffer transformObjectBuffer {
     TransformObject _object[];
 };
 TransformObject getTransformObject() {
     return _object[_drawCallInfo.x];
 }
-<@else@>
+#else
 uniform samplerBuffer transformObjectBuffer;
 
 TransformObject getTransformObject() {
@@ -145,7 +144,8 @@ TransformObject getTransformObject() {
 
     return object;
 }
-<@endif@>
+#endif
+
 <@endfunc@>
 
 

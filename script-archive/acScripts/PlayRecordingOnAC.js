@@ -20,7 +20,13 @@ Avatar.orientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 Avatar.scale = 1.0;
 Agent.isAvatar = true;
 
-Recording.loadRecording(recordingFile);
+Recording.loadRecording(recordingFile, function(success) {
+    if (success) {
+        Script.update.connect(update);
+    } else {
+        print("Failed to load recording from " + recordingFile);
+    }
+});
 
 count = 300; // This is necessary to wait for the audio mixer to connect
 function update(event) {
@@ -39,10 +45,8 @@ function update(event) {
         Vec3.print("Playing from ", Avatar.position);
         count--;
     }
-    
+
     if (!Recording.isPlaying()) {
         Script.update.disconnect(update);
     }
 }
-
-Script.update.connect(update);
