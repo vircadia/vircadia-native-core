@@ -26,7 +26,7 @@ if (NOT ANDROID)
     ExternalProject_Add(
       ${EXTERNAL_NAME}
       URL http://hifi-public.s3.amazonaws.com/dependencies/nvidia-texture-tools-2.1.0.zip
-      URL_MD5 79842ea185c8c95aaa70cee91e77f032
+      URL_MD5 81b8fa6a9ee3f986088eb6e2215d6a57
       CONFIGURE_COMMAND CMAKE_ARGS  ${ANDROID_CMAKE_ARGS} -DNVTT_SHARED=1 -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
       LOG_DOWNLOAD 1
       LOG_CONFIGURE 1
