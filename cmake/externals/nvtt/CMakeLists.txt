@@ -20,11 +20,8 @@ if (NOT ANDROID)
     ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
     set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE PATH "Location of NVTT include directory")
-
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/Release/x64/nvtt.lib CACHE FILEPATH "Path to NVTT static release library")
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${SOURCE_DIR}/Debug/x64/nvtt.lib CACHE FILEPATH "Path to NVTT static debug library")
-
-    set(${EXTERNAL_NAME_UPPER}_DLL_PATH "${SOURCE_DIR}/$<$<CONFIG:Debug>:Debug>$<$<NOT:$<CONFIG:Debug>>:Release>/x64" CACHE PATH "Location of NVTT DLL")
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/Release/x64/nvtt.lib CACHE FILEPATH "Path to NVTT release library")
+    set(${EXTERNAL_NAME_UPPER}_DLL_PATH "${SOURCE_DIR}/Release>/x64" CACHE PATH "Location of NVTT release DLL")
   else ()
     ExternalProject_Add(
       ${EXTERNAL_NAME}
