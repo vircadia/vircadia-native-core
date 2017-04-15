@@ -51,8 +51,8 @@ QString FBXBaker::pathToCopyOfOriginal() const {
 }
 
 void FBXBaker::handleError(const QString& error) {
-    qCCritical(model_baking) << error;
-    _errorList << error;
+    qCCritical(model_baking).noquote() << error;
+    _errorList.append(error);
     emit finished();
 }
 
@@ -200,7 +200,7 @@ void FBXBaker::importScene() {
 
     if (!importStatus) {
         // failed to initialize importer, print an error and return
-        handleError("Failed to import FBX file at" + _fbxURL.toString() + " - error:" + importer->GetStatus().GetErrorString());
+        handleError("Failed to import " + _fbxURL.toString() + " - " + importer->GetStatus().GetErrorString());
         return;
     } else {
         qCDebug(model_baking) << "Imported" << _fbxURL << "to FbxScene";

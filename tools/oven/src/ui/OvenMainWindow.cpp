@@ -21,7 +21,6 @@ OvenMainWindow::OvenMainWindow(QWidget *parent, Qt::WindowFlags flags) :
     setWindowTitle("High Fidelity Oven");
 
     // give the window a fixed width that will never change
-    const int FIXED_WINDOW_WIDTH = 640;
     setFixedWidth(FIXED_WINDOW_WIDTH);
 
     // setup a stacked layout for the main "modes" menu and subseq
@@ -29,4 +28,25 @@ OvenMainWindow::OvenMainWindow(QWidget *parent, Qt::WindowFlags flags) :
     stackedWidget->addWidget(new ModesWidget);
 
     setCentralWidget(stackedWidget);
+}
+
+OvenMainWindow::~OvenMainWindow() {
+    if (_resultsWindow) {
+        _resultsWindow->close();
+        _resultsWindow->deleteLater();
+    }
+}
+
+ResultsWindow* OvenMainWindow::showResultsWindow() {
+    if (!_resultsWindow) {
+        // we don't have a results window right now, so make a new one
+        _resultsWindow = new ResultsWindow;
+    }
+
+    // show the results window, place it right below our window
+    _resultsWindow->show();
+    _resultsWindow->move(_resultsWindow->x(), this->frameGeometry().bottom());
+
+    // return a pointer to the results window the caller can use
+    return _resultsWindow;
 }

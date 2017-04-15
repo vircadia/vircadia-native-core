@@ -56,6 +56,7 @@ public:
     Q_INVOKABLE void bake();
 
     bool hasErrors() const { return !_errorList.isEmpty(); }
+    QStringList getErrors() const { return _errorList; }
 
     QUrl getFBXUrl() const { return _fbxURL; }
     QString getBakedFBXRelativePath() const { return _bakedFBXRelativePath; }

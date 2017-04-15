@@ -14,6 +14,11 @@
 
 #include <QtWidgets/QApplication>
 
+#if defined(qApp)
+#undef qApp
+#endif
+#define qApp (static_cast<Oven*>(QCoreApplication::instance()))
+
 class OvenMainWindow;
 
 class Oven : public QApplication {
@@ -21,6 +26,8 @@ class Oven : public QApplication {
 
 public:
     Oven(int argc, char* argv[]);
+
+    OvenMainWindow* getMainWindow() const { return _mainWindow; }
 
 private:
     OvenMainWindow* _mainWindow;

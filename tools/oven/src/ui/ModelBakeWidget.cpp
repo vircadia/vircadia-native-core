@@ -20,6 +20,9 @@
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
 
+#include "../Oven.h"
+#include "OvenMainWindow.h"
+
 #include "ModelBakeWidget.h"
 
 static const QString EXPORT_DIR_SETTING_KEY = "model_export_directory";
@@ -180,7 +183,7 @@ void ModelBakeWidget::bakeButtonClicked() {
         }
 
         // everything seems to be in place, kick off a bake for this model now
-        auto baker = new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), false);
+        auto baker = QSharedPointer<FBXBaker> { new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), false) };
 
         // move the baker to the baker thread
         baker->moveToThread(_bakerThread);
@@ -191,10 +194,36 @@ void ModelBakeWidget::bakeButtonClicked() {
         }
 
         // invoke the bake method on the baker thread
-        QMetaObject::invokeMethod(baker, "bake");
+        QMetaObject::invokeMethod(baker.data(), "bake");
+
+        // make sure we hear about the results of this baker when it is done
+        connect(baker.data(), &FBXBaker::finished, this, &ModelBakeWidget::handleFinishedBaker);
+
+        // add a pending row to the results window to show that this bake is in process
+        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+        auto resultsRow = resultsWindow->addPendingResultRow(modelToBakeURL.fileName());
 
         // keep a unique_ptr to this baker
-        _bakers.emplace_back(baker);
+        // and remember the row that represents it in the results table
+        _bakers.insert(baker, resultsRow);
+    }
+}
+
+void ModelBakeWidget::handleFinishedBaker() {
+    if (auto baker = qobject_cast<FBXBaker*>(sender())) {
+        // turn this baker into a shared pointer
+        auto sharedBaker = QSharedPointer<FBXBaker>(baker);
+
+        // add the results of this bake to the results window
+        auto resultRow = _bakers.value(sharedBaker);
+
+        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+
+        if (sharedBaker->hasErrors()) {
+            resultsWindow->changeStatusForRow(resultRow, baker->getErrors().join("\n"));
+        } else {
+            resultsWindow->changeStatusForRow(resultRow, "Success");
+        }
     }
 }
 

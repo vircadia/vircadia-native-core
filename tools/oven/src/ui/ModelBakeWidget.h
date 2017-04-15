@@ -36,10 +36,12 @@ private slots:
 
     void outputDirectoryChanged(const QString& newDirectory);
 
+    void handleFinishedBaker();
+
 private:
     void setupUI();
 
-    std::list<std::unique_ptr<FBXBaker>> _bakers;
+    QHash<QSharedPointer<FBXBaker>, int> _bakers;
 
     QLineEdit* _modelLineEdit;
     QLineEdit* _outputDirLineEdit;

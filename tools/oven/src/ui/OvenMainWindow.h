@@ -12,12 +12,23 @@
 #ifndef hifi_OvenMainWindow_h
 #define hifi_OvenMainWindow_h
 
+#include <QtCore/QPointer>
 #include <QtWidgets/QMainWindow>
+
+#include "ResultsWindow.h"
+
+const int FIXED_WINDOW_WIDTH = 640;
 
 class OvenMainWindow : public QMainWindow {
     Q_OBJECT
 public:
     OvenMainWindow(QWidget *parent = Q_NULLPTR, Qt::WindowFlags flags = Qt::WindowFlags());
+    ~OvenMainWindow();
+
+    ResultsWindow* showResultsWindow();
+    
+private:
+    QPointer<ResultsWindow> _resultsWindow;
 };
 
 #endif // hifi_OvenMainWindow_h
