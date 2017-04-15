@@ -24,7 +24,9 @@
         RecordingIndicator,
         Recorder,
         Player,
-        Dialog;
+        Dialog,
+
+        SCRIPT_STARTUP_DELAY = 5000;  // 5s
 
     function log(message) {
         print(APP_NAME + ": " + message);
@@ -625,6 +627,12 @@
         tablet.removeButton(button);
     }
 
-    setUp();
-    Script.scriptEnding.connect(tearDown);
+    // FIXME: If setUp() is run immediately at Interface start-up, Interface hangs and crashes because of the line of code:
+    //     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    //setUp();
+    //Script.scriptEnding.connect(tearDown);
+    Script.setTimeout(function () {
+        setUp();
+        Script.scriptEnding.connect(tearDown);
+    }, SCRIPT_STARTUP_DELAY);
 }());
