@@ -279,15 +279,19 @@
         }
 
         function autoPlay() {
-            var recording;
+            var recording,
+                AUTOPLAY_SEARCH_DELTA = 1000;  // TODO: Final value.
 
-            recording = Entity.find();
-            if (recording) {
-                log("Play persisted recording " + recordingFilename);
-                playRecording(recording.recording, recording.position, recording.orientation);
-            } else {
-                autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL);  // Try again soon.
-            }
+            // Random delay to help reduce collisions between AC scripts.
+            Script.setTimeout(function () {
+                recording = Entity.find();
+                if (recording) {
+                    log("Play persisted recording " + recordingFilename);
+                    playRecording(recording.recording, recording.position, recording.orientation);
+                } else {
+                    autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL);  // Try again soon.
+                }
+            }, Math.random() * AUTOPLAY_SEARCH_DELTA);
         }
 
         playRecording = function (recording, position, orientation) {
