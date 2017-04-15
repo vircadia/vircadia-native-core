@@ -84,12 +84,14 @@ window.onload = function () {
             if (messageOptions.containsGif) {
                 if (messageOptions.processingGif) {
                     imageCount = message.action.length + 1; // "+1" for the GIF that'll finish processing soon
-                    message.action.unshift({ localPath: '../../../resources/icons/loadingDark.gif' });
+                    message.action.unshift({ localPath: messageOptions.loadingGifPath });
                     message.action.forEach(addImage);
                     document.getElementById('p0').disabled = true;
                 } else {
+                    var gifPath = message.action[0].localPath;
                     document.getElementById('p0').disabled = false;
-                    document.getElementById('p0img').src = message.action[0].localPath;
+                    document.getElementById('p0img').src = gifPath;
+                    paths[0].localPath = gifPath;
                 }
             } else {
                 imageCount = message.action.length;
