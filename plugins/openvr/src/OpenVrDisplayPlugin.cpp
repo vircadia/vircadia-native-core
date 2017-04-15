@@ -199,7 +199,7 @@ public:
             std::string error;
             ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader, error);
             ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader, error);
-            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } });
+            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } }, error);
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
             qDebug() << "Rebuild proigram";

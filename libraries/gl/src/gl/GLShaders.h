@@ -22,7 +22,7 @@ namespace gl {
     bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, std::string& error);
 #endif
 
-    GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& error = std::string());
+    GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& error);
 
 }
 
