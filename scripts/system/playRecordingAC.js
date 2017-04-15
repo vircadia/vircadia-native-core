@@ -21,6 +21,7 @@
         HEARTBEAT_INTERVAL = 3000,  // TODO: Final value.
         TIMESTAMP_UPDATE_INTERVAL = 2500,  // TODO: Final value.
         AUTOPLAY_SEARCH_INTERVAL = 5000,  // TODO: Final value.
+        AUTOPLAY_ERROR_INTERVAL = 30000,  // 30s
         scriptUUID,
 
         Entity,
@@ -262,24 +263,9 @@
         // Recording playback functions.
         var isPlayingRecording = false,
             recordingFilename = "",
-            autoPlayTimer = null;
+            autoPlayTimer = null,
 
-        function playRecording(recording, position, orientation) {
-            Agent.isAvatar = true;
-            Avatar.position = position;
-            Avatar.orientation = orientation;
-
-            Recording.loadRecording(recording);
-            Recording.setPlayFromCurrentLocation(true);
-            Recording.setPlayerUseDisplayName(true);
-            Recording.setPlayerUseHeadModel(false);
-            Recording.setPlayerUseAttachments(true);
-            Recording.setPlayerLoop(true);
-            Recording.setPlayerUseSkeletonModel(true);
-
-            Recording.setPlayerTime(0.0);
-            Recording.startPlaying();
-        }
+            playRecording;
 
         function play(recording, position, orientation) {
             if (Entity.create(recording, position, orientation)) {
@@ -297,16 +283,38 @@
 
             recording = Entity.find();
             if (recording) {
-                isPlayingRecording = true;
-                recordingFilename = recording.recording;
-
                 log("Play persisted recording " + recordingFilename);
-
                 playRecording(recording.recording, recording.position, recording.orientation);
             } else {
                 autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL);  // Try again soon.
             }
         }
+
+        playRecording = function (recording, position, orientation) {
+            Recording.loadRecording(recording, function (success) {
+                if (success) {
+                    Agent.isAvatar = true;
+                    Avatar.position = position;
+                    Avatar.orientation = orientation;
+
+                    Recording.setPlayFromCurrentLocation(true);
+                    Recording.setPlayerUseDisplayName(true);
+                    Recording.setPlayerUseHeadModel(false);
+                    Recording.setPlayerUseAttachments(true);
+                    Recording.setPlayerLoop(true);
+                    Recording.setPlayerUseSkeletonModel(true);
+
+                    isPlayingRecording = true;
+                    recordingFilename = recording;
+
+                    Recording.setPlayerTime(0.0);
+                    Recording.startPlaying();
+                } else {
+                    log("Failed to load recording " + recording);
+                    autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Try again later.
+                }
+            });
+        };
 
         function stop() {
             log("Stop playing " + recordingFilename);
