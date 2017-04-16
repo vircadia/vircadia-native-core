@@ -25,8 +25,6 @@
 
 using namespace gpu;
 
-// FIXME: Declare this to enable compression
-//#define COMPRESS_TEXTURES
 #define CPU_MIPMAPS 1
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
@@ -114,10 +112,9 @@ TextureLoader getTextureLoaderForType(gpu::TextureType type, const QVariantMap& 
     }
 }
 
-gpu::Texture* processImage(const QByteArray& content, const QUrl& url, const std::string& hash, int maxNumPixels, const TextureLoader& loader) {
+gpu::Texture* processImage(const QByteArray& content, const std::string& filename, int maxNumPixels, gpu::TextureType textureType) {
     // Help the QImage loader by extracting the image file format from the url filename ext.
     // Some tga are not created properly without it.
-    auto filename = url.fileName().toStdString();
     auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
     QImage image = QImage::fromData(content, filenameExtension.c_str());
     int imageWidth = image.width();
@@ -126,7 +123,7 @@ gpu::Texture* processImage(const QByteArray& content, const QUrl& url, const std
     // Validate that the image loaded
     if (imageWidth == 0 || imageHeight == 0 || image.format() == QImage::Format_Invalid) {
         QString reason(filenameExtension.empty() ? "" : "(no file extension)");
-        qCWarning(imagelogging) << "Failed to load" << url << reason;
+        qCWarning(imagelogging) << "Failed to load" << filename.c_str() << reason;
         return nullptr;
     }
 
@@ -139,12 +136,15 @@ gpu::Texture* processImage(const QByteArray& content, const QUrl& url, const std
         imageHeight = (int)(scaleFactor * (float)imageHeight + 0.5f);
         QImage newImage = image.scaled(QSize(imageWidth, imageHeight), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         image.swap(newImage);
-        qCDebug(imagelogging).nospace() << "Downscaled " << url << " (" <<
+        qCDebug(imagelogging).nospace() << "Downscaled " << filename.c_str() << " (" <<
             QSize(originalWidth, originalHeight) << " to " <<
             QSize(imageWidth, imageHeight) << ")";
     }
     
-    return loader(image, url.toString().toStdString());
+    auto loader = getTextureLoaderForType(textureType);
+    auto texture = loader(image, filename);
+
+    return texture;
 }
 
 
@@ -352,7 +352,6 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         theTexture->setUsage(usage.build());
         theTexture->setStoredMipFormat(formatMip);
         generateMips(theTexture, image, validAlpha, alphaAsMask, false, false);
-        theTexture->setSource(srcImageName);
     }
 
     return theTexture;
@@ -399,8 +398,6 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
         generateMips(theTexture, image, false, false, false, true);
-
-        theTexture->setSource(srcImageName);
     }
 
     return theTexture;
@@ -488,8 +485,6 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
         generateMips(theTexture, image, false, false, false, true);
-
-        theTexture->setSource(srcImageName);
     }
 
     return theTexture;
@@ -519,8 +514,6 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
         generateMips(theTexture, image, false, false, true, false);
-
-        theTexture->setSource(srcImageName);
     }
 
     return theTexture;
@@ -554,8 +547,6 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
         generateMips(theTexture, image, false, false, true, false);
-
-        theTexture->setSource(srcImageName);
     }
 
     return theTexture;
@@ -586,8 +577,6 @@ gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImag
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
         generateMips(theTexture, image, false, false, true, false);
-
-        theTexture->setSource(srcImageName);
     }
 
     return theTexture;

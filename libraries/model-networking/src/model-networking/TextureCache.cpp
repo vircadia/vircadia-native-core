@@ -432,12 +432,9 @@ void ImageReader::read() {
     gpu::TexturePointer texture;
     {
         PROFILE_RANGE_EX(resource_parse_image_raw, __FUNCTION__, 0xffff0000, 0);
-        auto loader = image::getTextureLoaderForType(networkTexture->getTextureType());
-        texture.reset(image::processImage(_content, _url, hash, _maxNumPixels, loader));
-        texture->setSource(_url.toString().toStdString());
-        if (texture) {
-            texture->setFallbackTexture(networkTexture->getFallbackTexture());
-        }
+        texture.reset(image::processImage(_content, _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType()));
+        texture->setSourceHash(hash);
+        texture->setFallbackTexture(networkTexture->getFallbackTexture());
     }
 
     // Save the image into a KTXFile

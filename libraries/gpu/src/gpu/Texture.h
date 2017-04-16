@@ -452,6 +452,8 @@ public:
     // For convenience assign a source name 
     const std::string& source() const { return _source; }
     void setSource(const std::string& source) { _source = source; }
+    const std::string& sourceHash() const { return _sourceHash; }
+    void setSourceHash(const std::string& sourceHash) { _sourceHash = sourceHash; }
 
     // Potentially change the minimum mip (mostly for debugging purpose)
     bool setMinMip(uint16 newMinMip);
@@ -536,6 +538,7 @@ protected:
     std::weak_ptr<Texture> _fallback;
     // Not strictly necessary, but incredibly useful for debugging
     std::string _source;
+    std::string _sourceHash;
     std::unique_ptr< Storage > _storage;
 
     Stamp _stamp { 0 };

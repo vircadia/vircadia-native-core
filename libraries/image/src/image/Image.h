@@ -18,7 +18,6 @@
 
 class QByteArray;
 class QImage;
-class QUrl;
 
 namespace image {
 
@@ -26,7 +25,7 @@ using TextureLoader = std::function<gpu::Texture*(const QImage&, const std::stri
 
 TextureLoader getTextureLoaderForType(gpu::TextureType type, const QVariantMap& options = QVariantMap());
 
-gpu::Texture* processImage(const QByteArray& content, const QUrl& url, const std::string& hash, int maxNumPixels, const TextureLoader& loader);
+gpu::Texture* processImage(const QByteArray& content, const std::string& url, int maxNumPixels, gpu::TextureType textureType);
 
 namespace TextureUsage {
 
@@ -44,7 +43,6 @@ gpu::Texture* createCubeTextureFromImageWithoutIrradiance(const QImage& image, c
 gpu::Texture* createLightmapTextureFromImage(const QImage& image, const std::string& srcImageName);
 
 const QImage process2DImageColor(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask);
-void defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element& formatMip, const QImage& srcImage, bool isLinear);
 gpu::Texture* process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool isStrict = false);
 gpu::Texture* processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool generateIrradiance);
 

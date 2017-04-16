@@ -23,6 +23,7 @@ struct GPUKTXPayload {
     Texture::Usage _usage;
     TextureUsageType _usageType;
 
+
     static std::string KEY;
     static bool isGPUKTX(const ktx::KeyValue& val) {
         return (val._key.compare(KEY) == 0);
@@ -161,7 +162,11 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     keyval._usage = texture.getUsage();
     keyval._usageType = texture.getUsageType();
     ktx::KeyValues keyValues;
-    keyValues.emplace_back(ktx::KeyValue(GPUKTXPayload::KEY, sizeof(GPUKTXPayload), (ktx::Byte*) &keyval)); 
+    keyValues.emplace_back(ktx::KeyValue(GPUKTXPayload::KEY, sizeof(GPUKTXPayload), (ktx::Byte*) &keyval));
+
+    static const std::string SOURCE_HASH_KEY = "hifi.sourceHash";
+    auto hash = texture.sourceHash();
+    keyValues.emplace_back(ktx::KeyValue(SOURCE_HASH_KEY, hash.size(), (ktx::Byte*) hash.c_str()));
 
     auto ktxBuffer = ktx::KTX::create(header, images, keyValues);
 #if 0
