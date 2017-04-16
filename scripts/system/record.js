@@ -413,61 +413,17 @@
                 || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar")));
         }
 
-        function onWebEventReceived(data) {
-            var message = JSON.parse(data);
-            if (message.type === EVENT_BRIDGE_TYPE) {
-                switch (message.action) {
-                case BODY_LOADED_ACTION:
-                    // Dialog's ready; initialize its state.
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
-                        action: USING_TOOLBAR_ACTION,
-                        value: isUsingToolbar()
-                    }));
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
-                        action: FINISH_ON_OPEN_ACTION,
-                        value: isFinishOnOpen
-                    }));
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
-                        action: NUMBER_OF_PLAYERS_ACTION,
-                        value: Player.numberOfPlayers()
-                    }));
-                    tablet.emitScriptEvent(JSON.stringify({
-                        type: EVENT_BRIDGE_TYPE,
-                        action: START_RECORDING_ACTION,
-                        value: !Recorder.isIdle()
-                    }));
-                    break;
-                case STOP_PLAYING_RECORDING_ACTION:
-                    // Stop the specified player.
-                    Player.stopPlayingRecording(message.value);
-                    break;
-                case LOAD_RECORDING_ACTION:
-                    // User wants to select an ATP recording to play.
-                    log("TODO: Open dialog for user to select ATP recording to play");
-                    break;
-                case START_RECORDING_ACTION:
-                    // Start making a recording.
-                    if (Recorder.isIdle()) {
-                        Recorder.startCountdown();
-                    }
-                    break;
-                case STOP_RECORDING_ACTION:
-                    // Cancel or finish a recording.
-                    if (Recorder.isCountingDown()) {
-                        Recorder.cancelCountdown();
-                    } else if (Recorder.isRecording()) {
-                        Recorder.finishRecording();
-                    }
-                    break;
-                case FINISH_ON_OPEN_ACTION:
-                    // Set behavior on dialog open.
-                    isFinishOnOpen = message.value;
-                    Settings.setValue(SETTINGS_FINISH_ON_OPEN, isFinishOnOpen);
-                    break;
-                }
+        function updateRecordingStatus(isRecording) {
+            if (isRecording) {
+                tablet.emitScriptEvent(JSON.stringify({
+                    type: EVENT_BRIDGE_TYPE,
+                    action: START_RECORDING_ACTION
+                }));
+            } else {
+                tablet.emitScriptEvent(JSON.stringify({
+                    type: EVENT_BRIDGE_TYPE,
+                    action: STOP_RECORDING_ACTION
+                }));
             }
         }
 
@@ -501,6 +457,60 @@
             return isFinishOnOpen;
         }
 
+        function onWebEventReceived(data) {
+            var message = JSON.parse(data);
+            if (message.type === EVENT_BRIDGE_TYPE) {
+                switch (message.action) {
+                case BODY_LOADED_ACTION:
+                    // Dialog's ready; initialize its state.
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
+                        action: USING_TOOLBAR_ACTION,
+                        value: isUsingToolbar()
+                    }));
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
+                        action: FINISH_ON_OPEN_ACTION,
+                        value: isFinishOnOpen
+                    }));
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: EVENT_BRIDGE_TYPE,
+                        action: NUMBER_OF_PLAYERS_ACTION,
+                        value: Player.numberOfPlayers()
+                    }));
+                    updateRecordingStatus(!Recorder.isIdle());
+                    break;
+                case STOP_PLAYING_RECORDING_ACTION:
+                    // Stop the specified player.
+                    Player.stopPlayingRecording(message.value);
+                    break;
+                case LOAD_RECORDING_ACTION:
+                    // User wants to select an ATP recording to play.
+                    log("TODO: Open dialog for user to select ATP recording to play");
+                    break;
+                case START_RECORDING_ACTION:
+                    // Start making a recording.
+                    if (Recorder.isIdle()) {
+                        Recorder.startCountdown();
+                    }
+                    break;
+                case STOP_RECORDING_ACTION:
+                    // Cancel or finish a recording.
+                    if (Recorder.isCountingDown()) {
+                        Recorder.cancelCountdown();
+                    } else if (Recorder.isRecording()) {
+                        Recorder.finishRecording();
+                    }
+                    break;
+                case FINISH_ON_OPEN_ACTION:
+                    // Set behavior on dialog open.
+                    isFinishOnOpen = message.value;
+                    Settings.setValue(SETTINGS_FINISH_ON_OPEN, isFinishOnOpen);
+                    break;
+                }
+            }
+        }
+
         function setUp() {
             isFinishOnOpen = Settings.getValue(SETTINGS_FINISH_ON_OPEN) === true;
             tablet.webEventReceived.connect(onWebEventReceived);
@@ -512,6 +522,7 @@
 
         return {
             updatePlayerDetails: updatePlayerDetails,
+            updateRecordingStatus: updateRecordingStatus,
             finishOnOpen: finishOnOpen,
             setUp: setUp,
             tearDown: tearDown
@@ -530,6 +541,7 @@
                 } else if (Recorder.isRecording()) {
                     Recorder.finishRecording();
                 }
+                Dialog.updateRecordingStatus(false);
             }
             isDialogDisplayed = true;
         } else {
@@ -547,6 +559,7 @@
             } else if (Recorder.isRecording()) {
                 Recorder.finishRecording();
             }
+            Dialog.updateRecordingStatus(false);
         }
     }
 

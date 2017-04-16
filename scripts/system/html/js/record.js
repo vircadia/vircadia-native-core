@@ -176,10 +176,13 @@ function onScriptEventReceived(data) {
             elFinishOnOpen.checked = message.value;
             break;
         case START_RECORDING_ACTION:
-            isRecording = message.value;
-            if (isRecording) {
-                elRecordButton.classList.add("pressed");
-            }
+            isRecording = true;
+            elRecordButton.classList.add("pressed");
+            updateSpinner();
+            break;
+        case STOP_RECORDING_ACTION:
+            isRecording = false;
+            elRecordButton.classList.remove("pressed");
             updateSpinner();
             break;
         case RECORDINGS_BEING_PLAYED_ACTION:
