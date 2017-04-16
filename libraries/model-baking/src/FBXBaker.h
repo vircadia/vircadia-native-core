@@ -18,6 +18,7 @@
 #include <QtNetwork/QNetworkReply>
 
 #include "Baker.h"
+#include "TextureBaker.h"
 
 namespace fbxsdk {
     class FbxManager;
@@ -45,23 +46,22 @@ enum TextureType {
     UNUSED_TEXTURE = -1
 };
 
-class TextureBaker;
-
 static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
+using FBXSDKManagerUniquePointer = std::unique_ptr<fbxsdk::FbxManager, std::function<void (fbxsdk::FbxManager *)>>;
 
 class FBXBaker : public Baker {
     Q_OBJECT
 public:
     FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath, bool copyOriginals = true);
-    ~FBXBaker();
 
+    // all calls to bake must be from the same thread, because the Autodesk SDK will cause
+    // a crash if it is called from multiple threads
     Q_INVOKABLE virtual void bake() override;
 
     QUrl getFBXUrl() const { return _fbxURL; }
     QString getBakedFBXRelativePath() const { return _bakedFBXRelativePath; }
 
 signals:
-    void finished();
     void allTexturesBaked();
 
     void sourceCopyReadyToLoad();
@@ -84,6 +84,8 @@ private:
     void removeEmbeddedMediaFolder();
     void possiblyCleanupOriginals();
 
+    void checkIfTexturesFinished();
+
     QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
     QUrl getTextureURL(const QFileInfo& textureFileInfo, fbxsdk::FbxFileTexture* fileTexture);
 
@@ -98,7 +100,7 @@ private:
     QString _uniqueOutputPath;
     QString _bakedFBXRelativePath;
 
-    fbxsdk::FbxManager* _sdkManager;
+    static FBXSDKManagerUniquePointer _sdkManager;
     fbxsdk::FbxScene* _scene { nullptr };
 
     QStringList _errorList;
@@ -107,7 +109,7 @@ private:
     QHash<QString, int> _textureNameMatchCount;
     QHash<uint64_t, TextureType> _textureTypes;
 
-    std::list<std::unique_ptr<TextureBaker>> _bakingTextures;
+    QSet<QSharedPointer<TextureBaker>> _bakingTextures;
     QFutureSynchronizer<void> _textureBakeSynchronizer;
 
     bool _copyOriginals { true };

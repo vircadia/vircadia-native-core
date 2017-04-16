@@ -29,6 +29,10 @@ void TextureBaker::bake() {
     // first load the texture (either locally or remotely)
     loadTexture();
 
+    if (hasErrors()) {
+        return;
+    }
+
     qCDebug(model_baking) << "Baking texture at" << _textureURL;
 
     emit finished();
@@ -41,9 +45,7 @@ void TextureBaker::loadTexture() {
         QFile localTexture { _textureURL.toLocalFile() };
 
         if (!localTexture.open(QIODevice::ReadOnly)) {
-            qCWarning(model_baking) << "Unable to open local texture at" << _textureURL << "for baking";
-
-            emit finished();
+            handleError("Unable to open texture " + _textureURL.toString());
             return;
         }
 

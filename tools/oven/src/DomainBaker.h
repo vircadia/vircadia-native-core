@@ -30,7 +30,6 @@ public:
     virtual void bake() override;
 
 signals:
-    void finished();
     void allModelsFinished();
 
 private slots:

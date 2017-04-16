@@ -242,6 +242,8 @@ void DomainBakeWidget::handleFinishedBaker() {
 
             if (baker->hasErrors()) {
                 resultsWindow->changeStatusForRow(resultRow, baker->getErrors().join("\n"));
+            } else if (baker->hasWarnings()) {
+                resultsWindow->changeStatusForRow(resultRow, baker->getWarnings().join("\n"));
             } else {
                 resultsWindow->changeStatusForRow(resultRow, "Success");
             }

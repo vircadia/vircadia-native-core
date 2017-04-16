@@ -23,13 +23,21 @@ public:
     bool hasErrors() const { return !_errorList.isEmpty(); }
     QStringList getErrors() const { return _errorList; }
 
+    bool hasWarnings() const { return !_warningList.isEmpty(); }
+    QStringList getWarnings() const { return _warningList; }
+
 signals:
     void finished();
 
 protected:
     void handleError(const QString& error);
+    void handleWarning(const QString& warning);
+
+    void appendErrors(const QStringList& errors);
+    void appendWarnings(const QStringList& warnings) { _warningList << warnings; }
 
     QStringList _errorList;
+    QStringList _warningList;
 };
 
 #endif // hifi_Baker_h

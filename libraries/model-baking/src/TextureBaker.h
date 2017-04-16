@@ -22,15 +22,12 @@ class TextureBaker : public Baker {
 
 public:
     TextureBaker(const QUrl& textureURL);
-
+    
     void bake();
 
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 
     const QUrl& getTextureURL() const { return _textureURL; }
-
-signals:
-    void finished();
 
 private:
     void loadTexture();
