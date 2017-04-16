@@ -261,17 +261,9 @@ void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
     bumpAndPruneContacts(object);
     btRigidBody* body = object->getRigidBody();
     if (body) {
-        QList<EntityDynamicPointer> removedDynamics = removeDynamicsForBody(body);
         _dynamicsWorld->removeRigidBody(body);
-
         // add it back
         addObjectToDynamicsWorld(object);
-        foreach(EntityDynamicPointer dynamic, removedDynamics) {
-            bool success = addDynamic(dynamic);
-            if (!success) {
-                qCDebug(physics) << "PhysicsEngine::reinsertObject failed to recreate dynamic";
-            }
-        }
     }
 }
 
