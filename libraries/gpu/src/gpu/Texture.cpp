@@ -212,8 +212,8 @@ void Texture::MemoryStorage::assignMipFaceData(uint16 level, uint8 face, const s
     }
 }
 
-Texture* Texture::createExternal(const ExternalRecycler& recycler, const Sampler& sampler) {
-    Texture* tex = new Texture(TextureUsageType::EXTERNAL);
+TexturePointer Texture::createExternal(const ExternalRecycler& recycler, const Sampler& sampler) {
+    TexturePointer tex = std::make_shared<Texture>(TextureUsageType::EXTERNAL);
     tex->_type = TEX_2D;
     tex->_maxMipLevel = 0;
     tex->_sampler = sampler;
@@ -221,36 +221,36 @@ Texture* Texture::createExternal(const ExternalRecycler& recycler, const Sampler
     return tex;
 }
 
-Texture* Texture::createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips, const Sampler& sampler) {
+TexturePointer Texture::createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, 0, numMips, sampler);
 }
 
-Texture* Texture::create1D(const Element& texelFormat, uint16 width, uint16 numMips, const Sampler& sampler) {
+TexturePointer Texture::create1D(const Element& texelFormat, uint16 width, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::RESOURCE, TEX_1D, texelFormat, width, 1, 1, 1, 0, numMips, sampler);
 }
 
-Texture* Texture::create2D(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips, const Sampler& sampler) {
+TexturePointer Texture::create2D(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 0, numMips, sampler);
 }
 
-Texture* Texture::createStrict(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips, const Sampler& sampler) {
+TexturePointer Texture::createStrict(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::STRICT_RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 0, numMips, sampler);
 }
 
-Texture* Texture::create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numMips, const Sampler& sampler) {
+TexturePointer Texture::create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::RESOURCE, TEX_3D, texelFormat, width, height, depth, 1, 0, numMips, sampler);
 }
 
-Texture* Texture::createCube(const Element& texelFormat, uint16 width, uint16 numMips, const Sampler& sampler) {
+TexturePointer Texture::createCube(const Element& texelFormat, uint16 width, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::RESOURCE, TEX_CUBE, texelFormat, width, width, 1, 1, 0, numMips, sampler);
 }
 
-Texture* Texture::create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, uint16 numMips, const Sampler& sampler)
+TexturePointer Texture::create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, uint16 numMips, const Sampler& sampler)
 {
-    Texture* tex = new Texture(usageType);
+    TexturePointer tex = std::make_shared<Texture>(usageType);
     tex->_storage.reset(new MemoryStorage());
     tex->_type = type;
-    tex->_storage->assignTexture(tex);
+    tex->_storage->assignTexture(tex.get());
     tex->resize(type, texelFormat, width, height, depth, numSamples, numSlices, numMips);
 
     tex->_sampler = sampler;

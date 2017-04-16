@@ -112,7 +112,7 @@ TextureLoader getTextureLoaderForType(gpu::TextureType type, const QVariantMap& 
     }
 }
 
-gpu::Texture* processImage(const QByteArray& content, const std::string& filename, int maxNumPixels, gpu::TextureType textureType) {
+gpu::TexturePointer processImage(const QByteArray& content, const std::string& filename, int maxNumPixels, gpu::TextureType textureType) {
     // Help the QImage loader by extracting the image file format from the url filename ext.
     // Some tga are not created properly without it.
     auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
@@ -222,20 +222,20 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
 struct MyOutputHandler : public nvtt::OutputHandler {
     MyOutputHandler(gpu::Texture* texture, int face) : _texture(texture), _face(face) {}
 
-    virtual void beginImage(int size, int width, int height, int depth, int face, int miplevel) {
+    virtual void beginImage(int size, int width, int height, int depth, int face, int miplevel) override {
         _size = size;
         _miplevel = miplevel;
 
         _data = static_cast<gpu::Byte*>(malloc(size));
         _current = _data;
     }
-    virtual bool writeData(const void* data, int size) {
+    virtual bool writeData(const void* data, int size) override {
         assert(_current + size <= _data + _size);
         memcpy(_current, data, size);
         _current += size;
         return true;
     }
-    virtual void endImage() {
+    virtual void endImage() override {
         if (_face >= 0) {
             _texture->assignStoredMipFace(_miplevel, _face, _size, static_cast<const gpu::Byte*>(_data));
         } else {
@@ -319,13 +319,13 @@ void generateMips(gpu::Texture* texture, QImage& image, bool validAlpha, bool al
 #endif
 }
 
-gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool isStrict) {
+gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool isStrict) {
     PROFILE_RANGE(resource_parse, "process2DTextureColorFromImage");
     bool validAlpha = false;
     bool alphaAsMask = true;
     QImage image = process2DImageColor(srcImage, validAlpha, alphaAsMask);
 
-    gpu::Texture* theTexture = nullptr;
+    gpu::TexturePointer theTexture = nullptr;
 
     if ((image.width() > 0) && (image.height() > 0)) {
         gpu::Element formatGPU;
@@ -337,9 +337,9 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         gpu::Element formatMip = formatGPU;
 
         if (isStrict) {
-            theTexture = (gpu::Texture::createStrict(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+            theTexture = gpu::Texture::createStrict(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         } else {
-            theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+            theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         }
         theTexture->setSource(srcImageName);
         auto usage = gpu::Texture::Usage::Builder().withColor();
@@ -351,34 +351,34 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         }
         theTexture->setUsage(usage.build());
         theTexture->setStoredMipFormat(formatMip);
-        generateMips(theTexture, image, validAlpha, alphaAsMask, false, false);
+        generateMips(theTexture.get(), image, validAlpha, alphaAsMask, false, false);
     }
 
     return theTexture;
 }
 
-gpu::Texture* TextureUsage::createStrict2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createStrict2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     return process2DTextureColorFromImage(srcImage, srcImageName, false, true);
 }
 
-gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     return process2DTextureColorFromImage(srcImage, srcImageName, false);
 }
 
-gpu::Texture* TextureUsage::createAlbedoTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createAlbedoTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     return process2DTextureColorFromImage(srcImage, srcImageName, false);
 }
 
-gpu::Texture* TextureUsage::createEmissiveTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createEmissiveTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     return process2DTextureColorFromImage(srcImage, srcImageName, false);
 }
 
-gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createLightmapTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     return process2DTextureColorFromImage(srcImage, srcImageName, false);
 }
 
 
-gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createNormalTextureFromNormalImage(const QImage& srcImage, const std::string& srcImageName) {
     PROFILE_RANGE(resource_parse, "createNormalTextureFromNormalImage");
     QImage image = processSourceImage(srcImage, false);
 
@@ -388,16 +388,16 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
     }
 
 
-    gpu::Texture* theTexture = nullptr;
+    gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_XY;
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_XY;
 
-        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
-        generateMips(theTexture, image, false, false, false, true);
+        generateMips(theTexture.get(), image, false, false, false, true);
     }
 
     return theTexture;
@@ -415,7 +415,7 @@ double mapComponent(double sobelValue) {
     return (sobelValue + 1.0) * factor;
 }
 
-gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
     PROFILE_RANGE(resource_parse, "createNormalTextureFromBumpImage");
     QImage image = processSourceImage(srcImage, false);
 
@@ -474,23 +474,23 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
         }
     }
 
-    gpu::Texture* theTexture = nullptr;
+    gpu::TexturePointer theTexture = nullptr;
     if ((result.width() > 0) && (result.height() > 0)) {
 
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_XY;
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_XY;
 
 
-        theTexture = (gpu::Texture::create2D(formatGPU, result.width(), result.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture = gpu::Texture::create2D(formatGPU, result.width(), result.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
-        generateMips(theTexture, image, false, false, false, true);
+        generateMips(theTexture.get(), image, false, false, false, true);
     }
 
     return theTexture;
 }
 
-gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createRoughnessTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     PROFILE_RANGE(resource_parse, "createRoughnessTextureFromImage");
     QImage image = processSourceImage(srcImage, false);
     if (!image.hasAlphaChannel()) {
@@ -505,21 +505,21 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
 
     image = image.convertToFormat(QImage::Format_ARGB32);
 
-    gpu::Texture* theTexture = nullptr;
+    gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_RED;
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_RED;
 
-        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
-        generateMips(theTexture, image, false, false, true, false);
+        generateMips(theTexture.get(), image, false, false, true, false);
     }
 
     return theTexture;
 }
 
-gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createRoughnessTextureFromGlossImage(const QImage& srcImage, const std::string& srcImageName) {
     PROFILE_RANGE(resource_parse, "createRoughnessTextureFromGlossImage");
     QImage image = processSourceImage(srcImage, false);
     if (!image.hasAlphaChannel()) {
@@ -537,22 +537,22 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
 
     image = image.convertToFormat(QImage::Format_ARGB32);
 
-    gpu::Texture* theTexture = nullptr;
+    gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_RED;
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_RED;
 
-        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
-        generateMips(theTexture, image, false, false, true, false);
+        generateMips(theTexture.get(), image, false, false, true, false);
     }
 
     return theTexture;
 }
 
-gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createMetallicTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     PROFILE_RANGE(resource_parse, "createMetallicTextureFromImage");
     QImage image = processSourceImage(srcImage, false);
     if (!image.hasAlphaChannel()) {
@@ -567,16 +567,16 @@ gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImag
 
     image = image.convertToFormat(QImage::Format_ARGB32);
 
-    gpu::Texture* theTexture = nullptr;
+    gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_RED;
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_RED;
 
-        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
-        generateMips(theTexture, image, false, false, true, false);
+        generateMips(theTexture.get(), image, false, false, true, false);
     }
 
     return theTexture;
@@ -838,10 +838,10 @@ const CubeLayout CubeLayout::CUBEMAP_LAYOUTS[] = {
 };
 const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
 
-gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool generateIrradiance) {
+gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool generateIrradiance) {
     PROFILE_RANGE(resource_parse, "processCubeTextureColorFromImage");
 
-    gpu::Texture* theTexture = nullptr;
+    gpu::TexturePointer theTexture = nullptr;
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
         QImage image = processSourceImage(srcImage, true);
         if (image.format() != QImage::Format_ARGB32) {
@@ -890,7 +890,7 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
             theTexture->setStoredMipFormat(formatMip);
 
             for (int face = 0; face < faces.size(); ++face) {
-                generateMips(theTexture, faces[face], true, false, false, false, face);
+                generateMips(theTexture.get(), faces[face], true, false, false, false, face);
             }
 
             // Generate irradiance while we are at it
@@ -914,11 +914,11 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
     return theTexture;
 }
 
-gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createCubeTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     return processCubeTextureColorFromImage(srcImage, srcImageName, false, true);
 }
 
-gpu::Texture* TextureUsage::createCubeTextureFromImageWithoutIrradiance(const QImage& srcImage, const std::string& srcImageName) {
+gpu::TexturePointer TextureUsage::createCubeTextureFromImageWithoutIrradiance(const QImage& srcImage, const std::string& srcImageName) {
     return processCubeTextureColorFromImage(srcImage, srcImageName, false, false);
 }
 

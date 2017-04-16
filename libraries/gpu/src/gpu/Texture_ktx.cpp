@@ -198,7 +198,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     return ktxBuffer;
 }
 
-Texture* Texture::unserialize(const std::string& ktxfile, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
+TexturePointer Texture::unserialize(const std::string& ktxfile, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
     std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(ktx::StoragePointer { new storage::FileStorage(ktxfile.c_str()) });
     if (!ktxPointer) {
         return nullptr;

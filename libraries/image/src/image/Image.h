@@ -21,30 +21,30 @@ class QImage;
 
 namespace image {
 
-using TextureLoader = std::function<gpu::Texture*(const QImage&, const std::string&)>;
+using TextureLoader = std::function<gpu::TexturePointer(const QImage&, const std::string&)>;
 
 TextureLoader getTextureLoaderForType(gpu::TextureType type, const QVariantMap& options = QVariantMap());
 
-gpu::Texture* processImage(const QByteArray& content, const std::string& url, int maxNumPixels, gpu::TextureType textureType);
+gpu::TexturePointer processImage(const QByteArray& content, const std::string& url, int maxNumPixels, gpu::TextureType textureType);
 
 namespace TextureUsage {
 
-gpu::Texture* create2DTextureFromImage(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createStrict2DTextureFromImage(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createAlbedoTextureFromImage(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createEmissiveTextureFromImage(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createNormalTextureFromNormalImage(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createNormalTextureFromBumpImage(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createRoughnessTextureFromImage(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createRoughnessTextureFromGlossImage(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createMetallicTextureFromImage(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createCubeTextureFromImage(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createCubeTextureFromImageWithoutIrradiance(const QImage& image, const std::string& srcImageName);
-gpu::Texture* createLightmapTextureFromImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer create2DTextureFromImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createStrict2DTextureFromImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createAlbedoTextureFromImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createEmissiveTextureFromImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createNormalTextureFromNormalImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createNormalTextureFromBumpImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createRoughnessTextureFromImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createRoughnessTextureFromGlossImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createMetallicTextureFromImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createCubeTextureFromImage(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createCubeTextureFromImageWithoutIrradiance(const QImage& image, const std::string& srcImageName);
+gpu::TexturePointer createLightmapTextureFromImage(const QImage& image, const std::string& srcImageName);
 
 const QImage process2DImageColor(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask);
-gpu::Texture* process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool isStrict = false);
-gpu::Texture* processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool generateIrradiance);
+gpu::TexturePointer process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool isStrict = false);
+gpu::TexturePointer processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool generateIrradiance);
 
 } // namespace TextureUsage
 

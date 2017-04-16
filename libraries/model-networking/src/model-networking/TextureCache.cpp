@@ -111,7 +111,7 @@ const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
             data[i + 2] = ((randvec.z + 1.0f) / 2.0f) * 255.0f;
         }
 
-        _permutationNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB), 256, 2));
+        _permutationNormalTexture = gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB), 256, 2);
         _permutationNormalTexture->setStoredMipFormat(_permutationNormalTexture->getTexelFormat());
         _permutationNormalTexture->assignStoredMip(0, sizeof(data), data);
     }
@@ -125,7 +125,7 @@ const unsigned char OPAQUE_BLACK[] = { 0x00, 0x00, 0x00, 0xFF };
 
 const gpu::TexturePointer& TextureCache::getWhiteTexture() {
     if (!_whiteTexture) {
-        _whiteTexture = gpu::TexturePointer(gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1));
+        _whiteTexture = gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1);
         _whiteTexture->setSource("TextureCache::_whiteTexture");
         _whiteTexture->setStoredMipFormat(_whiteTexture->getTexelFormat());
         _whiteTexture->assignStoredMip(0, sizeof(OPAQUE_WHITE), OPAQUE_WHITE);
@@ -135,7 +135,7 @@ const gpu::TexturePointer& TextureCache::getWhiteTexture() {
 
 const gpu::TexturePointer& TextureCache::getGrayTexture() {
     if (!_grayTexture) {
-        _grayTexture = gpu::TexturePointer(gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1));
+        _grayTexture = gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1);
         _grayTexture->setSource("TextureCache::_grayTexture");
         _grayTexture->setStoredMipFormat(_grayTexture->getTexelFormat());
         _grayTexture->assignStoredMip(0, sizeof(OPAQUE_GRAY), OPAQUE_GRAY);
@@ -145,7 +145,7 @@ const gpu::TexturePointer& TextureCache::getGrayTexture() {
 
 const gpu::TexturePointer& TextureCache::getBlueTexture() {
     if (!_blueTexture) {
-        _blueTexture = gpu::TexturePointer(gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1));
+        _blueTexture = gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1);
         _blueTexture->setSource("TextureCache::_blueTexture");
         _blueTexture->setStoredMipFormat(_blueTexture->getTexelFormat());
         _blueTexture->assignStoredMip(0, sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
@@ -155,7 +155,7 @@ const gpu::TexturePointer& TextureCache::getBlueTexture() {
 
 const gpu::TexturePointer& TextureCache::getBlackTexture() {
     if (!_blackTexture) {
-        _blackTexture = gpu::TexturePointer(gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1));
+        _blackTexture = gpu::Texture::createStrict(gpu::Element::COLOR_RGBA_32, 1, 1);
         _blackTexture->setSource("TextureCache::_blackTexture");
         _blackTexture->setStoredMipFormat(_blackTexture->getTexelFormat());
         _blackTexture->assignStoredMip(0, sizeof(OPAQUE_BLACK), OPAQUE_BLACK);
@@ -410,7 +410,7 @@ void ImageReader::read() {
         if (!texture) {
             KTXFilePointer ktxFile = textureCache->_ktxCache.getFile(hash);
             if (ktxFile) {
-                texture.reset(gpu::Texture::unserialize(ktxFile->getFilepath()));
+                texture = gpu::Texture::unserialize(ktxFile->getFilepath());
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
                 }
@@ -432,7 +432,7 @@ void ImageReader::read() {
     gpu::TexturePointer texture;
     {
         PROFILE_RANGE_EX(resource_parse_image_raw, __FUNCTION__, 0xffff0000, 0);
-        texture.reset(image::processImage(_content, _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType()));
+        texture = image::processImage(_content, _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType());
         texture->setSourceHash(hash);
         texture->setFallbackTexture(networkTexture->getFallbackTexture());
     }
@@ -444,13 +444,12 @@ void ImageReader::read() {
         if (memKtx) {
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
             size_t length = memKtx->_storage->size();
-            KTXFilePointer file;
             auto& ktxCache = textureCache->_ktxCache;
-            if (!memKtx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length)))) {
+            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length));
+            if (!networkTexture->_file) {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {
-                networkTexture->_file = file;
-                texture->setKtxBacking(file->getFilepath());
+                texture->setKtxBacking(networkTexture->_file->getFilepath());
             }
         } else {
             qCWarning(modelnetworking) << "Unable to serialize texture to KTX " << _url;
