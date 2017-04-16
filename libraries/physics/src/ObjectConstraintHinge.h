@@ -33,6 +33,8 @@ public:
 protected:
     static const uint16_t constraintVersion;
 
+    void updateHinge();
+
     glm::vec3 _pivotInA;
     glm::vec3 _axisInA;
 
@@ -45,6 +47,7 @@ protected:
     float _softness { 0.9f };
     float _biasFactor { 0.3f };
     float _relaxationFactor { 1.0f };
+    float _motorVelocity { 0.0f };
 };
 
 #endif // hifi_ObjectConstraintHinge_h
