@@ -40,6 +40,9 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
         QJsonObject userStoryObject;
         QJsonObject detailsObject;
         detailsObject.insert("image_url", imageUrl);
+        if (dataObject.contains("shareable_url")) {
+            detailsObject.insert("shareable_url", dataObject.value("shareable_url").toString());
+        }
         QString pickledDetails = QJsonDocument(detailsObject).toJson();
         userStoryObject.insert("details", pickledDetails);
         userStoryObject.insert("thumbnail_url", thumbnailUrl);
