@@ -36,7 +36,7 @@ StackView {
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
 
     property var tablet: null;
-    
+
     Component { id: tabletWebView; TabletWebView {} }
     Component.onCompleted: {
         fillDestinations();
