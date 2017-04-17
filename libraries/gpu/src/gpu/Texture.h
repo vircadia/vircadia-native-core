@@ -310,19 +310,22 @@ public:
         KtxStorage(const std::string& filename);
         PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
         Size getMipFaceSize(uint16 level, uint8 face = 0) const override;
-        // By convention, all mip levels and faces MUST be populated when using KTX backing
         bool isMipAvailable(uint16 level, uint8 face = 0) const override;
-
         void assignMipData(uint16 level, const storage::StoragePointer& storage) override;
-
         void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) override;
 
         void reset() override { }
 
     protected:
+        std::shared_ptr<storage::FileStorage> maybeOpenFile();
+
+        std::mutex _cacheFileCreateMutex;
+        std::mutex _cacheFileWriteMutex;
+        std::weak_ptr<storage::FileStorage> _cacheFile;
+
         std::string _filename;
-        uint8_t _minMipLevelAvailable;
-        //storage::FileStorage _cacheFile;
+        std::atomic<uint8_t> _minMipLevelAvailable;
+
         ktx::KTXDescriptorPointer _ktxDescriptor;
         friend class Texture;
     };
@@ -470,13 +473,24 @@ public:
 
     // Access the stored mips and faces
     const PixelsPointer accessStoredMipFace(uint16 level, uint8 face = 0) const { return _storage->getMipFace(level, face); }
-    bool isStoredMipFaceAvailable(uint16 level, uint8 face = 0) const { return _storage->isMipAvailable(level, face); }
+    bool isStoredMipFaceAvailable(uint16 level, uint8 face = 0) const;// { return _storage->isMipAvailable(level, face); }
     Size getStoredMipFaceSize(uint16 level, uint8 face = 0) const { return _storage->getMipFaceSize(level, face); }
     Size getStoredMipSize(uint16 level) const;
     Size getStoredSize() const;
 
     void setStorage(std::unique_ptr<Storage>& newStorage);
     void setKtxBacking(const std::string& filename);
+
+    class MipInterestListener {
+        public:
+            virtual void handleMipInterestCallback(uint16 level) = 0;
+    };
+    void registerMipInterestListener(MipInterestListener* listener);
+    void unregisterMipInterestListener(MipInterestListener* listener);
+    std::vector<MipInterestListener*> _mipInterestListeners;
+    std::mutex _mipInterestListenersMutex;
+
+    void requestInterestInMip(uint16 level);
 
     // Usage is a a set of flags providing Semantic about the usage of the Texture.
     void setUsage(const Usage& usage) { _usage = usage; }

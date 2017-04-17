@@ -476,6 +476,32 @@ void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePoin
     }
 }
 
+void Texture::requestInterestInMip(uint16 level) {
+    if (!_storage->isMipAvailable(level, 0)) {
+        std::lock_guard<std::mutex> lock(_mipInterestListenersMutex);
+        for (auto& callback : _mipInterestListeners) {
+            callback->handleMipInterestCallback(level);
+        }
+    }
+}
+
+bool Texture::isStoredMipFaceAvailable(uint16 level, uint8 face) const {
+    return _storage->isMipAvailable(level, face);
+}
+
+void Texture::registerMipInterestListener(MipInterestListener* listener) {
+    std::lock_guard<std::mutex> lock(_mipInterestListenersMutex);
+    _mipInterestListeners.push_back(listener);
+}
+
+void Texture::unregisterMipInterestListener(MipInterestListener* listener) {
+    std::lock_guard<std::mutex> lock(_mipInterestListenersMutex);
+    auto it = find(_mipInterestListeners.begin(), _mipInterestListeners.end(), listener);
+    if (it != _mipInterestListeners.end()) {
+        _mipInterestListeners.erase(it);
+    }
+}
+
 void Texture::setAutoGenerateMips(bool enable) {
     bool changed = false;
     if (!_autoGenerateMips) {

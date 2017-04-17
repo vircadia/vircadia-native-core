@@ -70,7 +70,7 @@ end
 
 
 namespace ktx {
-    const std::string HIFI_MIN_POPULATED_MIP_KEY = "hifiMinMip";
+    const std::string HIFI_MIN_POPULATED_MIP_KEY = "hifi.minMip";
 
 
     const uint32_t PACKING_SIZE { sizeof(uint32_t) };
@@ -414,10 +414,10 @@ namespace ktx {
     struct ImageHeader {
         using FaceOffsets = std::vector<size_t>;
         using FaceBytes = std::vector<const Byte*>;
+
         // This is the byte offset from the _start_ of the image region. For example, level 0
         // will have a byte offset of 0.
         const uint32_t _imageOffset;
-
         const uint32_t _numFaces;
         const uint32_t _imageSize;
         const uint32_t _faceSize;

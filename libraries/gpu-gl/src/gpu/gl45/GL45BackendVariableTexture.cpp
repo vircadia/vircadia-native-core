@@ -190,6 +190,7 @@ void GL45ResourceTexture::populateTransferQueue() {
         qDebug() << "populateTransferQueue " << QString::fromStdString(_gpuObject.source()) << sourceMip << " " << targetMip;
         for (uint8_t face = 0; face < maxFace; ++face) {
             if (!_gpuObject.isStoredMipFaceAvailable(sourceMip, face)) {
+                const_cast<gpu::Texture&>(_gpuObject).requestInterestInMip(sourceMip);
                 continue;
             }
 

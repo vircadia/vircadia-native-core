@@ -244,6 +244,10 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
     return result;
 }
 
+NetworkTexture::~NetworkTexture() {
+    _textureSource->getGPUTexture()->unregisterMipInterestListener(this);
+}
+
 /// Returns a texture version of an image file
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
     QImage image = QImage(path);
@@ -371,6 +375,21 @@ void NetworkTexture::makeRequest() {
     startMipRangeRequest(NULL_MIP_LEVEL, NULL_MIP_LEVEL);
 }
 
+void NetworkTexture::handleMipInterestCallback(uint16_t level) {
+    QMetaObject::invokeMethod(this, "handleMipInterestLevel", Qt::QueuedConnection, Q_ARG(uint16_t, level));
+}
+
+void NetworkTexture::handleMipInterestLevel(uint16_t level) {
+    _lowestRequestedMipLevel = std::min(level, _lowestRequestedMipLevel);
+    if (!_ktxMipRequest) {
+        startRequestForNextMipLevel();
+    }
+}
+
+void NetworkTexture::startRequestForNextMipLevel() {
+    startMipRangeRequest(std::max(0, _lowestKnownPopulatedMip - 1), std::max(0, _lowestKnownPopulatedMip - 1));
+}
+
 // Load mips in the range [low, high] (inclusive)
 void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
     if (_ktxMipRequest) {
@@ -430,6 +449,8 @@ void NetworkTexture::ktxMipRequestFinished() {
     if (_ktxMipRequest->getResult() == ResourceRequest::Success) {
         if (_initialKtxLoaded) {
             assert(_ktxMipLevelRangeInFlight.second - _ktxMipLevelRangeInFlight.first == 0);
+
+            _lowestKnownPopulatedMip = _ktxMipLevelRangeInFlight.first;
             
             _textureSource->getGPUTexture()->assignStoredMip(_ktxMipLevelRangeInFlight.first,
                 _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
@@ -493,6 +514,7 @@ void NetworkTexture::maybeCreateKTX() {
         texture.reset(gpu::Texture::unserialize(_file->getFilepath(), *_ktxDescriptor));
         texture->setKtxBacking(file->getFilepath());
         texture->setSource(filename);
+        texture->registerMipInterestListener(this);
 
         auto& images = _ktxDescriptor->images;
         size_t imageSizeRemaining = _ktxHighMipData.size();
@@ -521,6 +543,15 @@ void NetworkTexture::maybeCreateKTX() {
             texture = textureCache->cacheTextureByHash(filename, texture);
         }
 
+
+        _lowestKnownPopulatedMip = _ktxDescriptor->header.numberOfMipmapLevels;
+        for (uint16_t l = 0; l < 200; l++) {
+            if (texture->isStoredMipFaceAvailable(l)) {
+                _lowestKnownPopulatedMip = l;
+                break;
+            }
+        }
+
         setImage(texture, header->getPixelWidth(), header->getPixelHeight());
 
 
@@ -528,7 +559,8 @@ void NetworkTexture::maybeCreateKTX() {
         {
             QTimer* timer = new QTimer();
             connect(timer, &QTimer::timeout, this, [=]() {
-                startMipRangeRequest(level, level);
+                //startMipRangeRequest(level, level);
+                startRequestForNextMipLevel();
             });
             timer->setSingleShot(true);
             timer->setInterval(4000);
@@ -538,7 +570,8 @@ void NetworkTexture::maybeCreateKTX() {
         {
             QTimer* timer = new QTimer();
             connect(timer, &QTimer::timeout, this, [=]() {
-                startMipRangeRequest(level - 1, level - 1);
+                //startMipRangeRequest(level - 1, level - 1);
+                startRequestForNextMipLevel();
             });
             timer->setSingleShot(true);
             timer->setInterval(6000);
