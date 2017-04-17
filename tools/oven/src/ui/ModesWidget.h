@@ -22,6 +22,7 @@ public:
 private slots:
     void showModelBakingWidget();
     void showDomainBakingWidget();
+    void showSkyboxBakingWidget();
 
 private:
     void setupUI();

@@ -26,13 +26,14 @@ class TextureBaker : public Baker {
     Q_OBJECT
 
 public:
-    TextureBaker(const QUrl& textureURL, gpu::TextureType textureType, const QString& destinationFilePath);
+    TextureBaker(const QUrl& textureURL, gpu::TextureType textureType, const QDir& outputDirectory);
 
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 
-    const QUrl& getTextureURL() const { return _textureURL; }
+    QUrl getTextureURL() const { return _textureURL; }
 
-    const QString& getDestinationFilePath() const { return _destinationFilePath; }
+    QString getDestinationFilePath() const { return _outputDirectory.absoluteFilePath(_bakedTextureFileName); }
+    QString getBakedTextureFileName() const { return _bakedTextureFileName; }
 
 public slots:
     virtual void bake() override;
@@ -51,7 +52,8 @@ private:
     QByteArray _originalTexture;
     gpu::TextureType _textureType;
 
-    QString _destinationFilePath;
+    QDir _outputDirectory;
+    QString _bakedTextureFileName;
 };
 
 #endif // hifi_TextureBaker_h

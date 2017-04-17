@@ -378,7 +378,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                     _unbakedTextures.insert(urlToTexture, bakedTextureFileName);
 
                                     // bake this texture asynchronously
-                                    bakeTexture(urlToTexture, textureType, bakedTextureFilePath);
+                                    bakeTexture(urlToTexture, textureType, _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER);
                                 }
                             }
                         }
@@ -391,10 +391,10 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
     }
 }
 
-void FBXBaker::bakeTexture(const QUrl& textureURL, gpu::TextureType textureType, const QString& destinationFilePath) {
+void FBXBaker::bakeTexture(const QUrl& textureURL, gpu::TextureType textureType, const QDir& outputDir) {
     // start a bake for this texture and add it to our list to keep track of
     QSharedPointer<TextureBaker> bakingTexture {
-        new TextureBaker(textureURL, textureType, destinationFilePath),
+        new TextureBaker(textureURL, textureType, outputDir),
         &TextureBaker::deleteLater
     };
 

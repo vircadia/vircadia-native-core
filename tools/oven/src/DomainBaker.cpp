@@ -225,7 +225,9 @@ void DomainBaker::bakeSkybox(QUrl skyboxURL, QJsonValueRef entity) {
 
     auto skyboxFileName = skyboxURL.fileName();
 
-    static const QStringList BAKEABLE_SKYBOX_EXTENSIONS { ".jpg" };
+    static const QStringList BAKEABLE_SKYBOX_EXTENSIONS {
+        ".jpg", ".png", ".gif", ".bmp", ".pbm", ".pgm", ".ppm", ".xbm", ".xpm", ".svg"
+    };
     auto completeLowerExtension = skyboxFileName.mid(skyboxFileName.indexOf('.')).toLower();
 
     if (BAKEABLE_SKYBOX_EXTENSIONS.contains(completeLowerExtension)) {
@@ -234,13 +236,10 @@ void DomainBaker::bakeSkybox(QUrl skyboxURL, QJsonValueRef entity) {
 
         // setup a texture baker for this URL, as long as we aren't baking a skybox already
         if (!_skyboxBakers.contains(skyboxURL)) {
-            // figure out the path for this baked skybox
-            auto skyboxFileName = skyboxURL.fileName();
-            auto bakedSkyboxFileName = skyboxFileName.left(skyboxFileName.indexOf('.')) + BAKED_TEXTURE_EXT;
-            auto bakedTextureDestination = QDir(_contentOutputPath).absoluteFilePath(bakedSkyboxFileName);
+            // setup a baker for this skybox
 
             QSharedPointer<TextureBaker> skyboxBaker {
-                new TextureBaker(skyboxURL, gpu::CUBE_TEXTURE, bakedTextureDestination)
+                new TextureBaker(skyboxURL, gpu::CUBE_TEXTURE, _contentOutputPath)
             };
 
             // make sure our handler is called when the skybox baker is done
@@ -409,9 +408,8 @@ bool DomainBaker::rewriteSkyboxURL(QJsonValueRef urlValue, TextureBaker* baker) 
 
     if (oldSkyboxURL.matches(baker->getTextureURL(), QUrl::RemoveQuery | QUrl::RemoveFragment)) {
         // change the URL to point to the baked texture with its original query and fragment
-        auto bakedSkyboxFileName = QFileInfo(baker->getDestinationFilePath()).fileName();
 
-        auto newSkyboxURL = _destinationPath.resolved(bakedSkyboxFileName);
+        auto newSkyboxURL = _destinationPath.resolved(baker->getBakedTextureFileName());
         newSkyboxURL.setQuery(oldSkyboxURL.query());
         newSkyboxURL.setFragment(oldSkyboxURL.fragment());
         newSkyboxURL.setUserInfo(oldSkyboxURL.userInfo());

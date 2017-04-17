@@ -15,6 +15,7 @@
 
 #include "DomainBakeWidget.h"
 #include "ModelBakeWidget.h"
+#include "SkyboxBakeWidget.h"
 
 #include "ModesWidget.h"
 
@@ -28,19 +29,20 @@ void ModesWidget::setupUI() {
     // setup a horizontal box layout to hold our mode buttons
     QHBoxLayout* horizontalLayout = new QHBoxLayout;
 
-    // add a button for model baking
-    QPushButton* modelsButton = new QPushButton("Bake Models");
-    connect(modelsButton, &QPushButton::clicked, this, &ModesWidget::showModelBakingWidget);
-    horizontalLayout->addWidget(modelsButton);
-
     // add a button for domain baking
     QPushButton* domainButton = new QPushButton("Bake Domain");
     connect(domainButton, &QPushButton::clicked, this, &ModesWidget::showDomainBakingWidget);
     horizontalLayout->addWidget(domainButton);
 
-    // add a button for texture baking
-    QPushButton* textureButton = new QPushButton("Bake Textures");
-    horizontalLayout->addWidget(textureButton);
+    // add a button for model baking
+    QPushButton* modelsButton = new QPushButton("Bake Models");
+    connect(modelsButton, &QPushButton::clicked, this, &ModesWidget::showModelBakingWidget);
+    horizontalLayout->addWidget(modelsButton);
+
+    // add a button for skybox baking
+    QPushButton* skyboxButton = new QPushButton("Bake Skyboxes");
+    connect(skyboxButton, &QPushButton::clicked, this, &ModesWidget::showSkyboxBakingWidget);
+    horizontalLayout->addWidget(skyboxButton);
 
     setLayout(horizontalLayout);
 }
@@ -48,13 +50,20 @@ void ModesWidget::setupUI() {
 void ModesWidget::showModelBakingWidget() {
     auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
 
-    // add a new widget for making baking to the stack, and switch to it
+    // add a new widget for model baking to the stack, and switch to it
     stackedWidget->setCurrentIndex(stackedWidget->addWidget(new ModelBakeWidget));
 }
 
 void ModesWidget::showDomainBakingWidget() {
     auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
 
-    // add a new widget for making baking to the stack, and switch to it
+    // add a new widget for domain baking to the stack, and switch to it
     stackedWidget->setCurrentIndex(stackedWidget->addWidget(new DomainBakeWidget));
+}
+
+void ModesWidget::showSkyboxBakingWidget() {
+    auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
+
+    // add a new widget for skybox baking to the stack, and switch to it
+    stackedWidget->setCurrentIndex(stackedWidget->addWidget(new SkyboxBakeWidget));
 }

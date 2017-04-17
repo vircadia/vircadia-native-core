@@ -1,8 +1,8 @@
 //
-//  ModelBakeWidget.cpp
+//  SkyboxBakeWidget.cpp
 //  tools/oven/src/ui
 //
-//  Created by Stephen Birarda on 4/6/17.
+//  Created by Stephen Birarda on 4/17/17.
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -23,37 +23,37 @@
 #include "../Oven.h"
 #include "OvenMainWindow.h"
 
-#include "ModelBakeWidget.h"
+#include "SkyboxBakeWidget.h"
 
-static const auto EXPORT_DIR_SETTING_KEY = "model_export_directory";
-static const auto MODEL_START_DIR_SETTING_KEY = "model_search_directory";
+static const auto EXPORT_DIR_SETTING_KEY = "skybox_export_directory";
+static const auto SELECTION_START_DIR_SETTING_KEY = "skybox_search_directory";
 
-ModelBakeWidget::ModelBakeWidget(QWidget* parent, Qt::WindowFlags flags) :
+SkyboxBakeWidget::SkyboxBakeWidget(QWidget* parent, Qt::WindowFlags flags) :
     QWidget(parent, flags),
     _exportDirectory(EXPORT_DIR_SETTING_KEY),
-    _modelStartDirectory(MODEL_START_DIR_SETTING_KEY)
+    _selectionStartDirectory(SELECTION_START_DIR_SETTING_KEY)
 {
     setupUI();
 }
 
-void ModelBakeWidget::setupUI() {
+void SkyboxBakeWidget::setupUI() {
     // setup a grid layout to hold everything
     QGridLayout* gridLayout = new QGridLayout;
 
     int rowIndex = 0;
 
     // setup a section to choose the file being baked
-    QLabel* modelFileLabel = new QLabel("Model File(s)");
+    QLabel* skyboxFileLabel = new QLabel("Skybox File(s)");
 
-    _modelLineEdit = new QLineEdit;
-    _modelLineEdit->setPlaceholderText("File or URL");
+    _selectionLineEdit = new QLineEdit;
+    _selectionLineEdit->setPlaceholderText("File or URL");
 
     QPushButton* chooseFileButton = new QPushButton("Browse...");
-    connect(chooseFileButton, &QPushButton::clicked, this, &ModelBakeWidget::chooseFileButtonClicked);
+    connect(chooseFileButton, &QPushButton::clicked, this, &SkyboxBakeWidget::chooseFileButtonClicked);
 
     // add the components for the model file picker to the layout
-    gridLayout->addWidget(modelFileLabel, rowIndex, 0);
-    gridLayout->addWidget(_modelLineEdit, rowIndex, 1, 1, 3);
+    gridLayout->addWidget(skyboxFileLabel, rowIndex, 0);
+    gridLayout->addWidget(_selectionLineEdit, rowIndex, 1, 1, 3);
     gridLayout->addWidget(chooseFileButton, rowIndex, 4);
 
     // start a new row for next component
@@ -68,10 +68,10 @@ void ModelBakeWidget::setupUI() {
     _outputDirLineEdit->setText(_exportDirectory.get());
 
     // whenever the output directory line edit changes, update the value in settings
-    connect(_outputDirLineEdit, &QLineEdit::textChanged, this, &ModelBakeWidget::outputDirectoryChanged);
+    connect(_outputDirLineEdit, &QLineEdit::textChanged, this, &SkyboxBakeWidget::outputDirectoryChanged);
 
     QPushButton* chooseOutputDirectoryButton = new QPushButton("Browse...");
-    connect(chooseOutputDirectoryButton, &QPushButton::clicked, this, &ModelBakeWidget::chooseOutputDirButtonClicked);
+    connect(chooseOutputDirectoryButton, &QPushButton::clicked, this, &SkyboxBakeWidget::chooseOutputDirButtonClicked);
 
     // add the components for the output directory picker to the layout
     gridLayout->addWidget(outputDirectoryLabel, rowIndex, 0);
@@ -92,43 +92,43 @@ void ModelBakeWidget::setupUI() {
 
     // add a button that will kickoff the bake
     QPushButton* bakeButton = new QPushButton("Bake");
-    connect(bakeButton, &QPushButton::clicked, this, &ModelBakeWidget::bakeButtonClicked);
+    connect(bakeButton, &QPushButton::clicked, this, &SkyboxBakeWidget::bakeButtonClicked);
     gridLayout->addWidget(bakeButton, rowIndex, 3);
 
     // add a cancel button to go back to the modes page
     QPushButton* cancelButton = new QPushButton("Cancel");
-    connect(cancelButton, &QPushButton::clicked, this, &ModelBakeWidget::cancelButtonClicked);
+    connect(cancelButton, &QPushButton::clicked, this, &SkyboxBakeWidget::cancelButtonClicked);
     gridLayout->addWidget(cancelButton, rowIndex, 4);
 
     setLayout(gridLayout);
 }
 
-void ModelBakeWidget::chooseFileButtonClicked() {
-    // pop a file dialog so the user can select the model file
+void SkyboxBakeWidget::chooseFileButtonClicked() {
+    // pop a file dialog so the user can select the skybox file(s)
 
-    // if we have picked an FBX before, start in the folder that matches the last path
+    // if we have picked a skybox before, start in the folder that matches the last path
     // otherwise start in the home directory
-    auto startDir = _modelStartDirectory.get();
+    auto startDir = _selectionStartDirectory.get();
     if (startDir.isEmpty()) {
         startDir = QDir::homePath();
     }
 
-    auto selectedFiles = QFileDialog::getOpenFileNames(this, "Choose Model", startDir);
+    auto selectedFiles = QFileDialog::getOpenFileNames(this, "Choose Skybox", startDir);
 
     if (!selectedFiles.isEmpty()) {
-        // set the contents of the model file text box to be the path to the selected file
-        _modelLineEdit->setText(selectedFiles.join(','));
+        // set the contents of the file select text box to be the path to the selected file
+        _selectionLineEdit->setText(selectedFiles.join(','));
 
         if (_outputDirLineEdit->text().isEmpty()) {
-            auto directoryOfModel = QFileInfo(selectedFiles[0]).absolutePath();
+            auto directoryOfSkybox = QFileInfo(selectedFiles[0]).absolutePath();
 
-            // if our output directory is not yet set, set it to the directory of this model
-            _outputDirLineEdit->setText(directoryOfModel);
+            // if our output directory is not yet set, set it to the directory of this skybox
+            _outputDirLineEdit->setText(directoryOfSkybox);
         }
     }
 }
 
-void ModelBakeWidget::chooseOutputDirButtonClicked() {
+void SkyboxBakeWidget::chooseOutputDirButtonClicked() {
     // pop a file dialog so the user can select the output directory
 
     // if we have a previously selected output directory, use that as the initial path in the choose dialog
@@ -146,12 +146,12 @@ void ModelBakeWidget::chooseOutputDirButtonClicked() {
     }
 }
 
-void ModelBakeWidget::outputDirectoryChanged(const QString& newDirectory) {
+void SkyboxBakeWidget::outputDirectoryChanged(const QString& newDirectory) {
     // update the export directory setting so we can re-use it next time
     _exportDirectory.set(newDirectory);
 }
 
-void ModelBakeWidget::bakeButtonClicked() {
+void SkyboxBakeWidget::bakeButtonClicked() {
     // make sure we have a valid output directory
     QDir outputDirectory(_outputDirLineEdit->text());
 
@@ -159,41 +159,39 @@ void ModelBakeWidget::bakeButtonClicked() {
         return;
     }
 
-    // make sure we have a non empty URL to a model to bake
-    if (_modelLineEdit->text().isEmpty()) {
+    // make sure we have a non empty URL to a skybox to bake
+    if (_selectionLineEdit->text().isEmpty()) {
         return;
     }
 
     // split the list from the model line edit to see how many models we need to bake
-    auto fileURLStrings = _modelLineEdit->text().split(',');
+    auto fileURLStrings = _selectionLineEdit->text().split(',');
     foreach (QString fileURLString, fileURLStrings) {
         // construct a URL from the path in the model file text box
-        QUrl modelToBakeURL(fileURLString);
+        QUrl skyboxToBakeURL(fileURLString);
 
         // if the URL doesn't have a scheme, assume it is a local file
-        if (modelToBakeURL.scheme().isEmpty()) {
-            modelToBakeURL.setScheme("file");
+        if (skyboxToBakeURL.scheme().isEmpty()) {
+            skyboxToBakeURL.setScheme("file");
         }
 
         // everything seems to be in place, kick off a bake for this model now
-        auto baker = std::unique_ptr<FBXBaker> {
-            new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), []() -> QThread* {
-                return qApp->getNextWorkerThread();
-            }, false)
+        auto baker = std::unique_ptr<TextureBaker> {
+            new TextureBaker(skyboxToBakeURL, gpu::CUBE_TEXTURE, outputDirectory.absolutePath())
         };
 
-        // move the baker to the FBX baker thread
-        baker->moveToThread(qApp->getFBXBakerThread());
+        // move the baker to a worker thread
+        baker->moveToThread(qApp->getNextWorkerThread());
 
         // invoke the bake method on the baker thread
         QMetaObject::invokeMethod(baker.get(), "bake");
 
         // make sure we hear about the results of this baker when it is done
-        connect(baker.get(), &FBXBaker::finished, this, &ModelBakeWidget::handleFinishedBaker);
+        connect(baker.get(), &TextureBaker::finished, this, &SkyboxBakeWidget::handleFinishedBaker);
 
         // add a pending row to the results window to show that this bake is in process
         auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
-        auto resultsRow = resultsWindow->addPendingResultRow(modelToBakeURL.fileName(), outputDirectory);
+        auto resultsRow = resultsWindow->addPendingResultRow(skyboxToBakeURL.fileName(), outputDirectory);
 
         // keep a unique_ptr to this baker
         // and remember the row that represents it in the results table
@@ -201,8 +199,8 @@ void ModelBakeWidget::bakeButtonClicked() {
     }
 }
 
-void ModelBakeWidget::handleFinishedBaker() {
-    if (auto baker = qobject_cast<FBXBaker*>(sender())) {
+void SkyboxBakeWidget::handleFinishedBaker() {
+    if (auto baker = qobject_cast<TextureBaker*>(sender())) {
         // add the results of this bake to the results window
         auto it = std::find_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
             return value.first.get() == baker;
@@ -218,12 +216,13 @@ void ModelBakeWidget::handleFinishedBaker() {
                 resultsWindow->changeStatusForRow(resultRow, "Success");
             }
 
+            // drop our strong pointer to the baker now that we are done with it
             _bakers.erase(it);
         }
     }
 }
 
-void ModelBakeWidget::cancelButtonClicked() {
+void SkyboxBakeWidget::cancelButtonClicked() {
     // the user wants to go back to the mode selection screen
     // remove ourselves from the stacked widget and call delete later so we'll be cleaned up
     auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
