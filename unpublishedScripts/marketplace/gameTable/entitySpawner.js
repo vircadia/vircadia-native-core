@@ -9,10 +9,10 @@
 (function() {
     var _this;
 
-    var pasted_cache = {};
+    var entityJSONCache = {};
 
-    const SANITIZE_PROPERTIES = ['childEntities', 'parentID', 'id'];
-    const ZERO_UUID = '{00000000-0000-0000-0000-000000000000}';
+    var SANITIZE_PROPERTIES = ['childEntities', 'parentID', 'id'];
+    var ZERO_UUID = '{00000000-0000-0000-0000-000000000000}';
 
     function entityListToTree(entitiesList) {
         function entityListToTreeRecursive(properties) {
@@ -33,7 +33,6 @@
         return entityTree;
     }
 
-    // TODO: ATP support (currently the JS API for ATP does not support file links, only hashes)
     function importEntitiesJSON(importLink, parentProperties, overrideProperties) {
         if (parentProperties === undefined) {
             parentProperties = {};
@@ -41,12 +40,23 @@
         if (overrideProperties !== undefined) {
             parentProperties.overrideProperties = overrideProperties;
         }
-        var request = new XMLHttpRequest();
-        request.open('GET', importLink, false);
-        request.send();
+        // FIXME: HACK: remove when Script.require is in release client (Beta Release 37)
+        if (Script.require === undefined) {
+            var request = new XMLHttpRequest();
+            request.open('GET', importLink, false);
+            request.send();
+            try {
+                var response = JSON.parse(request.responseText);
+                parentProperties.childEntities = entityListToTree(response.Entities);
+                return parentProperties;
+            } catch (e) {
+                print('Failed importing entities JSON because: ' + JSON.stringify(e));
+            }
+            return null;
+        }
         try {
-            var response = JSON.parse(request.responseText);
-            parentProperties.childEntities = entityListToTree(response.Entities);
+            var entityJSONImport = Script.require(importLink).Entities;
+            parentProperties.childEntities = entityListToTree(entityJSONImport.Entities);
             return parentProperties;
         } catch (e) {
             print('Failed importing entities JSON because: ' + JSON.stringify(e));
@@ -61,7 +71,7 @@
         return link;
     }
 
-    //Creates an entity and returns a mixed object of the creation properties and the assigned entityID
+    // Creates an entity and returns a mixed object of the creation properties and the assigned entityID
     var createEntity = function(entityProperties, parent, overrideProperties) {
         // JSON.stringify -> JSON.parse trick to create a fresh copy of JSON data
         var newEntityProperties = JSON.parse(JSON.stringify(entityProperties));
@@ -80,7 +90,7 @@
         if (parent.position !== undefined) {
             var localPosition = (parent.rotation !== undefined) ?
                 Vec3.multiplyQbyV(parent.rotation, newEntityProperties.position) : newEntityProperties.position;
-            newEntityProperties.position = Vec3.sum(localPosition, parent.position)
+            newEntityProperties.position = Vec3.sum(localPosition, parent.position);
         }
         if (parent.id !== undefined) {
             newEntityProperties.parentID = parent.id;
@@ -127,46 +137,44 @@
         return createdTree;
     };
 
-    //listens for a release message from entities with the snap to grid script
-    //checks for the nearest snap point and sends a message back to the entity
-    function PastedItem(url, spawnLocation, spawnRotation) {
+    // listens for a release message from entities with the snap to grid script
+    // checks for the nearest snap point and sends a message back to the entity
+    function ImportGamePiece(url, spawnLocation, spawnRotation) {
         var fullURL = Script.resolvePath(url);
         print('CREATE PastedItem FROM SPAWNER: ' + fullURL);
-        var created = [];
+        var _created = [];
 
         function create() {
             var entitiesTree;
-            if (pasted_cache[fullURL]) {
-                entitiesTree = pasted_cache[fullURL];
-                //print('used cache');
+            if (entityJSONCache[fullURL]) {
+                entitiesTree = entityJSONCache[fullURL];
             } else {
                 entitiesTree = importEntitiesJSON(fullURL);
-                pasted_cache[fullURL] = entitiesTree;
-                //print('moved to cache');
+                entityJSONCache[fullURL] = entitiesTree;
             }
 
             entitiesTree.position = spawnLocation;
             entitiesTree.rotation = spawnRotation;
-            //print('entityTree: ' + JSON.stringify(entitiesTree));
+            // print('entityTree: ' + JSON.stringify(entitiesTree));
 
-            //var entities = importEntitiesJSON(fullURL);
-            //var success = Clipboard.importEntities(fullURL);
-            //var dimensions = Clipboard.getContentsDimensions();
-            //we want the bottom of any piece to actually be on the board, so we add half of the height of the piece to the location when we paste it,
-            //spawnLocation.y += (0.5 * dimensions.y);
-            //if (success === true) {
-                //created = Clipboard.pasteEntities(spawnLocation);
+            // var entities = importEntitiesJSON(fullURL);
+            // var success = Clipboard.importEntities(fullURL);
+            // var dimensions = Clipboard.getContentsDimensions();
+            // we want the bottom of any piece to actually be on the board, so we add half of the height of the piece to the location when we paste it,
+            // spawnLocation.y += (0.5 * dimensions.y);
+            // if (success === true) {
+                // created = Clipboard.pasteEntities(spawnLocation);
             //    this.created = created;
             //    print('created ' + created);
-            //}
-            this.created = createEntitiesFromTree([entitiesTree]);
+            // }
+            _created = createEntitiesFromTree([entitiesTree]);
         }
 
         function cleanup() {
-            created.forEach(function(obj) {
+            _created.forEach(function(obj) {
                 print('removing: ' + JSON.stringify(obj));
                 Entities.deleteEntity(obj.id);
-            })
+            });
         }
 
         create();
@@ -177,7 +185,6 @@
 
     function Tile(rowIndex, columnIndex) {
         var side = _this.tableSideSize / _this.game.startingArrangement.length;
-
         var rightAmount = rowIndex * side;
         rightAmount += (0.5 * side);
         var forwardAmount = columnIndex * side;
@@ -196,13 +203,12 @@
             this.url = Script.resolvePath(_this.game.pieces[0][splitURL[1]]);
         }
         if (splitURL[0] === '2') {
-            this.url = Script.resolvePath(_this.game.pieces[1][splitURL[1]])
+            this.url = Script.resolvePath(_this.game.pieces[1][splitURL[1]]);
         }
         if (splitURL[0] === 'empty') {
             this.url = 'empty';
         }
     }
-
 
     function EntitySpawner() {
         _this = this;
@@ -223,7 +229,7 @@
             if (url === 'empty') {
                 return null;
             }
-            var item = new PastedItem(url, spawnLocation, spawnRotation);
+            var item = new ImportGamePiece(url, spawnLocation, spawnRotation);
             _this.items.push(item);
             return item;
         },
@@ -234,38 +240,40 @@
                 textures: JSON.stringify({
                     Picture: fullURL
                 })
-            })
+            });
         },
         spawnEntities: function(id, params) {
             this.items = [];
-            var dimensions = Entities.getEntityProperties(params[1]).dimensions;
+            var matEntity = params[1];
+            var matProperties = Entities.getEntityProperties(matEntity, ['dimensions', 'position', 'rotation',
+                'parentID']);
+            var dimensions = Entities.getEntityProperties(matEntity, 'dimensions').dimensions;
             _this.game = JSON.parse(params[0]);
-            _this.matDimensions = dimensions;
-            _this.matCenter = Entities.getEntityProperties(params[1]).position;
+            _this.matDimensions = matProperties.dimensions;
+            _this.matCenter = matProperties.position;
             _this.matCorner = {
                 x: _this.matCenter.x - (dimensions.x * 0.5),
                 y: _this.matCenter.y,
                 z: _this.matCenter.z + (dimensions.y * 0.5)
             };
-            _this.matRotation = Entities.getEntityProperties(params[1]).rotation;
-            var parentID = Entities.getEntityProperties(params[1]).parentID;
-            _this.tableRotation = Entities.getEntityProperties(parentID).rotation;
+            _this.matRotation = matProperties.rotation;
+            var tableID = matProperties.parentID;
+            _this.tableRotation = Entities.getEntityProperties(tableID, 'rotation').rotation;
             _this.tableSideSize = dimensions.x;
-            _this.changeMatPicture(params[1]);
-            if (this.game.spawnStyle === "pile") {
+            _this.changeMatPicture(matEntity);
+            if (_this.game.spawnStyle === 'pile') {
                 _this.spawnByPile();
-            } else if (this.game.spawnStyle === "arranged") {
+            } else if (_this.game.spawnStyle === 'arranged') {
                 _this.spawnByArranged();
             }
-
         },
         spawnByPile: function() {
-            var props = Entities.getEntityProperties(_this.entityID);
+            var position = Entities.getEntityProperties(_this.entityID, 'position').position;
             for (var i = 0; i < _this.game.howMany; i++) {
                 var spawnLocation = {
-                    x: props.position.x,
-                    y: props.position.y - 0.25,
-                    z: props.position.z
+                    x: position.x,
+                    y: position.y - 0.25,
+                    z: position.z
                 };
                 var url;
                 if (_this.game.identicalPieces === false) {
@@ -273,22 +281,19 @@
                 } else {
                     url = Script.resolvePath(_this.game.pieces[0]);
                 }
-
                 _this.createSingleEntity(url, spawnLocation, _this.tableRotation);
             }
         },
         spawnByArranged: function() {
             // make sure to set userData.gameTable.attachedTo appropriately
             _this.setupGrid();
-
         },
-
         createDebugEntity: function(position) {
             return Entities.addEntity({
                 type: 'Sphere',
                 position: {
                     x: position.x,
-                    y: position.y += 0.1,
+                    y: position.y + 0.1,
                     z: position.z
                 },
                 color: {
@@ -302,9 +307,8 @@
                     z: 0.1
                 },
                 collisionless: true
-            })
+            });
         },
-
         setupGrid: function() {
             _this.tiles = [];
 
@@ -330,12 +334,10 @@
                 }
             }
         },
-
         findMidpoint: function(start, end) {
             var xy = Vec3.sum(start, end);
             return Vec3.multiply(0.5, xy);
         },
-
         createAnchorEntityAtPoint: function(position) {
             var properties = {
                 type: 'Zone',
@@ -348,39 +350,37 @@
                     y: 0.075,
                     z: 0.075
                 },
-                parentID: Entities.getEntityProperties(_this.entityID).id,
+                parentID: _this.entityID,
                 position: position,
                 userData: 'available'
             };
             return Entities.addEntity(properties);
         },
-
         setCurrentUserData: function(data) {
-            var userData = getCurrentUserData();
+            var userData = _this.getCurrentUserData();
             userData.gameTableData = data;
             Entities.editEntity(_this.entityID, {
                 userData: userData
             });
         },
         getCurrentUserData: function() {
-            var props = Entities.getEntityProperties(_this.entityID);
-            var json = null;
+            var userData = Entities.getEntityProperties(_this.entityID).userData;
             try {
-                json = JSON.parse(props.userData);
+                return JSON.parse(userData);
             } catch (e) {
-                return;
+                // e
             }
-            return json;
+            return null;
         },
         cleanupEntitiesList: function() {
             _this.items.forEach(function(item) {
                 item.cleanup();
-            })
+            });
         },
         unload: function() {
             _this.toCleanup.forEach(function(item) {
                 Entities.deleteEntity(item);
-            })
+            });
         }
     };
     return new EntitySpawner();

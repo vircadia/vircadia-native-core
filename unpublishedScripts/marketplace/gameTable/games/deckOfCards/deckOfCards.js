@@ -1,3 +1,14 @@
+//
+//  Created by Thijs Wenker on 3/31/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Revision of James B. Pollack's work on GamesTable in 2016
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+// TODO: This game needs some work to get running
 (function() {
     var _this;
     var MAPPING_NAME = "hifi-gametable-cards-dev-" + Math.random();
@@ -23,7 +34,6 @@
         blue: 0
     };
 
-    var SETUP_DELAY = 2000;
     var NEARBY_CARDS_RANGE = 5;
 
     function DeckOfCards() {
@@ -44,15 +54,15 @@
         createMapping: function() {
             var mapping = Controller.newMapping(MAPPING_NAME);
             mapping.from([Controller.Standard.RTClick]).peek().to(function(val) {
-                _this.handleTrigger(val, 'right')
+                _this.handleTrigger(val, 'right');
             });
             mapping.from([Controller.Standard.LTClick]).peek().to(function(val) {
-                _this.handleTrigger(val, 'left')
+                _this.handleTrigger(val, 'left');
             });
             Controller.enableMapping(MAPPING_NAME);
         },
         destroyMapping: function() {
-            Controller.disableMapping(MAPPING_NAME)
+            Controller.disableMapping(MAPPING_NAME);
         },
         handleTrigger: function(val, hand) {
             if (val !== 1) {
@@ -61,7 +71,7 @@
             print('jbp trigger pulled at val:' + val + ":" + hand);
             print('jbp at time hand was:' + _this.currentHand);
             if (_this.currentHand === hand) {
-                print('jbp should ignore its the same hand')
+                print('jbp should ignore its the same hand');
             } else {
                 print('jbp should make a new thing its the off hand');
                 _this.createPlayingCard();
@@ -72,35 +82,36 @@
             var cards = _this.getCardsFromUserData();
             if (cards === false) {
                 print('jbp should make new deck');
+                // should make a deck the first time
                 _this.makeNewDeck();
-                //should make a deck the first time
-                return;
             } else {
                 print('jbp already has deck' + cards);
-                    //someone already started a game with this deck
+                // someone already started a game with this deck
                 _this.makeNewDeck();
-                _this.currentStack._import(cards)
+                _this.currentStack._import(cards);
             }
         },
 
         resetDeck: function() {
-            print('jbp resetting deck')
-                //finds and delete any nearby cards
-            var myProps = Entities.getEntityProperties(_this.entityID);
-            var results = Entities.findEntities(myProps.position, NEARBY_CARDS_RANGE);
+            print('jbp resetting deck');
+            // finds and delete any nearby cards
+            var position = Entities.getEntityProperties(_this.entityID, 'position');
+            var results = Entities.findEntities(position, NEARBY_CARDS_RANGE);
             results.forEach(function(item) {
-                    var itemProps = Entities.getEntityProperties(item);
-                    if (itemProps.userData.hasOwnProperty('playingCards') && itemProps.userData.playingCards.hasOwnProperty('card')) {
-                        Entities.deleteEntity(item);
-                    }
-                });
-                //resets this deck to a new deck
+                var itemProps = Entities.getEntityProperties(item, 'userData');
+                if (itemProps.userData.hasOwnProperty('playingCards') &&
+                    itemProps.userData.playingCards.hasOwnProperty('card')) {
+
+                    Entities.deleteEntity(item);
+                }
+            });
+            // resets this deck to a new deck
             _this.makeNewDeck();
         },
 
         makeNewDeck: function() {
             print('jbp make new deck');
-                //make a stack and shuffle it up.
+            // make a stack and shuffle it up.
             var stack = new Stack();
             stack.makeDeck(1);
             stack.shuffle(100);
@@ -108,20 +119,20 @@
         },
 
         collisionWithEntity: function(me, other, collision) {
-            //on the start of a collision with the deck, if its a card, add it back to the deck
+            // on the start of a collision with the deck, if its a card, add it back to the deck
             if (collision.type !== 0) {
-                //its not the start, so exit early.
+                // its not the start, so exit early.
                 return;
             }
-            var otherProps = Entities.getEntityProperties(other);
+            var otherProps = Entities.getEntityProperties(other, 'userData');
             var userData = {};
             try {
-                JSON.parse(otherProps.userData)
+                userData = JSON.parse(otherProps.userData);
             } catch (e) {
-                return
+                return;
             }
             if (userData.hasOwnProperty('playingCards') && userData.playingCards.hasOwnProperty('card')) {
-                print('collided with a playing card!!!')
+                print('collided with a playing card!!!');
 
                 _this.currentStack.addCard(userData.playingCards.card);
 
@@ -171,26 +182,26 @@
 
         exitDealerMode: function() {
             _this.destroyMapping();
-            //turn grab on 
-            //save the cards
-            //delete the overlay beam
+            // turn grab on
+            // save the cards
+            // delete the overlay beam
             if (_this.updateConnected === true) {
                 Script.update.disconnect(_this.updateRays);
             }
             Messages.sendLocalMessage('Hifi-Hand-Disabler', 'none');
-            _this.deleteCardTargetOverlay()
+            _this.deleteCardTargetOverlay();
             _this.turnOffOverlayBeams();
             _this.storeCards();
         },
 
         storeCards: function() {
             var cards = _this.currentStack._export();
-            print('deckof cards:' + cards)
+            print('deck of cards: ' + cards);
             Entities.editEntity(_this.entityID, {
                 userData: JSON.stringify({
                     cards: cards
                 })
-            })
+            });
         },
 
         restoreCards: function() {
@@ -199,28 +210,28 @@
         },
 
         getCardsFromUserData: function() {
-            var props = Entities.getEntityProperties(_this.entityID);
+            var props = Entities.getEntityProperties(_this.entityID, 'userData');
             var data;
             try {
                 data = JSON.parse(props.userData);
-                print('jbp has cards in userdata' + props.userData)
+                print('jbp has cards in userdata' + props.userData);
 
             } catch (e) {
-                print('jbp error parsing userdata')
+                print('jbp error parsing userdata');
                 return false;
             }
             if (data.hasOwnProperty('cards')) {
-                print('jbp returning data.cards')
+                print('jbp returning data.cards');
                 return data.cards;
-            } else {
-                return false
             }
-
+            return false;
         },
 
         rightRay: function() {
             var pose = Controller.getPoseValue(Controller.Standard.RightHand);
-            var rightPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
+            var rightPosition = pose.valid ?
+                Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) :
+                MyAvatar.getHeadPosition();
             var rightRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) :
                 Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, {
                     x: 1,
@@ -230,7 +241,7 @@
 
             var rightPickRay = {
                 origin: rightPosition,
-                direction: Quat.getUp(rightRotation),
+                direction: Quat.getUp(rightRotation)
             };
 
             this.rightPickRay = rightPickRay;
@@ -250,9 +261,7 @@
             } else {
                 this.rightLineOn(rightPickRay.origin, location, COLORS_CANNOT_PLACE);
             }
-
         },
-
         leftRay: function() {
             var pose = Controller.getPoseValue(Controller.Standard.LeftHand);
             var leftPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
@@ -265,7 +274,7 @@
 
             var leftPickRay = {
                 origin: leftPosition,
-                direction: Quat.getUp(leftRotation),
+                direction: Quat.getUp(leftRotation)
             };
 
             this.leftPickRay = leftPickRay;
@@ -285,10 +294,7 @@
             } else {
                 this.leftLineOn(leftPickRay.origin, location, COLORS_CANNOT_PLACE);
             }
-
-
         },
-
         rightLineOn: function(closePoint, farPoint, color) {
             if (this.rightOverlayLine === null) {
                 var lineProperties = {
@@ -306,14 +312,13 @@
                 this.rightOverlayLine = Overlays.addOverlay("line3d", lineProperties);
 
             } else {
-                var success = Overlays.editOverlay(this.rightOverlayLine, {
+                Overlays.editOverlay(this.rightOverlayLine, {
                     start: closePoint,
                     end: farPoint,
                     color: color
                 });
             }
         },
-
         leftLineOn: function(closePoint, farPoint, color) {
             if (this.leftOverlayLine === null) {
                 var lineProperties = {
@@ -331,54 +336,33 @@
                 this.leftOverlayLine = Overlays.addOverlay("line3d", lineProperties);
 
             } else {
-                var success = Overlays.editOverlay(this.leftOverlayLine, {
+                Overlays.editOverlay(this.leftOverlayLine, {
                     start: closePoint,
                     end: farPoint,
                     color: color
                 });
             }
         },
-
         rightOverlayOff: function() {
             if (this.rightOverlayLine !== null) {
-                print('jbp inside right off')
+                print('jbp inside right off');
                 Overlays.deleteOverlay(this.rightOverlayLine);
                 this.rightOverlayLine = null;
             }
         },
-
         leftOverlayOff: function() {
             if (this.leftOverlayLine !== null) {
-                print('jbp inside left off')
+                print('jbp inside left off');
                 Overlays.deleteOverlay(this.leftOverlayLine);
                 this.leftOverlayLine = null;
             }
         },
-
         turnOffOverlayBeams: function() {
             this.rightOverlayOff();
             this.leftOverlayOff();
         },
-
-        rightOverlayOff: function() {
-            print('jbp right overlay off')
-            if (this.rightOverlayLine !== null) {
-                Overlays.deleteOverlay(this.rightOverlayLine);
-                this.rightOverlayLine = null;
-            }
-        },
-
-        leftOverlayOff: function() {
-            print('jbp left overlay off')
-            if (this.leftOverlayLine !== null) {
-                Overlays.deleteOverlay(this.leftOverlayLine);
-                this.leftOverlayLine = null;
-            }
-        },
-
         createTargetOverlay: function() {
-
-            print('jbp should create target overlay')
+            print('jbp should create target overlay');
             if (_this.targetOverlay !== null) {
                 return;
             }
@@ -392,7 +376,7 @@
 
             _this.targetOverlay = Overlays.addOverlay("model", targetOverlayProps);
 
-            print('jbp created target overlay: ' + _this.targetOverlay)
+            print('jbp created target overlay: ' + _this.targetOverlay);
         },
 
         updateTargetOverlay: function(intersection) {
@@ -423,11 +407,11 @@
             _this.targetOverlay = null;
         },
         handleEndOfDeck: function() {
-            print('jbp at the end of the deck, no more.')
+            print('jbp at the end of the deck, no more.');
         },
 
         createPlayingCard: function() {
-            print('jbp should create playing card')
+            print('jbp should create playing card');
             if (_this.currentStack.cards.length > 0) {
                 var card = _this.currentStack.draw(1);
             } else {
@@ -435,7 +419,7 @@
                 return;
             }
 
-            print('jbp drew card: ' + card)
+            print('jbp drew card: ' + card);
             var properties = {
                 type: 'Model',
                 description: 'hifi:gameTable:game:playingCards',
@@ -452,7 +436,7 @@
                 },
                 textures: JSON.stringify({
                     file1: PLAYING_CARD_BACK_IMAGE_URL,
-                    file2: PLAYING_CARD_BACK_IMAGE_URL,
+                    file2: PLAYING_CARD_BACK_IMAGE_URL
                 }),
                 userData: JSON.stringify({
                     grabbableKey: {
@@ -462,11 +446,11 @@
                         card: card
                     }
                 })
-            }
+            };
             Entities.addEntity(properties);
         }
 
-    }
+    };
 
     function Card(rank, suit) {
         this.rank = rank;
@@ -474,14 +458,14 @@
     }
 
     function stackImportCards(exportedCards) {
-        print('jbp importing ' + exportedCards)
+        print('jbp importing ' + exportedCards);
         var cards = JSON.parse(exportedCards);
         this.cards = [];
         var cardArray = this.cards;
         cards.forEach(function(card) {
             var newCard = new Card(card.substr(1, card.length), card[0]);
-            cardArray.push(newCard)
-        })
+            cardArray.push(newCard);
+        });
     }
 
     function stackExportCards() {
@@ -499,9 +483,8 @@
 
     function stackMakeDeck(n) {
 
-        var ranks = new Array("A", "2", "3", "4", "5", "6", "7", "8", "9",
-            "10", "J", "Q", "K");
-        var suits = new Array("C", "D", "H", "S");
+        var ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+        var suits = ["C", "D", "H", "S"];
         var i, j, k;
         var m;
 
@@ -509,15 +492,17 @@
 
         // Set array of cards.
 
-        this.cards = new Array();
+        this.cards = [];
 
         // Fill the array with 'n' packs of cards.
 
-        for (i = 0; i < n; i++)
-            for (j = 0; j < suits.length; j++)
-                for (k = 0; k < ranks.length; k++)
-                    this.cards[i * m + j * ranks.length + k] =
-                    new Card(ranks[k], suits[j]);
+        for (i = 0; i < n; i++) {
+            for (j = 0; j < suits.length; j++) {
+                for (k = 0; k < ranks.length; k++) {
+                    this.cards[i * m + j * ranks.length + k] = new Card(ranks[k], suits[j]);
+                }
+            }
+        }
     }
 
     function stackShuffle(n) {
@@ -527,21 +512,21 @@
 
         // Shuffle the stack 'n' times.
 
-        for (i = 0; i < n; i++)
+        for (i = 0; i < n; i++) {
             for (j = 0; j < this.cards.length; j++) {
                 k = Math.floor(Math.random() * this.cards.length);
                 temp = this.cards[j];
                 this.cards[j] = this.cards[k];
                 this.cards[k] = temp;
             }
+        }
     }
 
     function stackDeal() {
-
-        if (this.cards.length > 0)
+        if (this.cards.length > 0) {
             return this.cards.shift();
-        else
-            return null;
+        }
+        return null;
     }
 
     function stackDraw(n) {
@@ -551,8 +536,9 @@
         if (n >= 0 && n < this.cards.length) {
             card = this.cards[n];
             this.cards.splice(n, 1);
-        } else
+        } else {
             card = null;
+        }
 
         return card;
     }
@@ -565,14 +551,14 @@
     function stackCombine(stack) {
 
         this.cards = this.cards.concat(stack.cards);
-        stack.cards = new Array();
+        stack.cards = [];
     }
 
     function Stack() {
 
         // Create an empty array of cards.
 
-        this.cards = new Array();
+        this.cards = [];
 
         this.makeDeck = stackMakeDeck;
         this.shuffle = stackShuffle;

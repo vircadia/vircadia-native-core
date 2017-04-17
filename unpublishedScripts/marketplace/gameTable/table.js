@@ -9,11 +9,21 @@
 //
 
 (function() {
-	var CLEARCACHE = "?"+Math.random().toString(36).substring(7);
-	var GAMES_LIST_ENDPOINT = Script.resolvePath('games/gamesDirectory.svo.json') + CLEARCACHE;
+    var GAMES_LIST_ENDPOINT = Script.resolvePath('games/gamesDirectory.svo.json');
 
     var _this;
     var INITIAL_DELAY = 1000;
+
+    function getGamesList() {
+        // FIXME: HACK: remove when Script.require is in release client (Beta Release 37)
+        if (Script.require === undefined) {
+            var request = new XMLHttpRequest();
+            request.open('GET', GAMES_LIST_ENDPOINT, false);
+            request.send();
+            return JSON.parse(request.responseText);
+        }
+        return Script.require(GAMES_LIST_ENDPOINT);
+    }
 
     function GameTable() {
         _this = this;
@@ -29,17 +39,17 @@
             }, INITIAL_DELAY);
         },
         collisionWithEntity: function(me, other, collision) {
-            //stick the table to the ground
+            // stick the table to the ground
             if (collision.type !== 1) {
                 return;
             }
-            var myProps = Entities.getEntityProperties(_this.entityID, ["rotation", "position"]);
+            var myProps = Entities.getEntityProperties(_this.entityID, ['rotation', 'position']);
             var eulerRotation = Quat.safeEulerAngles(myProps.rotation);
             eulerRotation.x = 0;
             eulerRotation.z = 0;
             var newRotation = Quat.fromVec3Degrees(eulerRotation);
 
-            //we zero out the velocity and angular velocity so the table doesn't change position or spin
+            // we zero out the velocity and angular velocity so the table doesn't change position or spin
             Entities.editEntity(_this.entityID, {
                 rotation: newRotation,
                 dynamic: true,
@@ -88,15 +98,15 @@
             _this.cleanupGameEntities();
         },
         cleanupGameEntities: function() {
-            var props = Entities.getEntityProperties(_this.entityID);
-            var results = Entities.findEntities(props.position, 5);
+            var position = Entities.getEntityProperties(_this.entityID, 'position').position;
+            var results = Entities.findEntities(position, 5.0);
             var found = [];
             results.forEach(function(item) {
-                var itemProps = Entities.getEntityProperties(item);
-                if (itemProps.description.indexOf('hifi:gameTable:piece:') === 0) {
+                var description = Entities.getEntityProperties(item, 'description').description;
+                if (description.indexOf('hifi:gameTable:piece:') === 0) {
                     found.push(item);
                 }
-                if (itemProps.description.indexOf('hifi:gameTable:anchor') > -1) {
+                if (description.indexOf('hifi:gameTable:anchor') > -1) {
                     found.push(item);
                 }
             });
@@ -113,7 +123,6 @@
         },
         setCurrentGame: function() {
             print('index in set current game: ' + _this.currentGameIndex);
-            // print('games list in set current game' + JSON.stringify(_this.gamesList));
             print('game at index' + _this.gamesList[_this.currentGameIndex]);
             _this.currentGame = _this.gamesList[_this.currentGameIndex].gameName;
             _this.currentGameFull = _this.gamesList[_this.currentGameIndex];
@@ -124,52 +133,44 @@
         setCurrentUserData: function(data) {
             var userData = _this.getCurrentUserData();
             userData['gameTableData'] = data;
-            var success = Entities.editEntity(_this.entityID, {
+            Entities.editEntity(_this.entityID, {
                 userData: JSON.stringify(userData)
             });
         },
         getCurrentUserData: function() {
-            var props = Entities.getEntityProperties(_this.entityID);
-            var hasUserData = props.hasOwnProperty('userData');
-            var json = {};
+            var userData = Entities.getEntityProperties(_this.entityID, ['userData']).userData;
             try {
-                json = JSON.parse(props.userData);
+                return JSON.parse(userData);
             } catch (e) {
-                print('user data is not json' + props.userData)
+                print('user data is not json' + userData);
             }
-            return json;
+            return {};
         },
         getEntityFromGroup: function(groupName, entityName) {
             print('getting entity from group: ' + groupName);
-            var props = Entities.getEntityProperties(_this.entityID);
-            var results = Entities.findEntities(props.position, 7.5);
-            var found;
+            var position = Entities.getEntityProperties(_this.entityID, ['position']).position;
+            var results = Entities.findEntities(position, 7.5);
             var result = null;
             results.forEach(function(item) {
-                var itemProps = Entities.getEntityProperties(item);
-
-                var descriptionSplit = itemProps.description.split(":");
+                var description = Entities.getEntityProperties(item, 'description').description;
+                var descriptionSplit = description.split(":");
                 if (descriptionSplit[1] === groupName && descriptionSplit[2] === entityName) {
                     result = item;
                 }
             });
-            return result
+            return result;
         },
         spawnEntitiesForGame: function() {
             var entitySpawner = _this.getEntityFromGroup('gameTable', 'entitySpawner');
             var mat = _this.getEntityFromGroup('gameTable', 'mat');
 
-            Entities.callEntityMethod(entitySpawner, 'spawnEntities', [JSON.stringify(_this.currentGameFull),mat,
-                _this.entityID]);
+            Entities.callEntityMethod(entitySpawner, 'spawnEntities', [
+                JSON.stringify(_this.currentGameFull),
+                mat,
+                _this.entityID
+            ]);
         }
     };
-
-    function getGamesList() {
-        var request = new XMLHttpRequest();
-        request.open("GET", GAMES_LIST_ENDPOINT, false);
-        request.send();
-        return JSON.parse(request.responseText);
-    }
 
     return new GameTable();
 });

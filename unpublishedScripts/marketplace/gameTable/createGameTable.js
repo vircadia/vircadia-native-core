@@ -8,16 +8,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var CLEARCACHE = "?"+Math.random().toString(36).substring(7);
-var TABLE_MODEL_URL = Script.resolvePath('assets/table/gameTable.fbx') + CLEARCACHE;
-var MODEL_URL = Script.resolvePath('assets/table/finalFrame.fbx') + CLEARCACHE;
-var TABLE_SCRIPT_URL = Script.resolvePath('table.js') + CLEARCACHE;
-var ENTITY_SPAWNER_SCRIPT_URL = Script.resolvePath('entitySpawner.js') + CLEARCACHE;
-var NEXT_GAME_BUTTON_SCRIPT_URL = Script.resolvePath('nextGameButton.js') + CLEARCACHE;
-var RESET_BUTTON_SCRIPT_URL = Script.resolvePath('resetGameButton.js') + CLEARCACHE;
-var TABLE_PICTURE_URL = Script.resolvePath('assets/mats/Table-default.jpg') + CLEARCACHE;
-var NEXT_BUTTON_MODEL_URL = Script.resolvePath('assets/buttons/button-next.fbx') + CLEARCACHE;
-var RESET_BUTTON_MODEL_URL = Script.resolvePath('assets/buttons/button-reset.fbx') + CLEARCACHE;
+var TABLE_MODEL_URL = Script.resolvePath('assets/table/gameTable.fbx');
+var MODEL_URL = Script.resolvePath('assets/table/finalFrame.fbx');
+var TABLE_SCRIPT_URL = Script.resolvePath('table.js');
+var ENTITY_SPAWNER_SCRIPT_URL = Script.resolvePath('entitySpawner.js');
+var NEXT_GAME_BUTTON_SCRIPT_URL = Script.resolvePath('nextGameButton.js');
+var RESET_BUTTON_SCRIPT_URL = Script.resolvePath('resetGameButton.js');
+var TABLE_PICTURE_URL = Script.resolvePath('assets/mats/Table-default.jpg');
+var NEXT_BUTTON_MODEL_URL = Script.resolvePath('assets/buttons/button-next.fbx');
+var RESET_BUTTON_MODEL_URL = Script.resolvePath('assets/buttons/button-reset.fbx');
 
 // FIXME: CHANGE TO Quat.getForward when supported
 var front = Quat.getFront(MyAvatar.orientation);
@@ -52,11 +51,11 @@ var resetGameButtonOffset = {
 };
 
 function getOffsetFromTable(forward, vertical, right) {
-    var props = Entities.getEntityProperties(table);
-    var position = props.position;
-    var frontVector = Quat.getFront(props.rotation);
-    var upVector = Quat.getUp(props.rotation);
-    var rightVector = Quat.getRight(props.rotation);
+    var properties = Entities.getEntityProperties(table, ['position', 'rotation']);
+    var position = properties.position;
+    var frontVector = Quat.getFront(properties.rotation);
+    var upVector = Quat.getUp(properties.rotation);
+    var rightVector = Quat.getRight(properties.rotation);
     if (forward !== undefined) {
         position = Vec3.sum(position, Vec3.multiply(frontVector, forward));
     }
@@ -71,7 +70,7 @@ function getOffsetFromTable(forward, vertical, right) {
 }
 
 function createTable() {
-    var props = {
+    table = Entities.addEntity({
         type: 'Model',
         name: 'GameTable Table 1',
         description: 'hifi:gameTable:table',
@@ -105,13 +104,11 @@ function createTable() {
                 grabbable: true
             }
         })
-    };
-
-    table = Entities.addEntity(props);
+    });
 }
 
 function createEntitySpawner() {
-    var props = {
+    entitySpawner = Entities.addEntity({
         type: 'Zone',
         visible: false,
         name: 'GameTable Entity Spawner',
@@ -130,14 +127,11 @@ function createEntitySpawner() {
         script: ENTITY_SPAWNER_SCRIPT_URL,
         parentID: table,
         position: getOffsetFromTable(entitySpawnerOffset.forward, entitySpawnerOffset.vertical, entitySpawnerOffset.right)
-    };
-
-    entitySpawner = Entities.addEntity(props);
+    });
 }
 
-
 function createMat() {
-    var props = {
+    return Entities.addEntity({
         type: 'Model',
         modelURL: MODEL_URL,
         name: 'GameTable Mat',
@@ -166,13 +160,11 @@ function createMat() {
                 grabbable: false
             }
         })
-    };
-
-    return Entities.addEntity(props);
+    });
 }
 
 function createNextGameButton() {
-    var props = {
+    nextGameButton = Entities.addEntity({
         type: 'Model',
         modelURL: NEXT_BUTTON_MODEL_URL,
         name: 'GameTable Next Button',
@@ -195,19 +187,18 @@ function createNextGameButton() {
         }),
         parentID: table,
         script: NEXT_GAME_BUTTON_SCRIPT_URL,
-        position: getOffsetFromTable(nextGameButtonOffset.forward, nextGameButtonOffset.vertical, nextGameButtonOffset.right),
+        position: getOffsetFromTable(nextGameButtonOffset.forward, nextGameButtonOffset.vertical,
+                                     nextGameButtonOffset.right),
         userData: JSON.stringify({
             grabbableKey: {
                 wantsTrigger: true
             }
         })
-    };
-
-    nextGameButton = Entities.addEntity(props);
+    });
 }
 
 function createResetGameButton() {
-    var props = {
+    resetGameButton = Entities.addEntity({
         type: 'Model',
         modelURL: RESET_BUTTON_MODEL_URL,
         name: 'GameTable Reset Button',
@@ -230,15 +221,14 @@ function createResetGameButton() {
         }),
         parentID: table,
         script: RESET_BUTTON_SCRIPT_URL,
-        position: getOffsetFromTable(resetGameButtonOffset.forward, resetGameButtonOffset.vertical, resetGameButtonOffset.right),
+        position: getOffsetFromTable(resetGameButtonOffset.forward, resetGameButtonOffset.vertical,
+                                     resetGameButtonOffset.right),
         userData: JSON.stringify({
             grabbableKey: {
                 wantsTrigger: true
             }
         })
-    };
-
-    resetGameButton = Entities.addEntity(props);
+    });
 }
 
 function makeTable() {

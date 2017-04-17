@@ -47,6 +47,4 @@ PUBLISHING
 =============
 - As a script: just add createGameTable.js to the marketplace.
 
-- As an item: runcreateGameTable.js and select everything, export it to json.  Go through the usual marketplace uploading and prep sequence.
-
-
+- As an item: run createGameTable.js and select everything, export it to json.  Go through the usual marketplace uploading and prep sequence.
