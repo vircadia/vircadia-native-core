@@ -150,6 +150,7 @@ const gpu::PipelinePointer DrawBounds::getPipeline() {
 
         _cornerLocation = program->getUniforms().findLocation("inBoundPos");
         _scaleLocation = program->getUniforms().findLocation("inBoundDim");
+        _colorLocation = program->getUniforms().findLocation("inColor");
 
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
@@ -184,12 +185,17 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
         assert(_scaleLocation >= 0);
 
         // Render bounds
+        float numItems = (float) items.size();
+        float itemNum = 0.0f;
         for (const auto& item : items) {
+            glm::vec4 color(glm::vec3(itemNum / numItems), 1.0f);
             batch._glUniform3fv(_cornerLocation, 1, (const float*)(&item.bound.getCorner()));
             batch._glUniform3fv(_scaleLocation, 1, (const float*)(&item.bound.getScale()));
+            batch._glUniform4fv(_colorLocation, 1, (const float*)(&color));
 
             static const int NUM_VERTICES_PER_CUBE = 24;
             batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE, 0);
+            itemNum += 1.0f;
         }
     });
 }

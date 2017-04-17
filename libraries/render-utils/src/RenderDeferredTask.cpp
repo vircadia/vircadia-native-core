@@ -19,6 +19,7 @@
 #include <gpu/Context.h>
 
 #include <render/CullTask.h>
+#include <render/FilterTask.h>
 #include <render/SortTask.h>
 #include <render/DrawTask.h>
 #include <render/DrawStatus.h>
@@ -33,6 +34,7 @@
 #include "FramebufferCache.h"
 #include "HitEffect.h"
 #include "TextureCache.h"
+#include "ZoneRenderer.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
@@ -48,7 +50,9 @@ using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
-RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
+void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
+    auto items = input.get<Input>();
+
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber);
@@ -65,129 +69,130 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
 
     // Filter the non antialiaased overlays
     const int LAYER_NO_AA = 3;
-    const auto nonAAOverlays = addJob<FilterItemLayer>("Filter2DWebOverlays", overlayOpaques, LAYER_NO_AA);
+    const auto nonAAOverlays = task.addJob<FilterLayeredItems>("Filter2DWebOverlays", overlayOpaques, LAYER_NO_AA);
 
     // Prepare deferred, generate the shared Deferred Frame Transform
-    const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
-    const auto lightingModel = addJob<MakeLightingModel>("LightingModel");
+    const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
+    const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
 
 
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
-    const auto primaryFramebuffer = addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
+    const auto primaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
-    const auto opaqueRangeTimer = addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
+    const auto opaqueRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
 
     const auto prepareDeferredInputs = PrepareDeferred::Inputs(primaryFramebuffer, lightingModel).hasVarying();
-    const auto prepareDeferredOutputs = addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
+    const auto prepareDeferredOutputs = task.addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
-    addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
+    task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
 
     // Once opaque is all rendered create stencil background
-    addJob<DrawStencilDeferred>("DrawOpaqueStencil", deferredFramebuffer);
+    task.addJob<DrawStencilDeferred>("DrawOpaqueStencil", deferredFramebuffer);
 
-    addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
+    task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
 
     // Opaque all rendered
 
     // Linear Depth Pass
     const auto linearDepthPassInputs = LinearDepthPass::Inputs(deferredFrameTransform, deferredFramebuffer).hasVarying();
-    const auto linearDepthPassOutputs = addJob<LinearDepthPass>("LinearDepth", linearDepthPassInputs);
+    const auto linearDepthPassOutputs = task.addJob<LinearDepthPass>("LinearDepth", linearDepthPassInputs);
     const auto linearDepthTarget = linearDepthPassOutputs.getN<LinearDepthPass::Outputs>(0);
     
     // Curvature pass
     const auto surfaceGeometryPassInputs = SurfaceGeometryPass::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).hasVarying();
-    const auto surfaceGeometryPassOutputs = addJob<SurfaceGeometryPass>("SurfaceGeometry", surfaceGeometryPassInputs);
+    const auto surfaceGeometryPassOutputs = task.addJob<SurfaceGeometryPass>("SurfaceGeometry", surfaceGeometryPassInputs);
     const auto surfaceGeometryFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(0);
     const auto curvatureFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(1);
     const auto midCurvatureNormalFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(2);
     const auto lowCurvatureNormalFramebuffer = surfaceGeometryPassOutputs.getN<SurfaceGeometryPass::Outputs>(3);
 
     // Simply update the scattering resource
-    const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
+    const auto scatteringResource = task.addJob<SubsurfaceScattering>("Scattering");
 
     // AO job
     const auto ambientOcclusionInputs = AmbientOcclusionEffect::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).hasVarying();
-    const auto ambientOcclusionOutputs = addJob<AmbientOcclusionEffect>("AmbientOcclusion", ambientOcclusionInputs);
+    const auto ambientOcclusionOutputs = task.addJob<AmbientOcclusionEffect>("AmbientOcclusion", ambientOcclusionInputs);
     const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(0);
     const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(1);
 
     
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
-    addJob<DrawLight>("DrawLight", lights);
+    task.addJob<DrawLight>("DrawLight", lights);
 
     // Light Clustering
     // Create the cluster grid of lights, cpu job for now
     const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, linearDepthTarget).hasVarying();
-    const auto lightClusters = addJob<LightClusteringPass>("LightClustering", lightClusteringPassInputs);
+    const auto lightClusters = task.addJob<LightClusteringPass>("LightClustering", lightClusteringPassInputs);
     
     
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
         surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters).hasVarying();
     
-    addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
+    task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
     // Use Stencil and draw background in Lighting buffer to complete filling in the opaque
     const auto backgroundInputs = DrawBackgroundDeferred::Inputs(background, lightingModel).hasVarying();
-    addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", backgroundInputs);
+    task.addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", backgroundInputs);
    
     
     // Render transparent objects forward in LightingBuffer
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
-    addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
+    task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
     // LIght Cluster Grid Debuging job
     {
         const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget, lightClusters).hasVarying();
-        addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
+        task.addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
     }
     
-    const auto toneAndPostRangeTimer = addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
+    const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
-    addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     { // DEbug the bounds of the rendered items, still look at the zbuffer
-        addJob<DrawBounds>("DrawMetaBounds", metas);
-        addJob<DrawBounds>("DrawOpaqueBounds", opaques);
-        addJob<DrawBounds>("DrawTransparentBounds", transparents);
+        task.addJob<DrawBounds>("DrawMetaBounds", metas);
+        task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
+        task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
+    
+        task.addJob<ZoneRendererTask>("ZoneRenderer", opaques);
     }
 
     // Overlays
     const auto overlayOpaquesInputs = DrawOverlay3D::Inputs(overlayOpaques, lightingModel).hasVarying();
     const auto overlayTransparentsInputs = DrawOverlay3D::Inputs(overlayTransparents, lightingModel).hasVarying();
-    addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaquesInputs, true);
-    addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparentsInputs, false);
+    task.addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaquesInputs, true);
+    task.addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparentsInputs, false);
 
     { // DEbug the bounds of the rendered OVERLAY items, still look at the zbuffer
-        addJob<DrawBounds>("DrawOverlayOpaqueBounds", overlayOpaques);
-        addJob<DrawBounds>("DrawOverlayTransparentBounds", overlayTransparents);
+        task.addJob<DrawBounds>("DrawOverlayOpaqueBounds", overlayOpaques);
+        task.addJob<DrawBounds>("DrawOverlayTransparentBounds", overlayTransparents);
     }
     
      // Debugging stages
     {
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
-        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
+        task.addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
             surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource).hasVarying();
-        addJob<DebugSubsurfaceScattering>("DebugScattering", debugSubsurfaceScatteringInputs);
+        task.addJob<DebugSubsurfaceScattering>("DebugScattering", debugSubsurfaceScatteringInputs);
 
         const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).hasVarying();
-        addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
-
+        task.addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
 
         // Scene Octree Debugging job
         {
-            addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
-            addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
+            task.addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
+            task.addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
         }
 
         // Status icon rendering job
@@ -195,22 +200,22 @@ RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
             // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
             auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
             auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath, NetworkTexture::STRICT_TEXTURE);
-            addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
+            task.addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         }
     }
 
 
     // AA job to be revisited
-    addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
+    task.addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
 
     // Draw 2DWeb non AA
     const auto nonAAOverlaysInputs = DrawOverlay3D::Inputs(nonAAOverlays, lightingModel).hasVarying();
-    addJob<DrawOverlay3D>("Draw2DWebSurfaces", nonAAOverlaysInputs, false);
+    task.addJob<DrawOverlay3D>("Draw2DWebSurfaces", nonAAOverlaysInputs, false);
 
-    addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
+    task.addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
 
     // Blit!
-    addJob<Blit>("Blit", primaryFramebuffer);
+    task.addJob<Blit>("Blit", primaryFramebuffer);
 }
 
 void BeginGPURangeTimer::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {

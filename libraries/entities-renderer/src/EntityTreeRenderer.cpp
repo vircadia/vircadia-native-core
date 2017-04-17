@@ -43,6 +43,8 @@
 #include "AddressManager.h"
 #include <Rig.h>
 
+#include "ZoneRenderer.h"
+
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
     _wantScripts(wantScripts),
@@ -266,6 +268,9 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
             }
         }
         _layeredZones.apply();
+
+        applyLayeredZones();
+
         didUpdate = true;
     });
 
@@ -342,6 +347,30 @@ void EntityTreeRenderer::forceRecheckEntities() {
     // so that on our next chance, we'll check for enter/leave entity events.
     _avatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
 }
+
+bool EntityTreeRenderer::applyLayeredZones() {
+    // from the list of zones we are going to build a selection list the Render Item corresponding to the zones
+    // in the expected layered order and update the scene with it
+    auto scene = _viewState->getMain3DScene();
+    if (scene) {
+        render::Transaction transaction;
+        render::ItemIDs list;
+
+        for (auto& zone : _layeredZones) {
+            auto id = std::dynamic_pointer_cast<RenderableZoneEntityItem>(zone.zone)->getRenderItemID();
+            list.push_back(id);
+        }
+        render::Selection selection("RankedZones", list);
+        transaction.resetSelection(selection);
+
+        scene->enqueueTransaction(transaction);
+    } else {
+        qCWarning(entitiesrenderer) << "EntityTreeRenderer::applyLayeredZones(), Unexpected null scene, possibly during application shutdown";
+    }
+     
+     return true;
+}
+
 
 bool EntityTreeRenderer::applyZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone) {
     auto textureCache = DependencyManager::get<TextureCache>();
