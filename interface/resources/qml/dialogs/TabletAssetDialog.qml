@@ -1,0 +1,16 @@
+//
+//  TabletAssetDialog.qml
+//
+//  Created by David Rowe on 18 Apr 2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+import QtQuick 2.5
+import QtQuick.Controls 1.4
+
+AssetDialog {
+
+}

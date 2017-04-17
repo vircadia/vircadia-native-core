@@ -53,6 +53,7 @@ public slots:
     CustomPromptResult customPrompt(const QVariant& config);
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    QScriptValue browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
     void showAssetServer(const QString& upload = "");
     void copyToClipboard(const QString& text);
     void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
@@ -87,6 +88,9 @@ signals:
 private:
     QString getPreviousBrowseLocation() const;
     void setPreviousBrowseLocation(const QString& location);
+
+    QString getPreviousBrowseAssetLocation() const;
+    void setPreviousBrowseAssetLocation(const QString& location);
 
     void ensureReticleVisible() const;
 

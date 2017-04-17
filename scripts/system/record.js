@@ -458,7 +458,10 @@
         }
 
         function onWebEventReceived(data) {
-            var message = JSON.parse(data);
+            var message,
+                recording;
+
+            message = JSON.parse(data);
             if (message.type === EVENT_BRIDGE_TYPE) {
                 switch (message.action) {
                 case BODY_LOADED_ACTION:
@@ -486,7 +489,11 @@
                     break;
                 case LOAD_RECORDING_ACTION:
                     // User wants to select an ATP recording to play.
-                    log("TODO: Open dialog for user to select ATP recording to play");
+                    recording = Window.browseAssets("Select Recording to Play", "recordings", "*.hrf");
+                    if (recording) {
+                        log("Load recording " + recording);
+                        Player.playRecording("atp:" + recording, MyAvatar.position, MyAvatar.orientation);
+                    }
                     break;
                 case START_RECORDING_ACTION:
                     // Start making a recording.
