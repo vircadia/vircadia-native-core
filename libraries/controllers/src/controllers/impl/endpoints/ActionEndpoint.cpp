@@ -11,6 +11,7 @@
 #include <DependencyManager.h>
 
 #include "../../UserInputMapper.h"
+#include "../../InputRecorder.h"
 
 using namespace controller;
 
@@ -20,10 +21,20 @@ void ActionEndpoint::apply(float newValue, const Pointer& source) {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         userInputMapper->deltaActionState(Action(_input.getChannel()), newValue);
     }
+    auto inputRecorder = InputRecorder::getInstance();
+    inputRecorder.setActionState(Action(_input.getChannel()), _currentValue);
 }
 
 void ActionEndpoint::apply(const Pose& value, const Pointer& source) {
     _currentPose = value;
+    auto inputRecorder = InputRecorder::getInstance();
+    inputRecorder.setActionState(Action(_input.getChannel()), _currentPose);
+    qDebug << "<--------------- destination";
+    if (inputRecorder.isPlayingback()) {
+        qDebug() << "-------------> playing back <--------------";
+        _currentPose = inputRecorder.getPoseState(Action(_input.getChannel()));
+    }
+    
     if (!_currentPose.isValid()) {
         return;
     }

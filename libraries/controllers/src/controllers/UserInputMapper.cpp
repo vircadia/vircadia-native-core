@@ -22,7 +22,7 @@
 
 #include "StandardController.h"
 #include "StateController.h"
-
+#include "InputRecorder.h"
 #include "Logging.h"
 
 #include "impl/conditionals/AndConditional.h"
@@ -243,7 +243,7 @@ void fixBisectedAxis(float& full, float& negative, float& positive) {
 
 void UserInputMapper::update(float deltaTime) {
     Locker locker(_lock);
-
+    auto inputRecorder = InputRecorder::getInstance();
     static uint64_t updateCount = 0;
     ++updateCount;
 
@@ -298,6 +298,7 @@ void UserInputMapper::update(float deltaTime) {
             emit inputEvent(input.id, value);
         }
     }
+    inputRecorder.frameTick();
 }
 
 Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {
@@ -571,6 +572,7 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
             }
         }
         // no filters yet for pose
+        qDebug() << "--------------> applying destination <----------------";
         destination->apply(value, source);
     } else {
         // Fetch the value, may have been overriden by previous loopback routes

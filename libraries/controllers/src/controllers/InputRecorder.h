@@ -8,14 +8,44 @@
 
 #ifndef hifi_InputRecorder_h
 #define hifi_InputRecorder_h
-class InputRecorder {
-public:
-    InputRecorder();
-    ~InputRecorder();
 
-    InputRecorder& getInstance();
+#include <mutex>
+#include <atomic>
+#include <vector>
 
+#include "Pose.h"
+#include "Actions.h"
+
+namespace controller {
+    class InputRecorder {
+    public:
+        using PoseStates = std::vector<Pose>;
+        using ActionStates = std::vector<float>;
     
-};
+        InputRecorder();
+        ~InputRecorder();
 
+        static InputRecorder& getInstance();
+        void startRecording();
+        void startPlayback();
+        void stopPlayback();
+        void stopRecording();
+        bool isRecording() { return _recording; }
+        bool isPlayingback() { return _playback; }
+        void setActionState(controller::Action action, float value);
+        void setActionState(controller::Action action, const controller::Pose pose);
+        float getActionState(controller::Action action);
+        controller::Pose getPoseState(controller::Action action);
+        void frameTick();
+    private:
+        bool _recording { false };
+        bool _playback { false };
+        std::vector<PoseStates> _poseStateList;
+        std::vector<ActionStates> _actionStateList;
+        
+        int _framesRecorded { 0 };
+        int _playCount { 0 };
+    
+    };
+}    
 #endif
