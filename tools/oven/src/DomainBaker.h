@@ -31,6 +31,7 @@ public:
 
 signals:
     void allModelsFinished();
+    void bakeProgress(int modelsBaked, int modelsTotal);
 
 private slots:
     void handleFinishedBaker();
@@ -54,6 +55,8 @@ private:
     std::unique_ptr<QThread> _fbxBakerThread;
     QHash<QUrl, QSharedPointer<FBXBaker>> _bakers;
     QMultiHash<QUrl, QJsonValueRef> _entitiesNeedingRewrite;
+
+    int _totalNumberOfEntities;
 };
 
 #endif // hifi_DomainBaker_h

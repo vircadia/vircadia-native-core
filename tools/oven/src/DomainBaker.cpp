@@ -212,10 +212,14 @@ void DomainBaker::enumerateEntities() {
                     // add this QJsonValueRef to our multi hash so that we can easily re-write
                     // the model URL to the baked version once the baker is complete
                     _entitiesNeedingRewrite.insert(modelURL, *it);
+                    ++_totalNumberOfEntities;
                 }
             }
         }
     }
+
+    // emit progress now to say we're just starting
+    emit bakeProgress(0, _totalNumberOfEntities);
 }
 
 void DomainBaker::handleFinishedBaker() {
@@ -259,6 +263,9 @@ void DomainBaker::handleFinishedBaker() {
 
         // drop our shared pointer to this baker so that it gets cleaned up
         _bakers.remove(baker->getFBXUrl());
+
+        // emit progress to tell listeners how many models we have baked
+        emit bakeProgress(_totalNumberOfEntities - _entitiesNeedingRewrite.keys().size(), _totalNumberOfEntities);
 
         if (_entitiesNeedingRewrite.isEmpty()) {
             emit allModelsFinished();

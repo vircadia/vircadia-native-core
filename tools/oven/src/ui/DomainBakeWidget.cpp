@@ -213,6 +213,9 @@ void DomainBakeWidget::bakeButtonClicked() {
         // make sure we hear from the baker when it is done
         connect(domainBaker.get(), &DomainBaker::finished, this, &DomainBakeWidget::handleFinishedBaker);
 
+        // watch the baker's progress so that we can put its progress in the results table
+        connect(domainBaker.get(), &DomainBaker::bakeProgress, this, &DomainBakeWidget::handleBakerProgress);
+
         // run the baker in our thread pool
         QtConcurrent::run(domainBaker.get(), &DomainBaker::bake);
 
@@ -223,6 +226,26 @@ void DomainBakeWidget::bakeButtonClicked() {
 
         // keep the unique ptr to the domain baker and the index to the row representing it in the results table
         _bakers.emplace_back(std::move(domainBaker), resultsRow);
+    }
+}
+
+void DomainBakeWidget::handleBakerProgress(int modelsBaked, int modelsTotal) {
+    if (auto baker = qobject_cast<DomainBaker*>(sender())) {
+        // add the results of this bake to the results window
+        auto it = std::remove_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
+            return value.first.get() == baker;
+        });
+
+        if (it != _bakers.end()) {
+            auto resultRow = it->second;
+            auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+
+            int percentage = roundf(float(modelsBaked) / float(modelsTotal) * 100.0f);
+            qDebug() << percentage;
+
+            auto statusString = QString("Baking - %1 of %2 models baked - %3%").arg(modelsBaked).arg(modelsTotal).arg(percentage);
+            resultsWindow->changeStatusForRow(resultRow, statusString);
+        }
     }
 }
 

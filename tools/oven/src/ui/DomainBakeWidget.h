@@ -34,6 +34,7 @@ private slots:
 
     void outputDirectoryChanged(const QString& newDirectory);
 
+    void handleBakerProgress(int modelsBaked, int modelsTotal);
     void handleFinishedBaker();
 
 private:
