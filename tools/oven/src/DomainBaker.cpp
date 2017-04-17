@@ -137,6 +137,8 @@ void DomainBaker::loadLocalFile() {
 const QString ENTITY_MODEL_URL_KEY = "modelURL";
 const QString ENTITY_SKYBOX_KEY = "skybox";
 const QString ENTITY_SKYBOX_URL_KEY = "url";
+const QString ENTITY_KEYLIGHT_KEY = "keyLight";
+const QString ENTITY_KEYLIGHT_AMBIENT_URL_KEY = "ambientURL";
 
 void DomainBaker::enumerateEntities() {
     qDebug() << "Enumerating" << _entities.size() << "entities from domain";
@@ -188,48 +190,28 @@ void DomainBaker::enumerateEntities() {
                     // the model URL to the baked version once the baker is complete
                     _entitiesNeedingRewrite.insert(modelURL, *it);
                 }
-            } else if (entity.contains(ENTITY_SKYBOX_KEY)
-                       && entity[ENTITY_SKYBOX_KEY].toObject().contains(ENTITY_SKYBOX_URL_KEY)) {
-                // we have a URL to a skybox, grab it
-                QUrl skyboxURL { entity[ENTITY_SKYBOX_KEY].toObject()[ENTITY_SKYBOX_URL_KEY].toString() };
+            } else {
+                // We check now to see if we have either a texture for a skybox or a keylight, or both.
+                if (entity.contains(ENTITY_SKYBOX_KEY)) {
+                    auto skyboxObject = entity[ENTITY_SKYBOX_KEY].toObject();
+                    if (skyboxObject.contains(ENTITY_SKYBOX_URL_KEY)) {
+                        // we have a URL to a skybox, grab it
+                        QUrl skyboxURL { skyboxObject[ENTITY_SKYBOX_URL_KEY].toString() };
 
-                auto skyboxFileName = skyboxURL.fileName();
-
-                static const QStringList BAKEABLE_SKYBOX_EXTENSIONS { ".jpg" };
-                auto completeLowerExtension = skyboxFileName.mid(skyboxFileName.indexOf('.')).toLower();
-
-                if (BAKEABLE_SKYBOX_EXTENSIONS.contains(completeLowerExtension)) {
-                    // grab a clean version of the URL without a query or fragment
-                    skyboxURL = skyboxURL.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
-
-                    // setup a texture baker for this URL, as long as we aren't baking a skybox already
-                    if (!_skyboxBakers.contains(skyboxURL)) {
-                        // figure out the path for this baked skybox
-                        auto skyboxFileName = skyboxURL.fileName();
-                        auto bakedSkyboxFileName = skyboxFileName.left(skyboxFileName.indexOf('.')) + BAKED_TEXTURE_EXT;
-                        auto bakedTextureDestination = QDir(_contentOutputPath).absoluteFilePath(bakedSkyboxFileName);
-
-                        QSharedPointer<TextureBaker> skyboxBaker {
-                            new TextureBaker(skyboxURL, gpu::CUBE_TEXTURE, bakedTextureDestination)
-                        };
-
-                        // make sure our handler is called when the skybox baker is done
-                        connect(skyboxBaker.data(), &TextureBaker::finished, this, &DomainBaker::handleFinishedSkyboxBaker);
-
-                        // insert it into our bakers hash so we hold a strong pointer to it
-                        _skyboxBakers.insert(skyboxURL, skyboxBaker);
-
-                        // move the baker to a worker thread and kickoff the bake
-                        skyboxBaker->moveToThread(qApp->getNextWorkerThread());
-                        QMetaObject::invokeMethod(skyboxBaker.data(), "bake");
-
-                        // keep track of the total number of baking entities
-                        ++_totalNumberOfSubBakes;
+                        // setup a bake of the skybox
+                        bakeSkybox(skyboxURL, *it);
                     }
+                }
 
-                    // add this QJsonValueRef to our multi hash so that it can re-write the skybox URL
-                    // to the baked version once the baker is complete
-                    _entitiesNeedingRewrite.insert(skyboxURL, *it);
+                if (entity.contains(ENTITY_KEYLIGHT_KEY)) {
+                    auto keyLightObject = entity[ENTITY_KEYLIGHT_KEY].toObject();
+                    if (keyLightObject.contains(ENTITY_KEYLIGHT_AMBIENT_URL_KEY)) {
+                        // we have a URL to a skybox, grab it
+                        QUrl skyboxURL { keyLightObject[ENTITY_KEYLIGHT_AMBIENT_URL_KEY].toString() };
+
+                        // setup a bake of the skybox
+                        bakeSkybox(skyboxURL, *it);
+                    }
                 }
             }
         }
@@ -237,6 +219,48 @@ void DomainBaker::enumerateEntities() {
 
     // emit progress now to say we're just starting
     emit bakeProgress(0, _totalNumberOfSubBakes);
+}
+
+void DomainBaker::bakeSkybox(QUrl skyboxURL, QJsonValueRef entity) {
+
+    auto skyboxFileName = skyboxURL.fileName();
+
+    static const QStringList BAKEABLE_SKYBOX_EXTENSIONS { ".jpg" };
+    auto completeLowerExtension = skyboxFileName.mid(skyboxFileName.indexOf('.')).toLower();
+
+    if (BAKEABLE_SKYBOX_EXTENSIONS.contains(completeLowerExtension)) {
+        // grab a clean version of the URL without a query or fragment
+        skyboxURL = skyboxURL.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+
+        // setup a texture baker for this URL, as long as we aren't baking a skybox already
+        if (!_skyboxBakers.contains(skyboxURL)) {
+            // figure out the path for this baked skybox
+            auto skyboxFileName = skyboxURL.fileName();
+            auto bakedSkyboxFileName = skyboxFileName.left(skyboxFileName.indexOf('.')) + BAKED_TEXTURE_EXT;
+            auto bakedTextureDestination = QDir(_contentOutputPath).absoluteFilePath(bakedSkyboxFileName);
+
+            QSharedPointer<TextureBaker> skyboxBaker {
+                new TextureBaker(skyboxURL, gpu::CUBE_TEXTURE, bakedTextureDestination)
+            };
+
+            // make sure our handler is called when the skybox baker is done
+            connect(skyboxBaker.data(), &TextureBaker::finished, this, &DomainBaker::handleFinishedSkyboxBaker);
+
+            // insert it into our bakers hash so we hold a strong pointer to it
+            _skyboxBakers.insert(skyboxURL, skyboxBaker);
+
+            // move the baker to a worker thread and kickoff the bake
+            skyboxBaker->moveToThread(qApp->getNextWorkerThread());
+            QMetaObject::invokeMethod(skyboxBaker.data(), "bake");
+
+            // keep track of the total number of baking entities
+            ++_totalNumberOfSubBakes;
+        }
+
+        // add this QJsonValueRef to our multi hash so that it can re-write the skybox URL
+        // to the baked version once the baker is complete
+        _entitiesNeedingRewrite.insert(skyboxURL, entity);
+    }
 }
 
 void DomainBaker::handleFinishedModelBaker() {
@@ -281,7 +305,7 @@ void DomainBaker::handleFinishedModelBaker() {
                         QUrl oldAnimationURL { animationObject[ENTITIY_ANIMATION_URL_KEY].toString() };
 
                         // check if its stripped down version matches our stripped down model URL
-                        if (oldAnimationURL.matches(oldModelURL, QUrl::RemoveUserInfo | QUrl::RemoveQuery | QUrl::RemoveFragment)) {
+                        if (oldAnimationURL.matches(oldModelURL, QUrl::RemoveQuery | QUrl::RemoveFragment)) {
                             // the animation URL matched the old model URL, so make the animation URL point to the baked FBX
                             // with its original query and fragment
                             auto newAnimationURL = _destinationPath.resolved(baker->getBakedFBXRelativePath());
@@ -338,23 +362,21 @@ void DomainBaker::handleFinishedSkyboxBaker() {
                     auto skyboxObject = entity[ENTITY_SKYBOX_KEY].toObject();
 
                     if (skyboxObject.contains(ENTITY_SKYBOX_URL_KEY)) {
-                        // grab the old skybox URL
-                        QUrl oldSkyboxURL { skyboxObject[ENTITY_SKYBOX_URL_KEY].toString() };
+                        if (rewriteSkyboxURL(skyboxObject[ENTITY_SKYBOX_URL_KEY], baker)) {
+                            // we re-wrote the URL, replace the skybox object referenced by the entity object
+                            entity[ENTITY_SKYBOX_KEY] = skyboxObject;
+                        }
+                    }
+                }
 
-                        // the animation URL matched the old model URL, so make the animation URL point to the baked FBX
-                        // with its original query and fragment
+                if (entity.contains(ENTITY_KEYLIGHT_KEY)) {
+                    auto ambientObject = entity[ENTITY_KEYLIGHT_KEY].toObject();
 
-                        auto bakedSkyboxFileName = QFileInfo(baker->getDestinationFilePath()).fileName();
-
-                        auto newSkyboxURL = _destinationPath.resolved(bakedSkyboxFileName);
-                        newSkyboxURL.setQuery(oldSkyboxURL.query());
-                        newSkyboxURL.setFragment(oldSkyboxURL.fragment());
-                        newSkyboxURL.setUserInfo(oldSkyboxURL.userInfo());
-
-                        skyboxObject[ENTITY_SKYBOX_URL_KEY] = newSkyboxURL.toString();
-
-                        // replace the skybox object referenced by the entity object
-                        entity[ENTITY_SKYBOX_KEY] = skyboxObject;
+                    if (ambientObject.contains(ENTITY_KEYLIGHT_AMBIENT_URL_KEY)) {
+                        if (rewriteSkyboxURL(ambientObject[ENTITY_KEYLIGHT_AMBIENT_URL_KEY], baker)) {
+                            // we re-wrote the URL, replace the ambient object referenced by the entity object
+                            entity[ENTITY_KEYLIGHT_KEY] = ambientObject;
+                        }
                     }
                 }
 
@@ -379,7 +401,27 @@ void DomainBaker::handleFinishedSkyboxBaker() {
          // check if this was the last model we needed to re-write and if we are done now
          checkIfRewritingComplete();
     }
+}
 
+bool DomainBaker::rewriteSkyboxURL(QJsonValueRef urlValue, TextureBaker* baker) {
+    // grab the old skybox URL
+    QUrl oldSkyboxURL { urlValue.toString() };
+
+    if (oldSkyboxURL.matches(baker->getTextureURL(), QUrl::RemoveQuery | QUrl::RemoveFragment)) {
+        // change the URL to point to the baked texture with its original query and fragment
+        auto bakedSkyboxFileName = QFileInfo(baker->getDestinationFilePath()).fileName();
+
+        auto newSkyboxURL = _destinationPath.resolved(bakedSkyboxFileName);
+        newSkyboxURL.setQuery(oldSkyboxURL.query());
+        newSkyboxURL.setFragment(oldSkyboxURL.fragment());
+        newSkyboxURL.setUserInfo(oldSkyboxURL.userInfo());
+
+        urlValue = newSkyboxURL.toString();
+
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void DomainBaker::checkIfRewritingComplete() {

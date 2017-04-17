@@ -46,6 +46,9 @@ private:
     void checkIfRewritingComplete();
     void writeNewEntitiesFile();
 
+    void bakeSkybox(QUrl skyboxURL, QJsonValueRef entity);
+    bool rewriteSkyboxURL(QJsonValueRef urlValue, TextureBaker* baker);
+
     QUrl _localEntitiesFileURL;
     QString _domainName;
     QString _baseOutputPath;
