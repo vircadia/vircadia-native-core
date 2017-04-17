@@ -205,7 +205,7 @@ void ModelBakeWidget::bakeButtonClicked() {
 
         // add a pending row to the results window to show that this bake is in process
         auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
-        auto resultsRow = resultsWindow->addPendingResultRow(modelToBakeURL.fileName());
+        auto resultsRow = resultsWindow->addPendingResultRow(modelToBakeURL.fileName(), outputDirectory);
 
         // keep a unique_ptr to this baker
         // and remember the row that represents it in the results table

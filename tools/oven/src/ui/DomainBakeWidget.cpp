@@ -226,7 +226,7 @@ void DomainBakeWidget::bakeButtonClicked() {
         // add a pending row to the results window to show that this bake is in process
         auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
         auto resultsRowName = _domainNameLineEdit->text().isEmpty() ? fileToBakeURL.fileName() : _domainNameLineEdit->text();
-        auto resultsRow = resultsWindow->addPendingResultRow(resultsRowName);
+        auto resultsRow = resultsWindow->addPendingResultRow(resultsRowName, outputDirectory);
 
         // keep the unique ptr to the domain baker and the index to the row representing it in the results table
         _bakers.emplace_back(std::move(domainBaker), resultsRow);

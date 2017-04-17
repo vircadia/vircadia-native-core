@@ -12,6 +12,7 @@
 #ifndef hifi_ResultsWindow_h
 #define hifi_ResultsWindow_h
 
+#include <QtCore/QDir>
 #include <QtWidgets/QWidget>
 
 class QTableWidget;
@@ -24,11 +25,15 @@ public:
 
     void setupUI();
 
-    int addPendingResultRow(const QString& fileName);
+    int addPendingResultRow(const QString& fileName, const QDir& outputDirectory);
     void changeStatusForRow(int rowIndex, const QString& result);
+
+private slots:
+    void handleCellClicked(int rowIndex, int columnIndex);
 
 private:
     QTableWidget* _resultsTable { nullptr };
+    QList<QDir> _outputDirectories;
 };
 
 #endif // hifi_ResultsWindow_h
