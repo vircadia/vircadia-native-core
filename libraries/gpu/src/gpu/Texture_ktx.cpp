@@ -75,9 +75,17 @@ std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() {
         return file;
     }
 
-    std::lock_guard<std::mutex> lock { _cacheFileCreateMutex };
-    file = std::make_shared<storage::FileStorage>(_filename.c_str());
-    _cacheFile = file;
+    {
+        std::lock_guard<std::mutex> lock{ _cacheFileCreateMutex };
+
+        file = _cacheFile.lock();
+        if (file) {
+            return file;
+        }
+
+        file = std::make_shared<storage::FileStorage>(_filename.c_str());
+        _cacheFile = file;
+    }
 
     return file;
 }
@@ -127,11 +135,16 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     data += file->size();
 
     // TODO Cache this data inside Image or ImageDescriptor?
-    for (auto i = _ktxDescriptor->header.numberOfMipmapLevels - 1; i >= level; --i) {
+    for (int i = _ktxDescriptor->header.numberOfMipmapLevels - 1; i >= level; --i) {
         data -= _ktxDescriptor->images[i]._imageSize;
         data -= 4;
     }
     data += 4;
+
+    data = file->mutableData();
+    data += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
+    data += 4;
+
     {
         std::lock_guard<std::mutex> lock { _cacheFileWriteMutex };
 

@@ -376,11 +376,11 @@ void NetworkTexture::makeRequest() {
 }
 
 void NetworkTexture::handleMipInterestCallback(uint16_t level) {
-    QMetaObject::invokeMethod(this, "handleMipInterestLevel", Qt::QueuedConnection, Q_ARG(uint16_t, level));
+    QMetaObject::invokeMethod(this, "handleMipInterestLevel", Qt::QueuedConnection, Q_ARG(int, level));
 }
 
-void NetworkTexture::handleMipInterestLevel(uint16_t level) {
-    _lowestRequestedMipLevel = std::min(level, _lowestRequestedMipLevel);
+void NetworkTexture::handleMipInterestLevel(int level) {
+    _lowestRequestedMipLevel = std::min(static_cast<uint16_t>(level), _lowestRequestedMipLevel);
     if (!_ktxMipRequest) {
         startRequestForNextMipLevel();
     }
@@ -414,10 +414,10 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
     } else {
         // TODO: Discover range for other mips
         ByteRange range;
-        range.fromInclusive = ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData
-                              + _ktxDescriptor->images[low]._imageOffset + 4;
-        range.toExclusive = ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData
-                              + _ktxDescriptor->images[high + 1]._imageOffset;
+        range.fromInclusive = ktx::KTX_HEADER_SIZE + _originalKtxDescriptor->header.bytesOfKeyValueData
+                              + _originalKtxDescriptor->images[low]._imageOffset + 4;
+        range.toExclusive = ktx::KTX_HEADER_SIZE + _originalKtxDescriptor->header.bytesOfKeyValueData
+                              + _originalKtxDescriptor->images[high + 1]._imageOffset;
         _ktxMipRequest->setByteRange(range);
     }
 
@@ -487,6 +487,9 @@ void NetworkTexture::maybeCreateKTX() {
 
         auto keyValues = ktx::KTX::parseKeyValues(header->bytesOfKeyValueData, reinterpret_cast<const ktx::Byte*>(_ktxHeaderData.data()) + ktx::KTX_HEADER_SIZE);
 
+        auto imageDescriptors = header->generateImageDescriptors();
+        _originalKtxDescriptor.reset(new ktx::KTXDescriptor(*header, keyValues, imageDescriptors));
+
         // Create bare ktx in memory
         std::string filename = "test";
         auto memKtx = ktx::KTX::createBare(*header, keyValues);
@@ -507,16 +510,17 @@ void NetworkTexture::maybeCreateKTX() {
             _file = file;
         }
 
-        _ktxDescriptor.reset(new ktx::KTXDescriptor(memKtx->toDescriptor()));
+        //_ktxDescriptor.reset(new ktx::KTXDescriptor(memKtx->toDescriptor()));
+        auto newKtxDescriptor = memKtx->toDescriptor();
 
         //auto texture = gpu::Texture::serializeHeader("test.ktx", *header, keyValues);
         gpu::TexturePointer texture;
-        texture.reset(gpu::Texture::unserialize(_file->getFilepath(), *_ktxDescriptor));
+        texture.reset(gpu::Texture::unserialize(_file->getFilepath(), newKtxDescriptor));
         texture->setKtxBacking(file->getFilepath());
         texture->setSource(filename);
         texture->registerMipInterestListener(this);
 
-        auto& images = _ktxDescriptor->images;
+        auto& images = _originalKtxDescriptor->images;
         size_t imageSizeRemaining = _ktxHighMipData.size();
         uint8_t* ktxData = reinterpret_cast<uint8_t*>(_ktxHighMipData.data());
         ktxData += _ktxHighMipData.size();
@@ -544,7 +548,7 @@ void NetworkTexture::maybeCreateKTX() {
         }
 
 
-        _lowestKnownPopulatedMip = _ktxDescriptor->header.numberOfMipmapLevels;
+        _lowestKnownPopulatedMip = _originalKtxDescriptor->header.numberOfMipmapLevels;
         for (uint16_t l = 0; l < 200; l++) {
             if (texture->isStoredMipFaceAvailable(l)) {
                 _lowestKnownPopulatedMip = l;
@@ -554,6 +558,7 @@ void NetworkTexture::maybeCreateKTX() {
 
         setImage(texture, header->getPixelWidth(), header->getPixelHeight());
 
+        return;
 
         // Force load the next two levels
         {

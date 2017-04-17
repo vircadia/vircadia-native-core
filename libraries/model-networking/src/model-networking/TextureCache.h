@@ -58,7 +58,7 @@ public:
     gpu::TexturePointer getFallbackTexture() const;
 
     void handleMipInterestCallback(uint16_t level) override;
-    Q_INVOKABLE void handleMipInterestLevel(uint16_t level);
+    Q_INVOKABLE void handleMipInterestLevel(int level);
 
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
@@ -114,7 +114,7 @@ private:
     // We need this because the KTX that will be cached will likely include extra data
     // in its key/value data, and so will not match up with the original, causing
     // mip offsets to change.
-    ktx::KTXDescriptorPointer _ktxDescriptor;
+    ktx::KTXDescriptorPointer _originalKtxDescriptor;
 
 
     int _originalWidth { 0 };
