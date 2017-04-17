@@ -171,7 +171,7 @@ void ModelBakeWidget::bakeButtonClicked() {
         QUrl modelToBakeURL(fileURLString);
 
         // if the URL doesn't have a scheme, assume it is a local file
-        if (modelToBakeURL.scheme().isEmpty()) {
+        if (modelToBakeURL.scheme() != "http" && modelToBakeURL.scheme() != "https" && modelToBakeURL.scheme() != "ftp") {
             modelToBakeURL.setScheme("file");
         }
 
