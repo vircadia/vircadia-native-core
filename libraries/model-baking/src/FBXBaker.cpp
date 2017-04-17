@@ -30,9 +30,11 @@
 std::once_flag onceFlag;
 FBXSDKManagerUniquePointer FBXBaker::_sdkManager { nullptr };
 
-FBXBaker::FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath, bool copyOriginals) :
+FBXBaker::FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath, 
+                   TextureBakerThreadGetter textureThreadGetter, bool copyOriginals) :
     _fbxURL(fbxURL),
     _baseOutputPath(baseOutputPath),
+    _textureThreadGetter(textureThreadGetter),
     _copyOriginals(copyOriginals)
 {
     std::call_once(onceFlag, [](){
@@ -402,8 +404,9 @@ void FBXBaker::bakeTexture(const QUrl& textureURL, gpu::TextureType textureType,
     // keep a shared pointer to the baking texture
     _bakingTextures.insert(bakingTexture);
 
-    // start baking the texture on our thread pool
-    QtConcurrent::run(bakingTexture.data(), &TextureBaker::bake);
+    // start baking the texture on one of our available worker threads
+    bakingTexture->moveToThread(_textureThreadGetter());
+    QMetaObject::invokeMethod(bakingTexture.data(), "bake");
 }
 
 void FBXBaker::handleBakedTexture() {

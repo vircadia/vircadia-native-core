@@ -27,18 +27,23 @@ class TextureBaker : public Baker {
 
 public:
     TextureBaker(const QUrl& textureURL, gpu::TextureType textureType, const QString& destinationFilePath);
-    
-    void bake();
 
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 
     const QUrl& getTextureURL() const { return _textureURL; }
 
+public slots:
+    virtual void bake() override;
+
+signals:
+    void originalTextureLoaded();
+
+private slots:
+    void processTexture();
+
 private:
     void loadTexture();
-    void handleTextureNetworkReply(QNetworkReply* requestReply);
-
-    void processTexture();
+    void handleTextureNetworkReply();
 
     QUrl _textureURL;
     QByteArray _originalTexture;

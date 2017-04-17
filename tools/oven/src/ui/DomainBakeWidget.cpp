@@ -216,8 +216,12 @@ void DomainBakeWidget::bakeButtonClicked() {
         // watch the baker's progress so that we can put its progress in the results table
         connect(domainBaker.get(), &DomainBaker::bakeProgress, this, &DomainBakeWidget::handleBakerProgress);
 
-        // run the baker in our thread pool
-        QtConcurrent::run(domainBaker.get(), &DomainBaker::bake);
+        // move the baker to the next available Oven worker thread
+        auto nextThread = qApp->getNextWorkerThread();
+        domainBaker->moveToThread(nextThread);
+
+        // kickoff the domain baker on its thread
+        QMetaObject::invokeMethod(domainBaker.get(), "bake");
 
         // add a pending row to the results window to show that this bake is in process
         auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
@@ -232,7 +236,7 @@ void DomainBakeWidget::bakeButtonClicked() {
 void DomainBakeWidget::handleBakerProgress(int modelsBaked, int modelsTotal) {
     if (auto baker = qobject_cast<DomainBaker*>(sender())) {
         // add the results of this bake to the results window
-        auto it = std::remove_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
+        auto it = std::find_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
             return value.first.get() == baker;
         });
 
@@ -251,7 +255,7 @@ void DomainBakeWidget::handleBakerProgress(int modelsBaked, int modelsTotal) {
 void DomainBakeWidget::handleFinishedBaker() {
     if (auto baker = qobject_cast<DomainBaker*>(sender())) {
         // add the results of this bake to the results window
-        auto it = std::remove_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
+        auto it = std::find_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
             return value.first.get() == baker;
         });
 
@@ -260,12 +264,21 @@ void DomainBakeWidget::handleFinishedBaker() {
             auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
 
             if (baker->hasErrors()) {
-                resultsWindow->changeStatusForRow(resultRow, baker->getErrors().join("\n"));
+                auto errors = baker->getErrors();
+                errors.removeDuplicates();
+
+                resultsWindow->changeStatusForRow(resultRow, errors.join("\n"));
             } else if (baker->hasWarnings()) {
-                resultsWindow->changeStatusForRow(resultRow, baker->getWarnings().join("\n"));
+                auto warnings = baker->getWarnings();
+                warnings.removeDuplicates();
+
+                resultsWindow->changeStatusForRow(resultRow, warnings.join("\n"));
             } else {
                 resultsWindow->changeStatusForRow(resultRow, "Success");
             }
+
+            // remove the DomainBaker now that it has completed
+            _bakers.erase(it);
         }
     }
 }

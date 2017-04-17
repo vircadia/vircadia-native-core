@@ -14,6 +14,8 @@
 
 #include <QtWidgets/QApplication>
 
+#include <tbb/concurrent_vector.h>
+
 #if defined(qApp)
 #undef qApp
 #endif
@@ -26,11 +28,23 @@ class Oven : public QApplication {
 
 public:
     Oven(int argc, char* argv[]);
+    ~Oven();
 
     OvenMainWindow* getMainWindow() const { return _mainWindow; }
 
+    QThread* getFBXBakerThread();
+    QThread* getNextWorkerThread();
+
 private:
+    void setupWorkerThreads(int numWorkerThreads);
+    void setupFBXBakerThread();
+
     OvenMainWindow* _mainWindow;
+    QThread* _fbxBakerThread;
+    QList<QThread*> _workerThreads;
+
+    std::atomic<uint> _nextWorkerThreadIndex;
+    int _numWorkerThreads;
 };
 
 

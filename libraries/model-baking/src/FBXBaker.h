@@ -32,21 +32,23 @@ namespace fbxsdk {
 static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
 using FBXSDKManagerUniquePointer = std::unique_ptr<fbxsdk::FbxManager, std::function<void (fbxsdk::FbxManager *)>>;
 
+using TextureBakerThreadGetter = std::function<QThread*()>;
+
 class FBXBaker : public Baker {
     Q_OBJECT
 public:
-    FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath, bool copyOriginals = true);
-
-    // all calls to bake must be from the same thread, because the Autodesk SDK will cause
-    // a crash if it is called from multiple threads
-    Q_INVOKABLE virtual void bake() override;
+    FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath,
+             TextureBakerThreadGetter textureThreadGetter, bool copyOriginals = true);
 
     QUrl getFBXUrl() const { return _fbxURL; }
     QString getBakedFBXRelativePath() const { return _bakedFBXRelativePath; }
 
-signals:
-    void allTexturesBaked();
+public slots:
+    // all calls to FBXBaker::bake for FBXBaker instances must be from the same thread
+    // because the Autodesk SDK will cause a crash if it is called from multiple threads
+    virtual void bake() override;
 
+signals:
     void sourceCopyReadyToLoad();
 
 private slots:
@@ -91,6 +93,8 @@ private:
 
     QSet<QSharedPointer<TextureBaker>> _bakingTextures;
     QFutureSynchronizer<void> _textureBakeSynchronizer;
+
+    TextureBakerThreadGetter _textureThreadGetter;
 
     bool _copyOriginals { true };
 

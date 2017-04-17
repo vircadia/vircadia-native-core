@@ -183,7 +183,11 @@ void ModelBakeWidget::bakeButtonClicked() {
         }
 
         // everything seems to be in place, kick off a bake for this model now
-        auto baker = std::unique_ptr<FBXBaker> { new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), false) };
+        auto baker = std::unique_ptr<FBXBaker> {
+            new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), []() -> QThread* {
+                return qApp->getNextWorkerThread();
+            }, false)
+        };
 
         // move the baker to the baker thread
         baker->moveToThread(_bakerThread);

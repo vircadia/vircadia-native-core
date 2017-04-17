@@ -18,13 +18,14 @@ class Baker : public QObject {
     Q_OBJECT
 
 public:
-    virtual void bake() = 0;
-
     bool hasErrors() const { return !_errorList.isEmpty(); }
     QStringList getErrors() const { return _errorList; }
 
     bool hasWarnings() const { return !_warningList.isEmpty(); }
     QStringList getWarnings() const { return _warningList; }
+
+public slots:
+    virtual void bake() = 0;
 
 signals:
     void finished();

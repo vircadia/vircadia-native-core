@@ -33,24 +33,11 @@ TextureBaker::TextureBaker(const QUrl& textureURL, gpu::TextureType textureType,
 }
 
 void TextureBaker::bake() {
+    // once our texture is loaded, kick off a the processing
+    connect(this, &TextureBaker::originalTextureLoaded, this, &TextureBaker::processTexture);
+
     // first load the texture (either locally or remotely)
     loadTexture();
-
-    if (hasErrors()) {
-        return;
-    }
-
-    qCDebug(model_baking) << "Baking texture at" << _textureURL;
-
-    processTexture();
-
-    if (hasErrors()) {
-        return;
-    }
-
-    qCDebug(model_baking) << "Baked texture at" << _textureURL;
-
-    emit finished();
 }
 
 void TextureBaker::loadTexture() {
@@ -65,6 +52,8 @@ void TextureBaker::loadTexture() {
         }
 
         _originalTexture = localTexture.readAll();
+
+        emit originalTextureLoaded();
     } else {
         // remote file, kick off a download
         auto& networkAccessManager = NetworkAccessManager::getInstance();
@@ -79,23 +68,22 @@ void TextureBaker::loadTexture() {
 
         qCDebug(model_baking) << "Downloading" << _textureURL;
 
+        // kickoff the download, wait for slot to tell us it is done
         auto networkReply = networkAccessManager.get(networkRequest);
-
-        // use an event loop to process events while we wait for the network reply
-        QEventLoop eventLoop;
-        connect(networkReply, &QNetworkReply::finished, &eventLoop, &QEventLoop::quit);
-        eventLoop.exec();
-
-        handleTextureNetworkReply(networkReply);
+        connect(networkReply, &QNetworkReply::finished, this, &TextureBaker::handleTextureNetworkReply);
     }
 }
 
-void TextureBaker::handleTextureNetworkReply(QNetworkReply* requestReply) {
+void TextureBaker::handleTextureNetworkReply() {
+    auto requestReply = qobject_cast<QNetworkReply*>(sender());
+
     if (requestReply->error() == QNetworkReply::NoError) {
-        qCDebug(model_baking) << "Downloaded texture at" << _textureURL;
+        qCDebug(model_baking) << "Downloaded texture" << _textureURL;
 
         // store the original texture so it can be passed along for the bake
         _originalTexture = requestReply->readAll();
+
+        emit originalTextureLoaded();
     } else {
         // add an error to our list stating that this texture could not be downloaded
         handleError("Error downloading " + _textureURL.toString() + " - " + requestReply->errorString());
@@ -111,6 +99,13 @@ void TextureBaker::processTexture() {
         return;
     }
 
+    // the baked textures need to have the source hash added for cache checks in Interface
+    // so we add that to the processed texture before handling it off to be serialized
+    QCryptographicHash hasher(QCryptographicHash::Md5);
+    hasher.addData(_originalTexture);
+    std::string hash = hasher.result().toHex().toStdString();
+    processedTexture->setSourceHash(hash);
+    
     auto memKTX = gpu::Texture::serialize(*processedTexture);
 
     if (!memKTX) {
@@ -127,4 +122,7 @@ void TextureBaker::processTexture() {
     if (!bakedTextureFile.open(QIODevice::WriteOnly) || bakedTextureFile.write(data, length) == -1) {
         handleError("Could not write baked texture for " + _textureURL.toString());
     }
+
+    qCDebug(model_baking) << "Baked texture" << _textureURL;
+    emit finished();
 }

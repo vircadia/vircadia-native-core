@@ -18,6 +18,8 @@
 
 #include "Gzip.h"
 
+#include "Oven.h"
+
 #include "DomainBaker.h"
 
 DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainName,
@@ -47,40 +49,14 @@ void DomainBaker::bake() {
         return;
     }
 
-    setupBakerThread();
-
-    if (hasErrors()) {
-        return;
-    }
-
     enumerateEntities();
 
     if (hasErrors()) {
         return;
     }
 
-    if (!_entitiesNeedingRewrite.isEmpty()) {
-        // use a QEventLoop to wait for all entity rewrites to be completed before writing the final models file
-        QEventLoop eventLoop;
-        connect(this, &DomainBaker::allModelsFinished, &eventLoop, &QEventLoop::quit);
-        eventLoop.exec();
-    }
-
-    if (hasErrors()) {
-        return;
-    }
-
-    writeNewEntitiesFile();
-
-    if (hasErrors()) {
-        return;
-    }
-
-    // stop the FBX baker thread now that all our bakes have completed
-    _fbxBakerThread->quit();
-
-    // we've now written out our new models file - time to say that we are finished up
-    emit finished();
+    // in case we've baked and re-written all of our entities already, check if we're done
+    checkIfRewritingComplete();
 }
 
 void DomainBaker::setupOutputFolder() {
@@ -158,15 +134,6 @@ void DomainBaker::loadLocalFile() {
     }
 }
 
-void DomainBaker::setupBakerThread() {
-    // This is a real bummer, but the FBX SDK is not thread safe - even with separate FBXManager objects.
-    // This means that we need to put all of the FBX importing/exporting on the same thread.
-    // We'll setup that thread now and then move the FBXBaker objects to the thread later when enumerating entities.
-    _fbxBakerThread = std::unique_ptr<QThread>(new QThread);
-    _fbxBakerThread->setObjectName("Domain FBX Baker Thread");
-    _fbxBakerThread->start();
-}
-
 static const QString ENTITY_MODEL_URL_KEY = "modelURL";
 
 void DomainBaker::enumerateEntities() {
@@ -190,12 +157,15 @@ void DomainBaker::enumerateEntities() {
 
                 if (BAKEABLE_MODEL_EXTENSIONS.contains(completeLowerExtension)) {
                     // grab a clean version of the URL without a query or fragment
-                    modelURL.setFragment(QString());
-                    modelURL.setQuery(QString());
+                    modelURL = modelURL.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
 
                     // setup an FBXBaker for this URL, as long as we don't already have one
                     if (!_bakers.contains(modelURL)) {
-                        QSharedPointer<FBXBaker> baker { new FBXBaker(modelURL, _contentOutputPath), &FBXBaker::deleteLater };
+                        QSharedPointer<FBXBaker> baker {
+                            new FBXBaker(modelURL, _contentOutputPath, []() -> QThread* {
+                                return qApp->getNextWorkerThread();
+                            }), &FBXBaker::deleteLater
+                        };
 
                         // make sure our handler is called when the baker is done
                         connect(baker.data(), &Baker::finished, this, &DomainBaker::handleFinishedBaker);
@@ -205,7 +175,7 @@ void DomainBaker::enumerateEntities() {
 
                         // move the baker to the baker thread
                         // and kickoff the bake
-                        baker->moveToThread(_fbxBakerThread.get());
+                        baker->moveToThread(qApp->getFBXBakerThread());
                         QMetaObject::invokeMethod(baker.data(), "bake");
                     }
 
@@ -228,6 +198,7 @@ void DomainBaker::handleFinishedBaker() {
     if (baker) {
         if (!baker->hasErrors()) {
             // this FBXBaker is done and everything went according to plan
+            qDebug() << "Re-writing entity references to" << baker->getFBXUrl();
 
             // enumerate the QJsonRef values for the URL of this FBX from our multi hash of
             // entity objects needing a URL re-write
@@ -242,12 +213,42 @@ void DomainBaker::handleFinishedBaker() {
                 // setup a new URL using the prefix we were passed
                 QUrl newModelURL = _destinationPath.resolved(baker->getBakedFBXRelativePath());
 
-                // copy the fragment and query from the old model URL
+                // copy the fragment and query, and user info from the old model URL
                 newModelURL.setQuery(oldModelURL.query());
                 newModelURL.setFragment(oldModelURL.fragment());
+                newModelURL.setUserInfo(oldModelURL.userInfo());
 
                 // set the new model URL as the value in our temp QJsonObject
                 entity[ENTITY_MODEL_URL_KEY] = newModelURL.toString();
+
+                // check if the entity also had an animation at the same URL
+                // in which case it should be replaced with our baked model URL too
+                const QString ENTITY_ANIMATION_KEY = "animation";
+                const QString ENTITIY_ANIMATION_URL_KEY = "url";
+
+                if (entity.contains(ENTITY_ANIMATION_KEY)
+                    && entity[ENTITY_ANIMATION_KEY].toObject().contains(ENTITIY_ANIMATION_URL_KEY)) {
+                    auto animationValue = entity[ENTITY_ANIMATION_KEY];
+                    auto animationObject = animationValue.toObject();
+
+                    // grab the old animation URL
+                    QUrl oldAnimationURL { animationObject[ENTITIY_ANIMATION_URL_KEY].toString() };
+
+                    // check if its stripped down version matches our stripped down model URL
+                    if (oldAnimationURL.matches(oldModelURL, QUrl::RemoveUserInfo | QUrl::RemoveQuery | QUrl::RemoveFragment)) {
+                        // the animation URL matched the old model URL, so make the animation URL point to the baked FBX
+                        // with its original query and fragment
+                        auto newAnimationURL = _destinationPath.resolved(baker->getBakedFBXRelativePath());
+                        newAnimationURL.setQuery(oldAnimationURL.query());
+                        newAnimationURL.setFragment(oldAnimationURL.fragment());
+                        newAnimationURL.setUserInfo(oldAnimationURL.userInfo());
+
+                        animationObject[ENTITIY_ANIMATION_URL_KEY] = newAnimationURL.toString();
+
+                        // replace the animation object referenced by the QJsonValueRef
+                        animationValue = animationObject;
+                    }
+                }
                 
                 // replace our temp object with the value referenced by our QJsonValueRef
                 entityValue = entity;
@@ -267,9 +268,21 @@ void DomainBaker::handleFinishedBaker() {
         // emit progress to tell listeners how many models we have baked
         emit bakeProgress(_totalNumberOfEntities - _entitiesNeedingRewrite.keys().size(), _totalNumberOfEntities);
 
-        if (_entitiesNeedingRewrite.isEmpty()) {
-            emit allModelsFinished();
+        // check if this was the last model we needed to re-write and if we are done now
+        checkIfRewritingComplete();
+    }
+}
+
+void DomainBaker::checkIfRewritingComplete() {
+    if (_entitiesNeedingRewrite.isEmpty()) {
+        writeNewEntitiesFile();
+
+        if (hasErrors()) {
+            return;
         }
+
+        // we've now written out our new models file - time to say that we are finished up
+        emit finished();
     }
 }
 
@@ -308,6 +321,5 @@ void DomainBaker::writeNewEntitiesFile() {
     }
 
     qDebug() << "Exported entities file with baked model URLs to" << bakedEntitiesFilePath;
-    qDebug() << "WARNINGS:" << _warningList;
 }
 

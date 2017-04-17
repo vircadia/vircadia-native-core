@@ -10,6 +10,7 @@
 //
 
 #include <QtCore/QDebug>
+#include <QtCore/QThread>
 
 #include <SettingInterface.h>
 
@@ -33,5 +34,67 @@ Oven::Oven(int argc, char* argv[]) :
     // setup the GUI
     _mainWindow = new OvenMainWindow;
     _mainWindow->show();
+
+    // setup our worker threads
+    setupWorkerThreads(QThread::idealThreadCount() - 1);
+
+    // Autodesk's SDK means that we need a single thread for all FBX importing/exporting in the same process
+    // setup the FBX Baker thread
+    setupFBXBakerThread();
+}
+
+Oven::~Oven() {
+    // cleanup the worker threads
+    for (auto i = 0; i < _workerThreads.size(); ++i) {
+        _workerThreads[i]->quit();
+        _workerThreads[i]->wait();
+    }
+
+    // cleanup the FBX Baker thread
+    _fbxBakerThread->quit();
+    _fbxBakerThread->wait();
+}
+
+void Oven::setupWorkerThreads(int numWorkerThreads) {
+    for (auto i = 0; i < numWorkerThreads; ++i) {
+        // setup a worker thread yet and add it to our concurrent vector
+        auto newThread = new QThread(this);
+        newThread->setObjectName("Oven Worker Thread " + QString::number(i + 1));
+
+        _workerThreads.push_back(newThread);
+    }
+}
+
+void Oven::setupFBXBakerThread() {
+    // we're being asked for the FBX baker thread, but we don't have one yet
+    // so set that up now
+    _fbxBakerThread = new QThread(this);
+    _fbxBakerThread->setObjectName("Oven FBX Baker Thread");
+}
+
+QThread* Oven::getFBXBakerThread() {
+    if (!_fbxBakerThread->isRunning()) {
+        // start the FBX baker thread if it isn't running yet
+        _fbxBakerThread->start();
+    }
+
+    return _fbxBakerThread;
+}
+
+QThread* Oven::getNextWorkerThread() {
+    // Here we replicate some of the functionality of QThreadPool by giving callers an available worker thread to use.
+    // We can't use QThreadPool because we want to put QObjects with signals/slots on these threads.
+    // So instead we setup our own list of threads, up to one less than the ideal thread count
+    // (for the FBX Baker Thread to have room), and cycle through them to hand a usable running thread back to our callers.
+
+    auto nextIndex = ++_nextWorkerThreadIndex;
+    auto nextThread = _workerThreads[nextIndex % _workerThreads.size()];
+
+    // start the thread if it isn't running yet
+    if (!nextThread->isRunning()) {
+        nextThread->start();
+    }
+
+    return nextThread;
 }
 
