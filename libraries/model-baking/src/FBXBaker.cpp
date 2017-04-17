@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <cmath> // need this include so we don't get an error looking for std::isnan
+
 #include <fbxsdk.h>
 
 #include <QtConcurrent>

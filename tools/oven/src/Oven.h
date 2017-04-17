@@ -16,6 +16,8 @@
 
 #include <tbb/concurrent_vector.h>
 
+#include <atomic>
+
 #if defined(qApp)
 #undef qApp
 #endif
