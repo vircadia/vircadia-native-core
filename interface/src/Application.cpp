@@ -1420,11 +1420,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(DependencyManager::get<AudioClient>().data(), &AudioClient::mutedByMixer, this, onMutedByMixer);
 
     // Track when the address bar is opened
-    auto onAddressBarToggled = [this]() {
+    auto onAddressBarShown = [this]() {
         // Record time
         UserActivityLogger::getInstance().logAction("opened_address_bar", { { "uptime_ms", _sessionRunTimer.elapsed() } });
     };
-    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarToggled, this, onAddressBarToggled);
+    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarShown, this, onAddressBarShown);
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
