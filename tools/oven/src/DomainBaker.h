@@ -19,6 +19,7 @@
 
 #include <Baker.h>
 #include <FBXBaker.h>
+#include <TextureBaker.h>
 
 class DomainBaker : public Baker {
     Q_OBJECT
@@ -31,11 +32,12 @@ public:
 
 signals:
     void allModelsFinished();
-    void bakeProgress(int modelsBaked, int modelsTotal);
+    void bakeProgress(int baked, int total);
 
 private slots:
     virtual void bake() override;
-    void handleFinishedBaker();
+    void handleFinishedModelBaker();
+    void handleFinishedSkyboxBaker();
 
 private:
     void setupOutputFolder();
@@ -53,10 +55,13 @@ private:
 
     QJsonArray _entities;
 
-    QHash<QUrl, QSharedPointer<FBXBaker>> _bakers;
+    QHash<QUrl, QSharedPointer<FBXBaker>> _modelBakers;
+    QHash<QUrl, QSharedPointer<TextureBaker>> _skyboxBakers;
+    
     QMultiHash<QUrl, QJsonValueRef> _entitiesNeedingRewrite;
 
-    int _totalNumberOfEntities { 0 };
+    int _totalNumberOfSubBakes { 0 };
+    int _completedSubBakes { 0 };
 };
 
 #endif // hifi_DomainBaker_h

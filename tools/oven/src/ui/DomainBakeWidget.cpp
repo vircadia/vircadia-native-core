@@ -233,7 +233,7 @@ void DomainBakeWidget::bakeButtonClicked() {
     }
 }
 
-void DomainBakeWidget::handleBakerProgress(int modelsBaked, int modelsTotal) {
+void DomainBakeWidget::handleBakerProgress(int baked, int total) {
     if (auto baker = qobject_cast<DomainBaker*>(sender())) {
         // add the results of this bake to the results window
         auto it = std::find_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
@@ -244,9 +244,9 @@ void DomainBakeWidget::handleBakerProgress(int modelsBaked, int modelsTotal) {
             auto resultRow = it->second;
             auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
 
-            int percentage = roundf(float(modelsBaked) / float(modelsTotal) * 100.0f);
+            int percentage = roundf(float(baked) / float(total) * 100.0f);
 
-            auto statusString = QString("Baking - %1 of %2 models baked - %3%").arg(modelsBaked).arg(modelsTotal).arg(percentage);
+            auto statusString = QString("Baking - %1 of %2 - %3%").arg(baked).arg(total).arg(percentage);
             resultsWindow->changeStatusForRow(resultRow, statusString);
         }
     }

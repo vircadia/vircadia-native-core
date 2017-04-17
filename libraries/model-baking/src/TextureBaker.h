@@ -32,6 +32,8 @@ public:
 
     const QUrl& getTextureURL() const { return _textureURL; }
 
+    const QString& getDestinationFilePath() const { return _destinationFilePath; }
+
 public slots:
     virtual void bake() override;
 
