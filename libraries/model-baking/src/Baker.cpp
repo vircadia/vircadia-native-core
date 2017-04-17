@@ -19,7 +19,7 @@ void Baker::handleError(const QString& error) {
     emit finished();
 }
 
-void Baker::appendErrors(const QStringList& errors) {
+void Baker::handleErrors(const QStringList& errors) {
     // we're appending errors, presumably from a baking operation we called
     // add those to our list and emit that we are finished
     _errorList.append(errors);

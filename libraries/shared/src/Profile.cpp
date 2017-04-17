@@ -34,7 +34,7 @@ Q_LOGGING_CATEGORY(trace_simulation_physics_detail, "trace.simulation.physics.de
 #endif
 
 static bool tracingEnabled() {
-    return DependencyManager::get<tracing::Tracer>()->isEnabled();
+    return DependencyManager::isSet<tracing::Tracer>() && DependencyManager::get<tracing::Tracer>()->isEnabled();
 }
 
 Duration::Duration(const QLoggingCategory& category, const QString& name, uint32_t argbColor, uint64_t payload, const QVariantMap& baseArgs) : _name(name), _category(category) {

@@ -33,8 +33,7 @@ protected:
     void handleError(const QString& error);
     void handleWarning(const QString& warning);
 
-    void appendErrors(const QStringList& errors);
-    void appendWarnings(const QStringList& warnings) { _warningList << warnings; }
+    void handleErrors(const QStringList& errors);
 
     QStringList _errorList;
     QStringList _warningList;

@@ -9,20 +9,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QDir>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFile>
 #include <QtNetwork/QNetworkReply>
 
+#include <image/Image.h>
+#include <ktx/KTX.h>
 #include <NetworkAccessManager.h>
 
 #include "ModelBakingLoggingCategory.h"
 
 #include "TextureBaker.h"
 
-TextureBaker::TextureBaker(const QUrl& textureURL) :
-    _textureURL(textureURL)
+const QString BAKED_TEXTURE_EXT = ".ktx";
+
+TextureBaker::TextureBaker(const QUrl& textureURL, gpu::TextureType textureType, const QString& destinationFilePath) :
+    _textureURL(textureURL),
+    _textureType(textureType),
+    _destinationFilePath(destinationFilePath)
 {
-    
+
 }
 
 void TextureBaker::bake() {
@@ -34,6 +41,14 @@ void TextureBaker::bake() {
     }
 
     qCDebug(model_baking) << "Baking texture at" << _textureURL;
+
+    processTexture();
+
+    if (hasErrors()) {
+        return;
+    }
+
+    qCDebug(model_baking) << "Baked texture at" << _textureURL;
 
     emit finished();
 }
@@ -83,6 +98,33 @@ void TextureBaker::handleTextureNetworkReply(QNetworkReply* requestReply) {
         _originalTexture = requestReply->readAll();
     } else {
         // add an error to our list stating that this texture could not be downloaded
-        qCDebug(model_baking) << "Error downloading texture" << requestReply->errorString();
+        handleError("Error downloading " + _textureURL.toString() + " - " + requestReply->errorString());
+    }
+}
+
+void TextureBaker::processTexture() {
+    auto processedTexture = image::processImage(_originalTexture, _textureURL.toString().toStdString(),
+                                                ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType);
+
+    if (!processedTexture) {
+        handleError("Could not process texture " + _textureURL.toString());
+        return;
+    }
+
+    auto memKTX = gpu::Texture::serialize(*processedTexture);
+
+    if (!memKTX) {
+        handleError("Could not serialize " + _textureURL.toString() + " to KTX");
+        return;
+    }
+
+    const char* data = reinterpret_cast<const char*>(memKTX->_storage->data());
+    const size_t length = memKTX->_storage->size();
+
+    // attempt to write the baked texture to the destination file path
+    QFile bakedTextureFile { _destinationFilePath };
+
+    if (!bakedTextureFile.open(QIODevice::WriteOnly) || bakedTextureFile.write(data, length) == -1) {
+        handleError("Could not write baked texture for " + _textureURL.toString());
     }
 }

@@ -20,31 +20,14 @@
 #include "Baker.h"
 #include "TextureBaker.h"
 
+#include <gpu/Texture.h> 
+
 namespace fbxsdk {
     class FbxManager;
     class FbxProperty;
     class FbxScene;
     class FbxFileTexture;
 }
-
-enum TextureType {
-    DEFAULT_TEXTURE,
-    STRICT_TEXTURE,
-    ALBEDO_TEXTURE,
-    NORMAL_TEXTURE,
-    BUMP_TEXTURE,
-    SPECULAR_TEXTURE,
-    METALLIC_TEXTURE = SPECULAR_TEXTURE, // for now spec and metallic texture are the same, converted to grey
-    ROUGHNESS_TEXTURE,
-    GLOSS_TEXTURE,
-    EMISSIVE_TEXTURE,
-    CUBE_TEXTURE,
-    OCCLUSION_TEXTURE,
-    SCATTERING_TEXTURE = OCCLUSION_TEXTURE,
-    LIGHTMAP_TEXTURE,
-    CUSTOM_TEXTURE,
-    UNUSED_TEXTURE = -1
-};
 
 static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
 using FBXSDKManagerUniquePointer = std::unique_ptr<fbxsdk::FbxManager, std::function<void (fbxsdk::FbxManager *)>>;
@@ -89,7 +72,7 @@ private:
     QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
     QUrl getTextureURL(const QFileInfo& textureFileInfo, fbxsdk::FbxFileTexture* fileTexture);
 
-    void bakeTexture(const QUrl& textureURL);
+    void bakeTexture(const QUrl& textureURL, gpu::TextureType textureType, const QString& destinationFilePath);
 
     QString pathToCopyOfOriginal() const;
 
@@ -103,18 +86,15 @@ private:
     static FBXSDKManagerUniquePointer _sdkManager;
     fbxsdk::FbxScene* _scene { nullptr };
 
-    QStringList _errorList;
-
     QHash<QUrl, QString> _unbakedTextures;
     QHash<QString, int> _textureNameMatchCount;
-    QHash<uint64_t, TextureType> _textureTypes;
 
     QSet<QSharedPointer<TextureBaker>> _bakingTextures;
     QFutureSynchronizer<void> _textureBakeSynchronizer;
 
     bool _copyOriginals { true };
 
-    bool _finishedNonTextureOperations { false };
+    bool _pendingErrorEmission { false };
 };
 
 #endif // hifi_FBXBaker_h

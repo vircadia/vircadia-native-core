@@ -14,14 +14,19 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtCore/QRunnable>
+
+#include <gpu/Texture.h>
 
 #include "Baker.h"
+
+extern const QString BAKED_TEXTURE_EXT;
 
 class TextureBaker : public Baker {
     Q_OBJECT
 
 public:
-    TextureBaker(const QUrl& textureURL);
+    TextureBaker(const QUrl& textureURL, gpu::TextureType textureType, const QString& destinationFilePath);
     
     void bake();
 
@@ -33,8 +38,13 @@ private:
     void loadTexture();
     void handleTextureNetworkReply(QNetworkReply* requestReply);
 
+    void processTexture();
+
     QUrl _textureURL;
     QByteArray _originalTexture;
+    gpu::TextureType _textureType;
+
+    QString _destinationFilePath;
 };
 
 #endif // hifi_TextureBaker_h

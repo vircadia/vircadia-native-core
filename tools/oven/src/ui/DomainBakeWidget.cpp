@@ -160,9 +160,6 @@ void DomainBakeWidget::chooseFileButtonClicked() {
 
         // save the directory containing this entities file so we can default to it next time we show the file dialog
         _browseStartDirectory.set(directoryOfEntitiesFile);
-
-        // if our output directory is not yet set, set it to the directory of this entities file
-        _outputDirLineEdit->setText(directoryOfEntitiesFile);
     }
 }
 

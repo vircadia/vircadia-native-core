@@ -236,7 +236,7 @@ void DomainBaker::handleFinishedBaker() {
                 QUrl oldModelURL { entity[ENTITY_MODEL_URL_KEY].toString() };
 
                 // setup a new URL using the prefix we were passed
-                QUrl newModelURL = _destinationPath.resolved(baker->getBakedFBXRelativePath().mid(1));
+                QUrl newModelURL = _destinationPath.resolved(baker->getBakedFBXRelativePath());
 
                 // copy the fragment and query from the old model URL
                 newModelURL.setQuery(oldModelURL.query());
@@ -251,7 +251,7 @@ void DomainBaker::handleFinishedBaker() {
         } else {
             // this model failed to bake - this doesn't fail the entire bake but we need to add
             // the errors from the model to our errors
-            appendWarnings(baker->getErrors());
+            _warningList << baker->getErrors();
         }
 
         // remove the baked URL from the multi hash of entities needing a re-write

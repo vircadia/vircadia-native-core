@@ -207,8 +207,6 @@ void FBXBaker::importScene() {
     importer->Destroy();
 }
 
-static const QString BAKED_TEXTURE_EXT = ".ktx";
-
 QString texturePathRelativeToFBX(QUrl fbxURL, QUrl textureURL) {
     auto fbxPath = fbxURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
     auto texturePath = textureURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
@@ -256,49 +254,25 @@ QUrl FBXBaker::getTextureURL(const QFileInfo& textureFileInfo, FbxFileTexture* f
         QString relativeFileName = fileTexture->GetRelativeFileName();
         auto apparentRelativePath = QFileInfo(relativeFileName.replace("\\", "/"));
 
-#ifndef Q_OS_WIN
-        // it turns out that paths that start with a drive letter and a colon appear to QFileInfo
-        // as a relative path on UNIX systems - we perform a special check here to handle that case
-        bool isAbsolute = relativeFileName[1] == ':' || apparentRelativePath.isAbsolute();
-#else
-        bool isAbsolute = apparentRelativePath.isAbsolute();
-#endif
-
-        if (isAbsolute) {
-            // this is a relative file path which will require different handling
-            // depending on the location of the original FBX
-            if (_fbxURL.isLocalFile()) {
-                // since the loaded FBX is loaded, first check if we actually have the texture locally
-                // at the absolute path
-                if (apparentRelativePath.exists() && apparentRelativePath.isFile()) {
-                    // the absolute path we ran into for the texture in the FBX exists on this machine
-                    // so use that file
-                    urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
-                } else {
-                    // we didn't find the texture on this machine at the absolute path
-                    // so assume that it is right beside the FBX to match the behaviour of interface
-                    urlToTexture = _fbxURL.resolved(apparentRelativePath.fileName());
-                }
-            } else {
-                // the original FBX was remote and downloaded
-
-                // since this "relative" texture path is actually absolute, we have to assume it is beside the FBX
-                // which matches the behaviour of Interface
-
-                // append that path to our list of unbaked textures
-                urlToTexture = _fbxURL.resolved(apparentRelativePath.fileName());
-            }
+        // this is a relative file path which will require different handling
+        // depending on the location of the original FBX
+        if (_fbxURL.isLocalFile() && apparentRelativePath.exists() && apparentRelativePath.isFile()) {
+            // the absolute path we ran into for the texture in the FBX exists on this machine
+            // so use that file
+            urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
         } else {
-            // simply construct a URL with the relative path to the asset, locally or remotely
-            // and append that to the list of unbaked textures
-            urlToTexture = _fbxURL.resolved(apparentRelativePath.filePath());
+            // we didn't find the texture on this machine at the absolute path
+            // so assume that it is right beside the FBX to match the behaviour of interface
+            urlToTexture = _fbxURL.resolved(apparentRelativePath.fileName());
         }
     }
 
     return urlToTexture;
 }
 
-TextureType textureTypeForMaterialProperty(FbxProperty& property, FbxSurfaceMaterial* material) {
+gpu::TextureType textureTypeForMaterialProperty(FbxProperty& property, FbxSurfaceMaterial* material) {
+    using namespace gpu;
+    
     // this is a property we know has a texture, we need to match it to a High Fidelity known texture type
     // since that information is passed to the baking process
 
@@ -366,7 +340,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                     // figure out the type of texture from the material property
                     auto textureType = textureTypeForMaterialProperty(property, material);
 
-                    if (textureType != UNUSED_TEXTURE) {
+                    if (textureType != gpu::UNUSED_TEXTURE) {
                         int numTextures = property.GetSrcObjectCount<FbxFileTexture>();
 
                         for (int j = 0; j < numTextures; j++) {
@@ -401,7 +375,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                     _unbakedTextures.insert(urlToTexture, bakedTextureFileName);
 
                                     // bake this texture asynchronously
-                                    bakeTexture(urlToTexture);
+                                    bakeTexture(urlToTexture, textureType, bakedTextureFilePath);
                                 }
                             }
                         }
@@ -414,63 +388,91 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
     }
 }
 
-void FBXBaker::bakeTexture(const QUrl& textureURL) {
+void FBXBaker::bakeTexture(const QUrl& textureURL, gpu::TextureType textureType, const QString& destinationFilePath) {
     // start a bake for this texture and add it to our list to keep track of
-    QSharedPointer<TextureBaker> bakingTexture { new TextureBaker(textureURL), &TextureBaker::deleteLater };
+    QSharedPointer<TextureBaker> bakingTexture {
+        new TextureBaker(textureURL, textureType, destinationFilePath),
+        &TextureBaker::deleteLater
+    };
 
+    // make sure we hear when the baking texture is done
     connect(bakingTexture.data(), &Baker::finished, this, &FBXBaker::handleBakedTexture);
 
-    QtConcurrent::run(bakingTexture.data(), &TextureBaker::bake);
-
+    // keep a shared pointer to the baking texture
     _bakingTextures.insert(bakingTexture);
+
+    // start baking the texture on our thread pool
+    QtConcurrent::run(bakingTexture.data(), &TextureBaker::bake);
 }
 
 void FBXBaker::handleBakedTexture() {
     TextureBaker* bakedTexture = qobject_cast<TextureBaker*>(sender());
 
     // make sure we haven't already run into errors, and that this is a valid texture
-    if (!hasErrors() && bakedTexture) {
-        if (!bakedTexture->hasErrors()) {
-            // use the path to the texture being baked to determine if this was an embedded or a linked texture
+    if (bakedTexture) {
+        if (!hasErrors()) {
+            if (!bakedTexture->hasErrors()) {
+                if (_copyOriginals) {
+                    // we've been asked to make copies of the originals, so we need to make copies of this if it is a linked texture
 
-            // it is embeddded if the texure being baked was inside the original output folder
-            // since that is where the FBX SDK places the .fbm folder it generates when importing the FBX
+                    // use the path to the texture being baked to determine if this was an embedded or a linked texture
 
-            auto originalOutputFolder = QUrl::fromLocalFile(_uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER);
+                    // it is embeddded if the texure being baked was inside the original output folder
+                    // since that is where the FBX SDK places the .fbm folder it generates when importing the FBX
 
-            if (!originalOutputFolder.isParentOf(bakedTexture->getTextureURL())) {
-                // for linked textures we want to save a copy of original texture beside the original FBX
+                    auto originalOutputFolder = QUrl::fromLocalFile(_uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER);
 
-                qCDebug(model_baking) << "Saving original texture for" << bakedTexture->getTextureURL();
+                    if (!originalOutputFolder.isParentOf(bakedTexture->getTextureURL())) {
+                        // for linked textures we want to save a copy of original texture beside the original FBX
 
-                // check if we have a relative path to use for the texture
-                auto relativeTexturePath = texturePathRelativeToFBX(_fbxURL, bakedTexture->getTextureURL());
+                        qCDebug(model_baking) << "Saving original texture for" << bakedTexture->getTextureURL();
 
-                QFile originalTextureFile {
-                    _uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER + relativeTexturePath + bakedTexture->getTextureURL().fileName()
-                };
+                        // check if we have a relative path to use for the texture
+                        auto relativeTexturePath = texturePathRelativeToFBX(_fbxURL, bakedTexture->getTextureURL());
 
-                if (relativeTexturePath.length() > 0) {
-                    // make the folders needed by the relative path
+                        QFile originalTextureFile {
+                            _uniqueOutputPath + ORIGINAL_OUTPUT_SUBFOLDER + relativeTexturePath + bakedTexture->getTextureURL().fileName()
+                        };
+
+                        if (relativeTexturePath.length() > 0) {
+                            // make the folders needed by the relative path
+                        }
+
+                        if (originalTextureFile.open(QIODevice::WriteOnly) && originalTextureFile.write(bakedTexture->getOriginalTexture()) != -1) {
+                            qCDebug(model_baking) << "Saved original texture file" << originalTextureFile.fileName()
+                            << "for" << _fbxURL;
+                        } else {
+                            handleError("Could not save original external texture " + originalTextureFile.fileName()
+                                        + " for " + _fbxURL.toString());
+                            return;
+                        }
+                    }
                 }
 
-                if (originalTextureFile.open(QIODevice::WriteOnly) && originalTextureFile.write(bakedTexture->getOriginalTexture()) != -1) {
-                    qCDebug(model_baking) << "Saved original texture file" << originalTextureFile.fileName()
-                    << "for" << _fbxURL;
-                } else {
-                    handleError("Could not save original external texture " + originalTextureFile.fileName()
-                                + " for " + _fbxURL.toString());
-                    return;
-                }
+
+                // now that this texture has been baked and handled, we can remove that TextureBaker from our list
+                _unbakedTextures.remove(bakedTexture->getTextureURL());
+
+                checkIfTexturesFinished();
+            } else {
+                // there was an error baking this texture - add it to our list of errors
+                _errorList.append(bakedTexture->getErrors());
+                
+                // we don't emit finished yet so that the other textures can finish baking first
+                _pendingErrorEmission = true;
+                
+                // now that this texture has been baked, even though it failed, we can remove that TextureBaker from our list
+                _unbakedTextures.remove(bakedTexture->getTextureURL());
+                
+                checkIfTexturesFinished();
             }
-
-            // now that this texture has been baked and handled, we can remove that TextureBaker from our list
+        } else {
+            // we have errors to attend to, so we don't do extra processing for this texture
+            // but we do need to remove that TextureBaker from our list
+            // and then check if we're done with all textures
             _unbakedTextures.remove(bakedTexture->getTextureURL());
 
             checkIfTexturesFinished();
-        } else {            
-            // there was an error baking this texture - add it to our list of errors and stop processing this FBX
-            appendErrors(bakedTexture->getErrors());
         }
     }
 }
@@ -516,23 +518,27 @@ void FBXBaker::possiblyCleanupOriginals() {
 void FBXBaker::checkIfTexturesFinished() {
     // check if we're done everything we need to do for this FBX
     // and emit our finished signal if we're done
+
     if (_unbakedTextures.isEmpty()) {
         // remove the embedded media folder that the FBX SDK produces when reading the original
         removeEmbeddedMediaFolder();
-
-        if (hasErrors()) {
-            return;
-        }
 
         // cleanup the originals if we weren't asked to keep them around
         possiblyCleanupOriginals();
 
         if (hasErrors()) {
-            return;
-        }
+            // if we're checking for completion but we have errors
+            // that means one or more of our texture baking operations failed
 
-        qCDebug(model_baking) << "Finished baking" << _fbxURL;
-        
-        emit finished();
+            if (_pendingErrorEmission) {
+                emit finished();
+            }
+
+            return;
+        } else {
+            qCDebug(model_baking) << "Finished baking" << _fbxURL;
+
+            emit finished();
+        }
     }
 }
