@@ -171,7 +171,7 @@ void SkyboxBakeWidget::bakeButtonClicked() {
         QUrl skyboxToBakeURL(fileURLString);
 
         // if the URL doesn't have a scheme, assume it is a local file
-        if (skyboxToBakeURL.scheme().isEmpty()) {
+        if (skyboxToBakeURL.scheme() != "http" && skyboxToBakeURL.scheme() != "https" && skyboxToBakeURL.scheme() != "ftp") {
             skyboxToBakeURL.setScheme("file");
         }
 
