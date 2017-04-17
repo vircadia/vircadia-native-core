@@ -218,9 +218,6 @@ StackView {
                             addressLine.focus = true;
                             addressLine.forceActiveFocus();
                             addressBarDialog.keyboardEnabled = HMD.active;
-                        } else {
-                            addressLine.focus = false;
-                            addressBarDialog.keyboardEnabled = false;
                         }
                         tabletRoot.playButtonClickSound();
                     }
