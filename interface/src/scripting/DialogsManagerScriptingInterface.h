@@ -22,12 +22,10 @@ public:
     Q_INVOKABLE void showFeed();
 
 public slots:
-    void toggleAddressBar();
     void showAddressBar();
     void hideAddressBar();
 
 signals:
-    void addressBarToggled();
     void addressBarShown(bool visible);
 };
 

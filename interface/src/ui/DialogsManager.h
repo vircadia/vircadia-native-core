@@ -41,7 +41,6 @@ public:
     void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
 
 public slots:
-    void toggleAddressBar();
     void showAddressBar();
     void hideAddressBar();
     void showFeed();
@@ -58,7 +57,6 @@ public slots:
     void showUpdateDialog();
 
 signals:
-    void addressBarToggled();
     void addressBarShown(bool visible);
     void setUseFeed(bool useFeed);
 

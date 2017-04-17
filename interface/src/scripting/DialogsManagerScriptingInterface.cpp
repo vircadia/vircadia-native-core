@@ -16,8 +16,6 @@
 #include "ui/DialogsManager.h"
 
 DialogsManagerScriptingInterface::DialogsManagerScriptingInterface() {
-    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarToggled,
-            this, &DialogsManagerScriptingInterface::addressBarToggled);
     connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarShown,
             this, &DialogsManagerScriptingInterface::addressBarShown);
 }
@@ -26,11 +24,6 @@ DialogsManagerScriptingInterface::DialogsManagerScriptingInterface() {
 DialogsManagerScriptingInterface* DialogsManagerScriptingInterface::getInstance() {
     static DialogsManagerScriptingInterface sharedInstance;
     return &sharedInstance;
-}
-
-void DialogsManagerScriptingInterface::toggleAddressBar() {
-    QMetaObject::invokeMethod(DependencyManager::get<DialogsManager>().data(),
-                              "toggleAddressBar", Qt::QueuedConnection);
 }
 
 void DialogsManagerScriptingInterface::showAddressBar() {
