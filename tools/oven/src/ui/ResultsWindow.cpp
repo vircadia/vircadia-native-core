@@ -9,7 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QProcess>
+#include <QtCore/QUrl>
+#include <QtGui/QDesktopServices>
 #include <QtWidgets/QHeaderView>
 #include <QtWidgets/QTableWidget>
 #include <QtWidgets/QVBoxLayout>
@@ -57,44 +58,14 @@ void ResultsWindow::setupUI() {
     setLayout(resultsLayout);
 }
 
-void revealDirectory(const QDir& dirToReveal) {
-
-    // See http://stackoverflow.com/questions/3490336/how-to-reveal-in-finder-or-show-in-explorer-with-qt
-    // for details
-
-    // Mac, Windows support folder or file.
-#if defined(Q_OS_WIN)
-    const QString explorer = Environment::systemEnvironment().searchInPath(QLatin1String("explorer.exe"));
-    if (explorer.isEmpty()) {
-        QMessageBox::warning(parent,
-                             tr("Launching Windows Explorer failed"),
-                             tr("Could not find explorer.exe in path to launch Windows Explorer."));
-        return;
-    }
-
-    QString param = QLatin1String("/select,") + QDir::toNativeSeparators(dirToReveal.absolutePath());
-
-    QString command = explorer + " " + param;
-    QProcess::startDetached(command);
-
-#elif defined(Q_OS_MAC)
-    QStringList scriptArgs;
-    scriptArgs << QLatin1String("-e")
-        << QString::fromLatin1("tell application \"Finder\" to reveal POSIX file \"%1\"").arg(dirToReveal.absolutePath());
-    QProcess::execute(QLatin1String("/usr/bin/osascript"), scriptArgs);
-
-    scriptArgs.clear();
-    scriptArgs << QLatin1String("-e") << QLatin1String("tell application \"Finder\" to activate");
-    QProcess::execute("/usr/bin/osascript", scriptArgs);
-#endif
-
-}
-
 void ResultsWindow::handleCellClicked(int rowIndex, int columnIndex) {
-    // use revealDirectory to show the output directory for this row
-    revealDirectory(_outputDirectories[rowIndex]);
+    // make sure this click was on the file/domain being baked
+    if (columnIndex == 0) {
+        // use QDesktopServices to show the output directory for this row
+        auto directory = _outputDirectories[rowIndex];
+        QDesktopServices::openUrl(QUrl::fromLocalFile(directory.absolutePath()));
+    }
 }
-
 
 int ResultsWindow::addPendingResultRow(const QString& fileName, const QDir& outputDirectory) {
     int rowIndex = _resultsTable->rowCount();
