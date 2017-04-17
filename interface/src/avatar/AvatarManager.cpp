@@ -344,14 +344,18 @@ void AvatarManager::processAvatarDataPacket(QSharedPointer<ReceivedMessage> mess
                     const render::ScenePointer& scene = qApp->getMain3DScene();
                     render::Transaction transaction;
                     avatar->removeFromScene(avatar, scene, transaction);
-                    scene->enqueueTransaction(transaction);
+                    if (scene) {
+                        scene->enqueueTransaction(transaction);
+                    }
                 }
             } else if (_shouldRender) {
                 // very rare transition so we process the transaction immediately
                 const render::ScenePointer& scene = qApp->getMain3DScene();
                 render::Transaction transaction;
                 avatar->addToScene(avatar, scene, transaction);
-                scene->enqueueTransaction(transaction);
+                if (scene) {
+                    scene->enqueueTransaction(transaction);
+                }
             }
         }
     }

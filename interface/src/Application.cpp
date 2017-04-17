@@ -1785,14 +1785,23 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
 
-    // shutdown render engine
-    _main3DScene = nullptr;
-    _renderEngine = nullptr;
-
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
 
 Application::~Application() {
+    // remove avatars from physics engine
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    VectorOfMotionStates motionStates;
+    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
+    _physicsEngine->removeObjects(motionStates);
+    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
+
+    _physicsEngine->setCharacterController(nullptr);
+
+    // shutdown render engine
+    _main3DScene = nullptr;
+    _renderEngine = nullptr;
+
     DependencyManager::destroy<Preferences>();
 
     _entityClipboard->eraseAllOctreeElements();
@@ -1804,14 +1813,6 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
-    _physicsEngine->setCharacterController(nullptr);
-
-    // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-    VectorOfMotionStates motionStates;
-    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
-    _physicsEngine->removeObjects(motionStates);
-    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
