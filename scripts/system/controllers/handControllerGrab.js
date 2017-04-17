@@ -75,7 +75,6 @@ var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative numbe
 //
 // distant manipulation
 //
-var shouldTravelAtRapidPace = false;
 var accelarationStartingPoint = 0;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
@@ -2525,19 +2524,13 @@ function MyController(hand) {
 
         // compute the mass for the purpose of energy and how quickly to move object
         this.mass = this.getMass(grabbedProperties.dimensions, grabbedProperties.density);
-        this.shouldTravelAtRapidPace = false;
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, grabbedProperties.position));
         
-        if(distanceToObject >= 15){ // Apply Rapid Pace only if distanceToObject is far than 15.
-            this.shouldTravelAtRapidPace = true;
-            var MyAvatarHipsPosition = MyAvatar.getJointPosition("Hips");
-            var distanceToHandFromAvatarHips =  worldControllerPosition.x - MyAvatarHipsPosition.x;
-            var ACCELERATION_START_THRESHOLD = 0.90;
-            this.accelarationStartingPoint = (distanceToHandFromAvatarHips * ACCELERATION_START_THRESHOLD);
-        }else{
-            this.shouldTravelAtRapidPace = false;
-        }
-            
+
+        var MyAvatarHipsPosition = MyAvatar.getJointPosition("Hips");   
+        var distanceToHandFromAvatarHips = Vec3.length(Vec3.subtract(worldControllerPosition, MyAvatarHipsPosition));
+        var ACCELERATION_START_THRESHOLD = 0.95;
+        this.accelarationStartingPoint = (distanceToHandFromAvatarHips * ACCELERATION_START_THRESHOLD);
         var timeScale = this.distanceGrabTimescale(this.mass, distanceToObject);
 
         this.actionID = NULL_UUID;
@@ -2589,7 +2582,6 @@ function MyController(hand) {
         var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
-
         var now = Date.now();
         var deltaObjectTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
         this.currentObjectTime = now;
@@ -2632,16 +2624,14 @@ function MyController(hand) {
                                                  this.grabRadius * RADIAL_GRAB_AMPLIFIER);
         }
 
-        if(this.shouldTravelAtRapidPace = true){
-            var MyAvatarHipsPosition = MyAvatar.getJointPosition("Hips");   
-            var distanceToHandFromAvatarHips_x =  worldControllerPosition.x - MyAvatarHipsPosition.x;
-            if(distanceToHandFromAvatarHips_x <= this.accelarationStartingPoint){
-                var RAPID_PACE_RATE = 2;
-                this.grabRadius = (this.grabRadius / RAPID_PACE_RATE);
-            }
-        }
         // don't let grabRadius go all the way to zero, because it can't come back from that
-        var MINIMUM_GRAB_RADIUS = 0.1;
+        var MINIMUM_GRAB_RADIUS = 0.3;
+        var MyAvatarHipsPosition = MyAvatar.getJointPosition("Hips");   
+        var distanceToHandFromAvatarHips = Vec3.length(Vec3.subtract(worldControllerPosition, MyAvatarHipsPosition));
+        if(distanceToHandFromAvatarHips <= this.accelarationStartingPoint && this.grabRadius >= MINIMUM_GRAB_RADIUS){
+            var RAPID_PACE_RATE = 2;
+            this.grabRadius = (this.grabRadius / RAPID_PACE_RATE);
+        }
         if (this.grabRadius < MINIMUM_GRAB_RADIUS) {
             this.grabRadius = MINIMUM_GRAB_RADIUS;
         }
