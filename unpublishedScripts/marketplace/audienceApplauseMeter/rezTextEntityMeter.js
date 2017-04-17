@@ -10,7 +10,7 @@
     var graph = {
         background: {
             type: "Model",
-            modelURL: "https://binaryrelay.com/files/public-docs/hifi/meter/text-entity/meter.fbx",
+            modelURL: "https://binaryrelay.com/files/public-docs/hifi/meter/text-entity/meter-text-entity.fbx",
             color: {
                 red: 128,
                 green: 128,
