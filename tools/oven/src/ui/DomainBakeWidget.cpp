@@ -241,7 +241,6 @@ void DomainBakeWidget::handleBakerProgress(int modelsBaked, int modelsTotal) {
             auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
 
             int percentage = roundf(float(modelsBaked) / float(modelsTotal) * 100.0f);
-            qDebug() << percentage;
 
             auto statusString = QString("Baking - %1 of %2 models baked - %3%").arg(modelsBaked).arg(modelsTotal).arg(percentage);
             resultsWindow->changeStatusForRow(resultRow, statusString);
