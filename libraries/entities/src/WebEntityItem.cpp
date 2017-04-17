@@ -84,7 +84,7 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
 }
 
 
-// TODO: eventually only include properties changed since the params.lastQuerySent time
+// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags WebEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_SOURCE_URL;
@@ -124,18 +124,26 @@ bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const g
 }
 
 void WebEntityItem::setSourceUrl(const QString& value) {
-    if (_sourceUrl != value) {
-        auto newURL = QUrl::fromUserInput(value);
+    withWriteLock([&] {
+        if (_sourceUrl != value) {
+            auto newURL = QUrl::fromUserInput(value);
 
-        if (newURL.isValid()) {
-            _sourceUrl = newURL.toDisplayString();
-        } else {
-            qCDebug(entities) << "Clearing web entity source URL since" << value << "cannot be parsed to a valid URL.";
+            if (newURL.isValid()) {
+                _sourceUrl = newURL.toDisplayString();
+            } else {
+                qCDebug(entities) << "Clearing web entity source URL since" << value << "cannot be parsed to a valid URL.";
+            }
         }
-    }
+    });
 }
 
-const QString& WebEntityItem::getSourceUrl() const { return _sourceUrl; }
+QString WebEntityItem::getSourceUrl() const { 
+    QString result;
+    withReadLock([&] {
+        result = _sourceUrl;
+    });
+    return result;
+}
 
 void WebEntityItem::setDPI(uint16_t value) {
     _dpi = value;

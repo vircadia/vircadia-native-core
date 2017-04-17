@@ -53,33 +53,19 @@ void GlobalServicesScriptingInterface::loggedOut() {
     emit GlobalServicesScriptingInterface::disconnected(QString("logout"));
 }
 
-
-QString GlobalServicesScriptingInterface::findableByString(Discoverability::Mode discoverabilityMode) const {
-    if (discoverabilityMode == Discoverability::None) {
-        return "none";
-    } else if (discoverabilityMode == Discoverability::Friends) {
-        return "friends";
-    } else if (discoverabilityMode == Discoverability::All) {
-        return "all";
-    } else {
-        qDebug() << "GlobalServices findableByString called with an unrecognized value.";
-        return "";
-    }
-}
-
-
 QString GlobalServicesScriptingInterface::getFindableBy() const {
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
-    return findableByString(discoverabilityManager->getDiscoverabilityMode());
+    return DiscoverabilityManager::findableByString(discoverabilityManager->getDiscoverabilityMode());
 }
 
 void GlobalServicesScriptingInterface::setFindableBy(const QString& discoverabilityMode) {
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
-    
     if (discoverabilityMode.toLower() == "none") {
         discoverabilityManager->setDiscoverabilityMode(Discoverability::None);
     } else if (discoverabilityMode.toLower() == "friends") {
         discoverabilityManager->setDiscoverabilityMode(Discoverability::Friends);
+    } else if (discoverabilityMode.toLower() == "connections") {
+        discoverabilityManager->setDiscoverabilityMode(Discoverability::Connections);
     } else if (discoverabilityMode.toLower() == "all") {
         discoverabilityManager->setDiscoverabilityMode(Discoverability::All);
     } else {
@@ -88,7 +74,7 @@ void GlobalServicesScriptingInterface::setFindableBy(const QString& discoverabil
 }
 
 void GlobalServicesScriptingInterface::discoverabilityModeChanged(Discoverability::Mode discoverabilityMode) {
-    emit findableByChanged(findableByString(discoverabilityMode));
+    emit findableByChanged(DiscoverabilityManager::findableByString(discoverabilityMode));
 }
 
 DownloadInfoResult::DownloadInfoResult() :

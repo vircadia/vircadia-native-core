@@ -64,7 +64,7 @@ private:
     glm::vec3 _normal;    // surface normal
     glm::vec3 _direction; // incoming direction of pointer ray.
 
-    Button _button { NoButtons };  // button assosiated with this event, (if type is Press, this will be the button that is pressed)
+    Button _button { NoButtons };  // button associated with this event, (if type is Press, this will be the button that is pressed)
     uint32_t _buttons { NoButtons }; // the current state of all the buttons.
     Qt::KeyboardModifiers _keyboardModifiers; // set of keys held when event was generated
 };

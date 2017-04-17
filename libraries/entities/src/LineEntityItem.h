@@ -26,7 +26,7 @@ class LineEntityItem : public EntityItem {
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.lastQuerySent time
+    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -42,23 +42,19 @@ class LineEntityItem : public EntityItem {
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
-    const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
+    const rgbColor& getColor() const;
+    xColor getXColor() const;
 
-    void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
-    void setColor(const xColor& value) {
-        _color[RED_INDEX] = value.red;
-        _color[GREEN_INDEX] = value.green;
-        _color[BLUE_INDEX] = value.blue;
-    }
+    void setColor(const rgbColor& value);
+    void setColor(const xColor& value);
 
-    void setLineWidth(float lineWidth){ _lineWidth = lineWidth; }
-    float getLineWidth() const{ return _lineWidth; }
+    void setLineWidth(float lineWidth);
+    float getLineWidth() const;
 
     bool setLinePoints(const QVector<glm::vec3>& points);
     bool appendPoint(const glm::vec3& point);
 
-    const QVector<glm::vec3>& getLinePoints() const{ return _points; }
+    QVector<glm::vec3> getLinePoints() const;
 
     virtual ShapeType getShapeType() const override { return SHAPE_TYPE_NONE; }
 
@@ -74,11 +70,12 @@ class LineEntityItem : public EntityItem {
     static const float DEFAULT_LINE_WIDTH;
     static const int MAX_POINTS_PER_LINE;
 
- protected:
+ private:
     rgbColor _color;
     float _lineWidth;
-    bool _pointsChanged;
     QVector<glm::vec3> _points;
+protected:
+    bool _pointsChanged;
 };
 
 #endif // hifi_LineEntityItem_h

@@ -104,14 +104,18 @@ bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
 
 
 bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths) {
-    _strokeWidths = strokeWidths;
-    _strokeWidthsChanged = true;
+    withWriteLock([&] {
+        _strokeWidths = strokeWidths;
+        _strokeWidthsChanged = true;
+    });
     return true;
 }
 
 bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
-    _normals = normals;
-    _normalsChanged = true;
+    withWriteLock([&] {
+        _normals = normals;
+        _normalsChanged = true;
+    });
     return true;
 }
 
@@ -119,35 +123,39 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     if (points.size() > MAX_POINTS_PER_LINE) {
         return false;
     }
-    if (points.size() != _points.size()) {
-        _pointsChanged = true;
-    }
-    //Check to see if points actually changed. If they haven't, return before doing anything else
-    else if (points.size() == _points.size()) {
-        //same number of points, so now compare every point
-        for (int i = 0; i < points.size(); i++) {
-            if (points.at(i) != _points.at(i)){
-                _pointsChanged = true;
-                break;
+    bool result = false;
+    withWriteLock([&] {
+        //Check to see if points actually changed. If they haven't, return before doing anything else
+        if (points.size() != _points.size()) {
+            _pointsChanged = true;
+        } else if (points.size() == _points.size()) {
+            //same number of points, so now compare every point
+            for (int i = 0; i < points.size(); i++) {
+                if (points.at(i) != _points.at(i)) {
+                    _pointsChanged = true;
+                    break;
+                }
             }
         }
-    }
-    if (!_pointsChanged) {
-        return false;
-    }
-
-    for (int i = 0; i < points.size(); i++) {
-        glm::vec3 point = points.at(i);
-        glm::vec3 halfBox = getDimensions() * 0.5f;
-        if ((point.x < -halfBox.x || point.x > halfBox.x) ||
-            (point.y < -halfBox.y || point.y > halfBox.y) ||
-            (point.z < -halfBox.z || point.z > halfBox.z)) {
-            qCDebug(entities) << "Point is outside entity's bounding box";
-            return false;
+        if (!_pointsChanged) {
+            return;
         }
-    }
-    _points = points;
-    return true;
+
+        for (int i = 0; i < points.size(); i++) {
+            glm::vec3 point = points.at(i);
+            glm::vec3 halfBox = getDimensions() * 0.5f;
+            if ((point.x < -halfBox.x || point.x > halfBox.x) ||
+                (point.y < -halfBox.y || point.y > halfBox.y) ||
+                (point.z < -halfBox.z || point.z > halfBox.z)) {
+                qCDebug(entities) << "Point is outside entity's bounding box";
+                return;
+            }
+        }
+        _points = points;
+        result = true;
+    });
+
+    return result;
 }
 
 int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
@@ -170,7 +178,7 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
 }
 
 
-// TODO: eventually only include properties changed since the params.lastQuerySent time
+// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;
@@ -210,3 +218,45 @@ void PolyLineEntityItem::debugDump() const {
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
+
+
+QVector<glm::vec3> PolyLineEntityItem::getLinePoints() const { 
+    QVector<glm::vec3> result;
+    withReadLock([&] {
+        result = _points;
+    });
+    return result; 
+}
+
+QVector<glm::vec3> PolyLineEntityItem::getNormals() const { 
+    QVector<glm::vec3> result;
+    withReadLock([&] {
+        result = _normals;
+    });
+    return result;
+}
+
+QVector<float> PolyLineEntityItem::getStrokeWidths() const { 
+    QVector<float> result;
+    withReadLock([&] {
+        result = _strokeWidths;
+    });
+    return result;
+}
+
+QString PolyLineEntityItem::getTextures() const { 
+    QString result;
+    withReadLock([&] {
+        result = _textures;
+    });
+    return result;
+}
+
+void PolyLineEntityItem::setTextures(const QString& textures) {
+    withWriteLock([&] {
+        if (_textures != textures) {
+            _textures = textures;
+            _texturesChangedFlag = true;
+        }
+    });
+}

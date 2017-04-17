@@ -2,166 +2,151 @@
   <head>
     <title>Photo Booth</title>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="../../../../../system/html/css/edit-style.css">
-    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
-    
-    <script>
-      var EventBridge;
-      var openEventBridge = function (callback) {
-        var WebChannel = new QWebChannel(qt.webChannelTransport, function (channel) {
-            EventBridge = WebChannel.objects.eventBridgeWrapper.eventBridge;
-            callback();
-        });
-      };
-
-      var emit = function (eventType, data) {
-        data = data || {};
-        data.type = eventType;
-        EventBridge.emitWebEvent(JSON.stringify(data));
-      };
-
-      function loaded () {
-        openEventBridge(function () {
-          emit("onLoad", {value: "faye"});
-          
-          var elModelURL = document.getElementById("model-url");
-          var elReloadModelButton = document.getElementById("reload-model-button");
-          var elCamera = document.getElementById("property-camera");
-          //var elLightingPreset = document.getElementById("property-lighting-preset");
-          var elPictureButton = document.getElementById("picture-button");
-
-          elReloadModelButton.addEventListener('click', function() {
-              emit("onClickReloadModelButton", {value: elModelURL.value});
-          });
-          elCamera.addEventListener('change', function() {
-              emit("onSelectCamera", {value: this.value});
-          });
-          // elLightingPreset.addEventListener('change', function() {
-          //     emit("onSelectLightingPreset", {value: "faye"});
-          // });
-          elPictureButton.addEventListener('click', function() {
-              emit("onClickPictureButton", {value: "faye"});
-          });
-
-
-        });
-
-        // Drop downs
-        function setDropdownText(dropdown) {
-          var lis = dropdown.parentNode.getElementsByTagName("li");
-          var text = "";
-          for (var i = 0; i < lis.length; i++) {
-              if (lis[i].getAttribute("value") === dropdown.value) {
-                  text = lis[i].textContent;
-              }
-          }
-          dropdown.firstChild.textContent = text;
-        }
-        function toggleDropdown(event) {
-          var element = event.target;
-          if (element.nodeName !== "DT") {
-              element = element.parentNode;
-          }
-          element = element.parentNode;
-          var isDropped = element.getAttribute("dropped");
-          element.setAttribute("dropped", isDropped !== "true" ? "true" : "false");
-        }
-        function setDropdownValue(event) {
-          var dt = event.target.parentNode.parentNode.previousSibling;
-          dt.value = event.target.getAttribute("value");
-          dt.firstChild.textContent = event.target.textContent;
-
-          dt.parentNode.setAttribute("dropped", "false");
-
-          var evt = document.createEvent("HTMLEvents");
-          evt.initEvent("change", true, true);
-          dt.dispatchEvent(evt);
-        }
-
-        var elDropdowns = document.getElementsByTagName("select");
-        for (var i = 0; i < elDropdowns.length; i++) {
-          var options = elDropdowns[i].getElementsByTagName("option");
-          var selectedOption = 0;
-          for (var j = 0; j < options.length; j++) {
-              if (options[j].getAttribute("selected") === "selected") {
-                  selectedOption = j;
-              }
-          }
-          var div = elDropdowns[i].parentNode;
-
-          var dl = document.createElement("dl");
-          div.appendChild(dl);
-
-          var dt = document.createElement("dt");
-          dt.name = elDropdowns[i].name;
-          dt.id = elDropdowns[i].id;
-          dt.addEventListener("click", toggleDropdown, true);
-          dl.appendChild(dt);
-
-          var span = document.createElement("span");
-          span.setAttribute("value", options[selectedOption].value);
-          span.textContent = options[selectedOption].firstChild.textContent;
-          dt.appendChild(span);
-
-          var span = document.createElement("span");
-          span.textContent = "5"; // caratDn
-          dt.appendChild(span);
-
-          var dd = document.createElement("dd");
-          dl.appendChild(dd);
-
-          var ul = document.createElement("ul");
-          dd.appendChild(ul);
-
-          for (var j = 0; j < options.length; j++) {
-              var li = document.createElement("li");
-              li.setAttribute("value", options[j].value);
-              li.textContent = options[j].firstChild.textContent;
-              li.addEventListener("click", setDropdownValue);
-              ul.appendChild(li);
-          }
-        }
-        elDropdowns = document.getElementsByTagName("select");
-        while (elDropdowns.length > 0) {
-          var el = elDropdowns[0];
-          el.parentNode.removeChild(el);
-          elDropdowns = document.getElementsByTagName("select");
-        }
-      }
-    </script>
-
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.2/css/bootstrap-slider.min.css">
     <style>
-    </style>
+      body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          color: white;
+      }
+
+      .top-bar {
+          height: 90px;
+          background: linear-gradient(#2b2b2b, #1e1e1e);
+          font-family: Raleway-Bold;
+          padding-left: 30px;
+          padding-right: 30px;
+          display: flex;
+          align-items: center;
+          position: fixed;
+          width: 480px;
+          top: 0;
+          z-index: 1;
+          font-size: 16px;
+      }
+
+      .content {
+          margin-top: 90px;
+          padding: 30px;
+      }
+
+      .slider {
+        margin-left: 70px;
+      }
+
+      #camera-toggle {
+        font-family: Raleway-Bold;
+        font-size: 13px;
+        text-transform: uppercase;
+        vertical-align: top;
+        height: 28px;
+        min-width: 120px;
+        padding: 0px 18px;
+        margin-right: 0px;
+        border-radius: 5px;
+        border: none;
+        color: #121212;
+        background-color: #afafaf;
+        background: linear-gradient(#fff 20%, #afafaf 100%);
+        cursor: pointer;
+      }
+
+      .dropdown li {
+        background-color: #ffffff;
+      }
+
+
+
+    </style> 
   </head>
-  <body onload="loaded()">
-    <div id="properties-list">
-      <div class="property url refresh">
-        <label>Model URL</label>
-        <input type="text" id="model-url"></input>
-        <input type="button" id="reload-model-button" class="glyph" value="F">
-      </div>
-       <!--
-      <div class="property dropdown">
-        <label>Lighting Preset</label>
-        <select id="property-lighting-preset">
-          <option>Default Lighting</option>
-          <option>Sam's Cool Light</option>
-          <option>Alan's Light Magic</option>
-        </select>
-      </div>
-      -->
-      <div class="property dropdown">
-        <label>Camera</label>
-        <select id="property-camera">
-          <option>First Person Camera</option>
-          <option>Main Camera</option>
-          <option>Left Camera</option>
-          <option>Right Camera</option>
-        </select>
-      </div>
-      <div class="property">
-        <input id="picture-button" type="button" class="blue" value="Take Picture">
+  <body>
+    <div class="top-bar">
+      <div>Photobooth</div>
+    </div>
+    <div class="content">
+      <div id="properties-list">
+        <div class="property url refresh">
+          <label>Model URL</label>
+          <input type="text" id="model-url"></input>
+          <input type="button" id="reload-model-button" class="glyph" value="F">
+        </div>
+        <div class="property">
+          <label>Rotate Model</label>
+            <input
+              id="rotate-slider"
+              type="text"
+              data-provide="slider"
+              data-slider-ticks="[-180, 0, 180]"
+              data-slider-ticks-labels='["clockwise", "centre", "anti-clockwise"]'
+              data-slider-min="-180"
+              data-slider-max="180"
+              data-slider-step="1"
+              data-slider-value="0"
+              data-slider-tooltip="show"
+            >
+        </div>
+        <div class="property">
+          <label>Camera</label>
+          <div class="dropdown">
+            <button id="camera-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              First Person Camera
+              <span class="glyphicon glyphicon-menu-down"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+              <li>First Person Camera</li>
+              <li>Main Camera</li>
+              <li>Left Camera</li>
+              <li>Right Camera</li>
+            </ul>
+          </div>
+        </div>
+        <div class="property">
+          <input id="picture-button" type="button" class="blue" value="Take Picture">
+        </div>
       </div>
     </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.2/bootstrap-slider.min.js"></script>
+    <script>
+
+      // Helper function to emit web events to photoboothApp.js
+      function emit(eventType, eventData) {
+        var eventObject = {
+            "app": "photobooth",
+            "type": eventType,
+            "data": eventData
+        };
+        EventBridge.emitWebEvent(JSON.stringify(eventObject));
+      }
+
+      $(document).ready(function() {
+        // Send a ready event to hifi
+        emit("ready", null);
+        // Send an event when camera selection changes
+        $(".dropdown-menu li").click(function() {
+          console.log("clicked " + this.textContent);
+          $("#camera-toggle").text(this.textContent + " ");
+          $("#camera-toggle").append("<span class='glyphicon glyphicon-menu-down'></span>");
+          emit("onSelectCamera", {value: this.textContent});
+        });
+        // Send an event to hifi to trigger snapshot
+        $("#picture-button").click(function() {
+          emit("onClickPictureButton", null);
+        });
+        // Send an event to hifi for loading the given model URL
+        $("#reload-model-button").click(function() {
+          emit("onClickReloadModelButton", {value: $("#model-url").val()});
+        });
+        $("#rotate-slider").slider().on("slide", function(e){
+          console.log("slided " + e.value);
+          emit("onRotateSlider", {value: e.value});
+        });
+      });
+    </script>
   </body>
 </html>

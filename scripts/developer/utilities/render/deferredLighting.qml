@@ -63,7 +63,8 @@ Column {
                      "Directional:LightingModel:enableDirectionalLight",
                      "Point:LightingModel:enablePointLight",
                      "Spot:LightingModel:enableSpotLight",
-                     "Light Contour:LightingModel:showLightContour"
+                     "Light Contour:LightingModel:showLightContour",
+                     "Shadow:RenderShadowTask:enabled"
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
@@ -150,6 +151,7 @@ Column {
                 ListElement { text: "Mid Normal"; color: "White" }
                 ListElement { text: "Low Curvature"; color: "White" }
                 ListElement { text: "Low Normal"; color: "White" }
+                ListElement { text: "Curvature Occlusion"; color: "White" }
                 ListElement { text: "Debug Scattering"; color: "White" }
                 ListElement { text: "Ambient Occlusion"; color: "White" }
                 ListElement { text: "Ambient Occlusion Blurred"; color: "White" }
@@ -186,6 +188,11 @@ Column {
             text: "Overlay Transparents"
             checked: Render.getConfig("DrawOverlayTransparentBounds")["enabled"]
             onCheckedChanged: { Render.getConfig("DrawOverlayTransparentBounds")["enabled"] = checked }
+        }
+        CheckBox {
+            text: "Zones"
+            checked: Render.getConfig("DrawZones")["enabled"]
+            onCheckedChanged: { Render.getConfig("ZoneRenderer")["enabled"] = checked; Render.getConfig("DrawZones")["enabled"] = checked; }
         }
     }
 }

@@ -85,6 +85,28 @@ Item {
                     wrapMode: Text.WordWrap
                     textFormat: Text.StyledText
                 }
+                HiFiGlyphs {
+                    id: closeGlyphButton
+                    text: hifi.glyphs.close
+                    size: headerTextPixelSize
+                    anchors.top: parent.top
+                    anchors.topMargin: -20
+                    anchors.right: parent.right
+                    anchors.rightMargin: -25
+                    MouseArea {
+                        anchors.fill: closeGlyphButton
+                        hoverEnabled: true
+                        onEntered: {
+                            parent.text = hifi.glyphs.closeInverted;
+                        }
+                        onExited: {
+                            parent.text = hifi.glyphs.close;
+                        }
+                        onClicked: {
+                            letterbox.visible = false;
+                        }
+                    }
+                }
             }
             // Popup Text
             Text {

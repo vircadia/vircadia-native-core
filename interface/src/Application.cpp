@@ -118,6 +118,7 @@
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
 #include <UsersScriptingInterface.h>
+#include <recording/ClipCache.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <shared/StringHelpers.h>
@@ -129,6 +130,7 @@
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
+#include "avatar/ScriptAvatar.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
@@ -141,6 +143,8 @@
 #include "LODManager.h"
 #include "ModelPackager.h"
 #include "networking/HFWebEngineProfile.h"
+#include "networking/HFTabletWebEngineProfile.h"
+#include "networking/FileTypeProfile.h"
 #include "scripting/TestScriptingInterface.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
@@ -179,6 +183,7 @@
 #include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
+#include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
 
@@ -216,6 +221,7 @@ static const QString FST_EXTENSION  = ".fst";
 static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
+static const QString WEB_VIEW_TAG = "noDownload=true";
 
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
@@ -462,6 +468,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
     DependencyManager::set<Preferences>();
+    DependencyManager::set<recording::ClipCache>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<AddressManager>();
@@ -521,7 +528,9 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<OffscreenQmlSurfaceCache>();
     DependencyManager::set<EntityScriptClient>();
     DependencyManager::set<EntityScriptServerLogClient>();
+    DependencyManager::set<LimitlessVoiceRecognitionScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
+
     return previousSessionCrashed;
 }
 
@@ -548,8 +557,7 @@ const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 100.0f;
 const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
-const bool DEFAULT_TABLET_VISIBLE_TO_OTHERS = false;
-const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = true;
+const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
     QApplication(argc, argv),
@@ -571,7 +579,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _desktopTabletScale("desktopTabletScale", DEFAULT_DESKTOP_TABLET_SCALE_PERCENT),
     _desktopTabletBecomesToolbarSetting("desktopTabletBecomesToolbar", DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR),
     _hmdTabletBecomesToolbarSetting("hmdTabletBecomesToolbar", DEFAULT_HMD_TABLET_BECOMES_TOOLBAR),
-    _tabletVisibleToOthersSetting("tabletVisibleToOthers", DEFAULT_TABLET_VISIBLE_TO_OTHERS),
     _preferAvatarFingerOverStylusSetting("preferAvatarFingerOverStylus", DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _scaleMirror(1.0f),
@@ -1798,10 +1805,11 @@ Application::~Application() {
     _physicsEngine->setCharacterController(nullptr);
 
     // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearAllAvatars();
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     VectorOfMotionStates motionStates;
     DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
     _physicsEngine->removeObjects(motionStates);
+    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
@@ -1878,9 +1886,9 @@ void Application::initializeGL() {
     assert(items.canCast<RenderFetchCullSortTask::Output>());
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
     if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
-        _renderEngine->addJob<RenderForwardTask>("Forward", items.get<RenderFetchCullSortTask::Output>());
+        _renderEngine->addJob<RenderForwardTask>("Forward", items);
     } else {
-        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items.get<RenderFetchCullSortTask::Output>());
+        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items);
     }
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
@@ -1931,6 +1939,8 @@ void Application::initializeUi() {
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
     qmlRegisterType<HFWebEngineProfile>("HFWebEngineProfile", 1, 0, "HFWebEngineProfile");
+    qmlRegisterType<HFTabletWebEngineProfile>("HFTabletWebEngineProfile", 1, 0, "HFTabletWebEngineProfile");
+    qmlRegisterType<FileTypeProfile>("FileTypeProfile", 1, 0, "FileTypeProfile");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->qglContext());
@@ -2007,6 +2017,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
 
     rootContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
+    rootContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data()); 
     rootContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     rootContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     rootContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
@@ -2356,11 +2367,6 @@ void Application::setDesktopTabletBecomesToolbarSetting(bool value) {
 
 void Application::setHmdTabletBecomesToolbarSetting(bool value) {
     _hmdTabletBecomesToolbarSetting.set(value);
-    updateSystemTabletMode();
-}
-
-void Application::setTabletVisibleToOthersSetting(bool value) {
-    _tabletVisibleToOthersSetting.set(value);
     updateSystemTabletMode();
 }
 
@@ -3788,7 +3794,6 @@ void Application::loadSettings() {
     }
 
     getMyAvatar()->loadData();
-    setTabletVisibleToOthersSetting(false);
     _settingsLoaded = true;
 }
 
@@ -4386,6 +4391,10 @@ void Application::update(float deltaTime) {
     auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
     myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
 
+    controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
+    controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
+    myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
+
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
 
@@ -4570,6 +4579,8 @@ void Application::update(float deltaTime) {
     }
 
     AnimDebugDraw::getInstance().update();
+
+    DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>()->update();
 }
 
 void Application::sendAvatarViewFrustum() {
@@ -5033,7 +5044,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // TODO fix shadows and make them use the GPU library
 
     // The pending changes collecting the changes here
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
 
     // FIXME: Move this out of here!, Background / skybox should be driven by the enityt content just like the other entities
     // Background rendering decision
@@ -5041,7 +5052,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         auto backgroundRenderData = make_shared<BackgroundRenderData>();
         auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
-        pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
+        transaction.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
     }
 
     // Assuming nothing get's rendered through that
@@ -5059,7 +5070,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                     static_cast<int>(RenderArgs::RENDER_DEBUG_HULLS));
             }
             renderArgs->_debugFlags = renderDebugFlags;
-            //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, pendingChanges);
+            //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, transaction);
         }
     }
 
@@ -5071,9 +5082,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         WorldBoxRenderData::_item = _main3DScene->allocateID();
 
-        pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
+        transaction.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     } else {
-        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
+        transaction.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
             [](WorldBoxRenderData& payload) {
             payload._val++;
         });
@@ -5086,10 +5097,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     {
-        PerformanceTimer perfTimer("SceneProcessPendingChanges");
-        _main3DScene->enqueuePendingChanges(pendingChanges);
+        PerformanceTimer perfTimer("SceneProcessTransaction");
+        _main3DScene->enqueueTransaction(transaction);
 
-        _main3DScene->processPendingChangesQueue();
+        _main3DScene->processTransactionQueue();
     }
 
     // For now every frame pass the renderContext
@@ -5430,6 +5441,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);
 
+    // give the script engine to the RecordingScriptingInterface for its callbacks
+    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(scriptEngine);
+
     if (property(hifi::properties::TEST).isValid()) {
         scriptEngine->registerGlobalObject("Test", TestScriptingInterface::getInstance());
     }
@@ -5516,6 +5530,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
+    scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
+
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine, steamClient.get()));
     }
@@ -5540,7 +5556,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
 bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
-    if (urlString.startsWith(HIFI_URL_SCHEME)) {
+    if (url.query().contains(WEB_VIEW_TAG)) {
+        return false;
+    } else if (urlString.startsWith(HIFI_URL_SCHEME)) {
         return true;
     }
     QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
@@ -5648,7 +5666,9 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     QUrl scriptURL { scriptFilenameOrURL };
 
     if (scriptURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
-        shortName = shortName.mid(shortName.lastIndexOf('/') + 1);
+        int startIndex = shortName.lastIndexOf('/') + 1;
+        int endIndex = shortName.lastIndexOf('?');
+        shortName = shortName.mid(startIndex, endIndex - startIndex);
     }
 
     QString message = "Would you like to run this script:\n" + shortName;
@@ -5781,22 +5801,10 @@ void Application::toggleRunningScriptsWidget() const {
 }
 
 void Application::showScriptLogs() {
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     QUrl defaultScriptsLoc = defaultScriptsLocation();
     defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
-
-    if (tablet->getToolbarMode()) {
-        scriptEngines->loadScript(defaultScriptsLoc.toString());
-    } else {
-        QQuickItem* tabletRoot = tablet->getTabletRoot();
-        if (!tabletRoot && !isHMDMode()) {
-            scriptEngines->loadScript(defaultScriptsLoc.toString());
-        } else {
-            tablet->pushOntoStack("../../hifi/dialogs/TabletDebugWindow.qml");
-        }
-    }
+    scriptEngines->loadScript(defaultScriptsLoc.toString());
 }
 
 void Application::showAssetServerWidget(QString filePath) {
@@ -6414,7 +6422,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated || !(SnapshotAnimated::alsoTakeAnimatedSnapshot.get())) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
-            emit DependencyManager::get<WindowScriptingInterface>()->snapshotTaken(path, "", notify);
+            emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
         } else {
             // Get an animated GIF snapshot and save it
             SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());

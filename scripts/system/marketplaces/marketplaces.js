@@ -19,7 +19,6 @@ var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
 var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
-var MARKETPLACES_INJECT_NO_SCROLLBAR_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInjectNoScrollbar.js");
 
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -61,12 +60,7 @@ function showMarketplace() {
 
     shouldActivateButton = true;
 
-    // by default the marketplace should NOT have a scrollbar, except when tablet is in toolbar mode.
-    var injectURL = MARKETPLACES_INJECT_NO_SCROLLBAR_SCRIPT_URL;
-    if (tablet.toolbarMode) {
-        injectURL = MARKETPLACES_INJECT_SCRIPT_URL;
-    }
-    tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, injectURL);
+    tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
     onMarketplaceScreen = true;
 
     tablet.webEventReceived.connect(function (message) {

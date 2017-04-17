@@ -55,6 +55,16 @@ class Texture;
 
 class Avatar : public AvatarData {
     Q_OBJECT
+
+    /**jsdoc
+     * An avatar is representation of yourself or another user. The Avatar API can be used to query or manipulate the avatar of a user.
+     * NOTE: Avatar extends AvatarData, see those namespace for more properties/methods.
+     *
+     * @namespace Avatar
+     * @augments AvatarData
+     *
+     * @property skeletonOffset {Vec3} can be used to apply a translation offset between the avatar's position and the registration point of the 3d model.
+     */
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
@@ -71,13 +81,13 @@ public:
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
-    bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
-                            render::PendingChanges& pendingChanges);
+    void addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
+                            render::Transaction& transaction);
 
     void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
-                                render::PendingChanges& pendingChanges);
+                                render::Transaction& transaction);
 
-    void updateRenderItem(render::PendingChanges& pendingChanges);
+    void updateRenderItem(render::Transaction& transaction);
 
     virtual void postUpdate(float deltaTime);
 
@@ -110,6 +120,26 @@ public:
 
     Q_INVOKABLE virtual glm::quat getDefaultJointRotation(int index) const;
     Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
+
+    /**jsdoc
+     * Provides read only access to the default joint rotations in avatar coordinates.
+     * The default pose of the avatar is defined by the position and orientation of all bones
+     * in the avatar's model file.  Typically this is a t-pose.
+     * @function Avatar.getAbsoluteDefaultJointRotationInObjectFrame
+     * @param index {number} index number
+     * @returns {Quat} The rotation of this joint in avatar coordinates.
+     */
+    Q_INVOKABLE virtual glm::quat getAbsoluteDefaultJointRotationInObjectFrame(int index) const;
+
+    /**jsdoc
+     * Provides read only access to the default joint translations in avatar coordinates.
+     * The default pose of the avatar is defined by the position and orientation of all bones
+     * in the avatar's model file.  Typically this is a t-pose.
+     * @function Avatar.getAbsoluteDefaultJointTranslationInObjectFrame
+     * @param index {number} index number
+     * @returns {Vec3} The position of this joint in avatar coordinates.
+     */
+    Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
@@ -168,6 +198,21 @@ public:
     Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
     Q_INVOKABLE virtual quint16 getParentJointIndex() const override { return SpatiallyNestable::getParentJointIndex(); }
     Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex) override;
+
+    /**jsdoc
+     * Information about a single joint in an Avatar's skeleton hierarchy.
+     * @typedef Avatar.SkeletonJoint
+     * @property {string} name - name of joint
+     * @property {number} index - joint index
+     * @property {number} parentIndex - index of this joint's parent (-1 if no parent)
+     */
+
+    /**jsdoc
+     * Returns an array of joints, where each joint is an object containing name, index and parentIndex fields.
+     * @function Avatar.getSkeleton
+     * @returns {Avatar.SkeletonJoint[]} returns a list of information about each joint in this avatar's skeleton.
+     */
+    Q_INVOKABLE QList<QVariant> getSkeleton();
 
     // NOT thread safe, must be called on main thread.
     glm::vec3 getUncachedLeftPalmPosition() const;
@@ -260,6 +305,7 @@ protected:
 
     void addToScene(AvatarSharedPointer self);
     void ensureInScene(AvatarSharedPointer self);
+    bool isInScene() const { return render::Item::isValidID(_renderItemID); }
 
     // Some rate tracking support
     RateCounter<> _simulationRate;
@@ -285,7 +331,6 @@ private:
     int _nameRectGeometryID { 0 };
     bool _initialized;
     bool _isLookAtTarget { false };
-    bool _inScene { false };
     bool _isAnimatingScale { false };
 
     float getBoundingRadius() const;

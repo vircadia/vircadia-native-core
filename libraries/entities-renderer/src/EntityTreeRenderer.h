@@ -150,6 +150,7 @@ private:
     bool applyZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone);
     bool layerZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone);
     bool applySkyboxAndHasAmbient();
+    bool applyLayeredZones();
 
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false, const bool unloadFirst = false);
 

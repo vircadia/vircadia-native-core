@@ -443,13 +443,8 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                                               (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
 
                     EncodeBitstreamParams params(INT_MAX, WANT_EXISTS_BITS, DONT_CHOP,
-                                                 viewFrustumChanged,
-                                                 boundaryLevelAdjust, octreeSizeScale,
-                                                 nodeData->getLastTimeBagEmpty(),
-                                                 isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
-                                                 &nodeData->extraEncodeData,
-                                                 nodeData->getUsesFrustum(),
-                                                 nodeData);
+                                                 viewFrustumChanged, boundaryLevelAdjust, octreeSizeScale,
+                                                 isFullScene, _myServer->getJurisdiction(), nodeData);
                     nodeData->copyCurrentViewFrustum(params.viewFrustum);
                     if (viewFrustumChanged) {
                         nodeData->copyLastKnownViewFrustum(params.lastViewFrustum);

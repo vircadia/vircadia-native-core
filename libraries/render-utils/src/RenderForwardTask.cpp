@@ -29,7 +29,9 @@
 using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);
 
-RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
+void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
+    auto items = input.get<Input>();
+
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initForwardPipelines(*shapePlumber);
@@ -44,17 +46,17 @@ RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
     const auto background = items[RenderFetchCullSortTask::BACKGROUND];
     const auto spatialSelection = items[RenderFetchCullSortTask::SPATIAL_SELECTION];
 
-    const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
+    const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
-    addJob<Draw>("DrawOpaques", opaques, shapePlumber);
-    addJob<Stencil>("Stencil");
-    addJob<DrawBackground>("DrawBackground", background);
+    task.addJob<Draw>("DrawOpaques", opaques, shapePlumber);
+    task.addJob<Stencil>("Stencil");
+    task.addJob<DrawBackground>("DrawBackground", background);
 
     // Bounds do not draw on stencil buffer, so they must come last
-    addJob<DrawBounds>("DrawBounds", opaques);
+    task.addJob<DrawBounds>("DrawBounds", opaques);
 
     // Blit!
-    addJob<Blit>("Blit", framebuffer);
+    task.addJob<Blit>("Blit", framebuffer);
 }
 
 void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
@@ -73,11 +75,11 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
 
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        auto colorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, frameSize.x, frameSize.y, defaultSampler));
+        auto colorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler));
         _framebuffer->setRenderBuffer(0, colorTexture);
 
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
-        auto depthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, defaultSampler));
+        auto depthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler));
         _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
     }
 

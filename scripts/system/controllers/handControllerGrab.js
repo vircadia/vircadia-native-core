@@ -1051,8 +1051,6 @@ function MyController(hand) {
     this.homeButtonTouched = false;
     this.editTriggered = false;
 
-    this.controllerJointIndex = getControllerJointIndex(this.hand);
-
     // Until there is some reliable way to keep track of a "stack" of parentIDs, we'll have problems
     // when more than one avatar does parenting grabs on things.  This script tries to work
     // around this with two associative arrays: previousParentID and previousParentJointIndex.  If
@@ -1094,7 +1092,6 @@ function MyController(hand) {
     this.grabbedOverlay = null;
     this.state = STATE_OFF;
     this.pointer = null; // entity-id of line object
-    this.entityActivated = false;
 
     this.triggerValue = 0; // rolling average of trigger value
     this.triggerClicked = false;
@@ -1181,7 +1178,7 @@ function MyController(hand) {
 
         this.updateStylusTip();
 
-        var DEFAULT_USE_FINGER_AS_STYLUS = true;
+        var DEFAULT_USE_FINGER_AS_STYLUS = false;
         var USE_FINGER_AS_STYLUS = Settings.getValue("preferAvatarFingerOverStylus");
         if (USE_FINGER_AS_STYLUS === "") {
             USE_FINGER_AS_STYLUS = DEFAULT_USE_FINGER_AS_STYLUS;
@@ -1737,6 +1734,7 @@ function MyController(hand) {
 
     this.off = function(deltaTime, timestamp) {
 
+        this.controllerJointIndex = getControllerJointIndex(this.hand);
         this.checkForUnexpectedChildren();
 
         if (this.editTriggered) {
@@ -2826,12 +2824,6 @@ function MyController(hand) {
 
         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
-        if (this.entityActivated) {
-            var saveGrabbedID = this.grabbedThingID;
-            this.release();
-            this.grabbedThingID = saveGrabbedID;
-        }
-
         var grabbedProperties;
         if (this.grabbedIsOverlay) {
             grabbedProperties = {
@@ -3007,22 +2999,25 @@ function MyController(hand) {
          * is called correctly, as these just freshly created entity may not have completely initialized.
         */
         var grabEquipCheck = function () {
-          if (_this.state == STATE_NEAR_GRABBING) {
-              _this.callEntityMethodOnGrabbed("startNearGrab");
+            if (_this.state == STATE_NEAR_GRABBING) {
+                _this.callEntityMethodOnGrabbed("startNearGrab");
             } else { // this.state == STATE_HOLD
-                  _this.callEntityMethodOnGrabbed("startEquip");
+                _this.callEntityMethodOnGrabbed("startEquip");
             }
 
-          _this.currentHandControllerTipPosition =
-              (_this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
-          _this.currentObjectTime = Date.now();
+            // don't block teleport raypick with equipped entity
+            Messages.sendMessage('Hifi-Teleport-Ignore-Add', _this.grabbedThingID);
 
-          _this.currentObjectPosition = grabbedProperties.position;
-          _this.currentObjectRotation = grabbedProperties.rotation;
-          _this.currentVelocity = ZERO_VEC;
-          _this.currentAngularVelocity = ZERO_VEC;
+            _this.currentHandControllerTipPosition =
+                (_this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
+            _this.currentObjectTime = Date.now();
 
-          _this.prevDropDetected = false;
+            _this.currentObjectPosition = grabbedProperties.position;
+            _this.currentObjectRotation = grabbedProperties.rotation;
+            _this.currentVelocity = ZERO_VEC;
+            _this.currentAngularVelocity = ZERO_VEC;
+
+            _this.prevDropDetected = false;
         }
 
         if (isClone) {
@@ -3654,6 +3649,9 @@ function MyController(hand) {
         this.turnOffVisualizations();
 
         if (this.grabbedThingID !== null) {
+
+            Messages.sendMessage('Hifi-Teleport-Ignore-Remove', this.grabbedThingID);
+
             if (this.state === STATE_HOLD) {
                 this.callEntityMethodOnGrabbed("releaseEquip");
             }
