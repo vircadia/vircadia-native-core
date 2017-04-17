@@ -223,7 +223,7 @@ QString texturePathRelativeToFBX(QUrl fbxURL, QUrl textureURL) {
 QString FBXBaker::createBakedTextureFileName(const QFileInfo& textureFileInfo) {
     // first make sure we have a unique base name for this texture
     // in case another texture referenced by this model has the same base name
-    auto& nameMatches = _textureNameMatchCount[textureFileInfo.baseName()];
+    auto nameMatches = _textureNameMatchCount[textureFileInfo.baseName()];
 
     QString bakedTextureFileName { textureFileInfo.baseName() };
 
@@ -347,7 +347,8 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                             FbxFileTexture* fileTexture = property.GetSrcObject<FbxFileTexture>(j);
 
                             // use QFileInfo to easily split up the existing texture filename into its components
-                            QFileInfo textureFileInfo { fileTexture->GetFileName() };
+                            QString fbxFileName { fileTexture->GetFileName() };
+                            QFileInfo textureFileInfo { fbxFileName.replace("\\", "/") };
 
                             // make sure this texture points to something and isn't one we've already re-mapped
                             if (!textureFileInfo.filePath().isEmpty()
