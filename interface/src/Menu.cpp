@@ -254,7 +254,7 @@ Menu::Menu() {
 
     // Navigate > Show Address Bar
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::AddressBar, Qt::CTRL | Qt::Key_L,
-        dialogsManager.data(), SLOT(toggleAddressBar()));
+        dialogsManager.data(), SLOT(showAddressBar()));
 
     // Navigate > Bookmark related menus -- Note: the Bookmark class adds its own submenus here.
     qApp->getBookmarks()->setupMenus(this, navigateMenu);
