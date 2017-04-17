@@ -67,7 +67,7 @@ void DomainBakeWidget::setupUI() {
     QLabel* entitiesFileLabel = new QLabel("Entities File");
 
     _entitiesFileLineEdit = new QLineEdit;
-    _entitiesFileLineEdit->setPlaceholderText("File or URL");
+    _entitiesFileLineEdit->setPlaceholderText("File");
 
     QPushButton* chooseFileButton = new QPushButton("Browse...");
     connect(chooseFileButton, &QPushButton::clicked, this, &DomainBakeWidget::chooseFileButtonClicked);
