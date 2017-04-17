@@ -598,7 +598,9 @@
             text: APP_NAME,
             isActive: false
         });
-        button.clicked.connect(onButtonClicked);
+        if (button) {
+            button.clicked.connect(onButtonClicked);
+        }
 
         // Track showing/hiding tablet/dialog.
         tablet.screenChanged.connect(onTabletScreenChanged);
@@ -625,7 +627,11 @@
 
         tablet.tabletShownChanged.disconnect(onTabletShownChanged);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
-        button.clicked.disconnect(onButtonClicked);
+        if (button) {
+            button.clicked.disconnect(onButtonClicked);
+            tablet.removeButton(button);
+            button = null;
+        }
 
         if (Recorder.isCountingDown()) {
             Recorder.cancelCountdown();
@@ -637,7 +643,7 @@
             tablet.gotoHomeScreen();
         }
 
-        tablet.removeButton(button);
+        tablet = null;
     }
 
     // FIXME: If setUp() is run immediately at Interface start-up, Interface hangs and crashes because of the line of code:
