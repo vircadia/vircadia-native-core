@@ -56,7 +56,7 @@
         }
         try {
             var entityJSONImport = Script.require(importLink).Entities;
-            parentProperties.childEntities = entityListToTree(entityJSONImport.Entities);
+            parentProperties.childEntities = entityListToTree(entityJSONImport);
             return parentProperties;
         } catch (e) {
             print('Failed importing entities JSON because: ' + JSON.stringify(e));
