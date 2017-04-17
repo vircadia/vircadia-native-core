@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
 
     QImage image(TEST_IMAGE);
-    gpu::TexturePointer testTexture = image::TextureUsage::process2DTextureColorFromImage(image, TEST_IMAGE.toStdString(), true, true);
+    gpu::TexturePointer testTexture = image::TextureUsage::process2DTextureColorFromImage(image, TEST_IMAGE.toStdString(), true);
 
     auto ktxMemory = gpu::Texture::serialize(*testTexture);
     {

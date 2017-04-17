@@ -11,4 +11,4 @@
 
 #include "ImageLogging.h"
 
-Q_LOGGING_CATEGORY(imagelogging, "hifi.model")
+Q_LOGGING_CATEGORY(imagelogging, "hifi.image")

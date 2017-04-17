@@ -433,12 +433,22 @@ void ImageReader::read() {
     {
         PROFILE_RANGE_EX(resource_parse_image_raw, __FUNCTION__, 0xffff0000, 0);
         texture = image::processImage(_content, _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType());
+
+        if (!texture) {
+            qCWarning(modelnetworking) << "Could not process:" << _url;
+            QMetaObject::invokeMethod(resource.data(), "setImage",
+                                      Q_ARG(gpu::TexturePointer, texture),
+                                      Q_ARG(int, 0),
+                                      Q_ARG(int, 0));
+            return;
+        }
+
         texture->setSourceHash(hash);
         texture->setFallbackTexture(networkTexture->getFallbackTexture());
     }
 
     // Save the image into a KTXFile
-    if (textureCache) {
+    if (texture && textureCache) {
         auto memKtx = gpu::Texture::serialize(*texture);
 
         if (memKtx) {
