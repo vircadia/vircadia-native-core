@@ -41,7 +41,7 @@ public:
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
 
     // Null/Default-constructed QUuids will return MyAvatar
-    virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
+    Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
 
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const { return findAvatar(sessionID); }
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
