@@ -76,4 +76,7 @@ void ResultsWindow::changeStatusForRow(int rowIndex, const QString& result) {
     auto statusItem = new QTableWidgetItem(result);
     statusItem->setFlags(statusItem->flags() & ~Qt::ItemIsEditable);
     _resultsTable->setItem(rowIndex, 1, statusItem);
+
+    // resize the row for the new contents
+    _resultsTable->resizeRowToContents(rowIndex);
 }
