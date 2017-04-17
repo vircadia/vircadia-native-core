@@ -568,10 +568,12 @@ void Avatar::postUpdate(float deltaTime) {
 }
 
 void Avatar::render(RenderArgs* renderArgs) {
-    auto& batch = *renderArgs->_batch;
+    auto& batch = *(renderArgs->_batch);
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
-    if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatarPosition(), getPosition()) < 10.0f) {
+    glm::vec3 viewPos = renderArgs->getViewFrustum().getPosition();
+    const float MAX_DISTANCE_SQUARED_FOR_SHOWING_POINTING_LASERS = 100.0f; // 10^2
+    if (glm::distance2(viewPos, getPosition()) < MAX_DISTANCE_SQUARED_FOR_SHOWING_POINTING_LASERS) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
         // render pointing lasers
