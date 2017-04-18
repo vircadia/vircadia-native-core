@@ -124,3 +124,9 @@ function snapshotSettings() {
         action: "openSettings"
     }));
 }
+function takeSnapshot() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "snapshot",
+        action: "takeSnapshot"
+    }));
+}

@@ -1,0 +1,90 @@
+/*
+//  hifi-style.css
+//
+//  Created by Zach Fox on 2017-04-18
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+*/
+
+@font-face {
+    font-family: Raleway-Regular;
+    src: url(../../../../resources/fonts/Raleway-Regular.ttf),  /* Windows production */
+         url(../../../../fonts/Raleway-Regular.ttf),  /* OSX production */
+         url(../../../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development, running script in /HiFi/examples */
+}
+
+@font-face {
+    font-family: Raleway-Light;
+    src: url(../../../../resources/fonts/Raleway-Light.ttf),
+         url(../../../../fonts/Raleway-Light.ttf),
+         url(../../../../interface/resources/fonts/Raleway-Light.ttf);
+}
+
+@font-face {
+    font-family: Raleway-Bold;
+    src: url(../../../../resources/fonts/Raleway-Bold.ttf),
+         url(../../../../fonts/Raleway-Bold.ttf),
+         url(../../../../interface/resources/fonts/Raleway-Bold.ttf);
+}
+
+@font-face {
+    font-family: Raleway-SemiBold;
+    src: url(../../../../resources/fonts/Raleway-SemiBold.ttf),
+         url(../../../../fonts/Raleway-SemiBold.ttf),
+         url(../../../../interface/resources/fonts/Raleway-SemiBold.ttf);
+}
+
+@font-face {
+    font-family: FiraSans-SemiBold;
+    src: url(../../../../resources/fonts/FiraSans-SemiBold.ttf),
+         url(../../../../fonts/FiraSans-SemiBold.ttf),
+         url(../../../../interface/resources/fonts/FiraSans-SemiBold.ttf);
+}
+
+@font-face {
+    font-family: AnonymousPro-Regular;
+    src: url(../../../../resources/fonts/AnonymousPro-Regular.ttf),
+         url(../../../../fonts/AnonymousPro-Regular.ttf),
+         url(../../../../interface/resources/fonts/AnonymousPro-Regular.ttf);
+}
+
+@font-face {
+    font-family: HiFi-Glyphs;
+    src: url(../../../../resources/fonts/hifi-glyphs.ttf),
+         url(../../../../fonts/hifi-glyphs.ttf),
+         url(../../../../interface/resources/fonts/hifi-glyphs.ttf);
+}
+
+body {
+    color: #afafaf;
+    background-color: #404040;
+    font-family: Raleway-Regular;
+    font-size: 15px;
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+hr {
+    border: none;
+    background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAjSURBVBhXY1RVVf3PgARYjIyMoEwIYHRwcEBRwQSloYCBAQCwjgPMiI7W2QAAAABJRU5ErkJggg==) repeat-x top left;
+    width: 100%;
+    margin: 21px -21px 0 -21px;
+    padding: 14px 21px 0 21px;
+}
+
+.hifi-glyph {
+    font-family: HiFi-Glyphs;
+    border: none;
+    //margin: -10px;
+    padding: 0;
+}

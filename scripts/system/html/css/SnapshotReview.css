@@ -9,40 +9,66 @@
 */
 
 body {
-    padding-top: 0;
-    padding-bottom: 14px;
+    padding: 0;
 }
 
+/*
+// START styling of top bar and its contents
+*/
 .snapsection {
-    padding-top: 14px;
-    text-align: center;
+    padding-top: 12px;
 }
 
 .snapsection.title {
     padding-top: 0;
     text-align: left;
+    height: 24px;
+    clear: both;
 }
 
 .title label {
-    font-size: 18px;
     position: relative;
-    top: 12px;
+    top: 10px;
+    font-size: 18px;
+    float: left;
 }
 
+#snapshotSettings {
+    position: relative;
+    top: 4px;
+    float: right;
+}
+#settingsLabel {
+    position: relative;
+    float: right;
+    top: 12px;
+    font-family: Raleway-SemiBold;
+    font-size: 14px;
+}
+.hifi-glyph {
+    font-size: 30px;
+}
+input[type=button].naked {
+    color: #afafaf;
+    background: none;
+}
+input[type=button].naked:hover {
+    color: #ffffff;
+}
+input[type=button].naked:active {
+    color: #afafaf;
+}
+/*
+// END styling of top bar and its contents
+*/
+
+/*
+// START styling of snapshot pane and its contents
+*/
 #snapshot-pane {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    box-sizing: border-box;
-    padding-top: 56px;
-    padding-bottom: 175px;
 }
 
 #snapshot-images {
-    height: 100%;
-    width: 100%;
     position: relative;
 }
 
@@ -77,21 +103,57 @@ body {
 #snapshot-images img.multiple {
     padding-left: 28px;
 }
+/*
+// END styling of snapshot pane and its contents
+*/
 
+/*
+// START styling of snapshot controls (bottom panel) and its contents
+*/
 #snapshot-controls {
     width: 100%;
     position: absolute;
     left: 0;
     bottom: 14px;
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+#snap-settings {
+    float: left;
+    margin-left: 10px;
+}
+#snap-settings label {
+    margin-bottom: 50px;
+}
+#snap-settings form input {
+    margin-bottom: 50px;
 }
 
+#snap-button {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: #EA4C5F;
+    border: 3px solid white;
+    margin-left: auto;
+    margin-right: auto;
+}
+#snap-button:hover {
+    background: #C62147;
+}
+#snap-button:active {
+    background: #EA4C5F;
+}
+/*
+// END styling of snapshot controls (bottom panel) and its contents
+*/
+
+/*
+// START misc styling
+*/
 .prompt {
     font-family: Raleway-SemiBold;
     font-size: 14px;
-}
-
-div.button {
-    padding-top: 21px;
 }
 
 .compound-button {
@@ -103,7 +165,7 @@ div.button {
     padding-left: 40px;
 }
 
-.compound-button .glyph {
+.compound-button {
     display: inline-block;
     position: absolute;
     left: 12px;
@@ -114,36 +176,6 @@ div.button {
     background-repeat: no-repeat;
     background-size: 23px 23px;
 }
-
-.setting {
-    display: inline-table;
-    height: 28px;
-}
-
-.setting label {
-    display: table-cell;
-    vertical-align: middle;
-    font-family: Raleway-SemiBold;
-    font-size: 14px;
-}
-
-.setting + .setting {
-    margin-left: 18px;
-}
-
-input[type=button].naked {
-    font-size: 40px;
-    line-height: 40px;
-    width: 30px;
-    padding: 0;
-    margin: 0 0 -6px 0;
-    position: relative;
-    top: -6px;
-    left: -8px;
-    background: none;
-}
-
-input[type=button].naked:hover {
-    color: #00b4ef;
-    background: none;
-}
+/*
+// END misc styling
+*/

@@ -75,6 +75,11 @@ function onMessage(message) {
                 tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
             }
             break;
+        case 'takeSnapshot':
+            // In settings, first store the paths to the last snapshot
+            //
+            onClicked();
+            break;
         case 'setOpenFeedFalse':
             Settings.setValue('openFeedAfterShare', false);
             break;

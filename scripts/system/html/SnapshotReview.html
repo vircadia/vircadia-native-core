@@ -1,7 +1,7 @@
 <html>
 <head>
     <title>Share</title>
-    <link rel="stylesheet" type="text/css" href="css/edit-style.css">
+    <link rel="stylesheet" type="text/css" href="css/hifi-style.css">
     <link rel="stylesheet" type="text/css" href="css/SnapshotReview.css">
     <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
     <script type="text/javascript" src="js/SnapshotReview.js"></script>
@@ -10,6 +10,9 @@
 <body>
     <div class="snapsection title">
         <label>Snap</label>
+
+        <label id="settingsLabel" for="snapshotSettings">Settings</label>
+        <input type="button" class="hifi-glyph naked" id="snapshotSettings" value="@" onclick="snapshotSettings()" />
     </div>
     <hr />
     <div id="snapshot-pane">
@@ -17,29 +20,16 @@
         </div>
     </div>
     <div id="snapshot-controls">
-        <div class="snapsection" id="snap-buttons">
-            <div id="sharing">
-                <div class="button">
-                    <span class="compound-button">
-                        <input type="button" class="blue" id="share" value="Share in Feed" onclick="shareSelected()" />
-                        <span class="glyph"></span>
-                    </span>
-                </div>
-            </div>
-            <div class="button">
-                <input type="button" class="black" id="close" value="Don't Share" onclick="doNotShare()" />
-            </div>
+        <div id="snap-settings">
+            <label>CAMERA CAPTURES</label><br />
+            <form action="">
+                <input type="radio" name="cameraCaptures" id="stillAndGif" value="stillAndGif" />
+                <label for="stillAndGif">Still + GIF</label><br />
+                <input type="radio" name="cameraCaptures" id="stillOnly" value="stillOnly" />
+                <label for="stillOnly">Still Only</label>
+            </form>
         </div>
-        <hr />
-        <div class="snapsection" id="snap-settings">
-            <span class="setting">
-                <input type="button" class="glyph naked" id="snapshotSettings" value="@" onclick="snapshotSettings()" />
-                <label for="snapshotSettings">Settings</label>
-            </span>
-            <span class="setting checkbox">
-                <input id="openFeed" type="checkbox" checked />
-                <label for="openFeed">Open feed after</label>
-            </span>
+        <div id="snap-button" onclick="takeSnapshot()">
         </div>
     </div>
 </body>
