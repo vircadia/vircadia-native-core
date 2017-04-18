@@ -642,6 +642,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
 }
 
+
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
@@ -660,8 +661,9 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         estimatedPosition.x *= -1.0f;
         _trackedHeadPosition = estimatedPosition;
 
-        const float OCULUS_LEAN_SCALE = 0.05f;
-        estimatedPosition /= OCULUS_LEAN_SCALE;
+        // wut
+        // const float OCULUS_LEAN_SCALE = 0.05f;
+        // estimatedPosition /= OCULUS_LEAN_SCALE;
     } else if (inFacetracker) {
         estimatedPosition = tracker->getHeadTranslation();
         _trackedHeadPosition = estimatedPosition;
@@ -1384,6 +1386,68 @@ controller::Pose MyAvatar::getRightFootControllerPoseInAvatarFrame() const {
     return getRightFootControllerPoseInWorldFrame().transform(invAvatarMatrix);
 }
 
+void MyAvatar::setSpineControllerPosesInSensorFrame(const controller::Pose& hips, const controller::Pose& spine2) {
+    if (controller::InputDevice::getLowVelocityFilter()) {
+        auto oldHipsPose = getHipsControllerPoseInSensorFrame();
+        auto oldSpine2Pose = getSpine2ControllerPoseInSensorFrame();
+        _hipsControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldHipsPose, hips));
+        _spine2ControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldSpine2Pose, spine2));
+    } else {
+        _hipsControllerPoseInSensorFrameCache.set(hips);
+        _spine2ControllerPoseInSensorFrameCache.set(spine2);
+    }
+}
+
+controller::Pose MyAvatar::getHipsControllerPoseInSensorFrame() const {
+    return _hipsControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getSpine2ControllerPoseInSensorFrame() const {
+    return _spine2ControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getHipsControllerPoseInWorldFrame() const {
+    return _hipsControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
+}
+
+controller::Pose MyAvatar::getSpine2ControllerPoseInWorldFrame() const {
+    return _spine2ControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
+}
+
+controller::Pose MyAvatar::getHipsControllerPoseInAvatarFrame() const {
+    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
+    return getHipsControllerPoseInWorldFrame().transform(invAvatarMatrix);
+}
+
+controller::Pose MyAvatar::getSpine2ControllerPoseInAvatarFrame() const {
+    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
+    return getSpine2ControllerPoseInWorldFrame().transform(invAvatarMatrix);
+}
+
+void MyAvatar::setHeadControllerPoseInSensorFrame(const controller::Pose& headPose) {
+    bool inHmd = qApp->isHMDMode();
+    Head* head = getHead();
+    if (inHmd) {
+        _headControllerPoseInSensorFrameCache.set(headPose);
+        _trackedHeadPosition = headPose.translation;
+        head->setDeltaPitch(headPose.rotation.x);
+        head->setDeltaYaw(headPose.rotation.y);
+        head->setDeltaRoll(headPose.rotation.z);
+    }
+}
+
+controller::Pose MyAvatar::getHeadControllerPoseInSensorFrame() const {
+    return _headControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getHeadControllerPoseInWorldFrame() const {
+    return _headControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
+}
+
+controller::Pose MyAvatar::getHeadControllerPoseInAvatarFrame() const {
+    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
+    return getHeadControllerPoseInWorldFrame().transform(invAvatarMatrix);
+}
 
 void MyAvatar::updateMotors() {
     _characterController.clearMotors();

@@ -453,6 +453,19 @@ public:
     controller::Pose getLeftFootControllerPoseInAvatarFrame() const;
     controller::Pose getRightFootControllerPoseInAvatarFrame() const;
 
+    void setSpineControllerPosesInSensorFrame(const controller::Pose& hips, const controller::Pose& spine2);
+    controller::Pose getHipsControllerPoseInSensorFrame() const;
+    controller::Pose getSpine2ControllerPoseInSensorFrame() const;
+    controller::Pose getHipsControllerPoseInWorldFrame() const;
+    controller::Pose getSpine2ControllerPoseInWorldFrame() const;
+    controller::Pose getHipsControllerPoseInAvatarFrame() const;
+    controller::Pose getSpine2ControllerPoseInAvatarFrame() const;
+
+    void setHeadControllerPoseInSensorFrame(const controller::Pose& headPose);
+    controller::Pose getHeadControllerPoseInSensorFrame() const;
+    controller::Pose getHeadControllerPoseInWorldFrame() const;
+    controller::Pose getHeadControllerPoseInAvatarFrame() const;
+
     bool hasDriveInput() const;
 
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
@@ -693,9 +706,11 @@ private:
     // These are stored in SENSOR frame
     ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInSensorFrameCache { controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
-
     ThreadSafeValueCache<controller::Pose> _leftFootControllerPoseInSensorFrameCache{ controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _rightFootControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _hipsControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _spine2ControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _headControllerPoseInSensorFrameCache{ controller::Pose() };
 
     bool _hmdLeanRecenterEnabled = true;
 
