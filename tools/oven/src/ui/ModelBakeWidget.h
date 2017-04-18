@@ -18,21 +18,21 @@
 
 #include <FBXBaker.h>
 
+#include "BakeWidget.h"
+
 class QLineEdit;
 class QThread;
 
-class ModelBakeWidget : public QWidget {
+class ModelBakeWidget : public BakeWidget {
     Q_OBJECT
 
 public:
     ModelBakeWidget(QWidget* parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
-    ~ModelBakeWidget();
 
 private slots:
     void chooseFileButtonClicked();
     void chooseOutputDirButtonClicked();
     void bakeButtonClicked();
-    void cancelButtonClicked();
 
     void outputDirectoryChanged(const QString& newDirectory);
 
@@ -40,10 +40,6 @@ private slots:
 
 private:
     void setupUI();
-
-    using BakerRowPair = std::pair<std::unique_ptr<FBXBaker>, int>;
-    using BakerRowPairList = std::list<BakerRowPair>;
-    BakerRowPairList _bakers;
 
     QLineEdit* _modelLineEdit;
     QLineEdit* _outputDirLineEdit;

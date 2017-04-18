@@ -29,25 +29,11 @@ static const auto EXPORT_DIR_SETTING_KEY = "model_export_directory";
 static const auto MODEL_START_DIR_SETTING_KEY = "model_search_directory";
 
 ModelBakeWidget::ModelBakeWidget(QWidget* parent, Qt::WindowFlags flags) :
-    QWidget(parent, flags),
+    BakeWidget(parent, flags),
     _exportDirectory(EXPORT_DIR_SETTING_KEY),
     _modelStartDirectory(MODEL_START_DIR_SETTING_KEY)
 {
     setupUI();
-}
-
-ModelBakeWidget::~ModelBakeWidget() {
-    // if we're about to go down, whatever bakers we're managing are about to as well
-    // enumerate them, send the results table a cancelled status, and clean them up
-    auto it = _bakers.begin();
-    while (it != _bakers.end()) {
-        auto resultRow = it->second;
-        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
-
-        resultsWindow->changeStatusForRow(resultRow, "Cancelled");
-
-        it = _bakers.erase(it);
-    }
 }
 
 void ModelBakeWidget::setupUI() {
@@ -235,13 +221,4 @@ void ModelBakeWidget::handleFinishedBaker() {
             _bakers.erase(it);
         }
     }
-}
-
-void ModelBakeWidget::cancelButtonClicked() {
-    // the user wants to go back to the mode selection screen
-    // remove ourselves from the stacked widget and call delete later so we'll be cleaned up
-    auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
-    stackedWidget->removeWidget(this);
-
-    this->deleteLater();
 }

@@ -16,7 +16,6 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QPushButton>
-#include <QtWidgets/QStackedWidget>
 
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
@@ -32,27 +31,13 @@ static const QString BROWSE_START_DIR_SETTING_KEY = "domain_search_directory";
 static const QString DESTINATION_PATH_SETTING_KEY = "destination_path";
 
 DomainBakeWidget::DomainBakeWidget(QWidget* parent, Qt::WindowFlags flags) :
-    QWidget(parent, flags),
+    BakeWidget(parent, flags),
     _domainNameSetting(DOMAIN_NAME_SETTING_KEY),
     _exportDirectory(EXPORT_DIR_SETTING_KEY),
     _browseStartDirectory(BROWSE_START_DIR_SETTING_KEY),
     _destinationPathSetting(DESTINATION_PATH_SETTING_KEY)
 {
     setupUI();
-}
-
-DomainBakeWidget::~DomainBakeWidget() {
-    // if we're going down, our bakers are about to too
-    // enumerate them, send a cancelled status to the results table, and remove them
-    auto it = _bakers.begin();
-    while (it != _bakers.end()) {
-        auto resultRow = it->second;
-        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
-
-        resultsWindow->changeStatusForRow(resultRow, "Cancelled");
-
-        it = _bakers.erase(it);
-    }
 }
 
 void DomainBakeWidget::setupUI() {
@@ -295,13 +280,4 @@ void DomainBakeWidget::handleFinishedBaker() {
             _bakers.erase(it);
         }
     }
-}
-
-void DomainBakeWidget::cancelButtonClicked() {
-    // the user wants to go back to the mode selection screen
-    // remove ourselves from the stacked widget and call delete later so we'll be cleaned up
-    auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
-    stackedWidget->removeWidget(this);
-
-    this->deleteLater();
 }

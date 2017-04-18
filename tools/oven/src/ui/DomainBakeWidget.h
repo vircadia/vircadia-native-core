@@ -17,21 +17,20 @@
 #include <SettingHandle.h>
 
 #include "../DomainBaker.h"
+#include "BakeWidget.h"
 
 class QLineEdit;
 
-class DomainBakeWidget : public QWidget {
+class DomainBakeWidget : public BakeWidget {
     Q_OBJECT
 
 public:
     DomainBakeWidget(QWidget* parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
-    ~DomainBakeWidget();
     
 private slots:
     void chooseFileButtonClicked();
     void chooseOutputDirButtonClicked();
     void bakeButtonClicked();
-    void cancelButtonClicked();
 
     void outputDirectoryChanged(const QString& newDirectory);
 
@@ -40,10 +39,6 @@ private slots:
 
 private:
     void setupUI();
-
-    using BakerRowPair = std::pair<std::unique_ptr<DomainBaker>, int>;
-    using BakerRowPairList = std::list<BakerRowPair>;
-    BakerRowPairList _bakers;
 
     QLineEdit* _domainNameLineEdit;
     QLineEdit* _entitiesFileLineEdit;

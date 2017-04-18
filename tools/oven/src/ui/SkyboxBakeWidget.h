@@ -18,9 +18,11 @@
 
 #include <TextureBaker.h>
 
+#include "BakeWidget.h"
+
 class QLineEdit;
 
-class SkyboxBakeWidget : public QWidget {
+class SkyboxBakeWidget : public BakeWidget {
     Q_OBJECT
 
 public:
@@ -30,7 +32,6 @@ private slots:
     void chooseFileButtonClicked();
     void chooseOutputDirButtonClicked();
     void bakeButtonClicked();
-    void cancelButtonClicked();
 
     void outputDirectoryChanged(const QString& newDirectory);
 
@@ -38,10 +39,6 @@ private slots:
 
 private:
     void setupUI();
-
-    using BakerRowPair = std::pair<std::unique_ptr<TextureBaker>, int>;
-    using BakerRowPairList = std::list<BakerRowPair>;
-    BakerRowPairList _bakers;
 
     QLineEdit* _selectionLineEdit;
     QLineEdit* _outputDirLineEdit;

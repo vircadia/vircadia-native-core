@@ -29,7 +29,7 @@ static const auto EXPORT_DIR_SETTING_KEY = "skybox_export_directory";
 static const auto SELECTION_START_DIR_SETTING_KEY = "skybox_search_directory";
 
 SkyboxBakeWidget::SkyboxBakeWidget(QWidget* parent, Qt::WindowFlags flags) :
-    QWidget(parent, flags),
+    BakeWidget(parent, flags),
     _exportDirectory(EXPORT_DIR_SETTING_KEY),
     _selectionStartDirectory(SELECTION_START_DIR_SETTING_KEY)
 {
@@ -220,13 +220,4 @@ void SkyboxBakeWidget::handleFinishedBaker() {
             _bakers.erase(it);
         }
     }
-}
-
-void SkyboxBakeWidget::cancelButtonClicked() {
-    // the user wants to go back to the mode selection screen
-    // remove ourselves from the stacked widget and call delete later so we'll be cleaned up
-    auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
-    stackedWidget->removeWidget(this);
-
-    this->deleteLater();
 }
