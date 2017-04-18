@@ -542,7 +542,7 @@ ScrollingWindow {
             Item {
                 height: parent.height
                 width: parent.width
-                HifiControls.Button {
+                HifiControls.QueuedButton {
                     id: uploadButton
                     anchors.right: parent.right
 
@@ -552,22 +552,7 @@ ScrollingWindow {
                     height: 30
                     width: 155
 
-                    onClicked: uploadClickedTimer.running = true
-
-                    // For some reason trigginer an API that enters
-                    // an internal event loop directly from the button clicked
-                    // trigger below causes the appliction to behave oddly.
-                    // Most likely because the button onClicked handling is never
-                    // completed until the function returns.
-                    // FIXME find a better way of handling the input dialogs that
-                    // doesn't trigger this.
-                    Timer {
-                        id: uploadClickedTimer
-                        interval: 5
-                        repeat: false
-                        running: false
-                        onTriggered: uploadClicked();
-                    }
+                    onClickedQueued: uploadClicked()
                 }
 
                 Item {
