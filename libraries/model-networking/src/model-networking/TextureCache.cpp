@@ -458,8 +458,7 @@ void NetworkTexture::ktxMipRequestFinished() {
     if (_ktxResourceState == LOADING_INITIAL_DATA) {
         _ktxHighMipRequestFinished = true;
         maybeHandleFinishedInitialLoad();
-    }
-    else if (_ktxResourceState == REQUESTING_MIP) {
+    } else if (_ktxResourceState == REQUESTING_MIP) {
         Q_ASSERT(_ktxMipLevelRangeInFlight.first != NULL_MIP_LEVEL);
         TextureCache::requestCompleted(_self);
 
