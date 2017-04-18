@@ -241,7 +241,9 @@ void DomainBakeWidget::handleBakerProgress(int baked, int total) {
 
         if (it != _bakers.end()) {
             auto resultRow = it->second;
-            auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+            
+            // grab the results window, don't force it to be brought to the top
+            auto resultsWindow = qApp->getMainWindow()->showResultsWindow(false);
 
             int percentage = roundf(float(baked) / float(total) * 100.0f);
 

@@ -37,7 +37,7 @@ OvenMainWindow::~OvenMainWindow() {
     }
 }
 
-ResultsWindow* OvenMainWindow::showResultsWindow() {
+ResultsWindow* OvenMainWindow::showResultsWindow(bool shouldRaise) {
     if (!_resultsWindow) {
         // we don't have a results window right now, so make a new one
         _resultsWindow = new ResultsWindow;
@@ -51,7 +51,10 @@ ResultsWindow* OvenMainWindow::showResultsWindow() {
 
     // show the results window and make sure it is in front
     _resultsWindow->show();
-    _resultsWindow->raise();
+
+    if (shouldRaise) {
+        _resultsWindow->raise();
+    }
 
     // return a pointer to the results window the caller can use
     return _resultsWindow;

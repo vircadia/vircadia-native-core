@@ -25,7 +25,7 @@ public:
     OvenMainWindow(QWidget *parent = Q_NULLPTR, Qt::WindowFlags flags = Qt::WindowFlags());
     ~OvenMainWindow();
 
-    ResultsWindow* showResultsWindow();
+    ResultsWindow* showResultsWindow(bool shouldRaise = true);
     
 private:
     QPointer<ResultsWindow> _resultsWindow;
