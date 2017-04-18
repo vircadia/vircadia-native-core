@@ -44,11 +44,14 @@ void AvatarActionFarGrab::deserialize(QByteArray serializedArguments) {
 
     EntityDynamicType type;
     dataStream >> type;
-    assert(type == getType());
 
     QUuid id;
     dataStream >> id;
-    assert(id == getID());
+
+    if (type != getType() || id != getID()) {
+        qDebug() << "AvatarActionFarGrab::deserialize type or ID don't match." << type << id << getID();
+        return;
+    }
 
     uint16_t serializationVersion;
     dataStream >> serializationVersion;
