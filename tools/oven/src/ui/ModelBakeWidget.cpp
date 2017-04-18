@@ -36,6 +36,20 @@ ModelBakeWidget::ModelBakeWidget(QWidget* parent, Qt::WindowFlags flags) :
     setupUI();
 }
 
+ModelBakeWidget::~ModelBakeWidget() {
+    // if we're about to go down, whatever bakers we're managing are about to as well
+    // enumerate them, send the results table a cancelled status, and clean them up
+    auto it = _bakers.begin();
+    while (it != _bakers.end()) {
+        auto resultRow = it->second;
+        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+
+        resultsWindow->changeStatusForRow(resultRow, "Cancelled");
+
+        it = _bakers.erase(it);
+    }
+}
+
 void ModelBakeWidget::setupUI() {
     // setup a grid layout to hold everything
     QGridLayout* gridLayout = new QGridLayout;

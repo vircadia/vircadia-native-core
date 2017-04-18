@@ -26,6 +26,7 @@ class ModelBakeWidget : public QWidget {
 
 public:
     ModelBakeWidget(QWidget* parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
+    ~ModelBakeWidget();
 
 private slots:
     void chooseFileButtonClicked();
