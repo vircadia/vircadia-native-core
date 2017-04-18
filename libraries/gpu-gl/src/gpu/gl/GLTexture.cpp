@@ -506,11 +506,13 @@ void GLVariableAllocationSupport::processWorkQueues() {
                 continue;
             }
             vartexture->demote();
+            _memoryPressureStateStale = true;
         } else if (MemoryPressureState::Undersubscribed == _memoryPressureState) {
             if (!vartexture->canPromote()) {
                 continue;
             }
             vartexture->promote();
+            _memoryPressureStateStale = true;
         } else if (MemoryPressureState::Transfer == _memoryPressureState) {
             if (!vartexture->hasPendingTransfers()) {
                 continue;
