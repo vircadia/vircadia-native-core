@@ -41,11 +41,17 @@ ResultsWindow* OvenMainWindow::showResultsWindow() {
     if (!_resultsWindow) {
         // we don't have a results window right now, so make a new one
         _resultsWindow = new ResultsWindow;
+
+        // even though we're about to show the results window, we do it here so that the move below works
+        _resultsWindow->show();
+
+        // place the results window initially below our window
+        _resultsWindow->move(_resultsWindow->x(), this->frameGeometry().bottom());
     }
 
-    // show the results window, place it right below our window
+    // show the results window and make sure it is in front
     _resultsWindow->show();
-    _resultsWindow->move(_resultsWindow->x(), this->frameGeometry().bottom());
+    _resultsWindow->raise();
 
     // return a pointer to the results window the caller can use
     return _resultsWindow;
