@@ -73,7 +73,6 @@ void ObjectConstraintHinge::updateHinge() {
 
     constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
     if (motorVelocity != 0.0f) {
-        qDebug() << "setting motor velocity on" << _tag << "to" << motorVelocity;
         constraint->setMotorTargetVelocity(motorVelocity);
         constraint->enableMotor(true);
     } else {

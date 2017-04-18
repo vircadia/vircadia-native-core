@@ -59,17 +59,9 @@ glm::vec3 AssignmentDynamic::getPosition() {
     return glm::vec3(0.0f);
 }
 
-void AssignmentDynamic::setPosition(glm::vec3 position) {
-    qDebug() << "UNEXPECTED -- AssignmentDynamic::setPosition called in assignment-client.";
-}
-
 glm::quat AssignmentDynamic::getRotation() {
     qDebug() << "UNEXPECTED -- AssignmentDynamic::getRotation called in assignment-client.";
     return glm::quat();
-}
-
-void AssignmentDynamic::setRotation(glm::quat rotation) {
-    qDebug() << "UNEXPECTED -- AssignmentDynamic::setRotation called in assignment-client.";
 }
 
 glm::vec3 AssignmentDynamic::getLinearVelocity() {

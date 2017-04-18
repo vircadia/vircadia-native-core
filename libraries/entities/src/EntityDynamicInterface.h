@@ -87,9 +87,9 @@ public:
 
 protected:
     virtual glm::vec3 getPosition() = 0;
-    virtual void setPosition(glm::vec3 position) = 0;
+    // virtual void setPosition(glm::vec3 position) = 0;
     virtual glm::quat getRotation() = 0;
-    virtual void setRotation(glm::quat rotation) = 0;
+    // virtual void setRotation(glm::quat rotation) = 0;
     virtual glm::vec3 getLinearVelocity() = 0;
     virtual void setLinearVelocity(glm::vec3 linearVelocity) = 0;
     virtual glm::vec3 getAngularVelocity() = 0;

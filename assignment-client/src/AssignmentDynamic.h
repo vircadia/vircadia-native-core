@@ -38,9 +38,7 @@ private:
 
 protected:
     virtual glm::vec3 getPosition() override;
-    virtual void setPosition(glm::vec3 position) override;
     virtual glm::quat getRotation() override;
-    virtual void setRotation(glm::quat rotation) override;
     virtual glm::vec3 getLinearVelocity() override;
     virtual void setLinearVelocity(glm::vec3 linearVelocity) override;
     virtual glm::vec3 getAngularVelocity() override;

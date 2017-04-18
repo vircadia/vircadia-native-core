@@ -147,34 +147,12 @@ glm::vec3 ObjectDynamic::getPosition() {
     return bulletToGLM(rigidBody->getCenterOfMassPosition());
 }
 
-void ObjectDynamic::setPosition(glm::vec3 position) {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return;
-    }
-    // XXX
-    // void setWorldTransform (const btTransform &worldTrans)
-    assert(false);
-    rigidBody->activate();
-}
-
 glm::quat ObjectDynamic::getRotation() {
     auto rigidBody = getRigidBody();
     if (!rigidBody) {
         return glm::quat(0.0f, 0.0f, 0.0f, 1.0f);
     }
     return bulletToGLM(rigidBody->getOrientation());
-}
-
-void ObjectDynamic::setRotation(glm::quat rotation) {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return;
-    }
-    // XXX
-    // void setWorldTransform (const btTransform &worldTrans)
-    assert(false);
-    rigidBody->activate();
 }
 
 glm::vec3 ObjectDynamic::getLinearVelocity() {

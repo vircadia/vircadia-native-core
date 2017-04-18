@@ -42,8 +42,8 @@ protected:
     glm::vec3 _pivotInB;
     glm::vec3 _axisInB;
 
-    float _low { -2 * PI };
-    float _high { 2 * PI };
+    float _low { -2.0f * PI };
+    float _high { 2.0f * PI };
     float _softness { 0.9f };
     float _biasFactor { 0.3f };
     float _relaxationFactor { 1.0f };
