@@ -11,6 +11,8 @@
 
 #include "SendAssetTask.h"
 
+#include <cmath>
+
 #include <QFile>
 
 #include <DependencyManager.h>
@@ -21,6 +23,7 @@
 #include <udt/Packet.h>
 
 #include "AssetUtils.h"
+#include "ByteRange.h"
 #include "ClientServerUtils.h"
 
 SendAssetTask::SendAssetTask(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& sendToNode, const QDir& resourcesDir) :
@@ -34,20 +37,21 @@ SendAssetTask::SendAssetTask(QSharedPointer<ReceivedMessage> message, const Shar
 
 void SendAssetTask::run() {
     MessageID messageID;
-    DataOffset start, end;
-    
+    ByteRange byteRange;
+
     _message->readPrimitive(&messageID);
     QByteArray assetHash = _message->read(SHA256_HASH_LENGTH);
 
     // `start` and `end` indicate the range of data to retrieve for the asset identified by `assetHash`.
     // `start` is inclusive, `end` is exclusive. Requesting `start` = 1, `end` = 10 will retrieve 9 bytes of data,
     // starting at index 1.
-    _message->readPrimitive(&start);
-    _message->readPrimitive(&end);
+    _message->readPrimitive(&byteRange.fromInclusive);
+    _message->readPrimitive(&byteRange.toExclusive);
     
     QString hexHash = assetHash.toHex();
     
-    qDebug() << "Received a request for the file (" << messageID << "): " << hexHash << " from " << start << " to " << end;
+    qDebug() << "Received a request for the file (" << messageID << "): " << hexHash << " from "
+        << byteRange.fromInclusive << " to " << byteRange.toExclusive;
     
     qDebug() << "Starting task to send asset: " << hexHash << " for messageID " << messageID;
     auto replyPacketList = NLPacketList::create(PacketType::AssetGetReply, QByteArray(), true, true);
@@ -56,7 +60,7 @@ void SendAssetTask::run() {
 
     replyPacketList->writePrimitive(messageID);
 
-    if (end <= start) {
+    if (byteRange.toExclusive < byteRange.fromInclusive) {
         replyPacketList->writePrimitive(AssetServerError::InvalidByteRange);
     } else {
         QString filePath = _resourcesDir.filePath(QString(hexHash));
@@ -64,15 +68,47 @@ void SendAssetTask::run() {
         QFile file { filePath };
 
         if (file.open(QIODevice::ReadOnly)) {
-            if (file.size() < end) {
+            if (byteRange.isSet()) {
+                // if the byte range is not set, force it to be from 0 to the end of the file
+                byteRange.fromInclusive = 0;
+                byteRange.toExclusive = file.size();
+            }
+
+            if (file.size() < std::abs(byteRange.toExclusive)) {
                 replyPacketList->writePrimitive(AssetServerError::InvalidByteRange);
-                qCDebug(networking) << "Bad byte range: " << hexHash << " " << start << ":" << end;
+                qCDebug(networking) << "Bad byte range: " << hexHash << " "
+                    << byteRange.fromInclusive << ":" << byteRange.toExclusive;
             } else {
-                auto size = end - start;
-                file.seek(start);
-                replyPacketList->writePrimitive(AssetServerError::NoError);
-                replyPacketList->writePrimitive(size);
-                replyPacketList->write(file.read(size));
+                // we have a valid byte range, handle it and send the asset
+                auto size = byteRange.size();
+
+                if (byteRange.fromInclusive > 0) {
+                    // this range is positive, meaning we just need to seek into the file and then read from there
+                    file.seek(byteRange.fromInclusive);
+                    replyPacketList->writePrimitive(AssetServerError::NoError);
+                    replyPacketList->writePrimitive(size);
+                    replyPacketList->write(file.read(size));
+                } else {
+                    // this range is negative, at least the first part of the read will be back into the end of the file
+
+                    // seek to the part of the file where the negative range begins
+                    file.seek(file.size() + byteRange.fromInclusive);
+
+                    replyPacketList->writePrimitive(AssetServerError::NoError);
+                    replyPacketList->writePrimitive(size);
+
+                    // first write everything from the negative range to the end of the file
+                    replyPacketList->write(file.read(-byteRange.fromInclusive));
+
+                    if (byteRange.toExclusive != 0) {
+                        // this range has a portion that is at the front of the file
+
+                        // seek to the beginning and read what is left over
+                        file.seek(0);
+                        replyPacketList->write(file.read(byteRange.toExclusive));
+                    }
+                }
+
                 qCDebug(networking) << "Sending asset: " << hexHash;
             }
             file.close();

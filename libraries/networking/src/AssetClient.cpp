@@ -67,7 +67,6 @@ void AssetClient::init() {
     }
 }
 
-
 void AssetClient::cacheInfoRequest(QObject* reciever, QString slot) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "cacheInfoRequest", Qt::QueuedConnection,
@@ -182,8 +181,8 @@ RenameMappingRequest* AssetClient::createRenameMappingRequest(const AssetPath& o
     return request;
 }
 
-AssetRequest* AssetClient::createRequest(const AssetHash& hash) {
-    auto request = new AssetRequest(hash);
+AssetRequest* AssetClient::createRequest(const AssetHash& hash, ByteRange byteRange) {
+    auto request = new AssetRequest(hash, byteRange);
 
     // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
     request->moveToThread(thread());

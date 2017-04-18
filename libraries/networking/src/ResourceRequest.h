@@ -17,12 +17,7 @@
 
 #include <cstdint>
 
-struct ByteRange {
-    int64_t fromInclusive { 0 };
-    int64_t toExclusive { 0 };
-
-    bool isSet() { return fromInclusive < 0 || fromInclusive < toExclusive; }
-};
+#include "ByteRange.h"
 
 class ResourceRequest : public QObject {
     Q_OBJECT
