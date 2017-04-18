@@ -6736,11 +6736,6 @@ void Application::updateDisplayMode() {
         return;
     }
 
-    UserActivityLogger::getInstance().logAction("changed_display_mode", {
-        { "previous_display_mode", _displayPlugin ? _displayPlugin->getName() : "" },
-        { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" }
-    });
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     // Make the switch atomic from the perspective of other threads
@@ -6788,13 +6783,15 @@ void Application::updateDisplayMode() {
         offscreenUi->getDesktop()->setProperty("repositionLocked", wasRepositionLocked);
     }
 
+    bool isHmd = _displayPlugin->isHmd();
+    qCDebug(interfaceapp) << "Entering into" << (isHmd ? "HMD" : "Desktop") << "Mode";
+
+    // Only log/emit after a successful change
+    UserActivityLogger::getInstance().logAction("changed_display_mode", {
+        { "previous_display_mode", _displayPlugin ? _displayPlugin->getName() : "" },
+        { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" }
+    });
     emit activeDisplayPluginChanged();
-    
-    if (_displayPlugin->isHmd()) {
-        qCDebug(interfaceapp) << "Entering into HMD Mode";
-    } else {
-        qCDebug(interfaceapp) << "Entering into Desktop Mode";
-    }
 
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
