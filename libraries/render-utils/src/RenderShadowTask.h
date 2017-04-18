@@ -41,12 +41,13 @@ signals:
     void dirty();
 };
 
-class RenderShadowTask : public render::Task {
+class RenderShadowTask {
 public:
     using Config = RenderShadowTaskConfig;
-    using JobModel = Model<RenderShadowTask, Config>;
+    using JobModel = render::Task::Model<RenderShadowTask, Config>;
 
-    RenderShadowTask(render::CullFunctor shouldRender);
+    RenderShadowTask() {}
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor shouldRender);
 
     void configure(const Config& configuration);
 };
