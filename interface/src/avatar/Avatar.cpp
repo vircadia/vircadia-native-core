@@ -149,11 +149,6 @@ Avatar::~Avatar() {
         });
     }
 
-    if (_motionState) {
-        delete _motionState;
-        _motionState = nullptr;
-    }
-
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_nameRectGeometryID);
@@ -1202,8 +1197,8 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, getPosition()) > MOVE_DISTANCE_THRESHOLD;
-    if (_moving && _motionState) {
-        _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
+    if (_moving) {
+        addPhysicsFlags(Simulation::DIRTY_POSITION);
     }
     if (_moving || _hasNewJointData) {
         locationChanged();
@@ -1325,14 +1320,18 @@ void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
     radius = halfExtents.x;
 }
 
-void Avatar::setMotionState(AvatarMotionState* motionState) {
-    _motionState = motionState;
-}
-
 // virtual
 void Avatar::rebuildCollisionShape() {
-    if (_motionState) {
-        _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);
+    addPhysicsFlags(Simulation::DIRTY_SHAPE);
+}
+
+void Avatar::setPhysicsCallback(AvatarPhysicsCallback cb) {
+    _physicsCallback = cb;
+}
+
+void Avatar::addPhysicsFlags(uint32_t flags) {
+    if (_physicsCallback) {
+        _physicsCallback(flags);
     }
 }
 
