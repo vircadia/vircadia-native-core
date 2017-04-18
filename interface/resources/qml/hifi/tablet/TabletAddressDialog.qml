@@ -37,7 +37,7 @@ StackView {
 
     property var tablet: null;
 
-    Component { id: tabletStoryCard; TabletStoryCard {} }
+    Component { id: tabletWebView; TabletWebView {} }
     Component.onCompleted: {
         fillDestinations();
         updateLocationText(false);
@@ -62,9 +62,9 @@ StackView {
     }
     function goCard(targetString) {
         if (0 !== targetString.indexOf('hifi://')) {
-            var card = tabletStoryCard.createObject();
-            card.setUrl(addressBarDialog.metaverseServerUrl + targetString);
-            card.eventBridge = root.eventBridge;
+            var card = tabletWebView.createObject();
+            card.url = addressBarDialog.metaverseServerUrl + targetString;
+            card.parentStackItem = root;
             root.push(card);
             return;
         }

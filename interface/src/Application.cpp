@@ -59,6 +59,7 @@
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
+#include <AvatarBookmarks.h>
 #include <CursorManager.h>
 #include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
@@ -82,6 +83,7 @@
 #include <controllers/StateController.h>
 #include <UserActivityLoggerScriptingInterface.h>
 #include <LogHandler.h>
+#include "LocationBookmarks.h"
 #include <MainWindow.h>
 #include <MappingRequest.h>
 #include <MessagesClient.h>
@@ -531,6 +533,8 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<EntityScriptServerLogClient>();
     DependencyManager::set<LimitlessVoiceRecognitionScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
+    DependencyManager::set<AvatarBookmarks>();
+    DependencyManager::set<LocationBookmarks>();
 
     return previousSessionCrashed;
 }
@@ -703,8 +707,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         updateHeartbeat();
         usleep(USECS_PER_MSEC * 50); // 20hz
     }
-
-    _bookmarks = new Bookmarks();  // Before setting up the menu
 
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
@@ -2010,6 +2012,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    rootContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
+    rootContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -5501,6 +5505,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
+    scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
+    scriptEngine->registerGlobalObject("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -6366,7 +6372,6 @@ void Application::loadLODToolsDialog() {
     } else {
         tablet->pushOntoStack("../../hifi/dialogs/TabletLODTools.qml");
     }
-
 }
 
 
@@ -6414,6 +6419,11 @@ void Application::toggleEntityScriptServerLogDialog() {
     } else {
         _entityScriptServerLogDialog->show();
     }
+}
+
+void Application::loadAddAvatarBookmarkDialog() const {
+    auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
+    avatarBookmarks->addBookmark();
 }
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
