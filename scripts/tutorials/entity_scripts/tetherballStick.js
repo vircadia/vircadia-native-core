@@ -17,6 +17,7 @@
 (function() {
     var _this;
 
+    var LIFETIME_IF_LEAVE_DOMAIN = 2;
     var LINE_WIDTH = 0.02;
     var COLLISION_SOUND_URL = "http://public.highfidelity.io/sounds/Footsteps/FootstepW3Left-12db.wav";
     var TIP_OFFSET = 0.26;
@@ -46,12 +47,6 @@
             this.lineID = userData.lineID;
             this.actionID = userData.actionID;
             this.maxDistanceBetweenBallAndStick = userData.maxDistanceBetweenBallAndStick;
-
-            // Script.update.connect(this.update);
-        },
-
-        unload: function() {
-          // Script.update.disconnect(this.update);
         },
 
         update: function(dt) {
@@ -63,12 +58,24 @@
         },
 
         continueEquip: function(id, params) {
+          var stickProps = Entities.getEntityProperties(this.entityID);
+          [this.entityID, this.ballID, this.lineID].forEach(function(id) {
+            Entities.editEntity(id, {
+              lifetime: stickProps.age + LIFETIME_IF_LEAVE_DOMAIN
+            });
+          });
           this.updateOffsetAction();
           this.capBallDistance();
           this.drawLine();
         },
 
         releaseEquip: function() {
+          var userData = this.getUserData();
+          [this.entityID, this.ballID, this.lineID].forEach(function(id) {
+            Entities.editEntity(id, {
+              lifetime: userData.lifetime
+            });
+          });
           Script.update.connect(this.update);
         },
 
