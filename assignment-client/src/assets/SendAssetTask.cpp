@@ -60,7 +60,7 @@ void SendAssetTask::run() {
 
     replyPacketList->writePrimitive(messageID);
 
-    if (byteRange.toExclusive < byteRange.fromInclusive) {
+    if (byteRange.toExclusive < byteRange.fromInclusive || byteRange.toExclusive < 0) {
         replyPacketList->writePrimitive(AssetServerError::InvalidByteRange);
     } else {
         QString filePath = _resourcesDir.filePath(QString(hexHash));
