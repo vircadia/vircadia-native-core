@@ -26,7 +26,7 @@ class PolyLineEntityItem : public EntityItem {
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.lastQuerySent time
+    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -59,21 +59,16 @@ class PolyLineEntityItem : public EntityItem {
 
     bool setLinePoints(const QVector<glm::vec3>& points);
     bool appendPoint(const glm::vec3& point);
-    const QVector<glm::vec3>& getLinePoints() const{ return _points; }
+    QVector<glm::vec3> getLinePoints() const;
 
     bool setNormals(const QVector<glm::vec3>& normals);
-    const QVector<glm::vec3>& getNormals() const{ return _normals; }
+    QVector<glm::vec3> getNormals() const;
 
     bool setStrokeWidths(const QVector<float>& strokeWidths);
-    const QVector<float>& getStrokeWidths() const{ return _strokeWidths; }
+    QVector<float> getStrokeWidths() const;
 
-    const QString& getTextures() const { return _textures; }
-    void setTextures(const QString& textures) {
-        if (_textures != textures) {
-            _textures = textures;
-            _texturesChangedFlag = true;
-        }
-    }
+    QString getTextures() const;
+    void setTextures(const QString& textures);
 
     virtual bool needsToCallUpdate() const override { return true; }
 

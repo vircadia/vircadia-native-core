@@ -20,6 +20,8 @@
 #include <PerfStat.h>
 #include <PathUtils.h>
 
+#include <OVR_CAPI.h>
+
 #include "OculusHelpers.h"
 
 Q_DECLARE_LOGGING_CATEGORY(oculus)
@@ -30,6 +32,8 @@ static const char* MENU_NAME = "Oculus Touch Controllers";
 static const char* MENU_PATH = "Avatar" ">" "Oculus Touch Controllers";
 
 const char* OculusControllerManager::NAME = "Oculus";
+
+const quint64 LOST_TRACKING_DELAY = 3000000;
 
 bool OculusControllerManager::isSupported() const {
     return oculusAvailable();
@@ -42,26 +46,33 @@ bool OculusControllerManager::activate() {
     }
     Q_ASSERT(_session);
 
-    // register with UserInputMapper
-    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    checkForConnectedDevices();
+
+    return true;
+}
+
+void OculusControllerManager::checkForConnectedDevices() {
+    if (_touch && _remote) {
+        return;
+    }
 
     unsigned int controllerConnected = ovr_GetConnectedControllerTypes(_session);
 
-    if ((controllerConnected & ovrControllerType_Remote) == ovrControllerType_Remote) {
+    if (!_remote && (controllerConnected & ovrControllerType_Remote) == ovrControllerType_Remote) {
         if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Remote, &_inputState))) {
+            auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
             _remote = std::make_shared<RemoteDevice>(*this);
             userInputMapper->registerDevice(_remote);
         }
     }
 
-    if ((controllerConnected & ovrControllerType_Touch) != 0) {
+    if (!_touch && (controllerConnected & ovrControllerType_Touch) != 0) {
         if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
+            auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
             _touch = std::make_shared<TouchDevice>(*this);
             userInputMapper->registerDevice(_touch);
         }
     }
-
-    return true;
 }
 
 void OculusControllerManager::deactivate() {
@@ -84,6 +95,8 @@ void OculusControllerManager::deactivate() {
 
 void OculusControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     PerformanceTimer perfTimer("OculusControllerManager::TouchDevice::update");
+
+    checkForConnectedDevices();
 
     if (_touch) {
         if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
@@ -196,9 +209,7 @@ void OculusControllerManager::RemoteDevice::focusOutEvent() {
 }
 
 void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
-    _poseStateMap.clear();
     _buttonPressedMap.clear();
-
     ovrSessionStatus status;
     if (!OVR_SUCCESS(ovr_GetSessionStatus(_parent._session, &status)) || (ovrFalse == status.HmdMounted)) {
         // if the HMD isn't on someone's head, don't take input from the controllers
@@ -206,15 +217,33 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
     }
 
     int numTrackedControllers = 0;
+    quint64 currentTime = usecTimestampNow();
     static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked | ovrStatus_PositionTracked;
     auto tracking = ovr_GetTrackingState(_parent._session, 0, false);
     ovr_for_each_hand([&](ovrHandType hand) {
         ++numTrackedControllers;
+        int controller = (hand == ovrHand_Left ? controller::LEFT_HAND : controller::RIGHT_HAND);
         if (REQUIRED_HAND_STATUS == (tracking.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
+            _poseStateMap.erase(controller);
             handlePose(deltaTime, inputCalibrationData, hand, tracking.HandPoses[hand]);
-        } else {
-            _poseStateMap[hand == ovrHand_Left ? controller::LEFT_HAND : controller::RIGHT_HAND].valid = false;
+            _lostTracking[controller] = false;
+            _lastControllerPose[controller] = tracking.HandPoses[hand];
+            return;
         }
+        
+        if (_lostTracking[controller]) {
+            if (currentTime > _regainTrackingDeadline[controller]) {
+                _poseStateMap.erase(controller);
+                _poseStateMap[controller].valid = false;
+                return;
+            }
+            
+        } else {
+            quint64 deadlineToRegainTracking = currentTime + LOST_TRACKING_DELAY;
+            _regainTrackingDeadline[controller] = deadlineToRegainTracking;
+            _lostTracking[controller] = true;
+        }
+        handleRotationForUntrackedHand(inputCalibrationData, hand, tracking.HandPoses[hand]);
     });
     using namespace controller;
     // Axes
@@ -240,7 +269,7 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
         if (inputState.Touches & pair.first) {
             _buttonPressedMap.insert(pair.second);
         }
-    }
+    } 
 
     // Haptics
     {
@@ -273,6 +302,16 @@ void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     pose = pose.transform(controllerToAvatar);
 
+}
+
+void OculusControllerManager::TouchDevice::handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData,
+                                                                          ovrHandType hand, const ovrPoseStatef& handPose) {
+    auto poseId = (hand == ovrHand_Left ? controller::LEFT_HAND : controller::RIGHT_HAND);
+    auto& pose = _poseStateMap[poseId];
+    auto lastHandPose = _lastControllerPose[poseId];
+    pose = ovrControllerRotationToHandRotation(hand, handPose, lastHandPose);
+    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    pose = pose.transform(controllerToAvatar);
 }
 
 bool OculusControllerManager::TouchDevice::triggerHapticPulse(float strength, float duration, controller::Hand hand) {

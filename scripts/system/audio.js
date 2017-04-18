@@ -45,7 +45,8 @@ function onClicked() {
         var entity = HMD.tabletID;
         Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
         shouldActivateButton = true;
-        tablet.gotoMenuScreen("Audio");
+        shouldActivateButton = true;
+        tablet.loadQMLSource("../Audio.qml");
         onAudioScreen = true;
     }
 }
@@ -72,6 +73,9 @@ tablet.screenChanged.connect(onScreenChanged);
 AudioDevice.muteToggled.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
+    if (onAudioScreen) {
+        tablet.gotoHomeScreen();
+    }
     button.clicked.disconnect(onClicked);
     tablet.screenChanged.disconnect(onScreenChanged);
     AudioDevice.muteToggled.disconnect(onMuteToggled);

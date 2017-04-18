@@ -47,8 +47,8 @@ protected:
 protected slots:
     void scrollToBottom();
     void resizeTextInput();
-    void handlePrint(const QString& message);
-    void handleError(const QString& message);
+    void handlePrint(const QString& scriptName, const QString& message);
+    void handleError(const QString& scriptName, const QString& message);
     void commandFinished();
 
 private:

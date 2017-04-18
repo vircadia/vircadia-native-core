@@ -249,6 +249,7 @@ public:
     
     void refreshAll();
     void refresh(const QUrl& url);
+    void clearUnusedResources();
 
 signals:
     void dirty();
@@ -294,11 +295,11 @@ protected:
 
     /// Creates a new resource.
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra) = 0;
-    
+                                                    const void* extra) = 0;
+
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
-    
+
     /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
     /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
     static bool attemptRequest(QSharedPointer<Resource> resource);
@@ -309,7 +310,6 @@ private:
     friend class Resource;
 
     void reserveUnusedResource(qint64 resourceSize);
-    void clearUnusedResource();
     void resetResourceCounters();
     void removeResource(const QUrl& url, qint64 size = 0);
 

@@ -17,12 +17,13 @@
 class CauterizedMeshPartPayload : public ModelMeshPartPayload {
 public:
     CauterizedMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
-    void updateTransformForSkinnedCauterizedMesh(const Transform& transform,
-            const QVector<glm::mat4>& clusterMatrices,
-            const QVector<glm::mat4>& cauterizedClusterMatrices);
+
+    void updateTransformForCauterizedMesh(const Transform& renderTransform, const gpu::BufferPointer& buffer);
 
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
+
 private:
+    gpu::BufferPointer _cauterizedClusterBuffer;
     Transform _cauterizedTransform;
 };
 

@@ -90,6 +90,7 @@ public:
     // event handles which may generate entity related events
     void mouseReleaseEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
+    void mouseDoublePressEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent* event);
 
     /// connect our signals to anEntityScriptingInterface for firing of events related clicking,
@@ -103,9 +104,11 @@ public:
 
 signals:
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseDoublePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mousePressOffEntity();
+    void mouseDoublePressOffEntity();
 
     void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);

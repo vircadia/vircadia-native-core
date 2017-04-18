@@ -47,9 +47,6 @@ quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
 using namespace std;
 
-const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
-const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
-
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
@@ -126,6 +123,7 @@ void AvatarData::setTargetScale(float targetScale) {
     if (_targetScale != newValue) {
         _targetScale = newValue;
         _scaleChanged = usecTimestampNow();
+        _avatarScaleChanged = _scaleChanged;
     }
 }
 
@@ -186,6 +184,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     bool cullSmallChanges = (dataDetail == CullSmallData);
     bool sendAll = (dataDetail == SendAllData);
     bool sendMinimum = (dataDetail == MinimumData);
+    bool sendPALMinimum = (dataDetail == PALMinimum);
 
     lazyInitHeadData();
 
@@ -222,24 +221,41 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     auto parentID = getParentID();
 
     bool hasAvatarGlobalPosition = true; // always include global position
-    bool hasAvatarOrientation = sendAll || rotationChangedSince(lastSentTime);
-    bool hasAvatarBoundingBox = sendAll || avatarBoundingBoxChangedSince(lastSentTime);
-    bool hasAvatarScale = sendAll || avatarScaleChangedSince(lastSentTime);
-    bool hasLookAtPosition = sendAll || lookAtPositionChangedSince(lastSentTime);
-    bool hasAudioLoudness = sendAll || audioLoudnessChangedSince(lastSentTime);
-    bool hasSensorToWorldMatrix = sendAll || sensorToWorldMatrixChangedSince(lastSentTime);
-    bool hasAdditionalFlags = sendAll || additionalFlagsChangedSince(lastSentTime);
+    bool hasAvatarOrientation = false;
+    bool hasAvatarBoundingBox = false;
+    bool hasAvatarScale = false;
+    bool hasLookAtPosition = false;
+    bool hasAudioLoudness = false;
+    bool hasSensorToWorldMatrix = false;
+    bool hasAdditionalFlags = false;
 
     // local position, and parent info only apply to avatars that are parented. The local position
     // and the parent info can change independently though, so we track their "changed since"
     // separately
-    bool hasParentInfo = sendAll || parentInfoChangedSince(lastSentTime);
-    bool hasAvatarLocalPosition = hasParent() && (sendAll ||
-        tranlationChangedSince(lastSentTime) ||
-        parentInfoChangedSince(lastSentTime));
+    bool hasParentInfo = false;
+    bool hasAvatarLocalPosition = false;
 
-    bool hasFaceTrackerInfo = !dropFaceTracking && hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
-    bool hasJointData = sendAll || !sendMinimum;
+    bool hasFaceTrackerInfo = false;
+    bool hasJointData = false;
+
+    if (sendPALMinimum) {
+        hasAudioLoudness = true;
+    } else {
+        hasAvatarOrientation = sendAll || rotationChangedSince(lastSentTime);
+        hasAvatarBoundingBox = sendAll || avatarBoundingBoxChangedSince(lastSentTime);
+        hasAvatarScale = sendAll || avatarScaleChangedSince(lastSentTime);
+        hasLookAtPosition = sendAll || lookAtPositionChangedSince(lastSentTime);
+        hasAudioLoudness = sendAll || audioLoudnessChangedSince(lastSentTime);
+        hasSensorToWorldMatrix = sendAll || sensorToWorldMatrixChangedSince(lastSentTime);
+        hasAdditionalFlags = sendAll || additionalFlagsChangedSince(lastSentTime);
+        hasParentInfo = sendAll || parentInfoChangedSince(lastSentTime);
+        hasAvatarLocalPosition = hasParent() && (sendAll ||
+            tranlationChangedSince(lastSentTime) ||
+            parentInfoChangedSince(lastSentTime));
+
+        hasFaceTrackerInfo = !dropFaceTracking && hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
+        hasJointData = sendAll || !sendMinimum;
+    }
 
     // Leading flags, to indicate how much data is actually included in the packet...
     AvatarDataPacket::HasFlags packetStateFlags =
@@ -336,7 +352,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasAudioLoudness) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
-        data->audioLoudness = packFloatGainToByte(_headData->getAudioLoudness() / AUDIO_LOUDNESS_SCALE);
+        data->audioLoudness = packFloatGainToByte(getAudioLoudness() / AUDIO_LOUDNESS_SCALE);
         destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
 
         int numBytes = destinationBuffer - startSection;
@@ -820,7 +836,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return buffer.size();
         }
-        _headData->setAudioLoudness(audioLoudness);
+        setAudioLoudness(audioLoudness);
         int numBytesRead = sourceBuffer - startSection;
         _audioLoudnessRate.increment(numBytesRead);
         _audioLoudnessUpdateRate.increment();
@@ -1480,6 +1496,9 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
         setAvatarEntityData(identity.avatarEntityData);
         identityChanged = true;
     }
+    // flag this avatar as non-stale by updating _averageBytesReceived
+    const int BOGUS_NUM_BYTES = 1;
+    _averageBytesReceived.updateAverage(BOGUS_NUM_BYTES);
 }
 
 QByteArray AvatarData::identityByteArray() const {
@@ -1982,6 +2001,11 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         }
     }
 
+    auto currentBasis = getRecordingBasis();
+    if (!currentBasis) {
+        currentBasis = std::make_shared<Transform>(Transform::fromJson(json[JSON_AVATAR_BASIS]));
+    }
+
     if (json.contains(JSON_AVATAR_RELATIVE)) {
         // During playback you can either have the recording basis set to the avatar current state
         // meaning that all playback is relative to this avatars starting position, or
@@ -1990,15 +2014,14 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         // The first is more useful for playing back recordings on your own avatar, while
         // the latter is more useful for playing back other avatars within your scene.
 
-        auto currentBasis = getRecordingBasis();
-        if (!currentBasis) {
-            currentBasis = std::make_shared<Transform>(Transform::fromJson(json[JSON_AVATAR_BASIS]));
-        }
-
         auto relativeTransform = Transform::fromJson(json[JSON_AVATAR_RELATIVE]);
         auto worldTransform = currentBasis->worldTransform(relativeTransform);
         setPosition(worldTransform.getTranslation());
         setOrientation(worldTransform.getRotation());
+    } else {
+        // We still set the position in the case that there is no movement.
+        setPosition(currentBasis->getTranslation());
+        setOrientation(currentBasis->getRotation());
     }
 
     if (json.contains(JSON_AVATAR_SCALE)) {
@@ -2324,61 +2347,57 @@ float AvatarData::_avatarSortCoefficientSize { 0.5f };
 float AvatarData::_avatarSortCoefficientCenter { 0.25 };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
 
-std::priority_queue<AvatarPriority> AvatarData::sortAvatars(
-    QList<AvatarSharedPointer> avatarList,
-    const ViewFrustum& cameraView,
-    std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
-    std::function<float(AvatarSharedPointer)> getBoundingRadius,
-    std::function<bool(AvatarSharedPointer)> shouldIgnore) {
+void AvatarData::sortAvatars(
+        QList<AvatarSharedPointer> avatarList,
+        const ViewFrustum& cameraView,
+        std::priority_queue<AvatarPriority>& sortedAvatarsOut,
+        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
+        std::function<float(AvatarSharedPointer)> getBoundingRadius,
+        std::function<bool(AvatarSharedPointer)> shouldIgnore) {
 
-    uint64_t startTime = usecTimestampNow();
+    PROFILE_RANGE(simulation, "sort");
+    uint64_t now = usecTimestampNow();
 
     glm::vec3 frustumCenter = cameraView.getPosition();
+    const glm::vec3& forward = cameraView.getDirection();
+    for (int32_t i = 0; i < avatarList.size(); ++i) {
+        const auto& avatar = avatarList.at(i);
 
-    std::priority_queue<AvatarPriority> sortedAvatars;
-    {
-        PROFILE_RANGE(simulation, "sort");
-        for (int32_t i = 0; i < avatarList.size(); ++i) {
-            const auto& avatar = avatarList.at(i);
-
-            if (shouldIgnore(avatar)) {
-                continue;
-            }
-
-            // priority = weighted linear combination of:
-            //   (a) apparentSize
-            //   (b) proximity to center of view
-            //   (c) time since last update
-            glm::vec3 avatarPosition = avatar->getPosition();
-            glm::vec3 offset = avatarPosition - frustumCenter;
-            float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
-
-            // FIXME - AvatarData has something equivolent to this
-            float radius = getBoundingRadius(avatar);
-
-            const glm::vec3& forward = cameraView.getDirection();
-            float apparentSize = 2.0f * radius / distance;
-            float cosineAngle = glm::dot(offset, forward) / distance;
-            float age = (float)(startTime - getLastUpdated(avatar)) / (float)(USECS_PER_SECOND);
-
-            // NOTE: we are adding values of different units to get a single measure of "priority".
-            // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
-            // These weights are pure magic tuning and should be hard coded in the relation below,
-            // but are currently exposed for anyone who would like to explore fine tuning:
-            float priority = _avatarSortCoefficientSize * apparentSize
-                + _avatarSortCoefficientCenter * cosineAngle
-                + _avatarSortCoefficientAge * age;
-
-            // decrement priority of avatars outside keyhole
-            if (distance > cameraView.getCenterRadius()) {
-                if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
-                    priority += OUT_OF_VIEW_PENALTY;
-                }
-            }
-            sortedAvatars.push(AvatarPriority(avatar, priority));
+        if (shouldIgnore(avatar)) {
+            continue;
         }
+
+        // priority = weighted linear combination of:
+        //   (a) apparentSize
+        //   (b) proximity to center of view
+        //   (c) time since last update
+        glm::vec3 avatarPosition = avatar->getPosition();
+        glm::vec3 offset = avatarPosition - frustumCenter;
+        float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
+
+        // FIXME - AvatarData has something equivolent to this
+        float radius = getBoundingRadius(avatar);
+
+        float apparentSize = 2.0f * radius / distance;
+        float cosineAngle = glm::dot(offset, forward) / distance;
+        float age = (float)(now - getLastUpdated(avatar)) / (float)(USECS_PER_SECOND);
+
+        // NOTE: we are adding values of different units to get a single measure of "priority".
+        // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
+        // These weights are pure magic tuning and should be hard coded in the relation below,
+        // but are currently exposed for anyone who would like to explore fine tuning:
+        float priority = _avatarSortCoefficientSize * apparentSize
+            + _avatarSortCoefficientCenter * cosineAngle
+            + _avatarSortCoefficientAge * age;
+
+        // decrement priority of avatars outside keyhole
+        if (distance > cameraView.getCenterRadius()) {
+            if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
+                priority += OUT_OF_VIEW_PENALTY;
+            }
+        }
+        sortedAvatarsOut.push(AvatarPriority(avatar, priority));
     }
-    return sortedAvatars;
 }
 
 QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value) {

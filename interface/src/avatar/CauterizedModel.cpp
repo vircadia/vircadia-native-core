@@ -26,8 +26,8 @@ CauterizedModel::~CauterizedModel() {
 }
 
 void CauterizedModel::deleteGeometry() {
-	Model::deleteGeometry();
-	_cauterizeMeshStates.clear();
+    Model::deleteGeometry();
+    _cauterizeMeshStates.clear();
 }
 
 bool CauterizedModel::updateGeometry() {
@@ -41,7 +41,7 @@ bool CauterizedModel::updateGeometry() {
             _cauterizeMeshStates.append(state);
         }
     }
-	return needsFullUpdate;
+    return needsFullUpdate;
 }
 
 void CauterizedModel::createVisibleRenderItemSet() {
@@ -56,9 +56,9 @@ void CauterizedModel::createVisibleRenderItemSet() {
         }
 
         // We should not have any existing renderItems if we enter this section of code
-        Q_ASSERT(_modelMeshRenderItemsSet.isEmpty());
+        Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
-        _modelMeshRenderItemsSet.clear();
+        _modelMeshRenderItems.clear();
 
         Transform transform;
         transform.setTranslation(_translation);
@@ -81,24 +81,18 @@ void CauterizedModel::createVisibleRenderItemSet() {
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
-                _modelMeshRenderItemsSet << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
+                _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
                 shapeID++;
             }
         }
     } else {
-	    Model::createVisibleRenderItemSet();
+        Model::createVisibleRenderItemSet();
     }
 }
 
 void CauterizedModel::createCollisionRenderItemSet() {
     // Temporary HACK: use base class method for now
-	Model::createCollisionRenderItemSet();
-}
-
-// Called within Model::simulate call, below.
-void CauterizedModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-    Model::updateRig(deltaTime, parentTransform);
-    _needsUpdateClusterMatrices = true;
+    Model::createCollisionRenderItemSet();
 }
 
 void CauterizedModel::updateClusterMatrices() {
@@ -116,13 +110,7 @@ void CauterizedModel::updateClusterMatrices() {
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
-#if (GLM_ARCH & GLM_ARCH_SSE2) && !(defined Q_OS_MAC)
-            glm::mat4 out, inverseBindMatrix = cluster.inverseBindMatrix;
-            glm_mat4_mul((glm_vec4*)&jointMatrix, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
-            state.clusterMatrices[j] = out;
-#else
-            state.clusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
-#endif
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }
 
         // Once computed the cluster matrices, update the buffer(s)
@@ -134,8 +122,8 @@ void CauterizedModel::updateClusterMatrices() {
                 state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
                                                 (const gpu::Byte*) state.clusterMatrices.constData());
             }
-		}
-	}
+        }
+    }
 
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
     if (!_cauterizeBoneSet.empty()) {
@@ -155,13 +143,7 @@ void CauterizedModel::updateClusterMatrices() {
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointMatrix = cauterizeMatrix;
                 }
-#if (GLM_ARCH & GLM_ARCH_SSE2) && !(defined Q_OS_MAC)
-                glm::mat4 out, inverseBindMatrix = cluster.inverseBindMatrix;
-                glm_mat4_mul((glm_vec4*)&jointMatrix, (glm_vec4*)&inverseBindMatrix, (glm_vec4*)&out);
-                state.clusterMatrices[j] = out;
-#else
-                state.clusterMatrices[j] = jointMatrix * cluster.inverseBindMatrix;
-#endif
+                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
             }
 
             if (!_cauterizeBoneSet.empty() && (state.clusterMatrices.size() > 1)) {
@@ -209,6 +191,9 @@ void CauterizedModel::updateRenderItems() {
                 return;
             }
 
+            // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
+            self->updateClusterMatrices();
+
             render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
             Transform modelTransform;
@@ -220,28 +205,35 @@ void CauterizedModel::updateRenderItems() {
 
             uint32_t deleteGeometryCounter = self->getGeometryCounter();
 
-            render::PendingChanges pendingChanges;
+            render::Transaction transaction;
             QList<render::ItemID> keys = self->getRenderItems().keys();
             foreach (auto itemID, keys) {
-                pendingChanges.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter](CauterizedMeshPartPayload& data) {
+                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter](CauterizedMeshPartPayload& data) {
                     if (data._model && data._model->isLoaded()) {
                         // Ensure the model geometry was not reset between frames
                         if (deleteGeometryCounter == data._model->getGeometryCounter()) {
-                            // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
-                            data._model->updateClusterMatrices();
-
-                            // update the model transform and bounding box for this render item.
+                            // this stuff identical to what happens in regular Model
                             const Model::MeshState& state = data._model->getMeshState(data._meshIndex);
+                            Transform renderTransform = modelTransform;
+                            if (state.clusterMatrices.size() == 1) {
+                                renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
+                            }
+                            data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
+
+                            // this stuff for cauterized mesh
                             CauterizedModel* cModel = static_cast<CauterizedModel*>(data._model);
-                            assert(data._meshIndex < cModel->_cauterizeMeshStates.size());
-                            const Model::MeshState& cState = cModel->_cauterizeMeshStates.at(data._meshIndex);
-                            data.updateTransformForSkinnedCauterizedMesh(modelTransform, state.clusterMatrices, cState.clusterMatrices);
+                            const Model::MeshState& cState = cModel->getCauterizeMeshState(data._meshIndex);
+                            renderTransform = modelTransform;
+                            if (cState.clusterMatrices.size() == 1) {
+                                renderTransform = modelTransform.worldTransform(Transform(cState.clusterMatrices[0]));
+                            }
+                            data.updateTransformForCauterizedMesh(renderTransform, cState.clusterBuffer);
                         }
                     }
                 });
             }
 
-            scene->enqueuePendingChanges(pendingChanges);
+            scene->enqueueTransaction(transaction);
         });
     } else {
         Model::updateRenderItems();

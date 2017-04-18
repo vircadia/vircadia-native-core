@@ -118,3 +118,6 @@ inline ovrPosef ovrPoseFromGlm(const glm::mat4 & m) {
 controller::Pose ovrControllerPoseToHandPose(
     ovrHandType hand,
     const ovrPoseStatef& handPose);
+
+controller::Pose ovrControllerRotationToHandRotation(ovrHandType hand,
+                                         const ovrPoseStatef& handPose, const ovrPoseStatef& lastHandPose);

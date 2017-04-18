@@ -137,7 +137,7 @@ int ShapeEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 }
 
 
-// TODO: eventually only include properties changed since the params.lastQuerySent time
+// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags ShapeEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_SHAPE;
@@ -163,7 +163,7 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 // This value specifes how the shape should be treated by physics calculations.  
 // For now, all polys will act as spheres
 ShapeType ShapeEntityItem::getShapeType() const {
-    return (_shape == entity::Shape::Cube) ? SHAPE_TYPE_BOX : SHAPE_TYPE_SPHERE;
+    return (_shape == entity::Shape::Cube) ? SHAPE_TYPE_BOX : SHAPE_TYPE_ELLIPSOID;
 }
 
 void ShapeEntityItem::setColor(const rgbColor& value) {

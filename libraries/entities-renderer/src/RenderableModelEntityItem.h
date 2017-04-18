@@ -40,13 +40,13 @@ public:
 
     void doInitialModelSimulation();
 
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
 
 
     void updateModelBounds();
     virtual void render(RenderArgs* args) override;
-    virtual bool supportsDetailedRayIntersection() const override { return true; }
+    virtual bool supportsDetailedRayIntersection() const override;
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
@@ -108,6 +108,7 @@ private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
 
+    void getCollisionGeometryResource();
     GeometryResource::Pointer _compoundShapeResource;
     ModelPointer _model = nullptr;
     bool _needsInitialSimulation = true;

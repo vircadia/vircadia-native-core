@@ -10,8 +10,8 @@
 
 import QtQuick 2.5
 
-import "../../dialogs"
 import "../../controls-uit"
+import "../../hifi/tablet/tabletWindows/preferences"
 
 Preference {
     id: root
@@ -82,11 +82,25 @@ Preference {
                 verticalCenter: dataTextField.verticalCenter
             }
             onClicked: {
-                // Load dialog via OffscreenUi so that JavaScript EventBridge is available.
-                root.browser = OffscreenUi.load("dialogs/preferences/AvatarBrowser.qml");
-                root.browser.windowDestroyed.connect(function(){
-                    root.browser = null;
-                });
+                if (typeof desktop !== "undefined") {
+                    // Load dialog via OffscreenUi so that JavaScript EventBridge is available.
+                    root.browser = OffscreenUi.load("dialogs/preferences/AvatarBrowser.qml");
+                    root.browser.windowDestroyed.connect(function(){
+                        root.browser = null;
+                    });
+                } else {
+                    root.browser = tabletAvatarBrowserBuilder.createObject(tabletRoot);
+
+                    // Make dialog modal.
+                    tabletRoot.openModal = root.browser;
+                }
+            }
+        }
+
+        Component {
+            id: tabletAvatarBrowserBuilder;
+            TabletAvatarBrowser {
+                eventBridge: tabletRoot.eventBridge
             }
         }
     }

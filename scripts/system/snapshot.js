@@ -33,29 +33,47 @@ function shouldOpenFeedAfterShare() {
     return persisted && (persisted !== 'false');
 }
 function showFeedWindow() {
-    DialogsManager.showFeed();
+    if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
+            || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
+        tablet.loadQMLSource("TabletAddressDialog.qml");
+    } else {
+         tablet.initialScreen("TabletAddressDialog.qml");
+        HMD.openTablet();
+    }
 }
 
-var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
-
 var outstanding;
-function confirmShare(data) {
-    var dialog = new OverlayWebWindow('Snapshot Review', SNAPSHOT_REVIEW_URL, 800, 520);
-    function onMessage(message) {
-        // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
-        // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
-        // 2. Although we currently use a single image, we would like to take snapshot, a selfie, a 360 etc. all at the
-        //    same time, show the user all of them, and have the user deselect any that they do not want to share.
-        //    So we'll ultimately be receiving a set of objects, perhaps with different post processing for each.
-        var isLoggedIn;
-        var needsLogin = false;
-        switch (message) {
-        case 'ready':
-            dialog.emitScriptEvent(data); // Send it.
+var readyData;
+var shareAfterLogin = false;
+var snapshotToShareAfterLogin;     
+function onMessage(message) {
+    // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
+    // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
+    // 2. Although we currently use a single image, we would like to take snapshot, a selfie, a 360 etc. all at the
+    //    same time, show the user all of them, and have the user deselect any that they do not want to share.
+    //    So we'll ultimately be receiving a set of objects, perhaps with different post processing for each.
+    message = JSON.parse(message);
+    if (message.type !== "snapshot") {
+        return;
+    }
+
+    var isLoggedIn;
+    var needsLogin = false;
+    switch (message.action) {
+        case 'ready':  // Send it.
+            tablet.emitScriptEvent(JSON.stringify({
+                type: "snapshot",
+                action: readyData
+            }));
             outstanding = 0;
             break;
         case 'openSettings':
-            Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
+            if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
+                    || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
+                Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "General Preferences");
+            } else {
+                tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
+            }
             break;
         case 'setOpenFeedFalse':
             Settings.setValue('openFeedAfterShare', false);
@@ -64,32 +82,53 @@ function confirmShare(data) {
             Settings.setValue('openFeedAfterShare', true);
             break;
         default:
-            dialog.webEventReceived.disconnect(onMessage);
-            dialog.close();
+            //tablet.webEventReceived.disconnect(onMessage);  // <<< It's probably this that's missing?!
+            HMD.closeTablet();
             isLoggedIn = Account.isLoggedIn();
-            message.forEach(function (submessage) {
+            message.action.forEach(function (submessage) {
                 if (submessage.share && !isLoggedIn) {
                     needsLogin = true;
                     submessage.share = false;
+                    shareAfterLogin = true;
+                    snapshotToShareAfterLogin = {path: submessage.localPath, href: submessage.href};
                 }
                 if (submessage.share) {
                     print('sharing', submessage.localPath);
-                    outstanding++;
+                    outstanding = true;
                     Window.shareSnapshot(submessage.localPath, submessage.href);
                 } else {
                     print('not sharing', submessage.localPath);
                 }
+                
             });
-            if (!outstanding && shouldOpenFeedAfterShare()) {
+            if (outstanding && shouldOpenFeedAfterShare()) {
                 showFeedWindow();
+                outstanding = false;
             }
             if (needsLogin) { // after the possible feed, so that the login is on top
-                Account.checkAndSignalForAccessToken();
+                var isLoggedIn = Account.isLoggedIn();
+
+                if (!isLoggedIn) {
+                    if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
+                        || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
+                        Menu.triggerOption("Login / Sign Up");
+                    } else {
+                        tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
+                        HMD.openTablet();
+                    }
+                }
             }
-        }
     }
-    dialog.webEventReceived.connect(onMessage);
-    dialog.raise();
+}
+
+var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
+var isInSnapshotReview = false;
+function confirmShare(data) {
+    tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
+    readyData = data;
+    tablet.webEventReceived.connect(onMessage);
+    HMD.openTablet();
+    isInSnapshotReview = true;
 }
 
 function snapshotShared(errorMessage) {
@@ -191,12 +230,12 @@ function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
+    HMD.openTablet();
 }
 
 function processingGif() {
     // show hud
     Reticle.visible = reticleVisible;
-
     button.clicked.disconnect(onClicked);
     buttonConnected = false;
     // show overlays if they were on
@@ -205,19 +244,41 @@ function processingGif() {
     }
 }
 
+function onTabletScreenChanged(type, url) {
+    if (isInSnapshotReview) {
+        tablet.webEventReceived.disconnect(onMessage);
+        isInSnapshotReview = false;
+    }
+}
+function onConnected() {
+    if (shareAfterLogin && Account.isLoggedIn()) {
+        print('sharing', snapshotToShareAfterLogin.path);
+        Window.shareSnapshot(snapshotToShareAfterLogin.path, snapshotToShareAfterLogin.href);
+        shareAfterLogin = false;
+        if (shouldOpenFeedAfterShare()) {
+            showFeedWindow();
+        }
+    }
+    
+}
+
 button.clicked.connect(onClicked);
 buttonConnected = true;
 Window.snapshotShared.connect(snapshotShared);
 Window.processingGif.connect(processingGif);
-
+tablet.screenChanged.connect(onTabletScreenChanged);
+Account.usernameChanged.connect(onConnected);
 Script.scriptEnding.connect(function () {
-    button.clicked.disconnect(onClicked);
-    buttonConnected = false;
+    if (buttonConnected) {
+        button.clicked.disconnect(onClicked);
+        buttonConnected = false;
+    }
     if (tablet) {
         tablet.removeButton(button);
     }
     Window.snapshotShared.disconnect(snapshotShared);
     Window.processingGif.disconnect(processingGif);
+    tablet.screenChanged.disconnect(onTabletScreenChanged);
 });
 
 }()); // END LOCAL_SCOPE

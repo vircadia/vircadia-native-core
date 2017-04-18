@@ -188,6 +188,8 @@ void ScriptCache::scriptContentAvailable(int maxRetries) {
 
                 }
             }
+        } else {
+            qCWarning(scriptengine) << "Warning: scriptContentAvailable for inactive url: " << url;
         }
     }
 

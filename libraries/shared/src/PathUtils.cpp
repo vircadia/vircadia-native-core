@@ -18,7 +18,7 @@
 #include <QUrl>
 #include "PathUtils.h"
 #include <QtCore/QStandardPaths>
-
+#include <mutex> // std::once
 
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
@@ -30,18 +30,20 @@ const QString& PathUtils::resourcesPath() {
     return staticResourcePath;
 }
 
-QString PathUtils::getRootDataDirectory() {
-    auto dataPath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+QString PathUtils::getAppDataPath() {
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/";
+}
 
-#ifdef Q_OS_WIN
-    dataPath += "/AppData/Roaming/";
-#elif defined(Q_OS_OSX)
-    dataPath += "/Library/Application Support/";
-#else
-    dataPath += "/.local/share/";
-#endif
+QString PathUtils::getAppLocalDataPath() {
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/";
+}
 
-    return dataPath;
+QString PathUtils::getAppDataFilePath(const QString& filename) {
+    return QDir(getAppDataPath()).absoluteFilePath(filename);
+}
+
+QString PathUtils::getAppLocalDataFilePath(const QString& filename) {
+    return QDir(getAppLocalDataPath()).absoluteFilePath(filename);
 }
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
@@ -81,4 +83,29 @@ QUrl defaultScriptsLocation() {
 
     QFileInfo fileInfo(path);
     return QUrl::fromLocalFile(fileInfo.canonicalFilePath());
+}
+
+
+QString PathUtils::stripFilename(const QUrl& url) {
+    // Guard against meaningless query and fragment parts.
+    // Do NOT use PreferLocalFile as its behavior is unpredictable (e.g., on defaultScriptsLocation())
+    return url.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
+}
+
+Qt::CaseSensitivity PathUtils::getFSCaseSensitivity() {
+    static Qt::CaseSensitivity sensitivity { Qt::CaseSensitive };
+    static std::once_flag once;
+    std::call_once(once, [&] {
+            QString path = defaultScriptsLocation().toLocalFile();
+            QFileInfo upperFI(path.toUpper());
+            QFileInfo lowerFI(path.toLower());
+            sensitivity = (upperFI == lowerFI) ? Qt::CaseInsensitive : Qt::CaseSensitive;
+        });
+    return sensitivity;
+}
+
+bool PathUtils::isDescendantOf(const QUrl& childURL, const QUrl& parentURL) {
+    QString child = stripFilename(childURL);
+    QString parent = stripFilename(parentURL);
+    return child.startsWith(parent, PathUtils::getFSCaseSensitivity());
 }

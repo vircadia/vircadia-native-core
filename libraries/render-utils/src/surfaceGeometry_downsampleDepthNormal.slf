@@ -21,17 +21,17 @@ out vec4 outLinearDepth;
 out vec4 outNormal;
 
 void main(void) {
-    // Gather 2 by 2 quads from texture
+    // Gather 2 by 2 quads from texture and downsample
 
     // Try different filters for Z
-//    vec4 Zeyes = textureGather(linearDepthMap, varTexCoord0, 0);
-  //  float Zeye = min(min(Zeyes.x, Zeyes.y), min(Zeyes.z, Zeyes.w));
-    float Zeye = texture(linearDepthMap, varTexCoord0).x;
+    vec4 Zeyes = textureGather(linearDepthMap, varTexCoord0, 0);
+   // float Zeye = texture(linearDepthMap, varTexCoord0).x;
 
     vec4 rawNormalsX = textureGather(normalMap, varTexCoord0, 0);
     vec4 rawNormalsY = textureGather(normalMap, varTexCoord0, 1);
     vec4 rawNormalsZ = textureGather(normalMap, varTexCoord0, 2);
 
+    float Zeye = min(min(Zeyes.x, Zeyes.y), min(Zeyes.z, Zeyes.w));
 
     vec3 normal = vec3(0.0);
     normal += unpackNormal(vec3(rawNormalsX[0], rawNormalsY[0], rawNormalsZ[0]));

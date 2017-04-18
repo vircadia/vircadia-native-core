@@ -14,6 +14,7 @@
 
 #include <QJsonDocument>
 #include <QtCore/QThread>
+#include <QUrlQuery>
 #include <glm/gtx/transform.hpp>
 
 #include <AbstractViewStateInterface.h>
@@ -228,20 +229,20 @@ namespace render {
 }
 
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
-                                            render::PendingChanges& pendingChanges) {
+                                            render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
 
     auto renderData = std::make_shared<RenderableModelEntityItemMeta>(self);
     auto renderPayload = std::make_shared<RenderableModelEntityItemMeta::Payload>(renderData);
 
-    pendingChanges.resetItem(_myMetaItem, renderPayload);
+    transaction.resetItem(_myMetaItem, renderPayload);
 
     if (_model) {
         render::Item::Status::Getters statusGetters;
         makeEntityItemStatusGetters(getThisPointer(), statusGetters);
 
         // note: we don't mind if the model fails to add, we'll retry (in render()) until it succeeds
-        _model->addToScene(scene, pendingChanges, statusGetters);
+        _model->addToScene(scene, transaction, statusGetters);
     }
 
     // we've successfully added _myMetaItem so we always return true
@@ -249,11 +250,11 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
 }
 
 void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
-                                                render::PendingChanges& pendingChanges) {
-    pendingChanges.removeItem(_myMetaItem);
+                                                render::Transaction& transaction) {
+    transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
     if (_model) {
-        _model->removeFromScene(scene, pendingChanges);
+        _model->removeFromScene(scene, transaction);
     }
 }
 
@@ -277,10 +278,11 @@ bool RenderableModelEntityItem::getAnimationFrame() {
         return false;
     }
 
-    if (_animation && _animation->isLoaded()) {
+    auto animation = getAnimation();
+    if (animation && animation->isLoaded()) {
 
-        const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
-        auto& fbxJoints = _animation->getGeometry().joints;
+        const QVector<FBXAnimationFrame>&  frames = animation->getFramesReference(); // NOTE: getFrames() is too heavy
+        auto& fbxJoints = animation->getGeometry().joints;
 
         int frameCount = frames.size();
         if (frameCount > 0) {
@@ -371,103 +373,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         _model->updateRenderItems();
     }
 
-    if (hasModel()) {
-        // Prepare the current frame
-        {
-            if (!_model || _needsModelReload) {
-                // TODO: this getModel() appears to be about 3% of model render time. We should optimize
-                PerformanceTimer perfTimer("getModel");
-                auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderer);
-                getModel(renderer);
-
-                // Remap textures immediately after loading to avoid flicker
-                remapTextures();
-            }
-
-            if (_model) {
-                if (hasRenderAnimation()) {
-                    if (!jointsMapped()) {
-                        QStringList modelJointNames = _model->getJointNames();
-                        mapJoints(modelJointNames);
-                    }
-                }
-
-                _jointDataLock.withWriteLock([&] {
-                    getAnimationFrame();
-
-                    // relay any inbound joint changes from scripts/animation/network to the model/rig
-                    for (int index = 0; index < _localJointRotations.size(); index++) {
-                        if (_localJointRotationsDirty[index]) {
-                            glm::quat rotation = _localJointRotations[index];
-                            _model->setJointRotation(index, true, rotation, 1.0f);
-                            _localJointRotationsDirty[index] = false;
-                        }
-                    }
-                    for (int index = 0; index < _localJointTranslations.size(); index++) {
-                        if (_localJointTranslationsDirty[index]) {
-                            glm::vec3 translation = _localJointTranslations[index];
-                            _model->setJointTranslation(index, true, translation, 1.0f);
-                            _localJointTranslationsDirty[index] = false;
-                        }
-                    }
-                });
-                updateModelBounds();
-            }
-        }
-
-        // Enqueue updates for the next frame
-        if (_model) {
-
-            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-
-            // FIXME: this seems like it could be optimized if we tracked our last known visible state in
-            //        the renderable item. As it stands now the model checks it's visible/invisible state
-            //        so most of the time we don't do anything in this function.
-            _model->setVisibleInScene(getVisible(), scene);
-
-            // Remap textures for the next frame to avoid flicker
-            remapTextures();
-
-            // update whether the model should be showing collision mesh (this may flag for fixupInScene)
-            bool showingCollisionGeometry = (bool)(args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS);
-            if (showingCollisionGeometry != _showCollisionGeometry) {
-                ShapeType type = getShapeType();
-                _showCollisionGeometry = showingCollisionGeometry;
-                if (_showCollisionGeometry && type != SHAPE_TYPE_STATIC_MESH && type != SHAPE_TYPE_NONE) {
-                    // NOTE: it is OK if _collisionMeshKey is nullptr
-                    model::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
-                    // NOTE: the model will render the collisionGeometry if it has one
-                    _model->setCollisionMesh(mesh);
-                } else {
-                    // release mesh
-                    if (_collisionMeshKey) {
-                        collisionMeshCache.releaseMesh(_collisionMeshKey);
-                    }
-                    // clear model's collision geometry
-                    model::MeshPointer mesh = nullptr;
-                    _model->setCollisionMesh(mesh);
-                }
-            }
-
-            if (_model->needsFixupInScene()) {
-                render::PendingChanges pendingChanges;
-
-                _model->removeFromScene(scene, pendingChanges);
-
-                render::Item::Status::Getters statusGetters;
-                makeEntityItemStatusGetters(getThisPointer(), statusGetters);
-                _model->addToScene(scene, pendingChanges, statusGetters);
-
-                scene->enqueuePendingChanges(pendingChanges);
-            }
-
-            auto& currentURL = getParsedModelURL();
-            if (currentURL != _model->getURL()) {
-                // Defer setting the url to the render thread
-                getModel(_myRenderer);
-            }
-        }
-    } else {
+    if (!hasModel() || (_model && _model->didVisualGeometryRequestFail())) {
         static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
         gpu::Batch& batch = *args->_batch;
         bool success;
@@ -475,6 +381,109 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         if (success) {
             batch.setModelTransform(shapeTransform); // we want to include the scale as well
             DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, greenColor);
+        }
+        return;
+    }
+
+    // Prepare the current frame
+    {
+        if (!_model || _needsModelReload) {
+            // TODO: this getModel() appears to be about 3% of model render time. We should optimize
+            PerformanceTimer perfTimer("getModel");
+            auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderer);
+            getModel(renderer);
+
+            // Remap textures immediately after loading to avoid flicker
+            remapTextures();
+        }
+
+        if (_model) {
+            if (hasRenderAnimation()) {
+                if (!jointsMapped()) {
+                    QStringList modelJointNames = _model->getJointNames();
+                    mapJoints(modelJointNames);
+                }
+            }
+
+            _jointDataLock.withWriteLock([&] {
+                getAnimationFrame();
+
+                // relay any inbound joint changes from scripts/animation/network to the model/rig
+                for (int index = 0; index < _localJointRotations.size(); index++) {
+                    if (_localJointRotationsDirty[index]) {
+                        glm::quat rotation = _localJointRotations[index];
+                        _model->setJointRotation(index, true, rotation, 1.0f);
+                        _localJointRotationsDirty[index] = false;
+                    }
+                }
+                for (int index = 0; index < _localJointTranslations.size(); index++) {
+                    if (_localJointTranslationsDirty[index]) {
+                        glm::vec3 translation = _localJointTranslations[index];
+                        _model->setJointTranslation(index, true, translation, 1.0f);
+                        _localJointTranslationsDirty[index] = false;
+                    }
+                }
+            });
+            updateModelBounds();
+        }
+    }
+
+    // Enqueue updates for the next frame
+    if (_model) {
+
+#ifdef WANT_EXTRA_RENDER_DEBUGGING
+        // debugging...
+        gpu::Batch& batch = *args->_batch;
+        _model->renderDebugMeshBoxes(batch);
+#endif
+
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+        // FIXME: this seems like it could be optimized if we tracked our last known visible state in
+        //        the renderable item. As it stands now the model checks it's visible/invisible state
+        //        so most of the time we don't do anything in this function.
+        _model->setVisibleInScene(getVisible(), scene);
+
+        // Remap textures for the next frame to avoid flicker
+        remapTextures();
+
+        // update whether the model should be showing collision mesh (this may flag for fixupInScene)
+        bool showingCollisionGeometry = (bool)(args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS);
+        if (showingCollisionGeometry != _showCollisionGeometry) {
+            ShapeType type = getShapeType();
+            _showCollisionGeometry = showingCollisionGeometry;
+            if (_showCollisionGeometry && type != SHAPE_TYPE_STATIC_MESH && type != SHAPE_TYPE_NONE) {
+                // NOTE: it is OK if _collisionMeshKey is nullptr
+                model::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
+                // NOTE: the model will render the collisionGeometry if it has one
+                _model->setCollisionMesh(mesh);
+            } else {
+                // release mesh
+                if (_collisionMeshKey) {
+                    collisionMeshCache.releaseMesh(_collisionMeshKey);
+                }
+                // clear model's collision geometry
+                model::MeshPointer mesh = nullptr;
+                _model->setCollisionMesh(mesh);
+            }
+        }
+
+        if (_model->needsFixupInScene()) {
+            render::Transaction transaction;
+
+            _model->removeFromScene(scene, transaction);
+
+            render::Item::Status::Getters statusGetters;
+            makeEntityItemStatusGetters(getThisPointer(), statusGetters);
+            _model->addToScene(scene, transaction, statusGetters);
+
+            scene->enqueueTransaction(transaction);
+        }
+
+        auto& currentURL = getParsedModelURL();
+        if (currentURL != _model->getURL()) {
+            // Defer setting the url to the render thread
+            getModel(_myRenderer);
         }
     }
 }
@@ -518,9 +527,9 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
     } else if (_model) {
         // remove from scene
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-        render::PendingChanges pendingChanges;
-        _model->removeFromScene(scene, pendingChanges);
-        scene->enqueuePendingChanges(pendingChanges);
+        render::Transaction transaction;
+        _model->removeFromScene(scene, transaction);
+        scene->enqueueTransaction(transaction);
 
         // release interest
         _myRenderer->releaseModel(_model);
@@ -559,7 +568,7 @@ void RenderableModelEntityItem::update(const quint64& now) {
     }
 
     // make a copy of the animation properites
-    _renderAnimationProperties = _animationProperties;
+    _renderAnimationProperties = getAnimationProperties();
 
     ModelEntityItem::update(now);
 }
@@ -581,6 +590,10 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
     return properties;
 }
 
+bool RenderableModelEntityItem::supportsDetailedRayIntersection() const {
+    return _model && _model->isLoaded();
+}
+
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, 
                          bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
                          glm::vec3& surfaceNormal, void** intersectedObject, bool precisionPicking) const {
@@ -595,19 +608,31 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
                                                        face, surfaceNormal, extraInfo, precisionPicking);
 }
 
+void RenderableModelEntityItem::getCollisionGeometryResource() {
+    QUrl hullURL(getCompoundShapeURL());
+    QUrlQuery queryArgs(hullURL);
+    queryArgs.addQueryItem("collision-hull", "");
+    hullURL.setQuery(queryArgs);
+    _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+}
+
 void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
-    if (_shapeType == SHAPE_TYPE_COMPOUND) {
-        if (!_compoundShapeResource && !_compoundShapeURL.isEmpty()) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL());
+    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
+        if (!_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
+            getCollisionGeometryResource();
         }
-    } else if (_compoundShapeResource && !_compoundShapeURL.isEmpty()) {
+    } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
         _compoundShapeResource.reset();
     }
 }
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
+    // because the caching system only allows one Geometry per url, and because this url might also be used
+    // as a visual model, we need to change this url in some way.  We add a "collision-hull" query-arg so it
+    // will end up in a different hash-key in ResourceCache.  TODO: It would be better to use the same URL and
+    // parse it twice.
     auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
 
@@ -616,8 +641,8 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
         if (tree) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
         }
-        if (_shapeType == SHAPE_TYPE_COMPOUND) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
+        if (getShapeType() == SHAPE_TYPE_COMPOUND) {
+            getCollisionGeometryResource();
         }
     }
 }
@@ -626,7 +651,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     ShapeType type = getShapeType();
 
     if (type == SHAPE_TYPE_COMPOUND) {
-        if (!_model || _compoundShapeURL.isEmpty()) {
+        if (!_model || getCompoundShapeURL().isEmpty()) {
             EntityTreePointer tree = getTree();
             if (tree) {
                 QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
@@ -648,8 +673,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
                     doInitialModelSimulation();
                 }
                 return true;
-            } else if (!_compoundShapeURL.isEmpty()) {
-                _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(_compoundShapeURL);
+            } else if (!getCompoundShapeURL().isEmpty()) {
+                getCollisionGeometryResource();
             }
         }
 
@@ -764,7 +789,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + _model->getOffset()) - registrationOffset;
             }
         }
-        shapeInfo.setParams(type, dimensions, _compoundShapeURL);
+        shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         // should never fall in here when model not fully loaded
         assert(_model && _model->isLoaded());
@@ -800,6 +825,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
 
         auto& meshes = _model->getGeometry()->getMeshes();
         int32_t numMeshes = (int32_t)(meshes.size());
+
+        const int MAX_ALLOWED_MESH_COUNT = 1000;
+        if (numMeshes > MAX_ALLOWED_MESH_COUNT) {
+            // too many will cause the deadlock timer to throw...
+            shapeInfo.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
+            return;
+        }
 
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
@@ -983,7 +1015,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             }
         }
 
-        shapeInfo.setParams(type, 0.5f * dimensions, _modelURL);
+        shapeInfo.setParams(type, 0.5f * dimensions, getModelURL());
     } else {
         ModelEntityItem::computeShapeInfo(shapeInfo);
         shapeInfo.setParams(type, 0.5f * dimensions);
@@ -1208,10 +1240,10 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
             }
 
             render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-            render::PendingChanges pendingChanges;
+            render::Transaction transaction;
 
-            pendingChanges.updateItem(myMetaItem);
-            scene->enqueuePendingChanges(pendingChanges);
+            transaction.updateItem(myMetaItem);
+            scene->enqueueTransaction(transaction);
         });
     }
 }

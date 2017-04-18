@@ -136,13 +136,18 @@ class ModelCache : public ResourceCache, public Dependency {
 
 public:
     GeometryResource::Pointer getGeometryResource(const QUrl& url,
-        const QVariantHash& mapping = QVariantHash(), const QUrl& textureBaseUrl = QUrl());
+                                                  const QVariantHash& mapping = QVariantHash(),
+                                                  const QUrl& textureBaseUrl = QUrl());
+
+    GeometryResource::Pointer getCollisionGeometryResource(const QUrl& url,
+                                                           const QVariantHash& mapping = QVariantHash(),
+                                                           const QUrl& textureBaseUrl = QUrl());
 
 protected:
     friend class GeometryMappingResource;
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra) override;
+                                                    const void* extra) override;
 
 private:
     ModelCache();

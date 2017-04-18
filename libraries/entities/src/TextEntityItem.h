@@ -30,7 +30,7 @@ public:
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.lastQuerySent time
+    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -53,40 +53,34 @@ public:
                          void** intersectedObject, bool precisionPicking) const override;
 
     static const QString DEFAULT_TEXT;
-    void setText(const QString& value) { _text = value; }
-    const QString& getText() const { return _text; }
+    void setText(const QString& value);
+    QString getText() const;
 
     static const float DEFAULT_LINE_HEIGHT;
-    void setLineHeight(float value) { _lineHeight = value; }
-    float getLineHeight() const { return _lineHeight; }
+    void setLineHeight(float value);
+    float getLineHeight() const;
 
     static const xColor DEFAULT_TEXT_COLOR;
-    const rgbColor& getTextColor() const { return _textColor; }
-    xColor getTextColorX() const { xColor color = { _textColor[RED_INDEX], _textColor[GREEN_INDEX], _textColor[BLUE_INDEX] }; return color; }
+    // FIXME should not return a reference because of thread safety, but can't return an array
+    const rgbColor& getTextColor() const;
+    xColor getTextColorX() const;
 
-    void setTextColor(const rgbColor& value) { memcpy(_textColor, value, sizeof(_textColor)); }
-    void setTextColor(const xColor& value) {
-            _textColor[RED_INDEX] = value.red;
-            _textColor[GREEN_INDEX] = value.green;
-            _textColor[BLUE_INDEX] = value.blue;
-    }
+    void setTextColor(const rgbColor& value);
+    void setTextColor(const xColor& value);
 
     static const xColor DEFAULT_BACKGROUND_COLOR;
-    const rgbColor& getBackgroundColor() const { return _backgroundColor; }
-    xColor getBackgroundColorX() const { xColor color = { _backgroundColor[RED_INDEX], _backgroundColor[GREEN_INDEX], _backgroundColor[BLUE_INDEX] }; return color; }
+    // FIXME should not return a reference because of thread safety, but can't return an array
+    const rgbColor& getBackgroundColor() const;
+    xColor getBackgroundColorX() const;
 
-    void setBackgroundColor(const rgbColor& value) { memcpy(_backgroundColor, value, sizeof(_backgroundColor)); }
-    void setBackgroundColor(const xColor& value) {
-            _backgroundColor[RED_INDEX] = value.red;
-            _backgroundColor[GREEN_INDEX] = value.green;
-            _backgroundColor[BLUE_INDEX] = value.blue;
-    }
+    void setBackgroundColor(const rgbColor& value);
+    void setBackgroundColor(const xColor& value);
 
     static const bool DEFAULT_FACE_CAMERA;
-    bool getFaceCamera() const { return _faceCamera; }
-    void setFaceCamera(bool value) { _faceCamera = value; }
+    bool getFaceCamera() const;
+    void setFaceCamera(bool value);
 
-protected:
+private:
     QString _text;
     float _lineHeight;
     rgbColor _textColor;

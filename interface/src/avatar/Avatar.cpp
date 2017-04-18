@@ -193,6 +193,9 @@ void Avatar::animateScaleChanges(float deltaTime) {
         }
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
 
+        // flag the joints as having changed for force update to RenderItem
+        _hasNewJointData = true;
+
         // TODO: rebuilding the shape constantly is somehwat expensive.
         // We should only rebuild after significant change.
         rebuildCollisionShape();
@@ -200,8 +203,12 @@ void Avatar::animateScaleChanges(float deltaTime) {
 }
 
 void Avatar::setTargetScale(float targetScale) {
-    AvatarData::setTargetScale(targetScale);
-    _isAnimatingScale = true;
+    float newValue = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    if (_targetScale != newValue) {
+        _targetScale = newValue;
+        _scaleChanged = usecTimestampNow();
+        _isAnimatingScale = true;
+    }
 }
 
 void Avatar::updateAvatarEntities() {
@@ -348,10 +355,11 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView && _hasNewJointData) {
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
+            glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
+            _skeletonModel->getRig()->computeExternalPoses(rootTransform);
             _jointDataSimulationRate.increment();
 
             _skeletonModel->simulate(deltaTime, true);
-            _skeletonModelSimulationRate.increment();
 
             locationChanged(); // joints changed, so if there are any children, update them.
             _hasNewJointData = false;
@@ -367,8 +375,8 @@ void Avatar::simulate(float deltaTime, bool inView) {
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
-            _skeletonModelSimulationRate.increment();
         }
+        _skeletonModelSimulationRate.increment();
     }
 
     // update animation for display name fade in/out
@@ -475,34 +483,30 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+void Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
     _renderItemID = scene->allocateID();
-    pendingChanges.resetItem(_renderItemID, avatarPayloadPointer);
-    _skeletonModel->addToScene(scene, pendingChanges);
+    transaction.resetItem(_renderItemID, avatarPayloadPointer);
+    _skeletonModel->addToScene(scene, transaction);
 
     for (auto& attachmentModel : _attachmentModels) {
-        attachmentModel->addToScene(scene, pendingChanges);
+        attachmentModel->addToScene(scene, transaction);
     }
-
-    _inScene = true;
-    return true;
 }
 
-void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    pendingChanges.removeItem(_renderItemID);
+void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+    transaction.removeItem(_renderItemID);
     render::Item::clearID(_renderItemID);
-    _skeletonModel->removeFromScene(scene, pendingChanges);
+    _skeletonModel->removeFromScene(scene, transaction);
     for (auto& attachmentModel : _attachmentModels) {
-        attachmentModel->removeFromScene(scene, pendingChanges);
+        attachmentModel->removeFromScene(scene, transaction);
     }
-    _inScene = false;
 }
 
-void Avatar::updateRenderItem(render::PendingChanges& pendingChanges) {
+void Avatar::updateRenderItem(render::Transaction& transaction) {
     if (render::Item::isValidID(_renderItemID)) {
-        pendingChanges.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {});
+        transaction.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {});
     }
 }
 
@@ -679,24 +683,24 @@ void Avatar::fixupModelsInScene() {
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
     render::ScenePointer scene = qApp->getMain3DScene();
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
-        _skeletonModel->removeFromScene(scene, pendingChanges);
-        _skeletonModel->addToScene(scene, pendingChanges);
+        _skeletonModel->removeFromScene(scene, transaction);
+        _skeletonModel->addToScene(scene, transaction);
     }
     for (auto attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
-            attachmentModel->removeFromScene(scene, pendingChanges);
-            attachmentModel->addToScene(scene, pendingChanges);
+            attachmentModel->removeFromScene(scene, transaction);
+            attachmentModel->addToScene(scene, transaction);
         }
     }
 
     for (auto attachmentModelToRemove : _attachmentsToRemove) {
-        attachmentModelToRemove->removeFromScene(scene, pendingChanges);
+        attachmentModelToRemove->removeFromScene(scene, transaction);
     }
     _attachmentsToDelete.insert(_attachmentsToDelete.end(), _attachmentsToRemove.begin(), _attachmentsToRemove.end());
     _attachmentsToRemove.clear();
-    scene->enqueuePendingChanges(pendingChanges);
+    scene->enqueueTransaction(transaction);
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
@@ -930,6 +934,21 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
     glm::vec3 translation;
     _skeletonModel->getRelativeDefaultJointTranslation(index, translation);
     return translation;
+}
+
+glm::quat Avatar::getAbsoluteDefaultJointRotationInObjectFrame(int index) const {
+    glm::quat rotation;
+    auto rig = _skeletonModel->getRig();
+    glm::quat rot = rig->getAnimSkeleton()->getAbsoluteDefaultPose(index).rot();
+    return Quaternions::Y_180 * rot;
+}
+
+glm::vec3 Avatar::getAbsoluteDefaultJointTranslationInObjectFrame(int index) const {
+    glm::vec3 translation;
+    auto rig = _skeletonModel->getRig();
+    glm::vec3 trans = rig->getAnimSkeleton()->getAbsoluteDefaultPose(index).trans();
+    glm::mat4 y180Mat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
+    return transformPoint(y180Mat * rig->getGeometryToRigTransform(), trans);
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
@@ -1394,23 +1413,47 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
     }
 }
 
+QList<QVariant> Avatar::getSkeleton() {
+    SkeletonModelPointer skeletonModel = _skeletonModel;
+    if (skeletonModel) {
+        RigPointer rig = skeletonModel->getRig();
+        if (rig) {
+            AnimSkeleton::ConstPointer skeleton = rig->getAnimSkeleton();
+            if (skeleton) {
+                QList<QVariant> list;
+                list.reserve(skeleton->getNumJoints());
+                for (int i = 0; i < skeleton->getNumJoints(); i++) {
+                    QVariantMap obj;
+                    obj["name"] = skeleton->getJointName(i);
+                    obj["index"] = i;
+                    obj["parentIndex"] = skeleton->getParentIndex(i);
+                    list.push_back(obj);
+                }
+                return list;
+            }
+        }
+    }
+
+    return QList<QVariant>();
+}
+
 void Avatar::addToScene(AvatarSharedPointer myHandle) {
     render::ScenePointer scene = qApp->getMain3DScene();
     if (scene) {
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         auto nodelist = DependencyManager::get<NodeList>();
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()
             && !nodelist->isIgnoringNode(getSessionUUID())
             && !nodelist->isRadiusIgnoringNode(getSessionUUID())) {
-            addToScene(myHandle, scene, pendingChanges);
+            addToScene(myHandle, scene, transaction);
         }
-        scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueueTransaction(transaction);
     } else {
         qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
     }
 }
 void Avatar::ensureInScene(AvatarSharedPointer self) {
-    if (!_inScene) {
+    if (!render::Item::isValidID(_renderItemID)) {
         addToScene(self);
     }
 }
