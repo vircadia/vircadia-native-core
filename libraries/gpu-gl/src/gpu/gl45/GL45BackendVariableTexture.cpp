@@ -181,13 +181,13 @@ void GL45ResourceTexture::populateTransferQueue() {
 
     const uint8_t maxFace = GLTexture::getFaceCount(_target);
     uint16_t sourceMip = _populatedMip;
-    qDebug() << "populateTransferQueue info : " << _populatedMip << " " << _maxAllocatedMip << " " << _allocatedMip;
+    //qDebug() << "populateTransferQueue info : " << _populatedMip << " " << _maxAllocatedMip << " " << _allocatedMip;
     do {
         --sourceMip;
         auto targetMip = sourceMip - _allocatedMip;
         auto mipDimensions = _gpuObject.evalMipDimensions(sourceMip);
         bool transferQueued = false;
-        qDebug() << "populateTransferQueue " << QString::fromStdString(_gpuObject.source()) << sourceMip << " " << targetMip;
+        //qDebug() << "populateTransferQueue " << QString::fromStdString(_gpuObject.source()) << sourceMip << " " << targetMip;
         for (uint8_t face = 0; face < maxFace; ++face) {
             if (!_gpuObject.isStoredMipFaceAvailable(sourceMip, face)) {
                 const_cast<gpu::Texture&>(_gpuObject).requestInterestInMip(sourceMip);

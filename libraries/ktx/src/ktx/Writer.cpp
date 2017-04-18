@@ -155,7 +155,7 @@ namespace ktx {
             ptr++;
 #ifdef DEBUG
             for (size_t k = 0; k < descriptors[i]._imageSize/4; k++) {
-                *(ptr + k) = 0xFFFF00FF;
+                *(ptr + k) = 0xFFFFFFFF;
             }
 #endif
             currentDestPtr += descriptors[i]._imageSize + sizeof(uint32_t);

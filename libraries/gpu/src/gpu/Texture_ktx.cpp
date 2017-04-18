@@ -11,6 +11,7 @@
 
 
 #include "Texture.h"
+#include <qdebug.h>
 
 #include <ktx/KTX.h>
 using namespace gpu;
@@ -41,6 +42,7 @@ struct GPUKTXPayload {
     }
 };
 
+const std::string gpu::SOURCE_HASH_KEY { "hifi.sourceHash" };
 std::string GPUKTXPayload::KEY{ "hifi.gpu" };
 
 KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
@@ -91,7 +93,7 @@ std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() {
 }
 
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
-    qDebug() << "getMipFace: " << QString::fromStdString(_filename) << ": " << level << " " << face;
+    //qDebug() << "getMipFace: " << QString::fromStdString(_filename) << ": " << level << " " << face;
     storage::StoragePointer result;
     auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
@@ -108,14 +110,14 @@ Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
 
 bool KtxStorage::isMipAvailable(uint16 level, uint8 face) const {
     auto avail = level >= _minMipLevelAvailable;
-    qDebug() << "isMipAvailable: " << QString::fromStdString(_filename) << ": " << level << " " << face << avail << _minMipLevelAvailable << " " << _ktxDescriptor->header.numberOfMipmapLevels;
+    //qDebug() << "isMipAvailable: " << QString::fromStdString(_filename) << ": " << level << " " << face << avail << _minMipLevelAvailable << " " << _ktxDescriptor->header.numberOfMipmapLevels;
     //return true;
     return avail;
 }
 
 void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& storage) {
     if (level != _minMipLevelAvailable - 1) {
-        qWarning() << "Invalid level to be stored";
+        qWarning() << "Invalid level to be stored, expected: " << (_minMipLevelAvailable - 1) << ", got: " << level;
         return;
     }
 
@@ -124,7 +126,10 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     }
 
     if (storage->size() != _ktxDescriptor->images[level]._imageSize) {
-        throw std::runtime_error("Invalid image size for level");
+        qDebug() << "Invalid image size: " << storage->size() << ", expected: " << _ktxDescriptor->images[level]._imageSize
+            << ", filename: " << QString::fromStdString(_filename);
+        //throw std::runtime_error("Invalid image size for level");
+        return;
     }
 
 
@@ -258,7 +263,6 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     ktx::KeyValues keyValues;
     keyValues.emplace_back(ktx::KeyValue(GPUKTXPayload::KEY, sizeof(GPUKTXPayload), (ktx::Byte*) &keyval));
 
-    static const std::string SOURCE_HASH_KEY = "hifi.sourceHash";
     auto hash = texture.sourceHash();
     if (!hash.empty()) {
         keyValues.emplace_back(ktx::KeyValue(SOURCE_HASH_KEY, static_cast<uint32>(hash.size()), (ktx::Byte*) hash.c_str()));

@@ -245,7 +245,10 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
 }
 
 NetworkTexture::~NetworkTexture() {
-    _textureSource->getGPUTexture()->unregisterMipInterestListener(this);
+    auto texture = _textureSource->getGPUTexture();
+    if (texture) {
+        texture->unregisterMipInterestListener(this);
+    }
 }
 
 /// Returns a texture version of an image file
@@ -412,7 +415,6 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
         range.fromInclusive = -15000;
         _ktxMipRequest->setByteRange(range);
     } else {
-        // TODO: Discover range for other mips
         ByteRange range;
         range.fromInclusive = ktx::KTX_HEADER_SIZE + _originalKtxDescriptor->header.bytesOfKeyValueData
                               + _originalKtxDescriptor->images[low]._imageOffset + 4;
@@ -431,6 +433,7 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 void NetworkTexture::ktxHeaderRequestFinished() {
     assert(!_ktxHeaderLoaded);
 
+    _headerRequestFinished = true;
     if (_ktxHeaderRequest->getResult() == ResourceRequest::Success) {
         _ktxHeaderLoaded = true;
         _ktxHeaderData = _ktxHeaderRequest->getData();
@@ -447,7 +450,7 @@ void NetworkTexture::ktxMipRequestFinished() {
                             && _ktxMipLevelRangeInFlight.second == NULL_MIP_LEVEL;
 
     if (_ktxMipRequest->getResult() == ResourceRequest::Success) {
-        if (_initialKtxLoaded) {
+        if (_highMipRequestFinished) {
             assert(_ktxMipLevelRangeInFlight.second - _ktxMipLevelRangeInFlight.first == 0);
 
             _lowestKnownPopulatedMip = _ktxMipLevelRangeInFlight.first;
@@ -456,6 +459,7 @@ void NetworkTexture::ktxMipRequestFinished() {
                 _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
             //texture->assignStoredMip(level, image._imageSize, ktxData);
         } else {
+            _highMipRequestFinished = true;
             _ktxHighMipData = _ktxMipRequest->getData();
             maybeCreateKTX();
         }
@@ -469,118 +473,144 @@ void NetworkTexture::ktxMipRequestFinished() {
 
 // This is called when the header or top mips have been loaded
 void NetworkTexture::maybeCreateKTX() {
-    if (_ktxHeaderData.size() > 0 && _ktxHighMipData.size() > 0) {
-        // create ktx...
-        auto header = reinterpret_cast<const ktx::Header*>(_ktxHeaderData.data());
+    if (_headerRequestFinished && _highMipRequestFinished) {
+        ResourceCache::requestCompleted(_self);
 
-        qDebug() << "Identifier:" << QString(QByteArray((char*)header->identifier, 12));
-        qDebug() << "Type:" << header->glType;
-        qDebug() << "TypeSize:" << header->glTypeSize;
-        qDebug() << "numberOfArrayElements:" << header->numberOfArrayElements;
-        qDebug() << "numberOfFaces:" << header->numberOfFaces;
-        qDebug() << "numberOfMipmapLevels:" << header->numberOfMipmapLevels;
-        auto kvSize = header->bytesOfKeyValueData;
-        if (kvSize > _ktxHeaderData.size() - ktx::KTX_HEADER_SIZE) {
-            qWarning() << "Cannot load " << _url << ", did not receive all kv data with initial request";
+        if (_ktxHeaderData.size() > 0 && _ktxHighMipData.size() > 0) {
+            // create ktx...
+            auto header = reinterpret_cast<const ktx::Header*>(_ktxHeaderData.data());
+
+            qDebug() << "Creating KTX";
+            qDebug() << "Identifier:" << QString(QByteArray((char*)header->identifier, 12));
+            qDebug() << "Type:" << header->glType;
+            qDebug() << "TypeSize:" << header->glTypeSize;
+            qDebug() << "numberOfArrayElements:" << header->numberOfArrayElements;
+            qDebug() << "numberOfFaces:" << header->numberOfFaces;
+            qDebug() << "numberOfMipmapLevels:" << header->numberOfMipmapLevels;
+            auto kvSize = header->bytesOfKeyValueData;
+            if (kvSize > _ktxHeaderData.size() - ktx::KTX_HEADER_SIZE) {
+                qWarning() << "Cannot load " << _url << ", did not receive all kv data with initial request";
+                return;
+            }
+
+            auto keyValues = ktx::KTX::parseKeyValues(header->bytesOfKeyValueData, reinterpret_cast<const ktx::Byte*>(_ktxHeaderData.data()) + ktx::KTX_HEADER_SIZE);
+
+            auto imageDescriptors = header->generateImageDescriptors();
+            _originalKtxDescriptor.reset(new ktx::KTXDescriptor(*header, keyValues, imageDescriptors));
+
+            // Create bare ktx in memory
+            auto found = std::find_if(keyValues.begin(), keyValues.end(), [](const ktx::KeyValue& val) -> bool {
+                return val._key.compare(gpu::SOURCE_HASH_KEY) == 0;
+            });
+            std::string filename;
+            if (found == keyValues.end()) {
+                qWarning("Source hash key not found, bailing");
+                filename = "test";
+                //return;
+
+            }
+            else {
+                if (found->_value.size() < 16) {
+                    filename = _activeUrl.fileName().toStdString();
+                }
+                else {
+                    filename = std::string(reinterpret_cast<char*>(found->_value.data()), 32);
+                }
+            }
+
+            auto memKtx = ktx::KTX::createBare(*header, keyValues);
+
+            auto d = const_cast<uint8_t*>(memKtx->getStorage()->data());
+            ///memcpy(d + memKtx->_storage->size() - _ktxHighMipData.size(), _ktxHighMipData.data(), _ktxHighMipData.size());
+
+            auto textureCache = DependencyManager::get<TextureCache>();
+
+            // Move ktx to file
+            const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
+            size_t length = memKtx->_storage->size();
+            KTXFilePointer file;
+            auto& ktxCache = textureCache->_ktxCache;
+            if (!memKtx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(filename, length)))) {
+                qCWarning(modelnetworking) << _url << "file cache failed";
+                return;
+            }
+            else {
+                _file = file;
+            }
+
+            //_ktxDescriptor.reset(new ktx::KTXDescriptor(memKtx->toDescriptor()));
+            auto newKtxDescriptor = memKtx->toDescriptor();
+
+            //auto texture = gpu::Texture::serializeHeader("test.ktx", *header, keyValues);
+            gpu::TexturePointer texture;
+            texture.reset(gpu::Texture::unserialize(_file->getFilepath(), newKtxDescriptor));
+            texture->setKtxBacking(file->getFilepath());
+            texture->setSource(filename);
+            texture->registerMipInterestListener(this);
+
+            auto& images = _originalKtxDescriptor->images;
+            size_t imageSizeRemaining = _ktxHighMipData.size();
+            uint8_t* ktxData = reinterpret_cast<uint8_t*>(_ktxHighMipData.data());
+            ktxData += _ktxHighMipData.size();
+            // TODO Move image offset calculation to ktx ImageDescriptor
+            int level;
+            for (level = images.size() - 1; level >= 0; --level) {
+                auto& image = images[level];
+                if (image._imageSize > imageSizeRemaining) {
+                    break;
+                }
+                qDebug() << "Transferring " << level;
+                ktxData -= image._imageSize;
+                texture->assignStoredMip(level, image._imageSize, ktxData);
+                ktxData -= 4;
+                imageSizeRemaining - image._imageSize - 4;
+            }
+
+            // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
+            // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
+            // be the winner
+            if (textureCache) {
+                texture = textureCache->cacheTextureByHash(filename, texture);
+            }
+
+
+            _lowestKnownPopulatedMip = _originalKtxDescriptor->header.numberOfMipmapLevels;
+            for (uint16_t l = 0; l < 200; l++) {
+                if (texture->isStoredMipFaceAvailable(l)) {
+                    _lowestKnownPopulatedMip = l;
+                    break;
+                }
+            }
+            ResourceCache::requestCompleted(_self);
+
+            setImage(texture, header->getPixelWidth(), header->getPixelHeight());
+
             return;
-        }
 
-        auto keyValues = ktx::KTX::parseKeyValues(header->bytesOfKeyValueData, reinterpret_cast<const ktx::Byte*>(_ktxHeaderData.data()) + ktx::KTX_HEADER_SIZE);
-
-        auto imageDescriptors = header->generateImageDescriptors();
-        _originalKtxDescriptor.reset(new ktx::KTXDescriptor(*header, keyValues, imageDescriptors));
-
-        // Create bare ktx in memory
-        std::string filename = "test";
-        auto memKtx = ktx::KTX::createBare(*header, keyValues);
-
-        auto d = const_cast<uint8_t*>(memKtx->getStorage()->data());
-        ///memcpy(d + memKtx->_storage->size() - _ktxHighMipData.size(), _ktxHighMipData.data(), _ktxHighMipData.size());
-
-        auto textureCache = DependencyManager::get<TextureCache>();
-
-        // Move ktx to file
-        const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
-        size_t length = memKtx->_storage->size();
-        KTXFilePointer file;
-        auto& ktxCache = textureCache->_ktxCache;
-        if (!memKtx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(filename, length)))) {
-            qCWarning(modelnetworking) << _url << "file cache failed";
-        } else {
-            _file = file;
-        }
-
-        //_ktxDescriptor.reset(new ktx::KTXDescriptor(memKtx->toDescriptor()));
-        auto newKtxDescriptor = memKtx->toDescriptor();
-
-        //auto texture = gpu::Texture::serializeHeader("test.ktx", *header, keyValues);
-        gpu::TexturePointer texture;
-        texture.reset(gpu::Texture::unserialize(_file->getFilepath(), newKtxDescriptor));
-        texture->setKtxBacking(file->getFilepath());
-        texture->setSource(filename);
-        texture->registerMipInterestListener(this);
-
-        auto& images = _originalKtxDescriptor->images;
-        size_t imageSizeRemaining = _ktxHighMipData.size();
-        uint8_t* ktxData = reinterpret_cast<uint8_t*>(_ktxHighMipData.data());
-        ktxData += _ktxHighMipData.size();
-        // TODO Move image offset calculation to ktx ImageDescriptor
-        uint16_t level;
-        for (level = images.size() - 1; level >= 0; --level) {
-            auto& image = images[level];
-            if (image._imageSize > imageSizeRemaining) {
-                break;
+            /*
+            // Force load the next two levels
+            {
+                QTimer* timer = new QTimer();
+                connect(timer, &QTimer::timeout, this, [=]() {
+                    //startMipRangeRequest(level, level);
+                    startRequestForNextMipLevel();
+                });
+                timer->setSingleShot(true);
+                timer->setInterval(4000);
+                timer->start();
             }
-            qDebug() << "Transferring " << level;
-            ktxData -= image._imageSize;
-            texture->assignStoredMip(level, image._imageSize, ktxData);
-            ktxData -= 4;
-            imageSizeRemaining - image._imageSize - 4;
-        }
 
-        _initialKtxLoaded = true;
-
-        // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
-        // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
-        // be the winner
-        if (textureCache) {
-            texture = textureCache->cacheTextureByHash(filename, texture);
-        }
-
-
-        _lowestKnownPopulatedMip = _originalKtxDescriptor->header.numberOfMipmapLevels;
-        for (uint16_t l = 0; l < 200; l++) {
-            if (texture->isStoredMipFaceAvailable(l)) {
-                _lowestKnownPopulatedMip = l;
-                break;
+            {
+                QTimer* timer = new QTimer();
+                connect(timer, &QTimer::timeout, this, [=]() {
+                    //startMipRangeRequest(level - 1, level - 1);
+                    startRequestForNextMipLevel();
+                });
+                timer->setSingleShot(true);
+                timer->setInterval(6000);
+                timer->start();
             }
-        }
-
-        setImage(texture, header->getPixelWidth(), header->getPixelHeight());
-
-        return;
-
-        // Force load the next two levels
-        {
-            QTimer* timer = new QTimer();
-            connect(timer, &QTimer::timeout, this, [=]() {
-                //startMipRangeRequest(level, level);
-                startRequestForNextMipLevel();
-            });
-            timer->setSingleShot(true);
-            timer->setInterval(4000);
-            timer->start();
-        }
-
-        {
-            QTimer* timer = new QTimer();
-            connect(timer, &QTimer::timeout, this, [=]() {
-                //startMipRangeRequest(level - 1, level - 1);
-                startRequestForNextMipLevel();
-            });
-            timer->setSingleShot(true);
-            timer->setInterval(6000);
-            timer->start();
+            */
         }
     }
 }

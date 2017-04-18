@@ -34,6 +34,8 @@ namespace ktx {
 
 namespace gpu {
 
+extern const std::string SOURCE_HASH_KEY;
+
 // THe spherical harmonics is a nice tool for cubemap, so if required, the irradiance SH can be automatically generated
 // with the cube texture
 class Texture;
