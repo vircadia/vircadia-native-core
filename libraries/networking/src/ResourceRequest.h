@@ -37,6 +37,7 @@ public:
         Timeout,
         ServerUnavailable,
         AccessDenied,
+        InvalidByteRange,
         InvalidURL,
         NotFound
     };
