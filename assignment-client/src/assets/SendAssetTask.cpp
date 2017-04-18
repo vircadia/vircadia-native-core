@@ -68,7 +68,7 @@ void SendAssetTask::run() {
         QFile file { filePath };
 
         if (file.open(QIODevice::ReadOnly)) {
-            if (byteRange.isSet()) {
+            if (!byteRange.isSet()) {
                 // if the byte range is not set, force it to be from 0 to the end of the file
                 byteRange.fromInclusive = 0;
                 byteRange.toExclusive = file.size();
