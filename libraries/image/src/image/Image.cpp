@@ -15,6 +15,8 @@
 
 #include <QUrl>
 #include <QImage>
+#include <QBuffer>
+#include <QImageReader>
 
 #include <Finally.h>
 #include <Profile.h>
@@ -117,13 +119,33 @@ gpu::TexturePointer processImage(const QByteArray& content, const std::string& f
     // Help the QImage loader by extracting the image file format from the url filename ext.
     // Some tga are not created properly without it.
     auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
-    QImage image = QImage::fromData(content, filenameExtension.c_str());
+    QBuffer buffer;
+    buffer.setData(content);
+    QImageReader imageReader(&buffer, filenameExtension.c_str());
+    QImage image;
+
+    if (imageReader.canRead()) {
+        image = imageReader.read();
+    } else {
+        // Extension could be incorrect, try to detect the format from the content
+        QImageReader newImageReader;
+        newImageReader.setDecideFormatFromContent(true);
+        buffer.setData(content);
+        newImageReader.setDevice(&buffer);
+
+        if (newImageReader.canRead()) {
+            qWarning(imagelogging) << "Image file" << filename.c_str() << "has extension" << filenameExtension.c_str()
+                                   << "but is actually a" << qPrintable(newImageReader.format()) << "(recovering)";
+            image = newImageReader.read();
+        }
+    }
+
     int imageWidth = image.width();
     int imageHeight = image.height();
 
     // Validate that the image loaded
     if (imageWidth == 0 || imageHeight == 0 || image.format() == QImage::Format_Invalid) {
-        QString reason(filenameExtension.empty() ? "(no file extension)" : "");
+        QString reason(image.format() == QImage::Format_Invalid ? "(Invalid Format)" : "(Size is invalid)");
         qCWarning(imagelogging) << "Failed to load" << filename.c_str() << qPrintable(reason);
         return nullptr;
     }
