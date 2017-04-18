@@ -24,9 +24,9 @@ struct ByteRange {
     // (2) the toExclusive of the range is less than the fromInclusive, and isn't zero
     // (3) the fromExclusive of the range is negative, and the toExclusive isn't zero
     bool isValid() {
-        return toExclusive < 0
-            || (toExclusive < fromInclusive && toExclusive != 0)
-            || (fromInclusive < 0 && toExclusive != 0);
+        return toExclusive >= 0
+                && (toExclusive >= fromInclusive || toExclusive == 0)
+                && (fromInclusive >= 0 || toExclusive == 0);
     }
 
     void fixupRange(int64_t fileSize) {

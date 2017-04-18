@@ -88,7 +88,7 @@ void SendAssetTask::run() {
 
                 auto size = byteRange.size();
 
-                if (byteRange.fromInclusive > 0) {
+                if (byteRange.fromInclusive >= 0) {
 
                     // this range is positive, meaning we just need to seek into the file and then read from there
                     file.seek(byteRange.fromInclusive);
