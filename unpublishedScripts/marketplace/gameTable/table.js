@@ -15,13 +15,6 @@
     var INITIAL_DELAY = 1000;
 
     function getGamesList() {
-        // FIXME: HACK: remove when Script.require is in release client (Beta Release 37)
-        if (Script.require === undefined) {
-            var request = new XMLHttpRequest();
-            request.open('GET', GAMES_LIST_ENDPOINT, false);
-            request.send();
-            return JSON.parse(request.responseText);
-        }
         return Script.require(GAMES_LIST_ENDPOINT);
     }
 

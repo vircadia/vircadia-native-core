@@ -40,20 +40,6 @@
         if (overrideProperties !== undefined) {
             parentProperties.overrideProperties = overrideProperties;
         }
-        // FIXME: HACK: remove when Script.require is in release client (Beta Release 37)
-        if (Script.require === undefined) {
-            var request = new XMLHttpRequest();
-            request.open('GET', importLink, false);
-            request.send();
-            try {
-                var response = JSON.parse(request.responseText);
-                parentProperties.childEntities = entityListToTree(response.Entities);
-                return parentProperties;
-            } catch (e) {
-                print('Failed importing entities JSON because: ' + JSON.stringify(e));
-            }
-            return null;
-        }
         try {
             var entityJSONImport = Script.require(importLink).Entities;
             parentProperties.childEntities = entityListToTree(entityJSONImport);
