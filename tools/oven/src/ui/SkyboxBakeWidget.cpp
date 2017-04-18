@@ -51,7 +51,7 @@ void SkyboxBakeWidget::setupUI() {
     QPushButton* chooseFileButton = new QPushButton("Browse...");
     connect(chooseFileButton, &QPushButton::clicked, this, &SkyboxBakeWidget::chooseFileButtonClicked);
 
-    // add the components for the model file picker to the layout
+    // add the components for the skybox file picker to the layout
     gridLayout->addWidget(skyboxFileLabel, rowIndex, 0);
     gridLayout->addWidget(_selectionLineEdit, rowIndex, 1, 1, 3);
     gridLayout->addWidget(chooseFileButton, rowIndex, 4);
@@ -164,10 +164,10 @@ void SkyboxBakeWidget::bakeButtonClicked() {
         return;
     }
 
-    // split the list from the model line edit to see how many models we need to bake
+    // split the list from the selection line edit to see how many skyboxes we need to bake
     auto fileURLStrings = _selectionLineEdit->text().split(',');
     foreach (QString fileURLString, fileURLStrings) {
-        // construct a URL from the path in the model file text box
+        // construct a URL from the path in the skybox file text box
         QUrl skyboxToBakeURL(fileURLString);
 
         // if the URL doesn't have a scheme, assume it is a local file
@@ -175,7 +175,7 @@ void SkyboxBakeWidget::bakeButtonClicked() {
             skyboxToBakeURL.setScheme("file");
         }
 
-        // everything seems to be in place, kick off a bake for this model now
+        // everything seems to be in place, kick off a bake for this skybox now
         auto baker = std::unique_ptr<TextureBaker> {
             new TextureBaker(skyboxToBakeURL, gpu::CUBE_TEXTURE, outputDirectory.absolutePath())
         };
