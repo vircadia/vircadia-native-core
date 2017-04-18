@@ -400,6 +400,7 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
         var matched = !error && html.match(/img class="users-img" src="([^"]*)"/);
         if (!matched) {
             print('Error: Unable to get profile picture for', username, error);
+            callback('');
             return;
         }
         callback(matched[1]);
