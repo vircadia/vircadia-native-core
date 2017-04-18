@@ -252,7 +252,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
                 }
                 images.emplace_back(ktx::Image(imageOffset, (uint32_t)mip->getSize(), 0, cubeFaces));
             }
-            imageOffset += mip->getSize() + 4;
+            imageOffset += static_cast<uint32_t>(mip->getSize()) + 4;
         }
     }
 

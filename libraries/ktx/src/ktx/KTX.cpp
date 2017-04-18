@@ -12,6 +12,7 @@
 #include "KTX.h"
 
 #include <algorithm> //min max and more
+#include <QDebug>
 
 using namespace ktx;
 
@@ -90,6 +91,7 @@ size_t Header::evalPixelOrBlockSize() const {
             return 4;
         }
     }
+    qWarning() << "Unknown ktx format: " << glFormat << " " << glBaseInternalFormat << " " << glInternalFormat;
     throw std::runtime_error("Unknown format");
 }
 
@@ -119,7 +121,7 @@ ImageDescriptors Header::generateImageDescriptors() const {
     ImageDescriptors descriptors;
 
     uint32_t imageOffset = 0;
-    for (auto level = 0; level < numberOfMipmapLevels; ++level) {
+    for (uint32_t level = 0; level < numberOfMipmapLevels; ++level) {
         auto imageSize = static_cast<uint32_t>(evalImageSize(level));
         ImageHeader header {
             numberOfFaces == NUM_CUBEMAPFACES,
@@ -131,7 +133,7 @@ ImageDescriptors Header::generateImageDescriptors() const {
         imageOffset += imageSize + 4;
 
         ImageHeader::FaceOffsets offsets;
-        for (auto i = 0; i < numberOfFaces; ++i) {
+        for (uint32_t i = 0; i < numberOfFaces; ++i) {
             offsets.push_back(0);
         }
         descriptors.push_back(ImageDescriptor(header, offsets));

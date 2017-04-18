@@ -424,6 +424,9 @@ protected slots:
 protected:
     virtual void init();
 
+    /// Called by ResourceCache to begin loading this Resource.
+    /// This method can be overriden to provide custom request functionality. If this is done,
+    /// downloadFinished and ResourceCache::requestCompleted must be called.
     virtual void makeRequest();
 
     /// Checks whether the resource is cacheable.
@@ -460,6 +463,8 @@ protected:
 
     int _requestID;
     ResourceRequest* _request{ nullptr };
+
+    bool _pending{ false };
     
 public slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);

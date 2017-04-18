@@ -38,6 +38,7 @@
 #include <Finally.h>
 #include <Profile.h>
 
+#include "NetworkLogging.h"
 #include "ModelNetworkingLogging.h"
 #include <Trace.h>
 #include <StatTracker.h>
@@ -345,14 +346,12 @@ void NetworkTexture::makeRequest() {
     // We special-handle ktx requests to run 2 concurrent requests right off the bat
     PROFILE_ASYNC_BEGIN(resource, "Resource:" + getType(), QString::number(_requestID), { { "url", _url.toString() }, { "activeURL", _activeUrl.toString() } });
 
-    if (!_ktxHeaderLoaded) {
+    if (!_ktxHeaderLoaded && !_highMipRequestFinished) {
         qDebug() << ">>> Making request to " << _url << " for header";
         _ktxHeaderRequest = ResourceManager::createResourceRequest(this, _activeUrl);
 
         if (!_ktxHeaderRequest) {
             //qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
-            ResourceCache::requestCompleted(_self);
-            finishedLoading(false);
             PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID));
             return;
         }
@@ -373,9 +372,14 @@ void NetworkTexture::makeRequest() {
         _bytesReceived = _bytesTotal = _bytes = 0;
 
         _ktxHeaderRequest->send();
+
+        startMipRangeRequest(NULL_MIP_LEVEL, NULL_MIP_LEVEL);
+    } else {
+        if (_lowestKnownPopulatedMip > 0) {
+            startMipRangeRequest(_lowestKnownPopulatedMip - 1, _lowestKnownPopulatedMip - 1);
+        }
     }
 
-    startMipRangeRequest(NULL_MIP_LEVEL, NULL_MIP_LEVEL);
 }
 
 void NetworkTexture::handleMipInterestCallback(uint16_t level) {
@@ -384,13 +388,24 @@ void NetworkTexture::handleMipInterestCallback(uint16_t level) {
 
 void NetworkTexture::handleMipInterestLevel(int level) {
     _lowestRequestedMipLevel = std::min(static_cast<uint16_t>(level), _lowestRequestedMipLevel);
-    if (!_ktxMipRequest) {
-        startRequestForNextMipLevel();
+    if (!_ktxMipRequest && _lowestKnownPopulatedMip > 0) {
+        //startRequestForNextMipLevel();
+        clearLoadPriority(this);
+        setLoadPriority(this, _lowestKnownPopulatedMip - 1);
+        ResourceCache::attemptRequest(_self);
     }
 }
 
 void NetworkTexture::startRequestForNextMipLevel() {
-    startMipRangeRequest(std::max(0, _lowestKnownPopulatedMip - 1), std::max(0, _lowestKnownPopulatedMip - 1));
+    if (_lowestKnownPopulatedMip == 0) {
+        qWarning(networking) << "Requesting next mip level but all have been fulfilled";
+        return;
+    }
+    if (_pending) {
+        return;
+    }
+
+    //startMipRangeRequest(std::max(0, _lowestKnownPopulatedMip - 1), std::max(0, _lowestKnownPopulatedMip - 1));
 }
 
 // Load mips in the range [low, high] (inclusive)
@@ -406,7 +421,7 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
     }
 
     _ktxMipRequest = ResourceManager::createResourceRequest(this, _activeUrl);
-    qDebug() << ">>> Making request to " << _url << " for " << low << " to " << high;
+    qDebug(networking) << ">>> Making request to " << _url << " for " << low << " to " << high;
 
     _ktxMipLevelRangeInFlight = { low, high };
     if (isHighMipRequest) {
@@ -437,7 +452,7 @@ void NetworkTexture::ktxHeaderRequestFinished() {
     if (_ktxHeaderRequest->getResult() == ResourceRequest::Success) {
         _ktxHeaderLoaded = true;
         _ktxHeaderData = _ktxHeaderRequest->getData();
-        maybeCreateKTX();
+        maybeHandleFinishedInitialLoad();
     } else {
         handleFailedRequest(_ktxHeaderRequest->getResult());
     }
@@ -455,15 +470,18 @@ void NetworkTexture::ktxMipRequestFinished() {
 
             _lowestKnownPopulatedMip = _ktxMipLevelRangeInFlight.first;
             
-            _textureSource->getGPUTexture()->assignStoredMip(_ktxMipLevelRangeInFlight.first,
-                _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
-            //texture->assignStoredMip(level, image._imageSize, ktxData);
+            auto texture = _textureSource->getGPUTexture();
+            if (!texture) {
+                texture->assignStoredMip(_ktxMipLevelRangeInFlight.first,
+                    _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
+            } else {
+                qWarning(networking) << "Trying to update mips but texture is null";
+            }
         } else {
             _highMipRequestFinished = true;
             _ktxHighMipData = _ktxMipRequest->getData();
-            maybeCreateKTX();
+            maybeHandleFinishedInitialLoad();
         }
-
     } else {
         handleFailedRequest(_ktxMipRequest->getResult());
     }
@@ -472,11 +490,13 @@ void NetworkTexture::ktxMipRequestFinished() {
 }
 
 // This is called when the header or top mips have been loaded
-void NetworkTexture::maybeCreateKTX() {
+void NetworkTexture::maybeHandleFinishedInitialLoad() {
     if (_headerRequestFinished && _highMipRequestFinished) {
         ResourceCache::requestCompleted(_self);
 
-        if (_ktxHeaderData.size() > 0 && _ktxHighMipData.size() > 0) {
+        if (_ktxHeaderData.size() == 0 || _ktxHighMipData.size() == 0) {
+            finishedLoading(false);
+        } else {
             // create ktx...
             auto header = reinterpret_cast<const ktx::Header*>(_ktxHeaderData.data());
 
@@ -490,6 +510,7 @@ void NetworkTexture::maybeCreateKTX() {
             auto kvSize = header->bytesOfKeyValueData;
             if (kvSize > _ktxHeaderData.size() - ktx::KTX_HEADER_SIZE) {
                 qWarning() << "Cannot load " << _url << ", did not receive all kv data with initial request";
+                finishedLoading(false);
                 return;
             }
 
@@ -505,23 +526,23 @@ void NetworkTexture::maybeCreateKTX() {
             std::string filename;
             if (found == keyValues.end()) {
                 qWarning("Source hash key not found, bailing");
-                filename = "test";
-                //return;
-
+                finishedLoading(false);
+                return;
             }
             else {
-                if (found->_value.size() < 16) {
-                    filename = _activeUrl.fileName().toStdString();
-                }
-                else {
+                if (found->_value.size() < 32) {
+                    qWarning("Invalid source hash key found, bailing");
+                    finishedLoading(false);
+                    return;
+                } else {
                     filename = std::string(reinterpret_cast<char*>(found->_value.data()), 32);
                 }
             }
 
             auto memKtx = ktx::KTX::createBare(*header, keyValues);
 
-            auto d = const_cast<uint8_t*>(memKtx->getStorage()->data());
-            ///memcpy(d + memKtx->_storage->size() - _ktxHighMipData.size(), _ktxHighMipData.data(), _ktxHighMipData.size());
+            //auto d = const_cast<uint8_t*>(memKtx->getStorage()->data());
+            //memcpy(d + memKtx->_storage->size() - _ktxHighMipData.size(), _ktxHighMipData.data(), _ktxHighMipData.size());
 
             auto textureCache = DependencyManager::get<TextureCache>();
 
@@ -531,7 +552,8 @@ void NetworkTexture::maybeCreateKTX() {
             KTXFilePointer file;
             auto& ktxCache = textureCache->_ktxCache;
             if (!memKtx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(filename, length)))) {
-                qCWarning(modelnetworking) << _url << "file cache failed";
+                qCWarning(modelnetworking) << _url << " failed to write cache file";
+                finishedLoading(false);
                 return;
             }
             else {
@@ -581,36 +603,8 @@ void NetworkTexture::maybeCreateKTX() {
                     break;
                 }
             }
-            ResourceCache::requestCompleted(_self);
 
             setImage(texture, header->getPixelWidth(), header->getPixelHeight());
-
-            return;
-
-            /*
-            // Force load the next two levels
-            {
-                QTimer* timer = new QTimer();
-                connect(timer, &QTimer::timeout, this, [=]() {
-                    //startMipRangeRequest(level, level);
-                    startRequestForNextMipLevel();
-                });
-                timer->setSingleShot(true);
-                timer->setInterval(4000);
-                timer->start();
-            }
-
-            {
-                QTimer* timer = new QTimer();
-                connect(timer, &QTimer::timeout, this, [=]() {
-                    //startMipRangeRequest(level - 1, level - 1);
-                    startRequestForNextMipLevel();
-                });
-                timer->setSingleShot(true);
-                timer->setInterval(6000);
-                timer->start();
-            }
-            */
         }
     }
 }

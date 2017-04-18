@@ -474,8 +474,15 @@ int ResourceCache::getLoadingRequestCount() {
 
 bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
     Q_ASSERT(!resource.isNull());
-    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
 
+    if (resource->_pending) {
+        qWarning(networking) << "Attempted to request " << resource->getURL() << " but it was already pending";
+        return false;
+    }
+
+    resource->_pending = true;
+
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     if (_requestsActive >= _requestLimit) {
         // wait until a slot becomes available
         sharedItems->appendPendingRequest(resource);
@@ -490,6 +497,12 @@ bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
 
 void ResourceCache::requestCompleted(QWeakPointer<Resource> resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
+
+    auto sharedResource = resource.lock();
+    if (sharedResource) {
+        sharedResource->_pending = true;
+    }
+
     sharedItems->removeRequest(resource);
     --_requestsActive;
 
