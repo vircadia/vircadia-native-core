@@ -18,6 +18,29 @@ struct ByteRange {
 
     bool isSet() { return fromInclusive < 0 || fromInclusive < toExclusive; }
     int64_t size() { return toExclusive - fromInclusive; }
+
+    // byte ranges are invalid if:
+    // (1) the toExclusive of the range is negative
+    // (2) the toExclusive of the range is less than the fromInclusive, and isn't zero
+    // (3) the fromExclusive of the range is negative, and the toExclusive isn't zero
+    bool isValid() {
+        return toExclusive < 0
+            || (toExclusive < fromInclusive && toExclusive != 0)
+            || (fromInclusive < 0 && toExclusive != 0);
+    }
+
+    void fixupRange(int64_t fileSize) {
+        if (fromInclusive > 0 && toExclusive == 0) {
+            // we have a left side of the range that is non-zero
+            // if the RHS of the range is zero, set it to the end of the file now
+            toExclusive = fileSize;
+        } else if (-fromInclusive >= fileSize) {
+            // we have a negative range that is equal or greater than the full size of the file
+            // so we just set this to be a range across the entire file, from 0
+            fromInclusive = 0;
+            toExclusive = fileSize;
+        }
+    }
 };
 
 

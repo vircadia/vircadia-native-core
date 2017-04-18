@@ -60,7 +60,7 @@ void SendAssetTask::run() {
 
     replyPacketList->writePrimitive(messageID);
 
-    if (byteRange.toExclusive < byteRange.fromInclusive || byteRange.toExclusive < 0) {
+    if (!byteRange.isValid()) {
         replyPacketList->writePrimitive(AssetServerError::InvalidByteRange);
     } else {
         QString filePath = _resourcesDir.filePath(QString(hexHash));
@@ -74,15 +74,22 @@ void SendAssetTask::run() {
                 byteRange.toExclusive = file.size();
             }
 
-            if (file.size() < std::abs(byteRange.fromInclusive) || file.size() < byteRange.toExclusive) {
+            // check if we're being asked to read data that we just don't have
+            // because of the file size
+            if (file.size() < byteRange.fromInclusive || file.size() < byteRange.toExclusive) {
                 replyPacketList->writePrimitive(AssetServerError::InvalidByteRange);
                 qCDebug(networking) << "Bad byte range: " << hexHash << " "
                     << byteRange.fromInclusive << ":" << byteRange.toExclusive;
             } else {
                 // we have a valid byte range, handle it and send the asset
+
+                // first fixup the range based on the now known file size
+                byteRange.fixupRange(file.size());
+
                 auto size = byteRange.size();
 
                 if (byteRange.fromInclusive > 0) {
+
                     // this range is positive, meaning we just need to seek into the file and then read from there
                     file.seek(byteRange.fromInclusive);
                     replyPacketList->writePrimitive(AssetServerError::NoError);
@@ -98,15 +105,7 @@ void SendAssetTask::run() {
                     replyPacketList->writePrimitive(size);
 
                     // first write everything from the negative range to the end of the file
-                    replyPacketList->write(file.read(-byteRange.fromInclusive));
-
-                    if (byteRange.toExclusive != 0) {
-                        // this range has a portion that is at the front of the file
-
-                        // seek to the beginning and read what is left over
-                        file.seek(0);
-                        replyPacketList->write(file.read(byteRange.toExclusive));
-                    }
+                    replyPacketList->write(file.read(size));
                 }
 
                 qCDebug(networking) << "Sending asset: " << hexHash;
