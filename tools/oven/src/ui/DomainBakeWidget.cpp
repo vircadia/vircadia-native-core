@@ -41,6 +41,20 @@ DomainBakeWidget::DomainBakeWidget(QWidget* parent, Qt::WindowFlags flags) :
     setupUI();
 }
 
+DomainBakeWidget::~DomainBakeWidget() {
+    // if we're going down, our bakers are about to too
+    // enumerate them, send a cancelled status to the results table, and remove them
+    auto it = _bakers.begin();
+    while (it != _bakers.end()) {
+        auto resultRow = it->second;
+        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+
+        resultsWindow->changeStatusForRow(resultRow, "Cancelled");
+
+        it = _bakers.erase(it);
+    }
+}
+
 void DomainBakeWidget::setupUI() {
     // setup a grid layout to hold everything
     QGridLayout* gridLayout = new QGridLayout;

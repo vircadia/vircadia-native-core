@@ -88,11 +88,8 @@ private:
     static FBXSDKManagerUniquePointer _sdkManager;
     fbxsdk::FbxScene* _scene { nullptr };
 
-    QHash<QUrl, QString> _unbakedTextures;
+    QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;
-
-    QSet<QSharedPointer<TextureBaker>> _bakingTextures;
-    QFutureSynchronizer<void> _textureBakeSynchronizer;
 
     TextureBakerThreadGetter _textureThreadGetter;
 

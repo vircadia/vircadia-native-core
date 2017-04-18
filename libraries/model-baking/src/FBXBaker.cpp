@@ -374,11 +374,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                 // figure out the URL to this texture, embedded or external
                                 auto urlToTexture = getTextureURL(textureFileInfo, fileTexture);
 
-                                if (!_unbakedTextures.contains(urlToTexture)) {
-                                    // add the deduced url to the texture, associated with the resulting baked texture file name,
-                                    // to our hash of textures needing to be baked
-                                    _unbakedTextures.insert(urlToTexture, bakedTextureFileName);
-
+                                if (!_bakingTextures.contains(urlToTexture)) {
                                     // bake this texture asynchronously
                                     bakeTexture(urlToTexture, textureType, _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER);
                                 }
@@ -404,7 +400,7 @@ void FBXBaker::bakeTexture(const QUrl& textureURL, gpu::TextureType textureType,
     connect(bakingTexture.data(), &Baker::finished, this, &FBXBaker::handleBakedTexture);
 
     // keep a shared pointer to the baking texture
-    _bakingTextures.insert(bakingTexture);
+    _bakingTextures.insert(textureURL, bakingTexture);
 
     // start baking the texture on one of our available worker threads
     bakingTexture->moveToThread(_textureThreadGetter());
@@ -456,8 +452,8 @@ void FBXBaker::handleBakedTexture() {
                 }
 
 
-                // now that this texture has been baked and handled, we can remove that TextureBaker from our list
-                _unbakedTextures.remove(bakedTexture->getTextureURL());
+                // now that this texture has been baked and handled, we can remove that TextureBaker from our hash
+                _bakingTextures.remove(bakedTexture->getTextureURL());
 
                 checkIfTexturesFinished();
             } else {
@@ -468,7 +464,7 @@ void FBXBaker::handleBakedTexture() {
                 _pendingErrorEmission = true;
                 
                 // now that this texture has been baked, even though it failed, we can remove that TextureBaker from our list
-                _unbakedTextures.remove(bakedTexture->getTextureURL());
+                _bakingTextures.remove(bakedTexture->getTextureURL());
                 
                 checkIfTexturesFinished();
             }
@@ -476,7 +472,7 @@ void FBXBaker::handleBakedTexture() {
             // we have errors to attend to, so we don't do extra processing for this texture
             // but we do need to remove that TextureBaker from our list
             // and then check if we're done with all textures
-            _unbakedTextures.remove(bakedTexture->getTextureURL());
+            _bakingTextures.remove(bakedTexture->getTextureURL());
 
             checkIfTexturesFinished();
         }
@@ -525,7 +521,7 @@ void FBXBaker::checkIfTexturesFinished() {
     // check if we're done everything we need to do for this FBX
     // and emit our finished signal if we're done
 
-    if (_unbakedTextures.isEmpty()) {
+    if (_bakingTextures.isEmpty()) {
         // remove the embedded media folder that the FBX SDK produces when reading the original
         removeEmbeddedMediaFolder();
 
