@@ -18,9 +18,7 @@
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-uniform vec3 inBoundPos;
-uniform vec3 inBoundDim;
-uniform ivec4 inCellLocation;
+uniform vec4 inColor;
 
 
 struct ItemBound {
@@ -93,9 +91,11 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    bool subcell = bool((inCellLocation.z));
-    float cellDepth = float(inCellLocation.w);
-    varColor = vec4(colorWheel(fract(cellDepth / 5.0)), 1.0 - float(subcell));
+    if (inColor.w < 0.0) {
+        varColor = vec4(colorWheel(float(boundID)/(-inColor.w)), 1.0);
+    } else {
+        varColor = vec4(colorWheel(float(inColor.w)), 1.0);
+    }
     varTexcoord = vec2(cubeVec.w, length(boundDim));
 
 }

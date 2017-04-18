@@ -196,9 +196,10 @@ public:
             std::string vsSource = HMD_REPROJECTION_VERT;
             std::string fsSource = HMD_REPROJECTION_FRAG;
             GLuint vertexShader { 0 }, fragmentShader { 0 };
-            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader);
-            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader);
-            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } });
+            std::string error;
+            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader, error);
+            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader, error);
+            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } }, error);
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
             qDebug() << "Rebuild proigram";

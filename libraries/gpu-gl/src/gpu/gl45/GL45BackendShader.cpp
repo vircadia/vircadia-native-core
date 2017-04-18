@@ -14,10 +14,93 @@ using namespace gpu::gl45;
 
 // GLSL version
 std::string GL45Backend::getBackendShaderHeader() const {
-    return std::string("#version 450 core");
+    const char header[] = 
+R"GLSL(#version 450 core
+#define GPU_GL450
+)GLSL"
+#ifdef GPU_SSBO_TRANSFORM_OBJECT
+        R"GLSL(#define GPU_SSBO_TRANSFORM_OBJECT 1)GLSL"
+#endif
+    ;
+    return std::string(header);
 }
 
 int GL45Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
+    GLint buffersCount = 0;
+    glGetProgramInterfaceiv(glprogram, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &buffersCount);
+
+    // fast exit
+    if (buffersCount == 0) {
+        return 0;
+    }
+
+    GLint maxNumResourceBufferSlots = 0;
+    glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxNumResourceBufferSlots);
+    std::vector<GLint> resourceBufferSlotMap(maxNumResourceBufferSlots, -1);
+
+    struct ResourceBlockInfo {
+        using Vector = std::vector<ResourceBlockInfo>;
+        const GLuint index{ 0 };
+        const std::string name;
+        GLint binding{ -1 };
+        GLint size{ 0 };
+
+        static std::string getName(GLuint glprogram, GLuint i) {
+            static const GLint NAME_LENGTH = 256;
+            GLint length = 0;
+            GLchar nameBuffer[NAME_LENGTH];
+            glGetProgramResourceName(glprogram, GL_SHADER_STORAGE_BLOCK, i, NAME_LENGTH, &length, nameBuffer);
+            return std::string(nameBuffer);
+        }
+
+        ResourceBlockInfo(GLuint glprogram, GLuint i) : index(i), name(getName(glprogram, i)) {
+            GLenum props[2] = { GL_BUFFER_BINDING, GL_BUFFER_DATA_SIZE};
+            glGetProgramResourceiv(glprogram, GL_SHADER_STORAGE_BLOCK, i, 2, props, 2, nullptr, &binding); 
+        }
+    };
+
+    ResourceBlockInfo::Vector resourceBlocks;
+    resourceBlocks.reserve(buffersCount);
+    for (int i = 0; i < buffersCount; i++) {
+        resourceBlocks.push_back(ResourceBlockInfo(glprogram, i));
+    }
+
+    for (auto& info : resourceBlocks) {
+        auto requestedBinding = slotBindings.find(info.name);
+        if (requestedBinding != slotBindings.end()) {
+            info.binding = (*requestedBinding)._location;
+            glUniformBlockBinding(glprogram, info.index, info.binding);
+            resourceBufferSlotMap[info.binding] = info.index;
+        }
+    }
+
+    for (auto& info : resourceBlocks) {
+        if (slotBindings.count(info.name)) {
+            continue;
+        }
+
+        // If the binding is -1, or the binding maps to an already used binding
+        if (info.binding == -1 || !isUnusedSlot(resourceBufferSlotMap[info.binding])) {
+            // If no binding was assigned then just do it finding a free slot
+            auto slotIt = std::find_if(resourceBufferSlotMap.begin(), resourceBufferSlotMap.end(), GLBackend::isUnusedSlot);
+            if (slotIt != resourceBufferSlotMap.end()) {
+                info.binding = slotIt - resourceBufferSlotMap.begin();
+                glUniformBlockBinding(glprogram, info.index, info.binding);
+            } else {
+                // This should never happen, an active ssbo cannot find an available slot among the max available?!
+                info.binding = -1;
+            }
+        }
+
+        resourceBufferSlotMap[info.binding] = info.index;
+    }
+
+    for (auto& info : resourceBlocks) {
+        static const Element element(SCALAR, gpu::UINT32, gpu::RESOURCE_BUFFER);
+        resourceBuffers.insert(Shader::Slot(info.name, info.binding, element, Resource::BUFFER, info.size));
+    }
+    return buffersCount;
+/*
     GLint ssboCount = 0;
     glGetProgramInterfaceiv(glprogram, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &ssboCount);
     if (ssboCount > 0) {
@@ -28,15 +111,25 @@ int GL45Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::Binding
         for (GLint b = 0; b < ssboCount; b++) {
             GLint  length;
             glGetProgramResourceName(glprogram, GL_SHADER_STORAGE_BLOCK, b, maxNameLength, &length, nameBytes.data());
-
             std::string bufferName(nameBytes.data());
-            qCWarning(gpugllogging) << "GLShader::makeBindings - " << bufferName.c_str();
+
+            GLenum props = GL_BUFFER_BINDING;
+            GLint binding = -1;
+            glGetProgramResourceiv(glprogram, GL_SHADER_STORAGE_BLOCK, b, 1, &props, 1, nullptr, &binding); 
+
+            auto requestedBinding = slotBindings.find(std::string(bufferName));
+            if (requestedBinding != slotBindings.end()) {
+                if (binding != (*requestedBinding)._location) {
+                    binding = (*requestedBinding)._location;
+                    glShaderStorageBlockBinding(glprogram, b, binding);
+                }
+            }
 
             static const Element element(SCALAR, gpu::UINT32, gpu::RESOURCE_BUFFER);
-            resourceBuffers.insert(Shader::Slot(bufferName, b, element, -1));
+            resourceBuffers.insert(Shader::Slot(bufferName, binding, element, -1));
         }
     }
-    return ssboCount;
+    return ssboCount;*/
 }
 
 void GL45Backend::makeProgramBindings(gl::ShaderObject& shaderObject) {
@@ -46,75 +139,22 @@ void GL45Backend::makeProgramBindings(gl::ShaderObject& shaderObject) {
     GLuint glprogram = shaderObject.glprogram;
     GLint loc = -1;
 
-    //Check for gpu specific attribute slotBindings
-    loc = glGetAttribLocation(glprogram, "inPosition");
-    if (loc >= 0 && loc != gpu::Stream::POSITION) {
-        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "inPosition");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inNormal");
-    if (loc >= 0 && loc != gpu::Stream::NORMAL) {
-        glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "inNormal");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inColor");
-    if (loc >= 0 && loc != gpu::Stream::COLOR) {
-        glBindAttribLocation(glprogram, gpu::Stream::COLOR, "inColor");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inTexCoord0");
-    if (loc >= 0 && loc != gpu::Stream::TEXCOORD) {
-        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "inTexCoord0");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inTangent");
-    if (loc >= 0 && loc != gpu::Stream::TANGENT) {
-        glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "inTangent");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inTexCoord1");
-    if (loc >= 0 && loc != gpu::Stream::TEXCOORD1) {
-        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "inTexCoord1");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inSkinClusterIndex");
-    if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_INDEX) {
-        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_INDEX, "inSkinClusterIndex");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inSkinClusterWeight");
-    if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_WEIGHT) {
-        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "inSkinClusterWeight");
-    }
-
-    loc = glGetAttribLocation(glprogram, "_drawCallInfo");
-    if (loc >= 0 && loc != gpu::Stream::DRAW_CALL_INFO) {
-        glBindAttribLocation(glprogram, gpu::Stream::DRAW_CALL_INFO, "_drawCallInfo");
-    }
-
-    // Link again to take into account the assigned attrib location
-    glLinkProgram(glprogram);
-
-    GLint linked = 0;
-    glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
-    if (!linked) {
-        qCWarning(gpugllogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
-    }
+    GLBackend::makeProgramBindings(shaderObject);
 
     // now assign the ubo binding, then DON't relink!
 
     //Check for gpu specific uniform slotBindings
-#ifdef GPU_SSBO_DRAW_CALL_INFO
+#ifdef GPU_SSBO_TRANSFORM_OBJECT
     loc = glGetProgramResourceIndex(glprogram, GL_SHADER_STORAGE_BLOCK, "transformObjectBuffer");
     if (loc >= 0) {
-        glShaderStorageBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
-        shaderObject.transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
+        glShaderStorageBlockBinding(glprogram, loc, GL45Backend::TRANSFORM_OBJECT_SLOT);
+        shaderObject.transformObjectSlot = GL45Backend::TRANSFORM_OBJECT_SLOT;
     }
 #else
     loc = glGetUniformLocation(glprogram, "transformObjectBuffer");
     if (loc >= 0) {
-        glProgramUniform1i(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
-        shaderObject.transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
+        glProgramUniform1i(glprogram, loc, GL45Backend::TRANSFORM_OBJECT_SLOT);
+        shaderObject.transformObjectSlot = GL45Backend::TRANSFORM_OBJECT_SLOT;
     }
 #endif
 

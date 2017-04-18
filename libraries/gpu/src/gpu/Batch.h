@@ -30,12 +30,6 @@ class QDebug;
 namespace gpu {
 
 enum ReservedSlot {
-
-#ifdef GPU_SSBO_DRAW_CALL_INFO
-    TRANSFORM_OBJECT_SLOT = 14,
-#else
-    TRANSFORM_OBJECT_SLOT = 31,
-#endif
     TRANSFORM_CAMERA_SLOT = 15,
 };
 

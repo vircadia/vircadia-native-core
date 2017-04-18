@@ -331,11 +331,6 @@ int GLBackend::makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slot
     return uniformsCount;
 }
 
-const GLint UNUSED_SLOT = -1;
-bool isUnusedSlot(GLint binding) {
-    return (binding == UNUSED_SLOT);
-}
-
 int GLBackend::makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers) {
     GLint buffersCount = 0;
 
@@ -393,9 +388,9 @@ int GLBackend::makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet&
         }
 
         // If the binding is 0, or the binding maps to an already used binding
-        if (info.binding == 0 || uniformBufferSlotMap[info.binding] != UNUSED_SLOT) {
+        if (info.binding == 0 || !isUnusedSlot(uniformBufferSlotMap[info.binding])) {
             // If no binding was assigned then just do it finding a free slot
-            auto slotIt = std::find_if(uniformBufferSlotMap.begin(), uniformBufferSlotMap.end(), isUnusedSlot);
+            auto slotIt = std::find_if(uniformBufferSlotMap.begin(), uniformBufferSlotMap.end(), GLBackend::isUnusedSlot);
             if (slotIt != uniformBufferSlotMap.end()) {
                 info.binding = slotIt - uniformBufferSlotMap.begin();
                 glUniformBlockBinding(glprogram, info.index, info.binding);
@@ -518,30 +513,5 @@ void GLBackend::makeProgramBindings(ShaderObject& shaderObject) {
     if (!linked) {
         qCWarning(gpugllogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
     }
-
-    // now assign the ubo binding, then DON't relink!
-
-    //Check for gpu specific uniform slotBindings
-#ifdef GPU_SSBO_DRAW_CALL_INFO
-    loc = glGetProgramResourceIndex(glprogram, GL_SHADER_STORAGE_BLOCK, "transformObjectBuffer");
-    if (loc >= 0) {
-        glShaderStorageBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
-        shaderObject.transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
-    }
-#else
-    loc = glGetUniformLocation(glprogram, "transformObjectBuffer");
-    if (loc >= 0) {
-        glProgramUniform1i(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
-        shaderObject.transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
-    }
-#endif
-
-    loc = glGetUniformBlockIndex(glprogram, "transformCameraBuffer");
-    if (loc >= 0) {
-        glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
-        shaderObject.transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
-    }
-
-    (void)CHECK_GL_ERROR();
 }
 

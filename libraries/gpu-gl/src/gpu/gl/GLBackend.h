@@ -421,6 +421,8 @@ protected:
         ElementResource(Element&& elem, uint16 resource) : _element(elem), _resource(resource) {}
     };
     ElementResource getFormatFromGLUniform(GLenum gltype);
+    static const GLint UNUSED_SLOT {-1};
+    static bool isUnusedSlot(GLint binding) { return (binding == UNUSED_SLOT); }
     virtual int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
         Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers);
     virtual int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers);
