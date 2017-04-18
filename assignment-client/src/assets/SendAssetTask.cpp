@@ -74,7 +74,7 @@ void SendAssetTask::run() {
                 byteRange.toExclusive = file.size();
             }
 
-            if (file.size() < std::abs(byteRange.toExclusive)) {
+            if (file.size() < std::abs(byteRange.fromInclusive) || file.size() < byteRange.toExclusive) {
                 replyPacketList->writePrimitive(AssetServerError::InvalidByteRange);
                 qCDebug(networking) << "Bad byte range: " << hexHash << " "
                     << byteRange.fromInclusive << ":" << byteRange.toExclusive;
