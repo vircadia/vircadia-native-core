@@ -445,7 +445,8 @@ protected:
 
     Q_INVOKABLE void allReferencesCleared();
 
-    void handleFailedRequest(ResourceRequest::Result result);
+    /// Return true if the resource will be retried
+    bool handleFailedRequest(ResourceRequest::Result result);
 
     QUrl _url;
     QUrl _activeUrl;
@@ -464,8 +465,6 @@ protected:
     int _requestID;
     ResourceRequest* _request{ nullptr };
 
-    bool _pending{ false };
-    
 public slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);
     void handleReplyFinished();

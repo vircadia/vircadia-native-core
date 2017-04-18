@@ -475,12 +475,6 @@ int ResourceCache::getLoadingRequestCount() {
 bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
     Q_ASSERT(!resource.isNull());
 
-    if (resource->_pending) {
-        qWarning(networking) << "Attempted to request " << resource->getURL() << " but it was already pending";
-        return false;
-    }
-
-    resource->_pending = true;
 
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     if (_requestsActive >= _requestLimit) {
@@ -497,11 +491,6 @@ bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
 
 void ResourceCache::requestCompleted(QWeakPointer<Resource> resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
-
-    auto sharedResource = resource.lock();
-    if (sharedResource) {
-        sharedResource->_pending = true;
-    }
 
     sharedItems->removeRequest(resource);
     --_requestsActive;
@@ -747,7 +736,8 @@ void Resource::handleReplyFinished() {
     _request = nullptr;
 }
 
-void Resource::handleFailedRequest(ResourceRequest::Result result) {
+bool Resource::handleFailedRequest(ResourceRequest::Result result) {
+    bool willRetry = false;
     switch (result) {
         case ResourceRequest::Result::Timeout: {
             qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
@@ -763,6 +753,7 @@ void Resource::handleFailedRequest(ResourceRequest::Result result) {
                     << "if resource is still needed";
 
                 QTimer::singleShot(waitTime, this, &Resource::attemptRequest);
+                willRetry = true;
                 break;
             }
             // fall through to final failure
@@ -772,10 +763,12 @@ void Resource::handleFailedRequest(ResourceRequest::Result result) {
             auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError
                                                               : QNetworkReply::UnknownNetworkError;
             emit failed(error);
+            willRetry = false;
             finishedLoading(false);
             break;
         }
     }
+    return willRetry;
 }
 
 uint qHash(const QPointer<QObject>& value, uint seed) {

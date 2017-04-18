@@ -93,31 +93,31 @@ private:
     image::TextureUsage::Type _type;
 
     static const uint16_t NULL_MIP_LEVEL;
-    struct KTXResourceState {
-        NOT_LOADED = 0,
+    enum KTXResourceState {
+        PENDING_INITIAL_LOAD = 0,
         LOADING_INITIAL_DATA,    // Loading KTX Header + Low Resolution Mips
         WAITING_FOR_MIP_REQUEST, // Waiting for the gpu layer to report that it needs higher resolution mips
         PENDING_MIP_REQUEST,     // We have added ourselves to the ResourceCache queue
-        REQUESTING_MIP           // We have a mip in flight
+        REQUESTING_MIP,          // We have a mip in flight
+        FAILED_TO_LOAD
     };
 
-    KTXResourceState _ktxResourceState{ NOT_LOADED };
+    bool _sourceIsKTX { false };
+    KTXResourceState _ktxResourceState { PENDING_INITIAL_LOAD };
 
+    // TODO Can this be removed?
     KTXFilePointer _file;
 
-    bool _sourceIsKTX { false };
-    bool _ktxHeaderLoaded { false };
-    bool _highMipRequestFinished { false };
-
+    // The current mips that are currently being requested w/ _ktxMipRequest
     std::pair<uint16_t, uint16_t> _ktxMipLevelRangeInFlight{ NULL_MIP_LEVEL, NULL_MIP_LEVEL };
 
     ResourceRequest* _ktxHeaderRequest { nullptr };
     ResourceRequest* _ktxMipRequest { nullptr };
-    bool _headerRequestFinished { false };
+    bool _ktxHeaderRequestFinished{ false };
+    bool _ktxHighMipRequestFinished{ false };
+
     uint16_t _lowestRequestedMipLevel { NULL_MIP_LEVEL };
     uint16_t _lowestKnownPopulatedMip { NULL_MIP_LEVEL };
-    QByteArray _ktxHeaderData;
-    QByteArray _ktxHighMipData;
 
     // This is a copy of the original KTX descriptor from the source url.
     // We need this because the KTX that will be cached will likely include extra data
