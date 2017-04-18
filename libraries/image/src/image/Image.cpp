@@ -28,7 +28,10 @@
 using namespace gpu;
 
 #define CPU_MIPMAPS 1
-#define COMPRESSED_TEXTURES 1
+#define COMPRESS_COLOR_TEXTURES 1
+#define COMPRESS_NORMALMAP_TEXTURES 0 // Disable Normalmap compression for now
+#define COMPRESS_GRAYSCALE_TEXTURES 1
+#define COMPRESS_CUBEMAP_TEXTURES 0 // Disable Cubemap compression for now
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
 static const glm::uvec2 MAX_TEXTURE_SIZE(4096);
@@ -401,7 +404,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(const QImage& s
     gpu::TexturePointer theTexture = nullptr;
 
     if ((image.width() > 0) && (image.height() > 0)) {
-#ifdef COMPRESSED_TEXTURES
+#if CPU_MIPMAPS && COMPRESS_COLOR_TEXTURES
         gpu::Element formatGPU;
         if (validAlpha) {
             formatGPU = alphaAsMask ? gpu::Element::COLOR_COMPRESSED_SRGBA_MASK : gpu::Element::COLOR_COMPRESSED_SRGBA;
@@ -469,7 +472,7 @@ gpu::TexturePointer TextureUsage::createNormalTextureFromNormalImage(const QImag
     gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
-#ifdef COMPRESSED_TEXTURES
+#if CPU_MIPMAPS && COMPRESS_NORMALMAP_TEXTURES
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_XY;
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_XY;
 #else
@@ -560,7 +563,7 @@ gpu::TexturePointer TextureUsage::createNormalTextureFromBumpImage(const QImage&
     gpu::TexturePointer theTexture = nullptr;
     if ((result.width() > 0) && (result.height() > 0)) {
 
-#ifdef COMPRESSED_TEXTURES
+#if CPU_MIPMAPS && COMPRESS_NORMALMAP_TEXTURES
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_XY;
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_XY;
 #else
@@ -594,7 +597,8 @@ gpu::TexturePointer TextureUsage::createRoughnessTextureFromImage(const QImage& 
 
     gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-#ifdef COMPRESSED_TEXTURES
+
+#if CPU_MIPMAPS && COMPRESS_GRAYSCALE_TEXTURES
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_RED;
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_RED;
 #else
@@ -632,7 +636,7 @@ gpu::TexturePointer TextureUsage::createRoughnessTextureFromGlossImage(const QIm
     gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
-#ifdef COMPRESSED_TEXTURES
+#if CPU_MIPMAPS && COMPRESS_GRAYSCALE_TEXTURES
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_RED;
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_RED;
 #else
@@ -667,7 +671,7 @@ gpu::TexturePointer TextureUsage::createMetallicTextureFromImage(const QImage& s
     gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
-#ifdef COMPRESSED_TEXTURES
+#if CPU_MIPMAPS && COMPRESS_GRAYSCALE_TEXTURES
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_RED;
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_RED;
 #else
@@ -950,7 +954,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
 
-#ifdef COMPRESSED_TEXTURES
+#if CPU_MIPMAPS && COMPRESS_CUBEMAP_TEXTURES
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_SRGBA;
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA;
 #else
