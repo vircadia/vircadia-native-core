@@ -6789,7 +6789,8 @@ void Application::updateDisplayMode() {
     // Only log/emit after a successful change
     UserActivityLogger::getInstance().logAction("changed_display_mode", {
         { "previous_display_mode", _displayPlugin ? _displayPlugin->getName() : "" },
-        { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" }
+        { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" },
+        { "hmd", isHmd }
     });
     emit activeDisplayPluginChanged();
 
