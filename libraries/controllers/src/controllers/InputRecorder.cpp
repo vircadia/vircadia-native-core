@@ -14,8 +14,41 @@
 #include <GLMHelpers.h>
 namespace controller {
 
-    void poseToJsonObject(const Pose pose) {
-    } 
+    QJsonObject poseToJsonObject(const Pose pose) {
+        QJsonObject newPose;
+        
+        QJsonArray translation;
+        translation.append(pose.translation.x);
+        translation.append(pose.translation.y);
+        translation.append(pose.translation.z);
+        
+        QJsonArray rotation;
+        rotation.append(pose.rotation.x);
+        rotation.append(pose.rotation.y);
+        rotation.append(pose.rotation.z);
+        rotation.append(pose.rotation.w);
+
+        QJsonArray velocity;
+        velocity.append(pose.velocity.x);
+        velocity.append(pose.velocity.y);
+        velocity.append(pose.velocity.z);
+
+        QJsonArray angularVelocity;
+        angularVelocity.append(pose.angularVelocity.x);
+        angularVelocity.append(pose.angularVelocity.y);
+        angularVelocity.append(pose.angularVelocity.z);
+
+        newPose["translation"] = translation;
+        newPose["rotation"] = rotation;
+        newPose["velocity"] = velocity;
+        newPose["angularVelocity"] = angularVelocity;
+        newPose["valid"] = pose.valid;
+
+        return newPose;
+    }
+
+    void exportFile(QJsonObject object) {
+    }
  
     InputRecorder::InputRecorder() {}
 
@@ -40,22 +73,24 @@ namespace controller {
 
         QJsonArray actionArrayList;
         QJsonArray poseArrayList;
-        for(const ActionStates actionState _actionStateList) {
+        for(const ActionStates actionState: _actionStateList) {
             QJsonArray actionArray;
-            for (const float value, actionState) {
+            for (const float value: actionState) {
                 actionArray.append(value);
             }
             actionArrayList.append(actionArray);
         }
 
-        for (const PoseStates poseState, _poseStateList) {
+        for (const PoseStates poseState: _poseStateList) {
             QJsonArray poseArray;
-            for (const Pose pose, poseState) {
-                
+            for (const Pose pose: poseState) {
+                poseArray.append(poseToJsonObject(pose));
             }
             poseArrayList.append(poseArray);
         }
-            
+
+        data["actionList"] = actionArrayList;
+        data["poseList"] = poseArrayList;
     }
 
     void InputRecorder::loadRecording() {

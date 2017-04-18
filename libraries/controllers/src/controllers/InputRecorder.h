@@ -53,7 +53,6 @@ namespace controller {
         
         int _framesRecorded { 0 };
         int _playCount { 0 };
-    
     };
 }    
 #endif
