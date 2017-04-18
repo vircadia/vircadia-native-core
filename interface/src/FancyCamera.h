@@ -13,6 +13,8 @@
 
 #include "Camera.h"
 
+#include <EntityTypes.h>
+
 class FancyCamera : public Camera {
     Q_OBJECT
 
