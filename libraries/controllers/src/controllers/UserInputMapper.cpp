@@ -243,10 +243,11 @@ void fixBisectedAxis(float& full, float& negative, float& positive) {
 
 void UserInputMapper::update(float deltaTime) {
     Locker locker(_lock);
-    auto inputRecorder = InputRecorder::getInstance();
+    InputRecorder* inputRecorder = InputRecorder::getInstance();
     static uint64_t updateCount = 0;
     ++updateCount;
 
+    inputRecorder->resetFrame();
     // Reset the axis state for next loop
     for (auto& channel : _actionStates) {
         channel = 0.0f;
@@ -298,7 +299,7 @@ void UserInputMapper::update(float deltaTime) {
             emit inputEvent(input.id, value);
         }
     }
-    inputRecorder.frameTick();
+    inputRecorder->frameTick();
 }
 
 Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {
@@ -509,6 +510,7 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
     }
 
     // If the source hasn't been written yet, defer processing of this route
+    auto inputRecorder = InputRecorder::getInstance();
     auto source = route->source;
     auto sourceInput = source->getInput();
     if (sourceInput.device == STANDARD_DEVICE && !force && source->writeable()) {
@@ -572,7 +574,6 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
             }
         }
         // no filters yet for pose
-        qDebug() << "--------------> applying destination <----------------";
         destination->apply(value, source);
     } else {
         // Fetch the value, may have been overriden by previous loopback routes

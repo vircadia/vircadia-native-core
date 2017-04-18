@@ -25,11 +25,17 @@ namespace controller {
         InputRecorder();
         ~InputRecorder();
 
-        static InputRecorder& getInstance();
+        static InputRecorder* getInstance();
+
+        void saveRecording();
+        void loadRecording();
         void startRecording();
         void startPlayback();
         void stopPlayback();
         void stopRecording();
+        void toggleRecording() { _recording = !_recording; }
+        void togglePlayback() { _playback = !_playback; }
+        void resetFrame();
         bool isRecording() { return _recording; }
         bool isPlayingback() { return _playback; }
         void setActionState(controller::Action action, float value);
@@ -40,8 +46,10 @@ namespace controller {
     private:
         bool _recording { false };
         bool _playback { false };
-        std::vector<PoseStates> _poseStateList;
-        std::vector<ActionStates> _actionStateList;
+        std::vector<PoseStates> _poseStateList = std::vector<PoseStates>();
+        std::vector<ActionStates> _actionStateList = std::vector<ActionStates>();
+        PoseStates _currentFramePoses = PoseStates(toInt(Action::NUM_ACTIONS));
+        ActionStates _currentFrameActions = ActionStates(toInt(Action::NUM_ACTIONS));
         
         int _framesRecorded { 0 };
         int _playCount { 0 };

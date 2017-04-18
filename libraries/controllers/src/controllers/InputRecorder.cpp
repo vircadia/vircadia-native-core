@@ -8,72 +8,122 @@
 
 #include "InputRecorder.h"
 
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <GLMHelpers.h>
 namespace controller {
+
+    void poseToJsonObject(const Pose pose) {
+    } 
  
     InputRecorder::InputRecorder() {}
 
     InputRecorder::~InputRecorder() {}
 
-    InputRecorder& InputRecorder::getInstance() {
+    InputRecorder* InputRecorder::getInstance() {
         static InputRecorder inputRecorder;
-        return inputRecorder;
+        return &inputRecorder;
     }
 
     void InputRecorder::startRecording() {
         _recording = true;
+        _playback = false;
         _framesRecorded = 0;
         _poseStateList.clear();
         _actionStateList.clear();
-        qDebug() << "-------------> input recording starting <---------------";
+    }
+
+    void InputRecorder::saveRecording() {
+        QJsonObject data;
+        data["frameCount"] = _framesRecorded;
+
+        QJsonArray actionArrayList;
+        QJsonArray poseArrayList;
+        for(const ActionStates actionState _actionStateList) {
+            QJsonArray actionArray;
+            for (const float value, actionState) {
+                actionArray.append(value);
+            }
+            actionArrayList.append(actionArray);
+        }
+
+        for (const PoseStates poseState, _poseStateList) {
+            QJsonArray poseArray;
+            for (const Pose pose, poseState) {
+                
+            }
+            poseArrayList.append(poseArray);
+        }
+            
+    }
+
+    void InputRecorder::loadRecording() {
     }
 
     void InputRecorder::stopRecording() {
         _recording = false;
-        qDebug() << "--------------> input recording stopping <-----------------";
     }
 
     void InputRecorder::startPlayback() {
         _playback = true;
         _recording = false;
-        qDebug() << "-----------------> starting playback <---------------";
     }
 
     void InputRecorder::stopPlayback() {
         _playback = false;
-        _recording = false;
     }
 
     void InputRecorder::setActionState(controller::Action action, float value) {
         if (_recording) {
-            qDebug() << "-----------------> setiing action state <---------------";
-            _actionStateList[_framesRecorded][toInt(action)] = value;
+            _currentFrameActions[toInt(action)] += value;
         }
     }
 
     void InputRecorder::setActionState(controller::Action action, const controller::Pose pose) {
         if (_recording) {
-            qDebug() << "-----------------> setiing Pose state <---------------";
-            _poseStateList[_framesRecorded][toInt(action)] = pose;
+            _currentFramePoses[toInt(action)] = pose;
         }
     }
 
+    void InputRecorder::resetFrame() {
+        if (_recording) {
+            for(auto& channel : _currentFramePoses) {
+                channel = Pose();
+            }
+            
+            for(auto& channel : _currentFrameActions) {
+                channel = 0.0f;
+            }
+        }
+    }
+    
     float InputRecorder::getActionState(controller::Action action) {
-        return _actionStateList[_playCount][toInt(action)];
+        if (_actionStateList.size() > 0 ) {
+            return _actionStateList[_playCount][toInt(action)];
+        }
+
+        return 0.0f;
     }
 
     controller::Pose InputRecorder::getPoseState(controller::Action action) {
-        return _poseStateList[_playCount][toInt(action)];
+        if (_poseStateList.size() > 0) {
+            return _poseStateList[_playCount][toInt(action)];
+        }
+
+        return Pose();
     }
 
     void InputRecorder::frameTick() {
         if (_recording) {
             _framesRecorded++;
+            _poseStateList.push_back(_currentFramePoses);
+            _actionStateList.push_back(_currentFrameActions);
         }
 
         if (_playback) {
-            if (_playCount < _framesRecorded) {
-                _playCount++;
-            } else {
+            _playCount++;
+            if (_playCount == _framesRecorded) {
                 _playCount = 0;
             }
         }

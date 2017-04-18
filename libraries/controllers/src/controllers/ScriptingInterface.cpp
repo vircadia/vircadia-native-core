@@ -156,23 +156,23 @@ namespace controller {
     }
 
     void ScriptingInterface::startInputRecording() {
-        auto inputRecorder = InputRecorder::getInstance();
-        inputRecorder.startRecording();
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->startRecording();
     }
 
     void ScriptingInterface::stopInputRecording() {
-        auto inputRecorder = InputRecorder::getInstance();
-        inputRecorder.stopRecording();
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->stopRecording();
     }
 
     void ScriptingInterface::startInputPlayback() {
-        auto inputRecorder = InputRecorder::getInstance();
-        inputRecorder.startPlayback();
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->startPlayback();
     }
 
     void ScriptingInterface::stopInputPlayback() {
-        auto inputRecorder = InputRecorder::getInstance();
-        inputRecorder.stopPlayback();
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->stopPlayback();
     }
 
     bool ScriptingInterface::triggerHapticPulseOnDevice(unsigned int device, float strength, float duration, controller::Hand hand) const {
