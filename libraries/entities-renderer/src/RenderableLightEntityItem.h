@@ -30,10 +30,10 @@ public:
 
     void updateLightFromEntity(render::Transaction& transaction);
 
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
+    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
     virtual void somethingChangedNotification() override;
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
     virtual void locationChanged(bool tellPhysics = true) override;
 

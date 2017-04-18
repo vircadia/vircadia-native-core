@@ -217,7 +217,7 @@ namespace render {
     }
 }
 
-bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
+bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
                                            render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
     
@@ -232,7 +232,7 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_pt
     return true;
 }
 
-void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
+void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
                                                 render::Transaction& transaction) {
     transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
