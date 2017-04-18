@@ -32,6 +32,7 @@
 #include "assets/ATPAssetMigrator.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
+#include "AvatarBookmarks.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "MainWindow.h"
@@ -40,6 +41,7 @@
 #include "ui/DialogsManager.h"
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
+#include "LocationBookmarks.h"
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -194,6 +196,9 @@ Menu::Menu() {
         0, // QML Qt::Key_Apostrophe,
         qApp, SLOT(resetSensors()));
 
+    // Avatar > AvatarBookmarks related menus -- Note: the AvatarBookmarks class adds its own submenus here.
+    auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
+    avatarBookmarks->setupMenus(this, avatarMenu);
 
     // Display menu ----------------------------------
     // FIXME - this is not yet matching Alan's spec because it doesn't have
@@ -256,8 +261,9 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::AddressBar, Qt::CTRL | Qt::Key_L,
         dialogsManager.data(), SLOT(showAddressBar()));
 
-    // Navigate > Bookmark related menus -- Note: the Bookmark class adds its own submenus here.
-    qApp->getBookmarks()->setupMenus(this, navigateMenu);
+    // Navigate > LocationBookmarks related menus -- Note: the LocationBookmarks class adds its own submenus here.
+    auto locationBookmarks = DependencyManager::get<LocationBookmarks>();
+    locationBookmarks->setupMenus(this, navigateMenu);
 
     // Navigate > Copy Address [advanced]
     auto addressManager = DependencyManager::get<AddressManager>();

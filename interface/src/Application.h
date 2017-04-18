@@ -52,7 +52,6 @@
 
 #include "avatar/MyAvatar.h"
 #include "BandwidthRecorder.h"
-#include "Bookmarks.h"
 #include "Camera.h"
 #include "ConnectionMonitor.h"
 #include "gpu/Context.h"
@@ -261,7 +260,6 @@ public:
     glm::mat4 getEyeProjection(int eye) const;
 
     QRect getDesirableApplicationGeometry() const;
-    Bookmarks* getBookmarks() const { return _bookmarks; }
 
     virtual bool canAcceptURL(const QString& url) const override;
     virtual bool acceptURL(const QString& url, bool defaultUpload = false) override;
@@ -330,6 +328,7 @@ public slots:
     void toggleEntityScriptServerLogDialog();
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
+    Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
 
     void showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const;
 
@@ -598,8 +597,6 @@ private:
     quint64 _lastSendDownstreamAudioStats;
 
     bool _aboutToQuit;
-
-    Bookmarks* _bookmarks;
 
     bool _notifiedPacketVersionMismatchThisDomain;
 
