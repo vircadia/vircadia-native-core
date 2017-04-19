@@ -58,13 +58,13 @@ void ModelOverlay::update(float deltatime) {
     _isLoaded = _model->isActive();
 }
 
-bool ModelOverlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     Volume3DOverlay::addToScene(overlay, scene, transaction);
     _model->addToScene(scene, transaction);
     return true;
 }
 
-void ModelOverlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     Volume3DOverlay::removeFromScene(overlay, scene, transaction);
     _model->removeFromScene(scene, transaction);
 }
