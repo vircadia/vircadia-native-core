@@ -134,7 +134,7 @@ void SubsurfaceScattering::configure(const Config& config) {
     _scatteringResource->setShowDiffusedNormal(config.showDiffusedNormal);
 }
 
-void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, Outputs& outputs) {
+void SubsurfaceScattering::run(const render::RenderContextPointer& renderContext, Outputs& outputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     
@@ -506,7 +506,7 @@ gpu::PipelinePointer DebugSubsurfaceScattering::getShowLUTPipeline() {
 }
 
 
-void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+void DebugSubsurfaceScattering::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 

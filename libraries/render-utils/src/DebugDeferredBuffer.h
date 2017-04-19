@@ -45,7 +45,7 @@ public:
     ~DebugDeferredBuffer();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
     
 protected:
     friend class DebugDeferredBufferConfig;

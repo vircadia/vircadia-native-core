@@ -21,8 +21,8 @@
 
 using namespace render;
 
-void FilterLayeredItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    auto& scene = sceneContext->_scene;
+void FilterLayeredItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
+    auto& scene = renderContext->_scene;
 
     // Clear previous values
     outItems.clear();
@@ -36,7 +36,7 @@ void FilterLayeredItems::run(const SceneContextPointer& sceneContext, const Rend
     }
 }
 
-void SliceItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
+void SliceItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
     outItems.clear();
     std::static_pointer_cast<Config>(renderContext->jobConfig)->setNumItems((int)inItems.size());
 
@@ -51,8 +51,8 @@ void SliceItems::run(const SceneContextPointer& sceneContext, const RenderContex
 
 }
 
-void SelectItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    auto selection = sceneContext->_scene->getSelection(_name);
+void SelectItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
+    auto selection = renderContext->_scene->getSelection(_name);
     const auto& selectedItems = selection.getItems();
     outItems.clear();
 
@@ -67,8 +67,8 @@ void SelectItems::run(const SceneContextPointer& sceneContext, const RenderConte
     }
 }
 
-void SelectSortItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    auto selection = sceneContext->_scene->getSelection(_name);
+void SelectSortItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
+    auto selection = renderContext->_scene->getSelection(_name);
     const auto& selectedItems = selection.getItems();
     outItems.clear();
 
@@ -98,8 +98,8 @@ void SelectSortItems::run(const SceneContextPointer& sceneContext, const RenderC
     }
 }
 
-void MetaToSubItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemIDs& outItems) {
-    auto& scene = sceneContext->_scene;
+void MetaToSubItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemIDs& outItems) {
+    auto& scene = renderContext->_scene;
 
     // Now we have a selection of items to render
     outItems.clear();
