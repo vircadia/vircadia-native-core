@@ -377,8 +377,8 @@ void NetworkTexture::makeRequest() {
 
         startMipRangeRequest(NULL_MIP_LEVEL, NULL_MIP_LEVEL);
     } else if (_ktxResourceState == PENDING_MIP_REQUEST) {
-        _ktxResourceState = REQUESTING_MIP;
         if (_lowestKnownPopulatedMip > 0) {
+            _ktxResourceState = REQUESTING_MIP;
             startMipRangeRequest(_lowestKnownPopulatedMip - 1, _lowestKnownPopulatedMip - 1);
         }
     } else {
@@ -393,6 +393,7 @@ void NetworkTexture::handleMipInterestCallback(uint16_t level) {
 }
 
 void NetworkTexture::handleMipInterestLevel(int level) {
+    _lowestRequestedMipLevel = std::min((uint16_t)level, _lowestRequestedMipLevel);
     startRequestForNextMipLevel();
 }
 

@@ -118,6 +118,18 @@ size_t Header::evalImageSize(uint32_t level) const {
     }
 }
 
+
+size_t KTXDescriptor::getValueOffsetForKey(const std::string& key) const {
+    size_t offset { 0 };
+    for (auto& kv : keyValues) {
+        if (kv._key == key) {
+            return offset + kv._key.size() + 1;
+        }
+        offset += kv.serializedByteSize();
+    }
+    return 0;
+}
+
 ImageDescriptors Header::generateImageDescriptors() const {
     ImageDescriptors descriptors;
 

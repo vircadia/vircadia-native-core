@@ -471,6 +471,7 @@ namespace ktx {
         const ImageDescriptors images;
         size_t getMipFaceTexelsSize(uint16_t mip = 0, uint8_t face = 0) const;
         size_t getMipFaceTexelsOffset(uint16_t mip = 0, uint8_t face = 0) const;
+        size_t getValueOffsetForKey(const std::string& key) const;
     };
 
     class KTX {

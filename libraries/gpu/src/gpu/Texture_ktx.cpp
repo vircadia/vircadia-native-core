@@ -155,6 +155,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     data += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
     data += 4;
 
+    auto offset = _ktxDescriptor->getValueOffsetForKey(ktx::HIFI_MIN_POPULATED_MIP_KEY);
     {
         std::lock_guard<std::mutex> lock { _cacheFileWriteMutex };
 
@@ -165,6 +166,9 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
 
         memcpy(data, storage->data(), _ktxDescriptor->images[level]._imageSize);
         _minMipLevelAvailable = level;
+        if (offset > 0) {
+            memcpy(file->mutableData() + ktx::KTX_HEADER_SIZE + offset, (uint8_t)_minMipLevelAvailable, 1);
+        }
     }
 }
 
