@@ -11,6 +11,43 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 
-AssetDialog {
+import "../styles-uit"
+import "../windows"
 
+import "assetDialog"
+
+TabletModalWindow {
+    id: root
+    anchors.fill: parent
+    width: parent.width
+    height: parent.height
+
+    // Set from OffscreenUi::assetDialog().
+    property alias caption: root.title
+    property alias dir: assetDialogContent.dir
+    property alias filter: assetDialogContent.filter
+    property alias options: assetDialogContent.options
+
+    // Dialog results.
+    signal selectedAsset(var asset);
+    signal canceled();
+
+    property int titleWidth: 0  // For TabletModalFrame.
+
+    TabletModalFrame {
+        id: frame
+        anchors.fill: parent
+
+        AssetDialogContent {
+            id: assetDialogContent
+            singleClickNavigate: true
+            width: parent.width - 12
+            height: parent.height - frame.frameMarginTop - 12
+            anchors {
+                horizontalCenter: parent.horizontalCenter
+                top: parent.top
+                topMargin: parent.height - height - 6
+            }
+        }
+    }
 }
