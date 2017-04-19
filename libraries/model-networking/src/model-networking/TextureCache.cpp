@@ -399,7 +399,7 @@ void NetworkTexture::handleMipInterestLevel(int level) {
 
 void NetworkTexture::startRequestForNextMipLevel() {
     if (_lowestKnownPopulatedMip == 0) {
-        qWarning(networking) << "Requesting next mip level but all have been fulfilled";
+        qWarning(networking) << "Requesting next mip level but all have been fulfilled: " << _url;
         return;
     }
 
@@ -422,7 +422,6 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
     bool isHighMipRequest = low == NULL_MIP_LEVEL && high == NULL_MIP_LEVEL;
 
     _ktxMipRequest = ResourceManager::createResourceRequest(this, _activeUrl);
-    //qDebug(networking) << ">>> Making request to " << _url << " for " << low << " to " << high;
 
     _ktxMipLevelRangeInFlight = { low, high };
     if (isHighMipRequest) {
@@ -431,6 +430,7 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
         range.fromInclusive = -15000;
         _ktxMipRequest->setByteRange(range);
     } else {
+        qDebug(networking) << ">>> Making request to " << _url << " for " << low << " to " << high;
         ByteRange range;
         range.fromInclusive = ktx::KTX_HEADER_SIZE + _originalKtxDescriptor->header.bytesOfKeyValueData
                               + _originalKtxDescriptor->images[low]._imageOffset + 4;
