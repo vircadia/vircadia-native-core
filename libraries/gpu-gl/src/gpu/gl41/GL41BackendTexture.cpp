@@ -392,8 +392,10 @@ void GL41VariableAllocationTexture::populateTransferQueue() {
         --sourceMip;
         auto targetMip = sourceMip - _allocatedMip;
         auto mipDimensions = _gpuObject.evalMipDimensions(sourceMip);
+        bool didQueueTransfer = false;
         for (uint8_t face = 0; face < maxFace; ++face) {
             if (!_gpuObject.isStoredMipFaceAvailable(sourceMip, face)) {
+                const_cast<gpu::Texture&>(_gpuObject).requestInterestInMip(sourceMip);
                 continue;
             }
 
@@ -401,6 +403,7 @@ void GL41VariableAllocationTexture::populateTransferQueue() {
             if (glm::all(glm::lessThanEqual(mipDimensions, MAX_TRANSFER_DIMENSIONS))) {
                 // Can the mip be transferred in one go
                 _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face));
+                didQueueTransfer = true;
                 continue;
             }
 
@@ -416,14 +419,17 @@ void GL41VariableAllocationTexture::populateTransferQueue() {
                 uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);
                 _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face, linesToCopy, lineOffset));
                 lineOffset += linesToCopy;
+                didQueueTransfer = true;
             }
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed
-        _pendingTransfers.emplace(new TransferJob(*this, [=] {
-            _populatedMip = sourceMip;
-            syncSampler();
-        }));
+        if (didQueueTransfer) {
+            _pendingTransfers.emplace(new TransferJob(*this, [=] {
+                _populatedMip = sourceMip;
+                syncSampler();
+            }));
+        }
     } while (sourceMip != _allocatedMip);
 }
 

@@ -388,6 +388,7 @@ void NetworkTexture::makeRequest() {
 }
 
 void NetworkTexture::handleMipInterestCallback(uint16_t level) {
+    //qDebug(networking) << "++++ Got request for mip level: " << _url << " " << level;
     QMetaObject::invokeMethod(this, "handleMipInterestLevel", Qt::QueuedConnection, Q_ARG(int, level));
 }
 
@@ -466,6 +467,7 @@ void NetworkTexture::ktxMipRequestFinished() {
             auto texture = _textureSource->getGPUTexture();
             if (texture) {
                 _lowestKnownPopulatedMip = _ktxMipLevelRangeInFlight.first;
+                qDebug() << "Writing mip for " << _url;
                 texture->assignStoredMip(_ktxMipLevelRangeInFlight.first,
                     _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
             } else {
@@ -542,9 +544,10 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
             });
             std::string filename;
             if (found == keyValues.end()) {
-                qWarning("Source hash key not found, bailing");
-                finishedLoading(false);
-                return;
+                //qWarning("Source hash key not found, bailing");
+                //finishedLoading(false);
+                //return;
+                filename = _url.fileName().toStdString();
             }
             else {
                 if (found->_value.size() < 32) {
@@ -558,6 +561,11 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
             }
 
             auto memKtx = ktx::KTX::createBare(*header, keyValues);
+            if (!memKtx) {
+                qWarning() << " Ktx could not be created, bailing";
+                finishedLoading(false);
+                return;
+            }
 
             //auto d = const_cast<uint8_t*>(memKtx->getStorage()->data());
             //memcpy(d + memKtx->_storage->size() - _ktxHighMipData.size(), _ktxHighMipData.data(), _ktxHighMipData.size());

@@ -100,6 +100,7 @@ public:
         GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         ~GL45VariableAllocationTexture();
         Size size() const override { return _size; }
+        bool canPopulate() const override { return _gpuObject.isStoredMipFaceAvailable(_populatedMip - 1, 0); }
         Size _size { 0 };
     };
 

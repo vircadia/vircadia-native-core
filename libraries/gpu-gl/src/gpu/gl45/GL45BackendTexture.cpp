@@ -80,6 +80,16 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
             default:
                 Q_UNREACHABLE();
         }
+    } else {
+
+        if (texture.getUsageType() == TextureUsageType::RESOURCE) {
+            auto varTex = static_cast<GL45VariableAllocationTexture*> (object);
+
+            if (varTex->canPromoteAndPopulate()) {
+                GL45VariableAllocationTexture::_memoryPressureStateStale = true;
+            }
+
+        }
     }
 
     return object;

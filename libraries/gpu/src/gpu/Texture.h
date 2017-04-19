@@ -275,6 +275,7 @@ public:
         virtual void assignMipData(uint16 level, const storage::StoragePointer& storage) = 0;
         virtual void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) = 0;
         virtual bool isMipAvailable(uint16 level, uint8 face = 0) const = 0;
+        virtual uint16 minAvailableMipLevel() const { return 0; }
         Texture::Type getType() const { return _type; }
 
         Stamp getStamp() const { return _stamp; }
@@ -315,6 +316,7 @@ public:
         bool isMipAvailable(uint16 level, uint8 face = 0) const override;
         void assignMipData(uint16 level, const storage::StoragePointer& storage) override;
         void assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) override;
+        uint16 minAvailableMipLevel() const override;
 
         void reset() override { }
 
@@ -331,6 +333,8 @@ public:
         ktx::KTXDescriptorPointer _ktxDescriptor;
         friend class Texture;
     };
+
+    uint16 minAvailableMipLevel() const { return _storage->minAvailableMipLevel(); };
 
     static const uint16 MAX_NUM_MIPS = 0;
     static const uint16 SINGLE_MIP = 1;

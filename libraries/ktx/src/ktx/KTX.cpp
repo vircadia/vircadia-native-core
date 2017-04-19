@@ -92,7 +92,8 @@ size_t Header::evalPixelOrBlockSize() const {
         }
     }
     qWarning() << "Unknown ktx format: " << glFormat << " " << glBaseInternalFormat << " " << glInternalFormat;
-    throw std::runtime_error("Unknown format");
+    return 1;
+    //throw std::runtime_error("Unknown format");
 }
 
 size_t Header::evalRowSize(uint32_t level) const {
@@ -130,9 +131,10 @@ ImageDescriptors Header::generateImageDescriptors() const {
             0
         };
 
-        imageOffset += imageSize + 4;
+        imageOffset += (imageSize * numberOfFaces) + 4;
 
         ImageHeader::FaceOffsets offsets;
+        // TODO Add correct face offsets
         for (uint32_t i = 0; i < numberOfFaces; ++i) {
             offsets.push_back(0);
         }

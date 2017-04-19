@@ -62,6 +62,7 @@ GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend
     //glObjectLabel(GL_TEXTURE, _id, _source.length(), _source.data());
     uint16_t allocatedMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
     allocateStorage(allocatedMip);
+    _memoryPressureStateStale = true;
     copyMipsFromTexture();
     syncSampler();
 
@@ -105,7 +106,12 @@ void GL45ResourceTexture::syncSampler() const {
 
 void GL45ResourceTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
-    Q_ASSERT(_allocatedMip > 0);
+    //Q_ASSERT(_allocatedMip > 0);
+    uint16_t sourceMip = _populatedMip;
+    if (!_gpuObject.isStoredMipFaceAvailable(sourceMip, 0)) {
+        const_cast<gpu::Texture&>(_gpuObject).requestInterestInMip(sourceMip);
+        return;
+    }
     GLuint oldId = _id;
     auto oldSize = _size;
     // create new texture
@@ -191,6 +197,7 @@ void GL45ResourceTexture::populateTransferQueue() {
         for (uint8_t face = 0; face < maxFace; ++face) {
             if (!_gpuObject.isStoredMipFaceAvailable(sourceMip, face)) {
                 const_cast<gpu::Texture&>(_gpuObject).requestInterestInMip(sourceMip);
+                _minRequestedMip = sourceMip;
                 continue;
             }
 
@@ -218,6 +225,7 @@ void GL45ResourceTexture::populateTransferQueue() {
                 lineOffset += linesToCopy;
                 transferQueued = true;
             }
+            _minRequestedMip = std::min(_minRequestedMip, sourceMip);
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed

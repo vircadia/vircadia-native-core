@@ -116,6 +116,7 @@ protected:
     bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
     bool hasPendingTransfers() const { return _populatedMip > _allocatedMip; }
     void executeNextTransfer(const TexturePointer& currentTexture);
+    virtual bool canPopulate() const = 0;
     virtual void populateTransferQueue() = 0;
     virtual void promote() = 0;
     virtual void demote() = 0;
