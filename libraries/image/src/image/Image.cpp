@@ -163,8 +163,8 @@ gpu::TexturePointer processImage(const QByteArray& content, const std::string& f
         newImageReader.setDevice(&buffer);
 
         if (newImageReader.canRead()) {
-            qWarning(imagelogging) << "Image file" << filename.c_str() << "has extension" << filenameExtension.c_str()
-                                   << "but is actually a" << qPrintable(newImageReader.format()) << "(recovering)";
+            qCWarning(imagelogging) << "Image file" << filename.c_str() << "has extension" << filenameExtension.c_str()
+                                    << "but is actually a" << qPrintable(newImageReader.format()) << "(recovering)";
             image = newImageReader.read();
         }
     }
@@ -266,7 +266,7 @@ struct MyOutputHandler : public nvtt::OutputHandler {
 };
 struct MyErrorHandler : public nvtt::ErrorHandler {
     virtual void error(nvtt::Error e) override {
-        qDebug() << "Texture compression error:" << nvtt::errorString(e);
+        qCWarning(imagelogging) << "Texture compression error:" << nvtt::errorString(e);
     }
 };
 
