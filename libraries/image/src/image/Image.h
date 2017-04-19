@@ -42,8 +42,9 @@ gpu::TexturePointer createCubeTextureFromImage(const QImage& image, const std::s
 gpu::TexturePointer createCubeTextureFromImageWithoutIrradiance(const QImage& image, const std::string& srcImageName);
 gpu::TexturePointer createLightmapTextureFromImage(const QImage& image, const std::string& srcImageName);
 
-const QImage process2DImageColor(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask);
-gpu::TexturePointer process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isStrict = false);
+gpu::TexturePointer process2DTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isStrict);
+gpu::TexturePointer process2DTextureNormalMapFromImage(const QImage& srcImage, const std::string& srcImageName, bool isBumpMap);
+gpu::TexturePointer process2DTextureGrayscaleFromImage(const QImage& srcImage, const std::string& srcImageName, bool isInvertedPixels);
 gpu::TexturePointer processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool generateIrradiance);
 
 } // namespace TextureUsage

@@ -166,7 +166,9 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
 
     static const std::string SOURCE_HASH_KEY = "hifi.sourceHash";
     auto hash = texture.sourceHash();
-    keyValues.emplace_back(ktx::KeyValue(SOURCE_HASH_KEY, hash.size(), (ktx::Byte*) hash.c_str()));
+    if (!hash.empty()) {
+        keyValues.emplace_back(ktx::KeyValue(SOURCE_HASH_KEY, static_cast<uint32>(hash.size()), (ktx::Byte*) hash.c_str()));
+    }
 
     auto ktxBuffer = ktx::KTX::create(header, images, keyValues);
 #if 0
