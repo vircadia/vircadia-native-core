@@ -224,6 +224,12 @@ QScriptValue WindowScriptingInterface::browseAssets(const QString& title, const 
     if (path.isEmpty()) {
         path = getPreviousBrowseAssetLocation();
     }
+    if (path.left(1) != "/") {
+        path = "/" + path;
+    }
+    if (path.right(1) != "/") {
+        path = path + "/";
+    }
     QString result = OffscreenUi::getOpenAssetName(nullptr, title, path, nameFilter);
     if (!result.isEmpty()) {
         setPreviousBrowseAssetLocation(QFileInfo(result).absolutePath());

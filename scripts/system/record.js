@@ -489,7 +489,7 @@
                     break;
                 case LOAD_RECORDING_ACTION:
                     // User wants to select an ATP recording to play.
-                    recording = Window.browseAssets("Select Recording to Play", "recordings", "*.hrf");
+                    recording = Window.browseAssets("Select Recording to Play", "recordings", "*.hfr");
                     if (recording) {
                         log("Load recording " + recording);
                         Player.playRecording("atp:" + recording, MyAvatar.position, MyAvatar.orientation);

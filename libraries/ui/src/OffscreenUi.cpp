@@ -782,7 +782,7 @@ QString OffscreenUi::assetOpenDialog(const QString& caption, const QString& dir,
     // FIXME support returning the selected filter... somehow?
     QVariantMap map;
     map.insert("caption", caption);
-    map.insert("dir", QUrl::fromLocalFile(dir));
+    map.insert("dir", dir);
     map.insert("filter", filter);
     map.insert("options", static_cast<int>(options));
     return assetDialog(map);
