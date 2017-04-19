@@ -75,7 +75,7 @@ var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative numbe
 //
 // distant manipulation
 //
-
+var linearTimeScale = 0;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_UNITY_MASS = 1200; //  The mass at which the distance holding action timeframe is unmodified
@@ -2524,7 +2524,7 @@ function MyController(hand) {
         this.mass = this.getMass(grabbedProperties.dimensions, grabbedProperties.density);
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, grabbedProperties.position));
         var timeScale = this.distanceGrabTimescale(this.mass, distanceToObject);
-
+        this.linearTimeScale = timeScale;
         this.actionID = NULL_UUID;
         this.actionID = Entities.addAction("spring", this.grabbedThingID, {
             targetPosition: this.currentObjectPosition,
@@ -2574,7 +2574,6 @@ function MyController(hand) {
         var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
-
         var now = Date.now();
         var deltaObjectTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
         this.currentObjectTime = now;
@@ -2622,11 +2621,9 @@ function MyController(hand) {
         if (this.grabRadius < MINIMUM_GRAB_RADIUS) {
             this.grabRadius = MINIMUM_GRAB_RADIUS;
         }
-
         var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
         newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
         newTargetPosition = Vec3.sum(newTargetPosition, this.offsetPosition);
-
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, MyAvatar.position);
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedThingID, defaultMoveWithHeadData);
         if (handControllerData.disableMoveWithHead !== true) {
@@ -2659,9 +2656,13 @@ function MyController(hand) {
                            this.grabbedThingID);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
+        this.linearTimeScale = (this.linearTimeScale / 2);
+        if (this.linearTimeScale <= DISTANCE_HOLDING_ACTION_TIMEFRAME) {
+            this.linearTimeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
+        }
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
             targetPosition: newTargetPosition,
-            linearTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
+            linearTimeScale: this.linearTimeScale,
             targetRotation: this.currentObjectRotation,
             angularTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
             ttl: ACTION_TTL
