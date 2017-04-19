@@ -2659,7 +2659,7 @@ function MyController(hand) {
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         this.linearTimeScale = (this.linearTimeScale / 2);
-        if(this.linearTimeScale <= DISTANCE_HOLDING_ACTION_TIMEFRAME){
+        if (this.linearTimeScale <= DISTANCE_HOLDING_ACTION_TIMEFRAME) {
             this.linearTimeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
         }
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
