@@ -2677,8 +2677,8 @@ SelectionDisplay = (function() {
                 deltaPivot3D = Vec3.subtract(centeredRP, scaledPivot3D);
                 
                 var scaledOffsetWorld3D = vec3Mult(initialDimensions, 
-                Vec3.subtract(Vec3.multiply(0.5, Vec3.multiply(-1.0, directionFor3DStretch)), 
-                centeredRP));
+                    Vec3.subtract(Vec3.multiply(0.5, Vec3.multiply(-1.0, directionFor3DStretch)), 
+                    centeredRP));
                 
                 pickRayPosition3D = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffsetWorld));
             }
@@ -2839,7 +2839,7 @@ SelectionDisplay = (function() {
             
             // Are we using handControllers or Mouse - only relevant for 3D tools
             var controllerPose = getControllerWorldLocation(activeHand, true);
-            if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && controllerPose.valid && that.triggered && directionFor3DStretch ) {
+            if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && controllerPose.valid && that.triggered && directionFor3DStretch) {
                 localDeltaPivot = deltaPivot3D;
 
                 newPick = pickRay.origin;
