@@ -48,8 +48,8 @@ public:
     virtual AABox getBounds() const = 0;
     virtual bool supportsGetProperty() const { return true; }
 
-    virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction);
-    virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction);
+    virtual bool addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction);
+    virtual void removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction);
 
     virtual const render::ShapeKey getShapeKey() { return render::ShapeKey::Builder::ownPipeline(); }
 

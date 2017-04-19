@@ -38,8 +38,8 @@ public:
     virtual void render(RenderArgs* args) override;
     virtual bool contains(const glm::vec3& point) const override;
     
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
+    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
     
     render::ItemID getRenderItemID() const { return _myMetaItem; }
 
