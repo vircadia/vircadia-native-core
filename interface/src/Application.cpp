@@ -2738,7 +2738,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     offscreenUi->load("Browser.qml");
                 } else if (isOption) {
                     controller::InputRecorder* inputRecorder = controller::InputRecorder::getInstance();
-                    inputRecorder->togglePlayback();
+                    inputRecorder->saveRecording();
                 }
                 break;
 

@@ -11,9 +11,19 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QFile>
+#include <QDir>
+#include <QDirIterator>
+#include <QStandardPaths>
+#include <QDateTime>
+#include <QBytearray>
 #include <GLMHelpers.h>
-namespace controller {
 
+QString SAVE_DIRECTORY = QDir::homePath()+"/hifi-input-recordings/";
+QString FILE_PREFIX_NAME = "input-recording-";
+QString COMPRESS_EXTENSION = ".tar.gz";
+namespace controller {
+    
     QJsonObject poseToJsonObject(const Pose pose) {
         QJsonObject newPose;
         
@@ -47,7 +57,22 @@ namespace controller {
         return newPose;
     }
 
-    void exportFile(QJsonObject object) {
+    void exportToFile(QJsonObject& object) {
+        if (!QDir(SAVE_DIRECTORY).exists()) {
+            QDir().mkdir(SAVE_DIRECTORY);
+        }
+        
+        QString timeStamp = QDateTime::currentDateTime().toString(Qt::ISODate);
+        timeStamp.replace(":", "-");
+        QString fileName = SAVE_DIRECTORY + FILE_PREFIX_NAME + timeStamp + COMPRESS_EXTENSION;
+        QFile saveFile (fileName);
+        if (!saveFile.open(QIODevice::WriteOnly)) {
+            qWarning() << "could not open file: " << fileName;
+            return;
+        }
+        QJsonDocument saveData(object);
+        QByteArray compressedData = qCompress(saveData.toJson(QJsonDocument::Compact));
+        saveFile.write(compressedData);
     }
  
     InputRecorder::InputRecorder() {}
@@ -91,6 +116,7 @@ namespace controller {
 
         data["actionList"] = actionArrayList;
         data["poseList"] = poseArrayList;
+        exportToFile(data);
     }
 
     void InputRecorder::loadRecording() {
