@@ -31,8 +31,8 @@ StackView {
     height: parent !== null ? parent.height : undefined
     property var eventBridge;
     property var allStories: [];
-    property int cardWidth: 460;
-    property int cardHeight: 320;
+    property int cardWidth: 212;
+    property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
 
     property var tablet: null;
@@ -275,58 +275,21 @@ StackView {
         }
 
         Rectangle {
-            id: bgMain
-            color: hifiStyleConstants.colors.white
-            anchors.bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom
-            anchors.bottomMargin: 0
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.top: topBar.bottom
-            anchors.topMargin: 0
-
-            ListModel { id: suggestions }
-
-            ListView {
-                id: scroll
-                
-                property int stackedCardShadowHeight: 0;
-                clip: true
-                spacing: 14
-                anchors {
-                    bottom: parent.bottom
-                    top: parent.top
-                    left: parent.left
-                    right: parent.right
-                    leftMargin: 10
-                }
-
-                model: suggestions
-                orientation: ListView.Vertical
-
-                delegate: Card {
-                    width: cardWidth;
-                    height: cardHeight;
-                    goFunction: goCard;
-                    userName: model.username;
-                    placeName: model.place_name;
-                    hifiUrl: model.place_name + model.path;
-                    thumbnail: model.thumbnail_url;
-                    imageUrl: model.image_url;
-                    action: model.action;
-                    timestamp: model.created_at;
-                    onlineUsers: model.online_users;
-                    storyId: model.metaverseId;
-                    drillDownToPlace: model.drillDownToPlace;
-                    shadowHeight: scroll.stackedCardShadowHeight;
-                    hoverThunk: function () { scroll.currentIndex = index; }
-                    unhoverThunk: function () { scroll.currentIndex = -1; }
-                }
-
-                highlightMoveDuration: -1;
-                highlightMoveVelocity: -1;
-                highlight: Rectangle { color: "transparent"; border.width: 4; border.color: hifiStyleConstants.colors.blueHighlight; z: 1; }
+            id: bgMain;
+            color: hifiStyleConstants.colors.white;
+            anchors {
+                bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom;
+                bottomMargin: 0;
+                right: parent.right;
+                rightMargin: 0;
+                left: parent.left;
+                leftMargin: 0;
+                top: topBar.bottom;
+                topMargin: 0;
+            }
+            Feed {
+                id: feed;
+                width: bgMain.width;
             }
         }
 
@@ -363,6 +326,7 @@ StackView {
         }
         
     }
+    property alias suggestions: feed.suggestions;
 
     function getRequest(url, cb) { // cb(error, responseOfCorrectContentType) of url. General for 'get' text/html/json, but without redirects.
         // TODO: make available to other .qml.
