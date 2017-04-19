@@ -17,19 +17,22 @@ import QtGraphicalEffects 1.0
 import "toolbars"
 import "../styles-uit"
 
-Rectangle {
+Column {
     id: root;
 
     property int cardWidth: 212;
     property int cardHeight: 152;
     property int stackedCardShadowHeight: 10;
     property string metaverseServerUrl: '';
+    property string actions: 'snapshot';
+    onActionsChanged: fillDestinations();
+    Component.onCompleted: fillDestinations();
+    property string labelText: actions;
     property string filter: '';
     onFilterChanged: filterChoicesByText();
-    property alias suggestions: feed; // fixme. don't need to expose
 
     HifiConstants { id: hifi }
-    ListModel { id: feed; }
+    ListModel { id: suggestions; }
 
     function resolveUrl(url) {
         return (url.indexOf('/') === 0) ? (metaverseServerUrl + url) : url;
@@ -66,7 +69,7 @@ Rectangle {
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
         var options = [
             'now=' + new Date().toISOString(),
-            'include_actions=' + selectedTab.includeActions,
+            'include_actions=' + actions,
             'restriction=' + (Account.isLoggedIn() ? 'open,hifi' : 'open'),
             'require_online=true',
             'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
@@ -78,11 +81,7 @@ Rectangle {
             if ((thisRequestId !== requestId) || handleError(url, error, data, cb)) {
                 return; // abandon stale requests
             }
-            var stories = data.user_stories.map(function (story) { // explicit single-argument function
-                return makeModelData(story, url);
-            });
-            allStories = allStories.concat(stories);
-            stories.forEach(makeFilteredPlaceProcessor());
+            allStories = allStories.concat(data.user_stories.map(makeModelData));
             if ((data.current_page < data.total_pages) && (data.current_page <=  10)) { // just 10 pages = 100 stories for now
                 return getUserStoryPage(pageNumber + 1, cb);
             }
@@ -94,11 +93,12 @@ Rectangle {
         suggestions.clear();
         placeMap = {};
         getUserStoryPage(1, function (error) {
-            console.log('user stories query', error || 'ok', allStories.length);
+            allStories.forEach(makeFilteredStoryProcessor());
+            console.log('user stories query', actions, error || 'ok', allStories.length, 'filtered to', suggestions.count);
         });
     }
-    function addToSuggestions(place) { // fixme: move to makeFilteredPlaceProcessor
-        var collapse = allTab.selected && (place.action !== 'concurrency');
+    function addToSuggestions(place) { // fixme: move to makeFilteredStoryProcessor
+        var collapse = (actions === 'snapshot,concurrency') && (place.action !== 'concurrency'); // fixme generalize?
         if (collapse) {
             var existing = placeMap[place.place_name];
             if (existing) {
@@ -113,61 +113,49 @@ Rectangle {
             suggestions.get(suggestions.count - 1).drillDownToPlace = true; // Don't change raw place object (in allStories).
         }
     }
-    function suggestable(place) { // fixme add to makeFilteredPlaceProcessor
-        if (place.action === 'snapshot') {
+    function suggestable(story) { // fixme add to makeFilteredStoryProcessor
+        if (story.action === 'snapshot') {
             return true;
         }
-        return (place.place_name !== AddressManager.placename); // Not our entry, but do show other entry points to current domain.
+        return (story.place_name !== AddressManager.placename); // Not our entry, but do show other entry points to current domain.
     }
-    function makeFilteredPlaceProcessor() { // answer a function(placeData) that adds it to suggestions if it matches
-        var words = filter.toUpperCase().split(/\s+/).filter(identity),
-            data = allStories;
-        function matches(place) {
+    function makeFilteredStoryProcessor() { // answer a function(storyData) that adds it to suggestions if it matches
+        var words = filter.toUpperCase().split(/\s+/).filter(identity);
+        function matches(story) {
             if (!words.length) {
-                return suggestable(place);
+                return suggestable(story);
             }
             return words.every(function (word) {
-                return place.searchText.indexOf(word) >= 0;
+                return story.searchText.indexOf(word) >= 0;
             });
         }
-        return function (place) {
-            if (matches(place)) {
-                addToSuggestions(place);
+        return function (story) {
+            if (matches(story)) {
+                addToSuggestions(story);
             }
         };
     }
     function filterChoicesByText() {
         suggestions.clear();
         placeMap = {};
-        allStories.forEach(makeFilteredPlaceProcessor());
+        allStories.forEach(makeFilteredStoryProcessor());
     }
 
     RalewayLight {
         id: label;
-        text: "Places";
+        text: labelText;
         color: hifi.colors.blueHighlight;
-        size: 38;
-        width: root.width;
-        anchors {
-            top: parent.top;
-            left: parent.left;
-            margins: 10;
-        }
+        size: 28;
     }
     ListView {
         id: scroll;
         clip: true;
-        model: feed;
+        model: suggestions;
         orientation: ListView.Horizontal;
 
         spacing: 14;
+        width: parent.width;
         height: cardHeight + stackedCardShadowHeight;
-        anchors {
-            top: label.bottom;
-            left: parent.left;
-            right: parent.right;
-            leftMargin: 10;
-        }
         delegate: Card {
             width: cardWidth;
             height: cardHeight;

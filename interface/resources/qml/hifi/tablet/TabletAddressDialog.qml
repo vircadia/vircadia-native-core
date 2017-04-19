@@ -39,7 +39,6 @@ StackView {
     Component { id: tabletWebView; TabletWebView {} }
     Component.onCompleted: {
         updateLocationText(false);
-        feed.fillDestinations();
         addressLine.focus = !HMD.active;
         root.parentChanged.connect(center);
         center();
@@ -286,10 +285,27 @@ StackView {
                 topMargin: 0;
             }
             Feed {
-                id: feed;
+                id: happeningNow;
                 width: bgMain.width;
                 metaverseServerUrl: addressBarDialog.metaverseServerUrl;
+                actions: selectedTab.includeActions;
                 filter: addressLine.text;
+            }
+            Feed {
+                id: places;
+                width: bgMain.width;
+                metaverseServerUrl: addressBarDialog.metaverseServerUrl;
+                actions: 'concurrency';
+                filter: addressLine.text;
+                anchors.top: happeningNow.bottom;
+            }
+            Feed {
+                id: snapshots;
+                width: bgMain.width;
+                metaverseServerUrl: addressBarDialog.metaverseServerUrl;
+                actions: 'snapshot';
+                filter: addressLine.text;
+                anchors.top: places.bottom;
             }
         }
 
@@ -374,7 +390,6 @@ StackView {
     property var selectedTab: allTab;
     function tabSelect(textButton) {
         selectedTab = textButton;
-        feed.fillDestinations();
     }
 
     function updateLocationText(enteringAddress) {
