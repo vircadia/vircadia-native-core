@@ -10,6 +10,7 @@
 
 body {
     padding: 0;
+    margin: 0;
 }
 
 /*
@@ -17,6 +18,7 @@ body {
 */
 .snapsection {
     padding-top: 12px;
+    margin: 8px;
 }
 
 .snapsection.title {
@@ -66,42 +68,17 @@ input[type=button].naked:active {
 // START styling of snapshot pane and its contents
 */
 #snapshot-pane {
+    height: 510px;
 }
 
 #snapshot-images {
     position: relative;
 }
 
-#snapshot-images > div {
-    position: relative;
-    text-align: center;
-}
-
 #snapshot-images img {
     max-width: 100%;
     max-height: 100%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     vertical-align: middle;
-}
-
-#snapshot-images div.property {
-    margin-top: 0;
-    position: absolute;
-    top: 50%;
-    left: 7px;
-    transform: translate(0%, -50%);
-}
-
-#snapshot-images img {
-    box-sizing: border-box;
-    padding: 0 7px 0 7px;
-}
-
-#snapshot-images img.multiple {
-    padding-left: 28px;
 }
 /*
 // END styling of snapshot pane and its contents
@@ -123,10 +100,10 @@ input[type=button].naked:active {
     margin-left: 10px;
 }
 #snap-settings label {
-    margin-bottom: 50px;
+    height: 50px;
 }
 #snap-settings form input {
-    margin-bottom: 50px;
+    margin-bottom: 10px;
 }
 
 #snap-button {

@@ -62,6 +62,10 @@ function onMessage(message) {
     switch (message.action) {
         case 'ready':  // Send it.
             tablet.emitScriptEvent(JSON.stringify({
+                type: "snapshotSettings",
+                action: Settings.getValue("alsoTakeAnimatedSnapshot", true)
+            }));
+            tablet.emitScriptEvent(JSON.stringify({
                 type: "snapshot",
                 action: readyData
             }));
@@ -74,6 +78,9 @@ function onMessage(message) {
             } else {
                 tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
             }
+            break;
+        case 'captureSettings':
+            Settings.setValue("alsoTakeAnimatedSnapshot", message.action);
             break;
         case 'takeSnapshot':
             // In settings, first store the paths to the last snapshot
