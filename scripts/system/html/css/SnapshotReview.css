@@ -80,6 +80,44 @@ input[type=button].naked:active {
     max-height: 100%;
     vertical-align: middle;
 }
+
+.gifLabel {
+    font-family: Raleway-SemiBold;
+    font-size: 18px;
+    color: white;
+    float: left;
+    text-shadow: 2px 2px 3px #000000;
+    margin-left: 20px;
+}
+.shareButtonDiv {
+    display: flex;
+    align-items: center;
+    font-family: Raleway-SemiBold;
+    font-size: 14px;
+    color: white;
+    float: right;
+    text-shadow: 2px 2px 3px #000000;
+    width: 100px;
+    height: 100%;
+    margin-right: 10px;
+}
+.shareButtonLabel {
+    vertical-align: middle;
+}
+.shareButton {
+    background-color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border-width: 0;
+    margin-left: 5px;
+}
+.shareButton:hover {
+    background-color: #afafaf;
+}
+.shareButton:active {
+    background-color: white;
+}
 /*
 // END styling of snapshot pane and its contents
 */

@@ -18,7 +18,7 @@ function addImage(data) {
     var div = document.createElement("DIV");
     var id = "p" + idCounter++;
     var img = document.createElement("IMG");
-    img.id = "img" + id;
+    img.id = id + "img";
     div.style.width = "100%";
     div.style.height = "" + Math.floor(100 / imageCount) + "%";
     div.style.display = "flex";
@@ -31,11 +31,16 @@ function addImage(data) {
     }
     img.src = data.localPath;
     div.appendChild(img);
-    div.appendChild(createShareOverlayDiv());
     document.getElementById("snapshot-images").appendChild(div);
+    div.appendChild(createShareOverlayDiv(id, img.src.split('.').pop().toLowerCase() === "gif"));
+    img.onload = function () {
+        var shareBar = document.getElementById(id + "shareBar");
+        shareBar.style.width = img.clientWidth;
+        shareBar.style.display = "inline";
+    }
     paths.push(data);
 }
-function createShareOverlayDiv() {
+function createShareOverlayDiv(parentID, isGif) {
     var div = document.createElement("DIV");
     div.style.position = "absolute";
     div.style.display = "flex";
@@ -46,14 +51,24 @@ function createShareOverlayDiv() {
     div.style.height = "100%";
 
     var shareBar = document.createElement("div");
-    shareBar.style.backgroundColor = "black";
-    shareBar.style.opacity = "0.5";
+    shareBar.id = parentID + "shareBar"
+    shareBar.style.display = "none";
     shareBar.style.width = "100%";
-    shareBar.style.height = "50px";
+    shareBar.style.height = "60px";
+    shareBar.style.lineHeight = "60px";
+    shareBar.style.clear = "both";
+    shareBar.style.marginLeft = "auto";
+    shareBar.style.marginRight = "auto";
+    shareBar.innerHTML = isGif ? '<span class="gifLabel">GIF</span>' : "";
+    var shareButtonID = parentID + "shareButton";
+    shareBar.innerHTML += '<div class="shareButtonDiv">' +
+            '<label class="shareButtonLabel" for="' + shareButtonID + '">SHARE</label>' +
+            '<input type="button" class="shareButton" id="' + shareButtonID + '" onclick="" />' +
+        '</div>'
     div.appendChild(shareBar);
 
     var shareOverlay = document.createElement("div");
-    shareOverlay.style.display = "none";
+    shareOverlay.style.visibilty = "hidden";
     shareOverlay.style.backgroundColor = "black";
     shareOverlay.style.opacity = "0.5";
     div.appendChild(shareOverlay);
@@ -100,7 +115,7 @@ window.onload = function () {
     // TESTING FUNCTIONS START
     // Uncomment and modify the lines below to test SnapshotReview in a browser.
     imageCount = 2;
-    addImage({ localPath: 'http://lorempixel.com/1512/1680' });
+    addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/2017-01-27 50 Avatars!/!!!.gif' });
     addImage({ localPath: 'http://lorempixel.com/553/255' });
     //addImage({localPath: 'c:/Users/howar/OneDrive/Pictures/hifi-snap-by--on-2016-07-27_12-58-43.jpg'});
     // TESTING FUNCTIONS END
@@ -126,7 +141,7 @@ window.onload = function () {
                             message.action.forEach(addImage);
                         } else {
                             var gifPath = message.action[0].localPath;
-                            document.getElementById('imgp0').src = gifPath;
+                            document.getElementById('p0img').src = gifPath;
                             paths[0].localPath = gifPath;
                         }
                     } else {
