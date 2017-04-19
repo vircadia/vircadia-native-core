@@ -112,7 +112,7 @@ protected:
     static void manageMemory();
 
     //bool canPromoteNoAllocate() const { return _allocatedMip < _populatedMip; }
-    bool canPromote() const { return _allocatedMip > 0; }
+    bool canPromote() const { return _allocatedMip > 0 || _populatedMip > 0; }
     bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
     bool hasPendingTransfers() const { return _populatedMip > _allocatedMip; }
     void executeNextTransfer(const TexturePointer& currentTexture);

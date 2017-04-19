@@ -51,6 +51,9 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
         ktx::StoragePointer storage{ new storage::FileStorage(_filename.c_str()) };
         auto ktxPointer = ktx::KTX::create(storage);
         _ktxDescriptor.reset(new ktx::KTXDescriptor(ktxPointer->toDescriptor()));
+        if (_ktxDescriptor->images.size() < _ktxDescriptor->header.numberOfMipmapLevels) {
+            qDebug() << "bad images found";
+        }
         auto& keyValues = _ktxDescriptor->keyValues;
         auto found = std::find_if(keyValues.begin(), keyValues.end(), [](const ktx::KeyValue& val) -> bool {
             return val._key.compare(ktx::HIFI_MIN_POPULATED_MIP_KEY) == 0;
@@ -167,7 +170,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
         memcpy(data, storage->data(), _ktxDescriptor->images[level]._imageSize);
         _minMipLevelAvailable = level;
         if (offset > 0) {
-            memcpy(file->mutableData() + ktx::KTX_HEADER_SIZE + offset, (uint8_t)_minMipLevelAvailable, 1);
+            memcpy(file->mutableData() + ktx::KTX_HEADER_SIZE + offset, (void*)&_minMipLevelAvailable, 1);
         }
     }
 }

@@ -132,7 +132,7 @@ void HTTPResourceRequest::onRequestFinished() {
                     uint64_t size;
                     std::tie(success, size) = parseContentRangeHeader(contentRangeHeader);
                     if (success) {
-                        qWarning(networking) << "Total http resource size is: " << size;
+                        //qWarning(networking) << "Total http resource size is: " << size;
                         _totalSizeOfResource = size;
                     } else {
                         qWarning(networking) << "Error parsing content-range header: " << contentRangeHeader;
@@ -187,7 +187,6 @@ void HTTPResourceRequest::onRequestFinished() {
 }
 
 void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    qDebug() << "Progress: " << _url;
     Q_ASSERT(_state == InProgress);
     
     // We've received data, so reset the timer
