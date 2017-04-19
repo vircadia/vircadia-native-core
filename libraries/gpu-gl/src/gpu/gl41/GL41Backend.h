@@ -45,8 +45,7 @@ public:
     protected:
         GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         void generateMips() const override;
-        void copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const;
-        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const;
+        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const override;
         virtual void syncSampler() const;
 
         void withPreservedTexture(std::function<void()> f) const;
@@ -86,8 +85,29 @@ public:
         GL41StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
     };
 
-    class GL41ResourceTexture : public GL41FixedAllocationTexture {
-        using Parent = GL41FixedAllocationTexture;
+    class GL41VariableAllocationTexture : public GL41Texture, public GLVariableAllocationSupport {
+        using Parent = GL41Texture;
+        friend class GL41Backend;
+        using PromoteLambda = std::function<void()>;
+
+
+    protected:
+        GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41VariableAllocationTexture();
+
+        void allocateStorage(uint16 allocatedMip);
+        void syncSampler() const override;
+        void promote() override;
+        void demote() override;
+        void populateTransferQueue() override;
+        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const override;
+
+        Size size() const override { return _size; }
+        Size _size { 0 };
+    };
+
+    class GL41ResourceTexture : public GL41VariableAllocationTexture {
+        using Parent = GL41VariableAllocationTexture;
         friend class GL41Backend;
     protected:
         GL41ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
