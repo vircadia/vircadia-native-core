@@ -26,7 +26,7 @@
         Player,
         Dialog,
 
-        SCRIPT_STARTUP_DELAY = 5000;  // 5s
+        SCRIPT_STARTUP_DELAY = 3000;  // 3s
 
     function log(message) {
         print(APP_NAME + ": " + message);
