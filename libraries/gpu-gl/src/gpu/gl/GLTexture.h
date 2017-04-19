@@ -11,6 +11,9 @@
 #include "GLShared.h"
 #include "GLBackend.h"
 #include "GLTexelFormat.h"
+#include <thread>
+
+#define THREADED_TEXTURE_BUFFERING 1
 
 namespace gpu { namespace gl {
 
@@ -19,9 +22,124 @@ struct GLFilterMode {
     GLint magFilter;
 };
 
+class GLVariableAllocationSupport {
+    friend class GLBackend;
+
+public:
+    GLVariableAllocationSupport();
+    virtual ~GLVariableAllocationSupport();
+
+    enum class MemoryPressureState {
+        Idle,
+        Transfer,
+        Oversubscribed,
+        Undersubscribed,
+    };
+
+    using QueuePair = std::pair<TextureWeakPointer, float>;
+    struct QueuePairLess {
+        bool operator()(const QueuePair& a, const QueuePair& b) {
+            return a.second < b.second;
+        }
+    };
+    using WorkQueue = std::priority_queue<QueuePair, std::vector<QueuePair>, QueuePairLess>;
+
+    class TransferJob {
+        using VoidLambda = std::function<void()>;
+        using VoidLambdaQueue = std::queue<VoidLambda>;
+        using ThreadPointer = std::shared_ptr<std::thread>;
+        const GLTexture& _parent;
+        // Holds the contents to transfer to the GPU in CPU memory
+        std::vector<uint8_t> _buffer;
+        // Indicates if a transfer from backing storage to interal storage has started
+        bool _bufferingStarted { false };
+        bool _bufferingCompleted { false };
+        VoidLambda _transferLambda;
+        VoidLambda _bufferingLambda;
+
+#if THREADED_TEXTURE_BUFFERING
+        static Mutex _mutex;
+        static VoidLambdaQueue _bufferLambdaQueue;
+        static ThreadPointer _bufferThread;
+        static std::atomic<bool> _shutdownBufferingThread;
+        static void bufferLoop();
+#endif
+
+    public:
+        TransferJob(const TransferJob& other) = delete;
+        TransferJob(const GLTexture& parent, std::function<void()> transferLambda);
+        TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lines = 0, uint32_t lineOffset = 0);
+        ~TransferJob();
+        bool tryTransfer();
+
+#if THREADED_TEXTURE_BUFFERING
+        static void startTransferLoop();
+        static void stopTransferLoop();
+#endif
+
+    private:
+        size_t _transferSize { 0 };
+#if THREADED_TEXTURE_BUFFERING
+        void startBuffering();
+#endif
+        void transfer();
+    };
+
+    using TransferQueue = std::queue<std::unique_ptr<TransferJob>>;
+    static MemoryPressureState _memoryPressureState;
+
+public:
+    static void addMemoryManagedTexture(const TexturePointer& texturePointer);
+
+protected:
+    static size_t _frameTexturesCreated;
+    static std::atomic<bool> _memoryPressureStateStale;
+    static std::list<TextureWeakPointer> _memoryManagedTextures;
+    static WorkQueue _transferQueue;
+    static WorkQueue _promoteQueue;
+    static WorkQueue _demoteQueue;
+    static TexturePointer _currentTransferTexture;
+    static const uvec3 INITIAL_MIP_TRANSFER_DIMENSIONS;
+    static const uvec3 MAX_TRANSFER_DIMENSIONS;
+    static const size_t MAX_TRANSFER_SIZE;
+
+
+    static void updateMemoryPressure();
+    static void processWorkQueues();
+    static void addToWorkQueue(const TexturePointer& texture);
+    static WorkQueue& getActiveWorkQueue();
+
+    static void manageMemory();
+
+    //bool canPromoteNoAllocate() const { return _allocatedMip < _populatedMip; }
+    bool canPromote() const { return _allocatedMip > 0; }
+    bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
+    bool hasPendingTransfers() const { return _populatedMip > _allocatedMip; }
+    void executeNextTransfer(const TexturePointer& currentTexture);
+    virtual void populateTransferQueue() = 0;
+    virtual void promote() = 0;
+    virtual void demote() = 0;
+
+    // The allocated mip level, relative to the number of mips in the gpu::Texture object 
+    // The relationship between a given glMip to the original gpu::Texture mip is always 
+    // glMip + _allocatedMip
+    uint16 _allocatedMip { 0 };
+    // The populated mip level, relative to the number of mips in the gpu::Texture object
+    // This must always be >= the allocated mip
+    uint16 _populatedMip { 0 };
+    // The highest (lowest resolution) mip that we will support, relative to the number 
+    // of mips in the gpu::Texture object
+    uint16 _maxAllocatedMip { 0 };
+    // Contains a series of lambdas that when executed will transfer data to the GPU, modify 
+    // the _populatedMip and update the sampler in order to fully populate the allocated texture 
+    // until _populatedMip == _allocatedMip
+    TransferQueue _pendingTransfers;
+};
+
 class GLTexture : public GLObject<Texture> {
     using Parent = GLObject<Texture>;
     friend class GLBackend;
+    friend class GLVariableAllocationSupport;
 public:
     static const uint16_t INVALID_MIP { (uint16_t)-1 };
     static const uint8_t INVALID_FACE { (uint8_t)-1 };
@@ -45,6 +163,8 @@ public:
 protected:
     virtual Size size() const = 0;
     virtual void generateMips() const = 0;
+    virtual void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const = 0;
+    virtual void copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const final;
 
     GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
 };
@@ -57,6 +177,8 @@ public:
 protected:
     GLExternalTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
     void generateMips() const override {}
+    void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const override {}
+
     Size size() const override { return 0; }
 };
 
