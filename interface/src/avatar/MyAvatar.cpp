@@ -48,7 +48,6 @@
 #include "AvatarActionHold.h"
 #include "Menu.h"
 #include "MyAvatar.h"
-#include "Physics.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
 #include "DebugDraw.h"
@@ -83,8 +82,8 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
-MyAvatar::MyAvatar(RigPointer rig) :
-    Avatar(rig),
+MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
+    Avatar(thread, rig),
     _wasPushing(false),
     _isPushing(false),
     _isBeingPushed(false),
@@ -260,7 +259,7 @@ void MyAvatar::simulateAttachments(float deltaTime) {
 }
 
 QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
-    CameraMode mode = qApp->getCamera()->getMode();
+    CameraMode mode = qApp->getCamera().getMode();
     _globalPosition = getPosition();
     _globalBoundingBoxDimensions.x = _characterController.getCapsuleRadius();
     _globalBoundingBoxDimensions.y = _characterController.getCapsuleHalfHeight();
@@ -752,13 +751,12 @@ controller::Pose MyAvatar::getRightHandTipPose() const {
 }
 
 // virtual
-void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
+void MyAvatar::render(RenderArgs* renderArgs) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
-
-    Avatar::render(renderArgs, cameraPosition);
+    Avatar::render(renderArgs);
 }
 
 void MyAvatar::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
@@ -927,8 +925,7 @@ void MyAvatar::setEnableDebugDrawIKTargets(bool isEnabled) {
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
-    render::ScenePointer scene = qApp->getMain3DScene();
-    _skeletonModel->setVisibleInScene(isEnabled, scene);
+    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene());
 }
 
 void MyAvatar::setUseAnimPreAndPostRotations(bool isEnabled) {
@@ -1079,7 +1076,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     _targetAvatarPosition = glm::vec3(0.0f);
 
     glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
-    glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
+    glm::vec3 cameraPosition = qApp->getCamera().getPosition();
 
     float smallestAngleTo = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES) / 2.0f;
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
@@ -1225,8 +1222,7 @@ void MyAvatar::clearJointsData() {
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
-    render::ScenePointer scene = qApp->getMain3DScene();
-    _skeletonModel->setVisibleInScene(true, scene);
+    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene());
     _headBoneSet.clear();
 }
 
@@ -1275,7 +1271,7 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
 }
 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
-    CameraMode mode = qApp->getCamera()->getMode();
+    CameraMode mode = qApp->getCamera().getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // The avatar is rotated PI about the yAxis, so we have to correct for it
         // to get the skeleton offset contribution in the world-frame.
@@ -1540,7 +1536,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
     Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
 }
 
-void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
+void MyAvatar::setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visible) {
     if (model->isActive() && model->isRenderable()) {
         model->setVisibleInScene(visible, scene);
     }
@@ -1634,8 +1630,7 @@ void MyAvatar::postUpdate(float deltaTime) {
 
     Avatar::postUpdate(deltaTime);
 
-    render::ScenePointer scene = qApp->getMain3DScene();
-    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars() && _skeletonModel->initWhenReady(scene)) {
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars() && _skeletonModel->initWhenReady(qApp->getMain3DScene())) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
@@ -1704,13 +1699,13 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.3f;
 
 bool MyAvatar::cameraInsideHead() const {
-    const glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
+    const glm::vec3 cameraPosition = qApp->getCamera().getPosition();
     return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     bool defaultMode = renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE;
-    bool firstPerson = qApp->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON;
+    bool firstPerson = qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON;
     bool insideHead = cameraInsideHead();
     return !defaultMode || !firstPerson || !insideHead;
 }
@@ -2265,7 +2260,7 @@ glm::vec3 MyAvatar::getPositionForAudio() {
         case AudioListenerMode::FROM_HEAD:
             return getHead()->getPosition();
         case AudioListenerMode::FROM_CAMERA:
-            return qApp->getCamera()->getPosition();
+            return qApp->getCamera().getPosition();
         case AudioListenerMode::CUSTOM:
             return _customListenPosition;
     }
@@ -2277,7 +2272,7 @@ glm::quat MyAvatar::getOrientationForAudio() {
         case AudioListenerMode::FROM_HEAD:
             return getHead()->getFinalOrientationInWorldFrame();
         case AudioListenerMode::FROM_CAMERA:
-            return qApp->getCamera()->getOrientation();
+            return qApp->getCamera().getOrientation();
         case AudioListenerMode::CUSTOM:
             return _customListenOrientation;
     }
@@ -2367,7 +2362,7 @@ void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
 }
 
 bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-    auto cameraMode = qApp->getCamera()->getMode();
+    auto cameraMode = qApp->getCamera().getMode();
     if (cameraMode == CAMERA_MODE_THIRD_PERSON) {
         return false;
     } else {
@@ -2515,8 +2510,8 @@ void MyAvatar::setAway(bool value) {
 glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const {
 
     // Fetch the current camera transform.
-    glm::mat4 cameraWorldMatrix = qApp->getCamera()->getTransform();
-    if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+    glm::mat4 cameraWorldMatrix = qApp->getCamera().getTransform();
+    if (qApp->getCamera().getMode() == CAMERA_MODE_MIRROR) {
         cameraWorldMatrix *= createMatFromScaleQuatAndPos(vec3(-1.0f, 1.0f, 1.0f), glm::quat(), glm::vec3());
     }
 
@@ -2561,7 +2556,7 @@ glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
             Transform avatarTransform;
             Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
             glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
-            return glmExtractRotation(invAvatarMat * qApp->getCamera()->getTransform());
+            return glmExtractRotation(invAvatarMat * qApp->getCamera().getTransform());
         }
         default: {
             return Avatar::getAbsoluteJointRotationInObjectFrame(index);
@@ -2598,7 +2593,7 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
             Transform avatarTransform;
             Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
             glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
-            return extractTranslation(invAvatarMat * qApp->getCamera()->getTransform());
+            return extractTranslation(invAvatarMat * qApp->getCamera().getTransform());
         }
         default: {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);
