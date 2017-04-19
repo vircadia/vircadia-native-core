@@ -192,8 +192,6 @@ public:
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
     void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
 
-    //AvatarMotionState* getMotionState() { return _motionState; }
-
     using SpatiallyNestable::setPosition;
     virtual void setPosition(const glm::vec3& position) override;
     using SpatiallyNestable::setOrientation;
