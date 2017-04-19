@@ -1000,7 +1000,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
             theTexture->setSource(srcImageName);
             theTexture->setStoredMipFormat(formatMip);
 
-            for (int face = 0; face < faces.size(); ++face) {
+            for (uint8 face = 0; face < faces.size(); ++face) {
                 generateMips(theTexture.get(), faces[face], face);
             }
 
@@ -1009,7 +1009,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
                 auto irradianceTexture = gpu::Texture::createCube(gpu::Element::COLOR_SRGBA_32, faces[0].width(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
                 irradianceTexture->setSource(srcImageName);
                 irradianceTexture->setStoredMipFormat(gpu::Element::COLOR_SBGRA_32);
-                for (int face = 0; face < faces.size(); ++face) {
+                for (uint8 face = 0; face < faces.size(); ++face) {
                     irradianceTexture->assignStoredMipFace(0, face, faces[face].byteCount(), faces[face].constBits());
                 }
 

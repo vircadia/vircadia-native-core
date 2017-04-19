@@ -125,7 +125,8 @@ void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
             case GL_COMPRESSED_RED_RGTC1:
             case GL_COMPRESSED_RG_RGTC2:
-                glCompressedTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat, sourceSize, sourcePointer);
+                glCompressedTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                              static_cast<GLsizei>(sourceSize), sourcePointer);
                 break;
             default:
                 glTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
@@ -140,9 +141,11 @@ void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_RG_RGTC2:
                 if (glCompressedTextureSubImage2DEXT) {
                     auto target = GLTexture::CUBE_FACE_LAYOUT[face];
-                    glCompressedTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, internalFormat, sourceSize, sourcePointer);
+                    glCompressedTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                                     static_cast<GLsizei>(sourceSize), sourcePointer);
                 } else {
-                    glCompressedTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, internalFormat, sourceSize, sourcePointer);
+                    glCompressedTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, internalFormat,
+                                                  static_cast<GLsizei>(sourceSize), sourcePointer);
                 }
                 break;
             default:
