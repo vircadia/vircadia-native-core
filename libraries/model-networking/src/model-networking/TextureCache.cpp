@@ -569,7 +569,7 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
             if (!texture) {
                 KTXFilePointer ktxFile = textureCache->_ktxCache.getFile(hash);
                 if (ktxFile) {
-                    texture.reset(gpu::Texture::unserialize(ktxFile->getFilepath()));
+                    texture = gpu::Texture::unserialize(ktxFile->getFilepath());
                     if (texture) {
                         texture = textureCache->cacheTextureByHash(hash, texture);
                     }
@@ -603,7 +603,7 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                 auto newKtxDescriptor = memKtx->toDescriptor();
 
                 //auto texture = gpu::Texture::serializeHeader("test.ktx", *header, keyValues);
-                texture.reset(gpu::Texture::unserialize(_file->getFilepath(), newKtxDescriptor));
+                texture = gpu::Texture::unserialize(_file->getFilepath(), newKtxDescriptor);
                 texture->setKtxBacking(file->getFilepath());
                 texture->setSource(filename);
 

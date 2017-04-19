@@ -525,7 +525,7 @@ public:
     ExternalUpdates getUpdates() const;
 
     // Serialize ktx header and keyvalues directly to a file, and return a Texture representing that file
-    static Texture* serializeHeader(const std::string& ktxfile, const ktx::Header& header, const ktx::KeyValues& keyValues);
+    static TexturePointer serializeHeader(const std::string& ktxfile, const ktx::Header& header, const ktx::KeyValues& keyValues);
 
     // Serialize a texture into a KTX file
     static ktx::KTXUniquePointer serialize(const Texture& texture);

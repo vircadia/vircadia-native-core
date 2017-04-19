@@ -370,7 +370,7 @@ TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDe
     return tex;
 }
 
-Texture* Texture::serializeHeader(const std::string& ktxfile, const ktx::Header& header, const ktx::KeyValues& keyValues) {
+TexturePointer Texture::serializeHeader(const std::string& ktxfile, const ktx::Header& header, const ktx::KeyValues& keyValues) {
     // Create a memory-backed KTX object
     auto ktxBuffer = ktx::KTX::createBare(header, keyValues);
 
