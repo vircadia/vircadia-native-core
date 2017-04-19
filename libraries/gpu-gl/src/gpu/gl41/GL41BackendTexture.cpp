@@ -231,7 +231,7 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
 }
 
 GL41VariableAllocationTexture::~GL41VariableAllocationTexture() {
-    Backend::updateTextureGPUMemoryUsage(0, _size);
+    Backend::updateTextureGPUMemoryUsage(_size, 0);
 }
 
 void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
