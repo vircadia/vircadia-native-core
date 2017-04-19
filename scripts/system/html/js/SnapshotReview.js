@@ -19,14 +19,46 @@ function addImage(data) {
     var id = "p" + idCounter++;
     var img = document.createElement("IMG");
     img.id = "img" + id;
+    div.style.width = "100%";
     div.style.height = "" + Math.floor(100 / imageCount) + "%";
+    div.style.display = "flex";
+    div.style.justifyContent = "center";
+    div.style.alignItems = "center";
+    div.style.marginBottom = "5px";
+    div.style.position = "relative";
     if (imageCount > 1) {
         img.setAttribute("class", "multiple");
     }
     img.src = data.localPath;
     div.appendChild(img);
+    div.appendChild(createShareOverlayDiv());
     document.getElementById("snapshot-images").appendChild(div);
     paths.push(data);
+}
+function createShareOverlayDiv() {
+    var div = document.createElement("DIV");
+    div.style.position = "absolute";
+    div.style.display = "flex";
+    div.style.alignItems = "flex-end";
+    div.style.top = "0px";
+    div.style.left = "0px";
+    div.style.width = "100%";
+    div.style.height = "100%";
+
+    var shareBar = document.createElement("div");
+    shareBar.style.backgroundColor = "black";
+    shareBar.style.opacity = "0.5";
+    shareBar.style.width = "100%";
+    shareBar.style.height = "50px";
+    div.appendChild(shareBar);
+
+    var shareOverlay = document.createElement("div");
+    shareOverlay.style.display = "none";
+    shareOverlay.style.backgroundColor = "black";
+    shareOverlay.style.opacity = "0.5";
+    div.appendChild(shareOverlay);
+
+    return div;
 }
 function handleCaptureSetting(setting) {
     var stillAndGif = document.getElementById('stillAndGif');
@@ -65,9 +97,14 @@ function handleShareButtons(messageOptions) {
     }
 }
 window.onload = function () {
-    // Something like the following will allow testing in a browser.
-    //addImage({localPath: 'c:/Users/howar/OneDrive/Pictures/hifi-snap-by--on-2016-07-27_12-58-43.jpg'});
+    // TESTING FUNCTIONS START
+    // Uncomment and modify the lines below to test SnapshotReview in a browser.
+    imageCount = 2;
     addImage({ localPath: 'http://lorempixel.com/1512/1680' });
+    addImage({ localPath: 'http://lorempixel.com/553/255' });
+    //addImage({localPath: 'c:/Users/howar/OneDrive/Pictures/hifi-snap-by--on-2016-07-27_12-58-43.jpg'});
+    // TESTING FUNCTIONS END
+
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
