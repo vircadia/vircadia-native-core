@@ -642,7 +642,6 @@ void MyAvatar::updateSensorToWorldMatrix() {
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
 }
 
-
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
@@ -659,14 +658,8 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     if (inHmd) {
         estimatedPosition = extractTranslation(getHMDSensorMatrix());
         estimatedPosition.x *= -1.0f;
-        _trackedHeadPosition = estimatedPosition;
-
-        // wut
-        // const float OCULUS_LEAN_SCALE = 0.05f;
-        // estimatedPosition /= OCULUS_LEAN_SCALE;
     } else if (inFacetracker) {
         estimatedPosition = tracker->getHeadTranslation();
-        _trackedHeadPosition = estimatedPosition;
         estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
     }
 
@@ -1429,7 +1422,6 @@ void MyAvatar::setHeadControllerPoseInSensorFrame(const controller::Pose& headPo
     Head* head = getHead();
     if (inHmd) {
         _headControllerPoseInSensorFrameCache.set(headPose);
-        _trackedHeadPosition = headPose.translation;
         head->setDeltaPitch(headPose.rotation.x);
         head->setDeltaYaw(headPose.rotation.y);
         head->setDeltaRoll(headPose.rotation.z);
