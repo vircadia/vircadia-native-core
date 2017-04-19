@@ -298,6 +298,8 @@ namespace ktx {
     struct ImageDescriptor;
     using ImageDescriptors = std::vector<ImageDescriptor>;
 
+    bool checkIdentifier(const Byte* identifier);
+
     // Header
     struct Header {
         static const size_t IDENTIFIER_LENGTH = 12;

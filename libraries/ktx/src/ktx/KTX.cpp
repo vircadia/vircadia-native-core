@@ -92,13 +92,16 @@ size_t Header::evalPixelOrBlockSize() const {
         }
     }
     qWarning() << "Unknown ktx format: " << glFormat << " " << glBaseInternalFormat << " " << glInternalFormat;
-    return 1;
+    return 0;
     //throw std::runtime_error("Unknown format");
 }
 
 size_t Header::evalRowSize(uint32_t level) const {
     auto pixWidth = evalPixelOrBlockWidth(level);
     auto pixSize = evalPixelOrBlockSize();
+    if (pixSize == 0) {
+        return 0;
+    }
     auto netSize = pixWidth * pixSize;
     auto padding = evalPadding(netSize);
     return netSize + padding;
@@ -136,6 +139,9 @@ ImageDescriptors Header::generateImageDescriptors() const {
     uint32_t imageOffset = 0;
     for (uint32_t level = 0; level < numberOfMipmapLevels; ++level) {
         auto imageSize = static_cast<uint32_t>(evalImageSize(level));
+        if (imageSize == 0) {
+            return ImageDescriptors();
+        }
         ImageHeader header {
             numberOfFaces == NUM_CUBEMAPFACES,
             imageOffset,

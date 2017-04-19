@@ -399,14 +399,15 @@ void NetworkTexture::handleMipInterestLevel(int level) {
 
 void NetworkTexture::startRequestForNextMipLevel() {
     if (_lowestKnownPopulatedMip == 0) {
-        qWarning(networking) << "Requesting next mip level but all have been fulfilled: " << _url;
+        qWarning(networking) << "Requesting next mip level but all have been fulfilled: " << _lowestKnownPopulatedMip
+            << " " << _textureSource->getGPUTexture()->minAvailableMipLevel() << " " << _url;
         return;
     }
 
     if (_ktxResourceState == WAITING_FOR_MIP_REQUEST) {
         _ktxResourceState = PENDING_MIP_REQUEST;
 
-        setLoadPriority(this, _lowestKnownPopulatedMip);
+        setLoadPriority(this, -_originalKtxDescriptor->header.numberOfMipmapLevels + _lowestKnownPopulatedMip);
 
         init();
         ResourceCache::attemptRequest(_self);
@@ -449,8 +450,8 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 void NetworkTexture::ktxHeaderRequestFinished() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA);
 
-    _ktxHeaderRequestFinished = true;
-    maybeHandleFinishedInitialLoad();
+_ktxHeaderRequestFinished = true;
+maybeHandleFinishedInitialLoad();
 }
 
 void NetworkTexture::ktxMipRequestFinished() {
@@ -459,7 +460,8 @@ void NetworkTexture::ktxMipRequestFinished() {
     if (_ktxResourceState == LOADING_INITIAL_DATA) {
         _ktxHighMipRequestFinished = true;
         maybeHandleFinishedInitialLoad();
-    } else if (_ktxResourceState == REQUESTING_MIP) {
+    }
+    else if (_ktxResourceState == REQUESTING_MIP) {
         Q_ASSERT(_ktxMipLevelRangeInFlight.first != NULL_MIP_LEVEL);
         ResourceCache::requestCompleted(_self);
 
@@ -472,15 +474,22 @@ void NetworkTexture::ktxMipRequestFinished() {
                 //qDebug() << "Writing mip for " << _url;
                 texture->assignStoredMip(_ktxMipLevelRangeInFlight.first,
                     _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
-            } else {
+            }
+            else {
                 qWarning(networking) << "Trying to update mips but texture is null";
             }
             finishedLoading(true);
             _ktxResourceState = WAITING_FOR_MIP_REQUEST;
-        } else {
-            _ktxResourceState = PENDING_MIP_REQUEST;
+        }
+        else {
             finishedLoading(false);
-            handleFailedRequest(_ktxMipRequest->getResult());
+            if (handleFailedRequest(_ktxMipRequest->getResult())) {
+                _ktxResourceState = PENDING_MIP_REQUEST;
+            }
+            else {
+                qWarning() << "Failed to load mip: " << _url;
+                _ktxResourceState = FAILED_TO_LOAD;
+            }
         }
 
         _ktxMipRequest->deleteLater();
@@ -489,7 +498,8 @@ void NetworkTexture::ktxMipRequestFinished() {
         if (_ktxResourceState == WAITING_FOR_MIP_REQUEST && _lowestRequestedMipLevel < _lowestKnownPopulatedMip) {
             startRequestForNextMipLevel();
         }
-    } else {
+    }
+    else {
         qWarning() << "Mip request finished in an unexpected state: " << _ktxResourceState;
     }
 }
@@ -505,7 +515,8 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
         if (_ktxHeaderRequest->getResult() != ResourceRequest::Success || _ktxMipRequest->getResult() != ResourceRequest::Success) {
             if (handleFailedRequest(_ktxMipRequest->getResult())) {
                 _ktxResourceState = PENDING_INITIAL_LOAD;
-            } else {
+            }
+            else {
                 _ktxResourceState = FAILED_TO_LOAD;
             }
 
@@ -533,6 +544,12 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
             qDebug() << "numberOfFaces:" << header->numberOfFaces;
             qDebug() << "numberOfMipmapLevels:" << header->numberOfMipmapLevels;
 
+            if (!ktx::checkIdentifier(header->identifier)) {
+                qWarning() << "Cannot load " << _url << ", invalid header identifier";
+                _ktxResourceState = FAILED_TO_LOAD;
+                finishedLoading(false);
+            }
+
             auto kvSize = header->bytesOfKeyValueData;
             if (kvSize > ktxHeaderData.size() - ktx::KTX_HEADER_SIZE) {
                 qWarning() << "Cannot load " << _url << ", did not receive all kv data with initial request";
@@ -544,6 +561,11 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
             auto keyValues = ktx::KTX::parseKeyValues(header->bytesOfKeyValueData, reinterpret_cast<const ktx::Byte*>(ktxHeaderData.data()) + ktx::KTX_HEADER_SIZE);
 
             auto imageDescriptors = header->generateImageDescriptors();
+            if (imageDescriptors.size() == 0) {
+                qWarning(networking) << "Failed to process ktx file " << _url;
+                _ktxResourceState = FAILED_TO_LOAD;
+                finishedLoading(false);
+            }
             _originalKtxDescriptor.reset(new ktx::KTXDescriptor(*header, keyValues, imageDescriptors));
 
             // Create bare ktx in memory
