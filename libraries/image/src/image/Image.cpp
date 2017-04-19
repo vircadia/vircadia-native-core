@@ -419,7 +419,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(const QImage& s
     }
 
     if (validAlpha) {
-        processTextureAlpha(srcImage, validAlpha, alphaAsMask);
+        processTextureAlpha(image, validAlpha, alphaAsMask);
     }
 
     gpu::TexturePointer theTexture = nullptr;
