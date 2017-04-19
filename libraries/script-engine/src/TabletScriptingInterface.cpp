@@ -81,6 +81,11 @@ void TabletScriptingInterface::setQmlTabletRoot(QString tabletId, QQuickItem* qm
 
 QQuickWindow* TabletScriptingInterface::getTabletWindow() {
     TabletProxy* tablet = qobject_cast<TabletProxy*>(getTablet("com.highfidelity.interface.tablet.system"));
+    
+    if (!tablet) {
+        return nullptr;
+    }
+    
     QObject* qmlSurface = tablet->getTabletSurface();
     OffscreenQmlSurface* surface = dynamic_cast<OffscreenQmlSurface*>(qmlSurface);
 
