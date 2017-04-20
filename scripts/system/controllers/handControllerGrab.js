@@ -116,7 +116,7 @@ var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their 
 
 var NEAR_GRAB_RADIUS = 0.1; // radius used for palm vs object for near grabbing.
 var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
-var FAR_TO_NEAR_GRAB_MAX_DISTANCE = 0.75; // In far to near grabbing conversion,grab the object if distancetoObject from hand is less than this.
+var FAR_TO_NEAR_GRAB_MAX_DISTANCE = 0.3; // In far to near grabbing conversion,grab the object if distancetoObject from hand is less than this.
 var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 
@@ -2728,9 +2728,9 @@ function MyController(hand) {
                 return;
              }
         }
-
+        var rayPositionOnEntity = Vec3.subtract(grabbedProperties.position, this.offsetPosition);
         //Far to Near Grab: If object is draw by user inside FAR_TO_NEAR_GRAB_MAX_DISTANCE, grab it
-        if (this.entityIsFarToNearGrabbable(this.currentObjectPosition, controllerLocation.position, FAR_TO_NEAR_GRAB_MAX_DISTANCE)) {
+        if (this.entityIsFarToNearGrabbable(rayPositionOnEntity, controllerLocation.position, FAR_TO_NEAR_GRAB_MAX_DISTANCE)) {
             this.farToNearGrab = true;
 
             var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
