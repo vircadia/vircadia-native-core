@@ -1,6 +1,6 @@
 //
 //  TextureBaker.h
-//  libraries/model-baker/src
+//  tools/oven/src
 //
 //  Created by Stephen Birarda on 4/5/17.
 //  Copyright 2017 High Fidelity, Inc.
