@@ -154,7 +154,7 @@ protected:
     Desc _desc;
 };
 
-enum class TextureUsageType {
+enum class TextureUsageType : uint8 {
     RENDERBUFFER,       // Used as attachments to a framebuffer
     RESOURCE,           // Resource textures, like materials... subject to memory manipulation
     STRICT_RESOURCE,    // Resource textures not subject to manipulation, like the normal fitting texture
@@ -527,8 +527,8 @@ public:
     // Serialize a texture into a KTX file
     static ktx::KTXUniquePointer serialize(const Texture& texture);
 
-    static TexturePointer unserialize(const std::string& ktxFile, TextureUsageType usageType = TextureUsageType::RESOURCE, Usage usage = Usage(), const Sampler::Desc& sampler = Sampler::Desc());
-    static TexturePointer unserialize(const std::string& ktxFile, const ktx::KTXDescriptor& descriptor, TextureUsageType usageType = TextureUsageType::RESOURCE, Usage usage = Usage(), const Sampler::Desc& sampler = Sampler::Desc());
+    static TexturePointer unserialize(const std::string& ktxFile);
+    static TexturePointer unserialize(const std::string& ktxFile, const ktx::KTXDescriptor& descriptor);
 
     static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
     static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);

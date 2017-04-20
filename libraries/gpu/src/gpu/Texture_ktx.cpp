@@ -20,12 +20,66 @@ using PixelsPointer = Texture::PixelsPointer;
 using KtxStorage = Texture::KtxStorage;
 
 struct GPUKTXPayload {
+    using Version = uint8;
+
+    static const std::string KEY;
+    static const Version CURRENT_VERSION { 1 };
+    static const size_t PADDING { 2 };
+    static const size_t SIZE { sizeof(Version) + sizeof(Sampler::Desc) + sizeof(uint32) + sizeof(TextureUsageType) + PADDING };
+    static_assert(GPUKTXPayload::SIZE == 36, "Packing size may differ between platforms");
+    static_assert(GPUKTXPayload::SIZE % 4 == 0, "GPUKTXPayload is not 4 bytes aligned");
+
     Sampler::Desc _samplerDesc;
     Texture::Usage _usage;
     TextureUsageType _usageType;
 
+    Byte* serialize(Byte* data) const {
+        *(Version*)data = CURRENT_VERSION;
+        data += sizeof(Version);
 
-    static std::string KEY;
+        memcpy(data, &_samplerDesc, sizeof(Sampler::Desc));
+        data += sizeof(Sampler::Desc);
+        
+        // We can't copy the bitset in Texture::Usage in a crossplateform manner
+        // So serialize it manually
+        *(uint32*)data = _usage._flags.to_ulong();
+        data += sizeof(uint32);
+
+        *(TextureUsageType*)data = _usageType;
+        data += sizeof(TextureUsageType);
+
+        return data + PADDING;
+    }
+
+    bool unserialize(const Byte* data, size_t size) {
+        if (size != SIZE) {
+            return false;
+        }
+
+        Version version = *(const Version*)data;
+        if (version != CURRENT_VERSION) {
+            glm::vec4 borderColor(1.0f);
+            if (memcmp(&borderColor, data, sizeof(glm::vec4)) == 0) {
+                memcpy(this, data, sizeof(GPUKTXPayload));
+                return true;
+            } else {
+                return false;
+            }
+        }
+        data += sizeof(Version);
+
+        memcpy(&_samplerDesc, data, sizeof(Sampler::Desc));
+        data += sizeof(Sampler::Desc);
+        
+        // We can't copy the bitset in Texture::Usage in a crossplateform manner
+        // So unserialize it manually
+        _usage = Texture::Usage(*(const uint32*)data);
+        data += sizeof(uint32);
+
+        _usageType = *(const TextureUsageType*)data;
+        return true;
+    }
+
     static bool isGPUKTX(const ktx::KeyValue& val) {
         return (val._key.compare(KEY) == 0);
     }
@@ -33,17 +87,14 @@ struct GPUKTXPayload {
     static bool findInKeyValues(const ktx::KeyValues& keyValues, GPUKTXPayload& payload) {
         auto found = std::find_if(keyValues.begin(), keyValues.end(), isGPUKTX);
         if (found != keyValues.end()) {
-            if ((*found)._value.size() == sizeof(GPUKTXPayload)) {
-                memcpy(&payload, (*found)._value.data(), sizeof(GPUKTXPayload));
-                return true;
-            }
+            auto value = found->_value;
+            return payload.unserialize(value.data(), value.size());
         }
         return false;
     }
 };
-
 const std::string gpu::SOURCE_HASH_KEY { "hifi.sourceHash" };
-std::string GPUKTXPayload::KEY{ "hifi.gpu" };
+const std::string GPUKTXPayload::KEY { "hifi.gpu" };
 
 KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
     {
@@ -253,12 +304,15 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     keyval._samplerDesc = texture.getSampler().getDesc();
     keyval._usage = texture.getUsage();
     keyval._usageType = texture.getUsageType();
+    Byte keyvalPayload[GPUKTXPayload::SIZE];
+    keyval.serialize(keyvalPayload);
+
     ktx::KeyValues keyValues;
-    keyValues.emplace_back(ktx::KeyValue(GPUKTXPayload::KEY, sizeof(GPUKTXPayload), (ktx::Byte*) &keyval));
+    keyValues.emplace_back(GPUKTXPayload::KEY, (uint32)GPUKTXPayload::SIZE, (ktx::Byte*) &keyvalPayload);
 
     auto hash = texture.sourceHash();
     if (!hash.empty()) {
-        keyValues.emplace_back(ktx::KeyValue(SOURCE_HASH_KEY, static_cast<uint32>(hash.size()), (ktx::Byte*) hash.c_str()));
+        keyValues.emplace_back(SOURCE_HASH_KEY, static_cast<uint32>(hash.size()), (ktx::Byte*) hash.c_str());
     }
 
     auto ktxBuffer = ktx::KTX::create(header, images, keyValues);
@@ -291,17 +345,17 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     return ktxBuffer;
 }
 
-TexturePointer Texture::unserialize(const std::string& ktxfile, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
-    std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(ktx::StoragePointer { new storage::FileStorage(ktxfile.c_str()) });
+TexturePointer Texture::unserialize(const std::string& ktxfile) {
+    std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(std::make_shared<storage::FileStorage>(ktxfile.c_str()));
     if (!ktxPointer) {
         return nullptr;
     }
 
     ktx::KTXDescriptor descriptor { ktxPointer->toDescriptor() };
-    return unserialize(ktxfile, ktxPointer->toDescriptor(), usageType, usage, sampler);
+    return unserialize(ktxfile, ktxPointer->toDescriptor());
 }
 
-TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDescriptor& descriptor, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
+TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDescriptor& descriptor) {
     const auto& header = descriptor.header;
 
     Format mipFormat = Format::COLOR_BGRA_32;
@@ -327,28 +381,28 @@ TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDe
         type = TEX_3D;
     }
 
-    
-    // If found, use the 
     GPUKTXPayload gpuktxKeyValue;
-    bool isGPUKTXPayload = GPUKTXPayload::findInKeyValues(descriptor.keyValues, gpuktxKeyValue);
+    if (!GPUKTXPayload::findInKeyValues(descriptor.keyValues, gpuktxKeyValue)) {
+        qCWarning(gpulogging) << "Could not find GPUKTX key values.";
+        return TexturePointer();
+    }
 
-    auto tex = Texture::create( (isGPUKTXPayload ? gpuktxKeyValue._usageType : usageType),
-                                type,
-                                texelFormat,
-                                header.getPixelWidth(),
-                                header.getPixelHeight(),
-                                header.getPixelDepth(),
-                                1, // num Samples
-                                header.getNumberOfSlices(),
-                                header.getNumberOfLevels(),
-                                (isGPUKTXPayload ? gpuktxKeyValue._samplerDesc : sampler));
-
-    tex->setUsage((isGPUKTXPayload ? gpuktxKeyValue._usage : usage));
+    auto texture = create(gpuktxKeyValue._usageType,
+                          type,
+                          texelFormat,
+                          header.getPixelWidth(),
+                          header.getPixelHeight(),
+                          header.getPixelDepth(),
+                          1, // num Samples
+                          header.getNumberOfSlices(),
+                          header.getNumberOfLevels(),
+                          gpuktxKeyValue._samplerDesc);
+    texture->setUsage(gpuktxKeyValue._usage);
 
     // Assing the mips availables
-    tex->setStoredMipFormat(mipFormat);
-    tex->setKtxBacking(ktxfile);
-    return tex;
+    texture->setStoredMipFormat(mipFormat);
+    texture->setKtxBacking(ktxfile);
+    return texture;
 }
 
 bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header) {
