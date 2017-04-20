@@ -18,13 +18,13 @@ function addImage(data) {
     var div = document.createElement("DIV");
     var id = "p" + idCounter++;
     var img = document.createElement("IMG");
+    div.id = id;
     img.id = id + "img";
     div.style.width = "100%";
     div.style.height = "" + Math.floor(100 / imageCount) + "%";
     div.style.display = "flex";
     div.style.justifyContent = "center";
     div.style.alignItems = "center";
-    div.style.marginBottom = "5px";
     div.style.position = "relative";
     if (imageCount > 1) {
         img.setAttribute("class", "multiple");
@@ -32,23 +32,26 @@ function addImage(data) {
     img.src = data.localPath;
     div.appendChild(img);
     document.getElementById("snapshot-images").appendChild(div);
-    div.appendChild(createShareOverlayDiv(id, img.src.split('.').pop().toLowerCase() === "gif"));
+    div.appendChild(createShareOverlay(id, img.src.split('.').pop().toLowerCase() === "gif"));
     img.onload = function () {
         var shareBar = document.getElementById(id + "shareBar");
         shareBar.style.width = img.clientWidth;
         shareBar.style.display = "inline";
+
+        document.getElementById(id).style.height = img.clientHeight;
     }
     paths.push(data);
 }
-function createShareOverlayDiv(parentID, isGif) {
-    var div = document.createElement("DIV");
-    div.style.position = "absolute";
-    div.style.display = "flex";
-    div.style.alignItems = "flex-end";
-    div.style.top = "0px";
-    div.style.left = "0px";
-    div.style.width = "100%";
-    div.style.height = "100%";
+function createShareOverlay(parentID, isGif) {
+    var shareOverlayContainer = document.createElement("DIV");
+    shareOverlayContainer.id = parentID + "shareOverlayContainer";
+    shareOverlayContainer.style.position = "absolute";
+    shareOverlayContainer.style.top = "0px";
+    shareOverlayContainer.style.left = "0px";
+    shareOverlayContainer.style.display = "flex";
+    shareOverlayContainer.style.alignItems = "flex-end";
+    shareOverlayContainer.style.width = "100%";
+    shareOverlayContainer.style.height = "100%";
 
     var shareBar = document.createElement("div");
     shareBar.id = parentID + "shareBar"
@@ -63,18 +66,35 @@ function createShareOverlayDiv(parentID, isGif) {
     var shareButtonID = parentID + "shareButton";
     shareBar.innerHTML += '<div class="shareButtonDiv">' +
             '<label class="shareButtonLabel" for="' + shareButtonID + '">SHARE</label>' +
-            '<input type="button" class="shareButton" id="' + shareButtonID + '" onclick="" />' +
+            '<input type="button" class="shareButton" id="' + shareButtonID + '" onclick="selectImageToShare(' + parentID + ')" />' +
         '</div>'
-    div.appendChild(shareBar);
+    shareOverlayContainer.appendChild(shareBar);
 
     var shareOverlay = document.createElement("div");
-    shareOverlay.style.visibilty = "hidden";
+    shareOverlay.id = parentID + "shareOverlay";
+    shareOverlay.style.display = "none";
     shareOverlay.style.backgroundColor = "black";
     shareOverlay.style.opacity = "0.5";
-    div.appendChild(shareOverlay);
+    shareOverlay.style.width = "100%";
+    shareOverlay.style.height = "100%";
+    shareOverlayContainer.appendChild(shareOverlay);
 
-    return div;
+    return shareOverlayContainer;
 }
+function selectImageToShare(selectedID) {
+    selectedID = selectedID.id; // Why is this necessary?
+    var shareOverlayContainer = document.getElementById(selectedID + "shareOverlayContainer");
+    var shareBar = document.getElementById(selectedID + "shareBar");
+    var shareOverlay = document.getElementById(selectedID + "shareOverlay");
+
+    shareOverlayContainer.style.outline = "4px solid #00b4ef";
+    shareOverlayContainer.style.outlineOffset = "-4px";
+
+    shareBar.style.display = "none";
+
+    shareOverlay.style.display = "inline";
+}
+
 function handleCaptureSetting(setting) {
     var stillAndGif = document.getElementById('stillAndGif');
     var stillOnly = document.getElementById('stillOnly');
