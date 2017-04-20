@@ -1780,8 +1780,9 @@ void Application::cleanupBeforeQuit() {
     // stop QML
     DependencyManager::destroy<OffscreenUi>();
 
-    delete _snapshotSoundInjector;
-    _snapshotSoundInjector = nullptr;
+    if (_snapshotSoundInjector != nullptr) {
+        _snapshotSoundInjector->stop();
+    }
 
     // stop audio after QML, as there are unexplained audio crashes originating in qtwebengine
 
