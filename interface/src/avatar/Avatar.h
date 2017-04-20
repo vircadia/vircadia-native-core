@@ -253,7 +253,7 @@ protected:
     friend class AvatarManager;
 
     const float SMOOTH_TIME_POSITION = 0.125f;
-    const float SMOOTH_TIME_ORIENTATION = 0.075f;
+    const float SMOOTH_TIME_ORIENTATION = 0.15f;
 
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};

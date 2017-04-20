@@ -358,7 +358,9 @@ void Avatar::simulate(float deltaTime, bool inView) {
                 );
                 updateAttitude();
             }
-        }
+		} else if (AvatarData::getPosition() != _smoothPositionTarget) {
+			setPosition(AvatarData::getPosition());
+		}
 
         if (_smoothOrientationTimer < _smoothOrientationTime) {
             // Smooth the remote avatar movement.
@@ -371,7 +373,9 @@ void Avatar::simulate(float deltaTime, bool inView) {
                 );
                 updateAttitude();
             }
-        }
+        } else if (AvatarData::getOrientation() != _smoothOrientationTarget) {
+			setOrientation(AvatarData::getOrientation());
+		}
     }
 
     PerformanceTimer perfTimer("simulate");
@@ -1386,7 +1390,7 @@ void Avatar::setPosition(const glm::vec3& position) {
     }
 
     // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-    _smoothPositionInitial = getPosition();
+    _smoothPositionInitial = AvatarData::getPosition();
     _smoothPositionTarget = position;
     _smoothPositionTimer = 0.0f;
 }
@@ -1400,7 +1404,7 @@ void Avatar::setOrientation(const glm::quat& orientation) {
     }
 
     // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-    _smoothOrientationInitial = getOrientation();
+	_smoothOrientationInitial = AvatarData::getOrientation();
     _smoothOrientationTarget = orientation;
     _smoothOrientationTimer = 0.0f;
 }
