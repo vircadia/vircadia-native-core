@@ -31,7 +31,7 @@ TextureBaker::TextureBaker(const QUrl& textureURL, gpu::TextureType textureType,
 {
     // figure out the baked texture filename
     auto originalFilename = textureURL.fileName();
-    _bakedTextureFileName = originalFilename.left(originalFilename.indexOf('.')) + BAKED_TEXTURE_EXT;
+    _bakedTextureFileName = originalFilename.left(originalFilename.indexOf('.',  -1)) + BAKED_TEXTURE_EXT;
 }
 
 void TextureBaker::bake() {
