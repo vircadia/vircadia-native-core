@@ -144,7 +144,7 @@ Column {
     RalewayLight {
         id: label;
         text: labelText;
-        color: hifi.colors.blueHighlight;
+        color: hifi.colors.white;
         size: 28;
     }
     ListView {
@@ -152,6 +152,9 @@ Column {
         clip: true;
         model: suggestions;
         orientation: ListView.Horizontal;
+        highlightMoveDuration: -1;
+        highlightMoveVelocity: -1;
+        highlight: Rectangle { color: "transparent"; border.width: 4; border.color: hifiStyleConstants.colors.blueHighlight; z: 1; }
 
         spacing: 14;
         width: parent.width;

@@ -221,91 +221,64 @@ StackView {
                 }
             }
         }
-        Rectangle {
-            id: topBar
-            height: 37
-            color: hifiStyleConstants.colors.white
-
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            anchors.topMargin: 0
-            anchors.top: addressBar.bottom
-            
-            Row {
-                id: thing
-                spacing: 5 * hifi.layout.spacing
-
-                anchors {
-                    top: parent.top;
-                    left: parent.left
-                    leftMargin: 25
-                }
-
-                TabletTextButton {
-                    id: allTab;
-                    text: "ALL";
-                    property string includeActions: 'snapshot,concurrency';
-                    selected: allTab === selectedTab;
-                    action: tabSelect;
-                }
-
-                TabletTextButton {
-                    id: placeTab;
-                    text: "PLACES";
-                    property string includeActions: 'concurrency';
-                    selected: placeTab === selectedTab;
-                    action: tabSelect;
-                    
-                }
-
-                TabletTextButton {
-                    id: snapTab;
-                    text: "SNAP";
-                    property string includeActions: 'snapshot';
-                    selected: snapTab === selectedTab;
-                    action: tabSelect;
-                }
-            }
-        
-        }
 
         Rectangle {
             id: bgMain;
-            color: hifiStyleConstants.colors.white;
+            color: hifiStyleConstants.colors.faintGray50;
             anchors {
+                top: addressBar.bottom;
                 bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom;
-                bottomMargin: 0;
-                right: parent.right;
-                rightMargin: 0;
                 left: parent.left;
-                leftMargin: 0;
-                top: topBar.bottom;
-                topMargin: 0;
+                right: parent.right;
             }
-            Feed {
-                id: happeningNow;
-                width: bgMain.width;
-                metaverseServerUrl: addressBarDialog.metaverseServerUrl;
-                actions: selectedTab.includeActions;
-                filter: addressLine.text;
-            }
-            Feed {
-                id: places;
-                width: bgMain.width;
-                metaverseServerUrl: addressBarDialog.metaverseServerUrl;
-                actions: 'concurrency';
-                filter: addressLine.text;
-                anchors.top: happeningNow.bottom;
-            }
-            Feed {
-                id: snapshots;
-                width: bgMain.width;
-                metaverseServerUrl: addressBarDialog.metaverseServerUrl;
-                actions: 'snapshot';
-                filter: addressLine.text;
-                anchors.top: places.bottom;
+            ScrollView {
+                anchors.fill: bgMain;
+                horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff;
+                verticalScrollBarPolicy: Qt.ScrollBarAlwaysOn; //Qt.ScrollBarAsNeeded;
+                Rectangle { // Column margins require QtQuick 2.7, which we don't use yet.
+                    id: column;
+                    property real pad: 10;
+                    width: bgMain.width - column.pad;
+                    height: stack.height;
+                    color: "transparent";
+                    anchors {
+                        left: bgMain.left;
+                        leftMargin: column.pad;
+                        topMargin: column.pad;
+                    }
+                    Column {
+                        id: stack;
+                        width: column.width;
+                        spacing: column.pad;
+                        Feed {
+                            id: happeningNow;
+                            width: parent.width;
+                            property real cardScale: 1.5;
+                            cardWidth: places.cardWidth * happeningNow.cardScale;
+                            cardHeight: places.cardHeight * happeningNow.cardScale;
+                            metaverseServerUrl: addressBarDialog.metaverseServerUrl;
+                            labelText: 'Happening Now';
+                            actions: 'concurrency,snapshot'; //selectedTab.includeActions;
+                            filter: addressLine.text;
+                        }
+                        Feed {
+                            id: places;
+                            width: parent.width;
+                            metaverseServerUrl: addressBarDialog.metaverseServerUrl;
+                            labelText: 'Places';
+                            actions: 'concurrency';
+                            filter: addressLine.text;
+                        }
+                        Feed {
+                            id: snapshots;
+                            width: parent.width;
+                            metaverseServerUrl: addressBarDialog.metaverseServerUrl;
+                            labelText: 'Recent Activity';
+                            actions: 'snapshot';
+                            filter: addressLine.text;
+                        }
+                    }
+                }
             }
         }
 
@@ -385,11 +358,6 @@ StackView {
         error.message += ' in ' + url; // Include the url.
         cb(error);
         return true;
-    }
-
-    property var selectedTab: allTab;
-    function tabSelect(textButton) {
-        selectedTab = textButton;
     }
 
     function updateLocationText(enteringAddress) {
