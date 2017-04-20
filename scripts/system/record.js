@@ -50,15 +50,16 @@
             // Create both overlays in case user switches desktop/HMD mode.
             var screenSize = Controller.getViewportDimensions(),
                 recordingText = "REC",  // Unicode circle \u25cf doesn't render in HMD.
-                AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
+                CAMERA_JOINT_INDEX = -7;
 
             if (HMD.active) {
                 // 3D overlay attached to avatar.
                 hmdOverlay = Overlays.addOverlay("text3d", {
                     text: recordingText,
                     dimensions: { x: 3 * HMD_FONT_SIZE, y: HMD_FONT_SIZE },
-                    parentID: AVATAR_SELF_ID,
-                    localPosition: { x: -1.0, y: 1.1, z: 2.0 },
+                    parentID: MyAvatar.sessionUUID,
+                    parentJointIndex: CAMERA_JOINT_INDEX,
+                    localPosition: { x: 0.95, y: 0.95, z: -2.0 },
                     color: { red: 255, green: 0, blue: 0 },
                     alpha: 0.9,
                     lineHeight: HMD_FONT_SIZE,
