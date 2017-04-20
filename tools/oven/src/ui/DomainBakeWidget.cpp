@@ -149,7 +149,8 @@ void DomainBakeWidget::chooseFileButtonClicked() {
         startDir = QDir::homePath();
     }
 
-    auto selectedFile = QFileDialog::getOpenFileName(this, "Choose Entities File", startDir);
+    auto selectedFile = QFileDialog::getOpenFileName(this, "Choose Entities File", startDir,
+                                                     "Entities File (*.json *.gz)");
 
     if (!selectedFile.isEmpty()) {
         // set the contents of the entities file text box to be the path to the selected file
