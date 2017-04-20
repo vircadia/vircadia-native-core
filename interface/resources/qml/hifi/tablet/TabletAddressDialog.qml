@@ -186,7 +186,6 @@ StackView {
                 }
                 font.pixelSize: hifi.fonts.pixelSize * 0.75
                 onTextChanged: {
-                    console.log('fixme onTextChanged "' + addressLine.text + "'.");
                     updateLocationText(text.length > 0);
                 }
                 onAccepted: {
@@ -234,7 +233,7 @@ StackView {
             ScrollView {
                 anchors.fill: bgMain;
                 horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff;
-                verticalScrollBarPolicy: Qt.ScrollBarAlwaysOn; //Qt.ScrollBarAsNeeded;
+                verticalScrollBarPolicy: Qt.ScrollBarAsNeeded;
                 Rectangle { // Column margins require QtQuick 2.7, which we don't use yet.
                     id: column;
                     property real pad: 10;
@@ -258,7 +257,8 @@ StackView {
                             cardHeight: places.cardHeight * happeningNow.cardScale;
                             metaverseServerUrl: addressBarDialog.metaverseServerUrl;
                             labelText: 'Happening Now';
-                            actions: 'concurrency,snapshot'; //selectedTab.includeActions;
+                            actions: 'concurrency,snapshot'; // uncomment this line instead of next to produce fake announcement data for testing.
+                            //actions: 'announcement';
                             filter: addressLine.text;
                         }
                         Feed {

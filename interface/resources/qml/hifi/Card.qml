@@ -35,6 +35,7 @@ Rectangle {
     property string timePhrase: pastTime(timestamp);
     property int onlineUsers: 0;
     property bool isConcurrency: action === 'concurrency';
+    property bool isAnnouncement: action === 'announcement';
     property bool isStacked: !isConcurrency && drillDownToPlace;
 
     property int textPadding: 10;
@@ -156,7 +157,7 @@ Rectangle {
     Row {
         FiraSansRegular {
             id: users;
-            visible: isConcurrency;
+            visible: isConcurrency || isAnnouncement;
             text: onlineUsers;
             size: textSize;
             color: messageColor;
@@ -171,7 +172,7 @@ Rectangle {
         }
         RalewayRegular {
             id: message;
-            text: isConcurrency ? ((onlineUsers === 1) ? "person" : "people") : (drillDownToPlace ? "snapshots" : ("by " + userName));
+            text: isConcurrency ? ((onlineUsers === 1) ? "person" : "people") : (isAnnouncement ? "connections" : (drillDownToPlace ? "snapshots" : ("by " + userName)));
             size: textSizeSmall;
             color: messageColor;
             elide: Text.ElideRight; // requires a width to be specified`

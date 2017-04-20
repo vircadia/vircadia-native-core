@@ -19,6 +19,7 @@ import "../styles-uit"
 
 Column {
     id: root;
+    visible: false;
 
     property int cardWidth: 212;
     property int cardHeight: 152;
@@ -44,6 +45,11 @@ Column {
             tags = data.tags || [data.action, data.username],
             description = data.description || "",
             thumbnail_url = data.thumbnail_url || "";
+        if (actions === 'concurrency,snapshot') {
+            // A temporary hack for simulating announcements. We won't use this in production, but if requested, we'll use this data like announcements.
+            data.details.connections = 4;
+            data.action = 'announcement';
+        }
         return {
             place_name: name,
             username: data.username || "",
@@ -57,14 +63,14 @@ Column {
 
             tags: tags,
             description: description,
-            online_users: data.details.concurrency || 0,
+            online_users: data.details.connections || data.details.concurrency || 0,
             drillDownToPlace: false,
 
             searchText: [name].concat(tags, description || []).join(' ').toUpperCase()
         }
     }
     property var allStories: [];
-    property var placeMap: ({}); // Used for making stacks. FIXME: generalize to not just by place.
+    property var placeMap: ({}); // Used for making stacks.
     property int requestId: 0;
     function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
         var options = [
@@ -95,32 +101,17 @@ Column {
         getUserStoryPage(1, function (error) {
             allStories.forEach(makeFilteredStoryProcessor());
             console.log('user stories query', actions, error || 'ok', allStories.length, 'filtered to', suggestions.count);
+            root.visible = !!suggestions.count; // fixme reset on filtering, too!
         });
-    }
-    function addToSuggestions(place) { // fixme: move to makeFilteredStoryProcessor
-        var collapse = (actions === 'snapshot,concurrency') && (place.action !== 'concurrency'); // fixme generalize?
-        if (collapse) {
-            var existing = placeMap[place.place_name];
-            if (existing) {
-                existing.drillDownToPlace = true;
-                return;
-            }
-        }
-        suggestions.append(place);
-        if (collapse) {
-            placeMap[place.place_name] = suggestions.get(suggestions.count - 1);
-        } else if (place.action === 'concurrency') {
-            suggestions.get(suggestions.count - 1).drillDownToPlace = true; // Don't change raw place object (in allStories).
-        }
-    }
-    function suggestable(story) { // fixme add to makeFilteredStoryProcessor
-        if (story.action === 'snapshot') {
-            return true;
-        }
-        return (story.place_name !== AddressManager.placename); // Not our entry, but do show other entry points to current domain.
     }
     function makeFilteredStoryProcessor() { // answer a function(storyData) that adds it to suggestions if it matches
         var words = filter.toUpperCase().split(/\s+/).filter(identity);
+        function suggestable(story) { // fixme add to makeFilteredStoryProcessor
+            if (story.action === 'snapshot') {
+                return true;
+            }
+            return (story.place_name !== AddressManager.placename); // Not our entry, but do show other entry points to current domain.
+        }
         function matches(story) {
             if (!words.length) {
                 return suggestable(story);
@@ -128,6 +119,22 @@ Column {
             return words.every(function (word) {
                 return story.searchText.indexOf(word) >= 0;
             });
+        }
+        function addToSuggestions(place) {
+            var collapse = ((actions === 'concurrency,snapshot') && (place.action !== 'concurrency')) || (place.action === 'announcement');
+            if (collapse) {
+                var existing = placeMap[place.place_name];
+                if (existing) {
+                    existing.drillDownToPlace = true;
+                    return;
+                }
+            }
+            suggestions.append(place);
+            if (collapse) {
+                placeMap[place.place_name] = suggestions.get(suggestions.count - 1);
+            } else if (place.action === 'concurrency') {
+                suggestions.get(suggestions.count - 1).drillDownToPlace = true; // Don't change raw place object (in allStories).
+            }
         }
         return function (story) {
             if (matches(story)) {
