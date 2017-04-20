@@ -270,7 +270,7 @@
             playerTimestamps = [],  // Timestamps of last heartbeat update from player script.
 
             updateTimer,
-            UPDATE_INTERVAL = 5000;  // Must be > player's HEARTBEAT_INTERVAL. TODO: Final value.
+            UPDATE_INTERVAL = 5000;  // Must be > player's HEARTBEAT_INTERVAL.
 
         function numberOfPlayers() {
             return playerIDs.length;

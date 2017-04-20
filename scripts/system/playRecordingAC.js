@@ -18,9 +18,9 @@
         PLAYER_COMMAND_PLAY = "play",
         PLAYER_COMMAND_STOP = "stop",
         heartbeatTimer = null,
-        HEARTBEAT_INTERVAL = 3000,  // TODO: Final value.
-        TIMESTAMP_UPDATE_INTERVAL = 2500,  // TODO: Final value.
-        AUTOPLAY_SEARCH_INTERVAL = 5000,  // TODO: Final value.
+        HEARTBEAT_INTERVAL = 3000,
+        TIMESTAMP_UPDATE_INTERVAL = 2500,
+        AUTOPLAY_SEARCH_INTERVAL = 5000,
         AUTOPLAY_ERROR_INTERVAL = 30000,  // 30s
         scriptUUID,
 
@@ -280,7 +280,7 @@
 
         function autoPlay() {
             var recording,
-                AUTOPLAY_SEARCH_DELTA = 1000;  // TODO: Final value.
+                AUTOPLAY_SEARCH_DELTA = 1000;
 
             // Random delay to help reduce collisions between AC scripts.
             Script.setTimeout(function () {
