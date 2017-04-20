@@ -391,7 +391,7 @@ void DebugDeferredBuffer::configure(const Config& config) {
     _size = config.size;
 }
 
-void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
+void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     if (_mode == Off) {
         return;
     }
