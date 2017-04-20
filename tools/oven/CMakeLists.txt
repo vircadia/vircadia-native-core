@@ -9,3 +9,7 @@ if (WIN32)
 endif ()
 
 set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+
+# because the model-baking library is excluded from all and default builds, we force
+# a dependency on it here
+add_dependencies(${TARGET_NAME} model-baking)
