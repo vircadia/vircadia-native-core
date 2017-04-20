@@ -103,9 +103,8 @@ void TextureBaker::processTexture() {
 
     // the baked textures need to have the source hash added for cache checks in Interface
     // so we add that to the processed texture before handling it off to be serialized
-    QCryptographicHash hasher(QCryptographicHash::Md5);
-    hasher.addData(_originalTexture);
-    std::string hash = hasher.result().toHex().toStdString();
+    auto hashData = QCryptographicHash::hash(_originalTexture, QCryptographicHash::Md5);
+    std::string hash = hashData.toHex().toStdString();
     processedTexture->setSourceHash(hash);
     
     auto memKTX = gpu::Texture::serialize(*processedTexture);
