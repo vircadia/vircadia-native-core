@@ -1124,19 +1124,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return qApp->isHMDMode() ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_FULL_SCREEN_MIRROR, []() -> float {
-        return qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR ? 1 : 0;
+        return qApp->getCamera().getMode() == CAMERA_MODE_MIRROR ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_FIRST_PERSON, []() -> float {
-        return qApp->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON ? 1 : 0;
+        return qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_THIRD_PERSON, []() -> float {
-        return qApp->getCamera()->getMode() == CAMERA_MODE_THIRD_PERSON ? 1 : 0;
+        return qApp->getCamera().getMode() == CAMERA_MODE_THIRD_PERSON ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_ENTITY, []() -> float {
-        return qApp->getCamera()->getMode() == CAMERA_MODE_ENTITY ? 1 : 0;
+        return qApp->getCamera().getMode() == CAMERA_MODE_ENTITY ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_INDEPENDENT, []() -> float {
-        return qApp->getCamera()->getMode() == CAMERA_MODE_INDEPENDENT ? 1 : 0;
+        return qApp->getCamera().getMode() == CAMERA_MODE_INDEPENDENT ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_SNAP_TURN, []() -> float {
         return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
@@ -1436,6 +1436,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     entityPacketSender->setMyAvatar(myAvatar.get());
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
+    connect(_window, SIGNAL(windowMinimizedChanged(bool)), this, SLOT(windowMinimizedChanged(bool)));
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -1785,14 +1786,23 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
 
-    // shutdown render engine
-    _main3DScene = nullptr;
-    _renderEngine = nullptr;
-
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
 
 Application::~Application() {
+    // remove avatars from physics engine
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    VectorOfMotionStates motionStates;
+    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
+    _physicsEngine->removeObjects(motionStates);
+    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
+
+    _physicsEngine->setCharacterController(nullptr);
+
+    // shutdown render engine
+    _main3DScene = nullptr;
+    _renderEngine = nullptr;
+
     DependencyManager::destroy<Preferences>();
 
     _entityClipboard->eraseAllOctreeElements();
@@ -1804,14 +1814,6 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
-    _physicsEngine->setCharacterController(nullptr);
-
-    // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-    VectorOfMotionStates motionStates;
-    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
-    _physicsEngine->removeObjects(motionStates);
-    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
@@ -2083,7 +2085,7 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
-    if (_inPaint || _aboutToQuit) {
+    if (_inPaint || _aboutToQuit || _window->isMinimized()) {
         return;
     }
 
@@ -2440,7 +2442,7 @@ void Application::resizeGL() {
     // Possible change in aspect ratio
     {
         QMutexLocker viewLocker(&_viewMutex);
-        loadViewFrustum(_myCamera, _viewFrustum);
+        _myCamera.loadViewFrustum(_viewFrustum);
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -4525,7 +4527,7 @@ void Application::update(float deltaTime) {
     // to the server.
     {
         QMutexLocker viewLocker(&_viewMutex);
-        loadViewFrustum(_myCamera, _viewFrustum);
+        _myCamera.loadViewFrustum(_viewFrustum);
     }
 
     quint64 now = usecTimestampNow();
@@ -4853,24 +4855,6 @@ QRect Application::getDesirableApplicationGeometry() const {
     return applicationGeometry;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////
-// loadViewFrustum()
-//
-// Description: this will load the view frustum bounds for EITHER the head
-//                 or the "myCamera".
-//
-void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
-    // We will use these below, from either the camera or head vectors calculated above
-    viewFrustum.setProjection(camera.getProjection());
-
-    // Set the viewFrustum up with the correct position and orientation of the camera
-    viewFrustum.setPosition(camera.getPosition());
-    viewFrustum.setOrientation(camera.getOrientation());
-
-    // Ask the ViewFrustum class to calculate our corners
-    viewFrustum.calculate();
-}
-
 glm::vec3 Application::getSunDirection() const {
     // Sun direction is in fact just the location of the sun relative to the origin
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
@@ -5042,7 +5026,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // load the view frustum
     {
         QMutexLocker viewLocker(&_viewMutex);
-        loadViewFrustum(theCamera, _displayViewFrustum);
+        theCamera.loadViewFrustum(_displayViewFrustum);
     }
 
     // TODO fix shadows and make them use the GPU library
@@ -5059,7 +5043,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         transaction.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
     }
 
-    // Assuming nothing get's rendered through that
+    // Assuming nothing gets rendered through that
     if (!selfAvatarOnly) {
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
             // render models...
@@ -5115,6 +5099,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             QMutexLocker viewLocker(&_viewMutex);
             renderArgs->setViewFrustum(_displayViewFrustum);
         }
+        renderArgs->_cameraMode = (int8_t)theCamera.getMode(); // HACK
+        renderArgs->_scene = getMain3DScene();
         _renderEngine->getRenderContext()->args = renderArgs;
 
         // Before the deferred pass, let's try to use the render engine
@@ -6498,6 +6484,14 @@ void Application::activeChanged(Qt::ApplicationState state) {
         default:
             _isForeground = false;
             break;
+    }
+}
+
+void Application::windowMinimizedChanged(bool minimized) {
+    if (!minimized && !getActiveDisplayPlugin()->isActive()) {
+        getActiveDisplayPlugin()->activate();
+    } else if (minimized && getActiveDisplayPlugin()->isActive()) {
+        getActiveDisplayPlugin()->deactivate();
     }
 }
 

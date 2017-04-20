@@ -151,9 +151,9 @@ public:
                                                 bool& somethingChanged)
                                                 { somethingChanged = false; return 0; }
 
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
+    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene,
                             render::Transaction& transaction) { return false; } // by default entity items don't add to scene
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
+    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
                                 render::Transaction& transaction) { } // by default entity items don't add to scene
     virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
 

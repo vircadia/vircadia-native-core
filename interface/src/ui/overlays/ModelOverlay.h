@@ -36,8 +36,8 @@ public:
 
     virtual ModelOverlay* createClone() const override;
 
-    virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
+    virtual bool addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
     void locationChanged(bool tellPhysics) override;
 

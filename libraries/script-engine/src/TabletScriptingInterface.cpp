@@ -410,19 +410,19 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
 }
 
 void TabletProxy::pushOntoStack(const QVariant& path) {
-    if (_qmlTabletRoot) {
-        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        auto stack = root->findChild<QQuickItem*>("stack");
         if (stack) {
             QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
         } else {
             loadQMLSource(path);
-        }
-    } else if (_desktopWindow) {
-        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
-        } else {
-            qCDebug(scriptengine) << "tablet cannot push QML because _desktopWindow doesn't have child stack";
         }
     } else {
         qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
@@ -430,20 +430,16 @@ void TabletProxy::pushOntoStack(const QVariant& path) {
 }
 
 void TabletProxy::popFromStack() {
-    if (_qmlTabletRoot) {
-        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "popSource");
-        } else {
-            qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot doesn't have child stack";
-        }
-    } else if (_desktopWindow) {
-        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "popSource");
-        } else {
-            qCDebug(scriptengine) << "tablet cannot pop QML because _desktopWindow doesn't have child stack";
-        }
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        auto stack = root->findChild<QQuickItem*>("stack");
+        QMetaObject::invokeMethod(stack, "popSource");
     } else {
         qCDebug(scriptengine) << "tablet cannot pop QML because _qmlTabletRoot or _desktopWindow is null";
     }
