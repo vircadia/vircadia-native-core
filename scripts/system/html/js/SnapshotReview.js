@@ -70,14 +70,44 @@ function createShareOverlay(parentID, isGif) {
         '</div>'
     shareOverlayContainer.appendChild(shareBar);
 
+    var shareOverlayBackground = document.createElement("div");
+    shareOverlayBackground.id = parentID + "shareOverlayBackground";
+    shareOverlayBackground.style.display = "none";
+    shareOverlayBackground.style.position = "absolute";
+    shareOverlayBackground.style.zIndex = "1";
+    shareOverlayBackground.style.top = "0px";
+    shareOverlayBackground.style.left = "0px";
+    shareOverlayBackground.style.backgroundColor = "black";
+    shareOverlayBackground.style.opacity = "0.5";
+    shareOverlayBackground.style.width = "100%";
+    shareOverlayBackground.style.height = "100%";
+    shareOverlayContainer.appendChild(shareOverlayBackground);
+
     var shareOverlay = document.createElement("div");
     shareOverlay.id = parentID + "shareOverlay";
+    shareOverlay.className = "shareOverlayDiv";
     shareOverlay.style.display = "none";
-    shareOverlay.style.backgroundColor = "black";
-    shareOverlay.style.opacity = "0.5";
     shareOverlay.style.width = "100%";
     shareOverlay.style.height = "100%";
+    shareOverlay.style.zIndex = "2";
+    var shareWithEveryoneButtonID = parentID + "shareWithEveryoneButton";
+    var inviteConnectionsCheckboxID = parentID + "inviteConnectionsCheckbox";
+    shareOverlay.innerHTML = '<label class="shareOverlayLabel">SHARE</label>' +
+        '<br/>' +
+        '<div class="shareControls">' +
+            '<div class="hifiShareControls">' +
+                '<input type="button" class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" value="SHARE WITH EVERYONE" onclick="" /><br>' +
+                '<input type="checkbox" class="inviteConnections" id="' + inviteConnectionsCheckboxID + '" checked="checked" />' +
+                '<label class="shareButtonLabel" for="' + inviteConnectionsCheckboxID + '">Invite My Connections</label><br>' +
+                '<input type="button" class="cancelShare" value="CANCEL" onclick="cancelSharing(' + parentID + ')" />' +
+            '</div>' +
+            '<div class="externalShareControls">' +
+                '<iframe src="https://www.facebook.com/plugins/share_button.php?href=http%3A%2F%2Fhighfidelity.io&layout=button_count&size=small&mobile_iframe=false&width=84&height=20&appId" width="84" height="20" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowTransparency="true"></iframe>' +
+                '<a class="twitter-share-button" href="https://twitter.com/intent/tweet">Tweet</a>' +
+            '</div>' +
+        '</div>';
     shareOverlayContainer.appendChild(shareOverlay);
+    twttr.widgets.load(shareOverlay);
 
     return shareOverlayContainer;
 }
@@ -85,14 +115,30 @@ function selectImageToShare(selectedID) {
     selectedID = selectedID.id; // Why is this necessary?
     var shareOverlayContainer = document.getElementById(selectedID + "shareOverlayContainer");
     var shareBar = document.getElementById(selectedID + "shareBar");
+    var shareOverlayBackground = document.getElementById(selectedID + "shareOverlayBackground");
     var shareOverlay = document.getElementById(selectedID + "shareOverlay");
 
-    shareOverlayContainer.style.outline = "4px solid #00b4ef";
-    shareOverlayContainer.style.outlineOffset = "-4px";
+    shareOverlay.style.outline = "4px solid #00b4ef";
+    shareOverlay.style.outlineOffset = "-4px";
 
     shareBar.style.display = "none";
 
+    shareOverlayBackground.style.display = "inline";
     shareOverlay.style.display = "inline";
+}
+function cancelSharing(selectedID) {
+    selectedID = selectedID.id; // Why is this necessary?
+    var shareOverlayContainer = document.getElementById(selectedID + "shareOverlayContainer");
+    var shareBar = document.getElementById(selectedID + "shareBar");
+    var shareOverlayBackground = document.getElementById(selectedID + "shareOverlayBackground");
+    var shareOverlay = document.getElementById(selectedID + "shareOverlay");
+
+    shareOverlay.style.outline = "none";
+
+    shareBar.style.display = "inline";
+
+    shareOverlayBackground.style.display = "none";
+    shareOverlay.style.display = "none";
 }
 
 function handleCaptureSetting(setting) {

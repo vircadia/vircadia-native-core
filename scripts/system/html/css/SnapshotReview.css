@@ -123,6 +123,39 @@ input[type=button].naked:active {
 .shareButton:active {
     background-color: white;
 }
+
+/*
+// START styling of share overlay
+*/
+.shareOverlayDiv {
+    text-align: center;
+}
+.shareControls {
+    text-align: left;
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    align-items: flex-start;
+    height: 50px;
+}
+.shareOverlayLabel {
+    line-height: 75px;
+}
+.hifiShareControls {
+    text-align: left;
+    width: 40%;
+    margin-left: 10%;
+}
+.externalShareControls {
+    text-align: left;
+    width: 40%;
+    margin-right: 10%;
+}
+.cancelShare {
+}
+/*
+// END styling of share overlay
+*/
 /*
 // END styling of snapshot pane and its contents
 */
