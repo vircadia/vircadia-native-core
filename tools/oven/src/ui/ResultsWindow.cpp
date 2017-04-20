@@ -88,10 +88,13 @@ int ResultsWindow::addPendingResultRow(const QString& fileName, const QDir& outp
 }
 
 void ResultsWindow::changeStatusForRow(int rowIndex, const QString& result) {
+    const int STATUS_COLUMN = 1;
     auto statusItem = new QTableWidgetItem(result);
     statusItem->setFlags(statusItem->flags() & ~Qt::ItemIsEditable);
-    _resultsTable->setItem(rowIndex, 1, statusItem);
+    _resultsTable->setItem(rowIndex, STATUS_COLUMN, statusItem);
 
     // resize the row for the new contents
     _resultsTable->resizeRowToContents(rowIndex);
+    // reszie the column for the new contents
+    _resultsTable->resizeColumnToContents(STATUS_COLUMN);
 }
