@@ -23,12 +23,10 @@
 
 
 QScriptValue tabletToScriptValue(QScriptEngine* engine, TabletProxy* const &in) {
-    qDebug() << "------------------- converting tabletProxy to scriptValue <--------------------";
     return engine->newQObject(in, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
 }
 
 void tabletFromScriptValue(const QScriptValue& value, TabletProxy* &out) {
-    qDebug() << "----------------> value to tabletProxy <----------------";
     out = qobject_cast<TabletProxy*>(value.toQObject());
 }
 
