@@ -48,7 +48,7 @@ FBXBaker::FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath,
 
     // grab the name of the FBX from the URL, this is used for folder output names
     auto fileName = fbxURL.fileName();
-    _fbxName = fileName.left(fileName.indexOf('.', -1));
+    _fbxName = fileName.left(fileName.lastIndexOf('.'));
 }
 
 static const QString BAKED_OUTPUT_SUBFOLDER = "baked/";
