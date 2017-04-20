@@ -257,8 +257,8 @@ StackView {
                             cardHeight: places.cardHeight * happeningNow.cardScale;
                             metaverseServerUrl: addressBarDialog.metaverseServerUrl;
                             labelText: 'Happening Now';
-                            actions: 'concurrency,snapshot'; // uncomment this line instead of next to produce fake announcement data for testing.
-                            //actions: 'announcement';
+                            //actions: 'concurrency,snapshot'; // uncomment this line instead of next to produce fake announcement data for testing.
+                            actions: 'announcement';
                             filter: addressLine.text;
                         }
                         Feed {

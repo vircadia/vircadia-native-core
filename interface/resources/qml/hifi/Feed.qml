@@ -72,7 +72,8 @@ Column {
     property var allStories: [];
     property var placeMap: ({}); // Used for making stacks.
     property int requestId: 0;
-    function getUserStoryPage(pageNumber, cb) { // cb(error) after all pages of domain data have been added to model
+    function getUserStoryPage(pageNumber, cb, cb1) { // cb(error) after all pages of domain data have been added to model
+        // If supplied, cb1 will be run after the first page IFF it is not the last, for responsiveness.
         var options = [
             'now=' + new Date().toISOString(),
             'include_actions=' + actions,
@@ -89,19 +90,29 @@ Column {
             }
             allStories = allStories.concat(data.user_stories.map(makeModelData));
             if ((data.current_page < data.total_pages) && (data.current_page <=  10)) { // just 10 pages = 100 stories for now
+                if ((pageNumber === 1) && cb1) {
+                    cb1();
+                }
                 return getUserStoryPage(pageNumber + 1, cb);
             }
             cb();
         });
     }
     function fillDestinations() { // Public
+        var filter = makeFilteredStoryProcessor(), counter = 0;
         allStories = [];
         suggestions.clear();
         placeMap = {};
         getUserStoryPage(1, function (error) {
-            allStories.forEach(makeFilteredStoryProcessor());
+            allStories.slice(counter).forEach(filter);
             console.log('user stories query', actions, error || 'ok', allStories.length, 'filtered to', suggestions.count);
-            root.visible = !!suggestions.count; // fixme reset on filtering, too!
+            root.visible = !!suggestions.count;
+        }, function () { // If there's more than a page, put what we have in the model right away, keeping track of how many are processed.
+            allStories.forEach(function (story) {
+                counter++;
+                filter(story);
+                root.visible = !!suggestions.count;
+            });
         });
     }
     function makeFilteredStoryProcessor() { // answer a function(storyData) that adds it to suggestions if it matches
@@ -146,6 +157,7 @@ Column {
         suggestions.clear();
         placeMap = {};
         allStories.forEach(makeFilteredStoryProcessor());
+        root.visible = !!suggestions.count;
     }
 
     RalewayLight {
