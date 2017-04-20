@@ -685,7 +685,7 @@ private:
     QTimer _addAssetToWorldErrorTimer;
 
     FileScriptingInterface* _fileDownload;
-    AudioInjector* _snapshotSoundInjector{ nullptr };
+    AudioInjector* _snapshotSoundInjector { nullptr };
     SharedSoundPointer _snapshotSound;
 };
 

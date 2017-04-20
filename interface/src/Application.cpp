@@ -1780,18 +1780,20 @@ void Application::cleanupBeforeQuit() {
     // stop QML
     DependencyManager::destroy<OffscreenUi>();
 
+    delete _snapshotSoundInjector;
+    _snapshotSoundInjector = nullptr;
+
     // stop audio after QML, as there are unexplained audio crashes originating in qtwebengine
 
     // stop the AudioClient, synchronously
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
 
+
     // destroy Audio so it and its threads have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
 
-//    delete _snapshotSound;
-//    _snapshotSound = nullptr;
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
 
