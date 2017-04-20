@@ -43,7 +43,8 @@ function showFeedWindow() {
 }
 
 var outstanding;
-var readyData;
+var snapshotOptions;
+var imageData;
 var shareAfterLogin = false;
 var snapshotToShareAfterLogin;     
 function onMessage(message) {
@@ -62,12 +63,15 @@ function onMessage(message) {
     switch (message.action) {
         case 'ready':  // Send it.
             tablet.emitScriptEvent(JSON.stringify({
-                type: "snapshotSettings",
-                action: Settings.getValue("alsoTakeAnimatedSnapshot", true)
+                type: "snapshot",
+                action: "captureSettings",
+                setting: Settings.getValue("alsoTakeAnimatedSnapshot", true)
             }));
             tablet.emitScriptEvent(JSON.stringify({
                 type: "snapshot",
-                action: readyData
+                action: "addImages",
+                options: snapshotOptions,
+                data: imageData
             }));
             outstanding = 0;
             break;
@@ -79,19 +83,18 @@ function onMessage(message) {
                 tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
             }
             break;
-        case 'captureSettings':
-            Settings.setValue("alsoTakeAnimatedSnapshot", message.action);
+        case 'captureStillAndGif':
+            print("Changing Snapshot Capture Settings to Capture Still + GIF");
+            Settings.setValue("alsoTakeAnimatedSnapshot", true);
+            break;
+        case 'captureStillOnly':
+            print("Changing Snapshot Capture Settings to Capture Still Only");
+            Settings.setValue("alsoTakeAnimatedSnapshot", false);
             break;
         case 'takeSnapshot':
             // In settings, first store the paths to the last snapshot
             //
             onClicked();
-            break;
-        case 'setOpenFeedFalse':
-            Settings.setValue('openFeedAfterShare', false);
-            break;
-        case 'setOpenFeedTrue':
-            Settings.setValue('openFeedAfterShare', true);
             break;
         default:
             //tablet.webEventReceived.disconnect(onMessage);  // <<< It's probably this that's missing?!
@@ -135,9 +138,8 @@ function onMessage(message) {
 
 var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
 var isInSnapshotReview = false;
-function confirmShare(data) {
+function reviewSnapshot() {
     tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
-    readyData = data;
     tablet.webEventReceived.connect(onMessage);
     HMD.openTablet();
     isInSnapshotReview = true;
@@ -182,7 +184,7 @@ function onClicked() {
     Script.setTimeout(function () {
         HMD.closeTablet();
         Script.setTimeout(function () {
-            Window.takeSnapshot(false, true, 1.91);
+            Window.takeSnapshot(false, Settings.getValue("alsoTakeAnimatedSnapshot", true), 1.91);
         }, SNAPSHOT_DELAY);
     }, FINISH_SOUND_DELAY);
 }
@@ -220,15 +222,14 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     // during which time the user may have moved. So stash that info in the dialog so that
     // it records the correct href. (We can also stash in .jpegs, but not .gifs.)
     // last element in data array tells dialog whether we can share or not
-    var confirmShareContents = [
-        { localPath: pathStillSnapshot, href: href },
-        {
-            containsGif: false,
-            processingGif: false,
-            canShare: !!isDomainOpen(domainId),
-            openFeedAfterShare: shouldOpenFeedAfterShare()
-        }];
-    confirmShare(confirmShareContents);
+    snapshotOptions = {
+        containsGif: false,
+        processingGif: false,
+        canShare: !!isDomainOpen(domainId),
+        openFeedAfterShare: shouldOpenFeedAfterShare()
+    };
+    imageData = [{ localPath: pathStillSnapshot, href: href }];
+    reviewSnapshot();
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
@@ -237,8 +238,10 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
 
 function processingGifStarted(pathStillSnapshot) {
     Window.processingGifStarted.disconnect(processingGifStarted);
-    button.clicked.disconnect(onClicked);
-    buttonConnected = false;
+    if (buttonConnected) {
+        button.clicked.disconnect(onClicked);
+        buttonConnected = false;
+    }
     // show hud
     Reticle.visible = reticleVisible;
     // show overlays if they were on
@@ -246,16 +249,15 @@ function processingGifStarted(pathStillSnapshot) {
         Menu.setIsOptionChecked("Overlays", true);
     }
 
-    var confirmShareContents = [
-        { localPath: pathStillSnapshot, href: href },
-        {
-            containsGif: true,
-            processingGif: true,
-            loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
-            canShare: !!isDomainOpen(domainId),
-            openFeedAfterShare: shouldOpenFeedAfterShare()
-        }];
-    confirmShare(confirmShareContents);
+    snapshotOptions = {
+        containsGif: true,
+        processingGif: true,
+        loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
+        canShare: !!isDomainOpen(domainId),
+        openFeedAfterShare: shouldOpenFeedAfterShare()
+    };
+    imageData = [{ localPath: pathStillSnapshot, href: href }];
+    reviewSnapshot();
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
@@ -264,22 +266,24 @@ function processingGifStarted(pathStillSnapshot) {
 
 function processingGifCompleted(pathAnimatedSnapshot) {
     Window.processingGifCompleted.disconnect(processingGifCompleted);
-    button.clicked.connect(onClicked);
-    buttonConnected = true;
+    if (!buttonConnected) {
+        button.clicked.connect(onClicked);
+        buttonConnected = true;
+    }
 
-    var confirmShareContents = [
-        { localPath: pathAnimatedSnapshot, href: href },
-        {
-            containsGif: true,
-            processingGif: false,
-            canShare: !!isDomainOpen(domainId),
-            openFeedAfterShare: shouldOpenFeedAfterShare()
-        }];
-    readyData = confirmShareContents;
+    snapshotOptions = {
+        containsGif: true,
+        processingGif: false,
+        canShare: !!isDomainOpen(domainId),
+        openFeedAfterShare: shouldOpenFeedAfterShare()
+    }
+    imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
 
     tablet.emitScriptEvent(JSON.stringify({
         type: "snapshot",
-        action: readyData
+        action: "addImages",
+        options: snapshotOptions,
+        data: imageData
     }));
 }
 

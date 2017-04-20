@@ -16,41 +16,34 @@ body {
 /*
 // START styling of top bar and its contents
 */
-.snapsection {
-    padding-left: 8px;
-    padding-right: 8px;
-    padding-top: 12px;
-    margin: 8px;
-}
 
-.snapsection.title {
-    padding-top: 0;
+.title {
+    padding: 6px 10px;
     text-align: left;
-    height: 24px;
+    height: 20px;
+    line-height: 20px;
     clear: both;
 }
 
 .title label {
     position: relative;
-    top: 10px;
     font-size: 18px;
     float: left;
 }
 
 #snapshotSettings {
     position: relative;
-    top: 4px;
     float: right;
 }
 #settingsLabel {
     position: relative;
     float: right;
-    top: 12px;
     font-family: Raleway-SemiBold;
     font-size: 14px;
 }
 .hifi-glyph {
     font-size: 30px;
+    top: -7px;
 }
 input[type=button].naked {
     color: #afafaf;
@@ -71,7 +64,7 @@ input[type=button].naked:active {
 */
 #snapshot-pane {
     width: 100%;
-    height: 510px;
+    height: 574px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -169,16 +162,12 @@ input[type=button].naked:active {
     width: 100%;
     position: absolute;
     left: 0;
-    bottom: 14px;
-    margin-bottom: 4px;
+    margin-top: 8px;
     overflow: hidden;
 }
 #snap-settings {
     float: left;
     margin-left: 10px;
-}
-#snap-settings label {
-    height: 50px;
 }
 #snap-settings form input {
     margin-bottom: 10px;

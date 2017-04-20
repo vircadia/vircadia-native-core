@@ -6448,7 +6448,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
         // If we're not doing an animated snapshot as well...
-        if (!includeAnimated || !(SnapshotAnimated::alsoTakeAnimatedSnapshot.get())) {
+        if (!includeAnimated) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
             emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
         } else {

@@ -149,40 +149,25 @@ function handleCaptureSetting(setting) {
 
     stillAndGif.onclick = function () {
         EventBridge.emitWebEvent(JSON.stringify({
-            type: "captureSettings",
-            action: true
+            type: "snapshot",
+            action: "captureStillAndGif"
         }));
     }
     stillOnly.onclick = function () {
         EventBridge.emitWebEvent(JSON.stringify({
-            type: "captureSettings",
-            action: false
-        }));
-    }
-
-}
-function handleShareButtons(messageOptions) {
-    var openFeed = document.getElementById('openFeed');
-    openFeed.checked = messageOptions.openFeedAfterShare;
-    openFeed.onchange = function () {
-        EventBridge.emitWebEvent(JSON.stringify({
             type: "snapshot",
-            action: (openFeed.checked ? "setOpenFeedTrue" : "setOpenFeedFalse")
+            action: "captureStillOnly"
         }));
-    };
-
-    if (!messageOptions.canShare) {
-        // this means you may or may not be logged in, but can't share
-        // because you are not in a public place.
-        document.getElementById("sharing").innerHTML = "<p class='prompt'>Snapshots can be shared when they're taken in shareable places.";
     }
+
 }
 window.onload = function () {
     // TESTING FUNCTIONS START
     // Uncomment and modify the lines below to test SnapshotReview in a browser.
-    imageCount = 2;
-    addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/2017-01-27 50 Avatars!/!!!.gif' });
-    addImage({ localPath: 'http://lorempixel.com/553/255' });
+    //imageCount = 2;
+    //addImage({ localPath: 'C:/Users/Zach Fox/Desktop/hifi-snap-by-zfox-on-2017-04-20_14-59-12.gif' });
+    //addImage({ localPath: 'C:/Users/Zach Fox/Desktop/hifi-snap-by-zfox-on-2017-04-20_14-59-12.jpg' });
+    //addImage({ localPath: 'http://lorempixel.com/553/255' });
     //addImage({localPath: 'c:/Users/howar/OneDrive/Pictures/hifi-snap-by--on-2016-07-27_12-58-43.jpg'});
     // TESTING FUNCTIONS END
 
@@ -192,36 +177,42 @@ window.onload = function () {
 
             message = JSON.parse(message);
 
-            switch (message.type) {
-                case 'snapshot':
+            if (message.type !== "snapshot") {
+                return;
+            }
+            
+            switch (message.action) {
+                case 'addImages':
                     // The last element of the message contents list contains a bunch of options,
                     // including whether or not we can share stuff
                     // The other elements of the list contain image paths.
-                    var messageOptions = message.action.pop();
-                    handleShareButtons(messageOptions);
+                    var messageOptions = message.options;
 
                     if (messageOptions.containsGif) {
                         if (messageOptions.processingGif) {
-                            imageCount = message.action.length + 1; // "+1" for the GIF that'll finish processing soon
-                            message.action.unshift({ localPath: messageOptions.loadingGifPath });
-                            message.action.forEach(addImage);
+                            imageCount = message.data.length + 1; // "+1" for the GIF that'll finish processing soon
+                            message.data.unshift({ localPath: messageOptions.loadingGifPath });
+                            message.data.forEach(addImage);
                         } else {
-                            var gifPath = message.action[0].localPath;
+                            var gifPath = message.data[0].localPath;
                             document.getElementById('p0img').src = gifPath;
                             paths[0].localPath = gifPath;
                         }
                     } else {
-                        imageCount = message.action.length;
-                        message.action.forEach(addImage);
+                        imageCount = message.data.length;
+                        message.data.forEach(addImage);
                     }
                     break;
-                case 'snapshotSettings':
-                    handleCaptureSetting(message.action);
+                case 'captureSettings':
+                    handleCaptureSetting(message.setting);
                     break;
                 default:
-                    return;
+                    print("Unknown message action received in SnapshotReview.js.");
+                    break;
             }
+
         });
+
         EventBridge.emitWebEvent(JSON.stringify({
             type: "snapshot",
             action: "ready"
