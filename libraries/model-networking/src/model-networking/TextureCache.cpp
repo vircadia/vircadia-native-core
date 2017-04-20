@@ -353,7 +353,8 @@ void NetworkTexture::makeRequest() {
         _ktxHeaderRequest = ResourceManager::createResourceRequest(this, _activeUrl);
 
         if (!_ktxHeaderRequest) {
-            //qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
+            qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
+
             PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID));
             return;
         }
@@ -424,6 +425,13 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 
     _ktxMipRequest = ResourceManager::createResourceRequest(this, _activeUrl);
 
+    if (!_ktxMipRequest) {
+        qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
+
+        PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID));
+        return;
+    }
+
     _ktxMipLevelRangeInFlight = { low, high };
     if (isHighMipRequest) {
         // This is a special case where we load the high 7 mips
@@ -450,8 +458,8 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 void NetworkTexture::ktxHeaderRequestFinished() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA);
 
-_ktxHeaderRequestFinished = true;
-maybeHandleFinishedInitialLoad();
+    _ktxHeaderRequestFinished = true;
+    maybeHandleFinishedInitialLoad();
 }
 
 void NetworkTexture::ktxMipRequestFinished() {
@@ -470,10 +478,11 @@ void NetworkTexture::ktxMipRequestFinished() {
 
             auto texture = _textureSource->getGPUTexture();
             if (texture) {
-                _lowestKnownPopulatedMip = _ktxMipLevelRangeInFlight.first;
+                //_lowestKnownPopulatedMip = _ktxMipLevelRangeInFlight.first;
                 //qDebug() << "Writing mip for " << _url;
                 texture->assignStoredMip(_ktxMipLevelRangeInFlight.first,
                     _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
+                _lowestKnownPopulatedMip = _textureSource->getGPUTexture()->minAvailableMipLevel();
             }
             else {
                 qWarning(networking) << "Trying to update mips but texture is null";
@@ -529,11 +538,6 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
             auto ktxHeaderData = _ktxHeaderRequest->getData();
             auto ktxHighMipData = _ktxMipRequest->getData();
 
-            _ktxHeaderRequest->deleteLater();
-            _ktxHeaderRequest = nullptr;
-            _ktxMipRequest->deleteLater();
-            _ktxMipRequest = nullptr;
-
             auto header = reinterpret_cast<const ktx::Header*>(ktxHeaderData.data());
 
             qDebug() << "Creating KTX";
@@ -548,10 +552,11 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                 qWarning() << "Cannot load " << _url << ", invalid header identifier";
                 _ktxResourceState = FAILED_TO_LOAD;
                 finishedLoading(false);
+                return;
             }
 
             auto kvSize = header->bytesOfKeyValueData;
-            if (kvSize > ktxHeaderData.size() - ktx::KTX_HEADER_SIZE) {
+            if (kvSize > (ktxHeaderData.size() - ktx::KTX_HEADER_SIZE)) {
                 qWarning() << "Cannot load " << _url << ", did not receive all kv data with initial request";
                 _ktxResourceState = FAILED_TO_LOAD;
                 finishedLoading(false);
@@ -663,11 +668,18 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                 }
             }
 
+            _lowestKnownPopulatedMip = texture->minAvailableMipLevel();
+
 
             texture->registerMipInterestListener(this);
             _ktxResourceState = WAITING_FOR_MIP_REQUEST;
             setImage(texture, header->getPixelWidth(), header->getPixelHeight());
             qDebug() << "Loaded KTX: " << QString::fromStdString(hash) << " : " << _url;
+
+            _ktxHeaderRequest->deleteLater();
+            _ktxHeaderRequest = nullptr;
+            _ktxMipRequest->deleteLater();
+            _ktxMipRequest = nullptr;
         }
     }
 }

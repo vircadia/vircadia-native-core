@@ -123,8 +123,9 @@ uint16 KtxStorage::minAvailableMipLevel() const {
 }
 
 void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& storage) {
+    qDebug() << "Populating " << level << " " << _filename.c_str();
     if (level != _minMipLevelAvailable - 1) {
-        qWarning() << "Invalid level to be stored, expected: " << (_minMipLevelAvailable - 1) << ", got: " << level;
+        qWarning() << "Invalid level to be stored, expected: " << (_minMipLevelAvailable - 1) << ", got: " << level << " " << _filename.c_str();
         //throw std::runtime_error("Invalid image size for level");
         return;
     }

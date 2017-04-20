@@ -450,7 +450,7 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
         // Track how much we're actually using
         totalVariableMemoryAllocation += gltexture->size();
         canDemote |= vartexture->canDemote();
-        canPromote |= vartexture->canPromote();
+        canPromote |= vartexture->canPromote() || (texture->minAvailableMipLevel() < vartexture->_allocatedMip);
         hasTransfers |= vartexture->hasPendingTransfers();
     }
 

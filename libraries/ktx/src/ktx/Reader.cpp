@@ -50,7 +50,7 @@ namespace ktx {
 
     bool checkIdentifier(const Byte* identifier) {
         if (!(0 == memcmp(identifier, Header::IDENTIFIER.data(), Header::IDENTIFIER_LENGTH))) {
-            throw ReaderException("identifier field invalid");
+            //throw ReaderException("identifier field invalid");
             return false;
         }
         return true;
