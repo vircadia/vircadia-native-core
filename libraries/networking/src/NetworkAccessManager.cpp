@@ -19,14 +19,7 @@ QThreadStorage<QNetworkAccessManager*> networkAccessManagers;
 
 QNetworkAccessManager& NetworkAccessManager::getInstance() {
     if (!networkAccessManagers.hasLocalData()) {
-        auto nm = new QNetworkAccessManager();
-        networkAccessManagers.setLocalData(nm);
-
-        QNetworkProxy proxy;
-        proxy.setType(QNetworkProxy::HttpProxy);
-        proxy.setHostName("127.0.0.1");
-        proxy.setPort(8888);
-        nm->setProxy(proxy);
+        networkAccessManagers.setLocalData(new QNetworkAccessManager());
     }
     
     return *networkAccessManagers.localData();

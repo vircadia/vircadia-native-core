@@ -188,7 +188,6 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
-#include <QtNetwork/QNetworkProxy>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -605,7 +604,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     {
         const QString TEST_SCRIPT = "--testScript";
         const QString TRACE_FILE = "--traceFile";
-        const QString HTTP_PROXY = "--httpProxy";
         const QStringList args = arguments();
         for (int i = 0; i < args.size() - 1; ++i) {
             if (args.at(i) == TEST_SCRIPT) {
@@ -617,16 +615,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 QString traceFilePath = args.at(i + 1);
                 setProperty(hifi::properties::TRACING, traceFilePath);
                 DependencyManager::get<tracing::Tracer>()->startTracing();
-            } else if (args.at(i) == HTTP_PROXY) {
             }
         }
     }
-
-    QNetworkProxy proxy;
-    proxy.setType(QNetworkProxy::HttpProxy);
-    proxy.setHostName("127.0.0.1");
-    proxy.setPort(8888);
-    QNetworkProxy::setApplicationProxy(proxy);
 
     // make sure the debug draw singleton is initialized on the main thread.
     DebugDraw::getInstance().removeMarker("");
