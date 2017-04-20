@@ -1436,6 +1436,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     entityPacketSender->setMyAvatar(myAvatar.get());
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
+    connect(_window, SIGNAL(windowMinimizedChanged(bool)), this, SLOT(windowMinimizedChanged(bool)));
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -2084,7 +2085,7 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
-    if (_inPaint || _aboutToQuit) {
+    if (_inPaint || _aboutToQuit || _window->isMinimized()) {
         return;
     }
 
@@ -6486,6 +6487,14 @@ void Application::activeChanged(Qt::ApplicationState state) {
     }
 }
 
+void Application::windowMinimizedChanged(bool minimized) {
+    if (!minimized && !getActiveDisplayPlugin()->isActive()) {
+        getActiveDisplayPlugin()->activate();
+    } else if (minimized && getActiveDisplayPlugin()->isActive()) {
+        getActiveDisplayPlugin()->deactivate();
+    }
+}
+
 void Application::postLambdaEvent(std::function<void()> f) {
     if (this->thread() == QThread::currentThread()) {
         f();
@@ -6773,6 +6782,13 @@ void Application::updateDisplayMode() {
             if (!active) {
                 qFatal("Failed to activate fallback plugin");
             }
+
+            // We've changed the selection - it should be reflected in the menu
+            QAction* action = menu->getActionForOption(newDisplayPlugin->getName());
+            if (!action) {
+                qFatal("Failed to find activated plugin");
+            }
+            action->setChecked(true);
         }
 
         _offscreenContext->makeCurrent();
