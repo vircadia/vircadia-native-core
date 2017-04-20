@@ -479,7 +479,7 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     return _spotLightMesh;
 }
 
-void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer) {
+void PreparePrimaryFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer) {
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
@@ -512,7 +512,7 @@ void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, con
     primaryFramebuffer = _primaryFramebuffer;
 }
 
-void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+void PrepareDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     auto args = renderContext->args;
 
     auto primaryFramebuffer = inputs.get0();
@@ -553,7 +553,7 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 
-void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
@@ -681,7 +681,7 @@ RenderDeferredLocals::RenderDeferredLocals() :
 
 }
 
-void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
@@ -746,7 +746,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
     }
 }
 
-void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+void RenderDeferredCleanup::run(const render::RenderContextPointer& renderContext) {
     auto args = renderContext->args;
     auto& batch = (*args->_batch);
     {
@@ -792,7 +792,7 @@ RenderDeferred::RenderDeferred() {
 void RenderDeferred::configure(const Config& config) {
 }
 
-void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
+void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     PROFILE_RANGE(render, "DeferredLighting");
 
     auto deferredTransform = inputs.get0();
@@ -813,11 +813,11 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     args->_batch = &batch;
      _gpuTimer->begin(batch);
 
-    setupJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
+    setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
     
-    lightsJob.run(sceneContext, renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
+    lightsJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
 
-    cleanupJob.run(sceneContext, renderContext);
+    cleanupJob.run(renderContext);
 
     _gpuTimer->end(batch);
      args->_context->appendFrameBatch(batch);

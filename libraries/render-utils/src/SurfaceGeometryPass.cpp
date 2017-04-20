@@ -133,7 +133,7 @@ LinearDepthPass::LinearDepthPass() {
 void LinearDepthPass::configure(const Config& config) {
 }
 
-void LinearDepthPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+void LinearDepthPass::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -404,7 +404,7 @@ void SurfaceGeometryPass::configure(const Config& config) {
 }
 
 
-void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 

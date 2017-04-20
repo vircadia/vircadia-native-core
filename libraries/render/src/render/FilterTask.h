@@ -41,8 +41,8 @@ namespace render {
         ItemFilterArray _filters;
 
         void configure(const Config& config) {}
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBoundsArray& outItems) {
-            auto& scene = sceneContext->_scene;
+        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBoundsArray& outItems) {
+            auto& scene = renderContext->_scene;
             
             // Clear previous values
             for (size_t i = 0; i < NUM_FILTERS; i++) {
@@ -73,7 +73,7 @@ namespace render {
 
         int _keepLayer { 0 };
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 
     // SliceItems job config defining the slice range
@@ -107,7 +107,7 @@ namespace render {
             _rangeLength = config.rangeLength;
         }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
     
     // Keep items belonging to the job selection
@@ -118,7 +118,7 @@ namespace render {
         std::string _name;
         SelectItems(const Selection::Name& name) : _name(name) {}
         
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 
     // Same as SelectItems but reorder the output to match the selection order
@@ -129,7 +129,7 @@ namespace render {
         std::string _name;
         SelectSortItems(const Selection::Name& name) : _name(name) {}
         
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 
     // From meta-Items, generate the sub-items
@@ -139,7 +139,7 @@ namespace render {
 
         MetaToSubItems() {}
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemIDs& outItems);
+        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemIDs& outItems);
     };
 
 }
