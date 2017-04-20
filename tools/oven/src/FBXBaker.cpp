@@ -48,7 +48,7 @@ FBXBaker::FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath,
 
     // grab the name of the FBX from the URL, this is used for folder output names
     auto fileName = fbxURL.fileName();
-    _fbxName = fileName.left(fileName.indexOf('.'));
+    _fbxName = fileName.left(fileName.indexOf('.', -1));
 }
 
 static const QString BAKED_OUTPUT_SUBFOLDER = "baked/";
@@ -229,7 +229,7 @@ QString FBXBaker::createBakedTextureFileName(const QFileInfo& textureFileInfo) {
     // in case another texture referenced by this model has the same base name
     auto nameMatches = _textureNameMatchCount[textureFileInfo.baseName()];
 
-    QString bakedTextureFileName { textureFileInfo.baseName() };
+    QString bakedTextureFileName { textureFileInfo.completeBaseName() };
 
     if (nameMatches > 0) {
         // there are already nameMatches texture with this name
@@ -356,7 +356,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
 
                             // make sure this texture points to something and isn't one we've already re-mapped
                             if (!textureFileInfo.filePath().isEmpty()
-                                && textureFileInfo.completeSuffix() != BAKED_TEXTURE_EXT.mid(1)) {
+                                && textureFileInfo.suffix() != BAKED_TEXTURE_EXT.mid(1)) {
 
                                 // construct the new baked texture file name and file path
                                 // ensuring that the baked texture will have a unique name
@@ -366,7 +366,8 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                     _uniqueOutputPath + BAKED_OUTPUT_SUBFOLDER + bakedTextureFileName
                                 };
 
-                                qCDebug(model_baking).noquote() << "Re-mapping" << fileTexture->GetFileName() << "to" << bakedTextureFilePath;
+                                qCDebug(model_baking).noquote() << "Re-mapping" << fileTexture->GetFileName()
+                                    << "to" << bakedTextureFilePath;
 
                                 // write the new filename into the FBX scene
                                 fileTexture->SetFileName(bakedTextureFilePath.toLocal8Bit());
