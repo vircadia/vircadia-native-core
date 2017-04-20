@@ -559,9 +559,12 @@ void ImageReader::read() {
         // Load the image into a gpu::Texture
         auto networkTexture = resource.staticCast<NetworkTexture>();
         texture.reset(networkTexture->getTextureLoader()(image, url));
-        texture->setSource(url);
         if (texture) {
+            texture->setSource(url);
             texture->setFallbackTexture(networkTexture->getFallbackTexture());
+        } else {
+            qCDebug(modelnetworking) << _url << "loading stopped; texture wasn't created";
+            return;
         }
 
         auto textureCache = DependencyManager::get<TextureCache>();
