@@ -17,9 +17,9 @@
 #include <QtCore/QUrl>
 #include <QtCore/QThread>
 
-#include <Baker.h>
-#include <FBXBaker.h>
-#include <TextureBaker.h>
+#include "Baker.h"
+#include "FBXBaker.h"
+#include "TextureBaker.h"
 
 class DomainBaker : public Baker {
     Q_OBJECT
