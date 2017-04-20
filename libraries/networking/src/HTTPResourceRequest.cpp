@@ -71,7 +71,7 @@ void HTTPResourceRequest::doSend() {
         qDebug() << "Setting http range to " << byteRange;
         networkRequest.setRawHeader("Range", byteRange.toLatin1());
     }
-    networkRequest.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
+    networkRequest.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, false);
 
     _reply = NetworkAccessManager::getInstance().get(networkRequest);
     
