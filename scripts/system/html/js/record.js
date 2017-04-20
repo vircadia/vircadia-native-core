@@ -16,7 +16,7 @@ var isUsingToolbar = false,
     numberOfPlayers = 0,
     recordingsBeingPlayed = [],
     elRecordings,
-    elRecordingsPlaying,
+    elRecordingsTable,
     elRecordingsList,
     elInstructions,
     elPlayersUnused,
@@ -61,6 +61,8 @@ function updateRecordings() {
         td,
         span,
         input,
+        ths,
+        tds,
         length,
         i,
         HIFI_GLYPH_CLOSE_SMALL = "C";
@@ -105,8 +107,16 @@ function updateRecordings() {
     tr.appendChild(td);
     tbody.appendChild(tr);
 
-    elRecordingsPlaying.replaceChild(tbody, elRecordingsList);
+    // Update table content.
+    elRecordingsTable.replaceChild(tbody, elRecordingsList);
     elRecordingsList = document.getElementById("recordings-list");
+
+    // Update header cell widths to match content widths.
+    ths = document.querySelectorAll("#recordings-table thead th");
+    tds = document.querySelectorAll("#recordings-table tbody tr:first-child td");
+    for (i = 0; i < ths.length; i += 1) {
+        ths[i].width = tds[i].offsetWidth;
+    }
 }
 
 function updateInstructions() {
@@ -251,7 +261,7 @@ function onBodyLoaded() {
 
     elRecordings = document.getElementById("recordings");
 
-    elRecordingsPlaying = document.getElementById("recordings-playing");
+    elRecordingsTable = document.getElementById("recordings-table");
     elRecordingsList = document.getElementById("recordings-list");
     elInstructions = document.getElementById("instructions");
     elPlayersUnused = document.getElementById("players-unused");

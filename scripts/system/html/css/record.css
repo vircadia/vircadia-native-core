@@ -11,6 +11,7 @@
 
 body {
     padding: 0;
+    overflow: hidden;
 }
 
 .title {
@@ -26,24 +27,48 @@ body {
 
 #recordings {
     height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    padding: 63px 21px 158px 21px;
+    position: relative;
     box-sizing: border-box;
+    padding: 48px 0 214px 0;
+    margin: 0 21px 0 21px;
+}
+
+#recordings #table-container {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
+    border-left: 2px solid #575757;
+    border-right: 2px solid #575757;
+    background-color: #2e2e2e;
 }
 
 #recordings table {
-    height: 100%;
-    table-layout: fixed;
-    background: none !important;
+    border: none;
 }
 
-#recordings thead, #recordings thead tr {
-    background: none !important;
+#recordings thead {
+    position: absolute;
+    top: 19px;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+    border: 2px solid #575757;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    border-bottom: 1px solid #575757;
+    position: absolute;
+    word-wrap: nowrap;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 #recordings table col#unload-column {
+    width: 100px;
+}
+
+#recordings thead th:last-child {
     width: 100px;
 }
 
@@ -57,16 +82,34 @@ body {
 
 #recordings tbody tr.filler td {
     height: auto;
-    background-color: #2e2e2e;
     border-top: 1px solid #1c1c1c;
 }
-
 
 #recordings-list tr td:last-child span {
     font-family: HiFi-Glyphs;
     font-size: 24px;
     height: 24px;
-    display: inline-block;
+}
+
+#recordings tfoot {
+    position: absolute;
+    bottom: 189px;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+    border: 2px solid #575757;
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+    border-top: 1px solid #575757;
+}
+
+#recordings tfoot tr, #recordings tfoot td {
+    background: none;
+}
+
+#recordings #load-container {
+    position: relative;
+    top: 25px;
 }
 
 
