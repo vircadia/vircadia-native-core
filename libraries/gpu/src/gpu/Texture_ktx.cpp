@@ -13,7 +13,10 @@
 #include "Texture.h"
 #include <qdebug.h>
 
+#include <QtCore/QByteArray>
+
 #include <ktx/KTX.h>
+
 using namespace gpu;
 
 using PixelsPointer = Texture::PixelsPointer;
@@ -312,7 +315,10 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
 
     auto hash = texture.sourceHash();
     if (!hash.empty()) {
-        keyValues.emplace_back(SOURCE_HASH_KEY, static_cast<uint32>(hash.size()), (ktx::Byte*) hash.c_str());
+        // the sourceHash is an std::string in hex
+        // we use QByteArray to take the hex and turn it into the smaller binary representation (16 bytes)
+        auto binaryHash = QByteArray::fromHex(QByteArray::fromStdString(hash));
+        keyValues.emplace_back(SOURCE_HASH_KEY, static_cast<uint32>(binaryHash.size()), (ktx::Byte*) binaryHash.data());
     }
 
     auto ktxBuffer = ktx::KTX::create(header, images, keyValues);
