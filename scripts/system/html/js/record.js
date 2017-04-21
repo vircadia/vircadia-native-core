@@ -41,7 +41,7 @@ var isUsingToolbar = false,
     FINISH_ON_OPEN_ACTION = "finishOnOpen";
 
 function stopPlayingRecording(event) {
-    var playerID = event.target.getElementsByTagName("input")[0].value;
+    var playerID = event.target.getAttribute("playerID");
     EventBridge.emitWebEvent(JSON.stringify({
         type: EVENT_BRIDGE_TYPE,
         action: STOP_PLAYING_RECORDING_ACTION,
@@ -61,33 +61,33 @@ function updateRecordings() {
     var tbody,
         tr,
         td,
-        span,
         input,
         ths,
         tds,
         length,
         i,
-        HIFI_GLYPH_CLOSE_SMALL = "C";
+        HIFI_GLYPH_CLOSE = "w";
 
     recordingsBeingPlayed.sort(orderRecording);
 
     tbody = document.createElement("tbody");
     tbody.id = "recordings-list";
 
+
+    // <tr><td>Filename</td><td><input type="button" class="glyph red" value="w" playerID=id /></td></tr>
     for (i = 0, length = recordingsBeingPlayed.length; i < length; i += 1) {
         tr = document.createElement("tr");
         td = document.createElement("td");
         td.innerHTML = recordingsBeingPlayed[i].filename.slice(4);
         tr.appendChild(td);
         td = document.createElement("td");
-        span = document.createElement("span");
-        span.innerHTML = HIFI_GLYPH_CLOSE_SMALL;
-        span.addEventListener("click", stopPlayingRecording);
         input = document.createElement("input");
-        input.setAttribute("type", "hidden");
-        input.setAttribute("value", recordingsBeingPlayed[i].playerID);
-        span.appendChild(input);
-        td.appendChild(span);
+        input.setAttribute("type", "button");
+        input.setAttribute("class", "glyph red");
+        input.setAttribute("value", HIFI_GLYPH_CLOSE);
+        input.setAttribute("playerID", recordingsBeingPlayed[i].playerID);
+        input.addEventListener("click", stopPlayingRecording);
+        td.appendChild(input);
         tr.appendChild(td);
         tbody.appendChild(tr);
     }

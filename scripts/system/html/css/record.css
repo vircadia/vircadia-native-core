@@ -29,7 +29,7 @@ body {
     height: 100%;
     position: relative;
     box-sizing: border-box;
-    padding: 50px 0 186px 0;
+    padding: 51px 0 185px 0;
     margin: 0 21px 0 21px;
 }
 
@@ -85,15 +85,17 @@ body {
     border-top: 1px solid #1c1c1c;
 }
 
-#recordings-list tr td:last-child span {
-    font-family: HiFi-Glyphs;
-    font-size: 24px;
-    height: 24px;
+#recordings-list input {
+    height: 22px;
+    width: 22px;
+    min-width: 22px;
+    font-size: 16px;
+    padding: 0 1px 0 0;
 }
 
 #recordings tfoot {
     position: absolute;
-    bottom: 161px;
+    bottom: 159px;
     left: 0;
     width: 100%;
     box-sizing: border-box;
@@ -203,7 +205,7 @@ body {
 }
 
 #record-controls #checkbox-container {
-    margin-top: 33px;
+    margin-top: 31px;
 }
 
 #record-controls div.property {
