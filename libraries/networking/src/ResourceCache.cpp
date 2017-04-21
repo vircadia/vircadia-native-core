@@ -720,19 +720,18 @@ void Resource::handleReplyFinished() {
         emit loaded(data);
         downloadFinished(data);
     } else {
+        _attempts++;
         switch (result) {
             case ResourceRequest::Result::Timeout: {
-                qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal 
-                                    << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
+                qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal ;
                 // Fall through to other cases
             }
             case ResourceRequest::Result::ServerUnavailable: {
+                _attemptsRemaining--;
                 qCDebug(networking) << "Server Unavailable loading" << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
                 // retry with increasing delays
                 const int BASE_DELAY_MS = 1000;
-                if (_attempts++ < MAX_ATTEMPTS) {
-                    _attemptsRemaining--;
-
+                if (_attempts < MAX_ATTEMPTS) {
                     auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
 
                     qCDebug(networking).noquote() << "Server unavailable for" << _url << "- may retry in" << waitTime << "ms"
