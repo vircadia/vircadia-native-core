@@ -59,6 +59,7 @@
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
+#include <AvatarBookmarks.h>
 #include <CursorManager.h>
 #include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
@@ -81,6 +82,7 @@
 #include <controllers/StateController.h>
 #include <UserActivityLoggerScriptingInterface.h>
 #include <LogHandler.h>
+#include "LocationBookmarks.h"
 #include <MainWindow.h>
 #include <MappingRequest.h>
 #include <MessagesClient.h>
@@ -530,6 +532,8 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<EntityScriptServerLogClient>();
     DependencyManager::set<LimitlessVoiceRecognitionScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
+    DependencyManager::set<AvatarBookmarks>();
+    DependencyManager::set<LocationBookmarks>();
 
     return previousSessionCrashed;
 }
@@ -590,7 +594,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _aboutToQuit(false),
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
-    _lastFaceTrackerUpdate(0)
+    _lastFaceTrackerUpdate(0),
+    _snapshotSound(nullptr)
 {
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
@@ -702,8 +707,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         updateHeartbeat();
         usleep(USECS_PER_MSEC * 50); // 20hz
     }
-
-    _bookmarks = new Bookmarks();  // Before setting up the menu
 
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
@@ -1122,19 +1125,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return qApp->isHMDMode() ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_FULL_SCREEN_MIRROR, []() -> float {
-        return qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR ? 1 : 0;
+        return qApp->getCamera().getMode() == CAMERA_MODE_MIRROR ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_FIRST_PERSON, []() -> float {
-        return qApp->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON ? 1 : 0;
+        return qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_THIRD_PERSON, []() -> float {
-        return qApp->getCamera()->getMode() == CAMERA_MODE_THIRD_PERSON ? 1 : 0;
+        return qApp->getCamera().getMode() == CAMERA_MODE_THIRD_PERSON ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_ENTITY, []() -> float {
-        return qApp->getCamera()->getMode() == CAMERA_MODE_ENTITY ? 1 : 0;
+        return qApp->getCamera().getMode() == CAMERA_MODE_ENTITY ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_CAMERA_INDEPENDENT, []() -> float {
-        return qApp->getCamera()->getMode() == CAMERA_MODE_INDEPENDENT ? 1 : 0;
+        return qApp->getCamera().getMode() == CAMERA_MODE_INDEPENDENT ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_SNAP_TURN, []() -> float {
         return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
@@ -1434,6 +1437,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     entityPacketSender->setMyAvatar(myAvatar.get());
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
+    connect(_window, SIGNAL(windowMinimizedChanged(bool)), this, SLOT(windowMinimizedChanged(bool)));
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -1450,6 +1454,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
         return entityServerNode && !isPhysicsEnabled();
     });
+
+    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
+    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
 
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
@@ -1773,24 +1780,38 @@ void Application::cleanupBeforeQuit() {
     // stop QML
     DependencyManager::destroy<OffscreenUi>();
 
+    if (_snapshotSoundInjector != nullptr) {
+        _snapshotSoundInjector->stop();
+    }
+
     // stop audio after QML, as there are unexplained audio crashes originating in qtwebengine
 
     // stop the AudioClient, synchronously
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
 
+
     // destroy Audio so it and its threads have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
-
-    // shutdown render engine
-    _main3DScene = nullptr;
-    _renderEngine = nullptr;
 
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
 
 Application::~Application() {
+    // remove avatars from physics engine
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    VectorOfMotionStates motionStates;
+    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
+    _physicsEngine->removeObjects(motionStates);
+    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
+
+    _physicsEngine->setCharacterController(nullptr);
+
+    // shutdown render engine
+    _main3DScene = nullptr;
+    _renderEngine = nullptr;
+
     DependencyManager::destroy<Preferences>();
 
     _entityClipboard->eraseAllOctreeElements();
@@ -1802,14 +1823,6 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
-    _physicsEngine->setCharacterController(nullptr);
-
-    // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-    VectorOfMotionStates motionStates;
-    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
-    _physicsEngine->removeObjects(motionStates);
-    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
@@ -2009,6 +2022,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    rootContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
+    rootContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -2079,7 +2094,7 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
-    if (_inPaint || _aboutToQuit) {
+    if (_inPaint || _aboutToQuit || _window->isMinimized()) {
         return;
     }
 
@@ -2436,7 +2451,7 @@ void Application::resizeGL() {
     // Possible change in aspect ratio
     {
         QMutexLocker viewLocker(&_viewMutex);
-        loadViewFrustum(_myCamera, _viewFrustum);
+        _myCamera.loadViewFrustum(_viewFrustum);
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -4521,7 +4536,7 @@ void Application::update(float deltaTime) {
     // to the server.
     {
         QMutexLocker viewLocker(&_viewMutex);
-        loadViewFrustum(_myCamera, _viewFrustum);
+        _myCamera.loadViewFrustum(_viewFrustum);
     }
 
     quint64 now = usecTimestampNow();
@@ -4849,24 +4864,6 @@ QRect Application::getDesirableApplicationGeometry() const {
     return applicationGeometry;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////
-// loadViewFrustum()
-//
-// Description: this will load the view frustum bounds for EITHER the head
-//                 or the "myCamera".
-//
-void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
-    // We will use these below, from either the camera or head vectors calculated above
-    viewFrustum.setProjection(camera.getProjection());
-
-    // Set the viewFrustum up with the correct position and orientation of the camera
-    viewFrustum.setPosition(camera.getPosition());
-    viewFrustum.setOrientation(camera.getOrientation());
-
-    // Ask the ViewFrustum class to calculate our corners
-    viewFrustum.calculate();
-}
-
 glm::vec3 Application::getSunDirection() const {
     // Sun direction is in fact just the location of the sun relative to the origin
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
@@ -5038,7 +5035,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // load the view frustum
     {
         QMutexLocker viewLocker(&_viewMutex);
-        loadViewFrustum(theCamera, _displayViewFrustum);
+        theCamera.loadViewFrustum(_displayViewFrustum);
     }
 
     // TODO fix shadows and make them use the GPU library
@@ -5055,7 +5052,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         transaction.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
     }
 
-    // Assuming nothing get's rendered through that
+    // Assuming nothing gets rendered through that
     if (!selfAvatarOnly) {
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
             // render models...
@@ -5111,6 +5108,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             QMutexLocker viewLocker(&_viewMutex);
             renderArgs->setViewFrustum(_displayViewFrustum);
         }
+        renderArgs->_cameraMode = (int8_t)theCamera.getMode(); // HACK
+        renderArgs->_scene = getMain3DScene();
         _renderEngine->getRenderContext()->args = renderArgs;
 
         // Before the deferred pass, let's try to use the render engine
@@ -5494,6 +5493,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
+    scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
+    scriptEngine->registerGlobalObject("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -6359,7 +6360,6 @@ void Application::loadLODToolsDialog() {
     } else {
         tablet->pushOntoStack("../../hifi/dialogs/TabletLODTools.qml");
     }
-
 }
 
 
@@ -6409,16 +6409,30 @@ void Application::toggleEntityScriptServerLogDialog() {
     }
 }
 
-void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
-    postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
-        QMediaPlayer* player = new QMediaPlayer();
-        QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
-        player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
-        player->play();
+void Application::loadAddAvatarBookmarkDialog() const {
+    auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
+    avatarBookmarks->addBookmark();
+}
 
+void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
+    
+    //keep sound thread out of event loop scope
+
+    AudioInjectorOptions options;
+    options.localOnly = true;
+    options.stereo = true;
+
+    if (_snapshotSoundInjector) {
+        _snapshotSoundInjector->setOptions(options);
+        _snapshotSoundInjector->restart();
+    } else {
+        QByteArray samples = _snapshotSound->getByteArray();
+        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+    }
+
+    postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
-
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated || !(SnapshotAnimated::alsoTakeAnimatedSnapshot.get())) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
@@ -6429,6 +6443,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         }
     });
 }
+
 void Application::shareSnapshot(const QString& path, const QUrl& href) {
     postLambdaEvent([path, href] {
         // not much to do here, everything is done in snapshot code...
@@ -6488,6 +6503,14 @@ void Application::activeChanged(Qt::ApplicationState state) {
         default:
             _isForeground = false;
             break;
+    }
+}
+
+void Application::windowMinimizedChanged(bool minimized) {
+    if (!minimized && !getActiveDisplayPlugin()->isActive()) {
+        getActiveDisplayPlugin()->activate();
+    } else if (minimized && getActiveDisplayPlugin()->isActive()) {
+        getActiveDisplayPlugin()->deactivate();
     }
 }
 
@@ -6778,6 +6801,13 @@ void Application::updateDisplayMode() {
             if (!active) {
                 qFatal("Failed to activate fallback plugin");
             }
+
+            // We've changed the selection - it should be reflected in the menu
+            QAction* action = menu->getActionForOption(newDisplayPlugin->getName());
+            if (!action) {
+                qFatal("Failed to find activated plugin");
+            }
+            action->setChecked(true);
         }
 
         _offscreenContext->makeCurrent();

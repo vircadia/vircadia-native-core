@@ -23,6 +23,7 @@
 #include <shared/RateCounter.h>
 
 #include "Avatar.h"
+#include "MyAvatar.h"
 #include "AvatarMotionState.h"
 #include "ScriptAvatar.h"
 
@@ -42,6 +43,7 @@ public:
     void init();
 
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
+    glm::vec3 getMyAvatarPosition() const { return _myAvatar->getPosition(); }
 
     // Null/Default-constructed QUuids will return MyAvatar
     Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) override { return new ScriptAvatar(getAvatarBySessionID(avatarID)); }
@@ -110,7 +112,7 @@ private:
 
     QVector<AvatarSharedPointer> _avatarsToFade;
 
-    SetOfAvatarMotionStates _motionStatesThatMightUpdate;
+    QSet<AvatarMotionState*> _motionStatesThatMightUpdate;
     VectorOfMotionStates _motionStatesToRemoveFromPhysics;
     SetOfMotionStates _motionStatesToAddToPhysics;
 

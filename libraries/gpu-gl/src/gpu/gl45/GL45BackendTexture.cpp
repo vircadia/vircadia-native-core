@@ -67,7 +67,7 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
 #else 
                     object = new GL45ResourceTexture(shared_from_this(), texture);
 #endif
-                    GL45VariableAllocationTexture::addMemoryManagedTexture(texturePointer);
+                    GLVariableAllocationSupport::addMemoryManagedTexture(texturePointer);
                 } else {
                     auto fallback = texturePointer->getFallbackTexture();
                     if (fallback) {
@@ -133,20 +133,6 @@ void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
         Q_ASSERT(false);
     }
     (void)CHECK_GL_ERROR();
-}
-
-void GL45Texture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const {
-    if (!_gpuObject.isStoredMipFaceAvailable(sourceMip)) {
-        return;
-    }
-    auto size = _gpuObject.evalMipDimensions(sourceMip);
-    auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
-    if (mipData) {
-        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.format, texelFormat.type, mipData->readData());
-    } else {
-         qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
-    }
 }
 
 void GL45Texture::syncSampler() const {

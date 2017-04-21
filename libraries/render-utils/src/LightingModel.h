@@ -171,7 +171,7 @@ public:
     MakeLightingModel();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, LightingModelPointer& lightingModel);
+    void run(const render::RenderContextPointer& renderContext, LightingModelPointer& lightingModel);
 
 private:
     LightingModelPointer _lightingModel;
