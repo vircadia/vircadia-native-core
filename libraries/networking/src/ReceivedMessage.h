@@ -50,7 +50,7 @@ public:
 
     qint64 getBytesLeftToRead() const { return _data.size() -  _position; }
 
-    udt::Packet::MessageNumber getMessageNumber() const { return _messageNumber; }
+    const udt::Packet::MessageNumber& getMessageNumber() const { return _messageNumber; }
 
     void seek(qint64 position) { _position = position; }
 
