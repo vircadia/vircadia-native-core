@@ -44,8 +44,7 @@
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var NORMAL_ICON    = "icons/tablet-icons/goto-i.svg";
     var NORMAL_ACTIVE  = "icons/tablet-icons/goto-a.svg";
-    var WAITING_ICON   = "icons/tablet-icons/help-i.svg"; // To be changed when we get the artwork.
-    var WAITING_ACTIVE = "icons/tablet-icons/help-a.svg";
+    var WAITING_ICON   = "icons/tablet-icons/goto-msg.svg";
     var button = tablet.addButton({
         icon: NORMAL_ICON,
         activeIcon: NORMAL_ACTIVE,
@@ -54,8 +53,8 @@
     });
     function messagesWaiting(isWaiting) {
         button.editProperties({
-            icon: isWaiting ? WAITING_ICON : NORMAL_ICON,
-            activeIcon: isWaiting ? WAITING_ACTIVE : NORMAL_ACTIVE
+            icon: isWaiting ? WAITING_ICON : NORMAL_ICON
+            // No need for a different activeIcon, because we issue messagesWaiting(false) when the button goes active anyway.
         });
     }
 
