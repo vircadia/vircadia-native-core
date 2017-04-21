@@ -71,28 +71,27 @@ namespace render {
     }
 }
 
-// static
-bool showReceiveStats = false;
+static bool showReceiveStats = false;
 void Avatar::setShowReceiveStats(bool receiveStats) {
     showReceiveStats = receiveStats;
 }
 
-// static
-bool renderMyLookAtVectors = false;
-bool renderOtherLookAtVectors = false;
-void Avatar::setShowLookAtVectors(bool showMine, bool showOthers) {
-    renderMyLookAtVectors = showMine;
-    renderOtherLookAtVectors = showOthers;
+static bool showMyLookAtVectors = false;
+void Avatar::setShowMyLookAtVectors(bool showMine) {
+    showMyLookAtVectors = showMine;
 }
 
-// static
-bool renderCollisionShapes = false;
-void Avatar::setRenderCollisionShapes(bool render) {
-    renderCollisionShapes = render;
+static bool showOtherLookAtVectors = false;
+void Avatar::setShowOtherLookAtVectors(bool showOthers) {
+    showOtherLookAtVectors = showOthers;
 }
 
-// static
-bool showNamesAboveHeads = false;
+static bool showCollisionShapes = false;
+void Avatar::setShowCollisionShapes(bool render) {
+    showCollisionShapes = render;
+}
+
+static bool showNamesAboveHeads = false;
 void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
@@ -553,14 +552,7 @@ void Avatar::updateRenderItem(render::Transaction& transaction) {
 
 void Avatar::postUpdate(float deltaTime) {
 
-    bool renderLookAtVectors;
-    if (isMyAvatar()) {
-        renderLookAtVectors = renderMyLookAtVectors;
-    } else {
-        renderLookAtVectors = renderOtherLookAtVectors;
-    }
-
-    if (renderLookAtVectors) {
+    if (isMyAvatar() ? showMyLookAtVectors : showOtherLookAtVectors) {
         const float EYE_RAY_LENGTH = 10.0;
         const glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
         const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
@@ -653,17 +645,18 @@ void Avatar::render(RenderArgs* renderArgs) {
         return;
     }
 
-    glm::vec3 toTarget = frustum.getPosition() - getPosition();
-    float distanceToTarget = glm::length(toTarget);
-
     fixupModelsInScene(renderArgs->_scene);
 
-    if (renderCollisionShapes && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
+    if (showCollisionShapes && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
         PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
         const float BOUNDING_SHAPE_ALPHA = 0.7f;
         _skeletonModel->renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
     }
 
+#if 0 ///  -------------- REMOVED FOR NOW --------------
+    // removed CPU calculations as per removal of menu option
+    glm::vec3 toTarget = frustum.getPosition() - getPosition();
+    float distanceToTarget = glm::length(toTarget);
     const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(distanceToTarget < DISPLAYNAME_DISTANCE);
     if (!isMyAvatar() || renderArgs->_cameraMode != (int8_t)CAMERA_MODE_FIRST_PERSON) {
@@ -673,6 +666,7 @@ void Avatar::render(RenderArgs* renderArgs) {
             renderDisplayName(batch, frustum, textPosition);
         }
     }
+#endif
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {

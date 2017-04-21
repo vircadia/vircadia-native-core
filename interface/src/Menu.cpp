@@ -504,11 +504,14 @@ Menu::Menu() {
 #endif
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
-        avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
+        avatar.get(), SLOT(setShowReceiveStats(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowBoundingCollisionShapes, 0, false,
+        avatar.get(), SLOT(setShowCollisionShapes(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowMyLookAtVectors, 0, false,
+        avatar.get(), SLOT(setShowMyLookAtVectors(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowOtherLookAtVectors, 0, false,
+        avatar.get(), SLOT(setShowOtherLookAtVectors(bool)));
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderMyLookAtVectors, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderOtherLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawDefaultPose(bool)));

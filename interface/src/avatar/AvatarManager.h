@@ -83,7 +83,6 @@ public:
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
 
 public slots:
-    void setShouldShowReceiveStats(bool shouldShowReceiveStats) const { Avatar::setShowReceiveStats(shouldShowReceiveStats); }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private:
