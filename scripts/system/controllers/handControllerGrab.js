@@ -31,6 +31,8 @@ var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
+var UPDATE_SLEEP_MS = 16; // how many milliseconds to wait between "update" calls
+
 var FORCE_IGNORE_IK = false;
 var SHOW_GRAB_POINT_SPHERE = false;
 
@@ -4032,14 +4034,12 @@ var updateWrapper = function () {
         updateTotalWork = 0;
     }
 
-    Script.setTimeout(updateWrapper, 16);
+    Script.setTimeout(updateWrapper, UPDATE_SLEEP_MS);
 }
 
-// Script.update.connect(updateWrapper);
-Script.setTimeout(updateWrapper, 16);
+Script.setTimeout(updateWrapper, UPDATE_SLEEP_MS);
 function cleanup() {
     Menu.removeMenuItem("Developer", "Show Grab Sphere");
-    // Script.update.disconnect(updateWrapper);
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
