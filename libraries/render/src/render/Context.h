@@ -14,14 +14,28 @@
 
 #include "Scene.h"
 
+
+namespace task {
+
+class JobConfig;
+
+class JobContext {
+public:
+    virtual ~JobContext() {}
+
+    std::shared_ptr<JobConfig> jobConfig{ nullptr };
+};
+using JobContextPointer = std::shared_ptr<JobContext>;
+}
+
 namespace render {
 
-    class JobConfig;
 
-class RenderContext {
+class RenderContext : public task::JobContext {
 public:
+    virtual ~RenderContext() {}
+
     RenderArgs* args;
-    std::shared_ptr<JobConfig> jobConfig{ nullptr };
     ScenePointer _scene;
 };
 using RenderContextPointer = std::shared_ptr<RenderContext>;

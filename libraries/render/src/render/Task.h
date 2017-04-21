@@ -28,13 +28,9 @@
 #include "gpu/Batch.h"
 #include <PerfStat.h>
 
-namespace render {
-
-class Varying;
-
+namespace task {
 
 // A varying piece of data, to be used as Job/Task I/O
-// TODO: Task IO
 class Varying {
 public:
     Varying() {}
@@ -300,9 +296,9 @@ public:
     }
 };
 
-class Job;
 class JobConcept;
-class Task;
+template <class RC> class JobT;
+template <class RC> class TaskT;
 class JobNoIO {};
 
 template <class C> class PersistentConfig : public C {
@@ -433,13 +429,11 @@ public:
 
     void connectChildConfig(QConfigPointer childConfig, const std::string& name);
     void transferChildrenConfigs(QConfigPointer source);
+     
+    JobConcept* _task;
 
 public slots:
     void refresh();
-
-private:
-    friend Task;
-    JobConcept* _task;
 };
 
 template <class T, class C> void jobConfigure(T& data, const C& configuration) {
@@ -451,16 +445,17 @@ template<class T> void jobConfigure(T&, const JobConfig&) {
 template<class T> void jobConfigure(T&, const TaskConfig&) {
     // nop, as the default TaskConfig was used, so the data does not need a configure method
 }
-template <class T> void jobRun(T& data, const RenderContextPointer& renderContext, const JobNoIO& input, JobNoIO& output) {
+
+template <class T, class RC> void jobRun(T& data, const RC& renderContext, const JobNoIO& input, JobNoIO& output) {
     data.run(renderContext);
 }
-template <class T, class I> void jobRun(T& data, const RenderContextPointer& renderContext, const I& input, JobNoIO& output) {
+template <class T, class RC, class I> void jobRun(T& data, const RC& renderContext, const I& input, JobNoIO& output) {
     data.run(renderContext, input);
 }
-template <class T, class O> void jobRun(T& data, const RenderContextPointer& renderContext, const JobNoIO& input, O& output) {
+template <class T, class RC, class O> void jobRun(T& data, const RC& renderContext, const JobNoIO& input, O& output) {
     data.run(renderContext, output);
 }
-template <class T, class I, class O> void jobRun(T& data, const RenderContextPointer& renderContext, const I& input, O& output) {
+template <class T, class RC, class I, class O> void jobRun(T& data, const RC& renderContext, const I& input, O& output) {
     data.run(renderContext, input, output);
 }
 
@@ -479,22 +474,29 @@ public:
     virtual QConfigPointer& getConfiguration() { return _config; }
     virtual void applyConfiguration() = 0;
 
-    virtual void run(const RenderContextPointer& renderContext) = 0;
-
-protected:
     void setCPURunTime(double mstime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(mstime); }
 
     QConfigPointer _config;
-
-    friend class Job;
+protected:
 };
 
+template <class RC>
 class Job {
 public:
-    using Concept = JobConcept;
+    using Context = RC;
+    using ContextPointer = std::shared_ptr<Context>;
     using Config = JobConfig;
     using QConfigPointer = std::shared_ptr<QObject>;
     using None = JobNoIO;
+
+    //template <class RC>
+    class Concept : public JobConcept {
+    public:
+        Concept(QConfigPointer config) : JobConcept(config) {}
+        virtual ~Concept() = default;
+
+        virtual void run(const ContextPointer& renderContext) = 0;
+    };
     using ConceptPointer = std::shared_ptr<Concept>;
 
     template <class T, class C = Config, class I = None, class O = None> class Model : public Concept {
@@ -529,7 +531,7 @@ public:
             jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
-        void run(const RenderContextPointer& renderContext) override {
+        void run(const ContextPointer& renderContext) override {
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->isEnabled()) {
                 jobRun(_data, renderContext, _input.get<I>(), _output.edit<O>());
@@ -554,7 +556,7 @@ public:
         return concept->_data;
     }
 
-    void run(const RenderContextPointer& renderContext) {
+    virtual void run(const ContextPointer& renderContext) {
         PerformanceTimer perfTimer(_name.c_str());
         PROFILE_RANGE(render, _name.c_str());
         auto start = usecTimestampNow();
@@ -576,13 +578,17 @@ protected:
 // The build method is where child Jobs can be added internally to the task 
 // where the input of the task can be setup to feed the child jobs
 // and where the output of the task is defined
-class Task : public Job {
+template <class RC>
+class Task : public Job<RC> {
 public:
+    using Context = RC;
+    using ContextPointer = std::shared_ptr<Context>;
     using Config = TaskConfig;
-    using QConfigPointer = Job::QConfigPointer;
-    using None = Job::None;
-    using Concept = Job::Concept;
-    using Jobs = std::vector<Job>;
+    using _Job = Job<RC>;
+    using QConfigPointer = _Job::QConfigPointer;
+    using None = _Job::None;
+    using Concept = _Job::Concept;
+    using Jobs = std::vector<_Job>;
 
     Task(std::string name, ConceptPointer concept) : Job(name, concept) {}
 
@@ -627,7 +633,6 @@ public:
         template <class... A>
         static std::shared_ptr<TaskModel> create(const Varying& input, A&&... args) {
             auto model = std::make_shared<TaskModel>(input, std::make_shared<C>());
-          //  std::static_pointer_cast<C>(model->_config)->_task = model.get();
 
             model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
 
@@ -669,7 +674,7 @@ public:
             }
         }
 
-        void run(const RenderContextPointer& renderContext) override {
+        void run(const ContextPointer& renderContext) override {
             auto config = std::static_pointer_cast<C>(_config);
             if (config->alwaysEnabled || config->enabled) {
                 for (auto job : _jobs) {
@@ -698,6 +703,25 @@ public:
 
 protected:
 };
+}
+
+namespace render {
+using JobConfig =task::JobConfig;
+using TaskConfig =task::TaskConfig;
+
+template <class T> using PersistentConfig = task::PersistentConfig<T>;
+
+using Job = task::Job<RenderContext>;
+using Task = task::Task<RenderContext>;
+
+using Varying = task::Varying;
+template < typename T0, typename T1 > using VaryingSet2 = task::VaryingSet2<T0, T1>;
+template < typename T0, typename T1, typename T2 > using VaryingSet3 = task::VaryingSet3<T0, T1, T2>;
+template < typename T0, typename T1, typename T2, typename T3 > using VaryingSet4 = task::VaryingSet4<T0, T1, T2, T3>;
+template < typename T0, typename T1, typename T2, typename T3, typename T4 > using VaryingSet5 = task::VaryingSet5<T0, T1, T2, T3, T4>;
+template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5 > using VaryingSet6 = task::VaryingSet6<T0, T1, T2, T3, T4, T5>;
+template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6 > using VaryingSet7 = task::VaryingSet7<T0, T1, T2, T3, T4, T5, T6>;
+template < class T, int NUM > using VaryingArray = task::VaryingArray<T, NUM>;
 
 // Versions of the COnfig integrating a gpu & batch timer
 class GPUJobConfig : public JobConfig {
