@@ -177,7 +177,7 @@ public:
 protected:
     GLExternalTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
     void generateMips() const override {}
-    void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const override {}
+    void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum internalFormat, GLenum type, Size sourceSize, const void* sourcePointer) const override {}
 
     Size size() const override { return 0; }
 };

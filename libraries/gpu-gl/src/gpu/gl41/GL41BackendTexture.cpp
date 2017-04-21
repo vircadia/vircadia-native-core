@@ -276,9 +276,9 @@ void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
 }
 
 
-void GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
+void GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum internalFormat, GLenum type, Size sourceSize, const void* sourcePointer) const {
     withPreservedTexture([&] {
-        Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, format, type, sourcePointer);
+        Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, format, internalFormat, type, sourceSize, sourcePointer);
     });
 }
 

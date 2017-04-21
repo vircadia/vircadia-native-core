@@ -105,7 +105,7 @@ public:
         void promote() override;
         void demote() override;
         void populateTransferQueue() override;
-        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const override;
+        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum internalFormat, GLenum type, Size sourceSize, const void* sourcePointer) const override;
 
         Size size() const override { return _size; }
         Size _size { 0 };
