@@ -404,7 +404,7 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
 
             // parse the identity packet and update the change timestamp if appropriate
             AvatarData::Identity identity;
-            quint64 messageNumber;
+            udt::Packet::MessageNumber messageNumber;
             AvatarData::parseAvatarIdentityPacket(message, identity, messageNumber);
             bool identityChanged = false;
             bool displayNameChanged = false;

@@ -1454,7 +1454,7 @@ QStringList AvatarData::getJointNames() const {
     return _jointNames;
 }
 
-void AvatarData::parseAvatarIdentityPacket(const QSharedPointer<ReceivedMessage>& message, Identity& identityOut, quint64& messageNumberOut) {
+void AvatarData::parseAvatarIdentityPacket(const QSharedPointer<ReceivedMessage>& message, Identity& identityOut, udt::Packet::MessageNumber& messageNumberOut) {
     const QByteArray& data = message->getMessage();
     messageNumberOut = message->getMessageNumber();
     QDataStream packetStream(data);
@@ -1478,11 +1478,9 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, quint64 messageNumber) {
+void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, udt::Packet::MessageNumber messageNumber) {
 
-    if (messageNumber < _lastIdentityPacketMessageNumber && 
-            _lastIdentityPacketMessageNumber < std::numeric_limits<quint64>::max()) {
-
+    if (messageNumber < _lastIdentityPacketMessageNumber) {
         qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
                          << "messageNumber:" << messageNumber << "_lastIdentityPacketMessageNumber:" << _lastIdentityPacketMessageNumber;
         return;

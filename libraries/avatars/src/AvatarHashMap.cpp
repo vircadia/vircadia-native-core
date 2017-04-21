@@ -127,7 +127,7 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
 
 void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     AvatarData::Identity identity;
-    quint64 messageNumber;
+    udt::Packet::MessageNumber messageNumber;
     AvatarData::parseAvatarIdentityPacket(message, identity, messageNumber);
 
     // make sure this isn't for an ignored avatar
