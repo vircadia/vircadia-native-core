@@ -14,6 +14,7 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows"
+import "../../dialogs"
 
 Rectangle {
     id: inputRecorder
@@ -21,8 +22,10 @@ Rectangle {
     HifiConstants { id: hifi }
     signal sendToScript(var message);
     color: hifi.colors.baseGray;
+    property string path: ""
+    property var dialog: null;
 
-
+    Component { id: fileDialog; TabletFileDialog { } }
     Row {
         id: topButtons
         width: parent.width
@@ -39,6 +42,9 @@ Rectangle {
             text: "Start"
             color: hifi.buttons.blue
             enabled: true
+            onClicked: {
+                sendToScript({method: "Start"});
+            }
         }
 
         HifiControls.Button {
@@ -46,6 +52,9 @@ Rectangle {
             text: "Stop"
             color: hifi.buttons.blue
             enabled: true
+            onClicked: {
+                sendToScript({method: "Stop"});
+            }
         }
 
         HifiControls.Button {
@@ -53,6 +62,9 @@ Rectangle {
             text: "Save"
             color: hifi.buttons.blue
             enabled: true
+            onClicked: {
+                sendToScript({method: "Save"});
+            }
         }
             
     }        
@@ -80,6 +92,7 @@ Rectangle {
         text: "Load"
         color: hifi.buttons.black
         enabled: true
+        onClicked: sendToScript({method: "Load", params: {file: path }}); 
     }
 
     HifiControls.Button {
@@ -91,13 +104,18 @@ Rectangle {
         text: "Browse"
         color: hifi.buttons.black
         enabled: true
+        onClicked: {
+            dialog = fileDialog.createObject(inputRecorder);
+            dialog.selectedFile.connect(getFileSelected);
+        }
+    }
 
-        Trigger {
-            id: browseTimer
-            interval: 5
-            repeat: false
-            running: false
-            
+
+    function getFileSelected(file) {
+        console.log("------------> file selected <----------------");
+        //sendToScript({ method: "Load", params: { file: file} });
+        selectedFile.text = file;
+        inputRecorder.path = file;
     }
 }
 

@@ -175,6 +175,16 @@ namespace controller {
         inputRecorder->stopPlayback();
     }
 
+    void ScriptingInterface::saveInputRecording() {
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->saveRecording();
+    }
+    
+    void ScriptingInterface::loadInputRecording(const QString& file) {
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->loadRecording(file);
+    }
+
     bool ScriptingInterface::triggerHapticPulseOnDevice(unsigned int device, float strength, float duration, controller::Hand hand) const {
         return DependencyManager::get<UserInputMapper>()->triggerHapticPulseOnDevice(device, strength, duration, hand);
     }

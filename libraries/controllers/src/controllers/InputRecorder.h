@@ -13,6 +13,8 @@
 #include <atomic>
 #include <vector>
 
+#include <QString>
+
 #include "Pose.h"
 #include "Actions.h"
 
@@ -28,7 +30,7 @@ namespace controller {
         static InputRecorder* getInstance();
 
         void saveRecording();
-        void loadRecording();
+        void loadRecording(const QString& path);
         void startRecording();
         void startPlayback();
         void stopPlayback();

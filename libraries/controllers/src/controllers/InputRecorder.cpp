@@ -74,6 +74,18 @@ namespace controller {
         QByteArray compressedData = qCompress(saveData.toJson(QJsonDocument::Compact));
         saveFile.write(compressedData);
     }
+
+    bool openFile(const QString& file, QJsonObject& object) {
+        QFile openFile(file);
+        if (!openFile.open(QIODevice::ReadOnly)) {
+            qWarning() << "could not open file: " << file;
+            return false;
+        }
+        QByteArray compressedData = qUncompress(openFile.readAll());
+        QJsonDocument jsonDoc = QJsonDocument::fromBinaryData(compressedData);
+        object = jsonDoc.object();
+        return true;
+    }
  
     InputRecorder::InputRecorder() {}
 
@@ -119,7 +131,16 @@ namespace controller {
         exportToFile(data);
     }
 
-    void InputRecorder::loadRecording() {
+    void InputRecorder::loadRecording(const QString& path) {
+         QFileInfo info(path);
+         QString extension = info.suffix();
+         if (extension != "gz") {
+             qWarning() << "Could not open file of that type";
+             return;
+         }
+         QJsonObject data;
+         bool success = openFile(path, data);
+        qDebug() << "-------------------> loading file -------------->";
     }
 
     void InputRecorder::stopRecording() {
