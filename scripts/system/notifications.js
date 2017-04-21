@@ -188,10 +188,10 @@ function fadeOut(noticeOut, buttonOut, arraysOut) {
 
     pauseTimer = Script.setInterval(function () {
         r -= 1;
-        rFade = r / 10.0;
+        rFade = Math.max(0.0, r / 10.0);
         Overlays.editOverlay(noticeOut, { alpha: rFade });
         Overlays.editOverlay(buttonOut, { alpha: rFade });
-        if (r < 0) {
+        if (r <= 0) {
             dismiss(noticeOut, buttonOut, arraysOut);
             arrays.splice(arraysOut, 1);
             ready = true;
@@ -660,6 +660,7 @@ Window.stillSnapshotTaken.connect(onSnapshotTaken);
 Window.processingGifStarted.connect(processingGif);
 Window.connectionAdded.connect(connectionAdded);
 Window.connectionError.connect(connectionError);
+Window.announcement.connect(onNotify);
 Window.notifyEditError = onEditError;
 Window.notify = onNotify;
 Tablet.tabletNotification.connect(tabletNotification);

@@ -243,6 +243,10 @@ void WindowScriptingInterface::makeConnection(bool success, const QString& userN
     }
 }
 
+void WindowScriptingInterface::displayAnnouncement(const QString& message) {
+    emit announcement(message);
+}
+
 bool WindowScriptingInterface::isPhysicsEnabled() {
     return qApp->isPhysicsEnabled();
 }

@@ -57,6 +57,7 @@ public slots:
     void copyToClipboard(const QString& text);
     void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
     void makeConnection(bool success, const QString& userNameOrError);
+    void displayAnnouncement(const QString& message);
     void shareSnapshot(const QString& path, const QUrl& href = QUrl(""));
     bool isPhysicsEnabled();
 
@@ -78,6 +79,7 @@ signals:
 
     void connectionAdded(const QString& connectionName);
     void connectionError(const QString& errorString);
+    void announcement(const QString& message);
 
     void messageBoxClosed(int id, int button);
 
