@@ -40,7 +40,8 @@ layout(std140) buffer ssbo0Buffer {
     ItemBound bounds[];
 };
 ItemBound getItemBound(int i) {
-    return bounds[i];
+    ItemBound bound = bounds[i];
+    return bound;
 }
 #endif
 
