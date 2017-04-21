@@ -68,6 +68,12 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
+    static void setShowReceiveStats(bool receiveStats);
+    static void setShowMyLookAtVectors(bool showMine);
+    static void setShowOtherLookAtVectors(bool showOthers);
+    static void setShowCollisionShapes(bool render);
+    static void setShowNamesAboveHeads(bool show);
+
     explicit Avatar(QThread* thread, RigPointer rig = nullptr);
     ~Avatar();
 
@@ -251,11 +257,6 @@ public:
     bool isInPhysicsSimulation() const { return _physicsCallback != nullptr; }
 
 public slots:
-    void setShowReceiveStats(bool receiveStats);
-    void setShowMyLookAtVectors(bool showMine);
-    void setShowOtherLookAtVectors(bool showOthers);
-    void setShowCollisionShapes(bool render);
-    void setShowNamesAboveHeads(bool show);
 
     // FIXME - these should be migrated to use Pose data instead
     // thread safe, will return last valid palm from cache

@@ -503,14 +503,14 @@ Menu::Menu() {
         qApp, SLOT(setActiveEyeTracker()));
 #endif
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
-        avatar.get(), SLOT(setShowReceiveStats(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowBoundingCollisionShapes, 0, false,
-        avatar.get(), SLOT(setShowCollisionShapes(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowMyLookAtVectors, 0, false,
-        avatar.get(), SLOT(setShowMyLookAtVectors(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowOtherLookAtVectors, 0, false,
-        avatar.get(), SLOT(setShowOtherLookAtVectors(bool)));
+    action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false);
+    connect(action, &QAction::triggered, []{ Avatar::setShowReceiveStats(Menu::getInstance()->isOptionChecked(MenuOption::AvatarReceiveStats)); });
+    action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowBoundingCollisionShapes, 0, false);
+    connect(action, &QAction::triggered, []{ Avatar::setShowCollisionShapes(Menu::getInstance()->isOptionChecked(MenuOption::ShowBoundingCollisionShapes)); });
+    action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowMyLookAtVectors, 0, false);
+    connect(action, &QAction::triggered, []{ Avatar::setShowMyLookAtVectors(Menu::getInstance()->isOptionChecked(MenuOption::ShowMyLookAtVectors)); });
+    action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowOtherLookAtVectors, 0, false);
+    connect(action, &QAction::triggered, []{ Avatar::setShowOtherLookAtVectors(Menu::getInstance()->isOptionChecked(MenuOption::ShowOtherLookAtVectors)); });
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
