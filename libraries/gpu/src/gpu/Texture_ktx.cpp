@@ -52,7 +52,7 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
         auto ktxPointer = ktx::KTX::create(storage);
         _ktxDescriptor.reset(new ktx::KTXDescriptor(ktxPointer->toDescriptor()));
         if (_ktxDescriptor->images.size() < _ktxDescriptor->header.numberOfMipmapLevels) {
-            qDebug() << "bad images found";
+            qWarning() << "Bad images found in ktx";
         }
         auto& keyValues = _ktxDescriptor->keyValues;
         auto found = std::find_if(keyValues.begin(), keyValues.end(), [](const ktx::KeyValue& val) -> bool {
@@ -96,7 +96,6 @@ std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() {
 }
 
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
-    //qDebug() << "getMipFace: " << QString::fromStdString(_filename) << ": " << level << " " << face;
     storage::StoragePointer result;
     auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
@@ -112,10 +111,7 @@ Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
 
 
 bool KtxStorage::isMipAvailable(uint16 level, uint8 face) const {
-    auto avail = level >= _minMipLevelAvailable;
-    //qDebug() << "isMipAvailable: " << QString::fromStdString(_filename) << ": " << level << " " << face << avail << _minMipLevelAvailable << " " << _ktxDescriptor->header.numberOfMipmapLevels;
-    //return true;
-    return avail;
+    return level >= _minMipLevelAvailable;
 }
 
 uint16 KtxStorage::minAvailableMipLevel() const {
@@ -123,10 +119,8 @@ uint16 KtxStorage::minAvailableMipLevel() const {
 }
 
 void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& storage) {
-    qDebug() << "Populating " << level << " " << _filename.c_str();
     if (level != _minMipLevelAvailable - 1) {
         qWarning() << "Invalid level to be stored, expected: " << (_minMipLevelAvailable - 1) << ", got: " << level << " " << _filename.c_str();
-        //throw std::runtime_error("Invalid image size for level");
         return;
     }
 
@@ -135,9 +129,8 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     }
 
     if (storage->size() != _ktxDescriptor->images[level]._imageSize) {
-        qDebug() << "Invalid image size: " << storage->size() << ", expected: " << _ktxDescriptor->images[level]._imageSize
+        qWarning() << "Invalid image size: " << storage->size() << ", expected: " << _ktxDescriptor->images[level]._imageSize
             << ", level: " << level << ", filename: " << QString::fromStdString(_filename);
-        //throw std::runtime_error("Invalid image size for level");
         return;
     }
 
