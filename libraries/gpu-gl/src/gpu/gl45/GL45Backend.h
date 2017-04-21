@@ -117,6 +117,8 @@ public:
 
         void allocateStorage(uint16 mip);
         void copyMipsFromTexture();
+
+        uint16 _lowestRequestedMip { 0 };
     };
 
 #if 0

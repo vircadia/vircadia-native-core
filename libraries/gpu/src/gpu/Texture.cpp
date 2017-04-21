@@ -397,7 +397,6 @@ Size Texture::evalTotalSize(uint16 startingMip) const {
     Size size = 0;
     uint16 minMipLevel = std::max(getMinMip(), startingMip);
     uint16 maxMipLevel = getMaxMip();
-    qDebug() << " min: " << minMipLevel << " " << maxMipLevel;
     for (uint16 level = minMipLevel; level <= maxMipLevel; level++) {
         size += evalMipSize(level);
     }

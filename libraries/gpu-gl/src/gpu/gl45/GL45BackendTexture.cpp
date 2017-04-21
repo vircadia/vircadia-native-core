@@ -119,8 +119,10 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 GLuint GL45Texture::allocate(const Texture& texture) {
     GLuint result;
     glCreateTextures(getGLTextureType(texture), 1, &result);
+#ifdef DEBUG
     auto source = texture.source();
     glObjectLabel(GL_TEXTURE, result, source.length(), source.data());
+#endif
     return result;
 }
 
