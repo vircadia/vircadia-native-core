@@ -11,11 +11,12 @@
 
 
 #include "Texture.h"
-#include <qdebug.h>
 
 #include <QtCore/QByteArray>
 
 #include <ktx/KTX.h>
+
+#include "GPULogging.h"
 
 using namespace gpu;
 
