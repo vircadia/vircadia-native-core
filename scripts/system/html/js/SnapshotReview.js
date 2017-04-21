@@ -11,7 +11,7 @@
 //
 
 var paths = [], idCounter = 0, imageCount = 1;
-function addImage(data) {
+function addImage(data, isGifLoading) {
     if (!data.localPath) {
         return;
     }
@@ -38,12 +38,14 @@ function addImage(data) {
         img.onload = function () {
             var shareBar = document.getElementById(id + "shareBar");
             shareBar.style.width = img.clientWidth;
-            shareBar.style.display = "inline";
 
             document.getElementById(id).style.height = img.clientHeight;
         }
     }
     paths.push(data.localPath);
+    if (!isGifLoading) {
+        shareForUrl(id);
+    }
 }
 function createShareOverlay(parentID, isGif) {
     var shareOverlayContainer = document.createElement("DIV");
@@ -99,7 +101,7 @@ function createShareOverlay(parentID, isGif) {
         '<br/>' +
         '<div class="shareControls">' +
             '<div class="hifiShareControls">' +
-                '<input type="button" class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" value="SHARE WITH EVERYONE" onclick="shareWithEveryone(parentID)" /><br>' +
+                '<input type="button" class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" value="SHARE WITH EVERYONE" onclick="shareWithEveryone(' + parentID + ')" /><br>' +
                 '<input type="checkbox" class="inviteConnections" id="' + inviteConnectionsCheckboxID + '" checked="checked" />' +
                 '<label class="shareButtonLabel" for="' + inviteConnectionsCheckboxID + '">Invite My Connections</label><br>' +
                 '<input type="button" class="cancelShare" value="CANCEL" onclick="cancelSharing(' + parentID + ')" />' +
@@ -129,12 +131,19 @@ function selectImageToShare(selectedID) {
     shareOverlayBackground.style.display = "inline";
     shareOverlay.style.display = "inline";
 }
+function shareForUrl(selectedID) {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "snapshot",
+        action: "shareSnapshotForUrl",
+        data: paths[parseInt(selectedID.substring(1))]
+    }));
+}
 function shareWithEveryone(selectedID) {
     selectedID = selectedID.id; // Why is this necessary?
 
     EventBridge.emitWebEvent(JSON.stringify({
         type: "snapshot",
-        action: "shareSnapshot",
+        action: "shareSnapshotWithEveryone",
         data: paths[parseInt(selectedID.substring(1))]
     }));
 }
@@ -204,7 +213,9 @@ window.onload = function () {
                         if (messageOptions.processingGif) {
                             imageCount = message.data.length + 1; // "+1" for the GIF that'll finish processing soon
                             message.data.unshift({ localPath: messageOptions.loadingGifPath });
-                            message.data.forEach(addImage);
+                            message.data.forEach(function (element, idx, array) {
+                                addImage(element, idx === 0);
+                            });
                         } else {
                             var gifPath = message.data[0].localPath;
                             var p0img = document.getElementById('p0img');
@@ -213,19 +224,25 @@ window.onload = function () {
                             p0img.onload = function () {
                                 var shareBar = document.getElementById("p0shareBar");
                                 shareBar.style.width = p0img.clientWidth;
-                                shareBar.style.display = "inline";
                                 document.getElementById('p0').style.height = p0img.clientHeight;
                             }
 
                             paths[0] = gifPath;
+                            shareForUrl("p0");
                         }
                     } else {
                         imageCount = message.data.length;
-                        message.data.forEach(addImage);
+                        message.data.forEach(function (element, idx, array) {
+                            addImage(element, false);
+                        });
                     }
                     break;
                 case 'captureSettings':
                     handleCaptureSetting(message.setting);
+                    break;
+                case 'enableShareButtons':
+                    var shareBar = document.getElementById("p0shareBar");
+                    shareBar.style.display = "inline";
                     break;
                 default:
                     print("Unknown message action received in SnapshotReview.js.");

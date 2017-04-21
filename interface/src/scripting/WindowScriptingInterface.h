@@ -74,7 +74,7 @@ signals:
     void svoImportRequested(const QString& url);
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode, const QString& extraInfo);
     void stillSnapshotTaken(const QString& pathStillSnapshot, bool notify);
-    void snapshotShared(const QString& error);
+    void snapshotShared(bool isError, const QString& reply);
     void processingGifStarted(const QString& pathStillSnapshot);
     void processingGifCompleted(const QString& pathAnimatedSnapshot);
 

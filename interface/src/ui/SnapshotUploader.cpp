@@ -49,6 +49,7 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
         userStoryObject.insert("place_name", placeName);
         userStoryObject.insert("path", currentPath);
         userStoryObject.insert("action", "snapshot");
+        userStoryObject.insert("audience", "for_url");
         rootObject.insert("user_story", userStoryObject);
 
         auto accountManager = DependencyManager::get<AccountManager>();
@@ -61,7 +62,7 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
             QJsonDocument(rootObject).toJson());
 
     } else {
-        emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(contents);
+        emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(true, contents);
         delete this;
     }
 }
@@ -72,12 +73,18 @@ void SnapshotUploader::uploadFailure(QNetworkReply& reply) {
     if (replyString.size() == 0) {
         replyString = reply.errorString();
     }
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(replyString); // maybe someday include _inWorldLocation, _filename?
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(true, replyString); // maybe someday include _inWorldLocation, _filename?
     delete this;
 }
 
 void SnapshotUploader::createStorySuccess(QNetworkReply& reply) {
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(QString());
+    QString replyString = reply.readAll();
+    // oh no QT pls
+    // let's write our own JSON parser???
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(replyString.toUtf8());
+    QJsonObject object = jsonResponse.object()["user_story"].toObject();
+    QString storyId = QString::number(object["id"].toInt());
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false, storyId);
     delete this;
 }
 
@@ -87,7 +94,7 @@ void SnapshotUploader::createStoryFailure(QNetworkReply& reply) {
     if (replyString.size() == 0) {
         replyString = reply.errorString();
     }
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(replyString);
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(true, replyString);
     delete this;
 }
 

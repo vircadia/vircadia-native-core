@@ -28,25 +28,61 @@ var button = tablet.addButton({
     sortOrder: 5
 });
 
-function shouldOpenFeedAfterShare() {
-    var persisted = Settings.getValue('openFeedAfterShare', true); // might answer true, false, "true", or "false"
-    return persisted && (persisted !== 'false');
-}
-function showFeedWindow() {
-    if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
-            || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
-        tablet.loadQMLSource("TabletAddressDialog.qml");
-    } else {
-         tablet.initialScreen("TabletAddressDialog.qml");
-        HMD.openTablet();
-    }
-}
-
-var outstanding;
 var snapshotOptions;
 var imageData;
 var shareAfterLogin = false;
-var snapshotToShareAfterLogin;     
+var snapshotToShareAfterLogin;
+var METAVERSE_BASE = location.metaverseServerUrl;
+
+function request(options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
+    var httpRequest = new XMLHttpRequest(), key;
+    // QT bug: apparently doesn't handle onload. Workaround using readyState.
+    httpRequest.onreadystatechange = function () {
+        var READY_STATE_DONE = 4;
+        var HTTP_OK = 200;
+        if (httpRequest.readyState >= READY_STATE_DONE) {
+            var error = (httpRequest.status !== HTTP_OK) && httpRequest.status.toString() + ':' + httpRequest.statusText,
+                response = !error && httpRequest.responseText,
+                contentType = !error && httpRequest.getResponseHeader('content-type');
+            if (!error && contentType.indexOf('application/json') === 0) { // ignoring charset, etc.
+                try {
+                    response = JSON.parse(response);
+                } catch (e) {
+                    error = e;
+                }
+            }
+            callback(error, response);
+        }
+    };
+    if (typeof options === 'string') {
+        options = { uri: options };
+    }
+    if (options.url) {
+        options.uri = options.url;
+    }
+    if (!options.method) {
+        options.method = 'GET';
+    }
+    if (options.body && (options.method === 'GET')) { // add query parameters
+        var params = [], appender = (-1 === options.uri.search('?')) ? '?' : '&';
+        for (key in options.body) {
+            params.push(key + '=' + options.body[key]);
+        }
+        options.uri += appender + params.join('&');
+        delete options.body;
+    }
+    if (options.json) {
+        options.headers = options.headers || {};
+        options.headers["Content-type"] = "application/json";
+        options.body = JSON.stringify(options.body);
+    }
+    for (key in options.headers || {}) {
+        httpRequest.setRequestHeader(key, options.headers[key]);
+    }
+    httpRequest.open(options.method, options.uri, true);
+    httpRequest.send(options.body);
+}
+
 function onMessage(message) {
     // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
     // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
@@ -73,7 +109,6 @@ function onMessage(message) {
                 options: snapshotOptions,
                 data: imageData
             }));
-            outstanding = 0;
             break;
         case 'openSettings':
             if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
@@ -96,18 +131,41 @@ function onMessage(message) {
             //
             onClicked();
             break;
-        case 'shareSnapshot':
+        case 'shareSnapshotForUrl':
             isLoggedIn = Account.isLoggedIn();
-            if (!isLoggedIn) {
+            if (isLoggedIn) {
+                print('Sharing snapshot with audience "for_url":', message.data);
+                Window.shareSnapshot(message.data, message.href || href);
+            } else {
+                // TODO?
+            }
+            break;
+        case 'shareSnapshotWithEveryone':
+            isLoggedIn = Account.isLoggedIn();
+            if (isLoggedIn) {
+                print('sharing', message.data);
+                request({
+                    uri: METAVERSE_BASE + '/api/v1/user_stories/' + story_id,
+                    method: 'PUT',
+                    json: true,
+                    body: {
+                        audience: "for_feed",
+                    }
+                }, function (error, response) {
+                    if (error || (response.status !== 'success')) {
+                        print("Error changing audience: ", error || response.status);
+                        return;
+                    }
+                });
+            } else {
+                // TODO
+                /*
                 needsLogin = true;
                 shareAfterLogin = true;
                 snapshotToShareAfterLogin = { path: message.data, href: message.href || href };
-            } else {
-                print('sharing', message.data);
-                outstanding++;
-                Window.shareSnapshot(message.data, message.href || href);
+                */
             }
-
+            /*
             if (needsLogin) {
                 if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
                     || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
@@ -116,7 +174,7 @@ function onMessage(message) {
                     tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
                     HMD.openTablet();
                 }
-            }
+            }*/
             break;
         default:
             print('Unknown message action received by snapshot.js!');
@@ -133,14 +191,15 @@ function reviewSnapshot() {
     isInSnapshotReview = true;
 }
 
-function snapshotShared(errorMessage) {
-    if (!errorMessage) {
-        print('snapshot uploaded and shared');
+function snapshotUploaded(isError, reply) {
+    if (!isError) {
+        print('SUCCESS: Snapshot uploaded! Story with audience:for_url created! ID:', reply);
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "enableShareButtons"
+        }));
     } else {
-        print(errorMessage);
-    }
-    if ((--outstanding <= 0) && shouldOpenFeedAfterShare()) {
-        showFeedWindow();
+        print(reply);
     }
 }
 var href, domainId;
@@ -213,8 +272,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     snapshotOptions = {
         containsGif: false,
         processingGif: false,
-        canShare: !!isDomainOpen(domainId),
-        openFeedAfterShare: shouldOpenFeedAfterShare()
+        canShare: !!isDomainOpen(domainId)
     };
     imageData = [{ localPath: pathStillSnapshot, href: href }];
     reviewSnapshot();
@@ -241,8 +299,7 @@ function processingGifStarted(pathStillSnapshot) {
         containsGif: true,
         processingGif: true,
         loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
-        canShare: !!isDomainOpen(domainId),
-        openFeedAfterShare: shouldOpenFeedAfterShare()
+        canShare: !!isDomainOpen(domainId)
     };
     imageData = [{ localPath: pathStillSnapshot, href: href }];
     reviewSnapshot();
@@ -262,8 +319,7 @@ function processingGifCompleted(pathAnimatedSnapshot) {
     snapshotOptions = {
         containsGif: true,
         processingGif: false,
-        canShare: !!isDomainOpen(domainId),
-        openFeedAfterShare: shouldOpenFeedAfterShare()
+        canShare: !!isDomainOpen(domainId)
     }
     imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
 
@@ -283,7 +339,7 @@ function onTabletScreenChanged(type, url) {
 }
 function onConnected() {
     if (shareAfterLogin && Account.isLoggedIn()) {
-        print('sharing', snapshotToShareAfterLogin.path);
+        print('Sharing snapshot after login:', snapshotToShareAfterLogin.path);
         Window.shareSnapshot(snapshotToShareAfterLogin.path, snapshotToShareAfterLogin.href);
         shareAfterLogin = false;
     }
@@ -291,7 +347,7 @@ function onConnected() {
 
 button.clicked.connect(onClicked);
 buttonConnected = true;
-Window.snapshotShared.connect(snapshotShared);
+Window.snapshotShared.connect(snapshotUploaded);
 tablet.screenChanged.connect(onTabletScreenChanged);
 Account.usernameChanged.connect(onConnected);
 Script.scriptEnding.connect(function () {
@@ -302,7 +358,7 @@ Script.scriptEnding.connect(function () {
     if (tablet) {
         tablet.removeButton(button);
     }
-    Window.snapshotShared.disconnect(snapshotShared);
+    Window.snapshotShared.disconnect(snapshotUploaded);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
 });
 
