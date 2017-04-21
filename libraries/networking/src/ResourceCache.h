@@ -395,6 +395,9 @@ public:
     
     const QUrl& getURL() const { return _url; }
 
+    int getDownloadAttempts() { return _attempts; }
+
+
 signals:
     /// Fired when the resource begins downloading.
     void loading();

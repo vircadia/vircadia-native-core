@@ -75,10 +75,19 @@ void HTTPResourceRequest::onRequestFinished() {
     
     switch(_reply->error()) {
         case QNetworkReply::NoError:
-            _data = _reply->readAll();
-            _loadedFromCache = _reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool();
-            _result = Success;
-            break;
+            {
+                // For debugging, have a random chance of treating this like a failure
+                bool randFailure = false; //  _url.toString().contains(".fst") ? (rand() % 100) > 10 : false;
+
+                if (!randFailure) {
+                    _data = _reply->readAll();
+                    _loadedFromCache = _reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool();
+                    _result = Success;
+                    break;
+                }
+                // else fall through to timeout
+                qDebug() << "**** Randomly pretending to timeout instead of successfully download HTTP resource:" << _url << " ******************************";
+            }
 
         case QNetworkReply::TimeoutError:
             _result = Timeout;

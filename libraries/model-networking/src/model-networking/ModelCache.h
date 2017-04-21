@@ -112,6 +112,7 @@ public:
     void setResource(GeometryResource::Pointer resource);
 
     QUrl getURL() const { return (bool)_resource ? _resource->getURL() : QUrl(); }
+    int getResourceDownloadAttempts() { return _resource ? _resource->getDownloadAttempts() : 0; }
 
 private:
     void startWatching();

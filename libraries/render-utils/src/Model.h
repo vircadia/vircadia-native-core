@@ -252,6 +252,7 @@ public:
 
     void renderDebugMeshBoxes(gpu::Batch& batch);
 
+    int getResourceDownloadAttempts() { return _renderWatcher.getResourceDownloadAttempts(); }
 
 public slots:
     void loadURLFinished(bool success);

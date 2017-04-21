@@ -1468,6 +1468,7 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
 void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
 
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
+        qDebug() << __FUNCTION__ << "about to call setSkeletonModelURL(identity.skeletonModelURL);... identity.skeletonModelURL:" << identity.skeletonModelURL;
         setSkeletonModelURL(identity.skeletonModelURL);
         identityChanged = true;
         if (_firstSkeletonCheck) {
@@ -1514,6 +1515,10 @@ QByteArray AvatarData::identityByteArray() const {
 }
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    if (skeletonModelURL.isEmpty()) {
+        qDebug() << __FUNCTION__ << "caller called with empty URL.";
+    }
+
     const QUrl& expanded = skeletonModelURL.isEmpty() ? AvatarData::defaultFullAvatarModelUrl() : skeletonModelURL;
     if (expanded == _skeletonModelURL) {
         return;

@@ -43,6 +43,8 @@ public:
     size_t getDataSize() const;
     size_t getMessageSize() const;
     QByteArray getMessage() const;
+    udt::Packet::MessageNumber getMessageNumber() const { return _messageNumber; }
+
     
     QByteArray getExtendedHeader() const { return _extendedHeader; }
     

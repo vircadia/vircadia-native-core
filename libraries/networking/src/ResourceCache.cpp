@@ -724,10 +724,11 @@ void Resource::handleReplyFinished() {
     } else {
         switch (result) {
             case ResourceRequest::Result::Timeout: {
-                qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
+                qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal << "attempt:" << _attempts << "of" << MAX_ATTEMPTS;
                 // Fall through to other cases
             }
             case ResourceRequest::Result::ServerUnavailable: {
+                qCDebug(networking) << "Server Unavailable loading" << _url << "attempt:" << _attempts << "of" << MAX_ATTEMPTS;
                 // retry with increasing delays
                 const int BASE_DELAY_MS = 1000;
                 if (_attempts++ < MAX_ATTEMPTS) {
@@ -742,7 +743,7 @@ void Resource::handleReplyFinished() {
                 // fall through to final failure
             }
             default: {
-                qCDebug(networking) << "Error loading " << _url;
+                qCDebug(networking) << "Error loading " << _url << "attempt:" << _attempts << "of" << MAX_ATTEMPTS;
                 auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError
                                                                   : QNetworkReply::UnknownNetworkError;
                 emit failed(error);

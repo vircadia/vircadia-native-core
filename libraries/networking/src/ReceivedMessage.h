@@ -50,6 +50,8 @@ public:
 
     qint64 getBytesLeftToRead() const { return _data.size() -  _position; }
 
+    qint64 getMessageNumber() const { return _messageNumber; }
+
     void seek(qint64 position) { _position = position; }
 
     qint64 peek(char* data, qint64 size);
@@ -98,6 +100,9 @@ private:
 
     std::atomic<bool> _isComplete { true };  
     std::atomic<bool> _failed { false };
+
+    udt::Packet::MessageNumber _messageNumber { 0 };
+
 };
 
 Q_DECLARE_METATYPE(ReceivedMessage*)
