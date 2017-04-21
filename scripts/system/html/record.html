@@ -58,21 +58,21 @@
                     </tfoot>
                 </table>
             </div>
-            <div id="load-container">
-                <input id="load-button" type="button" value="Load" disabled />
-            </div>
         </div>
         <div id="spinner" class="hidden">
             <img src="../../../resources/icons/loader-red-countdown-ring.gif" />
             <span id="countdown-number">3</span>
         </div>
         <div id="record-controls">
-            <div>
+            <div id="load-container">
+                <input id="load-button" type="button" value="Load" disabled />
+            </div>
+            <div id="record-container">
                 <input id="record-button" class="red" type="button" value="Record" />
             </div>
-            <div class="property checkbox">
+            <div id="checkbox-container" class="property checkbox">
                 <input type="checkbox" id="finish-on-open">
-                <label for="finish-on-open" id="finish-on-open-label">Finish recording when open dialog/tablet</label>
+                <label for="finish-on-open" id="finish-on-open-label">Stop recording automatically when ...</label>
             </div>
         </div>
         <script>

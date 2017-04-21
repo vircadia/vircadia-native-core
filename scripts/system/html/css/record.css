@@ -29,7 +29,7 @@ body {
     height: 100%;
     position: relative;
     box-sizing: border-box;
-    padding: 48px 0 214px 0;
+    padding: 50px 0 186px 0;
     margin: 0 21px 0 21px;
 }
 
@@ -50,7 +50,7 @@ body {
 
 #recordings thead {
     position: absolute;
-    top: 19px;
+    top: 21px;
     left: 0;
     width: 100%;
     box-sizing: border-box;
@@ -93,7 +93,7 @@ body {
 
 #recordings tfoot {
     position: absolute;
-    bottom: 189px;
+    bottom: 161px;
     left: 0;
     width: 100%;
     box-sizing: border-box;
@@ -105,11 +105,6 @@ body {
 
 #recordings tfoot tr, #recordings tfoot td {
     background: none;
-}
-
-#recordings #load-container {
-    position: relative;
-    top: 25px;
 }
 
 
@@ -175,19 +170,23 @@ body {
 }
 
 
-#load-button {
-    margin-top: 14px;
-}
-
-
 #record-controls {
     position: absolute;
     bottom: 7px;
     width: 100%;
 }
 
-#record-controls div:first-child {
+#record-controls #load-container {
+    position: absolute;
+    left: 21px;
+}
+
+#record-controls #record-container {
     text-align: center;
+}
+
+#record-controls #checkbox-container {
+    margin-top: 33px;
 }
 
 #record-controls div.property {
