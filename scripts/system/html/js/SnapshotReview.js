@@ -21,7 +21,7 @@ function addImage(data) {
     div.id = id;
     img.id = id + "img";
     div.style.width = "100%";
-    div.style.height = "" + Math.floor(100 / imageCount) + "%";
+    div.style.height = "" + 502 / imageCount + "px";
     div.style.display = "flex";
     div.style.justifyContent = "center";
     div.style.alignItems = "center";
@@ -32,13 +32,16 @@ function addImage(data) {
     img.src = data.localPath;
     div.appendChild(img);
     document.getElementById("snapshot-images").appendChild(div);
-    div.appendChild(createShareOverlay(id, img.src.split('.').pop().toLowerCase() === "gif"));
-    img.onload = function () {
-        var shareBar = document.getElementById(id + "shareBar");
-        shareBar.style.width = img.clientWidth;
-        shareBar.style.display = "inline";
+    var isGif = img.src.split('.').pop().toLowerCase() === "gif";
+    div.appendChild(createShareOverlay(id, isGif));
+    if (!isGif) {
+        img.onload = function () {
+            var shareBar = document.getElementById(id + "shareBar");
+            shareBar.style.width = img.clientWidth;
+            shareBar.style.display = "inline";
 
-        document.getElementById(id).style.height = img.clientHeight;
+            document.getElementById(id).style.height = img.clientHeight;
+        }
     }
     paths.push(data);
 }
@@ -195,7 +198,16 @@ window.onload = function () {
                             message.data.forEach(addImage);
                         } else {
                             var gifPath = message.data[0].localPath;
-                            document.getElementById('p0img').src = gifPath;
+                            var p0img = document.getElementById('p0img');
+                            p0img.src = gifPath;
+
+                            p0img.onload = function () {
+                                var shareBar = document.getElementById("p0shareBar");
+                                shareBar.style.width = p0img.clientWidth;
+                                shareBar.style.display = "inline";
+                                document.getElementById('p0').style.height = p0img.clientHeight;
+                            }
+
                             paths[0].localPath = gifPath;
                         }
                     } else {
