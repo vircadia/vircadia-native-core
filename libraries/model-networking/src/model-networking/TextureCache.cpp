@@ -272,8 +272,8 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSh
 NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) :
     Resource(url),
     _type(type),
-    _maxNumPixels(maxNumPixels),
-    _sourceIsKTX(url.path().endsWith(".ktx"))
+    _sourceIsKTX(url.path().endsWith(".ktx")),
+    _maxNumPixels(maxNumPixels)
 {
     _textureSource = std::make_shared<gpu::TextureSource>();
 

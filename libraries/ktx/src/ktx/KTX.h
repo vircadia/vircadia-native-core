@@ -419,8 +419,8 @@ namespace ktx {
 
         // This is the byte offset from the _start_ of the image region. For example, level 0
         // will have a byte offset of 0.
-        const uint32_t _imageOffset;
         const uint32_t _numFaces;
+        const uint32_t _imageOffset;
         const uint32_t _imageSize;
         const uint32_t _faceSize;
         const uint32_t _padding;
