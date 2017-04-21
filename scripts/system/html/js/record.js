@@ -24,6 +24,7 @@ var isUsingToolbar = false,
     elShowInfoButton,
     elLoadButton,
     elSpinner,
+    elCountdownNumber,
     elRecordButton,
     elFinishOnOpen,
     elFinishOnOpenLabel,
@@ -35,6 +36,7 @@ var isUsingToolbar = false,
     STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
     LOAD_RECORDING_ACTION = "loadRecording",
     START_RECORDING_ACTION = "startRecording",
+    COUNTDOWN_NUMBER_ACTION = "countdownNumber",
     STOP_RECORDING_ACTION = "stopRecording",
     FINISH_ON_OPEN_ACTION = "finishOnOpen";
 
@@ -190,6 +192,9 @@ function onScriptEventReceived(data) {
             elRecordButton.classList.add("pressed");
             updateSpinner();
             break;
+        case COUNTDOWN_NUMBER_ACTION:
+            elCountdownNumber.innerHTML = message.value;
+            break;
         case STOP_RECORDING_ACTION:
             isRecording = false;
             elRecordButton.classList.remove("pressed");
@@ -275,6 +280,7 @@ function onBodyLoaded() {
     elLoadButton.onclick = onLoadButtonClicked;
 
     elSpinner = document.getElementById("spinner");
+    elCountdownNumber = document.getElementById("countdown-number");
 
     elRecordButton = document.getElementById("record-button");
     elRecordButton.onclick = onRecordButtonClicked;

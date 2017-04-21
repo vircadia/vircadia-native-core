@@ -116,6 +116,16 @@ body {
 #spinner {
     text-align: center;
     margin-top: 25%;
+    position: relative;
+}
+
+#spinner span {
+    display: block;
+    position: relative;
+    top: -101px;
+    color: #e2334d;
+    font-size: 60px;
+    font-weight: bold;
 }
 
 

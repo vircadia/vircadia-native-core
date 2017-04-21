@@ -195,6 +195,7 @@
         }
 
         function finishCountdown() {
+            Dialog.countdownNumber("");
             recordingState = RECORDING;
             startRecording();
         }
@@ -202,20 +203,23 @@
         function cancelCountdown() {
             recordingState = IDLE;
             Script.clearInterval(countdownTimer);
+            Dialog.countdownNumber("");
             log("Cancel countdown");
         }
 
         function startCountdown() {
             recordingState = COUNTING_DOWN;
             log("Start countdown");
-            playSound(tickSound);
             countdownSeconds = COUNTDOWN_SECONDS;
+            Dialog.countdownNumber(countdownSeconds);
+            playSound(tickSound);
             countdownTimer = Script.setInterval(function () {
                 countdownSeconds -= 1;
                 if (countdownSeconds <= 0) {
                     Script.clearInterval(countdownTimer);
                     finishCountdown();
                 } else {
+                    Dialog.countdownNumber(countdownSeconds);
                     playSound(tickSound);
                 }
             }, 1000);
@@ -405,6 +409,7 @@
             STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
             LOAD_RECORDING_ACTION = "loadRecording",
             START_RECORDING_ACTION = "startRecording",
+            COUNTDOWN_NUMBER_ACTION = "countdownNumber",
             STOP_RECORDING_ACTION = "stopRecording",
             FINISH_ON_OPEN_ACTION = "finishOnOpen",
             SETTINGS_FINISH_ON_OPEN = "record/finishOnOpen";
@@ -451,6 +456,14 @@
                 type: EVENT_BRIDGE_TYPE,
                 action: NUMBER_OF_PLAYERS_ACTION,
                 value: playerIsPlayings.length
+            }));
+        }
+
+        function countdownNumber(number) {
+            tablet.emitScriptEvent(JSON.stringify({
+                type: EVENT_BRIDGE_TYPE,
+                action: COUNTDOWN_NUMBER_ACTION,
+                value: number
             }));
         }
 
@@ -531,6 +544,7 @@
         return {
             updatePlayerDetails: updatePlayerDetails,
             updateRecordingStatus: updateRecordingStatus,
+            countdownNumber: countdownNumber,
             finishOnOpen: finishOnOpen,
             setUp: setUp,
             tearDown: tearDown
