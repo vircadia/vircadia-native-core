@@ -189,6 +189,7 @@ function onScriptEventReceived(data) {
             break;
         case START_RECORDING_ACTION:
             isRecording = true;
+            elRecordButton.value = "Stop";
             elRecordButton.classList.add("pressed");
             updateSpinner();
             break;
@@ -197,6 +198,7 @@ function onScriptEventReceived(data) {
             break;
         case STOP_RECORDING_ACTION:
             isRecording = false;
+            elRecordButton.value = "Record";
             elRecordButton.classList.remove("pressed");
             updateSpinner();
             break;
@@ -227,6 +229,7 @@ function onLoadButtonClicked() {
 
 function onRecordButtonClicked() {
     if (!isRecording) {
+        elRecordButton.value = "Stop";
         elRecordButton.classList.add("pressed");
         EventBridge.emitWebEvent(JSON.stringify({
             type: EVENT_BRIDGE_TYPE,
@@ -235,6 +238,7 @@ function onRecordButtonClicked() {
         isRecording = true;
         updateSpinner();
     } else {
+        elRecordButton.value = "Record";
         elRecordButton.classList.remove("pressed");
         EventBridge.emitWebEvent(JSON.stringify({
             type: EVENT_BRIDGE_TYPE,
