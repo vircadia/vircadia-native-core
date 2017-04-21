@@ -559,13 +559,16 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
             });
             std::string filename;
             std::string hash;
-            if (found == keyValues.end() || found->_value.size() != 32) {
+            if (found == keyValues.end() || found->_value.size() != gpu::SOURCE_HASH_BYTES) {
                 qWarning("Invalid source hash key found, bailing");
                 _ktxResourceState = FAILED_TO_LOAD;
                 finishedLoading(false);
                 return;
             } else {
-                hash = filename = std::string(reinterpret_cast<char*>(found->_value.data()), 32);
+                // at this point the source hash is in binary 16-byte form
+                // and we need it in a hexadecimal string
+                auto binaryHash = QByteArray(reinterpret_cast<char*>(found->_value.data()), gpu::SOURCE_HASH_BYTES);
+                hash = filename = binaryHash.toHex().toStdString();
             }
 
             auto textureCache = DependencyManager::get<TextureCache>();
