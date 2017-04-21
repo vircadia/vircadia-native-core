@@ -594,7 +594,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _aboutToQuit(false),
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
-    _lastFaceTrackerUpdate(0)
+    _lastFaceTrackerUpdate(0),
+    _snapshotSound(nullptr)
 {
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
@@ -1436,6 +1437,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     entityPacketSender->setMyAvatar(myAvatar.get());
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
+    connect(_window, SIGNAL(windowMinimizedChanged(bool)), this, SLOT(windowMinimizedChanged(bool)));
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -1452,6 +1454,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
         return entityServerNode && !isPhysicsEnabled();
     });
+
+    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
+    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
 
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
@@ -1775,11 +1780,16 @@ void Application::cleanupBeforeQuit() {
     // stop QML
     DependencyManager::destroy<OffscreenUi>();
 
+    if (_snapshotSoundInjector != nullptr) {
+        _snapshotSoundInjector->stop();
+    }
+
     // stop audio after QML, as there are unexplained audio crashes originating in qtwebengine
 
     // stop the AudioClient, synchronously
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
+
 
     // destroy Audio so it and its threads have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
@@ -2084,7 +2094,7 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
-    if (_inPaint || _aboutToQuit) {
+    if (_inPaint || _aboutToQuit || _window->isMinimized()) {
         return;
     }
 
@@ -6405,15 +6415,24 @@ void Application::loadAddAvatarBookmarkDialog() const {
 }
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
-    postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
-        QMediaPlayer* player = new QMediaPlayer();
-        QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
-        player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
-        player->play();
+    
+    //keep sound thread out of event loop scope
 
+    AudioInjectorOptions options;
+    options.localOnly = true;
+    options.stereo = true;
+
+    if (_snapshotSoundInjector) {
+        _snapshotSoundInjector->setOptions(options);
+        _snapshotSoundInjector->restart();
+    } else {
+        QByteArray samples = _snapshotSound->getByteArray();
+        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+    }
+
+    postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
-
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated || !(SnapshotAnimated::alsoTakeAnimatedSnapshot.get())) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
@@ -6424,6 +6443,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         }
     });
 }
+
 void Application::shareSnapshot(const QString& path, const QUrl& href) {
     postLambdaEvent([path, href] {
         // not much to do here, everything is done in snapshot code...
@@ -6483,6 +6503,14 @@ void Application::activeChanged(Qt::ApplicationState state) {
         default:
             _isForeground = false;
             break;
+    }
+}
+
+void Application::windowMinimizedChanged(bool minimized) {
+    if (!minimized && !getActiveDisplayPlugin()->isActive()) {
+        getActiveDisplayPlugin()->activate();
+    } else if (minimized && getActiveDisplayPlugin()->isActive()) {
+        getActiveDisplayPlugin()->deactivate();
     }
 }
 
@@ -6773,6 +6801,13 @@ void Application::updateDisplayMode() {
             if (!active) {
                 qFatal("Failed to activate fallback plugin");
             }
+
+            // We've changed the selection - it should be reflected in the menu
+            QAction* action = menu->getActionForOption(newDisplayPlugin->getName());
+            if (!action) {
+                qFatal("Failed to find activated plugin");
+            }
+            action->setChecked(true);
         }
 
         _offscreenContext->makeCurrent();

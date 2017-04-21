@@ -63,7 +63,7 @@ void DeferredFrameTransform::update(RenderArgs* args) {
     }
 }
 
-void GenerateDeferredFrameTransform::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, DeferredFrameTransformPointer& frameTransform) {
+void GenerateDeferredFrameTransform::run(const render::RenderContextPointer& renderContext, DeferredFrameTransformPointer& frameTransform) {
     if (!frameTransform) {
         frameTransform = std::make_shared<DeferredFrameTransform>();
     }

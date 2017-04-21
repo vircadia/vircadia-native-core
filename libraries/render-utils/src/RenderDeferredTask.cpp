@@ -218,14 +218,14 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<Blit>("Blit", primaryFramebuffer);
 }
 
-void BeginGPURangeTimer::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
+void BeginGPURangeTimer::run(const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
     timer = _gpuTimer;
     gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
     });
 }
 
-void EndGPURangeTimer::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer) {
+void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer) {
     gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
         timer->end(batch);
     });
@@ -235,7 +235,7 @@ void EndGPURangeTimer::run(const render::SceneContextPointer& sceneContext, cons
 }
 
 
-void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
+void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -272,7 +272,7 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();
 
-        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
+        renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
 
         args->_batch = nullptr;
         args->_globalShapeKey = 0;
@@ -281,7 +281,7 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     config->setNumDrawn((int)inItems.size());
 }
 
-void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
+void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -319,9 +319,9 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
         args->_globalShapeKey = globalKey._flags.to_ulong();
 
         if (_stateSort) {
-            renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
+            renderStateSortShapes(renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
         } else {
-            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
+            renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn, globalKey);
         }
         args->_batch = nullptr;
         args->_globalShapeKey = 0;
@@ -336,7 +336,7 @@ DrawOverlay3D::DrawOverlay3D(bool opaque) :
     initOverlay3DPipelines(*_shapePlumber);
 }
 
-void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
+void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -378,7 +378,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             // Setup lighting model for all items;
             batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
-            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+            renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
             args->_batch = nullptr;
         });
     }
@@ -403,7 +403,7 @@ gpu::PipelinePointer DrawStencilDeferred::getOpaquePipeline() {
     return _opaquePipeline;
 }
 
-void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const DeferredFramebufferPointer& deferredFramebuffer) {
+void DrawStencilDeferred::run(const RenderContextPointer& renderContext, const DeferredFramebufferPointer& deferredFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -430,7 +430,7 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
     args->_batch = nullptr;
 }
 
-void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
+void DrawBackgroundDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -458,7 +458,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderItems(sceneContext, renderContext, inItems);
+        renderItems(renderContext, inItems);
      //   _gpuTimer.end(batch);
     });
     args->_batch = nullptr;
@@ -466,7 +466,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
    // std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
 }
 
-void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
+void Blit::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
