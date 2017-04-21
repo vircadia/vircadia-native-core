@@ -96,43 +96,31 @@ function onMessage(message) {
             //
             onClicked();
             break;
-        default:
-            //tablet.webEventReceived.disconnect(onMessage);  // <<< It's probably this that's missing?!
-            HMD.closeTablet();
+        case 'shareSnapshot':
             isLoggedIn = Account.isLoggedIn();
-            message.action.forEach(function (submessage) {
-                if (submessage.share && !isLoggedIn) {
-                    needsLogin = true;
-                    submessage.share = false;
-                    shareAfterLogin = true;
-                    snapshotToShareAfterLogin = {path: submessage.localPath, href: submessage.href || href};
-                }
-                if (submessage.share) {
-                    print('sharing', submessage.localPath);
-                    outstanding = true;
-                    Window.shareSnapshot(submessage.localPath, submessage.href || href);
-                } else {
-                    print('not sharing', submessage.localPath);
-                }
-                
-            });
-            if (outstanding && shouldOpenFeedAfterShare()) {
-                showFeedWindow();
-                outstanding = false;
+            if (!isLoggedIn) {
+                needsLogin = true;
+                shareAfterLogin = true;
+                snapshotToShareAfterLogin = { path: message.data, href: message.href || href };
+            } else {
+                print('sharing', message.data);
+                outstanding++;
+                Window.shareSnapshot(message.data, message.href || href);
             }
-            if (needsLogin) { // after the possible feed, so that the login is on top
-                var isLoggedIn = Account.isLoggedIn();
 
-                if (!isLoggedIn) {
-                    if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
-                        || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
-                        Menu.triggerOption("Login / Sign Up");
-                    } else {
-                        tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
-                        HMD.openTablet();
-                    }
+            if (needsLogin) {
+                if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
+                    || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
+                    Menu.triggerOption("Login / Sign Up");
+                } else {
+                    tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
+                    HMD.openTablet();
                 }
             }
+            break;
+        default:
+            print('Unknown message action received by snapshot.js!');
+            break;
     }
 }
 
@@ -298,11 +286,7 @@ function onConnected() {
         print('sharing', snapshotToShareAfterLogin.path);
         Window.shareSnapshot(snapshotToShareAfterLogin.path, snapshotToShareAfterLogin.href);
         shareAfterLogin = false;
-        if (shouldOpenFeedAfterShare()) {
-            showFeedWindow();
-        }
     }
-    
 }
 
 button.clicked.connect(onClicked);

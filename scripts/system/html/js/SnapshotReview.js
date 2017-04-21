@@ -43,7 +43,7 @@ function addImage(data) {
             document.getElementById(id).style.height = img.clientHeight;
         }
     }
-    paths.push(data);
+    paths.push(data.localPath);
 }
 function createShareOverlay(parentID, isGif) {
     var shareOverlayContainer = document.createElement("DIV");
@@ -99,7 +99,7 @@ function createShareOverlay(parentID, isGif) {
         '<br/>' +
         '<div class="shareControls">' +
             '<div class="hifiShareControls">' +
-                '<input type="button" class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" value="SHARE WITH EVERYONE" onclick="" /><br>' +
+                '<input type="button" class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" value="SHARE WITH EVERYONE" onclick="shareWithEveryone(parentID)" /><br>' +
                 '<input type="checkbox" class="inviteConnections" id="' + inviteConnectionsCheckboxID + '" checked="checked" />' +
                 '<label class="shareButtonLabel" for="' + inviteConnectionsCheckboxID + '">Invite My Connections</label><br>' +
                 '<input type="button" class="cancelShare" value="CANCEL" onclick="cancelSharing(' + parentID + ')" />' +
@@ -128,6 +128,15 @@ function selectImageToShare(selectedID) {
 
     shareOverlayBackground.style.display = "inline";
     shareOverlay.style.display = "inline";
+}
+function shareWithEveryone(selectedID) {
+    selectedID = selectedID.id; // Why is this necessary?
+
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "snapshot",
+        action: "shareSnapshot",
+        data: paths[parseInt(selectedID.substring(1))]
+    }));
 }
 function cancelSharing(selectedID) {
     selectedID = selectedID.id; // Why is this necessary?
@@ -208,7 +217,7 @@ window.onload = function () {
                                 document.getElementById('p0').style.height = p0img.clientHeight;
                             }
 
-                            paths[0].localPath = gifPath;
+                            paths[0] = gifPath;
                         }
                     } else {
                         imageCount = message.data.length;
@@ -232,13 +241,6 @@ window.onload = function () {
     });
 
 };
-// beware of bug: Cannot send objects at top level. (Nested in arrays is fine.)
-function shareSelected() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: "snapshot",
-        action: paths
-    }));
-}
 function doNotShare() {
     EventBridge.emitWebEvent(JSON.stringify({
         type: "snapshot",
