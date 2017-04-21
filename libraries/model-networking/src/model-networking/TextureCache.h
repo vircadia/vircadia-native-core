@@ -46,7 +46,7 @@ class NetworkTexture : public Resource, public Texture, public gpu::Texture::Mip
 
 public:
     NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels);
-    NetworkTexture::~NetworkTexture() override;
+    ~NetworkTexture() override;
 
     QString getType() const override { return "NetworkTexture"; }
 

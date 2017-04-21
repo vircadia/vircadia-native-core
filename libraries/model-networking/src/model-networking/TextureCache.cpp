@@ -411,7 +411,7 @@ void NetworkTexture::startRequestForNextMipLevel() {
         setLoadPriority(this, -_originalKtxDescriptor->header.numberOfMipmapLevels + _lowestKnownPopulatedMip);
 
         init();
-        ResourceCache::attemptRequest(_self);
+        TextureCache::attemptRequest(_self);
     }
 }
 
@@ -471,7 +471,7 @@ void NetworkTexture::ktxMipRequestFinished() {
     }
     else if (_ktxResourceState == REQUESTING_MIP) {
         Q_ASSERT(_ktxMipLevelRangeInFlight.first != NULL_MIP_LEVEL);
-        ResourceCache::requestCompleted(_self);
+        TextureCache::requestCompleted(_self);
 
         if (_ktxMipRequest->getResult() == ResourceRequest::Success) {
             Q_ASSERT(_ktxMipLevelRangeInFlight.second - _ktxMipLevelRangeInFlight.first == 0);
@@ -519,7 +519,7 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
 
     if (_ktxHeaderRequestFinished && _ktxHighMipRequestFinished) {
 
-        ResourceCache::requestCompleted(_self);
+        TextureCache::requestCompleted(_self);
 
         if (_ktxHeaderRequest->getResult() != ResourceRequest::Success || _ktxMipRequest->getResult() != ResourceRequest::Success) {
             if (handleFailedRequest(_ktxMipRequest->getResult())) {
