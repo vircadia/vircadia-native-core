@@ -216,7 +216,3 @@ body {
 .hidden {
     display: none;
 }
-
-input[type=button].red.pressed {
-    background: linear-gradient(#94132e, #94132e);
-}

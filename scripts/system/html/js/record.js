@@ -190,7 +190,6 @@ function onScriptEventReceived(data) {
         case START_RECORDING_ACTION:
             isRecording = true;
             elRecordButton.value = "Stop";
-            elRecordButton.classList.add("pressed");
             updateSpinner();
             break;
         case COUNTDOWN_NUMBER_ACTION:
@@ -199,7 +198,6 @@ function onScriptEventReceived(data) {
         case STOP_RECORDING_ACTION:
             isRecording = false;
             elRecordButton.value = "Record";
-            elRecordButton.classList.remove("pressed");
             updateSpinner();
             break;
         case RECORDINGS_BEING_PLAYED_ACTION:
@@ -230,7 +228,6 @@ function onLoadButtonClicked() {
 function onRecordButtonClicked() {
     if (!isRecording) {
         elRecordButton.value = "Stop";
-        elRecordButton.classList.add("pressed");
         EventBridge.emitWebEvent(JSON.stringify({
             type: EVENT_BRIDGE_TYPE,
             action: START_RECORDING_ACTION
@@ -239,7 +236,6 @@ function onRecordButtonClicked() {
         updateSpinner();
     } else {
         elRecordButton.value = "Record";
-        elRecordButton.classList.remove("pressed");
         EventBridge.emitWebEvent(JSON.stringify({
             type: EVENT_BRIDGE_TYPE,
             action: STOP_RECORDING_ACTION
