@@ -532,11 +532,11 @@ public:
         AvatarEntityMap avatarEntityData;
     };
 
-    static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
+    static void parseAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, Identity& identityOut, quint64& messageNumberOut);
 
     // identityChanged returns true if identity has changed, false otherwise.
     // displayNameChanged returns true if displayName has changed, false otherwise.
-    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
+    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, quint64 messageNumber);
 
     QByteArray identityByteArray() const;
 
@@ -777,6 +777,8 @@ protected:
     float _audioLoudness { 0.0f };
     quint64 _audioLoudnessChanged { 0 };
     float _audioAverageLoudness { 0.0f };
+
+    quint64 _lastIdentityPacketMessageNumber { 0 };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
