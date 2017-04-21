@@ -126,10 +126,6 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
 }
 
 void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    qDebug() << __FUNCTION__ << "sendingNode:" << sendingNode << "message.failed():" << message->failed() 
-            << "isComplete:" << message->isComplete()
-            << "messageNumber:" << message->getMessageNumber();
-
     AvatarData::Identity identity;
     quint64 messageNumber;
     AvatarData::parseAvatarIdentityPacket(message, identity, messageNumber);

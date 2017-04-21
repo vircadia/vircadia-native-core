@@ -1460,13 +1460,14 @@ void AvatarData::parseAvatarIdentityPacket(QSharedPointer<ReceivedMessage> messa
 
     packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.sessionDisplayName >> identityOut.avatarEntityData;
 
-    qDebug() << __FUNCTION__
+#ifdef WANT_DEBUG
+    qCDebug(avatars) << __FUNCTION__
         << "messageNumberOut:" << messageNumberOut
         << "identityOut.uuid:" << identityOut.uuid
         << "identityOut.skeletonModelURL:" << identityOut.skeletonModelURL
         << "identityOut.displayName:" << identityOut.displayName
-        << "identityOut.sessionDisplayName:" << identityOut.sessionDisplayName
-        ;
+        << "identityOut.sessionDisplayName:" << identityOut.sessionDisplayName;
+#endif
 
 }
 
@@ -1477,17 +1478,15 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
 }
 
 void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, quint64 messageNumber) {
-    qDebug() << __FUNCTION__ << "messageNumber:" << messageNumber << "_lastIdentityPacketMessageNumber:" << _lastIdentityPacketMessageNumber;
-
     if (messageNumber < _lastIdentityPacketMessageNumber) {
-        qDebug() << "ignoring late identity packet for avatar " << getSessionUUID();
+        qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
+                         << "messageNumber:" << messageNumber << "_lastIdentityPacketMessageNumber:" << _lastIdentityPacketMessageNumber;
         return;
     }
 
     _lastIdentityPacketMessageNumber = messageNumber;
 
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
-        qDebug() << __FUNCTION__ << "about to call setSkeletonModelURL(identity.skeletonModelURL);... identity.skeletonModelURL:" << identity.skeletonModelURL;
         setSkeletonModelURL(identity.skeletonModelURL);
         identityChanged = true;
         if (_firstSkeletonCheck) {
@@ -1535,7 +1534,7 @@ QByteArray AvatarData::identityByteArray() const {
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     if (skeletonModelURL.isEmpty()) {
-        qDebug() << __FUNCTION__ << "caller called with empty URL.";
+        qCDebug(avatars) << __FUNCTION__ << "caller called with empty URL.";
     }
 
     const QUrl& expanded = skeletonModelURL.isEmpty() ? AvatarData::defaultFullAvatarModelUrl() : skeletonModelURL;

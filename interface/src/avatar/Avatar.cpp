@@ -341,8 +341,6 @@ void Avatar::updateAvatarEntities() {
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
 
-    //qDebug() << __FUNCTION__ << "skeleton download attempts:" << _skeletonModel->getResourceDownloadAttempts();
-
     _simulationRate.increment();
     if (inView) {
         _simulationInViewRate.increment();
@@ -1114,15 +1112,17 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setModelURLFinished(bool success) {
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
-        // FIXME -- 
-        if (_skeletonModel->getResourceDownloadAttempts() > 4) {
+        const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: must be less than MAX_ATTEMPTS in ResourceCache.cpp
+        if (_skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
             qCWarning(interfaceapp) << "Using default after failing to load Avatar model: " << _skeletonModelURL;
             // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
             // we don't redo this every time we receive an identity packet from the avatar with the bad url.
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
                 Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
         } else {
-            qCWarning(interfaceapp) << "Avatar model: " << _skeletonModelURL << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts();
+            qCWarning(interfaceapp) << "Avatar model: " << _skeletonModelURL 
+                    << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts() 
+                    << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
     }
 }
