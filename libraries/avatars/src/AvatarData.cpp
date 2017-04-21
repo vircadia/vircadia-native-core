@@ -1457,6 +1457,14 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
     QDataStream packetStream(data);
 
     packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.sessionDisplayName >> identityOut.avatarEntityData;
+
+    qDebug() << __FUNCTION__
+        << "identityOut.uuid:" << identityOut.uuid
+        << "identityOut.skeletonModelURL:" << identityOut.skeletonModelURL
+        << "identityOut.displayName:" << identityOut.displayName
+        << "identityOut.sessionDisplayName:" << identityOut.sessionDisplayName
+        ;
+
 }
 
 static const QUrl emptyURL("");
