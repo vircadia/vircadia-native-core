@@ -112,11 +112,11 @@ protected:
     static void manageMemory();
 
     //bool canPromoteNoAllocate() const { return _allocatedMip < _populatedMip; }
-    bool canPromote() const { return _allocatedMip > 0 || _populatedMip > 0; }
+    virtual bool canPopulate() const = 0;
+    bool canPromote() const { return _allocatedMip > 0; }
     bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
     bool hasPendingTransfers() const { return _pendingTransfers.size() > 0; }
     void executeNextTransfer(const TexturePointer& currentTexture);
-    virtual bool canPopulate() const = 0;
     virtual void populateTransferQueue() = 0;
     virtual void promote() = 0;
     virtual void demote() = 0;

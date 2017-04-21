@@ -100,7 +100,7 @@ public:
         GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         ~GL41VariableAllocationTexture();
 
-        bool canPopulate() const override { return _gpuObject.isStoredMipFaceAvailable(_populatedMip - 1, 0); }
+        bool canPopulate() const override { return _populatedMip > _allocatedMip && _gpuObject.isStoredMipFaceAvailable(_populatedMip - 1, 0); }
         void allocateStorage(uint16 allocatedMip);
         void syncSampler() const override;
         void promote() override;
