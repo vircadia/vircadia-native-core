@@ -41,9 +41,6 @@ GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
 using GL45ResourceTexture = GL45Backend::GL45ResourceTexture;
 
 GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45VariableAllocationTexture(backend, texture) {
-    if (texture.source().find_first_of("box.ktx") != std::string::npos) {
-        qDebug() << "In box.ktx ctor";
-    }
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
 
@@ -53,13 +50,11 @@ GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend
     for (uint16_t mip = 0; mip < mipLevels; ++mip) {
         if (glm::all(glm::lessThanEqual(texture.evalMipDimensions(mip), INITIAL_MIP_TRANSFER_DIMENSIONS))
             && texture.isStoredMipFaceAvailable(mip)) {
-            _maxAllocatedMip = _populatedMip = mip;
+            _lowestRequestedMip = _maxAllocatedMip = _populatedMip = mip;
             break;
         }
     }
-    //_maxAllocatedMip = _populatedMip = mipLevels;
 
-    //glObjectLabel(GL_TEXTURE, _id, _source.length(), _source.data());
     uint16_t allocatedMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
     allocateStorage(allocatedMip);
     _memoryPressureStateStale = true;
@@ -112,7 +107,6 @@ void GL45ResourceTexture::promote() {
     auto oldSize = _size;
     // create new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
-    //glObjectLabel(GL_TEXTURE, _id, _source.length(), _source.data());
     uint16_t oldAllocatedMip = _allocatedMip;
     // allocate storage for new level
     allocateStorage(_allocatedMip - std::min<uint16_t>(_allocatedMip, 2));
@@ -146,7 +140,6 @@ void GL45ResourceTexture::demote() {
     auto oldId = _id;
     auto oldSize = _size;
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
-    //glObjectLabel(GL_TEXTURE, _id, _source.length(), _source.data());
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
     uint16_t mips = _gpuObject.getNumMips();

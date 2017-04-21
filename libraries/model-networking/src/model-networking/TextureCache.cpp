@@ -281,11 +281,6 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
         _loaded = true;
     }
 
-    //if (_sourceIsKTX) {
-        //_requestByteRange.fromInclusive = 0;
-        //_requestByteRange.toExclusive = 1000;
-    //}
-
     // if we have content, load it after we have our self pointer
     if (!content.isEmpty()) {
         _startedLoading = true;
@@ -364,12 +359,9 @@ void NetworkTexture::makeRequest() {
         range.toExclusive = 1000;
         _ktxHeaderRequest->setByteRange(range);
 
-        //qCDebug(resourceLog).noquote() << "Starting request for:" << _url.toDisplayString();
         emit loading();
 
         connect(_ktxHeaderRequest, &ResourceRequest::progress, this, &NetworkTexture::ktxHeaderRequestProgress);
-        //connect(this, &Resource::onProgress, this, &NetworkTexture::ktxHeaderRequestFinished);
-
         connect(_ktxHeaderRequest, &ResourceRequest::finished, this, &NetworkTexture::ktxHeaderRequestFinished);
 
         _bytesReceived = _bytesTotal = _bytes = 0;
@@ -389,7 +381,6 @@ void NetworkTexture::makeRequest() {
 }
 
 void NetworkTexture::handleMipInterestCallback(uint16_t level) {
-    //qDebug(networking) << "++++ Got request for mip level: " << _url << " " << level;
     QMetaObject::invokeMethod(this, "handleMipInterestLevel", Qt::QueuedConnection, Q_ARG(int, level));
 }
 
@@ -426,7 +417,7 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
     _ktxMipRequest = ResourceManager::createResourceRequest(this, _activeUrl);
 
     if (!_ktxMipRequest) {
-        qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
+        qCWarning(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
 
         PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID));
         return;
@@ -439,7 +430,6 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
         range.fromInclusive = -15000;
         _ktxMipRequest->setByteRange(range);
     } else {
-        qDebug(networking) << ">>> Making request to " << _url << " for " << low << " to " << high;
         ByteRange range;
         range.fromInclusive = ktx::KTX_HEADER_SIZE + _originalKtxDescriptor->header.bytesOfKeyValueData
                               + _originalKtxDescriptor->images[low]._imageOffset + 4;
@@ -478,8 +468,6 @@ void NetworkTexture::ktxMipRequestFinished() {
 
             auto texture = _textureSource->getGPUTexture();
             if (texture) {
-                //_lowestKnownPopulatedMip = _ktxMipLevelRangeInFlight.first;
-                //qDebug() << "Writing mip for " << _url;
                 texture->assignStoredMip(_ktxMipLevelRangeInFlight.first,
                     _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
                 _lowestKnownPopulatedMip = _textureSource->getGPUTexture()->minAvailableMipLevel();
@@ -496,7 +484,7 @@ void NetworkTexture::ktxMipRequestFinished() {
                 _ktxResourceState = PENDING_MIP_REQUEST;
             }
             else {
-                qWarning() << "Failed to load mip: " << _url;
+                qWarning(networking) << "Failed to load mip: " << _url;
                 _ktxResourceState = FAILED_TO_LOAD;
             }
         }
@@ -540,14 +528,6 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
 
             auto header = reinterpret_cast<const ktx::Header*>(ktxHeaderData.data());
 
-            qDebug() << "Creating KTX";
-            qDebug() << "Identifier:" << QString(QByteArray((char*)header->identifier, 12));
-            qDebug() << "Type:" << header->glType;
-            qDebug() << "TypeSize:" << header->glTypeSize;
-            qDebug() << "numberOfArrayElements:" << header->numberOfArrayElements;
-            qDebug() << "numberOfFaces:" << header->numberOfFaces;
-            qDebug() << "numberOfMipmapLevels:" << header->numberOfMipmapLevels;
-
             if (!ktx::checkIdentifier(header->identifier)) {
                 qWarning() << "Cannot load " << _url << ", invalid header identifier";
                 _ktxResourceState = FAILED_TO_LOAD;
@@ -586,7 +566,6 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                 return;
             } else {
                 hash = filename = std::string(reinterpret_cast<char*>(found->_value.data()), 32);
-                //hash = filename = _url.path().replace("/", "_").toStdString();
             }
 
             auto textureCache = DependencyManager::get<TextureCache>();
@@ -629,7 +608,6 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
 
                 auto newKtxDescriptor = memKtx->toDescriptor();
 
-                //auto texture = gpu::Texture::serializeHeader("test.ktx", *header, keyValues);
                 texture = gpu::Texture::unserialize(_file->getFilepath(), newKtxDescriptor);
                 texture->setKtxBacking(file->getFilepath());
                 texture->setSource(filename);
@@ -645,7 +623,6 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                     if (image._imageSize > imageSizeRemaining) {
                         break;
                     }
-                    //qDebug() << "Transferring " << level;
                     ktxData -= image._imageSize;
                     texture->assignStoredMip(level, image._imageSize, ktxData);
                     ktxData -= 4;

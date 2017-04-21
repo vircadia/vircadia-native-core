@@ -134,21 +134,9 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
         return;
     }
 
-
-    //auto fileStorage = new storage::FileStorage(_filename.c_str());
-    //ktx::StoragePointer file { fileStorage };
     auto file = maybeOpenFile();
+
     auto data = file->mutableData();
-    data += file->size();
-
-    // TODO Cache this data inside Image or ImageDescriptor?
-    for (int i = _ktxDescriptor->header.numberOfMipmapLevels - 1; i >= level; --i) {
-        data -= _ktxDescriptor->images[i]._imageSize;
-        data -= 4;
-    }
-    data += 4;
-
-    data = file->mutableData();
     data += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
     data += 4;
 
@@ -172,7 +160,6 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
 void KtxStorage::assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) {
     throw std::runtime_error("Invalid call");
 }
-
 
 void Texture::setKtxBacking(const std::string& filename) {
     // Check the KTX file for validity before using it as backing storage
@@ -362,13 +349,6 @@ TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDe
     tex->setStoredMipFormat(mipFormat);
     tex->setKtxBacking(ktxfile);
     return tex;
-}
-
-TexturePointer Texture::serializeHeader(const std::string& ktxfile, const ktx::Header& header, const ktx::KeyValues& keyValues) {
-    // Create a memory-backed KTX object
-    auto ktxBuffer = ktx::KTX::createBare(header, keyValues);
-
-    return unserialize(ktxfile, ktxBuffer->toDescriptor());
 }
 
 bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header) {

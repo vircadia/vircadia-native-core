@@ -91,9 +91,9 @@ size_t Header::evalPixelOrBlockSize() const {
             return 4;
         }
     }
+
     qWarning() << "Unknown ktx format: " << glFormat << " " << glBaseInternalFormat << " " << glInternalFormat;
     return 0;
-    //throw std::runtime_error("Unknown format");
 }
 
 size_t Header::evalRowSize(uint32_t level) const {
@@ -284,7 +284,6 @@ Image ImageDescriptor::toImage(const ktx::StoragePointer& storage) const {
     FaceBytes faces;
     faces.resize(_faceOffsets.size());
     for (size_t face = 0; face < _numFaces; ++face) {
-        // TODO Should we be storing pointers to unowned data?
         faces[face] = storage->data() + _faceOffsets[face];
     }
     // Note, implicit cast of *this to const ImageHeader&

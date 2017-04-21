@@ -667,7 +667,6 @@ void Resource::makeRequest() {
     }
 
     PROFILE_ASYNC_BEGIN(resource, "Resource:" + getType(), QString::number(_requestID), { { "url", _url.toString() }, { "activeURL", _activeUrl.toString() } });
-    qDebug() << "Making request to " << _url << " for byte range " << _requestByteRange.fromInclusive << "-" << _requestByteRange.toExclusive;
 
     _request = ResourceManager::createResourceRequest(this, _activeUrl);
 
@@ -700,7 +699,6 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 }
 
 void Resource::handleReplyFinished() {
-    qDebug() << "Got response for " << _activeUrl;
     Q_ASSERT_X(_request, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
 
     PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID), {

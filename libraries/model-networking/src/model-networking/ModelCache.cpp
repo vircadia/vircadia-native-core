@@ -364,7 +364,6 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
 
 bool Geometry::areTexturesLoaded() const {
     if (!_areTexturesLoaded) {
-        //qDebug() << "Textures not loaded for " << _fbxGeometry->originalURL;
         for (auto& material : _materials) {
             // Check if material textures are loaded
             bool materialMissingTexture = std::any_of(material->_textures.cbegin(), material->_textures.cend(),

@@ -544,7 +544,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     }
 
     if (_fadeState == FADE_WAITING_TO_START) {
-        //if (_model->isLoaded() && _model->getGeometry()->areTexturesLoaded()) {
         if (_model->isLoaded()) {
             if (EntityItem::getEntitiesShouldFadeFunction()()) {
                 _fadeStartTime = usecTimestampNow();
