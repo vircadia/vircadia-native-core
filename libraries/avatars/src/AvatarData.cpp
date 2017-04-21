@@ -14,6 +14,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <limits>
 #include <stdint.h>
 
 #include <QtCore/QDataStream>
@@ -1478,7 +1479,10 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
 }
 
 void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, quint64 messageNumber) {
-    if (messageNumber < _lastIdentityPacketMessageNumber) {
+
+    if (messageNumber < _lastIdentityPacketMessageNumber && 
+            _lastIdentityPacketMessageNumber < std::numeric_limits<quint64>::max()) {
+
         qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
                          << "messageNumber:" << messageNumber << "_lastIdentityPacketMessageNumber:" << _lastIdentityPacketMessageNumber;
         return;
