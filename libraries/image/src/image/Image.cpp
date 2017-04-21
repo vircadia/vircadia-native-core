@@ -28,9 +28,9 @@
 using namespace gpu;
 
 #define CPU_MIPMAPS 1
-#define COMPRESS_COLOR_TEXTURES 1
+#define COMPRESS_COLOR_TEXTURES 0
 #define COMPRESS_NORMALMAP_TEXTURES 0 // Disable Normalmap compression for now
-#define COMPRESS_GRAYSCALE_TEXTURES 1
+#define COMPRESS_GRAYSCALE_TEXTURES 0
 #define COMPRESS_CUBEMAP_TEXTURES 0 // Disable Cubemap compression for now
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
