@@ -96,6 +96,9 @@ void OffscreenUi::create(QOpenGLContext* context) {
     rootContext->setContextProperty("OffscreenUi", this);
     rootContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
     rootContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    TabletProxy* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
+    rootContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
 }
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
