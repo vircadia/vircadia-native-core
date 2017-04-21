@@ -2237,15 +2237,22 @@ function MyController(hand) {
                 return;
             }
         }
-
+        
         if (isInEditMode()) {
             this.searchIndicatorOn(rayPickInfo.searchRay);
             if (this.triggerSmoothedGrab()) {
-                if (!this.editTriggered && rayPickInfo.entityID) {
-                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "selectEntity",
-                        entityID: rayPickInfo.entityID
-                    }));
+                if (!this.editTriggered){
+                    if (rayPickInfo.entityID) {
+                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            method: "selectEntity",
+                            entityID: rayPickInfo.entityID
+                        }));
+                    } else if (rayPickInfo.overlayID) {
+                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            method: "selectOverlay",
+                            overlayID: rayPickInfo.overlayID
+                        }));
+                    }
                 }
                 this.editTriggered = true;
             }
