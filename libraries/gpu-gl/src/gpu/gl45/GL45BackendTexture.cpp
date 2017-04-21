@@ -85,7 +85,7 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
         if (texture.getUsageType() == TextureUsageType::RESOURCE) {
             auto varTex = static_cast<GL45VariableAllocationTexture*> (object);
 
-            if (varTex->canPromoteAndPopulate()) {
+            if (varTex->canPromote() && varTex->canPopulate()) {
                 GL45VariableAllocationTexture::_memoryPressureStateStale = true;
             }
 
