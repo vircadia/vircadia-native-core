@@ -504,13 +504,13 @@ Menu::Menu() {
 #endif
 
     action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false);
-    connect(action, &QAction::triggered, []{ Avatar::setShowReceiveStats(Menu::getInstance()->isOptionChecked(MenuOption::AvatarReceiveStats)); });
+    connect(action, &QAction::triggered, [this]{ Avatar::setShowReceiveStats(isOptionChecked(MenuOption::AvatarReceiveStats)); });
     action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowBoundingCollisionShapes, 0, false);
-    connect(action, &QAction::triggered, []{ Avatar::setShowCollisionShapes(Menu::getInstance()->isOptionChecked(MenuOption::ShowBoundingCollisionShapes)); });
+    connect(action, &QAction::triggered, [this]{ Avatar::setShowCollisionShapes(isOptionChecked(MenuOption::ShowBoundingCollisionShapes)); });
     action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowMyLookAtVectors, 0, false);
-    connect(action, &QAction::triggered, []{ Avatar::setShowMyLookAtVectors(Menu::getInstance()->isOptionChecked(MenuOption::ShowMyLookAtVectors)); });
+    connect(action, &QAction::triggered, [this]{ Avatar::setShowMyLookAtVectors(isOptionChecked(MenuOption::ShowMyLookAtVectors)); });
     action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowOtherLookAtVectors, 0, false);
-    connect(action, &QAction::triggered, []{ Avatar::setShowOtherLookAtVectors(Menu::getInstance()->isOptionChecked(MenuOption::ShowOtherLookAtVectors)); });
+    connect(action, &QAction::triggered, [this]{ Avatar::setShowOtherLookAtVectors(isOptionChecked(MenuOption::ShowOtherLookAtVectors)); });
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
