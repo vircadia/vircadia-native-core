@@ -150,7 +150,7 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
-    void setShowDisplayName(bool showDisplayName);
+    void updateDisplayNameAlpha(bool showDisplayName);
     virtual void setSessionDisplayName(const QString& sessionDisplayName) override { }; // no-op
 
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
@@ -368,6 +368,10 @@ private:
     int _voiceSphereID;
 
     AvatarPhysicsCallback _physicsCallback { nullptr };
+
+    float _displayNameTargetAlpha { 1.0f };
+    float _displayNameAlpha { 1.0f };
+
 };
 
 #endif // hifi_Avatar_h

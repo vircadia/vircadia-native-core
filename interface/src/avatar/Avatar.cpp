@@ -653,20 +653,19 @@ void Avatar::render(RenderArgs* renderArgs) {
         _skeletonModel->renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
     }
 
-#if 0 ///  -------------- REMOVED FOR NOW --------------
-    // removed CPU calculations as per removal of menu option
-    glm::vec3 toTarget = frustum.getPosition() - getPosition();
-    float distanceToTarget = glm::length(toTarget);
-    const float DISPLAYNAME_DISTANCE = 20.0f;
-    setShowDisplayName(distanceToTarget < DISPLAYNAME_DISTANCE);
-    if (!isMyAvatar() || renderArgs->_cameraMode != (int8_t)CAMERA_MODE_FIRST_PERSON) {
-        auto& frustum = renderArgs->getViewFrustum();
-        auto textPosition = getDisplayNamePosition();
-        if (frustum.pointIntersectsFrustum(textPosition)) {
-            renderDisplayName(batch, frustum, textPosition);
+    if (showReceiveStats || showNamesAboveHeads) {
+        glm::vec3 toTarget = frustum.getPosition() - getPosition();
+        float distanceToTarget = glm::length(toTarget);
+        const float DISPLAYNAME_DISTANCE = 20.0f;
+        updateDisplayNameAlpha(distanceToTarget < DISPLAYNAME_DISTANCE);
+        if (!isMyAvatar() || renderArgs->_cameraMode != (int8_t)CAMERA_MODE_FIRST_PERSON) {
+            auto& frustum = renderArgs->getViewFrustum();
+            auto textPosition = getDisplayNamePosition();
+            if (frustum.pointIntersectsFrustum(textPosition)) {
+                renderDisplayName(batch, frustum, textPosition);
+            }
         }
     }
-#endif
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
@@ -1275,8 +1274,8 @@ float Avatar::getPelvisFloatingHeight() const {
     return -_skeletonModel->getBindExtents().minimum.y;
 }
 
-void Avatar::setShowDisplayName(bool showDisplayName) {
-    if (!showNamesAboveHeads) {
+void Avatar::updateDisplayNameAlpha(bool showDisplayName) {
+    if (!(showNamesAboveHeads || showReceiveStats)) {
         _displayNameAlpha = 0.0f;
         return;
     }

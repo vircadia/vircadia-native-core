@@ -692,9 +692,6 @@ protected:
     QString _sessionDisplayName { };
     QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
 
-    float _displayNameTargetAlpha;
-    float _displayNameAlpha;
-
     QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _jointNames; ///< in order of depth-first traversal
 

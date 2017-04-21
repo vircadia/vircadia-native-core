@@ -131,6 +131,7 @@ public:
 
     RenderDetails _details;
     render::ScenePointer _scene;
+    int8_t _cameraMode { -1 };
 };
 
 #endif // hifi_RenderArgs_h
