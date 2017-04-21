@@ -396,7 +396,7 @@ public:
     const QUrl& getURL() const { return _url; }
 
     int getDownloadAttempts() { return _attempts; }
-
+    int getDownloadAttemptsRemaining() { return _attemptsRemaining; }
 
 signals:
     /// Fired when the resource begins downloading.
@@ -477,6 +477,10 @@ private:
     qint64 _bytesTotal{ 0 };
     qint64 _bytes{ 0 };
     int _attempts{ 0 };
+
+    const int MAX_ATTEMPTS = 8;
+
+    int _attemptsRemaining { MAX_ATTEMPTS };
     bool _isInScript{ false };
 };
 

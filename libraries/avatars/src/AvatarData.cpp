@@ -1454,7 +1454,7 @@ QStringList AvatarData::getJointNames() const {
     return _jointNames;
 }
 
-void AvatarData::parseAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, Identity& identityOut, quint64& messageNumberOut) {
+void AvatarData::parseAvatarIdentityPacket(const QSharedPointer<ReceivedMessage>& message, Identity& identityOut, quint64& messageNumberOut) {
     const QByteArray& data = message->getMessage();
     messageNumberOut = message->getMessageNumber();
     QDataStream packetStream(data);

@@ -621,8 +621,6 @@ void Resource::init() {
     }
 }
 
-const int MAX_ATTEMPTS = 8;
-
 void Resource::attemptRequest() {
     _startedLoading = true;
 
@@ -724,14 +722,17 @@ void Resource::handleReplyFinished() {
     } else {
         switch (result) {
             case ResourceRequest::Result::Timeout: {
-                qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal << "attempt:" << _attempts << "of" << MAX_ATTEMPTS;
+                qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal 
+                                    << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
                 // Fall through to other cases
             }
             case ResourceRequest::Result::ServerUnavailable: {
-                qCDebug(networking) << "Server Unavailable loading" << _url << "attempt:" << _attempts << "of" << MAX_ATTEMPTS;
+                qCDebug(networking) << "Server Unavailable loading" << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
                 // retry with increasing delays
                 const int BASE_DELAY_MS = 1000;
                 if (_attempts++ < MAX_ATTEMPTS) {
+                    _attemptsRemaining--;
+
                     auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
 
                     qCDebug(networking).noquote() << "Server unavailable for" << _url << "- may retry in" << waitTime << "ms"
@@ -743,7 +744,8 @@ void Resource::handleReplyFinished() {
                 // fall through to final failure
             }
             default: {
-                qCDebug(networking) << "Error loading " << _url << "attempt:" << _attempts << "of" << MAX_ATTEMPTS;
+                _attemptsRemaining = 0;
+                qCDebug(networking) << "Error loading " << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
                 auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError
                                                                   : QNetworkReply::UnknownNetworkError;
                 emit failed(error);

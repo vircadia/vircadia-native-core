@@ -1112,8 +1112,9 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setModelURLFinished(bool success) {
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
-        const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: must be less than MAX_ATTEMPTS in ResourceCache.cpp
-        if (_skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
+        const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
+        if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
+            _skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
             qCWarning(interfaceapp) << "Using default after failing to load Avatar model: " << _skeletonModelURL;
             // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
             // we don't redo this every time we receive an identity packet from the avatar with the bad url.

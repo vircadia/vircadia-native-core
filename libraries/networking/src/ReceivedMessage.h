@@ -101,7 +101,7 @@ private:
     std::atomic<bool> _isComplete { true };  
     std::atomic<bool> _failed { false };
 
-    udt::Packet::MessageNumber _messageNumber { 0 };
+    const udt::Packet::MessageNumber _messageNumber; // only settable on construction
 
 };
 

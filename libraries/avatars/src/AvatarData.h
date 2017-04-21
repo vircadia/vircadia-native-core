@@ -532,7 +532,7 @@ public:
         AvatarEntityMap avatarEntityData;
     };
 
-    static void parseAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, Identity& identityOut, quint64& messageNumberOut);
+    static void parseAvatarIdentityPacket(const QSharedPointer<ReceivedMessage>& message, Identity& identityOut, quint64& messageNumberOut);
 
     // identityChanged returns true if identity has changed, false otherwise.
     // displayNameChanged returns true if displayName has changed, false otherwise.
