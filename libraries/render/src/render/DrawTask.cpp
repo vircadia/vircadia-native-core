@@ -25,8 +25,8 @@
 
 using namespace render;
 
-void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, int maxDrawnItems) {
-    auto& scene = sceneContext->_scene;
+void render::renderItems(const RenderContextPointer& renderContext, const ItemBounds& inItems, int maxDrawnItems) {
+    auto& scene = renderContext->_scene;
     RenderArgs* args = renderContext->args;
 
     int numItemsToDraw = (int)inItems.size();
@@ -55,9 +55,9 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
     }
 }
 
-void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+void render::renderShapes(const RenderContextPointer& renderContext,
     const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems, const ShapeKey& globalKey) {
-    auto& scene = sceneContext->_scene;
+    auto& scene = renderContext->_scene;
     RenderArgs* args = renderContext->args;
     
     int numItemsToDraw = (int)inItems.size();
@@ -70,9 +70,9 @@ void render::renderShapes(const SceneContextPointer& sceneContext, const RenderC
     }
 }
 
-void render::renderStateSortShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+void render::renderStateSortShapes(const RenderContextPointer& renderContext,
     const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems, const ShapeKey& globalKey) {
-    auto& scene = sceneContext->_scene;
+    auto& scene = renderContext->_scene;
     RenderArgs* args = renderContext->args;
 
     int numItemsToDraw = (int)inItems.size();
@@ -123,7 +123,7 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
     }
 }
 
-void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights) {
+void DrawLight::run(const RenderContextPointer& renderContext, const ItemBounds& inLights) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
@@ -131,7 +131,7 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
     // render lights
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
-        renderItems(sceneContext, renderContext, inLights, _maxDrawn);
+        renderItems(renderContext, inLights, _maxDrawn);
         args->_batch = nullptr;
     });
 
@@ -163,7 +163,7 @@ const gpu::PipelinePointer DrawBounds::getPipeline() {
     return _boundsPipeline;
 }
 
-void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+void DrawBounds::run(const RenderContextPointer& renderContext,
     const Inputs& items) {
     RenderArgs* args = renderContext->args;
 
