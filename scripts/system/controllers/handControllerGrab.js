@@ -3984,7 +3984,7 @@ var updateTotalWork = 0;
 
 var UPDATE_PERFORMANCE_DEBUGGING = false;
 
-function updateWrapper(){
+var updateWrapper = function () {
 
     intervalCount++;
     var thisInterval = Date.now();
@@ -4032,12 +4032,14 @@ function updateWrapper(){
         updateTotalWork = 0;
     }
 
+    Script.setTimeout(updateWrapper, 16);
 }
 
-Script.update.connect(updateWrapper);
+// Script.update.connect(updateWrapper);
+Script.setTimeout(updateWrapper, 16);
 function cleanup() {
     Menu.removeMenuItem("Developer", "Show Grab Sphere");
-    Script.update.disconnect(updateWrapper);
+    // Script.update.disconnect(updateWrapper);
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
