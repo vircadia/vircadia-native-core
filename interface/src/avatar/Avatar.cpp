@@ -85,14 +85,6 @@ Avatar::Avatar(QThread* thread, RigPointer rig) :
     _lastOrientation(),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
-    _smoothPositionTime(SMOOTH_TIME_POSITION),
-    _smoothPositionTimer(std::numeric_limits<float>::max()),
-    _smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
-    _smoothOrientationTimer(std::numeric_limits<float>::max()),
-    _smoothPositionInitial(),
-    _smoothPositionTarget(),
-    _smoothOrientationInitial(),
-    _smoothOrientationTarget(),
     _initialized(false),
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
@@ -344,38 +336,6 @@ void Avatar::simulate(float deltaTime, bool inView) {
     _simulationRate.increment();
     if (inView) {
         _simulationInViewRate.increment();
-    }
-
-    if (!isMyAvatar()) {
-        if (_smoothPositionTimer < _smoothPositionTime) {
-            // Smooth the remote avatar movement.
-            _smoothPositionTimer += deltaTime;
-            if (_smoothPositionTimer < _smoothPositionTime) {
-                AvatarData::setPosition(
-                    lerp(_smoothPositionInitial, 
-                        _smoothPositionTarget,
-                        easeInOutQuad(glm::clamp(_smoothPositionTimer / _smoothPositionTime, 0.0f, 1.0f)))
-                );
-                updateAttitude();
-            }
-		} else if (AvatarData::getPosition() != _smoothPositionTarget) {
-			setPosition(AvatarData::getPosition());
-		}
-
-        if (_smoothOrientationTimer < _smoothOrientationTime) {
-            // Smooth the remote avatar movement.
-            _smoothOrientationTimer += deltaTime;
-            if (_smoothOrientationTimer < _smoothOrientationTime) {
-                AvatarData::setOrientation(
-                    slerp(_smoothOrientationInitial, 
-                        _smoothOrientationTarget,
-                        easeInOutQuad(glm::clamp(_smoothOrientationTimer / _smoothOrientationTime, 0.0f, 1.0f)))
-                );
-                updateAttitude();
-            }
-        } else if (AvatarData::getOrientation() != _smoothOrientationTarget) {
-			setOrientation(AvatarData::getOrientation());
-		}
     }
 
     PerformanceTimer perfTimer("simulate");
@@ -1382,31 +1342,15 @@ glm::quat Avatar::getUncachedRightPalmRotation() const {
 }
 
 void Avatar::setPosition(const glm::vec3& position) {
-    if (isMyAvatar()) {
-        // This is the local avatar, no need to handle any position smoothing.
-        AvatarData::setPosition(position);
-        updateAttitude();
-        return;
-    }
-
-    // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-    _smoothPositionInitial = AvatarData::getPosition();
-    _smoothPositionTarget = position;
-    _smoothPositionTimer = 0.0f;
+    // This is the local avatar, no need to handle any position smoothing.
+    AvatarData::setPosition(position);
+    updateAttitude();
 }
 
 void Avatar::setOrientation(const glm::quat& orientation) {
-    if (isMyAvatar()) {
-        // This is the local avatar, no need to handle any position smoothing.
-        AvatarData::setOrientation(orientation);
-        updateAttitude();
-        return;
-    }
-
-    // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-	_smoothOrientationInitial = AvatarData::getOrientation();
-    _smoothOrientationTarget = orientation;
-    _smoothOrientationTimer = 0.0f;
+    // This is the local avatar, no need to handle any position smoothing.
+    AvatarData::setOrientation(orientation);
+    updateAttitude();
 }
 
 void Avatar::updatePalms() {

@@ -18,8 +18,16 @@
 QString const ModelOverlay::TYPE = "model";
 
 ModelOverlay::ModelOverlay()
-    : _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
-      _modelTextures(QVariantMap())
+	: _smoothPositionTime(SMOOTH_TIME_POSITION),
+	 _smoothPositionTimer(std::numeric_limits<float>::max()),
+	 _smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
+	 _smoothOrientationTimer(std::numeric_limits<float>::max()),
+	 _smoothPositionInitial(),
+	 _smoothPositionTarget(),
+	 _smoothOrientationInitial(),
+	 _smoothOrientationTarget(), 
+	 _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
+	 _modelTextures(QVariantMap())
 {
     _model->init();
     _isLoaded = false;
@@ -40,6 +48,35 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
 }
 
 void ModelOverlay::update(float deltatime) {
+	if (_model && _model->isActive()) {
+		_model->setRotation(getRotation());
+		_model->setTranslation(getPosition());
+
+        if (_smoothPositionTimer < _smoothPositionTime) {
+            // Smooth the remote avatar movement.
+            _smoothPositionTimer+= deltatime;
+            if (_smoothPositionTimer < _smoothPositionTime) {
+				_model->setTranslation(
+                    lerp(_smoothPositionInitial, 
+                        _smoothPositionTarget,
+                        easeInOutQuad(glm::clamp(_smoothPositionTimer / _smoothPositionTime, 0.0f, 1.0f)))
+                );
+            }
+		}
+
+        if (_smoothOrientationTimer < _smoothOrientationTime) {
+            // Smooth the remote avatar movement.
+            _smoothOrientationTimer+= deltatime;
+            if (_smoothOrientationTimer < _smoothOrientationTime) {
+				_model->setRotation(
+                    slerp(_smoothOrientationInitial, 
+                        _smoothOrientationTarget,
+                        easeInOutQuad(glm::clamp(_smoothOrientationTimer / _smoothOrientationTime, 0.0f, 1.0f)))
+                );
+            }
+        }
+	}
+
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
@@ -173,8 +210,18 @@ ModelOverlay* ModelOverlay::createClone() const {
 void ModelOverlay::locationChanged(bool tellPhysics) {
     Base3DOverlay::locationChanged(tellPhysics);
 
-    if (_model && _model->isActive()) {
-        _model->setRotation(getRotation());
-        _model->setTranslation(getPosition());
-    }
+	if (!_model || !_model->isActive()) {
+		// If it's not active, don't care about it.
+		return;
+	}
+
+	// Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
+	_smoothPositionInitial = _model->getTranslation();
+	_smoothPositionTarget = getPosition();
+	_smoothPositionTimer = 0.0f;
+
+	// Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
+	_smoothOrientationInitial = _model->getRotation();
+	_smoothOrientationTarget = getRotation();
+	_smoothOrientationTimer = 0.0f;
 }

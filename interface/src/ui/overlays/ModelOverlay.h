@@ -39,7 +39,32 @@ public:
     virtual bool addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) override;
     virtual void removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
-    void locationChanged(bool tellPhysics) override;
+	void locationChanged(bool tellPhysics = true) override;
+
+	// Basic ease-in-ease-out function for smoothing values.
+	inline float easeInOutQuad(float lerpValue) {
+		assert(!((lerpValue < 0.0f) || (lerpValue > 1.0f)));
+
+		if (lerpValue < 0.5f) {
+			return (2.0f * lerpValue * lerpValue);
+		}
+
+		return (lerpValue*(4.0f - 2.0f * lerpValue) - 1.0f);
+	}
+
+protected:
+	const float SMOOTH_TIME_POSITION = 0.125f;
+	const float SMOOTH_TIME_ORIENTATION = 0.15f;
+
+	// Smoothing data for blending from one position/orientation to another on remote agents.
+	float _smoothPositionTime;
+	float _smoothPositionTimer;
+	float _smoothOrientationTime;
+	float _smoothOrientationTimer;
+	glm::vec3 _smoothPositionInitial;
+	glm::vec3 _smoothPositionTarget;
+	glm::quat _smoothOrientationInitial;
+	glm::quat _smoothOrientationTarget;
 
 private:
 
