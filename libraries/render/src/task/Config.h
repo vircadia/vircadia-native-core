@@ -22,9 +22,6 @@
 
 #include "Logging.h"
 
-#include <Profile.h>
-#include <PerfStat.h>
-
 namespace task {
 
 class JobConcept;
@@ -111,14 +108,7 @@ public:
     bool alwaysEnabled{ true };
     bool enabled{ true };
 
-    virtual void setPresetList(const QJsonObject& object) {
-        for (auto it = object.begin(); it != object.end(); it++) {
-            JobConfig* child = findChild<JobConfig*>(it.key(), Qt::FindDirectChildrenOnly);
-            if (child) {
-                child->setPresetList(it.value().toObject());
-            }
-        }
-    }
+    virtual void setPresetList(const QJsonObject& object);
 
     // This must be named toJSON to integrate with the global scripting JSON object
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }

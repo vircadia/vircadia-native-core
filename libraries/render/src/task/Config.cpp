@@ -15,6 +15,15 @@
 
 using namespace task;
 
+void JobConfig::setPresetList(const QJsonObject& object) {
+    for (auto it = object.begin(); it != object.end(); it++) {
+        JobConfig* child = findChild<JobConfig*>(it.key(), Qt::FindDirectChildrenOnly);
+        if (child) {
+            child->setPresetList(it.value().toObject());
+        }
+    }
+}
+
 void TaskConfig::connectChildConfig(QConfigPointer childConfig, const std::string& name) {
     childConfig->setParent(this);
     childConfig->setObjectName(name.c_str());
