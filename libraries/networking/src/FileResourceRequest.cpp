@@ -34,24 +34,17 @@ void FileResourceRequest::doSend() {
                 if (file.size() < _byteRange.fromInclusive || file.size() < _byteRange.toExclusive) {
                     _result = ResourceRequest::InvalidByteRange;
                 } else {
-                    if (!_byteRange.isSet()) {
-                        // no byte range, read the whole file
-                        _data = file.readAll();
+                    // fix it up based on the known size of the file
+                    _byteRange.fixupRange(file.size());
+
+                    if (_byteRange.fromInclusive >= 0) {
+                        // this is a positive byte range, simply skip to that part of the file and read from there
+                        file.seek(_byteRange.fromInclusive);
+                        _data = file.read(_byteRange.size());
                     } else {
-                        // we have a byte range to handle
-
-                        // fix it up based on the known size of the file
-                        _byteRange.fixupRange(file.size());
-
-                        if (_byteRange.fromInclusive > 0) {
-                            // this is a positive byte range, simply skip to that part of the file and read from there
-                            file.seek(_byteRange.fromInclusive);
-                            _data = file.read(_byteRange.size());
-                        } else {
-                            // this is a negative byte range, we'll need to grab data from the end of the file first
-                            file.seek(file.size() + _byteRange.fromInclusive);
-                            _data = file.read(_byteRange.size());
-                        }
+                        // this is a negative byte range, we'll need to grab data from the end of the file first
+                        file.seek(file.size() + _byteRange.fromInclusive);
+                        _data = file.read(_byteRange.size());
                     }
 
                     _result = ResourceRequest::Success;

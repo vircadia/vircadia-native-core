@@ -30,6 +30,12 @@ struct ByteRange {
     }
 
     void fixupRange(int64_t fileSize) {
+        if (!isSet()) {
+            // if the byte range is not set, force it to be from 0 to the end of the file
+            fromInclusive = 0;
+            toExclusive = fileSize;
+        }
+
         if (fromInclusive > 0 && toExclusive == 0) {
             // we have a left side of the range that is non-zero
             // if the RHS of the range is zero, set it to the end of the file now
