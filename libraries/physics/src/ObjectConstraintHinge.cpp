@@ -48,6 +48,50 @@ QList<btRigidBody*> ObjectConstraintHinge::getRigidBodies() {
     return result;
 }
 
+void ObjectConstraintHinge::prepareForPhysicsSimulation() {
+    // setting the motor velocity doesn't appear to work for anyone.  constantly adjusting the
+    // target angle seems to work.
+    // https://www.bulletphysics.org/Bullet/phpBB3/viewtopic.php?f=9&t=7020
+    uint64_t now = usecTimestampNow();
+    withWriteLock([&]{
+        btHingeConstraint* constraint = static_cast<btHingeConstraint*>(_constraint);
+        if (!constraint) {
+            return;
+        }
+        if (_previousMotorTime == 0) {
+            _previousMotorTime = now;
+            return;
+        }
+        if (_motorVelocity != 0.0f) {
+            if (_startMotorTime == 0) {
+                _startMotorTime = now;
+            }
+            float dt = (float)(now - _previousMotorTime) / (float)USECS_PER_SECOND;
+            float t = (float)(now - _startMotorTime) / (float)USECS_PER_SECOND;
+            float motorTarget = _motorVelocity * t;
+            while (motorTarget > PI) {
+                motorTarget -= PI;
+            }
+            while (motorTarget < PI) {
+                motorTarget += PI;
+            }
+            if (!_motorEnabled) {
+                constraint->enableMotor(true);
+                _motorEnabled = true;
+            }
+            constraint->setMaxMotorImpulse(_maxImpulse);
+            constraint->setMotorTarget(motorTarget, dt);
+        } else if (_motorTargetTimeScale > 0.0f) {
+            // XXX
+        } else if (_motorEnabled) {
+            constraint->enableMotor(false);
+            _motorEnabled = false;
+            _startMotorTime = 0;
+        }
+        _previousMotorTime = now;
+    });
+}
+
 void ObjectConstraintHinge::updateHinge() {
     btHingeConstraint* constraint { nullptr };
     float low;
@@ -56,28 +100,45 @@ void ObjectConstraintHinge::updateHinge() {
     float biasFactor;
     float relaxationFactor;
     float motorVelocity;
+    float motorTarget;
+    float motorTargetTimeScale;
+    float maxImpulse;
 
     withReadLock([&]{
         constraint = static_cast<btHingeConstraint*>(_constraint);
         low = _low;
         high = _high;
-        softness = _softness;
+        maxImpulse = _maxImpulse;
         biasFactor = _biasFactor;
         relaxationFactor = _relaxationFactor;
+
+        // under the hood, motorTarget sets a veloctiy and must be called repeatedly to maintain
+        // a velocity.  _motorTargetTimeScale of 0.0f means the target isn't set.  motorVelocity is
+        // only considered when motorTarget isn't set.
         motorVelocity = _motorVelocity;
+        motorTarget = _motorTarget;
+        motorTargetTimeScale = _motorTargetTimeScale;
+        softness = _softness;
     });
 
     if (!constraint) {
         return;
     }
 
-    constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
-    if (motorVelocity != 0.0f) {
-        constraint->setMotorTargetVelocity(motorVelocity);
-        constraint->enableMotor(true);
-    } else {
-        constraint->enableMotor(false);
-    }
+    // constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
+    // if (motorTargetTimeScale > 0.0f) {
+    //     qDebug() << "--- setting motor target:" << motorTarget << motorTargetTimeScale;
+    //     constraint->setMotorTarget(motorTarget, motorTargetTimeScale);
+    //     constraint->enableMotor(true);
+    //     withWriteLock([&]{
+    //         _motorTargetTimeScale = 0.0f; // it's a one-shot.
+    //     });
+    // } else if (motorVelocity != 0.0f) {
+    //     // constraint->setMotorTargetVelocity(motorVelocity);
+    //     // constraint->enableMotor(true);
+    // } else {
+    //     constraint->enableMotor(false);
+    // }
 }
 
 
@@ -151,6 +212,9 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
     float biasFactor;
     float relaxationFactor;
     float motorVelocity;
+    float motorTarget;
+    float motorTargetTimeScale;
+    float maxImpulse;
 
     bool needUpdate = false;
     bool somethingChanged = ObjectDynamic::updateArguments(arguments);
@@ -224,6 +288,27 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             motorVelocity = _motorVelocity;
         }
 
+        ok = true;
+        motorTarget = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments,
+                                                                     "motorTarget", ok, false);
+        if (!ok) {
+            motorTarget = _motorTarget;
+        }
+
+        ok = true;
+        motorTargetTimeScale = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments,
+                                                                   "motorTargetTimeScale", ok, false);
+        if (!ok) {
+            motorTargetTimeScale = _motorTargetTimeScale;
+        }
+
+        ok = true;
+        maxImpulse = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "maxImpulse", ok, false);
+        if (!ok) {
+            maxImpulse = _maxImpulse;
+        }
+
+
         if (somethingChanged ||
             pivotInA != _pivotInA ||
             axisInA != _axisInA ||
@@ -235,7 +320,10 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             softness != _softness ||
             biasFactor != _biasFactor ||
             relaxationFactor != _relaxationFactor ||
-            motorVelocity != _motorVelocity) {
+            motorVelocity != _motorVelocity ||
+            motorTarget != _motorTarget ||
+            motorTargetTimeScale != _motorTargetTimeScale ||
+            maxImpulse != _maxImpulse) {
             // something changed
             needUpdate = true;
         }
@@ -254,6 +342,9 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             _biasFactor = biasFactor;
             _relaxationFactor = relaxationFactor;
             _motorVelocity = motorVelocity;
+            _motorTarget = motorTarget;
+            _motorTargetTimeScale = motorTargetTimeScale;
+            _maxImpulse = maxImpulse;
 
             _active = true;
 
@@ -285,6 +376,9 @@ QVariantMap ObjectConstraintHinge::getArguments() {
             arguments["biasFactor"] = _biasFactor;
             arguments["relaxationFactor"] = _relaxationFactor;
             arguments["motorVelocity"] = _motorVelocity;
+            arguments["motorTarget"] = _motorTarget;
+            arguments["motorTargetTimeScale"] = _motorTargetTimeScale;
+            arguments["maxImpulse"] = _maxImpulse;
             arguments["angle"] = static_cast<btHingeConstraint*>(_constraint)->getHingeAngle(); // [-PI,PI]
         }
     });
@@ -315,6 +409,9 @@ QByteArray ObjectConstraintHinge::serialize() const {
         dataStream << _tag;
 
         dataStream << _motorVelocity;
+        dataStream << _motorTarget;
+        dataStream << _motorTargetTimeScale;
+        dataStream << _maxImpulse;
     });
 
     return serializedConstraintArguments;
@@ -357,6 +454,9 @@ void ObjectConstraintHinge::deserialize(QByteArray serializedArguments) {
         dataStream >> _tag;
 
         dataStream >> _motorVelocity;
+        dataStream >> _motorTarget;
+        dataStream >> _motorTargetTimeScale;
+        dataStream >> _maxImpulse;
 
         _active = true;
     });
