@@ -143,9 +143,9 @@ function onMessage(message) {
         case 'shareSnapshotWithEveryone':
             isLoggedIn = Account.isLoggedIn();
             if (isLoggedIn) {
-                print('sharing', message.data);
+                print('Modifying audience of story ID', message.story_id, "to 'for_feed'");
                 request({
-                    uri: METAVERSE_BASE + '/api/v1/user_stories/' + story_id,
+                    uri: METAVERSE_BASE + '/api/v1/user_stories/' + message.story_id,
                     method: 'PUT',
                     json: true,
                     body: {
@@ -153,8 +153,10 @@ function onMessage(message) {
                     }
                 }, function (error, response) {
                     if (error || (response.status !== 'success')) {
-                        print("Error changing audience: ", error || response.status);
+                        print("ERROR changing audience: ", error || response.status);
                         return;
+                    } else {
+                        print("SUCCESS changing audience!");
                     }
                 });
             } else {
@@ -193,10 +195,14 @@ function reviewSnapshot() {
 
 function snapshotUploaded(isError, reply) {
     if (!isError) {
-        print('SUCCESS: Snapshot uploaded! Story with audience:for_url created! ID:', reply);
+        print('SUCCESS: Snapshot uploaded! Story with audience:for_url created!');
+        var replyJson = JSON.parse(reply);
         tablet.emitScriptEvent(JSON.stringify({
             type: "snapshot",
-            action: "enableShareButtons"
+            action: "snapshotUploadComplete",
+            id: replyJson.user_story.id,
+            story_url: "https://highfidelity.com/user_stories/" + replyJson.user_story.id,
+            shareable_url: replyJson.user_story.details.shareable_url,
         }));
     } else {
         print(reply);

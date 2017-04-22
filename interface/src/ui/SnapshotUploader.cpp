@@ -79,12 +79,7 @@ void SnapshotUploader::uploadFailure(QNetworkReply& reply) {
 
 void SnapshotUploader::createStorySuccess(QNetworkReply& reply) {
     QString replyString = reply.readAll();
-    // oh no QT pls
-    // let's write our own JSON parser???
-    QJsonDocument jsonResponse = QJsonDocument::fromJson(replyString.toUtf8());
-    QJsonObject object = jsonResponse.object()["user_story"].toObject();
-    QString storyId = QString::number(object["id"].toInt());
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false, storyId);
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false, replyString);
     delete this;
 }
 

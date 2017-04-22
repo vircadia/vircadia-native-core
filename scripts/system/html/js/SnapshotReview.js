@@ -33,21 +33,12 @@ function addImage(data, isGifLoading) {
     div.appendChild(img);
     document.getElementById("snapshot-images").appendChild(div);
     var isGif = img.src.split('.').pop().toLowerCase() === "gif";
-    div.appendChild(createShareOverlay(id, isGif));
-    if (!isGif) {
-        img.onload = function () {
-            var shareBar = document.getElementById(id + "shareBar");
-            shareBar.style.width = img.clientWidth;
-
-            document.getElementById(id).style.height = img.clientHeight;
-        }
-    }
     paths.push(data.localPath);
     if (!isGifLoading) {
         shareForUrl(id);
     }
 }
-function createShareOverlay(parentID, isGif) {
+function createShareOverlay(parentID, isGif, shareURL) {
     var shareOverlayContainer = document.createElement("DIV");
     shareOverlayContainer.id = parentID + "shareOverlayContainer";
     shareOverlayContainer.style.position = "absolute";
@@ -60,7 +51,7 @@ function createShareOverlay(parentID, isGif) {
 
     var shareBar = document.createElement("div");
     shareBar.id = parentID + "shareBar"
-    shareBar.style.display = "none";
+    shareBar.style.display = "inline";
     shareBar.style.width = "100%";
     shareBar.style.height = "60px";
     shareBar.style.lineHeight = "60px";
@@ -107,8 +98,8 @@ function createShareOverlay(parentID, isGif) {
                 '<input type="button" class="cancelShare" value="CANCEL" onclick="cancelSharing(' + parentID + ')" />' +
             '</div>' +
             '<div class="externalShareControls">' +
-                '<iframe src="https://www.facebook.com/plugins/share_button.php?href=http%3A%2F%2Fhighfidelity.io&layout=button_count&size=small&mobile_iframe=false&width=84&height=20&appId" width="84" height="20" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowTransparency="true"></iframe>' +
-                '<a class="twitter-share-button" href="https://twitter.com/intent/tweet">Tweet</a>' +
+                '<iframe src="https://www.facebook.com/plugins/share_button.php?href=' + shareURL + '&layout=button_count&size=small&mobile_iframe=false&width=84&height=20&appId" width="84" height="20" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowTransparency="true"></iframe>' +
+                '<a class="twitter-share-button" href="https://twitter.com/intent/tweet?text=I just took a snapshot in #HiFi!&url=' + shareURL + '&via=highfidelity"></a>' +
             '</div>' +
         '</div>';
     shareOverlayContainer.appendChild(shareOverlay);
@@ -144,7 +135,7 @@ function shareWithEveryone(selectedID) {
     EventBridge.emitWebEvent(JSON.stringify({
         type: "snapshot",
         action: "shareSnapshotWithEveryone",
-        data: paths[parseInt(selectedID.substring(1))]
+        story_id: document.getElementById(selectedID).getAttribute("data-story-id")
     }));
 }
 function cancelSharing(selectedID) {
@@ -221,12 +212,6 @@ window.onload = function () {
                             var p0img = document.getElementById('p0img');
                             p0img.src = gifPath;
 
-                            p0img.onload = function () {
-                                var shareBar = document.getElementById("p0shareBar");
-                                shareBar.style.width = p0img.clientWidth;
-                                document.getElementById('p0').style.height = p0img.clientHeight;
-                            }
-
                             paths[0] = gifPath;
                             shareForUrl("p0");
                         }
@@ -240,9 +225,15 @@ window.onload = function () {
                 case 'captureSettings':
                     handleCaptureSetting(message.setting);
                     break;
-                case 'enableShareButtons':
-                    var shareBar = document.getElementById("p0shareBar");
-                    shareBar.style.display = "inline";
+                case 'snapshotUploadComplete':
+                    var isGif = message.shareable_url.split('.').pop().toLowerCase() === "gif";
+                    var id = "p0"
+                    if (imageCount > 1 && !isGif) {
+                        id = "p1";
+                    }
+                    var parentDiv = document.getElementById(id);
+                    parentDiv.setAttribute('data-story-id', message.id);
+                    document.getElementById(id).appendChild(createShareOverlay(id, isGif, message.story_url));
                     break;
                 default:
                     print("Unknown message action received in SnapshotReview.js.");
