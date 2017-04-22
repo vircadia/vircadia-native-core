@@ -1330,7 +1330,7 @@ function MyController(hand) {
         if (this.stylus) {
             return;
         }
-
+        
         var stylusProperties = {
             name: "stylus",
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
@@ -1419,6 +1419,14 @@ function MyController(hand) {
                                COLORS_GRAB_SEARCHING_HALF_SQUEEZE);
         }
     };
+
+    // Turns off indicators used for searching. Overlay line and sphere.
+    this.searchIndicatorOff = function() {
+        this.searchSphereOff();
+        if (PICK_WITH_HAND_RAY) {
+            this.overlayLineOff();
+        }
+    }
 
     this.otherGrabbingLineOn = function(avatarPosition, entityPosition, color) {
         if (this.otherGrabbingLine === null) {
@@ -1791,6 +1799,15 @@ function MyController(hand) {
         }
 
         this.processStylus();
+        
+        if (isInEditMode() && !this.isNearStylusTarget) {
+            // Always showing lasers while in edit mode and hands/stylus is not active.
+            var rayPickInfo = this.calcRayPickInfo(this.hand);
+            this.intersectionDistance = (rayPickInfo.entityID || rayPickInfo.overlayID) ? rayPickInfo.distance : 0;
+            this.searchIndicatorOn(rayPickInfo.searchRay);
+        } else {
+            this.searchIndicatorOff();
+        }        
     };
 
     this.handleLaserOnHomeButton = function(rayPickInfo) {
@@ -2281,7 +2298,7 @@ function MyController(hand) {
                     if (this.getOtherHandController().state === STATE_DISTANCE_HOLDING) {
                         this.setState(STATE_DISTANCE_ROTATING, "distance rotate '" + name + "'");
                     } else {
-                    this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
+                        this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     }
                     return;
                 } else {
@@ -3346,7 +3363,14 @@ function MyController(hand) {
     };
 
     this.offEnter = function() {
+        // Reuse the existing search distance if lasers were active since 
+        // they will be shown in OFF state while in edit mode.
+        var existingSearchDistance = this.searchSphereDistance;
         this.release();
+        
+        if (isInEditMode()) {
+            this.searchSphereDistance = existingSearchDistance;
+        }        
     };
 
     this.entityLaserTouchingEnter = function() {

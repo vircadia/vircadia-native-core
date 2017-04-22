@@ -12,7 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
+/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, 
+   Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
 
