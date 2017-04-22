@@ -45,7 +45,7 @@ namespace render {
         DrawStatus(const gpu::TexturePointer statusIconMap) { setStatusIconMap(statusIconMap); }
 
         void configure(const Config& config);
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems);
+        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems);
 
         const gpu::PipelinePointer getDrawItemBoundsPipeline();
         const gpu::PipelinePointer getDrawItemStatusPipeline();

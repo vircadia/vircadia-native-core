@@ -128,6 +128,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuFreeMemory, 0)
     STATS_PROPERTY(float, gpuFrameTime, 0)
     STATS_PROPERTY(float, batchFrameTime, 0)
+    STATS_PROPERTY(float, engineFrameTime, 0)
     STATS_PROPERTY(float, avatarSimulationTime, 0)
 
 public:
@@ -250,6 +251,7 @@ signals:
     void gpuFreeMemoryChanged();
     void gpuFrameTimeChanged();
     void batchFrameTimeChanged();
+    void engineFrameTimeChanged();
     void avatarSimulationTimeChanged();
     void rectifiedTextureCountChanged();
     void decimatedTextureCountChanged();

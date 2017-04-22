@@ -100,7 +100,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     return _blendPipeline;
 }
 
-void Antialiasing::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer) {
+void Antialiasing::run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
