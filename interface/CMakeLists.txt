@@ -65,6 +65,7 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
 add_custom_target(qml SOURCES ${QML_SRC})
+GroupSources("resources/qml")
 
 if (UNIX)
   install(
