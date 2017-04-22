@@ -41,7 +41,7 @@ public:
         UnknownError
     };
 
-    AssetRequest(const QString& hash, ByteRange byteRange);
+    AssetRequest(const QString& hash, ByteRange byteRange = ByteRange());
     virtual ~AssetRequest() override;
 
     Q_INVOKABLE void start();
