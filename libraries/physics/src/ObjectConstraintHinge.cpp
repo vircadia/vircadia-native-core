@@ -102,6 +102,7 @@ void ObjectConstraintHinge::prepareForPhysicsSimulation() {
 
 void ObjectConstraintHinge::updateHinge() {
     btHingeConstraint* constraint { nullptr };
+    glm::vec3 axisInA;
     float low;
     float high;
     float softness;
@@ -113,6 +114,7 @@ void ObjectConstraintHinge::updateHinge() {
     float maxImpulse;
 
     withReadLock([&]{
+        axisInA = _axisInA;
         constraint = static_cast<btHingeConstraint*>(_constraint);
         low = _low;
         high = _high;
@@ -132,6 +134,9 @@ void ObjectConstraintHinge::updateHinge() {
     if (!constraint) {
         return;
     }
+
+    auto bulletAxisInA = glmToBullet(axisInA);
+    constraint->setAxis(bulletAxisInA);
 }
 
 
