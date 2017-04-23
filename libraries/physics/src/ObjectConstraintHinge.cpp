@@ -192,7 +192,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
     forceBodyNonStatic();
     activateBody();
 
-    updateHinge();
+    // updateHinge();
 
     return constraint;
 }
