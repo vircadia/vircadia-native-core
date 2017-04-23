@@ -52,6 +52,13 @@ void ObjectConstraintHinge::prepareForPhysicsSimulation() {
     // setting the motor velocity doesn't appear to work for anyone.  constantly adjusting the
     // target angle seems to work.
     // https://www.bulletphysics.org/Bullet/phpBB3/viewtopic.php?f=9&t=7020
+
+    if (!isMine()) {
+        // XXX
+        // don't activate motor for someone else's action?
+        // maybe don't if this interface isn't the sim owner?
+        return;
+    }
     uint64_t now = usecTimestampNow();
     withWriteLock([&]{
         btHingeConstraint* constraint = static_cast<btHingeConstraint*>(_constraint);
@@ -69,12 +76,12 @@ void ObjectConstraintHinge::prepareForPhysicsSimulation() {
             float dt = (float)(now - _previousMotorTime) / (float)USECS_PER_SECOND;
             float t = (float)(now - _startMotorTime) / (float)USECS_PER_SECOND;
             float motorTarget = _motorVelocity * t;
-            while (motorTarget > PI) {
-                motorTarget -= PI;
-            }
-            while (motorTarget < PI) {
-                motorTarget += PI;
-            }
+
+            // brige motorTarget into the range of [-PI, PI]
+            motorTarget += PI;
+            motorTarget = fmodf(motorTarget, 2.0f * PI);
+            motorTarget -= PI;
+
             if (!_motorEnabled) {
                 constraint->enableMotor(true);
                 _motorEnabled = true;

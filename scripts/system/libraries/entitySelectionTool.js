@@ -2490,6 +2490,7 @@ SelectionDisplay = (function() {
                     y: 0,
                     z: vector.z
                 });
+                print("translateXZTool " + JSON.stringify(newPosition));
                 Entities.editEntity(SelectionManager.selections[i], {
                     position: newPosition,
                 });
