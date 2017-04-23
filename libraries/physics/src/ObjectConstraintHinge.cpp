@@ -77,10 +77,10 @@ void ObjectConstraintHinge::prepareForPhysicsSimulation() {
             float t = (float)(now - _startMotorTime) / (float)USECS_PER_SECOND;
             float motorTarget = _motorVelocity * t;
 
-            // brige motorTarget into the range of [-PI, PI]
-            motorTarget += PI;
-            motorTarget = fmodf(motorTarget, 2.0f * PI);
-            motorTarget -= PI;
+            // // bring motorTarget into the range of [-PI, PI]
+            // motorTarget += PI;
+            // motorTarget = fmodf(motorTarget, 2.0f * PI);
+            // motorTarget -= PI;
 
             if (!_motorEnabled) {
                 constraint->enableMotor(true);
@@ -88,6 +88,7 @@ void ObjectConstraintHinge::prepareForPhysicsSimulation() {
             }
             constraint->setMaxMotorImpulse(_maxImpulse);
             constraint->setMotorTarget(motorTarget, dt);
+
         } else if (_motorTargetTimeScale > 0.0f) {
             // XXX
         } else if (_motorEnabled) {
@@ -131,21 +132,6 @@ void ObjectConstraintHinge::updateHinge() {
     if (!constraint) {
         return;
     }
-
-    // constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
-    // if (motorTargetTimeScale > 0.0f) {
-    //     qDebug() << "--- setting motor target:" << motorTarget << motorTargetTimeScale;
-    //     constraint->setMotorTarget(motorTarget, motorTargetTimeScale);
-    //     constraint->enableMotor(true);
-    //     withWriteLock([&]{
-    //         _motorTargetTimeScale = 0.0f; // it's a one-shot.
-    //     });
-    // } else if (motorVelocity != 0.0f) {
-    //     // constraint->setMotorTargetVelocity(motorVelocity);
-    //     // constraint->enableMotor(true);
-    // } else {
-    //     constraint->enableMotor(false);
-    // }
 }
 
 
