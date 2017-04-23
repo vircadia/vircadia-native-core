@@ -259,12 +259,12 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
 
     locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
 
-    locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations->ambientBufferUnit = program->getBuffers().findLocation("lightAmbientBuffer");
-    locations->lightIndexBufferUnit = program->getBuffers().findLocation("lightIndexBuffer");
-    locations->deferredFrameTransformBuffer = program->getBuffers().findLocation("deferredFrameTransformBuffer");
-    locations->subsurfaceScatteringParametersBuffer = program->getBuffers().findLocation("subsurfaceScatteringParametersBuffer");
-    locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
+    locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
+    locations->ambientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
+    locations->lightIndexBufferUnit = program->getUniformBuffers().findLocation("lightIndexBuffer");
+    locations->deferredFrameTransformBuffer = program->getUniformBuffers().findLocation("deferredFrameTransformBuffer");
+    locations->subsurfaceScatteringParametersBuffer = program->getUniformBuffers().findLocation("subsurfaceScatteringParametersBuffer");
+    locations->shadowTransformBuffer = program->getUniformBuffers().findLocation("shadowTransformBuffer");
 
     return program;
 }
