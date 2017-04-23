@@ -97,6 +97,10 @@ selectionManager.addEventListener(function () {
                     particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
                 }
             });
+
+            // Switch to particle explorer
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.sendToQml({method: 'selectTab', params: {id: 'particle'}});
         } else {
             needToDestroyParticleExplorer = true;
         }
@@ -2042,7 +2046,11 @@ function selectParticleEntity(entityID) {
 
     selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
-    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));    
+
+    // Switch to particle explorer
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    tablet.sendToQml({method: 'selectTab', params: {id: 'particle'}});
 }
 
 entityListTool.webView.webEventReceived.connect(function (data) {
