@@ -110,6 +110,20 @@ Rectangle {
         }
     }
 
+    HifiControls.Button {
+        id: playBack
+        anchors.right: browse.left
+        anchors.top: selectedFile.bottom
+        anchors.topMargin: 10
+        
+        text: "Playback"
+        color: hifi.buttons.black
+        enabled: true
+        onClicked: {
+            sendToScript({method: "playback"});
+        }
+    }
+
 
     function getFileSelected(file) {
         console.log("------------> file selected <----------------");

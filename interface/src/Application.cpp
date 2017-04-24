@@ -2740,7 +2740,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     offscreenUi->load("Browser.qml");
                 } else if (isOption) {
                     controller::InputRecorder* inputRecorder = controller::InputRecorder::getInstance();
-                    inputRecorder->saveRecording();
+                    inputRecorder->stopPlayback();
                 }
                 break;
 
@@ -2939,9 +2939,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, !isFirstPersonChecked);
                     Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, isFirstPersonChecked);
                     cameraMenuChanged();
-                } else if (isOption) {
-                    controller::InputRecorder* inputRecorder = controller::InputRecorder::getInstance();
-                    inputRecorder->toggleRecording();
                 }
                 break;
             }
