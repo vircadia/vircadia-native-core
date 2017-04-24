@@ -228,7 +228,8 @@ var toolBar = (function () {
         var entityID = null;
         if (position !== null && position !== undefined) {
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
-                properties.position = position;
+            properties.position = position;
+            properties.userData = JSON.stringify({ "grabbableKey": { "grabbable": true } });
             entityID = Entities.addEntity(properties);
             if (properties.type == "ParticleEffect") {
                 selectParticleEntity(entityID);
