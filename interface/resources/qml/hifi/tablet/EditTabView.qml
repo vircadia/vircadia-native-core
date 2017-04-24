@@ -65,7 +65,7 @@ TabView {
                         editRoot.sendToScript({
                             method: "newEntityButtonClicked", params: { buttonName: "newCubeButton" }
                         });
-                        editBasePage.index = 3
+                        editTabView.currentIndex = 2
                     }
                 }
 
