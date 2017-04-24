@@ -1015,11 +1015,11 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
 }
 
 
-void EntityTreeRenderer::entityScriptChanging(const EntityItemID& entityID, const bool reload) {
+void EntityTreeRenderer::entityScriptChanging(const EntityItemID& entityID, bool reload) {
     checkAndCallPreload(entityID, reload, true);
 }
 
-void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload, const bool unloadFirst) {
+void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool reload, bool unloadFirst) {
     if (_tree && !_shuttingDown) {
         EntityItemPointer entity = getTree()->findEntityByEntityItemID(entityID);
         if (!entity) {
