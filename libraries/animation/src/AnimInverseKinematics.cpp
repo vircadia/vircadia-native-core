@@ -248,17 +248,18 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
     glm::quat tipParentOrientation = absolutePoses[pivotIndex].rot();
 
     if (targetType == IKTarget::Type::HmdHead) {
+
         // rotate tip directly to target orientation
         tipOrientation = target.getRotation();
-        glm::quat tipRelativeRotation = glm::normalize(tipOrientation * glm::inverse(tipParentOrientation));
+        glm::quat tipRelativeRotation = glm::inverse(tipParentOrientation) * tipOrientation;
 
-        // enforce tip's constraint
+        // then enforce tip's constraint
         RotationConstraint* constraint = getConstraint(tipIndex);
         if (constraint) {
             bool constrained = constraint->apply(tipRelativeRotation);
             if (constrained) {
-                tipOrientation = glm::normalize(tipRelativeRotation * tipParentOrientation);
-                tipRelativeRotation = glm::normalize(tipOrientation * glm::inverse(tipParentOrientation));
+                tipOrientation = tipParentOrientation * tipRelativeRotation;
+                tipRelativeRotation = tipRelativeRotation;
             }
         }
         // store the relative rotation change in the accumulator
