@@ -669,6 +669,7 @@ void ScriptEngine::init() {
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
     registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+    qScriptRegisterMetaType(this, tabletToScriptValue, tabletFromScriptValue);
     registerGlobalObject("Assets", &_assetScriptingInterface);
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
 
