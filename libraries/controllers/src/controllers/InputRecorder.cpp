@@ -16,7 +16,7 @@
 #include <QDirIterator>
 #include <QStandardPaths>
 #include <QDateTime>
-#include <QBytearray>
+#include <QByteArray>
 #include <GLMHelpers.h>
 
 QString SAVE_DIRECTORY = QDir::homePath()+"/hifi-input-recordings/";
