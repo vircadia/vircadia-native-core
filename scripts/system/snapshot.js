@@ -143,21 +143,38 @@ function onMessage(message) {
         case 'shareSnapshotWithEveryone':
             isLoggedIn = Account.isLoggedIn();
             storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
+            if (message.isGif) {
+                Settings.setValue("previousAnimatedSnapSharingDisabled", true);
+            } else {
+                Settings.setValue("previousStillSnapSharingDisabled", true);
+            }
+
+            var requestBody = {
+                audience: "for_feed"
+            }
+
+            if (message.isAnnouncement) {
+                requestBody.action = "announcement";
+            }
+
             if (isLoggedIn) {
                 print('Modifying audience of story ID', message.story_id, "to 'for_feed'");
                 request({
                     uri: METAVERSE_BASE + '/api/v1/user_stories/' + message.story_id,
                     method: 'PUT',
                     json: true,
-                    body: {
-                        audience: "for_feed",
-                    }
+                    body: requestBody
                 }, function (error, response) {
                     if (error || (response.status !== 'success')) {
                         print("ERROR changing audience: ", error || response.status);
+                        if (message.isGif) {
+                            Settings.setValue("previousAnimatedSnapSharingDisabled", false);
+                        } else {
+                            Settings.setValue("previousStillSnapSharingDisabled", false);
+                        }
                         return;
                     } else {
-                        print("SUCCESS changing audience!");
+                        print("SUCCESS changing audience" + (message.isAnnouncement ? " and posting announcement!" : "!"));
                     }
                 });
             } else {
@@ -195,8 +212,10 @@ var isInSnapshotReview = false;
 function openSnapApp() {
     var previousStillSnapPath = Settings.getValue("previousStillSnapPath");
     var previousStillSnapStoryID = Settings.getValue("previousStillSnapStoryID");
+    var previousStillSnapSharingDisabled = Settings.getValue("previousStillSnapSharingDisabled");
     var previousAnimatedSnapPath = Settings.getValue("previousAnimatedSnapPath");
     var previousAnimatedSnapStoryID = Settings.getValue("previousAnimatedSnapStoryID");
+    var previousAnimatedSnapSharingDisabled = Settings.getValue("previousAnimatedSnapSharingDisabled");
     snapshotOptions = {
         containsGif: previousAnimatedSnapPath !== "",
         processingGif: false,
@@ -204,10 +223,10 @@ function openSnapApp() {
     }
     imageData = [];
     if (previousAnimatedSnapPath !== "") {
-        imageData.push({ localPath: previousAnimatedSnapPath, story_id: previousAnimatedSnapStoryID });
+        imageData.push({ localPath: previousAnimatedSnapPath, story_id: previousAnimatedSnapStoryID, buttonDisabled: previousAnimatedSnapSharingDisabled });
     }
     if (previousStillSnapPath !== "") {
-        imageData.push({ localPath: previousStillSnapPath, story_id: previousStillSnapStoryID });
+        imageData.push({ localPath: previousStillSnapPath, story_id: previousStillSnapStoryID, buttonDisabled: previousStillSnapSharingDisabled });
     }
     tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
     tablet.webEventReceived.connect(onMessage);

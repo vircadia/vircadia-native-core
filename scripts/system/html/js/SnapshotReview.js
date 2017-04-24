@@ -23,7 +23,7 @@ function clearImages() {
     imageCount = 0;
     idCounter = 0;
 }
-function addImage(image_data, isGifLoading, isShowingPreviousImages, canSharePreviousImages) {
+function addImage(image_data, isGifLoading, isShowingPreviousImages, canSharePreviousImages, hifiShareButtonsDisabled) {
     if (!image_data.localPath) {
         return;
     }
@@ -49,19 +49,19 @@ function addImage(image_data, isGifLoading, isShowingPreviousImages, canSharePre
     if (!isGifLoading && !isShowingPreviousImages) {
         shareForUrl(id);
     } else if (isShowingPreviousImages && canSharePreviousImages) {
-        appendShareBar(id, image_data.story_id, isGif)
+        appendShareBar(id, image_data.story_id, isGif, hifiShareButtonsDisabled)
     }
 }
-function appendShareBar(divID, story_id, isGif) {
+function appendShareBar(divID, story_id, isGif, hifiShareButtonsDisabled) {
     var story_url = "https://highfidelity.com/user_stories/" + story_id;
     var parentDiv = document.getElementById(divID);
     parentDiv.setAttribute('data-story-id', story_id);
-    document.getElementById(divID).appendChild(createShareOverlay(divID, isGif, story_url));
+    document.getElementById(divID).appendChild(createShareOverlay(divID, isGif, story_url, hifiShareButtonsDisabled));
     twttr.events.bind('click', function (event) {
         shareButtonClicked(divID);
     });
 }
-function createShareOverlay(parentID, isGif, shareURL) {
+function createShareOverlay(parentID, isGif, shareURL, hifiShareButtonsDisabled) {
     var shareOverlayContainer = document.createElement("DIV");
     shareOverlayContainer.id = parentID + "shareOverlayContainer";
     shareOverlayContainer.style.position = "absolute";
@@ -115,8 +115,8 @@ function createShareOverlay(parentID, isGif, shareURL) {
         '<br/>' +
         '<div class="shareControls">' +
             '<div class="hifiShareControls">' +
-                '<input type="button" class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" value="SHARE WITH EVERYONE" onclick="shareWithEveryone(' + parentID + ')" /><br>' +
-                '<input type="checkbox" class="inviteConnections" id="' + inviteConnectionsCheckboxID + '" checked="checked" />' +
+                '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" value="SHARE WITH EVERYONE" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')" /><br>' +
+                '<input type="checkbox"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="inviteConnections" id="' + inviteConnectionsCheckboxID + '" checked="checked" />' +
                 '<label class="shareButtonLabel" for="' + inviteConnectionsCheckboxID + '">Invite My Connections</label><br>' +
                 '<input type="button" class="cancelShare" value="CANCEL" onclick="cancelSharing(' + parentID + ')" />' +
             '</div>' +
@@ -152,13 +152,18 @@ function shareForUrl(selectedID) {
         data: paths[parseInt(selectedID.substring(1))]
     }));
 }
-function shareWithEveryone(selectedID) {
+function shareWithEveryone(selectedID, isGif) {
     selectedID = selectedID.id; // Why is this necessary?
+
+    document.getElementById(selectedID + "shareWithEveryoneButton").setAttribute("disabled", "disabled");
+    document.getElementById(selectedID + "inviteConnectionsCheckbox").setAttribute("disabled", "disabled");
 
     EventBridge.emitWebEvent(JSON.stringify({
         type: "snapshot",
         action: "shareSnapshotWithEveryone",
-        story_id: document.getElementById(selectedID).getAttribute("data-story-id")
+        story_id: document.getElementById(selectedID).getAttribute("data-story-id"),
+        isAnnouncement: document.getElementById(selectedID + "inviteConnectionsCheckbox").getAttribute("checked"),
+        isGif: isGif
     }));
 }
 function shareButtonClicked(selectedID) {
@@ -233,7 +238,7 @@ window.onload = function () {
                     var messageOptions = message.options;
                     imageCount = message.image_data.length;
                     message.image_data.forEach(function (element, idx, array) {
-                        addImage(element, true, true, message.canShare);
+                        addImage(element, true, true, message.canShare, message.image_data[idx].buttonDisabled);
                     });
                     break;
                 case 'addImages':
