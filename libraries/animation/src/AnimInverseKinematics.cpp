@@ -247,6 +247,8 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
     // the tip's parent-relative as we proceed up the chain
     glm::quat tipParentOrientation = absolutePoses[pivotIndex].rot();
 
+    // NOTE: if this code is removed, the head will remain rigid, causing the spine/hips to thrust forward backward
+    // as the head is nodded.
     if (targetType == IKTarget::Type::HmdHead) {
 
         // rotate tip directly to target orientation
