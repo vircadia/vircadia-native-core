@@ -254,15 +254,24 @@ AudioClient::~AudioClient() {
 }
 
 void AudioClient::customDeleter() {
-    stop(); // synchronously
+    deleteLater();
+}
 
-    static_cast<BackgroundThread*>(_checkDevicesThread)->join();
-    delete _checkDevicesThread;
+void AudioClient::cleanupBeforeQuit() {
+    // FIXME: this should be put in customDeleter, but there is still a reference to this when it is called,
+    //        so this must be explicitly, synchronously stopped
 
-    static_cast<BackgroundThread*>(_localInjectorsThread)->join();
-    delete _localInjectorsThread;
+    stop();
 
-    deleteLater(); // asynchronously
+    if (_checkDevicesThread) {
+        static_cast<BackgroundThread*>(_checkDevicesThread)->join();
+        delete _checkDevicesThread;
+    }
+
+    if (_localInjectorsThread) {
+        static_cast<BackgroundThread*>(_localInjectorsThread)->join();
+        delete _localInjectorsThread;
+    }
 }
 
 void AudioClient::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
