@@ -31,6 +31,7 @@
 #include "TabletScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 
+static const QVariant TABLET_ADDRESS_DIALOG = "TabletAddressDialog.qml";
 template<typename T>
 void DialogsManager::maybeCreateDialog(QPointer<T>& member) {
     if (!member) {
@@ -45,13 +46,32 @@ void DialogsManager::maybeCreateDialog(QPointer<T>& member) {
     }
 }
 
-void DialogsManager::toggleAddressBar() {
-    AddressBarDialog::toggle();
-    emit addressBarToggled();
+void DialogsManager::showAddressBar() {
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+
+    if (!tablet->isPathLoaded(TABLET_ADDRESS_DIALOG)) {
+        tablet->loadQMLSource(TABLET_ADDRESS_DIALOG);
+    }
+    if (!hmd->getShouldShowTablet()) {
+        hmd->openTablet();
+    }
+    qApp->setKeyboardFocusOverlay(hmd->getCurrentTabletScreenID());
+    emit addressBarShown(true);
 }
 
-void DialogsManager::showAddressBar() {
-    AddressBarDialog::show();
+void DialogsManager::hideAddressBar() {
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+
+    if (tablet->isPathLoaded(TABLET_ADDRESS_DIALOG)) {
+        tablet->gotoHomeScreen();
+        hmd->closeTablet();
+    }
+    qApp->setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+    emit addressBarShown(false);
 }
 
 void DialogsManager::showFeed() {
@@ -60,10 +80,25 @@ void DialogsManager::showFeed() {
 }
 
 void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
-    if (visible) {
-        ConnectionFailureDialog::show();
+    qDebug() << "DialogsManager::setDomainConnectionFailureVisibility: visible" << visible;
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+
+    if (tablet->getToolbarMode()) {
+        if (visible) {
+            ConnectionFailureDialog::show();
+        } else {
+            ConnectionFailureDialog::hide();
+        }
     } else {
-        ConnectionFailureDialog::hide();
+        static const QUrl url("../../dialogs/TabletConnectionFailureDialog.qml");
+        auto hmd = DependencyManager::get<HMDScriptingInterface>();
+        if (visible) {
+            tablet->initialScreen(url);
+            if (!hmd->getShouldShowTablet()) {
+                hmd->openTablet();
+            }
+        }
     }
 }
 

@@ -67,15 +67,13 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
 
 
 int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    int bytesSent = 0;
     QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
-    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
     individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-    bytesSent += individualData.size();
-    identityPacket->write(individualData);
-    DependencyManager::get<NodeList>()->sendPacket(std::move(identityPacket), *destinationNode);
+    auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+    identityPackets->write(individualData);
+    DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
     _stats.numIdentityPackets++;
-    return bytesSent;
+    return individualData.size();
 }
 
 static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
@@ -265,8 +263,16 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                         // make sure we haven't already sent this data from this sender to this receiver
                         // or that somehow we haven't sent
                         if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
-                            ++numAvatarsHeldBack;
-                            shouldIgnore = true;
+                            // don't ignore this avatar if we haven't sent any update for a long while
+                            // in an effort to prevent other interfaces from deleting a stale avatar instance
+                            uint64_t lastBroadcastTime = nodeData->getLastBroadcastTime(avatarNode->getUUID());
+                            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
+                            const uint64_t AVATAR_UPDATE_STALE = AVATAR_UPDATE_TIMEOUT - USECS_PER_SECOND;
+                            if (lastBroadcastTime > otherNodeData->getIdentityChangeTimestamp() &&
+                                    lastBroadcastTime + AVATAR_UPDATE_STALE > startIgnoreCalculation) {
+                                ++numAvatarsHeldBack;
+                                shouldIgnore = true;
+                            }
                         } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                             // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                             ++numAvatarsWithSkippedFrames;
@@ -325,7 +331,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 _stats.overBudgetAvatars++;
                 detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::NoData;
             } else if (!isInView) {
-                detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::NoData;
+                detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::MinimumData;
                 nodeData->incrementAvatarOutOfView();
             } else {
                 detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO

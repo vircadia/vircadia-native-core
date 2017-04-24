@@ -118,13 +118,13 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                     // check to see if when we added our models to the scene they were ready, if they were not ready, then
                     // fix them up in the scene
                     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-                    render::PendingChanges pendingChanges;
-                    _model->removeFromScene(scene, pendingChanges);
+                    render::Transaction transaction;
+                    _model->removeFromScene(scene, transaction);
                     render::Item::Status::Getters statusGetters;
                     makeEntityItemStatusGetters(getThisPointer(), statusGetters);
-                    _model->addToScene(scene, pendingChanges);
+                    _model->addToScene(scene, transaction);
                     
-                    scene->enqueuePendingChanges(pendingChanges);
+                    scene->enqueueTransaction(transaction);
                     
                     _model->setVisibleInScene(getVisible(), scene);
                 }
@@ -164,9 +164,9 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
         _model && !_model->needsFixupInScene()) {
         // If the model is in the scene but doesn't need to be, remove it.
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-        render::PendingChanges pendingChanges;
-        _model->removeFromScene(scene, pendingChanges);
-        scene->enqueuePendingChanges(pendingChanges);
+        render::Transaction transaction;
+        _model->removeFromScene(scene, transaction);
+        scene->enqueueTransaction(transaction);
     }
 }
 
@@ -217,8 +217,8 @@ namespace render {
     }
 }
 
-bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
-                                           render::PendingChanges& pendingChanges) {
+bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
+                                           render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
     
     auto renderData = std::make_shared<RenderableZoneEntityItemMeta>(self);
@@ -228,16 +228,16 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_pt
     makeEntityItemStatusGetters(getThisPointer(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
 
-    pendingChanges.resetItem(_myMetaItem, renderPayload);
+    transaction.resetItem(_myMetaItem, renderPayload);
     return true;
 }
 
-void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
-                                                render::PendingChanges& pendingChanges) {
-    pendingChanges.removeItem(_myMetaItem);
+void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
+                                                render::Transaction& transaction) {
+    transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
     if (_model) {
-        _model->removeFromScene(scene, pendingChanges);
+        _model->removeFromScene(scene, transaction);
     }
 }
 
@@ -246,13 +246,13 @@ void RenderableZoneEntityItem::notifyBoundChanged() {
     if (!render::Item::isValidID(_myMetaItem)) {
         return;
     }
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     if (scene) {
-        pendingChanges.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {
+        transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {
         });
 
-        scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueueTransaction(transaction);
     } else {
         qCWarning(entitiesrenderer) << "RenderableZoneEntityItem::notifyBoundChanged(), Unexpected null scene, possibly during application shutdown";
     }

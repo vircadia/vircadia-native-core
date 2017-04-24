@@ -35,41 +35,96 @@ class GL41Backend : public GLBackend {
     friend class Context;
 
 public:
+    static const GLint TRANSFORM_OBJECT_SLOT  { 31 };
+    static const GLint RESOURCE_TRANSFER_TEX_UNIT { 32 };
+    static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 33 };
+    static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 34 };
+
     explicit GL41Backend(bool syncCache) : Parent(syncCache) {}
     GL41Backend() : Parent() {}
 
     class GL41Texture : public GLTexture {
         using Parent = GLTexture;
-        static GLuint allocate();
-
-    public:
-        ~GL41Texture();
-
-    private:
-        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer);
-
-        void generateMips() const override;
-        uint32 size() const override;
-
         friend class GL41Backend;
-        const Stamp _storageStamp;
-        mutable Stamp _contentStamp { 0 };
-        mutable Stamp _samplerStamp { 0 };
-        const uint32 _size;
+        static GLuint allocate(const Texture& texture);
+    protected:
+        GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        void generateMips() const override;
+        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const override;
+        virtual void syncSampler() const;
 
-
-        bool isOutdated() const;
         void withPreservedTexture(std::function<void()> f) const;
-        void syncContent() const;
-        void syncSampler() const;
     };
 
+    //
+    // Textures that have fixed allocation sizes and cannot be managed at runtime
+    //
+
+    class GL41FixedAllocationTexture : public GL41Texture {
+        using Parent = GL41Texture;
+        friend class GL41Backend;
+
+    public:
+        GL41FixedAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41FixedAllocationTexture();
+
+    protected:
+        Size size() const override { return _size; }
+        void allocateStorage() const;
+        void syncSampler() const override;
+        const Size _size { 0 };
+    };
+
+    class GL41AttachmentTexture : public GL41FixedAllocationTexture {
+        using Parent = GL41FixedAllocationTexture;
+        friend class GL41Backend;
+    protected:
+        GL41AttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41AttachmentTexture();
+    };
+
+    class GL41StrictResourceTexture : public GL41FixedAllocationTexture {
+        using Parent = GL41FixedAllocationTexture;
+        friend class GL41Backend;
+    protected:
+        GL41StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+    };
+
+    class GL41VariableAllocationTexture : public GL41Texture, public GLVariableAllocationSupport {
+        using Parent = GL41Texture;
+        friend class GL41Backend;
+        using PromoteLambda = std::function<void()>;
+
+
+    protected:
+        GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41VariableAllocationTexture();
+
+        void allocateStorage(uint16 allocatedMip);
+        void syncSampler() const override;
+        void promote() override;
+        void demote() override;
+        void populateTransferQueue() override;
+        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const override;
+
+        Size size() const override { return _size; }
+        Size _size { 0 };
+    };
+
+    class GL41ResourceTexture : public GL41VariableAllocationTexture {
+        using Parent = GL41VariableAllocationTexture;
+        friend class GL41Backend;
+    protected:
+        GL41ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41ResourceTexture();
+    };
 
 protected:
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 
     GLuint getBufferID(const Buffer& buffer) override;
+    GLuint getResourceBufferID(const Buffer& buffer);
     GLBuffer* syncGPUObject(const Buffer& buffer) override;
 
     GLTexture* syncGPUObject(const TexturePointer& texture) override;
@@ -94,8 +149,17 @@ protected:
     void initTransform() override;
     void updateTransform(const Batch& batch) override;
 
+    // Resource Stage
+    bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) override;
+    void releaseResourceBuffer(uint32_t slot) override;
+
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
+
+    std::string getBackendShaderHeader() const override;
+    void makeProgramBindings(ShaderObject& shaderObject) override;
+    int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
+
 };
 
 } }

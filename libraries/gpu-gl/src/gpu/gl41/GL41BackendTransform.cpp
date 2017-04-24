@@ -38,15 +38,9 @@ void GL41Backend::transferTransformState(const Batch& batch) const {
     }
 
     if (!batch._objects.empty()) {
-#ifdef GPU_SSBO_DRAW_CALL_INFO
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _transform._objectBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, sysmem.getSize(), sysmem.readData(), GL_STREAM_DRAW);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-#else
         glBindBuffer(GL_TEXTURE_BUFFER, _transform._objectBuffer);
         glBufferData(GL_TEXTURE_BUFFER, batch._objects.size() * sizeof(Batch::TransformObject), batch._objects.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_TEXTURE_BUFFER, 0);
-#endif
     }
 
     if (!batch._namedData.empty()) {
@@ -64,15 +58,11 @@ void GL41Backend::transferTransformState(const Batch& batch) const {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-#ifdef GPU_SSBO_DRAW_CALL_INFO
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _transform._objectBuffer);
-#else
-    glActiveTexture(GL_TEXTURE0 + TRANSFORM_OBJECT_SLOT);
+    glActiveTexture(GL_TEXTURE0 +  GL41Backend::TRANSFORM_OBJECT_SLOT);
     glBindTexture(GL_TEXTURE_BUFFER, _transform._objectBufferTexture);
     if (!batch._objects.empty()) {
         glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, _transform._objectBuffer);
     }
-#endif
 
     CHECK_GL_ERROR();
 
@@ -95,7 +85,6 @@ void GL41Backend::updateTransform(const Batch& batch) {
     } else {
         if (!_transform._enabledDrawcallInfoBuffer) {
             glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
-            glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
             glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, (isStereo() ? 2 : 1));
 #else
@@ -103,6 +92,7 @@ void GL41Backend::updateTransform(const Batch& batch) {
 #endif
             _transform._enabledDrawcallInfoBuffer = true;
         }
+        glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
         glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0, _transform._drawCallInfoOffsets[batch._currentNamedCall]);
     }
 

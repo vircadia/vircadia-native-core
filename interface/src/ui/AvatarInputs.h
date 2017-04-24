@@ -34,6 +34,7 @@ class AvatarInputs : public QQuickItem {
 
 public:
     static AvatarInputs* getInstance();
+    float loudnessToAudioLevel(float loudness);
     AvatarInputs(QQuickItem* parent = nullptr);
     void update();
     bool showAudioTools() const   { return _showAudioTools; }

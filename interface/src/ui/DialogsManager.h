@@ -41,8 +41,8 @@ public:
     void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
 
 public slots:
-    void toggleAddressBar();
     void showAddressBar();
+    void hideAddressBar();
     void showFeed();
     void setDomainConnectionFailureVisibility(bool visible);
     void toggleLoginDialog();
@@ -57,7 +57,6 @@ public slots:
     void showUpdateDialog();
 
 signals:
-    void addressBarToggled();
     void addressBarShown(bool visible);
     void setUseFeed(bool useFeed);
 
@@ -79,6 +78,7 @@ private:
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<TestingDialog> _testingDialog;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
+    bool _closeAddressBar { false };
 };
 
 #endif // hifi_DialogsManager_h

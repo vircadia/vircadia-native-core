@@ -28,12 +28,12 @@ public:
                          BoxFace& face, glm::vec3& surfaceNormal,
                          void** intersectedObject, bool precisionPicking) const override;
 
-    void updateLightFromEntity(render::PendingChanges& pendingChanges);
+    void updateLightFromEntity(render::Transaction& transaction);
 
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
+    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
     virtual void somethingChangedNotification() override;
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
+    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
     virtual void locationChanged(bool tellPhysics = true) override;
 

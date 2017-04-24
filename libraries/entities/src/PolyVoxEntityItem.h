@@ -26,7 +26,7 @@ class PolyVoxEntityItem : public EntityItem {
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.lastQuerySent time
+    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -99,36 +99,36 @@ class PolyVoxEntityItem : public EntityItem {
     static QByteArray makeEmptyVoxelData(quint16 voxelXSize = 16, quint16 voxelYSize = 16, quint16 voxelZSize = 16);
 
     static const QString DEFAULT_X_TEXTURE_URL;
-    virtual void setXTextureURL(QString xTextureURL) { _xTextureURL = xTextureURL; }
-    virtual const QString& getXTextureURL() const { return _xTextureURL; }
+    virtual void setXTextureURL(const QString& xTextureURL);
+    QString getXTextureURL() const;
 
     static const QString DEFAULT_Y_TEXTURE_URL;
-    virtual void setYTextureURL(QString yTextureURL) { _yTextureURL = yTextureURL; }
-    virtual const QString& getYTextureURL() const { return _yTextureURL; }
+    virtual void setYTextureURL(const QString& yTextureURL);
+    QString getYTextureURL() const;
 
     static const QString DEFAULT_Z_TEXTURE_URL;
-    virtual void setZTextureURL(QString zTextureURL) { _zTextureURL = zTextureURL; }
-    virtual const QString& getZTextureURL() const { return _zTextureURL; }
+    virtual void setZTextureURL(const QString& zTextureURL);
+    QString getZTextureURL() const;
 
-    virtual void setXNNeighborID(const EntityItemID& xNNeighborID) { _xNNeighborID = xNNeighborID; }
-    void setXNNeighborID(const QString& xNNeighborID) { setXNNeighborID(QUuid(xNNeighborID)); }
-    virtual const EntityItemID& getXNNeighborID() const { return _xNNeighborID; }
-    virtual void setYNNeighborID(const EntityItemID& yNNeighborID) { _yNNeighborID = yNNeighborID; }
-    void setYNNeighborID(const QString& yNNeighborID) { setYNNeighborID(QUuid(yNNeighborID)); }
-    virtual const EntityItemID& getYNNeighborID() const { return _yNNeighborID; }
-    virtual void setZNNeighborID(const EntityItemID& zNNeighborID) { _zNNeighborID = zNNeighborID; }
-    void setZNNeighborID(const QString& zNNeighborID) { setZNNeighborID(QUuid(zNNeighborID)); }
-    virtual const EntityItemID& getZNNeighborID() const { return _zNNeighborID; }
+    virtual void setXNNeighborID(const EntityItemID& xNNeighborID);
+    void setXNNeighborID(const QString& xNNeighborID);
+    virtual EntityItemID getXNNeighborID() const;
+    virtual void setYNNeighborID(const EntityItemID& yNNeighborID);
+    void setYNNeighborID(const QString& yNNeighborID);
+    virtual EntityItemID getYNNeighborID() const;
+    virtual void setZNNeighborID(const EntityItemID& zNNeighborID);
+    void setZNNeighborID(const QString& zNNeighborID);
+    virtual EntityItemID getZNNeighborID() const;
 
-    virtual void setXPNeighborID(const EntityItemID& xPNeighborID) { _xPNeighborID = xPNeighborID; }
-    void setXPNeighborID(const QString& xPNeighborID) { setXPNeighborID(QUuid(xPNeighborID)); }
-    virtual const EntityItemID& getXPNeighborID() const { return _xPNeighborID; }
-    virtual void setYPNeighborID(const EntityItemID& yPNeighborID) { _yPNeighborID = yPNeighborID; }
-    void setYPNeighborID(const QString& yPNeighborID) { setYPNeighborID(QUuid(yPNeighborID)); }
-    virtual const EntityItemID& getYPNeighborID() const { return _yPNeighborID; }
-    virtual void setZPNeighborID(const EntityItemID& zPNeighborID) { _zPNeighborID = zPNeighborID; }
-    void setZPNeighborID(const QString& zPNeighborID) { setZPNeighborID(QUuid(zPNeighborID)); }
-    virtual const EntityItemID& getZPNeighborID() const { return _zPNeighborID; }
+    virtual void setXPNeighborID(const EntityItemID& xPNeighborID);
+    void setXPNeighborID(const QString& xPNeighborID);
+    virtual EntityItemID getXPNeighborID() const;
+    virtual void setYPNeighborID(const EntityItemID& yPNeighborID);
+    void setYPNeighborID(const QString& yPNeighborID);
+    virtual EntityItemID getYPNeighborID() const;
+    virtual void setZPNeighborID(const EntityItemID& zPNeighborID);
+    void setZPNeighborID(const QString& zPNeighborID);
+    virtual EntityItemID getZPNeighborID() const;
 
     virtual void rebakeMesh() {};
 

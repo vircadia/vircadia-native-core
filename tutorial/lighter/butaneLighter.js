@@ -154,9 +154,12 @@
                 direction: Quat.inverse(Quat.getFront(flameProperties.rotation))
             }
             var intersection = Entities.findRayIntersection(pickRay, true, [], [_this.entityID, _this.lighterParticleEntity]);
-            if (intersection.intersects && intersection.distance <= FLAME_LENGTH && intersection.properties.script !== '') {
-                Entities.callEntityMethod(intersection.properties.id, 'onLit', [_this.triggerValue]);
-                debugPrint('Light it up! found: ' + intersection.properties.id);
+            if (intersection.intersects && intersection.distance <= FLAME_LENGTH) {
+                var properties = Entities.getEntityProperties(intersection.entityID, 'script');
+                if (properties.script !== '') {
+                    Entities.callEntityMethod(intersection.entityID, 'onLit', [_this.triggerValue]);
+                    debugPrint('Light it up! found: ' + intersection.entityID);
+                }
             }
         },
         releaseEquip: function(entityID, args) {

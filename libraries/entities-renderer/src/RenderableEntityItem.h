@@ -54,7 +54,7 @@ namespace render {
 // Mixin class for implementing basic single item rendering
 class SimpleRenderableEntityItem {
 public:
-    bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
         _myItem = scene->allocateID();
 
         auto renderData = std::make_shared<RenderableEntityItemProxy>(self, _myItem);
@@ -64,13 +64,13 @@ public:
         makeEntityItemStatusGetters(self, statusGetters);
         renderPayload->addStatusGetters(statusGetters);
 
-        pendingChanges.resetItem(_myItem, renderPayload);
+        transaction.resetItem(_myItem, renderPayload);
 
         return true;
     }
 
-    void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-        pendingChanges.removeItem(_myItem);
+    void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
+        transaction.removeItem(_myItem);
         render::Item::clearID(_myItem);
     }
 
@@ -79,14 +79,14 @@ public:
             return;
         }
 
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
         if (scene) {
-            pendingChanges.updateItem<RenderableEntityItemProxy>(_myItem, [](RenderableEntityItemProxy& data) {
+            transaction.updateItem<RenderableEntityItemProxy>(_myItem, [](RenderableEntityItemProxy& data) {
             });
 
-            scene->enqueuePendingChanges(pendingChanges);
+            scene->enqueueTransaction(transaction);
         } else {
             qCWarning(entitiesrenderer) << "SimpleRenderableEntityItem::notifyChanged(), Unexpected null scene, possibly during application shutdown";
         }
@@ -99,8 +99,8 @@ private:
 
 #define SIMPLE_RENDERABLE() \
 public: \
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override { return _renderHelper.addToScene(self, scene, pendingChanges); } \
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override { _renderHelper.removeFromScene(self, scene, pendingChanges); } \
+    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override { return _renderHelper.addToScene(self, scene, transaction); } \
+    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override { _renderHelper.removeFromScene(self, scene, transaction); } \
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); _renderHelper.notifyChanged(); } \
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); _renderHelper.notifyChanged(); } \
     void checkFading() { \

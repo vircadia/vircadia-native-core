@@ -29,6 +29,7 @@ public:
         float tutorialElapsedTime, QString tutorialRunID = "", int tutorialVersion = 0, QString controllerType = "");
     Q_INVOKABLE void palAction(QString action, QString target);
     Q_INVOKABLE void palOpened(float secondsOpen);
+    Q_INVOKABLE void makeUserConnection(QString otherUser, bool success, QString details="");
 private:
     void logAction(QString action, QJsonObject details = {});
 };

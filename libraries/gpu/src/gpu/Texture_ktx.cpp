@@ -72,6 +72,15 @@ Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
 }
 
 void Texture::setKtxBacking(const std::string& filename) {
+    // Check the KTX file for validity before using it as backing storage
+    {
+        ktx::StoragePointer storage { new storage::FileStorage(filename.c_str()) };
+        auto ktxPointer = ktx::KTX::create(storage);
+        if (!ktxPointer) {
+            return;
+        }
+    }
+
     auto newBacking = std::unique_ptr<Storage>(new KtxStorage(filename));
     setStorage(newBacking);
 }
@@ -128,7 +137,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     }
 
     // Number level of mips coming
-    header.numberOfMipmapLevels = texture.getNumMipLevels();
+    header.numberOfMipmapLevels = texture.getNumMips();
 
     ktx::Images images;
     for (uint32_t level = 0; level < header.numberOfMipmapLevels; level++) {
@@ -185,7 +194,12 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
 }
 
 Texture* Texture::unserialize(const std::string& ktxfile, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
-    ktx::KTXDescriptor descriptor { ktx::KTX::create(ktx::StoragePointer { new storage::FileStorage(ktxfile.c_str()) })->toDescriptor() };
+    std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(ktx::StoragePointer { new storage::FileStorage(ktxfile.c_str()) });
+    if (!ktxPointer) {
+        return nullptr;
+    }
+
+    ktx::KTXDescriptor descriptor { ktxPointer->toDescriptor() };
     const auto& header = descriptor.header;
 
     Format mipFormat = Format::COLOR_BGRA_32;
@@ -224,6 +238,7 @@ Texture* Texture::unserialize(const std::string& ktxfile, TextureUsageType usage
                                 header.getPixelDepth(),
                                 1, // num Samples
                                 header.getNumberOfSlices(),
+                                header.getNumberOfLevels(),
                                 (isGPUKTXPayload ? gpuktxKeyValue._samplerDesc : sampler));
 
     tex->setUsage((isGPUKTXPayload ? gpuktxKeyValue._usage : usage));

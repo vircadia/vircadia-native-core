@@ -14,6 +14,7 @@
 
 #include <QJsonDocument>
 #include <QtCore/QThread>
+#include <QUrlQuery>
 #include <glm/gtx/transform.hpp>
 
 #include <AbstractViewStateInterface.h>
@@ -90,13 +91,13 @@ bool RenderableModelEntityItem::setProperties(const EntityItemProperties& proper
     return somethingChanged;
 }
 
-int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) {
     QString oldModelURL = getModelURL();
-    int bytesRead = ModelEntityItem::readEntitySubclassDataFromBuffer(data, bytesLeftToRead, 
-                                                                      args, propertyFlags, 
+    int bytesRead = ModelEntityItem::readEntitySubclassDataFromBuffer(data, bytesLeftToRead,
+                                                                      args, propertyFlags,
                                                                       overwriteLocalData, somethingChanged);
     if (oldModelURL != getModelURL()) {
         _needsModelReload = true;
@@ -136,7 +137,7 @@ void RenderableModelEntityItem::remapTextures() {
     if (!_model) {
         return; // nothing to do if we don't have a model
     }
-    
+
     if (!_model->isLoaded()) {
         return; // nothing to do if the model has not yet loaded
     }
@@ -188,16 +189,16 @@ public:
     RenderableModelEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
     typedef render::Payload<RenderableModelEntityItemMeta> Payload;
     typedef Payload::DataPointer Pointer;
-   
+
     EntityItemPointer entity;
 };
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const RenderableModelEntityItemMeta::Pointer& payload) { 
+    template <> const ItemKey payloadGetKey(const RenderableModelEntityItemMeta::Pointer& payload) {
         return ItemKey::Builder::opaqueShape().withTypeMeta();
     }
-    
-    template <> const Item::Bound payloadGetBound(const RenderableModelEntityItemMeta::Pointer& payload) { 
+
+    template <> const Item::Bound payloadGetBound(const RenderableModelEntityItemMeta::Pointer& payload) {
         if (payload && payload->entity) {
             bool success;
             auto result = payload->entity->getAABox(success);
@@ -227,33 +228,33 @@ namespace render {
     }
 }
 
-bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
-                                            render::PendingChanges& pendingChanges) {
+bool RenderableModelEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
+                                            render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
 
     auto renderData = std::make_shared<RenderableModelEntityItemMeta>(self);
     auto renderPayload = std::make_shared<RenderableModelEntityItemMeta::Payload>(renderData);
 
-    pendingChanges.resetItem(_myMetaItem, renderPayload);
+    transaction.resetItem(_myMetaItem, renderPayload);
 
     if (_model) {
         render::Item::Status::Getters statusGetters;
         makeEntityItemStatusGetters(getThisPointer(), statusGetters);
 
         // note: we don't mind if the model fails to add, we'll retry (in render()) until it succeeds
-        _model->addToScene(scene, pendingChanges, statusGetters);
+        _model->addToScene(scene, transaction, statusGetters);
     }
 
     // we've successfully added _myMetaItem so we always return true
     return true;
 }
 
-void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
-                                                render::PendingChanges& pendingChanges) {
-    pendingChanges.removeItem(_myMetaItem);
+void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
+                                                render::Transaction& transaction) {
+    transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
     if (_model) {
-        _model->removeFromScene(scene, pendingChanges);
+        _model->removeFromScene(scene, transaction);
     }
 }
 
@@ -277,10 +278,11 @@ bool RenderableModelEntityItem::getAnimationFrame() {
         return false;
     }
 
-    if (_animation && _animation->isLoaded()) {
+    auto animation = getAnimation();
+    if (animation && animation->isLoaded()) {
 
-        const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
-        auto& fbxJoints = _animation->getGeometry().joints;
+        const QVector<FBXAnimationFrame>&  frames = animation->getFramesReference(); // NOTE: getFrames() is too heavy
+        auto& fbxJoints = animation->getGeometry().joints;
 
         int frameCount = frames.size();
         if (frameCount > 0) {
@@ -435,7 +437,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         _model->renderDebugMeshBoxes(batch);
 #endif
 
-        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
@@ -467,15 +469,15 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         }
 
         if (_model->needsFixupInScene()) {
-            render::PendingChanges pendingChanges;
+            render::Transaction transaction;
 
-            _model->removeFromScene(scene, pendingChanges);
+            _model->removeFromScene(scene, transaction);
 
             render::Item::Status::Getters statusGetters;
             makeEntityItemStatusGetters(getThisPointer(), statusGetters);
-            _model->addToScene(scene, pendingChanges, statusGetters);
+            _model->addToScene(scene, transaction, statusGetters);
 
-            scene->enqueuePendingChanges(pendingChanges);
+            scene->enqueueTransaction(transaction);
         }
 
         auto& currentURL = getParsedModelURL();
@@ -500,11 +502,11 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
         _myRenderer = renderer;
     }
     assert(_myRenderer == renderer); // you should only ever render on one renderer
-    
+
     if (!_myRenderer || QThread::currentThread() != _myRenderer->thread()) {
         return _model;
     }
-    
+
     _needsModelReload = false; // this is the reload
 
     // If we have a URL, then we will want to end up returning a model...
@@ -524,10 +526,10 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
     // If we have no URL, then we can delete any model we do have...
     } else if (_model) {
         // remove from scene
-        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-        render::PendingChanges pendingChanges;
-        _model->removeFromScene(scene, pendingChanges);
-        scene->enqueuePendingChanges(pendingChanges);
+        const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        render::Transaction transaction;
+        _model->removeFromScene(scene, transaction);
+        scene->enqueueTransaction(transaction);
 
         // release interest
         _myRenderer->releaseModel(_model);
@@ -550,7 +552,7 @@ void RenderableModelEntityItem::update(const quint64& now) {
                 properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
                 auto extents = _model->getMeshExtents();
                 properties.setDimensions(extents.maximum - extents.minimum);
-                qCDebug(entitiesrenderer) << "Autoresizing" << (!getName().isEmpty() ? getName() : getModelURL()) 
+                qCDebug(entitiesrenderer) << "Autoresizing" << (!getName().isEmpty() ? getName() : getModelURL())
                     << "from mesh extents";
                 QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
                                         Qt::QueuedConnection,
@@ -566,7 +568,7 @@ void RenderableModelEntityItem::update(const quint64& now) {
     }
 
     // make a copy of the animation properites
-    _renderAnimationProperties = _animationProperties;
+    _renderAnimationProperties = getAnimationProperties();
 
     ModelEntityItem::update(now);
 }
@@ -592,8 +594,8 @@ bool RenderableModelEntityItem::supportsDetailedRayIntersection() const {
     return _model && _model->isLoaded();
 }
 
-bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, 
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
+bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
                          glm::vec3& surfaceNormal, void** intersectedObject, bool precisionPicking) const {
     if (!_model) {
         return true;
@@ -606,19 +608,31 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
                                                        face, surfaceNormal, extraInfo, precisionPicking);
 }
 
+void RenderableModelEntityItem::getCollisionGeometryResource() {
+    QUrl hullURL(getCompoundShapeURL());
+    QUrlQuery queryArgs(hullURL);
+    queryArgs.addQueryItem("collision-hull", "");
+    hullURL.setQuery(queryArgs);
+    _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+}
+
 void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
-    if (_shapeType == SHAPE_TYPE_COMPOUND) {
-        if (!_compoundShapeResource && !_compoundShapeURL.isEmpty()) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(getCompoundShapeURL());
+    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
+        if (!_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
+            getCollisionGeometryResource();
         }
-    } else if (_compoundShapeResource && !_compoundShapeURL.isEmpty()) {
+    } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
         _compoundShapeResource.reset();
     }
 }
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
+    // because the caching system only allows one Geometry per url, and because this url might also be used
+    // as a visual model, we need to change this url in some way.  We add a "collision-hull" query-arg so it
+    // will end up in a different hash-key in ResourceCache.  TODO: It would be better to use the same URL and
+    // parse it twice.
     auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
 
@@ -627,8 +641,8 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
         if (tree) {
             QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
         }
-        if (_shapeType == SHAPE_TYPE_COMPOUND) {
-            _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
+        if (getShapeType() == SHAPE_TYPE_COMPOUND) {
+            getCollisionGeometryResource();
         }
     }
 }
@@ -637,7 +651,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     ShapeType type = getShapeType();
 
     if (type == SHAPE_TYPE_COMPOUND) {
-        if (!_model || _compoundShapeURL.isEmpty()) {
+        if (!_model || getCompoundShapeURL().isEmpty()) {
             EntityTreePointer tree = getTree();
             if (tree) {
                 QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
@@ -659,8 +673,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
                     doInitialModelSimulation();
                 }
                 return true;
-            } else if (!_compoundShapeURL.isEmpty()) {
-                _compoundShapeResource = DependencyManager::get<ModelCache>()->getGeometryResource(_compoundShapeURL);
+            } else if (!getCompoundShapeURL().isEmpty()) {
+                getCollisionGeometryResource();
             }
         }
 
@@ -775,7 +789,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + _model->getOffset()) - registrationOffset;
             }
         }
-        shapeInfo.setParams(type, dimensions, _compoundShapeURL);
+        shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         // should never fall in here when model not fully loaded
         assert(_model && _model->isLoaded());
@@ -1001,7 +1015,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             }
         }
 
-        shapeInfo.setParams(type, 0.5f * dimensions, _modelURL);
+        shapeInfo.setParams(type, 0.5f * dimensions, getModelURL());
     } else {
         ModelEntityItem::computeShapeInfo(shapeInfo);
         shapeInfo.setParams(type, 0.5f * dimensions);
@@ -1225,11 +1239,10 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
                 return;
             }
 
-            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-            render::PendingChanges pendingChanges;
+            render::Transaction transaction;
 
-            pendingChanges.updateItem(myMetaItem);
-            scene->enqueuePendingChanges(pendingChanges);
+            transaction.updateItem(myMetaItem);
+            AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
         });
     }
 }

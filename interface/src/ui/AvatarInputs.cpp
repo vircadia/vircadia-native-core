@@ -62,24 +62,13 @@ AvatarInputs::AvatarInputs(QQuickItem* parent) :  QQuickItem(parent) {
         } \
     }
 
-void AvatarInputs::update() {
-    if (!Menu::getInstance()) {
-        return;
-    }
-    AI_UPDATE(cameraEnabled, !Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking));
-    AI_UPDATE(cameraMuted, Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking));
-    AI_UPDATE(isHMD, qApp->isHMDMode());
-
-    AI_UPDATE_WRITABLE(showAudioTools, Menu::getInstance()->isOptionChecked(MenuOption::AudioTools));
-
-    auto audioIO = DependencyManager::get<AudioClient>();
+float AvatarInputs::loudnessToAudioLevel(float loudness) {
     const float AUDIO_METER_AVERAGING = 0.5;
     const float LOG2 = log(2.0f);
     const float METER_LOUDNESS_SCALE = 2.8f / 5.0f;
     const float LOG2_LOUDNESS_FLOOR = 11.0f;
     float audioLevel = 0.0f;
-    auto audio = DependencyManager::get<AudioClient>();
-    float loudness = audio->getLastInputLoudness() + 1.0f;
+    loudness += 1.0f;
 
     _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.0f - AUDIO_METER_AVERAGING) * loudness;
 
@@ -93,6 +82,24 @@ void AvatarInputs::update() {
     if (audioLevel > 1.0f) {
         audioLevel = 1.0;
     }
+    return audioLevel;
+}
+
+void AvatarInputs::update() {
+    if (!Menu::getInstance()) {
+        return;
+    }
+
+    AI_UPDATE(cameraEnabled, !Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking));
+    AI_UPDATE(cameraMuted, Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking));
+    AI_UPDATE(isHMD, qApp->isHMDMode());
+
+    AI_UPDATE_WRITABLE(showAudioTools, Menu::getInstance()->isOptionChecked(MenuOption::AudioTools));
+
+    auto audioIO = DependencyManager::get<AudioClient>();
+
+    const float audioLevel = loudnessToAudioLevel(DependencyManager::get<AudioClient>()->getLastInputLoudness());
+
     AI_UPDATE_FLOAT(audioLevel, audioLevel, 0.01f);
     AI_UPDATE(audioClipping, ((audioIO->getTimeSinceLastClip() > 0.0f) && (audioIO->getTimeSinceLastClip() < 1.0f)));
     AI_UPDATE(audioMuted, audioIO->isMuted());

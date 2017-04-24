@@ -205,10 +205,10 @@ void CauterizedModel::updateRenderItems() {
 
             uint32_t deleteGeometryCounter = self->getGeometryCounter();
 
-            render::PendingChanges pendingChanges;
+            render::Transaction transaction;
             QList<render::ItemID> keys = self->getRenderItems().keys();
             foreach (auto itemID, keys) {
-                pendingChanges.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter](CauterizedMeshPartPayload& data) {
+                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter](CauterizedMeshPartPayload& data) {
                     if (data._model && data._model->isLoaded()) {
                         // Ensure the model geometry was not reset between frames
                         if (deleteGeometryCounter == data._model->getGeometryCounter()) {
@@ -233,7 +233,7 @@ void CauterizedModel::updateRenderItems() {
                 });
             }
 
-            scene->enqueuePendingChanges(pendingChanges);
+            scene->enqueueTransaction(transaction);
         });
     } else {
         Model::updateRenderItems();

@@ -27,7 +27,7 @@ RenderableLightEntityItem::RenderableLightEntityItem(const EntityItemID& entityI
 {
 }
 
-bool RenderableLightEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+bool RenderableLightEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     _myItem = scene->allocateID();
 
     auto renderItem = std::make_shared<LightPayload>();
@@ -39,7 +39,7 @@ bool RenderableLightEntityItem::addToScene(EntityItemPointer self, std::shared_p
     makeEntityItemStatusGetters(self, statusGetters);
     renderPayload->addStatusGetters(statusGetters);
 
-    pendingChanges.resetItem(_myItem, renderPayload);
+    transaction.resetItem(_myItem, renderPayload);
 
     return true;
 }
@@ -51,8 +51,8 @@ void RenderableLightEntityItem::somethingChangedNotification() {
     LightEntityItem::somethingChangedNotification();
 }
 
-void RenderableLightEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    pendingChanges.removeItem(_myItem);
+void RenderableLightEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
+    transaction.removeItem(_myItem);
     render::Item::clearID(_myItem);
 }
 
@@ -81,12 +81,12 @@ void RenderableLightEntityItem::notifyChanged() {
         return;
     }
 
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
-    updateLightFromEntity(pendingChanges);
+    updateLightFromEntity(transaction);
 
-    scene->enqueuePendingChanges(pendingChanges);
+    scene->enqueueTransaction(transaction);
 }
 
 bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -103,13 +103,13 @@ bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& ori
 }
 
 
-void RenderableLightEntityItem::updateLightFromEntity(render::PendingChanges& pendingChanges) {
+void RenderableLightEntityItem::updateLightFromEntity(render::Transaction& transaction) {
     if (!render::Item::isValidID(_myItem)) {
         return;
     }
 
 
-    pendingChanges.updateItem<LightPayload>(_myItem, [&](LightPayload& data) {
+    transaction.updateItem<LightPayload>(_myItem, [&](LightPayload& data) {
         updateRenderItemFromEntity(data);
     });
 }

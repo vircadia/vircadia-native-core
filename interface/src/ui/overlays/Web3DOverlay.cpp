@@ -49,6 +49,8 @@
 #include "ui/DomainConnectionModel.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "ui/AvatarInputs.h"
+#include "avatar/AvatarManager.h"
+#include "scripting/GlobalServicesScriptingInterface.h"
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -194,6 +196,9 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getRootContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
             _webSurface->getRootContext()->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
             _webSurface->getRootContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+            _webSurface->getRootContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+            _webSurface->getRootContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+            _webSurface->getRootContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
 
             _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
@@ -268,6 +273,11 @@ void Web3DOverlay::render(RenderArgs* args) {
         if (_currentMaxFPS != _desiredMaxFPS) {
             setMaxFPS(_desiredMaxFPS);
         }
+    }
+
+    if (_mayNeedResize) {
+        _mayNeedResize = false;
+        _webSurface->resize(QSize(_resolution.x, _resolution.y));
     }
 
     vec2 halfSize = getSize() / 2.0f;
@@ -350,35 +360,63 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
 
-    if (event.getButtons() == PointerEvent::NoButtons && event.getType() == PointerEvent::Move) {
-        // Forward a mouse move event to the Web surface.
-        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
-        return;
-    }
-
     if (event.getType() == PointerEvent::Press && event.getButton() == PointerEvent::PrimaryButton) {
         this->_pressed = true;
     } else if (event.getType() == PointerEvent::Release && event.getButton() == PointerEvent::PrimaryButton) {
         this->_pressed = false;
     }
 
-    QEvent::Type type;
+    QEvent::Type touchType;
     Qt::TouchPointState touchPointState;
+    QEvent::Type mouseType;
+
+    Qt::MouseButton button = Qt::NoButton;
+    Qt::MouseButtons buttons = Qt::NoButton;
+    if (event.getButton() == PointerEvent::PrimaryButton) {
+        button = Qt::LeftButton;
+    }
+    if (event.getButtons() & PointerEvent::PrimaryButton) {
+        buttons |= Qt::LeftButton;
+    }
+
     switch (event.getType()) {
         case PointerEvent::Press:
-            type = QEvent::TouchBegin;
+            touchType = QEvent::TouchBegin;
             touchPointState = Qt::TouchPointPressed;
+            mouseType = QEvent::MouseButtonPress;
             break;
         case PointerEvent::Release:
-            type = QEvent::TouchEnd;
+            touchType = QEvent::TouchEnd;
             touchPointState = Qt::TouchPointReleased;
+            mouseType = QEvent::MouseButtonRelease;
             break;
         case PointerEvent::Move:
-        default:
-            type = QEvent::TouchUpdate;
+            touchType = QEvent::TouchUpdate;
             touchPointState = Qt::TouchPointMoved;
+            mouseType = QEvent::MouseMove;
+
+            if (((event.getButtons() & PointerEvent::PrimaryButton) > 0) != this->_pressed) {
+                // Mouse was pressed/released while off the overlay; convert touch and mouse events to press/release to reflect
+                // current mouse/touch status.
+                this->_pressed = !this->_pressed;
+                if (this->_pressed) {
+                    touchType = QEvent::TouchBegin;
+                    touchPointState = Qt::TouchPointPressed;
+                    mouseType = QEvent::MouseButtonPress;
+
+                } else {
+                    touchType = QEvent::TouchEnd;
+                    touchPointState = Qt::TouchPointReleased;
+                    mouseType = QEvent::MouseButtonRelease;
+
+                }
+                button = Qt::LeftButton;
+                buttons |= Qt::LeftButton;
+            }
+
             break;
+        default:
+            return;
     }
 
     QTouchEvent::TouchPoint point;
@@ -389,13 +427,20 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     QList<QTouchEvent::TouchPoint> touchPoints;
     touchPoints.push_back(point);
 
-    QTouchEvent* touchEvent = new QTouchEvent(type, &_touchDevice, event.getKeyboardModifiers());
+    QTouchEvent* touchEvent = new QTouchEvent(touchType, &_touchDevice, event.getKeyboardModifiers());
     touchEvent->setWindow(_webSurface->getWindow());
     touchEvent->setTarget(_webSurface->getRootItem());
     touchEvent->setTouchPoints(touchPoints);
     touchEvent->setTouchPointStates(touchPointState);
 
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
+
+    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
+    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
+    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
+
+    QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+    QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
 }
 
 void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
@@ -417,11 +462,12 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
         buttons |= Qt::LeftButton;
     }
 
-    QEvent::Type type;
     Qt::MouseButton button = Qt::NoButton;
     if (event.getButton() == PointerEvent::PrimaryButton) {
         button = Qt::LeftButton;
     }
+
+    QEvent::Type type;
     switch (event.getType()) {
         case PointerEvent::Press:
             type = QEvent::MouseButtonPress;
@@ -430,9 +476,10 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
             type = QEvent::MouseButtonRelease;
             break;
         case PointerEvent::Move:
-        default:
             type = QEvent::MouseMove;
             break;
+        default:
+            return;
     }
 
     QMouseEvent* mouseEvent = new QMouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
@@ -491,6 +538,8 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
             _inputMode = Touch;
         }
     }
+
+    _mayNeedResize = true;
 }
 
 QVariant Web3DOverlay::getProperty(const QString& property) {

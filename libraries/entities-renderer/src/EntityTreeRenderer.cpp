@@ -43,6 +43,8 @@
 #include "AddressManager.h"
 #include <Rig.h>
 
+#include "ZoneRenderer.h"
+
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
     _wantScripts(wantScripts),
@@ -127,11 +129,11 @@ void EntityTreeRenderer::clear() {
     // remove all entities from the scene
     auto scene = _viewState->getMain3DScene();
     if (scene) {
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         foreach(auto entity, _entitiesInScene) {
-            entity->removeFromScene(entity, scene, pendingChanges);
+            entity->removeFromScene(entity, scene, transaction);
         }
-        scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueueTransaction(transaction);
     } else {
         qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
     }
@@ -266,6 +268,9 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
             }
         }
         _layeredZones.apply();
+
+        applyLayeredZones();
+
         didUpdate = true;
     });
 
@@ -342,6 +347,30 @@ void EntityTreeRenderer::forceRecheckEntities() {
     // so that on our next chance, we'll check for enter/leave entity events.
     _avatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
 }
+
+bool EntityTreeRenderer::applyLayeredZones() {
+    // from the list of zones we are going to build a selection list the Render Item corresponding to the zones
+    // in the expected layered order and update the scene with it
+    auto scene = _viewState->getMain3DScene();
+    if (scene) {
+        render::Transaction transaction;
+        render::ItemIDs list;
+
+        for (auto& zone : _layeredZones) {
+            auto id = std::dynamic_pointer_cast<RenderableZoneEntityItem>(zone.zone)->getRenderItemID();
+            list.push_back(id);
+        }
+        render::Selection selection("RankedZones", list);
+        transaction.resetSelection(selection);
+
+        scene->enqueueTransaction(transaction);
+    } else {
+        qCWarning(entitiesrenderer) << "EntityTreeRenderer::applyLayeredZones(), Unexpected null scene, possibly during application shutdown";
+    }
+     
+     return true;
+}
+
 
 bool EntityTreeRenderer::applyZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone) {
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -951,11 +980,11 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     // here's where we remove the entity payload from the scene
     if (_entitiesInScene.contains(entityID)) {
         auto entity = _entitiesInScene.take(entityID);
-        render::PendingChanges pendingChanges;
+        render::Transaction transaction;
         auto scene = _viewState->getMain3DScene();
         if (scene) {
-            entity->removeFromScene(entity, scene, pendingChanges);
-            scene->enqueuePendingChanges(pendingChanges);
+            entity->removeFromScene(entity, scene, transaction);
+            scene->enqueueTransaction(transaction);
         } else {
             qCWarning(entitiesrenderer) << "EntityTreeRenderer::deletingEntity(), Unexpected null scene, possibly during application shutdown";
         }
@@ -973,13 +1002,13 @@ void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
 
 void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
     // here's where we add the entity payload to the scene
-    render::PendingChanges pendingChanges;
+    render::Transaction transaction;
     auto scene = _viewState->getMain3DScene();
     if (scene) {
-        if (entity->addToScene(entity, scene, pendingChanges)) {
+        if (entity->addToScene(entity, scene, transaction)) {
             _entitiesInScene.insert(entity->getEntityItemID(), entity);
         }
-        scene->enqueuePendingChanges(pendingChanges);
+        scene->enqueueTransaction(transaction);
     } else {
         qCWarning(entitiesrenderer) << "EntityTreeRenderer::addEntityToScene(), Unexpected null scene, possibly during application shutdown";
     }

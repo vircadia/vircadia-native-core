@@ -67,9 +67,7 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
     frag.scattering = 0.0;
     unpackModeMetallic(diffuseVal.w, frag.mode, frag.metallic);
 
-    //frag.emissive = specularVal.xyz;
     frag.obscurance = min(specularVal.w, frag.obscurance);
-
 
     if (frag.mode == FRAG_MODE_SCATTERING) {
         frag.scattering = specularVal.x;

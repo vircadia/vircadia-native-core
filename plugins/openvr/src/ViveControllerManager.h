@@ -43,8 +43,6 @@ public:
     void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
-    void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
-
     void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
 
 private:
@@ -62,6 +60,7 @@ private:
         void hapticsHelper(float deltaTime, bool leftHand);
 
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
+        void handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand);
         void handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand);
         void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,

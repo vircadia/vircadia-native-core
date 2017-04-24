@@ -48,11 +48,12 @@ TableView {
         HiFiGlyphs {
             id: titleSort
             text:  sortIndicatorOrder == Qt.AscendingOrder ? hifi.glyphs.caratUp : hifi.glyphs.caratDn
-            color: hifi.colors.baseGrayHighlight
+            color: hifi.colors.darkGray
+            opacity: 0.6;
             size: hifi.fontSizes.tableHeadingIcon
             anchors {
                 left: titleText.right
-                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3 - (centerHeaderText ? 3 : 0)
+                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3 - (centerHeaderText ? 5 : 0)
                 right: parent.right
                 rightMargin: hifi.dimensions.tablePadding
                 verticalCenter: titleText.verticalCenter
@@ -89,7 +90,6 @@ TableView {
     Rectangle {
         color: "#00000000"
         anchors { fill: parent; margins: -2 }
-        radius: hifi.dimensions.borderRadius
         border.color: isLightColorScheme ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight
         border.width: 2
     }

@@ -70,7 +70,7 @@ public:
 
     GenerateDeferredFrameTransform() {}
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, DeferredFrameTransformPointer& frameTransform);
+    void run(const render::RenderContextPointer& renderContext, DeferredFrameTransformPointer& frameTransform);
 
 private:
 };

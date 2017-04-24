@@ -63,14 +63,14 @@ signals:
      * @returns {Signal}
      */
     void tabletNotification();
-    
+
 private:
     void processMenuEvents(QObject* object, const QKeyEvent* event);
     void processTabletEvents(QObject* object, const QKeyEvent* event);
 
 protected:
     std::mutex _mutex;
-    std::map<QString, QSharedPointer<TabletProxy>> _tabletProxies;
+    std::map<QString, TabletProxy*> _tabletProxies;
     QObject* _toolbarScriptingInterface { nullptr };
     bool _toolbarMode { false };
 };
@@ -85,6 +85,8 @@ class TabletProxy : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
     Q_PROPERTY(bool toolbarMode READ getToolbarMode WRITE setToolbarMode)
+    Q_PROPERTY(bool landscape READ getLandscape WRITE setLandscape)
+    Q_PROPERTY(bool tabletShown MEMBER _tabletShown NOTIFY tabletShownChanged)
 public:
     TabletProxy(QString name);
 
@@ -97,7 +99,7 @@ public:
     bool getToolbarMode() const { return _toolbarMode; }
     void setToolbarMode(bool toolbarMode);
 
-    void initialScreen(const QVariant& url);
+    Q_INVOKABLE void initialScreen(const QVariant& url);
 
     /**jsdoc
      * transition to the home screen
@@ -117,6 +119,13 @@ public:
     Q_INVOKABLE void loadQMLSource(const QVariant& path);
     Q_INVOKABLE void pushOntoStack(const QVariant& path);
     Q_INVOKABLE void popFromStack();
+
+    Q_INVOKABLE void loadQMLOnTop(const QVariant& path);
+    Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url);
+    Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url, const QString& injectedJavaScriptUrl);
+    Q_INVOKABLE void returnToPreviousApp();
+
+    
 
     /** jsdoc
      * Check if the tablet has a message dialog open
@@ -173,6 +182,16 @@ public:
      */
     Q_INVOKABLE bool onHomeScreen();
 
+    /**jsdoc
+     * set tablet into our out of landscape mode
+     * @function TabletProxy#setLandscape
+     * @param landscape {bool} true for landscape, false for portrait
+     */
+    Q_INVOKABLE void setLandscape(bool landscape) { _landscape = landscape; }
+    Q_INVOKABLE bool getLandscape() { return _landscape; }
+
+    Q_INVOKABLE bool isPathLoaded(QVariant path);
+
     QQuickItem* getTabletRoot() const { return _qmlTabletRoot; }
 
     QObject* getTabletSurface();
@@ -206,9 +225,17 @@ signals:
      */
     void screenChanged(QVariant type, QVariant url);
 
+    /** jsdoc
+    * Signaled when the tablet becomes visible or becomes invisible
+    * @function TabletProxy#isTabletShownChanged
+    * @returns {Signal}
+    */
+    void tabletShownChanged();
+
 protected slots:
     void addButtonsToHomeScreen();
     void desktopWindowClosed();
+    void emitWebEvent(QVariant msg);
 protected:
     void removeButtonsFromHomeScreen();
     void loadHomeScreen(bool forceOntoHomeScreen);
@@ -216,7 +243,8 @@ protected:
     void removeButtonsFromToolbar();
 
     bool _initialScreen { false };
-    QVariant _initialPath { "" }; 
+    QVariant _initialPath { "" };
+    QVariant _currentPathLoaded { "" };
     QString _name;
     std::mutex _mutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
@@ -224,9 +252,11 @@ protected:
     QObject* _qmlOffscreenSurface { nullptr };
     QmlWindowClass* _desktopWindow { nullptr };
     bool _toolbarMode { false };
+    bool _tabletShown { false };
 
     enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
+    bool _landscape { false };
 };
 
 /**jsdoc

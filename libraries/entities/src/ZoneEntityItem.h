@@ -30,7 +30,7 @@ public:
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.lastQuerySent time
+    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -58,8 +58,8 @@ public:
     void setShapeType(ShapeType type) override { _shapeType = type; }
     virtual ShapeType getShapeType() const override;
 
-    virtual bool hasCompoundShapeURL() const { return !_compoundShapeURL.isEmpty(); }
-    const QString getCompoundShapeURL() const { return _compoundShapeURL; }
+    virtual bool hasCompoundShapeURL() const;
+    QString getCompoundShapeURL() const;
     virtual void setCompoundShapeURL(const QString& url);
 
     const KeyLightPropertyGroup& getKeyLightProperties() const { return _keyLightProperties; }
@@ -74,7 +74,7 @@ public:
     void setFlyingAllowed(bool value) { _flyingAllowed = value; }
     bool getGhostingAllowed() const { return _ghostingAllowed; }
     void setGhostingAllowed(bool value) { _ghostingAllowed = value; }
-    QString getFilterURL() const { return _filterURL; }
+    QString getFilterURL() const;
     void setFilterURL(const QString url); 
 
     virtual bool supportsDetailedRayIntersection() const override { return true; }

@@ -130,7 +130,7 @@ Item {
                     id: pingCol
                     spacing: 4; x: 4; y: 4;
                     StatText {
-                        text: "Audio ping: " + root.audioPing
+                        text: "Audio ping/loss: " + root.audioPing + "/" + root.audioPacketLoss + "%"
                     }
                     StatText {
                         text: "Avatar ping: " + root.avatarPing
@@ -244,16 +244,16 @@ Item {
                     id: octreeCol
                     spacing: 4; x: 4; y: 4;
                     StatText {
-                        text: "  Frame timing:"
+                        text: "Engine: " + root.engineFrameTime.toFixed(1) + " ms"
                     }
                     StatText {
-                        text: "      Batch: " + root.batchFrameTime.toFixed(1) + " ms"
+                        text: "Batch: " + root.batchFrameTime.toFixed(1) + " ms"
                     }
                     StatText {
-                        text: "        GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                        text: "GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
                     }
                     StatText {
-                        text: "     Avatar: " + root.avatarSimulationTime.toFixed(1) + " ms"
+                        text: "Avatar: " + root.avatarSimulationTime.toFixed(1) + " ms"
                     }
                     StatText {
                         text: "Triangles: " + root.triangles +

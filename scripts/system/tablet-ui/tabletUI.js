@@ -16,7 +16,6 @@
    MyAvatar, Menu */
 
 (function() { // BEGIN LOCAL_SCOPE
-    var tabletShown = false;
     var tabletRezzed = false;
     var activeHand = null;
     var DEFAULT_WIDTH = 0.4375;
@@ -33,7 +32,7 @@
         if (!UIWebTablet) {
             return false;
         }
-        if (UIWebTablet.tabletIsOverlay && Overlays.getProperty(HMD.tabletID, "type") != "model") {
+        if (Overlays.getProperty(HMD.tabletID, "type") != "model") {
             if (debugTablet) {
                 print("TABLET is invalid due to frame: " + JSON.stringify(Overlays.getProperty(HMD.tabletID, "type")));
             }
@@ -93,10 +92,10 @@
     }
 
     function showTabletUI() {
-        tabletShown = true;
+        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = true;
 
         if (!tabletRezzed || !tabletIsValid()) {
-            closeTabletUI()
+            closeTabletUI();
             rezTablet();
         }
 
@@ -107,9 +106,7 @@
             var tabletProperties = {};
             UIWebTablet.calculateTabletAttachmentProperties(activeHand, true, tabletProperties);
             tabletProperties.visible = true;
-            if (UIWebTablet.tabletIsOverlay) {
-                Overlays.editOverlay(HMD.tabletID, tabletProperties);
-            }
+            Overlays.editOverlay(HMD.tabletID, tabletProperties);
             Overlays.editOverlay(HMD.homeButtonID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 90 });
@@ -117,31 +114,23 @@
     }
 
     function hideTabletUI() {
-        tabletShown = false;
+        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = false;
         if (!UIWebTablet) {
             return;
         }
 
-        if (UIWebTablet.tabletIsOverlay) {
-            if (debugTablet) {
-                print("TABLET hide");
-            }
-            if (Settings.getValue("tabletVisibleToOthers")) {
-                closeTabletUI();
-            } else {
-                // Overlays.editOverlay(HMD.tabletID, { localPosition: { x: -1000, y: 0, z:0 } });
-                Overlays.editOverlay(HMD.tabletID, { visible: false });
-                Overlays.editOverlay(HMD.homeButtonID, { visible: false });
-                Overlays.editOverlay(HMD.tabletScreenID, { visible: false });
-                Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 1 });
-            }
-        } else {
-            closeTabletUI();
+        if (debugTablet) {
+            print("TABLET hide");
         }
+
+        Overlays.editOverlay(HMD.tabletID, { visible: false });
+        Overlays.editOverlay(HMD.homeButtonID, { visible: false });
+        Overlays.editOverlay(HMD.tabletScreenID, { visible: false });
+        Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 1 });
     }
 
     function closeTabletUI() {
-        tabletShown = false;
+        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = false;
         if (UIWebTablet) {
             if (UIWebTablet.onClose) {
                 UIWebTablet.onClose();
@@ -168,8 +157,9 @@
         var now = Date.now();
 
         // close the WebTablet if it we go into toolbar mode.
+        var tabletShown = Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown;
         var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
-        var visibleToOthers = Settings.getValue("tabletVisibleToOthers");
+        var landscape = Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape;
 
         if (tabletShown && toolbarMode) {
             closeTabletUI();
@@ -187,6 +177,9 @@
         }
 
         updateTabletWidthFromSettings();
+        if (UIWebTablet) {
+            UIWebTablet.setLandscape(landscape);
+        }
 
         if (validCheckTime - now > MSECS_PER_SEC) {
             validCheckTime = now;
@@ -205,20 +198,16 @@
         // check for change in tablet scale.
 
         if (HMD.showTablet && !tabletShown && !toolbarMode) {
-            UserActivityLogger.openedTablet(visibleToOthers);
+            UserActivityLogger.openedTablet(false);
             showTabletUI();
         } else if (!HMD.showTablet && tabletShown) {
             UserActivityLogger.closedTablet();
-            if (visibleToOthers) {
-                closeTabletUI();
-            } else {
-                hideTabletUI();
-            }
+            hideTabletUI();
         }
 
         // if the tablet is an overlay, attempt to pre-create it and then hide it so that when it's
         // summoned, it will appear quickly.
-        if (!toolbarMode && !visibleToOthers) {
+        if (!toolbarMode) {
             if (now - preMakeTime > MSECS_PER_SEC) {
                 preMakeTime = now;
                 if (!tabletIsValid()) {
@@ -233,14 +222,20 @@
 
     }
 
-    function toggleHand(channel, hand, senderUUID, localOnly) {
+    function handleMessage(channel, hand, senderUUID, localOnly) {
         if (channel === "toggleHand") {
             activeHand = JSON.parse(hand);
+        }
+        if (channel === "home") {
+            if (UIWebTablet) {
+                Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape = false;
+            }
         }
     }
 
     Messages.subscribe("toggleHand");
-    Messages.messageReceived.connect(toggleHand);
+    Messages.subscribe("home");
+    Messages.messageReceived.connect(handleMessage);
 
     Script.setInterval(updateShowTablet, 100);
 
@@ -271,9 +266,16 @@
     }
 
     Script.scriptEnding.connect(function () {
+
+        // if we reload scripts in tablet mode make sure we close the currently open window, by calling gotoHomeScreen
+        var tabletProxy = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        if (tabletProxy && tabletProxy.toolbarMode) {
+            tabletProxy.gotoHomeScreen();
+        }
+
         var tabletID = HMD.tabletID;
         Entities.deleteEntity(tabletID);
-        Overlays.deleteOverlay(tabletID)
+        Overlays.deleteOverlay(tabletID);
         HMD.tabletID = null;
         HMD.homeButtonID = null;
         HMD.tabletScreenID = null;

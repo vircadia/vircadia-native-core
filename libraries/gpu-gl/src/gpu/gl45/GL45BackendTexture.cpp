@@ -18,7 +18,6 @@
 #include <glm/gtx/component_wise.hpp>
 
 #include <QtCore/QDebug>
-#include <QtCore/QThread>
 
 #include <NumericalConstants.h>
 #include "../gl/GLTexelFormat.h"
@@ -68,7 +67,7 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
 #else 
                     object = new GL45ResourceTexture(shared_from_this(), texture);
 #endif
-                    GL45VariableAllocationTexture::addMemoryManagedTexture(texturePointer);
+                    GLVariableAllocationSupport::addMemoryManagedTexture(texturePointer);
                 } else {
                     auto fallback = texturePointer->getFallbackTexture();
                     if (fallback) {
@@ -136,20 +135,6 @@ void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
     (void)CHECK_GL_ERROR();
 }
 
-void GL45Texture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const {
-    if (!_gpuObject.isStoredMipFaceAvailable(sourceMip)) {
-        return;
-    }
-    auto size = _gpuObject.evalMipDimensions(sourceMip);
-    auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
-    if (mipData) {
-        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.format, texelFormat.type, mipData->readData());
-    } else {
-         qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
-    }
-}
-
 void GL45Texture::syncSampler() const {
     const Sampler& sampler = _gpuObject.getSampler();
 
@@ -167,8 +152,10 @@ void GL45Texture::syncSampler() const {
     glTextureParameteri(_id, GL_TEXTURE_WRAP_S, WRAP_MODES[sampler.getWrapModeU()]);
     glTextureParameteri(_id, GL_TEXTURE_WRAP_T, WRAP_MODES[sampler.getWrapModeV()]);
     glTextureParameteri(_id, GL_TEXTURE_WRAP_R, WRAP_MODES[sampler.getWrapModeW()]);
+
     glTextureParameterf(_id, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
     glTextureParameterfv(_id, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
+
     glTextureParameterf(_id, GL_TEXTURE_MIN_LOD, sampler.getMinMip());
     glTextureParameterf(_id, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
 }
@@ -186,10 +173,12 @@ GL45FixedAllocationTexture::~GL45FixedAllocationTexture() {
 void GL45FixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto dimensions = _gpuObject.getDimensions();
-    const auto mips = _gpuObject.getNumMipLevels();
+    const auto mips = _gpuObject.getNumMips();
 
     glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
+
     glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
+    glTextureParameteri(_id, GL_TEXTURE_MAX_LEVEL, mips - 1);
 }
 
 void GL45FixedAllocationTexture::syncSampler() const {
@@ -216,7 +205,7 @@ GL45AttachmentTexture::~GL45AttachmentTexture() {
 using GL45StrictResourceTexture = GL45Backend::GL45StrictResourceTexture;
 
 GL45StrictResourceTexture::GL45StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45FixedAllocationTexture(backend, texture) {
-    auto mipLevels = _gpuObject.getNumMipLevels();
+    auto mipLevels = _gpuObject.getNumMips();
     for (uint16_t sourceMip = 0; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip;
         size_t maxFace = GLTexture::getFaceCount(_target);

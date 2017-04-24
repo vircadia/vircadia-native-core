@@ -299,12 +299,13 @@ void HmdDisplayPlugin::internalPresent() {
                 gpu::Texture::createStrict(
                 gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
                 image.width(), image.height(),
+                gpu::Texture::MAX_NUM_MIPS,
                 gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
             _previewTexture->setSource("HMD Preview Texture");
             _previewTexture->setUsage(gpu::Texture::Usage::Builder().withColor().build());
             _previewTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
             _previewTexture->assignStoredMip(0, image.byteCount(), image.constBits());
-            _previewTexture->autoGenerateMips(-1);
+            _previewTexture->setAutoGenerateMips(true);
         }
         
         auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
@@ -591,7 +592,7 @@ void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
         auto ps = gpu::Shader::createPixel(fsSource.toLocal8Bit().toStdString());
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::gl::GLBackend::makeProgram(*program, gpu::Shader::BindingSet());
-        this->uniformsLocation = program->getBuffers().findLocation("overlayBuffer");
+        this->uniformsLocation = program->getUniformBuffers().findLocation("overlayBuffer");
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(false));
