@@ -23,7 +23,7 @@ function clearImages() {
     imageCount = 0;
     idCounter = 0;
 }
-function addImage(image_data, isGifLoading, canSharePreviousImages) {
+function addImage(image_data, isGifLoading, isShowingPreviousImages, canSharePreviousImages) {
     if (!image_data.localPath) {
         return;
     }
@@ -46,9 +46,9 @@ function addImage(image_data, isGifLoading, canSharePreviousImages) {
     document.getElementById("snapshot-images").appendChild(div);
     var isGif = img.src.split('.').pop().toLowerCase() === "gif";
     paths.push(image_data.localPath);
-    if (!isGifLoading && !canSharePreviousImages) {
+    if (!isGifLoading && !isShowingPreviousImages) {
         shareForUrl(id);
-    } else if (canSharePreviousImages) {
+    } else if (isShowingPreviousImages && canSharePreviousImages) {
         appendShareBar(id, image_data.story_id, isGif)
     }
 }
@@ -233,7 +233,7 @@ window.onload = function () {
                     var messageOptions = message.options;
                     imageCount = message.image_data.length;
                     message.image_data.forEach(function (element, idx, array) {
-                        addImage(element, true, message.canShare);
+                        addImage(element, true, true, message.canShare);
                     });
                     break;
                 case 'addImages':
@@ -247,7 +247,7 @@ window.onload = function () {
                             imageCount = message.image_data.length + 1; // "+1" for the GIF that'll finish processing soon
                             message.image_data.unshift({ localPath: messageOptions.loadingGifPath });
                             message.image_data.forEach(function (element, idx, array) {
-                                addImage(element, idx === 0);
+                                addImage(element, idx === 0, false, false);
                             });
                         } else {
                             var gifPath = message.image_data[0].localPath;
@@ -260,7 +260,7 @@ window.onload = function () {
                     } else {
                         imageCount = message.image_data.length;
                         message.image_data.forEach(function (element, idx, array) {
-                            addImage(element, false);
+                            addImage(element, false, false, false);
                         });
                     }
                     break;

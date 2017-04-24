@@ -240,6 +240,15 @@ function snapshotUploaded(isError, reply) {
 }
 var href, domainId;
 function takeSnapshot() {
+    tablet.emitScriptEvent(JSON.stringify({
+        type: "snapshot",
+        action: "clearPreviousImages"
+    }));
+    Settings.setValue("previousStillSnapPath", "");
+    Settings.setValue("previousStillSnapStoryID", "");
+    Settings.setValue("previousAnimatedSnapPath", "");
+    Settings.setValue("previousAnimatedSnapStoryID", "");
+
     // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
     // Turn it off now, before we start futzing with things (and possibly moving).
     clearOverlayWhenMoving = MyAvatar.getClearOverlayWhenMoving(); // Do not use Settings. MyAvatar keeps a separate copy.
@@ -252,22 +261,22 @@ function takeSnapshot() {
     Settings.setValue("previousSnapshotDomainID", domainId);
 
     maybeDeleteSnapshotStories();
-    tablet.emitScriptEvent(JSON.stringify({
-        type: "snapshot",
-        action: "clearPreviousImages"
-    }));
-    Settings.setValue("previousStillSnapPath", "");
-    Settings.setValue("previousStillSnapStoryID", "");
-    Settings.setValue("previousAnimatedSnapPath", "");
-    Settings.setValue("previousAnimatedSnapStoryID", "");
 
     // update button states
-    resetOverlays = Menu.isOptionChecked("Overlays"); // For completness. Certainly true if the button is visible to be clicked.
+    resetOverlays = Menu.isOptionChecked("Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
-    Window.stillSnapshotTaken.connect(stillSnapshotTaken);
-    Window.processingGifStarted.connect(processingGifStarted);
-    Window.processingGifCompleted.connect(processingGifCompleted);
+    
+    var includeAnimated = Settings.getValue("alsoTakeAnimatedSnapshot", true);
+    if (includeAnimated) {
+        Window.processingGifStarted.connect(processingGifStarted);
+    } else {
+        Window.stillSnapshotTaken.connect(stillSnapshotTaken);
+    }
+    if (buttonConnected) {
+        button.clicked.disconnect(openSnapApp);
+        buttonConnected = false;
+    }
 
     // hide overlays if they are on
     if (resetOverlays) {
@@ -278,7 +287,7 @@ function takeSnapshot() {
     Script.setTimeout(function () {
         HMD.closeTablet();
         Script.setTimeout(function () {
-            Window.takeSnapshot(false, Settings.getValue("alsoTakeAnimatedSnapshot", true), 1.91);
+            Window.takeSnapshot(false, includeAnimated, 1.91);
         }, SNAPSHOT_DELAY);
     }, FINISH_SOUND_DELAY);
 }
@@ -315,6 +324,10 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
         Menu.setIsOptionChecked("Overlays", true);
     }
     Window.stillSnapshotTaken.disconnect(stillSnapshotTaken);
+    if (!buttonConnected) {
+        button.clicked.connect(openSnapApp);
+        buttonConnected = true;
+    }
 
     // A Snapshot Review dialog might be left open indefinitely after taking the picture,
     // during which time the user may have moved. So stash that info in the dialog so that
@@ -343,10 +356,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
 
 function processingGifStarted(pathStillSnapshot) {
     Window.processingGifStarted.disconnect(processingGifStarted);
-    if (buttonConnected) {
-        button.clicked.disconnect(openSnapApp);
-        buttonConnected = false;
-    }
+    Window.processingGifCompleted.connect(processingGifCompleted);
     // show hud
     Reticle.visible = reticleVisible;
     // show overlays if they were on
