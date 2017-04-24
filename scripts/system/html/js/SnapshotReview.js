@@ -10,9 +10,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var paths = [], idCounter = 0, imageCount = 1;
-function addImage(data, isGifLoading) {
-    if (!data.localPath) {
+var paths = [];
+var idCounter = 0;
+var imageCount = 0;
+function clearImages() {
+    var snapshotImagesDiv = document.getElementById("snapshot-images");
+    while (snapshotImagesDiv.hasChildNodes()) {
+        snapshotImagesDiv.removeChild(snapshotImagesDiv.lastChild);
+    }
+    paths = [];
+    imageCount = 0;
+    idCounter = 0;
+}
+function addImage(image_data, isGifLoading, isShowingPreviousImages) {
+    if (!image_data.localPath) {
         return;
     }
     var div = document.createElement("DIV");
@@ -29,14 +40,25 @@ function addImage(data, isGifLoading) {
     if (imageCount > 1) {
         img.setAttribute("class", "multiple");
     }
-    img.src = data.localPath;
+    img.src = image_data.localPath;
     div.appendChild(img);
     document.getElementById("snapshot-images").appendChild(div);
     var isGif = img.src.split('.').pop().toLowerCase() === "gif";
-    paths.push(data.localPath);
-    if (!isGifLoading) {
+    paths.push(image_data.localPath);
+    if (!isGifLoading && !isShowingPreviousImages) {
         shareForUrl(id);
+    } else if (isShowingPreviousImages) {
+        appendShareBar(id, image_data.story_id, isGif)
     }
+}
+function appendShareBar(divID, story_id, isGif) {
+    var story_url = "https://highfidelity.com/user_stories/" + story_id;
+    var parentDiv = document.getElementById(divID);
+    parentDiv.setAttribute('data-story-id', story_id);
+    document.getElementById(divID).appendChild(createShareOverlay(divID, isGif, story_url));
+    twttr.events.bind('click', function (event) {
+        shareButtonClicked(divID);
+    });
 }
 function createShareOverlay(parentID, isGif, shareURL) {
     var shareOverlayContainer = document.createElement("DIV");
@@ -138,6 +160,13 @@ function shareWithEveryone(selectedID) {
         story_id: document.getElementById(selectedID).getAttribute("data-story-id")
     }));
 }
+function shareButtonClicked(selectedID) {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "snapshot",
+        action: "shareButtonClicked",
+        story_id: document.getElementById(selectedID).getAttribute("data-story-id")
+    }));
+}
 function cancelSharing(selectedID) {
     selectedID = selectedID.id; // Why is this necessary?
     var shareOverlayContainer = document.getElementById(selectedID + "shareOverlayContainer");
@@ -176,9 +205,10 @@ function handleCaptureSetting(setting) {
 window.onload = function () {
     // TESTING FUNCTIONS START
     // Uncomment and modify the lines below to test SnapshotReview in a browser.
-    //imageCount = 2;
+    //imageCount = 1;
     //addImage({ localPath: 'C:/Users/Zach Fox/Desktop/hifi-snap-by-zfox-on-2017-04-20_14-59-12.gif' });
-    //addImage({ localPath: 'C:/Users/Zach Fox/Desktop/hifi-snap-by-zfox-on-2017-04-20_14-59-12.jpg' });
+    //addImage({ localPath: 'C:/Users/Zach Fox/Desktop/hifi-snap-by-zfox-on-2017-04-24_10-49-20.jpg' });
+    //document.getElementById('p0').appendChild(createShareOverlay('p0', false, ''));
     //addImage({ localPath: 'http://lorempixel.com/553/255' });
     //addImage({localPath: 'c:/Users/howar/OneDrive/Pictures/hifi-snap-by--on-2016-07-27_12-58-43.jpg'});
     // TESTING FUNCTIONS END
@@ -194,6 +224,17 @@ window.onload = function () {
             }
             
             switch (message.action) {
+                case 'clearPreviousImages':
+                    clearImages();
+                    break;
+                case 'showPreviousImages':
+                    clearImages();
+                    var messageOptions = message.options;
+                    imageCount = message.image_data.length;
+                    message.image_data.forEach(function (element, idx, array) {
+                        addImage(element, true, true);
+                    });
+                    break;
                 case 'addImages':
                     // The last element of the message contents list contains a bunch of options,
                     // including whether or not we can share stuff
@@ -202,13 +243,13 @@ window.onload = function () {
 
                     if (messageOptions.containsGif) {
                         if (messageOptions.processingGif) {
-                            imageCount = message.data.length + 1; // "+1" for the GIF that'll finish processing soon
-                            message.data.unshift({ localPath: messageOptions.loadingGifPath });
-                            message.data.forEach(function (element, idx, array) {
+                            imageCount = message.image_data.length + 1; // "+1" for the GIF that'll finish processing soon
+                            message.image_data.unshift({ localPath: messageOptions.loadingGifPath });
+                            message.image_data.forEach(function (element, idx, array) {
                                 addImage(element, idx === 0);
                             });
                         } else {
-                            var gifPath = message.data[0].localPath;
+                            var gifPath = message.image_data[0].localPath;
                             var p0img = document.getElementById('p0img');
                             p0img.src = gifPath;
 
@@ -216,8 +257,8 @@ window.onload = function () {
                             shareForUrl("p0");
                         }
                     } else {
-                        imageCount = message.data.length;
-                        message.data.forEach(function (element, idx, array) {
+                        imageCount = message.image_data.length;
+                        message.image_data.forEach(function (element, idx, array) {
                             addImage(element, false);
                         });
                     }
@@ -227,19 +268,12 @@ window.onload = function () {
                     break;
                 case 'snapshotUploadComplete':
                     var isGif = message.shareable_url.split('.').pop().toLowerCase() === "gif";
-                    var id = "p0"
-                    if (imageCount > 1 && !isGif) {
-                        id = "p1";
-                    }
-                    var parentDiv = document.getElementById(id);
-                    parentDiv.setAttribute('data-story-id', message.id);
-                    document.getElementById(id).appendChild(createShareOverlay(id, isGif, message.story_url));
+                    appendShareBar(isGif || imageCount === 1 ? "p0" : "p1", message.story_id, isGif);
                     break;
                 default:
-                    print("Unknown message action received in SnapshotReview.js.");
+                    console.log("Unknown message action received in SnapshotReview.js.");
                     break;
             }
-
         });
 
         EventBridge.emitWebEvent(JSON.stringify({
@@ -249,12 +283,6 @@ window.onload = function () {
     });
 
 };
-function doNotShare() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: "snapshot",
-        action: []
-    }));
-}
 function snapshotSettings() {
     EventBridge.emitWebEvent(JSON.stringify({
         type: "snapshot",

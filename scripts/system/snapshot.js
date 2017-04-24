@@ -29,7 +29,8 @@ var button = tablet.addButton({
 });
 
 var snapshotOptions;
-var imageData;
+var imageData = [];
+var storyIDsToMaybeDelete = [];
 var shareAfterLogin = false;
 var snapshotToShareAfterLogin;
 var METAVERSE_BASE = location.metaverseServerUrl;
@@ -105,9 +106,9 @@ function onMessage(message) {
             }));
             tablet.emitScriptEvent(JSON.stringify({
                 type: "snapshot",
-                action: "addImages",
+                action: "showPreviousImages",
                 options: snapshotOptions,
-                data: imageData
+                image_data: imageData
             }));
             break;
         case 'openSettings':
@@ -127,9 +128,7 @@ function onMessage(message) {
             Settings.setValue("alsoTakeAnimatedSnapshot", false);
             break;
         case 'takeSnapshot':
-            // In settings, first store the paths to the last snapshot
-            //
-            onClicked();
+            takeSnapshot();
             break;
         case 'shareSnapshotForUrl':
             isLoggedIn = Account.isLoggedIn();
@@ -142,6 +141,7 @@ function onMessage(message) {
             break;
         case 'shareSnapshotWithEveryone':
             isLoggedIn = Account.isLoggedIn();
+            storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
             if (isLoggedIn) {
                 print('Modifying audience of story ID', message.story_id, "to 'for_feed'");
                 request({
@@ -178,6 +178,10 @@ function onMessage(message) {
                 }
             }*/
             break;
+        case 'shareButtonClicked':
+            print('Twitter or FB "Share" button clicked! Removing ID', message.story_id, 'from storyIDsToMaybeDelete[].')
+            storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
+            break;
         default:
             print('Unknown message action received by snapshot.js!');
             break;
@@ -186,7 +190,23 @@ function onMessage(message) {
 
 var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
 var isInSnapshotReview = false;
-function reviewSnapshot() {
+function openSnapApp() {
+    var previousStillSnapPath = Settings.getValue("previousStillSnapPath");
+    var previousStillSnapStoryID = Settings.getValue("previousStillSnapStoryID");
+    var previousAnimatedSnapPath = Settings.getValue("previousAnimatedSnapPath");
+    var previousAnimatedSnapStoryID = Settings.getValue("previousAnimatedSnapStoryID");
+    snapshotOptions = {
+        containsGif: previousAnimatedSnapPath !== "",
+        processingGif: false,
+        shouldUpload: false
+    }
+    imageData = [];
+    if (previousAnimatedSnapPath !== "") {
+        imageData.push({ localPath: previousAnimatedSnapPath, story_id: previousAnimatedSnapStoryID });
+    }
+    if (previousStillSnapPath !== "") {
+        imageData.push({ localPath: previousStillSnapPath, story_id: previousStillSnapStoryID });
+    }
     tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
     tablet.webEventReceived.connect(onMessage);
     HMD.openTablet();
@@ -195,21 +215,28 @@ function reviewSnapshot() {
 
 function snapshotUploaded(isError, reply) {
     if (!isError) {
-        print('SUCCESS: Snapshot uploaded! Story with audience:for_url created!');
         var replyJson = JSON.parse(reply);
+        var storyID = replyJson.user_story.id;
+        var shareableURL = replyJson.user_story.details.shareable_url;
+        var isGif = shareableURL.split('.').pop().toLowerCase() === "gif";
+        print('SUCCESS: Snapshot uploaded! Story with audience:for_url created! ID:', storyID);
         tablet.emitScriptEvent(JSON.stringify({
             type: "snapshot",
             action: "snapshotUploadComplete",
-            id: replyJson.user_story.id,
-            story_url: "https://highfidelity.com/user_stories/" + replyJson.user_story.id,
-            shareable_url: replyJson.user_story.details.shareable_url,
+            story_id: storyID,
+            shareable_url: shareableURL,
         }));
+        if (isGif) {
+            Settings.setValue("previousAnimatedSnapStoryID", storyID);
+        } else {
+            Settings.setValue("previousStillSnapStoryID", storyID);
+        }
     } else {
         print(reply);
     }
 }
 var href, domainId;
-function onClicked() {
+function takeSnapshot() {
     // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
     // Turn it off now, before we start futzing with things (and possibly moving).
     clearOverlayWhenMoving = MyAvatar.getClearOverlayWhenMoving(); // Do not use Settings. MyAvatar keeps a separate copy.
@@ -220,8 +247,16 @@ function onClicked() {
     href = location.href;
     domainId = location.domainId;
 
+    tablet.emitScriptEvent(JSON.stringify({
+        type: "snapshot",
+        action: "clearPreviousImages"
+    }));
+    maybeDeleteSnapshotStories();
+    Settings.setValue("previousStillSnapPath", "");
+    Settings.setValue("previousAnimatedSnapPath", "");
+
     // update button states
-    resetOverlays = Menu.isOptionChecked("Overlays"); // For completness. Certainly true if the button is visible to be clicke.
+    resetOverlays = Menu.isOptionChecked("Overlays"); // For completness. Certainly true if the button is visible to be clicked.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
     Window.stillSnapshotTaken.connect(stillSnapshotTaken);
@@ -281,7 +316,15 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
         canShare: !!isDomainOpen(domainId)
     };
     imageData = [{ localPath: pathStillSnapshot, href: href }];
-    reviewSnapshot();
+    Settings.setValue("previousStillSnapPath", pathStillSnapshot);
+
+    tablet.emitScriptEvent(JSON.stringify({
+        type: "snapshot",
+        action: "addImages",
+        options: snapshotOptions,
+        image_data: imageData
+    }));
+
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
@@ -291,7 +334,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
 function processingGifStarted(pathStillSnapshot) {
     Window.processingGifStarted.disconnect(processingGifStarted);
     if (buttonConnected) {
-        button.clicked.disconnect(onClicked);
+        button.clicked.disconnect(openSnapApp);
         buttonConnected = false;
     }
     // show hud
@@ -308,7 +351,15 @@ function processingGifStarted(pathStillSnapshot) {
         canShare: !!isDomainOpen(domainId)
     };
     imageData = [{ localPath: pathStillSnapshot, href: href }];
-    reviewSnapshot();
+    Settings.setValue("previousStillSnapPath", pathStillSnapshot);
+
+    tablet.emitScriptEvent(JSON.stringify({
+        type: "snapshot",
+        action: "addImages",
+        options: snapshotOptions,
+        image_data: imageData
+    }));
+
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
@@ -318,7 +369,7 @@ function processingGifStarted(pathStillSnapshot) {
 function processingGifCompleted(pathAnimatedSnapshot) {
     Window.processingGifCompleted.disconnect(processingGifCompleted);
     if (!buttonConnected) {
-        button.clicked.connect(onClicked);
+        button.clicked.connect(openSnapApp);
         buttonConnected = true;
     }
 
@@ -328,15 +379,34 @@ function processingGifCompleted(pathAnimatedSnapshot) {
         canShare: !!isDomainOpen(domainId)
     }
     imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
+    Settings.setValue("previousAnimatedSnapPath", pathAnimatedSnapshot);
 
     tablet.emitScriptEvent(JSON.stringify({
         type: "snapshot",
         action: "addImages",
         options: snapshotOptions,
-        data: imageData
+        image_data: imageData
     }));
 }
-
+function maybeDeleteSnapshotStories() {
+    if (storyIDsToMaybeDelete.length > 0) {
+        print("User took new snapshot & didn't share old one(s); deleting old snapshot stories");
+        storyIDsToMaybeDelete.forEach(function (element, idx, array) {
+            request({
+                uri: METAVERSE_BASE + '/api/v1/user_stories/' + element,
+                method: 'DELETE'
+            }, function (error, response) {
+                if (error || (response.status !== 'success')) {
+                    print("ERROR deleting snapshot story: ", error || response.status);
+                    return;
+                } else {
+                    print("SUCCESS deleting snapshot story with ID", element);
+                }
+            })
+        });
+        storyIDsToMaybeDelete = [];
+    }
+}
 function onTabletScreenChanged(type, url) {
     if (isInSnapshotReview) {
         tablet.webEventReceived.disconnect(onMessage);
@@ -351,14 +421,14 @@ function onConnected() {
     }
 }
 
-button.clicked.connect(onClicked);
+button.clicked.connect(openSnapApp);
 buttonConnected = true;
 Window.snapshotShared.connect(snapshotUploaded);
 tablet.screenChanged.connect(onTabletScreenChanged);
 Account.usernameChanged.connect(onConnected);
 Script.scriptEnding.connect(function () {
     if (buttonConnected) {
-        button.clicked.disconnect(onClicked);
+        button.clicked.disconnect(openSnapApp);
         buttonConnected = false;
     }
     if (tablet) {
