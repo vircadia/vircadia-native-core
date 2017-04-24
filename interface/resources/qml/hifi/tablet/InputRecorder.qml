@@ -24,6 +24,7 @@ Rectangle {
     color: hifi.colors.baseGray;
     property string path: ""
     property var dialog: null;
+    property bool recording: false;
 
     Component { id: fileDialog; TabletFileDialog { } }
     Row {
@@ -37,36 +38,50 @@ Rectangle {
             top: parent.top
             topMargin: 10
         }
+        
         HifiControls.Button {
             id: start
-            text: "Start"
-            color: hifi.buttons.blue
+            text: "Start Recoring"
+            color: hifi.buttons.black
             enabled: true
             onClicked: {
-                sendToScript({method: "Start"});
-            }
-        }
-
-        HifiControls.Button {
-            id: stop    
-            text: "Stop"
-            color: hifi.buttons.blue
-            enabled: true
-            onClicked: {
-                sendToScript({method: "Stop"});
+                if (inputRecorder.recording) {
+                    sendToScript({method: "Stop"});
+                    inputRecorder.recording = false;
+                    start.text = "Start Recording";
+                } else {
+                    sendToScript({method: "Start"});
+                    inputRecorder.recording = true;
+                    start.text = "Stop Recording";
+                }
             }
         }
 
         HifiControls.Button {
             id: save
-            text: "Save"
-            color: hifi.buttons.blue
+            text: "Save Recording"
+            color: hifi.buttons.black
             enabled: true
             onClicked: {
                 sendToScript({method: "Save"});
             }
         }
+
+        HifiControls.Button {
+            id: playBack
+            anchors.right: browse.left
+            anchors.top: selectedFile.bottom
+            anchors.topMargin: 10
             
+            text: "Play Recording"
+            color: hifi.buttons.black
+            enabled: true
+            onClicked: {
+                sendToScript({method: "playback"});
+                HMD.closeTablet();
+            }
+        }
+        
     }        
     
     HifiControls.VerticalSpacer {}    
@@ -110,24 +125,25 @@ Rectangle {
         }
     }
 
-    HifiControls.Button {
-        id: playBack
-        anchors.right: browse.left
-        anchors.top: selectedFile.bottom
-        anchors.topMargin: 10
-        
-        text: "Playback"
-        color: hifi.buttons.black
-        enabled: true
-        onClicked: {
-            sendToScript({method: "playback"});
+    Column {
+        id: notes
+        anchors.centerIn: parent;
+        spacing: 20
+
+        Text {
+            text: "All files are saved under the folder 'hifi-input-recording' in your home directory";
+            color: "white"
+            font.pointSize: 10
+        }
+
+        Text {
+            text: "To cancel a recording playback press Alt-B"
+            color: "white"
+            font.pointSize: 10
         }
     }
-
-
+    
     function getFileSelected(file) {
-        console.log("------------> file selected <----------------");
-        //sendToScript({ method: "Load", params: { file: file} });
         selectedFile.text = file;
         inputRecorder.path = file;
     }

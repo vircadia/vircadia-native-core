@@ -39,7 +39,7 @@ namespace controller {
         void togglePlayback() { _playback = !_playback; }
         void resetFrame();
         bool isRecording() { return _recording; }
-        bool isPlayingback() { return _playback; }
+        bool isPlayingback() { return (_playback && !_loading); }
         void setActionState(controller::Action action, float value);
         void setActionState(controller::Action action, const controller::Pose pose);
         float getActionState(controller::Action action);
@@ -48,6 +48,7 @@ namespace controller {
     private:
         bool _recording { false };
         bool _playback { false };
+        bool _loading { false };
         std::vector<PoseStates> _poseStateList = std::vector<PoseStates>();
         std::vector<ActionStates> _actionStateList = std::vector<ActionStates>();
         PoseStates _currentFramePoses = PoseStates(toInt(Action::NUM_ACTIONS));

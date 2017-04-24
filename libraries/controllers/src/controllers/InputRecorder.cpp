@@ -166,6 +166,10 @@ namespace controller {
     }
 
     void InputRecorder::loadRecording(const QString& path) {
+        _recording = false;
+        _playback = false;
+        _loading = true;
+        _playCount = 0;
         resetFrame();
         _poseStateList.clear();
         _actionStateList.clear();
@@ -174,16 +178,16 @@ namespace controller {
         QFileInfo info(filePath);
         QString extension = info.suffix();
          if (extension != "gz") {
-             qWarning() << "Could not open file of type " << extension;
+             qWarning() << "can not load file with exentsion of " << extension;
              return;
          }
          bool success = false;
          QJsonObject data = openFile(info.absoluteFilePath(), success);
-         int count = 0;
          if (success) {
              _framesRecorded = data["frameCount"].toInt();
              QJsonArray actionArrayList = data["actionList"].toArray();
              QJsonArray poseArrayList = data["poseList"].toArray();
+             
              for (int actionIndex = 0; actionIndex < actionArrayList.size(); actionIndex++) {
                  QJsonArray actionState = actionArrayList[actionIndex].toArray();
                  for (int index = 0; index < actionState.size(); index++) {
@@ -202,6 +206,8 @@ namespace controller {
                  _currentFramePoses = PoseStates(toInt(Action::NUM_ACTIONS));
              }
          }
+
+         _loading = false;
     }
 
     void InputRecorder::stopRecording() {
@@ -211,10 +217,12 @@ namespace controller {
     void InputRecorder::startPlayback() {
         _playback = true;
         _recording = false;
+        _playCount = 0;
     }
 
     void InputRecorder::stopPlayback() {
         _playback = false;
+        _playCount = 0;
     }
 
     void InputRecorder::setActionState(controller::Action action, float value) {
