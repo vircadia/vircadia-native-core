@@ -41,7 +41,6 @@ using JobContextPointer = std::shared_ptr<JobContext>;
 class JobConcept {
 public:
     using Config = JobConfig;
-    using QConfigPointer = std::shared_ptr<QObject>;
 
     JobConcept(QConfigPointer config) : _config(config) {}
     virtual ~JobConcept() = default;
@@ -88,10 +87,8 @@ public:
     using Context = RC;
     using ContextPointer = std::shared_ptr<Context>;
     using Config = JobConfig;
-    using QConfigPointer = std::shared_ptr<QObject>;
     using None = JobNoIO;
 
-    //template <class RC>
     class Concept : public JobConcept {
     public:
         Concept(QConfigPointer config) : JobConcept(config) {}
@@ -130,11 +127,11 @@ public:
 
 
         void applyConfiguration() override {
-            jobConfigure(_data, *std::static_pointer_cast<C>(_config));
+            jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
         }
 
         void run(const ContextPointer& renderContext) override {
-            renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
+            renderContext->jobConfig = std::static_pointer_cast<Config>(Concept::_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->isEnabled()) {
                 jobRun(_data, renderContext, _input.get<I>(), _output.edit<O>());
             }
@@ -186,13 +183,13 @@ public:
     using Context = RC;
     using ContextPointer = std::shared_ptr<Context>;
     using Config = TaskConfig;
-    using _Job = Job<RC>;
-    using QConfigPointer = _Job::QConfigPointer;
-    using None = _Job::None;
-    using Concept = _Job::Concept;
-    using Jobs = std::vector<_Job>;
+    using JobType = Job<RC>;
+    using None = typename JobType::None;
+    using Concept = typename JobType::Concept;
+    using ConceptPointer = typename JobType::ConceptPointer;
+    using Jobs = std::vector<JobType>;
 
-    Task(std::string name, ConceptPointer concept) : Job(name, concept) {}
+    Task(std::string name, ConceptPointer concept) : JobType(name, concept) {}
 
     class TaskConcept : public Concept {
     public:
@@ -210,7 +207,7 @@ public:
             _jobs.emplace_back(name, (NT::JobModel::create(input, std::forward<NA>(args)...)));
 
             // Conect the child config to this task's config
-            std::static_pointer_cast<TaskConfig>(getConfiguration())->connectChildConfig(_jobs.back().getConfiguration(), name);
+            std::static_pointer_cast<TaskConfig>(Concept::getConfiguration())->connectChildConfig(_jobs.back().getConfiguration(), name);
 
             return _jobs.back().getOutput();
         }
@@ -255,31 +252,31 @@ public:
             // A brand new config
             auto config = std::make_shared<C>();
             // Make sure we transfer the former children configs to the new config
-            config->transferChildrenConfigs(_config);
+            config->transferChildrenConfigs(Concept::_config);
             // swap
-            _config = config;
+            Concept::_config = config;
             // Capture this
-            std::static_pointer_cast<C>(_config)->_task = this;
+            std::static_pointer_cast<C>(Concept::_config)->_task = this;
         }
 
         QConfigPointer& getConfiguration() override {
-            if (!_config) {
+            if (!Concept::_config) {
                 createConfiguration();
             }
-            return _config;
+            return Concept::_config;
         }
 
         void applyConfiguration() override {
-            jobConfigure(_data, *std::static_pointer_cast<C>(_config));
-            for (auto& job : _jobs) {
+            jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
+            for (auto& job : TaskConcept::_jobs) {
                 job.applyConfiguration();
             }
         }
 
         void run(const ContextPointer& renderContext) override {
-            auto config = std::static_pointer_cast<C>(_config);
+            auto config = std::static_pointer_cast<C>(Concept::_config);
             if (config->alwaysEnabled || config->enabled) {
-                for (auto job : _jobs) {
+                for (auto job : TaskConcept::_jobs) {
                     job.run(renderContext);
                 }
             }
@@ -292,15 +289,15 @@ public:
 
     // Create a new job in the Task's queue; returns the job's output
     template <class T, class... A> const Varying addJob(std::string name, const Varying& input, A&&... args) {
-        return std::static_pointer_cast<TaskConcept>( _concept)->addJob<T>(name, input, std::forward<A>(args)...);
+        return std::static_pointer_cast<TaskConcept>(JobType::_concept)->template addJob<T>(name, input, std::forward<A>(args)...);
     }
     template <class T, class... A> const Varying addJob(std::string name, A&&... args) {
         const auto input = Varying(typename T::JobModel::Input());
-        return std::static_pointer_cast<TaskConcept>( _concept)->addJob<T>(name, input, std::forward<A>(args)...);
+        return std::static_pointer_cast<TaskConcept>(JobType::_concept)->template addJob<T>(name, input, std::forward<A>(args)...);
     }
 
     std::shared_ptr<Config> getConfiguration() {
-        return std::static_pointer_cast<Config>(_concept->getConfiguration());
+        return std::static_pointer_cast<Config>(JobType::_concept->getConfiguration());
     }
 
 protected:
@@ -308,12 +305,12 @@ protected:
 }
 
 
-#define Task_DeclareTypeAliases(ContextName) \
+#define Task_DeclareTypeAliases(ContextType) \
     using JobConfig = task::JobConfig; \
     using TaskConfig = task::TaskConfig; \
     template <class T> using PersistentConfig = task::PersistentConfig<T>; \
-    using Job = task::Job<##ContextName>; \
-    using Task = task::Task<##ContextName>; \
+    using Job = task::Job<ContextType>; \
+    using Task = task::Task<ContextType>; \
     using Varying = task::Varying; \
     template < typename T0, typename T1 > using VaryingSet2 = task::VaryingSet2<T0, T1>; \
     template < typename T0, typename T1, typename T2 > using VaryingSet3 = task::VaryingSet3<T0, T1, T2>; \

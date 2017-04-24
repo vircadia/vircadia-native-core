@@ -150,6 +150,8 @@ public slots:
     void refresh();
 };
 
+using QConfigPointer = std::shared_ptr<QObject>;
+    
 }
 
 #endif // hifi_task_Config_h
