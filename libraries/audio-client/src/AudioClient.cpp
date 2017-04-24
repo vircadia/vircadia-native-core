@@ -76,42 +76,58 @@ using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
 static Mutex _deviceMutex;
 
-// background thread that continuously polls for device changes
-class CheckDevicesThread : public QThread {
+class BackgroundThread : public QThread {
 public:
-    const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
+    BackgroundThread(AudioClient* client) : QThread((QObject*)client), _client(client) {}
+    virtual void join() = 0;
+protected:
+    AudioClient* _client;
+};
 
-    CheckDevicesThread(AudioClient* audioClient)
-        : _audioClient(audioClient) {
-    }
+// background thread continuously polling device changes
+class CheckDevicesThread : public BackgroundThread {
+public:
+    CheckDevicesThread(AudioClient* client) : BackgroundThread(client) {}
 
-    void beforeAboutToQuit() {
-        Lock lock(_checkDevicesMutex);
+    void join() override {
         _quit = true;
+        std::unique_lock<std::mutex> lock(mutex);
+        cv.wait(lock, [&]{ return !running; });
     }
 
+protected:
     void run() override {
-        while (true) {
-            {
-                Lock lock(_checkDevicesMutex);
-                if (_quit) {
-                    break;
-                }
-                _audioClient->checkDevices();
-            }
+        while (!_quit) {
+            _client->checkDevices();
+
+            const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
             QThread::msleep(DEVICE_CHECK_INTERVAL_MSECS);
         }
+        std::lock_guard<std::mutex> lock(mutex);
+        running = false;
+        cv.notify_one();
     }
 
 private:
-    AudioClient* _audioClient { nullptr };
-    Mutex _checkDevicesMutex;
-    bool _quit { false };
+    std::atomic<bool> _quit { false };
+    bool running { true };
+    std::mutex mutex;
+    std::condition_variable cv;
 };
 
-void AudioInjectorsThread::prepare() {
-    _audio->prepareLocalAudioInjectors();
-}
+// background thread buffering local injectors
+class LocalInjectorsThread : public BackgroundThread {
+    Q_OBJECT
+public:
+    LocalInjectorsThread(AudioClient* client) : BackgroundThread(client) {}
+
+    void join() override { return; }
+
+private slots:
+    void prepare() { _client->prepareLocalAudioInjectors(); }
+};
+
+#include "AudioClient.moc"
 
 static void channelUpmix(int16_t* source, int16_t* dest, int numSamples, int numExtraChannels) {
     for (int i = 0; i < numSamples/2; i++) {
@@ -179,7 +195,6 @@ AudioClient::AudioClient() :
     _inputToNetworkResampler(NULL),
     _networkToOutputResampler(NULL),
     _localToOutputResampler(NULL),
-    _localAudioThread(this),
     _audioLimiter(AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT),
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_localInjectorsStream, _receivedAudioStream, this),
@@ -210,13 +225,14 @@ AudioClient::AudioClient() :
 
     // start a thread to detect any device changes
     _checkDevicesThread = new CheckDevicesThread(this);
-    _checkDevicesThread->setObjectName("CheckDevices Thread");
+    _checkDevicesThread->setObjectName("AudioClient CheckDevices Thread");
     _checkDevicesThread->setPriority(QThread::LowPriority);
     _checkDevicesThread->start();
 
     // start a thread to process local injectors
-    _localAudioThread.setObjectName("LocalAudio Thread");
-    _localAudioThread.start();
+    _localInjectorsThread = new LocalInjectorsThread(this);
+    _localInjectorsThread->setObjectName("AudioClient LocalInjectors Thread");
+    _localInjectorsThread->start();
 
     configureReverb();
 
@@ -231,18 +247,23 @@ AudioClient::AudioClient() :
 }
 
 AudioClient::~AudioClient() {
-    delete _checkDevicesThread;
-    stop();
     if (_codec && _encoder) {
         _codec->releaseEncoder(_encoder);
         _encoder = nullptr;
     }
 }
 
-void AudioClient::beforeAboutToQuit() {
-    static_cast<CheckDevicesThread*>(_checkDevicesThread)->beforeAboutToQuit();
-}
+void AudioClient::customDeleter() {
+    stop(); // synchronously
 
+    static_cast<BackgroundThread*>(_checkDevicesThread)->join();
+    delete _checkDevicesThread;
+
+    static_cast<BackgroundThread*>(_localInjectorsThread)->join();
+    delete _localInjectorsThread;
+
+    deleteLater(); // asynchronously
+}
 
 void AudioClient::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
     qCDebug(audioclient) << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
@@ -1527,8 +1548,8 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
                     _outputScratchBuffer = new int16_t[_outputPeriod];
 
                     // size local output mix buffer based on resampled network frame size
-                    _networkPeriod = _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
-                    _localOutputMixBuffer = new float[_networkPeriod];
+                    int networkPeriod = _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
+                    _localOutputMixBuffer = new float[networkPeriod];
                     int localPeriod = _outputPeriod * 2;
                     _localInjectorsStream.resizeForFrameSize(localPeriod);
 
@@ -1691,7 +1712,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     }
 
     // prepare injectors for the next callback
-    QMetaObject::invokeMethod(&_audio->_localAudioThread, "prepare", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(_audio->_localInjectorsThread, "prepare", Qt::QueuedConnection);
 
     int samplesPopped = std::max(networkSamplesPopped, injectorSamplesPopped);
     int framesPopped = samplesPopped / AudioConstants::STEREO;
