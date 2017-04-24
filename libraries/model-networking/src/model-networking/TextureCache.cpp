@@ -619,14 +619,13 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                 uint8_t* ktxData = reinterpret_cast<uint8_t*>(ktxHighMipData.data());
                 ktxData += ktxHighMipData.size();
                 // TODO Move image offset calculation to ktx ImageDescriptor
-                int level;
-                for (level = images.size() - 1; level >= 0; --level) {
+                for (auto level = images.size() - 1; level >= 0; --level) {
                     auto& image = images[level];
                     if (image._imageSize > imageSizeRemaining) {
                         break;
                     }
                     ktxData -= image._imageSize;
-                    texture->assignStoredMip(level, image._imageSize, ktxData);
+                    texture->assignStoredMip(static_cast<gpu::uint16>(level), image._imageSize, ktxData);
                     ktxData -= 4;
                     imageSizeRemaining -= (image._imageSize + 4);
                 }
