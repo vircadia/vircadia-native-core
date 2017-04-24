@@ -32,14 +32,10 @@ public:
     const QString NONE = "None";
 
     PersistentConfig() = delete;
-    PersistentConfig(const QString& path) :
-        _preset(QStringList() << "Render" << "Engine" << path, DEFAULT) { }
     PersistentConfig(const QStringList& path) :
-        _preset(QStringList() << "Render" << "Engine" << path, DEFAULT) { }
-    PersistentConfig(const QString& path, bool enabled) : C(enabled),
-        _preset(QStringList() << "Render" << "Engine" << path, enabled ? DEFAULT : NONE) { }
+        _preset(path, DEFAULT) { }
     PersistentConfig(const QStringList& path, bool enabled) : C(enabled),
-        _preset(QStringList() << "Render" << "Engine" << path, enabled ? DEFAULT : NONE) { }
+        _preset(path, enabled ? DEFAULT : NONE) { }
 
     QStringList getPresetList() {
         if (_presets.empty()) {
