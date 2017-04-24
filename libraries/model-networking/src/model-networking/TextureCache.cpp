@@ -619,7 +619,7 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                 uint8_t* ktxData = reinterpret_cast<uint8_t*>(ktxHighMipData.data());
                 ktxData += ktxHighMipData.size();
                 // TODO Move image offset calculation to ktx ImageDescriptor
-                for (auto level = images.size() - 1; level >= 0; --level) {
+                for (int level = static_cast<int>(images.size()) - 1; level >= 0; --level) {
                     auto& image = images[level];
                     if (image._imageSize > imageSizeRemaining) {
                         break;
