@@ -108,7 +108,8 @@ function onMessage(message) {
                 type: "snapshot",
                 action: "showPreviousImages",
                 options: snapshotOptions,
-                image_data: imageData
+                image_data: imageData,
+                canShare: !!isDomainOpen(Settings.getValue("previousSnapshotDomainID"))
             }));
             break;
         case 'openSettings':
@@ -179,8 +180,9 @@ function onMessage(message) {
             }*/
             break;
         case 'shareButtonClicked':
-            print('Twitter or FB "Share" button clicked! Removing ID', message.story_id, 'from storyIDsToMaybeDelete[].')
+            print('Twitter or FB "Share" button clicked! Removing ID', message.story_id, 'from storyIDsToMaybeDelete[].');
             storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
+            print('storyIDsToMaybeDelete[] now:', JSON.stringify(storyIDsToMaybeDelete));
             break;
         default:
             print('Unknown message action received by snapshot.js!');
@@ -217,14 +219,15 @@ function snapshotUploaded(isError, reply) {
     if (!isError) {
         var replyJson = JSON.parse(reply);
         var storyID = replyJson.user_story.id;
-        var shareableURL = replyJson.user_story.details.shareable_url;
-        var isGif = shareableURL.split('.').pop().toLowerCase() === "gif";
+        storyIDsToMaybeDelete.push(storyID);
+        var imageURL = replyJson.user_story.details.image_url;
+        var isGif = imageURL.split('.').pop().toLowerCase() === "gif";
         print('SUCCESS: Snapshot uploaded! Story with audience:for_url created! ID:', storyID);
         tablet.emitScriptEvent(JSON.stringify({
             type: "snapshot",
             action: "snapshotUploadComplete",
             story_id: storyID,
-            shareable_url: shareableURL,
+            image_url: imageURL,
         }));
         if (isGif) {
             Settings.setValue("previousAnimatedSnapStoryID", storyID);
@@ -246,14 +249,17 @@ function takeSnapshot() {
     // Even the domainId could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
     domainId = location.domainId;
+    Settings.setValue("previousSnapshotDomainID", domainId);
 
+    maybeDeleteSnapshotStories();
     tablet.emitScriptEvent(JSON.stringify({
         type: "snapshot",
         action: "clearPreviousImages"
     }));
-    maybeDeleteSnapshotStories();
     Settings.setValue("previousStillSnapPath", "");
+    Settings.setValue("previousStillSnapStoryID", "");
     Settings.setValue("previousAnimatedSnapPath", "");
+    Settings.setValue("previousAnimatedSnapStoryID", "");
 
     // update button states
     resetOverlays = Menu.isOptionChecked("Overlays"); // For completness. Certainly true if the button is visible to be clicked.
@@ -278,6 +284,10 @@ function takeSnapshot() {
 }
 
 function isDomainOpen(id) {
+    print("Checking open status of domain with ID:", id);
+    if (!id) {
+        return false;
+    }
     var request = new XMLHttpRequest();
     var options = [
         'now=' + new Date().toISOString(),

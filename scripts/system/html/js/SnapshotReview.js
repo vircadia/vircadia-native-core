@@ -18,11 +18,12 @@ function clearImages() {
     while (snapshotImagesDiv.hasChildNodes()) {
         snapshotImagesDiv.removeChild(snapshotImagesDiv.lastChild);
     }
+    twttr.events.unbind('click');
     paths = [];
     imageCount = 0;
     idCounter = 0;
 }
-function addImage(image_data, isGifLoading, isShowingPreviousImages) {
+function addImage(image_data, isGifLoading, canSharePreviousImages) {
     if (!image_data.localPath) {
         return;
     }
@@ -45,9 +46,9 @@ function addImage(image_data, isGifLoading, isShowingPreviousImages) {
     document.getElementById("snapshot-images").appendChild(div);
     var isGif = img.src.split('.').pop().toLowerCase() === "gif";
     paths.push(image_data.localPath);
-    if (!isGifLoading && !isShowingPreviousImages) {
+    if (!isGifLoading && !canSharePreviousImages) {
         shareForUrl(id);
-    } else if (isShowingPreviousImages) {
+    } else if (canSharePreviousImages) {
         appendShareBar(id, image_data.story_id, isGif)
     }
 }
@@ -232,7 +233,7 @@ window.onload = function () {
                     var messageOptions = message.options;
                     imageCount = message.image_data.length;
                     message.image_data.forEach(function (element, idx, array) {
-                        addImage(element, true, true);
+                        addImage(element, true, message.canShare);
                     });
                     break;
                 case 'addImages':
@@ -267,7 +268,7 @@ window.onload = function () {
                     handleCaptureSetting(message.setting);
                     break;
                 case 'snapshotUploadComplete':
-                    var isGif = message.shareable_url.split('.').pop().toLowerCase() === "gif";
+                    var isGif = message.image_url.split('.').pop().toLowerCase() === "gif";
                     appendShareBar(isGif || imageCount === 1 ? "p0" : "p1", message.story_id, isGif);
                     break;
                 default:
