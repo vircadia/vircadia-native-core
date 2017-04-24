@@ -399,7 +399,7 @@ void NetworkTexture::startRequestForNextMipLevel() {
     if (_ktxResourceState == WAITING_FOR_MIP_REQUEST) {
         _ktxResourceState = PENDING_MIP_REQUEST;
 
-        setLoadPriority(this, -_originalKtxDescriptor->header.numberOfMipmapLevels + _lowestKnownPopulatedMip);
+        setLoadPriority(this, -static_cast<int>(_originalKtxDescriptor->header.numberOfMipmapLevels) + _lowestKnownPopulatedMip);
 
         init();
         TextureCache::attemptRequest(_self);
