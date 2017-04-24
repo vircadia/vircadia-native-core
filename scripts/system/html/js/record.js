@@ -152,10 +152,10 @@ function hideInstructions() {
 }
 
 function updateLoadButton() {
-    if (numberOfPlayers > recordingsBeingPlayed.length) {
-        elLoadButton.removeAttribute("disabled");
-    } else {
+    if (isRecording || numberOfPlayers <= recordingsBeingPlayed.length) {
         elLoadButton.setAttribute("disabled", "disabled");
+    } else {
+        elLoadButton.removeAttribute("disabled");
     }
 }
 
@@ -191,6 +191,7 @@ function onScriptEventReceived(data) {
             isRecording = true;
             elRecordButton.value = "Stop";
             updateSpinner();
+            updateLoadButton();
             break;
         case COUNTDOWN_NUMBER_ACTION:
             elCountdownNumber.innerHTML = message.value;
@@ -199,6 +200,7 @@ function onScriptEventReceived(data) {
             isRecording = false;
             elRecordButton.value = "Record";
             updateSpinner();
+            updateLoadButton();
             break;
         case RECORDINGS_BEING_PLAYED_ACTION:
             recordingsBeingPlayed = JSON.parse(message.value);
@@ -234,6 +236,7 @@ function onRecordButtonClicked() {
         }));
         isRecording = true;
         updateSpinner();
+        updateLoadButton();
     } else {
         elRecordButton.value = "Record";
         EventBridge.emitWebEvent(JSON.stringify({
@@ -242,6 +245,7 @@ function onRecordButtonClicked() {
         }));
         isRecording = false;
         updateSpinner();
+        updateLoadButton();
     }
 }
 
