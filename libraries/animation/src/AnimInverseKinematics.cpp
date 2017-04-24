@@ -107,7 +107,6 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
                 glm::quat rotation = animVars.lookupRigToGeometry(targetVar.rotationVar, defaultPose.rot());
                 glm::vec3 translation = animVars.lookupRigToGeometry(targetVar.positionVar, defaultPose.trans());
-                AnimPose absPose(glm::vec3(1.0f), rotation, translation);
 
                 target.setPose(rotation, translation);
                 target.setIndex(targetVar.jointIndex);
@@ -155,7 +154,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
 
     float maxError = FLT_MAX;
     int numLoops = 0;
-    const int MAX_IK_LOOPS = 48;
+    const int MAX_IK_LOOPS = 16;
     const float MAX_ERROR_TOLERANCE = 0.1f; // cm
     while (maxError > MAX_ERROR_TOLERANCE && numLoops < MAX_IK_LOOPS) {
         ++numLoops;
@@ -248,8 +247,6 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
     // the tip's parent-relative as we proceed up the chain
     glm::quat tipParentOrientation = absolutePoses[pivotIndex].rot();
 
-    // AJT: REMOVE
-    /*
     if (targetType == IKTarget::Type::HmdHead) {
         // rotate tip directly to target orientation
         tipOrientation = target.getRotation();
@@ -267,7 +264,6 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
         // store the relative rotation change in the accumulator
         _accumulators[tipIndex].add(tipRelativeRotation, target.getWeight());
     }
-    */
 
     // cache tip absolute position
     glm::vec3 tipPosition = absolutePoses[tipIndex].trans();
@@ -544,13 +540,7 @@ void AnimInverseKinematics::computeHipsOffset(const std::vector<IKTarget>& targe
     // measure new _hipsOffset for next frame
     // by looking for discrepancies between where a targeted endEffector is
     // and where it wants to be (after IK solutions are done)
-
-    // OUTOFBODY_HACK:use weighted average between HMD and other targets
-    float HMD_WEIGHT = 10.0f;
-    float OTHER_WEIGHT = 1.0f;
-    float totalWeight = 0.0f;
-
-    glm::vec3 additionalHipsOffset = Vectors::ZERO;
+    glm::vec3 newHipsOffset = Vectors::ZERO;
     for (auto& target: targets) {
         int targetIndex = target.getIndex();
         if (targetIndex == _headIndex && _headIndex != -1) {
@@ -561,46 +551,40 @@ void AnimInverseKinematics::computeHipsOffset(const std::vector<IKTarget>& targe
                 glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans();
                 glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
                 const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
-                additionalHipsOffset += (OTHER_WEIGHT * HEAD_OFFSET_SLAVE_FACTOR) * (under - actual);
-                totalWeight += OTHER_WEIGHT;
+                newHipsOffset += HEAD_OFFSET_SLAVE_FACTOR * (actual - under);
             } else if (target.getType() == IKTarget::Type::HmdHead) {
+                // we want to shift the hips to bring the head to its designated position
                 glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
-                glm::vec3 thisOffset = target.getTranslation() - actual;
-                glm::vec3 futureHipsOffset = _hipsOffset + thisOffset;
-                if (glm::length(glm::vec2(futureHipsOffset.x, futureHipsOffset.z)) < _maxHipsOffsetLength) {
-                    // it is imperative to shift the hips and bring the head to its designated position
-                    // so we slam newHipsOffset here and ignore all other targets
-                    additionalHipsOffset = futureHipsOffset - _hipsOffset;
-                    totalWeight = 0.0f;
-                    break;
-                } else {
-                    additionalHipsOffset += HMD_WEIGHT * (target.getTranslation() - actual);
-                    totalWeight += HMD_WEIGHT;
-                }
+                _hipsOffset += target.getTranslation() - actual;
+                // and ignore all other targets
+                newHipsOffset = _hipsOffset;
+                break;
+            } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
+                glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
+                glm::vec3 targetPosition = target.getTranslation();
+                newHipsOffset += targetPosition - actualPosition;
+
+                // Add downward pressure on the hips
+                newHipsOffset *= 0.95f;
+                newHipsOffset -= 1.0f;
             }
         } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
             glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
             glm::vec3 targetPosition = target.getTranslation();
-            additionalHipsOffset += OTHER_WEIGHT * (targetPosition - actualPosition);
-            totalWeight += OTHER_WEIGHT;
+            newHipsOffset += targetPosition - actualPosition;
         }
-    }
-    if (totalWeight > 1.0f) {
-        additionalHipsOffset /= totalWeight;
     }
 
     // smooth transitions by relaxing _hipsOffset toward the new value
     const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.10f;
     float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
-    _hipsOffset += additionalHipsOffset * tau;
+    _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
 
-    // clamp the horizontal component of the hips offset
-    float hipsOffsetLength2D = glm::length(glm::vec2(_hipsOffset.x, _hipsOffset.z));
-    if (hipsOffsetLength2D > _maxHipsOffsetLength) {
-        _hipsOffset.x *= _maxHipsOffsetLength / hipsOffsetLength2D;
-        _hipsOffset.z *= _maxHipsOffsetLength / hipsOffsetLength2D;
+    // clamp the hips offset
+    float hipsOffsetLength = glm::length(_hipsOffset);
+    if (hipsOffsetLength > _maxHipsOffsetLength) {
+        _hipsOffset *= _maxHipsOffsetLength / hipsOffsetLength;
     }
-
 }
 
 void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
