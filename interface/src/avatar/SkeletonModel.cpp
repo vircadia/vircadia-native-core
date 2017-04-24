@@ -120,8 +120,10 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.rigHeadOrientation = extractRotation(rigHMDMat);
             headParams.worldHeadOrientation = extractRotation(worldHMDMat);
 
-            headParams.hipsMatrix = worldToRig * myAvatar->getSensorToWorldMatrix() * myAvatar->deriveBodyFromHMDSensor();
-            headParams.hipsEnabled = true;
+            // TODO: if hips target sensor is valid.
+            // Copy it into headParams.hipsMatrix, and set headParams.hipsEnabled to true.
+
+            headParams.hipsEnabled = false;
         } else {
             headParams.hipsEnabled = false;
             headParams.isInHMD = false;
