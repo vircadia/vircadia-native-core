@@ -747,7 +747,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         audioIO->handleRecordedAudioInput(frame->data);
     });
 
-    // FIXME
+    // FIXME: Recorder::recordFrame() doesn't handle data in the following format.
     /*
     connect(audioIO.data(), &AudioClient::inputReceived, [](const QByteArray& audio){
         static auto recorder = DependencyManager::get<recording::Recorder>();
@@ -757,7 +757,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
     */
-    connect(audioIO.data(), &AudioClient::inputReceivedBytes, [](const QByteArray audio){
+    connect(audioIO.data(), &AudioClient::inputReceivedBuffer, [](const QByteArray& audio){
         static auto recorder = DependencyManager::get<recording::Recorder>();
         if (recorder->isRecording()) {
             static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AudioConstants::getAudioFrameName());
