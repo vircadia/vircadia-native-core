@@ -98,7 +98,7 @@ function onMessage(message) {
     var isLoggedIn;
     var needsLogin = false;
     switch (message.action) {
-        case 'ready':  // Send it.
+        case 'ready': // DOM is ready and page has loaded
             tablet.emitScriptEvent(JSON.stringify({
                 type: "snapshot",
                 action: "captureSettings",
@@ -137,7 +137,7 @@ function onMessage(message) {
                 print('Sharing snapshot with audience "for_url":', message.data);
                 Window.shareSnapshot(message.data, message.href || href);
             } else {
-                // TODO?
+                // TODO
             }
             break;
         case 'shareSnapshotWithEveryone':

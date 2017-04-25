@@ -131,7 +131,7 @@ function createShareOverlay(parentID, isGif, shareURL, hifiShareButtonsDisabled)
     return shareOverlayContainer;
 }
 function selectImageToShare(selectedID) {
-    selectedID = selectedID.id; // Why is this necessary?
+    selectedID = selectedID.id; // `selectedID` is passed as an HTML object to these functions; we just want the ID
     var shareOverlayContainer = document.getElementById(selectedID + "shareOverlayContainer");
     var shareBar = document.getElementById(selectedID + "shareBar");
     var shareOverlayBackground = document.getElementById(selectedID + "shareOverlayBackground");
@@ -153,7 +153,7 @@ function shareForUrl(selectedID) {
     }));
 }
 function shareWithEveryone(selectedID, isGif) {
-    selectedID = selectedID.id; // Why is this necessary?
+    selectedID = selectedID.id; // `selectedID` is passed as an HTML object to these functions; we just want the ID
 
     document.getElementById(selectedID + "shareWithEveryoneButton").setAttribute("disabled", "disabled");
     document.getElementById(selectedID + "inviteConnectionsCheckbox").setAttribute("disabled", "disabled");
@@ -174,7 +174,7 @@ function shareButtonClicked(selectedID) {
     }));
 }
 function cancelSharing(selectedID) {
-    selectedID = selectedID.id; // Why is this necessary?
+    selectedID = selectedID.id; // `selectedID` is passed as an HTML object to these functions; we just want the ID
     var shareOverlayContainer = document.getElementById(selectedID + "shareOverlayContainer");
     var shareBar = document.getElementById(selectedID + "shareBar");
     var shareOverlayBackground = document.getElementById(selectedID + "shareOverlayBackground");
