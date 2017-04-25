@@ -362,7 +362,6 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     inputOptions.setAlphaMode(alphaMode);
     inputOptions.setWrapMode(wrapMode);
     inputOptions.setRoundMode(roundMode);
-    // inputOptions.setMaxExtents(int d);
 
     inputOptions.setMipmapGeneration(true);
     inputOptions.setMipmapFilter(nvtt::MipmapFilter_Box);
