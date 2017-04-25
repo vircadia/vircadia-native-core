@@ -333,11 +333,6 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     // class in this context so we can call methods that don't exist at the base class.
     auto avatar = std::static_pointer_cast<Avatar>(removedAvatar);
 
-    // there is no way to request identity data from the avatar-mixer
-    // therefore whenever we remove an avatar we cache the identity in case we need it later
-    AvatarData::Identity identity;
-    avatar->getIdentity(identity);
-
     AvatarMotionState* motionState = avatar->getMotionState();
     if (motionState) {
         _motionStatesThatMightUpdate.remove(motionState);
