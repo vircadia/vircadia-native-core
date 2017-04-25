@@ -828,14 +828,7 @@ void AnimInverseKinematics::initConstraints() {
             const float MAX_SPINE_TWIST = PI / 20.0f;
             stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
 
-            /*
-            std::vector<float> minDots;
-            const float MAX_SPINE_SWING = PI / 10.0f;
-            minDots.push_back(cosf(MAX_SPINE_SWING));
-            stConstraint->setSwingLimits(minDots);
-            */
-
-            // AJT: limit lateral swings more then forward-backward swings
+            // limit lateral swings more then forward-backward swings
             setEllipticalSwingLimits(stConstraint, PI / 30.0f, PI / 20.0f);
 
             if (0 == baseName.compare("Spine1", Qt::CaseSensitive)
@@ -850,13 +843,6 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
             const float MAX_NECK_TWIST = PI / 10.0f;
             stConstraint->setTwistLimits(-MAX_NECK_TWIST, MAX_NECK_TWIST);
-
-            /*
-            std::vector<float> minDots;
-            const float MAX_NECK_SWING = PI / 8.0f;
-            minDots.push_back(cosf(MAX_NECK_SWING));
-            stConstraint->setSwingLimits(minDots);
-            */
 
             setEllipticalSwingLimits(stConstraint, PI / 10.0f, PI / 8.0f);
 
