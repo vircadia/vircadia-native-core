@@ -49,13 +49,14 @@ QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
     auto iter = _tabletProxies.find(tabletId);
     if (iter != _tabletProxies.end()) {
         // tablet already exists, just return it.
-        return iter->second.data();
+        return iter->second;
     } else {
         // allocate a new tablet, add it to the map then return it.
-        auto tabletProxy = QSharedPointer<TabletProxy>(new TabletProxy(tabletId));
+        auto tabletProxy = new TabletProxy(tabletId);
+        tabletProxy->setParent(this);
         _tabletProxies[tabletId] = tabletProxy;
         tabletProxy->setToolbarMode(_toolbarMode);
-        return tabletProxy.data();
+        return tabletProxy;
     }
 }
 
@@ -176,7 +177,6 @@ class TabletRootWindow : public QmlWindowClass {
 };
 
 TabletProxy::TabletProxy(QString name) : _name(name) {
-
 }
 
 void TabletProxy::setToolbarMode(bool toolbarMode) {
@@ -354,6 +354,38 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
     }
 }
 
+void TabletProxy::loadQMLOnTop(const QVariant& path) {
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        QMetaObject::invokeMethod(root, "loadQMLOnTop", Q_ARG(const QVariant&, path));
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+    } else {
+        qCDebug(scriptengine) << "tablet cannot load QML because _qmlTabletRoot is null";
+    }
+}
+
+void TabletProxy::returnToPreviousApp() {
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        QMetaObject::invokeMethod(root, "returnToPreviousApp");
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+    } else {
+        qCDebug(scriptengine) << "tablet cannot load QML because _qmlTabletRoot is null";
+    }
+}
+    
 void TabletProxy::loadQMLSource(const QVariant& path) {
 
     QObject* root = nullptr;
@@ -378,19 +410,19 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
 }
 
 void TabletProxy::pushOntoStack(const QVariant& path) {
-    if (_qmlTabletRoot) {
-        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        auto stack = root->findChild<QQuickItem*>("stack");
         if (stack) {
             QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
         } else {
             loadQMLSource(path);
-        }
-    } else if (_desktopWindow) {
-        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
-        } else {
-            qCDebug(scriptengine) << "tablet cannot push QML because _desktopWindow doesn't have child stack";
         }
     } else {
         qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
@@ -398,20 +430,16 @@ void TabletProxy::pushOntoStack(const QVariant& path) {
 }
 
 void TabletProxy::popFromStack() {
-    if (_qmlTabletRoot) {
-        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "popSource");
-        } else {
-            qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot doesn't have child stack";
-        }
-    } else if (_desktopWindow) {
-        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "popSource");
-        } else {
-            qCDebug(scriptengine) << "tablet cannot pop QML because _desktopWindow doesn't have child stack";
-        }
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        auto stack = root->findChild<QQuickItem*>("stack");
+        QMetaObject::invokeMethod(stack, "popSource");
     } else {
         qCDebug(scriptengine) << "tablet cannot pop QML because _qmlTabletRoot or _desktopWindow is null";
     }
@@ -438,6 +466,26 @@ void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
 
 void TabletProxy::gotoWebScreen(const QString& url) {
     gotoWebScreen(url, "");
+}
+
+void TabletProxy::loadWebScreenOnTop(const QVariant& url) {
+    loadWebScreenOnTop(url, "");
+}
+
+void TabletProxy::loadWebScreenOnTop(const QVariant& url, const QString& injectJavaScriptUrl) {
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        QMetaObject::invokeMethod(root, "loadQMLOnTop", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+        QMetaObject::invokeMethod(root, "loadWebOnTop", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectJavaScriptUrl)));
+    }
+    _state = State::Web;
 }
 
 void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl) {

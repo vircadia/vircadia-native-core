@@ -73,10 +73,17 @@ void Head::reset() {
 void Head::simulate(float deltaTime, bool isMine) {
     const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
 
+    // grab the audio loudness from the owning avatar, if we have one
+    float audioLoudness = 0.0f;
+
+    if (_owningAvatar) {
+        audioLoudness = _owningAvatar->getAudioLoudness();
+    }
+
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
     const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
-    _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
+    _averageLoudness = glm::mix(_averageLoudness, audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
 
     if (_longTermAverageLoudness == -1.0f) {
         _longTermAverageLoudness = _averageLoudness;
@@ -154,8 +161,8 @@ void Head::simulate(float deltaTime, bool isMine) {
         //  Update audio attack data for facial animation (eyebrows and mouth)
         float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
         _audioAttack = audioAttackAveragingRate * _audioAttack +
-            (1.0f - audioAttackAveragingRate) * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
-        _lastLoudness = (_audioLoudness - _longTermAverageLoudness);
+            (1.0f - audioAttackAveragingRate) * fabs((audioLoudness - _longTermAverageLoudness) - _lastLoudness);
+        _lastLoudness = (audioLoudness - _longTermAverageLoudness);
 
         const float BROW_LIFT_THRESHOLD = 100.0f;
         if (_audioAttack > BROW_LIFT_THRESHOLD) {

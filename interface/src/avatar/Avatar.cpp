@@ -9,44 +9,32 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <vector>
+#include "Avatar.h"
 
-#include <QDesktopWidget>
-#include <QWindow>
-
-#include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/vector_angle.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <QtCore/QThread>
+#include <glm/gtx/transform.hpp>
 #include <glm/gtx/vector_query.hpp>
 
 #include <DeferredLightingEffect.h>
-#include <GeometryUtil.h>
-#include <LODManager.h>
+#include <EntityTreeRenderer.h>
 #include <NodeList.h>
 #include <NumericalConstants.h>
 #include <OctreeUtils.h>
 #include <udt/PacketHeaders.h>
 #include <PerfStat.h>
+#include <Rig.h>
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
-#include <TextureCache.h>
 #include <VariantMapToScriptValue.h>
 #include <DebugDraw.h>
 
-#include "Application.h"
-#include "Avatar.h"
 #include "AvatarManager.h"
 #include "AvatarMotionState.h"
-#include "Head.h"
+#include "Camera.h"
 #include "Menu.h"
-#include "Physics.h"
-#include "Util.h"
-#include "world.h"
 #include "InterfaceLogging.h"
 #include "SceneScriptingInterface.h"
 #include "SoftAttachmentModel.h"
-#include <Rig.h>
 
 using namespace std;
 
@@ -71,7 +59,8 @@ namespace render {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         if (avatarPtr->isInitialized() && args) {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
-            avatarPtr->render(args, qApp->getCamera()->getPosition());
+            // TODO AVATARS_RENDERER: remove need for qApp
+            avatarPtr->render(args);
         }
     }
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
@@ -85,7 +74,7 @@ namespace render {
     }
 }
 
-Avatar::Avatar(RigPointer rig) :
+Avatar::Avatar(QThread* thread, RigPointer rig) :
     AvatarData(),
     _skeletonOffset(0.0f),
     _bodyYawDelta(0.0f),
@@ -96,11 +85,19 @@ Avatar::Avatar(RigPointer rig) :
     _lastOrientation(),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
+    _smoothPositionTime(SMOOTH_TIME_POSITION),
+    _smoothPositionTimer(std::numeric_limits<float>::max()),
+    _smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
+    _smoothOrientationTimer(std::numeric_limits<float>::max()),
+    _smoothPositionInitial(),
+    _smoothPositionTarget(),
+    _smoothOrientationInitial(),
+    _smoothOrientationTarget(),
     _initialized(false),
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
-    moveToThread(qApp->thread());
+    moveToThread(thread);
 
     setScale(glm::vec3(1.0f)); // avatar scale is uniform
 
@@ -120,7 +117,7 @@ Avatar::Avatar(RigPointer rig) :
 Avatar::~Avatar() {
     assert(isDead()); // mark dead before calling the dtor
 
-    auto treeRenderer = qApp->getEntities();
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
         entityTree->withWriteLock([&] {
@@ -193,6 +190,9 @@ void Avatar::animateScaleChanges(float deltaTime) {
         }
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
 
+        // flag the joints as having changed for force update to RenderItem
+        _hasNewJointData = true;
+
         // TODO: rebuilding the shape constantly is somehwat expensive.
         // We should only rebuild after significant change.
         rebuildCollisionShape();
@@ -200,8 +200,12 @@ void Avatar::animateScaleChanges(float deltaTime) {
 }
 
 void Avatar::setTargetScale(float targetScale) {
-    AvatarData::setTargetScale(targetScale);
-    _isAnimatingScale = true;
+    float newValue = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    if (_targetScale != newValue) {
+        _targetScale = newValue;
+        _scaleChanged = usecTimestampNow();
+        _isAnimatingScale = true;
+    }
 }
 
 void Avatar::updateAvatarEntities() {
@@ -222,7 +226,7 @@ void Avatar::updateAvatarEntities() {
         return; // wait until MyAvatar gets an ID before doing this.
     }
 
-    auto treeRenderer = qApp->getEntities();
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (!entityTree) {
         return;
@@ -342,6 +346,33 @@ void Avatar::simulate(float deltaTime, bool inView) {
         _simulationInViewRate.increment();
     }
 
+    if (!isMyAvatar()) {
+        if (_smoothPositionTimer < _smoothPositionTime) {
+            // Smooth the remote avatar movement.
+            _smoothPositionTimer += deltaTime;
+            if (_smoothPositionTimer < _smoothPositionTime) {
+                AvatarData::setPosition(
+                    lerp(_smoothPositionInitial, 
+                        _smoothPositionTarget,
+                        easeInOutQuad(glm::clamp(_smoothPositionTimer / _smoothPositionTime, 0.0f, 1.0f)))
+                );
+                updateAttitude();
+            }
+        }
+
+        if (_smoothOrientationTimer < _smoothOrientationTime) {
+            // Smooth the remote avatar movement.
+            _smoothOrientationTimer += deltaTime;
+            if (_smoothOrientationTimer < _smoothOrientationTime) {
+                AvatarData::setOrientation(
+                    slerp(_smoothOrientationInitial, 
+                        _smoothOrientationTarget,
+                        easeInOutQuad(glm::clamp(_smoothOrientationTimer / _smoothOrientationTime, 0.0f, 1.0f)))
+                );
+                updateAttitude();
+            }
+        }
+    }
 
     PerformanceTimer perfTimer("simulate");
     {
@@ -476,7 +507,7 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
     _renderItemID = scene->allocateID();
@@ -486,19 +517,15 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
     }
-
-    _inScene = true;
-    return true;
 }
 
-void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     transaction.removeItem(_renderItemID);
     render::Item::clearID(_renderItemID);
     _skeletonModel->removeFromScene(scene, transaction);
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, transaction);
     }
-    _inScene = false;
 }
 
 void Avatar::updateRenderItem(render::Transaction& transaction) {
@@ -540,11 +567,13 @@ void Avatar::postUpdate(float deltaTime) {
     }
 }
 
-void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
-    auto& batch = *renderArgs->_batch;
+void Avatar::render(RenderArgs* renderArgs) {
+    auto& batch = *(renderArgs->_batch);
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
-    if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), getPosition()) < 10.0f) {
+    glm::vec3 viewPos = renderArgs->getViewFrustum().getPosition();
+    const float MAX_DISTANCE_SQUARED_FOR_SHOWING_POINTING_LASERS = 100.0f; // 10^2
+    if (glm::distance2(viewPos, getPosition()) < MAX_DISTANCE_SQUARED_FOR_SHOWING_POINTING_LASERS) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
         // render pointing lasers
@@ -603,23 +632,16 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         }
     }
 
-    { // simple frustum check
-        ViewFrustum frustum;
-        if (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
-            qApp->copyShadowViewFrustum(frustum);
-        } else {
-            qApp->copyDisplayViewFrustum(frustum);
-        }
-        if (!frustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())) {
-            return;
-        }
+    ViewFrustum frustum = renderArgs->getViewFrustum();
+    if (!frustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())) {
+        return;
     }
 
-    glm::vec3 toTarget = cameraPosition - getPosition();
+    glm::vec3 toTarget = frustum.getPosition() - getPosition();
     float distanceToTarget = glm::length(toTarget);
 
     {
-        fixupModelsInScene();
+        fixupModelsInScene(renderArgs->_scene);
 
         if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights
@@ -648,8 +670,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(distanceToTarget < DISPLAYNAME_DISTANCE);
 
-    auto cameraMode = qApp->getCamera()->getMode();
-    if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
+    if (!isMyAvatar() || renderArgs->_cameraMode != (int8_t)CAMERA_MODE_FIRST_PERSON) {
         auto& frustum = renderArgs->getViewFrustum();
         auto textPosition = getDisplayNamePosition();
         if (frustum.pointIntersectsFrustum(textPosition)) {
@@ -674,12 +695,11 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::fixupModelsInScene() {
+void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     _attachmentsToDelete.clear();
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
-    render::ScenePointer scene = qApp->getMain3DScene();
     render::Transaction transaction;
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
@@ -931,6 +951,21 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
     glm::vec3 translation;
     _skeletonModel->getRelativeDefaultJointTranslation(index, translation);
     return translation;
+}
+
+glm::quat Avatar::getAbsoluteDefaultJointRotationInObjectFrame(int index) const {
+    glm::quat rotation;
+    auto rig = _skeletonModel->getRig();
+    glm::quat rot = rig->getAnimSkeleton()->getAbsoluteDefaultPose(index).rot();
+    return Quaternions::Y_180 * rot;
+}
+
+glm::vec3 Avatar::getAbsoluteDefaultJointTranslationInObjectFrame(int index) const {
+    glm::vec3 translation;
+    auto rig = _skeletonModel->getRig();
+    glm::vec3 trans = rig->getAnimSkeleton()->getAbsoluteDefaultPose(index).trans();
+    glm::mat4 y180Mat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
+    return transformPoint(y180Mat * rig->getGeometryToRigTransform(), trans);
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
@@ -1343,13 +1378,31 @@ glm::quat Avatar::getUncachedRightPalmRotation() const {
 }
 
 void Avatar::setPosition(const glm::vec3& position) {
-    AvatarData::setPosition(position);
-    updateAttitude();
+    if (isMyAvatar()) {
+        // This is the local avatar, no need to handle any position smoothing.
+        AvatarData::setPosition(position);
+        updateAttitude();
+        return;
+    }
+
+    // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
+    _smoothPositionInitial = getPosition();
+    _smoothPositionTarget = position;
+    _smoothPositionTimer = 0.0f;
 }
 
 void Avatar::setOrientation(const glm::quat& orientation) {
-    AvatarData::setOrientation(orientation);
-    updateAttitude();
+    if (isMyAvatar()) {
+        // This is the local avatar, no need to handle any position smoothing.
+        AvatarData::setOrientation(orientation);
+        updateAttitude();
+        return;
+    }
+
+    // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
+    _smoothOrientationInitial = getOrientation();
+    _smoothOrientationTarget = orientation;
+    _smoothOrientationTimer = 0.0f;
 }
 
 void Avatar::updatePalms() {
@@ -1419,8 +1472,7 @@ QList<QVariant> Avatar::getSkeleton() {
     return QList<QVariant>();
 }
 
-void Avatar::addToScene(AvatarSharedPointer myHandle) {
-    render::ScenePointer scene = qApp->getMain3DScene();
+void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer& scene) {
     if (scene) {
         render::Transaction transaction;
         auto nodelist = DependencyManager::get<NodeList>();
@@ -1434,8 +1486,9 @@ void Avatar::addToScene(AvatarSharedPointer myHandle) {
         qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
     }
 }
-void Avatar::ensureInScene(AvatarSharedPointer self) {
-    if (!_inScene) {
-        addToScene(self);
+
+void Avatar::ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene) {
+    if (!render::Item::isValidID(_renderItemID)) {
+        addToScene(self, scene);
     }
 }

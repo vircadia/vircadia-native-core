@@ -196,13 +196,13 @@ float Overlay::updatePulse() {
     return _pulse;
 }
 
-bool Overlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+bool Overlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     _renderItemID = scene->allocateID();
     transaction.resetItem(_renderItemID, std::make_shared<Overlay::Payload>(overlay));
     return true;
 }
 
-void Overlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+void Overlay::removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     transaction.removeItem(_renderItemID);
     render::Item::clearID(_renderItemID);
 }

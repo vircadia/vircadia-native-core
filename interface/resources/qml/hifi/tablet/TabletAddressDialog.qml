@@ -20,8 +20,10 @@ import "../toolbars"
 import "../../styles-uit" as HifiStyles
 import "../../controls-uit" as HifiControls
 
+// references HMD, AddressManager, AddressBarDialog from root context
+
 StackView {
-    id: root
+    id: root;
     HifiConstants { id: hifi }
     HifiStyles.HifiConstants { id: hifiStyleConstants }
     initialItem: addressBarDialog
@@ -34,24 +36,16 @@ StackView {
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
 
     property var tablet: null;
-    property bool isDesktop: false;
 
-    Component { id: tabletStoryCard; TabletStoryCard {} }
+    Component { id: tabletWebView; TabletWebView {} }
     Component.onCompleted: {
-        root.currentItem.focus = true;
-        root.currentItem.forceActiveFocus();
-        addressLine.focus = true;
-        addressLine.forceActiveFocus();
         fillDestinations();
         updateLocationText(false);
+        fillDestinations();
+        addressLine.focus = !HMD.active;
         root.parentChanged.connect(center);
         center();
-        isDesktop = (typeof desktop !== "undefined");
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-
-        if (desktop) {
-            root.title = "GOTO";
-        }
     }
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
@@ -68,9 +62,9 @@ StackView {
     }
     function goCard(targetString) {
         if (0 !== targetString.indexOf('hifi://')) {
-            var card = tabletStoryCard.createObject();
-            card.setUrl(addressBarDialog.metaverseServerUrl + targetString);
-            card.eventBridge = root.eventBridge;
+            var card = tabletWebView.createObject();
+            card.url = addressBarDialog.metaverseServerUrl + targetString;
+            card.parentStackItem = root;
             root.push(card);
             return;
         }
@@ -78,8 +72,6 @@ StackView {
         toggleOrGo(true, targetString);
         clearAddressLineTimer.start();
     }
- 
-    property bool isCursorVisible: false  // Override default cursor visibility.
 
 
     AddressBarDialog {
@@ -102,16 +94,11 @@ StackView {
         onMetaverseServerUrlChanged: updateLocationTextTimer.start();
         Rectangle {
             id: navBar
-            width: 480
-            height: 70
+            width: parent.width
+            height: 50;
             color: hifiStyleConstants.colors.white
-            anchors {
-                top: parent.top
-                right: parent.right
-                rightMargin: 0
-                left: parent.left
-                leftMargin: 0
-            }
+            anchors.top: parent.top;
+            anchors.left: parent.left;
 
             ToolbarButton {
                 id: homeButton
@@ -129,8 +116,14 @@ StackView {
             }
             ToolbarButton {
                 id: backArrow;
+                buttonState: addressBarDialog.backEnabled;
                 imageURL: "../../../images/backward.svg";
-                onClicked: addressBarDialog.loadBack();
+                buttonEnabled: addressBarDialog.backEnabled;
+                onClicked: {
+                    if (buttonEnabled) {
+                        addressBarDialog.loadBack();
+                    }
+                }
                 anchors {
                     left: homeButton.right
                     verticalCenter: parent.verticalCenter
@@ -138,8 +131,14 @@ StackView {
             }
             ToolbarButton {
                 id: forwardArrow;
+                buttonState: addressBarDialog.forwardEnabled;
                 imageURL: "../../../images/forward.svg";
-                onClicked: addressBarDialog.loadForward();
+                buttonEnabled: addressBarDialog.forwardEnabled;
+                onClicked: {
+                    if (buttonEnabled) {
+                        addressBarDialog.loadForward();
+                    }
+                }
                 anchors {
                     left: backArrow.right
                     verticalCenter: parent.verticalCenter
@@ -149,85 +148,80 @@ StackView {
 
         Rectangle {
             id: addressBar
-            width: 480
+            width: parent.width
             height: 70
             color: hifiStyleConstants.colors.white
             anchors {
-                top: navBar.bottom
-                right: parent.right
-                rightMargin: 16
-                left: parent.left
-                leftMargin: 16
+                top: navBar.bottom;
+                left: parent.left;
             }
-
-            property int inputAreaHeight: 70
-            property int inputAreaStep: (height - inputAreaHeight) / 2
 
             HifiStyles.RalewayLight {
                 id: notice;
-                font.pixelSize: hifi.fonts.pixelSize * 0.50;
+                font.pixelSize: hifi.fonts.pixelSize * 0.7;
                 anchors {
-                    top: parent.top
-                    topMargin: parent.inputAreaStep + 12
-                    left: addressLine.left
-                    right: addressLine.right
+                    top: parent.top;
+                    left: addressLineContainer.left;
+                    right: addressLineContainer.right;
                 }
             }
+
             HifiStyles.FiraSansRegular {
                 id: location;
+                anchors {
+                    left: addressLineContainer.left;
+                    leftMargin: 8;
+                    verticalCenter: addressLineContainer.verticalCenter;
+                }
                 font.pixelSize: addressLine.font.pixelSize;
                 color: "gray";
                 clip: true;
-                anchors.fill: addressLine;
                 visible: addressLine.text.length === 0
             }
 
             TextInput {
                 id: addressLine
-                focus: true
+                width: addressLineContainer.width - addressLineContainer.anchors.leftMargin - addressLineContainer.anchors.rightMargin;
                 anchors {
-                    bottom: parent.bottom
-                    left: parent.left
-                    right: parent.right
-                    leftMargin: 16
-                    rightMargin: 16
-                    topMargin: parent.inputAreaStep + (2 * hifi.layout.spacing)
-                    bottomMargin: parent.inputAreaStep
+                    left: addressLineContainer.left;
+                    leftMargin: 8;
+                    verticalCenter: addressLineContainer.verticalCenter;
                 }
                 font.pixelSize: hifi.fonts.pixelSize * 0.75
-                cursorVisible: false
                 onTextChanged: {
                     filterChoicesByText();
                     updateLocationText(text.length > 0);
-                    if (!isCursorVisible && text.length > 0) {
-                        isCursorVisible = true;
-                        cursorVisible = true;
-                    }
                 }
                 onAccepted: {
                     addressBarDialog.keyboardEnabled = false;
-                }
-                onActiveFocusChanged: {
-                    cursorVisible = isCursorVisible && focus;
-                }
-                MouseArea {
-                    // If user clicks in address bar show cursor to indicate ability to enter address.
-                    anchors.fill: parent
-                    onClicked: {
-                        isCursorVisible = true;
-                        parent.cursorVisible = true;
-                        parent.focus = true;
-                        parent.forceActiveFocus();
-                        addressBarDialog.keyboardEnabled = HMD.active
-                        tabletRoot.playButtonClickSound();
-                    }
+                    toggleOrGo();
                 }
             }
 
             Rectangle {
-                anchors.fill: addressLine
+                id: addressLineContainer;
+                height: 40;
+                anchors {
+                    top: notice.bottom;
+                    topMargin: 2;
+                    left: parent.left;
+                    leftMargin: 16;
+                    right: parent.right;
+                    rightMargin: 16;
+                }
                 color: hifiStyleConstants.colors.lightGray
                 opacity: 0.1
+                MouseArea {
+                    anchors.fill: parent;
+                    onClicked: {
+                        if (!addressLine.focus || !HMD.active) {
+                            addressLine.focus = true;
+                            addressLine.forceActiveFocus();
+                            addressBarDialog.keyboardEnabled = HMD.active;
+                        }
+                        tabletRoot.playButtonClickSound();
+                    }
+                }
             }
         }
         Rectangle {
@@ -255,7 +249,7 @@ StackView {
                 TabletTextButton {
                     id: allTab;
                     text: "ALL";
-                    property string includeActions: 'snapshot, concurrency';
+                    property string includeActions: 'snapshot,concurrency';
                     selected: allTab === selectedTab;
                     action: tabSelect;
                 }
@@ -347,13 +341,12 @@ StackView {
 
         Timer {
             // Delay clearing address line so as to avoid flicker of "not connected" being displayed after entering an address.
-            id: clearAddressLineTimer
-            running: false
-            interval: 100  // ms
-            repeat: false
+            id: clearAddressLineTimer;
+            running: false;
+            interval: 100;  // ms
+            repeat: false;
             onTriggered: {
                 addressLine.text = "";
-                isCursorVisible = false;
             }
         }
            
@@ -535,7 +528,7 @@ StackView {
 
     function updateLocationText(enteringAddress) {
         if (enteringAddress) {
-            notice.text = "Go to a place, @user, path or network address";
+            notice.text = "Go To a place, @user, path, or network address:";
             notice.color = hifiStyleConstants.colors.baseGrayHighlight;
         } else {
             notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
@@ -545,46 +538,14 @@ StackView {
         }
     }
 
-    onVisibleChanged: {
-        updateLocationText(false);
-        if (visible) {
-            addressLine.forceActiveFocus();
-            fillDestinations();
-        }
-    }
-
     function toggleOrGo(fromSuggestions, address) {
         if (address !== undefined && address !== "") {
-            addressBarDialog.loadAddress(address, fromSuggestions)
+            addressBarDialog.loadAddress(address, fromSuggestions);
+            clearAddressLineTimer.start();
+        } else if (addressLine.text !== "") {
+            addressBarDialog.loadAddress(addressLine.text, fromSuggestions);
+            clearAddressLineTimer.start();
         }
-
-        if (addressLine.text !== "") {
-            addressBarDialog.loadAddress(addressLine.text, fromSuggestions)
-        }
-        
-        if (isDesktop) {
-            tablet.gotoHomeScreen();
-        } else {
-            HMD.closeTablet();
-        }
-            
-        tabletRoot.shown = false;
-    }
-
-    Keys.onPressed: {
-        switch (event.key) {
-            case Qt.Key_Escape:
-            case Qt.Key_Back:
-                tabletRoot.shown = false
-                clearAddressLineTimer.start();
-                event.accepted = true
-                break
-            case Qt.Key_Enter:
-            case Qt.Key_Return:
-                toggleOrGo()
-                clearAddressLineTimer.start();
-                event.accepted = true
-                break
-        }
+        DialogsManager.hideAddressBar();
     }
 }

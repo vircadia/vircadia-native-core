@@ -240,9 +240,9 @@ void SkeletonModel::updateAttitude() {
 // Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
 // but just before head has been simulated.
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+    updateAttitude();
     if (fullUpdate) {
-        updateAttitude();
-        setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
+        setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
         Model::simulate(deltaTime, fullUpdate);
 

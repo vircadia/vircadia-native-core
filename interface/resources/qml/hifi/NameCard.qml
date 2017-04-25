@@ -81,6 +81,25 @@ Item {
             anchors.fill: parent;
             visible: userImage.status != Image.Ready;
         }
+        StateImage {
+            id: infoHoverImage;
+            visible: false;
+            imageURL: "../../images/info-icon-2-state.svg";
+            size: 32;
+            buttonState: 1;
+            anchors.centerIn: parent;
+        }
+        MouseArea {
+            anchors.fill: parent
+            enabled: (selected && activeTab == "nearbyTab") || isMyCard;
+            hoverEnabled: enabled
+            onClicked: {
+                userInfoViewer.url = defaultBaseUrl + "/users/" + userName;
+                userInfoViewer.visible = true;
+            }
+            onEntered: infoHoverImage.visible = true;
+            onExited: infoHoverImage.visible = false;
+        }
     }
 
     // Colored border around avatarImage
@@ -302,7 +321,7 @@ Item {
         height: usernameTextPixelSize + 4
         // Anchors
         anchors.top: isMyCard ? myDisplayName.bottom : pal.activeTab == "nearbyTab" ? displayNameContainer.bottom : undefined //(parent.height - displayNameTextPixelSize/2));
-        anchors.verticalCenter: pal.activeTab == "connectionsTab" ? avatarImage.verticalCenter : undefined
+        anchors.verticalCenter: pal.activeTab == "connectionsTab" && !isMyCard ? avatarImage.verticalCenter : undefined
         anchors.left: avatarImage.right;
         anchors.leftMargin: avatarImage.visible ? 5 : 0;
         anchors.rightMargin: 5;

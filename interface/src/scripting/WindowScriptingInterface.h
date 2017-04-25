@@ -71,9 +71,10 @@ signals:
     void domainChanged(const QString& domainHostname);
     void svoImportRequested(const QString& url);
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode, const QString& extraInfo);
-    void snapshotTaken(const QString& pathStillSnapshot, const QString& pathAnimatedSnapshot, bool notify);
+    void stillSnapshotTaken(const QString& pathStillSnapshot, bool notify);
     void snapshotShared(const QString& error);
-    void processingGif();
+    void processingGifStarted(const QString& pathStillSnapshot);
+    void processingGifCompleted(const QString& pathAnimatedSnapshot);
 
     void connectionAdded(const QString& connectionName);
     void connectionError(const QString& errorString);

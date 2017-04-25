@@ -335,6 +335,8 @@ void Stats::updateStats(bool force) {
     // Update Frame timing (in ms)
     STAT_UPDATE(gpuFrameTime, (float)gpuContext->getFrameTimerGPUAverage());
     STAT_UPDATE(batchFrameTime, (float)gpuContext->getFrameTimerBatchAverage());
+    auto config = qApp->getRenderEngine()->getConfiguration().get();
+    STAT_UPDATE(engineFrameTime, (float) config->getCPURunTime());
     STAT_UPDATE(avatarSimulationTime, (float)avatarManager->getAvatarSimulationTime());
     
 

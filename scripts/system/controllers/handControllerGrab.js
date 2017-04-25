@@ -75,7 +75,7 @@ var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative numbe
 //
 // distant manipulation
 //
-
+var linearTimeScale = 0;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_UNITY_MASS = 1200; //  The mass at which the distance holding action timeframe is unmodified
@@ -1051,8 +1051,6 @@ function MyController(hand) {
     this.homeButtonTouched = false;
     this.editTriggered = false;
 
-    this.controllerJointIndex = getControllerJointIndex(this.hand);
-
     // Until there is some reliable way to keep track of a "stack" of parentIDs, we'll have problems
     // when more than one avatar does parenting grabs on things.  This script tries to work
     // around this with two associative arrays: previousParentID and previousParentJointIndex.  If
@@ -1094,7 +1092,6 @@ function MyController(hand) {
     this.grabbedOverlay = null;
     this.state = STATE_OFF;
     this.pointer = null; // entity-id of line object
-    this.entityActivated = false;
 
     this.triggerValue = 0; // rolling average of trigger value
     this.triggerClicked = false;
@@ -1737,6 +1734,7 @@ function MyController(hand) {
 
     this.off = function(deltaTime, timestamp) {
 
+        this.controllerJointIndex = getControllerJointIndex(this.hand);
         this.checkForUnexpectedChildren();
 
         if (this.editTriggered) {
@@ -2526,7 +2524,7 @@ function MyController(hand) {
         this.mass = this.getMass(grabbedProperties.dimensions, grabbedProperties.density);
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, grabbedProperties.position));
         var timeScale = this.distanceGrabTimescale(this.mass, distanceToObject);
-
+        this.linearTimeScale = timeScale;
         this.actionID = NULL_UUID;
         this.actionID = Entities.addAction("spring", this.grabbedThingID, {
             targetPosition: this.currentObjectPosition,
@@ -2576,7 +2574,6 @@ function MyController(hand) {
         var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
-
         var now = Date.now();
         var deltaObjectTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
         this.currentObjectTime = now;
@@ -2624,11 +2621,9 @@ function MyController(hand) {
         if (this.grabRadius < MINIMUM_GRAB_RADIUS) {
             this.grabRadius = MINIMUM_GRAB_RADIUS;
         }
-
         var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
         newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
         newTargetPosition = Vec3.sum(newTargetPosition, this.offsetPosition);
-
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, MyAvatar.position);
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedThingID, defaultMoveWithHeadData);
         if (handControllerData.disableMoveWithHead !== true) {
@@ -2661,9 +2656,13 @@ function MyController(hand) {
                            this.grabbedThingID);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
+        this.linearTimeScale = (this.linearTimeScale / 2);
+        if (this.linearTimeScale <= DISTANCE_HOLDING_ACTION_TIMEFRAME) {
+            this.linearTimeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
+        }
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
             targetPosition: newTargetPosition,
-            linearTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
+            linearTimeScale: this.linearTimeScale,
             targetRotation: this.currentObjectRotation,
             angularTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
             ttl: ACTION_TTL
@@ -2825,12 +2824,6 @@ function MyController(hand) {
         this.shouldScale = false;
 
         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-
-        if (this.entityActivated) {
-            var saveGrabbedID = this.grabbedThingID;
-            this.release();
-            this.grabbedThingID = saveGrabbedID;
-        }
 
         var grabbedProperties;
         if (this.grabbedIsOverlay) {
@@ -3007,22 +3000,25 @@ function MyController(hand) {
          * is called correctly, as these just freshly created entity may not have completely initialized.
         */
         var grabEquipCheck = function () {
-          if (_this.state == STATE_NEAR_GRABBING) {
-              _this.callEntityMethodOnGrabbed("startNearGrab");
+            if (_this.state == STATE_NEAR_GRABBING) {
+                _this.callEntityMethodOnGrabbed("startNearGrab");
             } else { // this.state == STATE_HOLD
-                  _this.callEntityMethodOnGrabbed("startEquip");
+                _this.callEntityMethodOnGrabbed("startEquip");
             }
 
-          _this.currentHandControllerTipPosition =
-              (_this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
-          _this.currentObjectTime = Date.now();
+            // don't block teleport raypick with equipped entity
+            Messages.sendMessage('Hifi-Teleport-Ignore-Add', _this.grabbedThingID);
 
-          _this.currentObjectPosition = grabbedProperties.position;
-          _this.currentObjectRotation = grabbedProperties.rotation;
-          _this.currentVelocity = ZERO_VEC;
-          _this.currentAngularVelocity = ZERO_VEC;
+            _this.currentHandControllerTipPosition =
+                (_this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
+            _this.currentObjectTime = Date.now();
 
-          _this.prevDropDetected = false;
+            _this.currentObjectPosition = grabbedProperties.position;
+            _this.currentObjectRotation = grabbedProperties.rotation;
+            _this.currentVelocity = ZERO_VEC;
+            _this.currentAngularVelocity = ZERO_VEC;
+
+            _this.prevDropDetected = false;
         }
 
         if (isClone) {
@@ -3654,6 +3650,9 @@ function MyController(hand) {
         this.turnOffVisualizations();
 
         if (this.grabbedThingID !== null) {
+
+            Messages.sendMessage('Hifi-Teleport-Ignore-Remove', this.grabbedThingID);
+
             if (this.state === STATE_HOLD) {
                 this.callEntityMethodOnGrabbed("releaseEquip");
             }

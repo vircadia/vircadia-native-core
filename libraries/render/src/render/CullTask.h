@@ -25,7 +25,7 @@ namespace render {
     class FetchNonspatialItems {
     public:
         using JobModel = Job::ModelO<FetchNonspatialItems, ItemBounds>;
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, ItemBounds& outItems);
     };
 
     class FetchSpatialTreeConfig : public Job::Config {
@@ -63,7 +63,7 @@ namespace render {
         ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
 
         void configure(const Config& config);
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection);
+        void run(const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection);
     };
 
     class CullSpatialSelectionConfig : public Job::Config {
@@ -106,88 +106,9 @@ namespace render {
         ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
 
         void configure(const Config& config);
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems);
     };
 
-    class FilterItemSelectionConfig : public Job::Config {
-        Q_OBJECT
-            Q_PROPERTY(int numItems READ getNumItems)
-    public:
-        int numItems{ 0 };
-        int getNumItems() { return numItems; }
-    };
-
-    class FilterItemSelection {
-    public:
-        using Config = FilterItemSelectionConfig;
-        using JobModel = Job::ModelIO<FilterItemSelection, ItemBounds, ItemBounds, Config>;
-
-        FilterItemSelection() {}
-        FilterItemSelection(const ItemFilter& filter) :
-            _filter(filter) {}
-
-        ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
-
-        void configure(const Config& config);
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
-    };
-
-    class MultiFilterItemConfig : public Job::Config {
-        Q_OBJECT
-            Q_PROPERTY(int numItems READ getNumItems)
-    public:
-        int numItems{ 0 };
-        int getNumItems() { return numItems; }
-    };
-
-    template <int NUM_FILTERS>
-    class MultiFilterItem {
-    public:
-        using ItemFilterArray = std::array<ItemFilter, NUM_FILTERS>;
-        using ItemBoundsArray = VaryingArray<ItemBounds, NUM_FILTERS>;
-        using Config = MultiFilterItemConfig;
-        using JobModel = Job::ModelIO<MultiFilterItem, ItemBounds, ItemBoundsArray, Config>;
-
-        MultiFilterItem() {}
-        MultiFilterItem(const ItemFilterArray& filters) :
-            _filters(filters) {}
-
-        ItemFilterArray _filters;
-
-        void configure(const Config& config) {}
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBoundsArray& outItems) {
-            auto& scene = sceneContext->_scene;
-            
-            // Clear previous values
-            for (size_t i = 0; i < NUM_FILTERS; i++) {
-                outItems[i].template edit<ItemBounds>().clear();
-            }
-
-            // For each item, filter it into one bucket
-            for (auto itemBound : inItems) {
-                auto& item = scene->getItem(itemBound.id);
-                auto itemKey = item.getKey();
-                for (size_t i = 0; i < NUM_FILTERS; i++) {
-                    if (_filters[i].test(itemKey)) {
-                        outItems[i].template edit<ItemBounds>().emplace_back(itemBound);
-                    }
-                }
-            }
-        }
-    };
-
-    class FilterItemLayer {
-    public:
-        using JobModel = Job::ModelIO<FilterItemLayer, ItemBounds, ItemBounds>;
-
-        FilterItemLayer() {}
-        FilterItemLayer(int keepLayer) :
-            _keepLayer(keepLayer) {}
-
-        int _keepLayer { 0 };
-
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
-    };
 }
 
 #endif // hifi_render_CullTask_h;

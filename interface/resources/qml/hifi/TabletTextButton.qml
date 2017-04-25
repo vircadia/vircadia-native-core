@@ -16,6 +16,7 @@ Rectangle {
     property alias text: label.text
     property alias pixelSize: label.font.pixelSize;
     property bool selected: false
+    property bool hovered: false
     property int spacing: 2
     property var action: function () {}
     property string highlightColor: hifi.colors.blueHighlight;
@@ -37,14 +38,14 @@ Rectangle {
     Rectangle {
         id: indicator
         width: parent.width
-        height: 3
+        height: selected ? 3 : 1
         anchors {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
         }
         color: hifi.colors.blueHighlight
-        visible: parent.selected
+        visible: parent.selected || hovered
     }
 
     MouseArea {
@@ -53,6 +54,8 @@ Rectangle {
         acceptedButtons: Qt.LeftButton;
         onClicked: action(parent);
         hoverEnabled: true;
+        onEntered: hovered = true
+        onExited: hovered = false
     }
 }
         

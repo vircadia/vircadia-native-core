@@ -16,9 +16,9 @@
 
 namespace render {
 
-void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, int maxDrawnItems = -1);
-void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1, const ShapeKey& globalKey = ShapeKey());
-void renderStateSortShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1, const ShapeKey& globalKey = ShapeKey());
+void renderItems(const RenderContextPointer& renderContext, const ItemBounds& inItems, int maxDrawnItems = -1);
+void renderShapes(const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1, const ShapeKey& globalKey = ShapeKey());
+void renderStateSortShapes(const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1, const ShapeKey& globalKey = ShapeKey());
 
 class DrawLightConfig : public Job::Config {
     Q_OBJECT
@@ -43,7 +43,7 @@ public:
     using JobModel = Job::ModelI<DrawLight, ItemBounds, Config>;
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights);
+    void run(const RenderContextPointer& renderContext, const ItemBounds& inLights);
 protected:
     int _maxDrawn; // initialized by Config
 };
@@ -52,14 +52,14 @@ class DrawBounds {
 public:
     class Config : public render::JobConfig {
     public:
-        Config() : JobConfig(false) {}
+        Config(bool enabled = false) : JobConfig(enabled) {}
     };
 
     using Inputs = render::ItemBounds;
     using JobModel = render::Job::ModelI<DrawBounds, Inputs, Config>;
 
     void configure(const Config& configuration) {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+    void run(const render::RenderContextPointer& renderContext,
         const Inputs& items);
 
 private:
@@ -67,6 +67,7 @@ private:
     gpu::PipelinePointer _boundsPipeline;
     int _cornerLocation { -1 };
     int _scaleLocation { -1 };
+    int _colorLocation { -1 };
 };
 
 }
