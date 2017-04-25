@@ -122,6 +122,7 @@
             TICK_SOUND = "assets/sounds/countdown-tick.wav",
             START_RECORDING_SOUND = "assets/sounds/start-recording.wav",
             FINISH_RECORDING_SOUND = "assets/sounds/finish-recording.wav",
+            START_RECORDING_SOUND_DURATION = 1200,
             SOUND_VOLUME = 0.2;
 
         function playSound(sound) {
@@ -166,10 +167,13 @@
             recordingState = RECORDING;
             log("Start recording");
             playSound(startRecordingSound);
-            startPosition = MyAvatar.position;
-            startOrientation = MyAvatar.orientation;
-            Recording.startRecording();
-            RecordingIndicator.show();
+            Script.setTimeout(function () {
+                // Delay start so that start beep is not included in recorded sound.
+                startPosition = MyAvatar.position;
+                startOrientation = MyAvatar.orientation;
+                Recording.startRecording();
+                RecordingIndicator.show();
+            }, START_RECORDING_SOUND_DURATION);
         }
 
         function finishRecording() {
