@@ -2526,7 +2526,7 @@ function MyController(hand) {
         var timeScale = this.distanceGrabTimescale(this.mass, distanceToObject);
         this.linearTimeScale = timeScale;
         this.actionID = NULL_UUID;
-        this.actionID = Entities.addAction("spring", this.grabbedThingID, {
+        this.actionID = Entities.addAction("far-grab", this.grabbedThingID, {
             targetPosition: this.currentObjectPosition,
             linearTimeScale: timeScale,
             targetRotation: this.currentObjectRotation,
@@ -2741,7 +2741,7 @@ function MyController(hand) {
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
             ttl: ACTION_TTL,
-            kinematic: NEAR_GRABBING_KINEMATIC,
+            kinematic: this.kinematicGrab,
             kinematicSetVelocity: true,
             ignoreIK: this.ignoreIK
         });
@@ -2838,12 +2838,14 @@ function MyController(hand) {
             this.ignoreIK = true;
         } else {
             grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
+            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedThingID, DEFAULT_GRABBABLE_DATA);
             if (FORCE_IGNORE_IK) {
                 this.ignoreIK = true;
             } else {
-                var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedThingID, DEFAULT_GRABBABLE_DATA);
                 this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
             }
+
+            this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
         }
 
         var handRotation;
@@ -3207,7 +3209,7 @@ function MyController(hand) {
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
                 ttl: ACTION_TTL,
-                kinematic: NEAR_GRABBING_KINEMATIC,
+                kinematic: this.kinematicGrab,
                 kinematicSetVelocity: true,
                 ignoreIK: this.ignoreIK
             });
