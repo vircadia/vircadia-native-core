@@ -73,6 +73,7 @@
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
 
+#include "Sound.h"
 
 class OffscreenGLCanvas;
 class GLCanvas;
@@ -80,6 +81,7 @@ class FaceTracker;
 class MainWindow;
 class AssetUpload;
 class CompositorHelper;
+class AudioInjector;
 
 namespace controller {
     class StateController;
@@ -415,6 +417,7 @@ private slots:
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
+    void windowMinimizedChanged(bool minimized);
 
     void notifyPacketVersionMismatch();
 
@@ -682,6 +685,8 @@ private:
     QTimer _addAssetToWorldErrorTimer;
 
     FileScriptingInterface* _fileDownload;
+    AudioInjector* _snapshotSoundInjector { nullptr };
+    SharedSoundPointer _snapshotSound;
 };
 
 

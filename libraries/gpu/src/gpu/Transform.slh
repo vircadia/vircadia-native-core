@@ -124,7 +124,8 @@ layout(std140) buffer transformObjectBuffer {
     TransformObject _object[];
 };
 TransformObject getTransformObject() {
-    return _object[_drawCallInfo.x];
+    TransformObject transformObject = _object[_drawCallInfo.x];
+    return transformObject;
 }
 #else
 uniform samplerBuffer transformObjectBuffer;

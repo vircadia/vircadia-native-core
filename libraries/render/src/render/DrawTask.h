@@ -16,9 +16,9 @@
 
 namespace render {
 
-void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, int maxDrawnItems = -1);
-void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1, const ShapeKey& globalKey = ShapeKey());
-void renderStateSortShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1, const ShapeKey& globalKey = ShapeKey());
+void renderItems(const RenderContextPointer& renderContext, const ItemBounds& inItems, int maxDrawnItems = -1);
+void renderShapes(const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1, const ShapeKey& globalKey = ShapeKey());
+void renderStateSortShapes(const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1, const ShapeKey& globalKey = ShapeKey());
 
 class DrawLightConfig : public Job::Config {
     Q_OBJECT
@@ -43,7 +43,7 @@ public:
     using JobModel = Job::ModelI<DrawLight, ItemBounds, Config>;
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights);
+    void run(const RenderContextPointer& renderContext, const ItemBounds& inLights);
 protected:
     int _maxDrawn; // initialized by Config
 };
@@ -59,7 +59,7 @@ public:
     using JobModel = render::Job::ModelI<DrawBounds, Inputs, Config>;
 
     void configure(const Config& configuration) {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+    void run(const render::RenderContextPointer& renderContext,
         const Inputs& items);
 
 private:

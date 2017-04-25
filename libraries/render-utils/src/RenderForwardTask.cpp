@@ -59,7 +59,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     task.addJob<Blit>("Blit", framebuffer);
 }
 
-void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+void PrepareFramebuffer::run(const RenderContextPointer& renderContext,
         gpu::FramebufferPointer& framebuffer) {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
@@ -100,7 +100,7 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
     framebuffer = _framebuffer;
 }
 
-void Draw::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+void Draw::run(const RenderContextPointer& renderContext,
         const Inputs& items) {
     RenderArgs* args = renderContext->args;
 
@@ -117,7 +117,7 @@ void Draw::run(const SceneContextPointer& sceneContext, const RenderContextPoint
         batch.setModelTransform(Transform());
 
         // Render items
-        renderStateSortShapes(sceneContext, renderContext, _shapePlumber, items, -1);
+        renderStateSortShapes(renderContext, _shapePlumber, items, -1);
     });
     args->_batch = nullptr;
 }
@@ -142,7 +142,7 @@ const gpu::PipelinePointer Stencil::getPipeline() {
     return _stencilPipeline;
 }
 
-void Stencil::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void Stencil::run(const RenderContextPointer& renderContext) {
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -158,7 +158,7 @@ void Stencil::run(const SceneContextPointer& sceneContext, const RenderContextPo
     args->_batch = nullptr;
 }
 
-void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+void DrawBackground::run(const RenderContextPointer& renderContext,
         const Inputs& background) {
     RenderArgs* args = renderContext->args;
 
@@ -177,7 +177,7 @@ void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderCo
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderItems(sceneContext, renderContext, background);
+        renderItems(renderContext, background);
     });
     args->_batch = nullptr;
 }

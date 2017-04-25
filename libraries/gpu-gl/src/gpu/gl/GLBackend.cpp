@@ -745,6 +745,10 @@ void GLBackend::recycle() const {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
         }
     }
+
+    GLVariableAllocationSupport::manageMemory();
+    GLVariableAllocationSupport::_frameTexturesCreated = 0;
+
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {
