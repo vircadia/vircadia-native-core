@@ -57,7 +57,7 @@ public slots:
 protected slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
 
-    virtual void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processExitingSpaceBubble(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);

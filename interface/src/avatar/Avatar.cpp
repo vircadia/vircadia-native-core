@@ -115,8 +115,6 @@ Avatar::Avatar(QThread* thread, RigPointer rig) :
 }
 
 Avatar::~Avatar() {
-    assert(isDead()); // mark dead before calling the dtor
-
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
@@ -447,6 +445,24 @@ float Avatar::getSimulationRate(const QString& rateName) const {
     return 0.0f;
 }
 
+void Avatar::getIdentity(Identity& identity) const {
+    identity.uuid = getSessionUUID();
+    identity.skeletonModelURL = _skeletonModelURL;
+    identity.attachmentData = _attachmentData;
+    identity.displayName = _displayName;
+    identity.sessionDisplayName = _sessionDisplayName;
+    identity.avatarEntityData = _avatarEntityData;
+}
+
+void Avatar::setIdentity(const Identity& identity) {
+    assert(identity.uuid == getSessionUUID());
+    setSkeletonModelURL(identity.skeletonModelURL);
+    _attachmentData = identity.attachmentData;
+    _displayName = identity.displayName;
+    _sessionDisplayName = identity.sessionDisplayName;
+    _avatarEntityData = identity.avatarEntityData;
+}
+
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
     const float HEAD_SPHERE_RADIUS = 0.1f;
     glm::vec3 theirLookAt = dynamic_pointer_cast<Avatar>(avatar)->getHead()->getLookAtPosition();
@@ -510,12 +526,13 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
 void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
-    _renderItemID = scene->allocateID();
-    transaction.resetItem(_renderItemID, avatarPayloadPointer);
-    _skeletonModel->addToScene(scene, transaction);
+    if (_skeletonModel->addToScene(scene, transaction)) {
+        _renderItemID = scene->allocateID();
+        transaction.resetItem(_renderItemID, avatarPayloadPointer);
 
-    for (auto& attachmentModel : _attachmentModels) {
-        attachmentModel->addToScene(scene, transaction);
+        for (auto& attachmentModel : _attachmentModels) {
+            attachmentModel->addToScene(scene, transaction);
+        }
     }
 }
 

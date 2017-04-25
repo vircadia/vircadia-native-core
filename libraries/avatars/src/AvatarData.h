@@ -110,9 +110,7 @@ const char LEFT_HAND_POINTING_FLAG = 1;
 const char RIGHT_HAND_POINTING_FLAG = 2;
 const char IS_FINGER_POINTING_FLAG = 4;
 
-const qint64 AVATAR_UPDATE_TIMEOUT = 5 * USECS_PER_SECOND;
-
-// AvatarData state flags - we store the details about the packet encoding in the first byte, 
+// AvatarData state flags - we store the details about the packet encoding in the first byte,
 // before the "header" structure
 const char AVATARDATA_FLAGS_MINIMUM = 0;
 
@@ -568,7 +566,6 @@ public:
 
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
 
-    int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
 
@@ -604,9 +601,6 @@ public:
         return _lastSentJointData;
     }
 
-
-    bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_UPDATE_TIMEOUT; }
-
     static const float OUT_OF_VIEW_PENALTY;
 
     static void sortAvatars(
@@ -631,7 +625,7 @@ public:
 
 signals:
     void displayNameChanged();
-    
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();

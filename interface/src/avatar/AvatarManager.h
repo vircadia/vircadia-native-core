@@ -98,9 +98,6 @@ public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
-protected slots:
-    void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) override;
-
 private:
     explicit AvatarManager(QObject* parent = 0);
     explicit AvatarManager(const AvatarManager& other);
@@ -108,6 +105,7 @@ private:
     void simulateAvatarFades(float deltaTime);
 
     AvatarSharedPointer newSharedAvatar() override;
+    AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
     QVector<AvatarSharedPointer> _avatarsToFade;
@@ -120,6 +118,7 @@ private:
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
 
     QVector<AvatarManager::LocalLight> _localLights;
+    QMap<QUuid, AvatarData::Identity> _identityCache;
 
     bool _shouldShowReceiveStats = false;
 
