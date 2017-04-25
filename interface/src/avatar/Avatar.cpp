@@ -445,24 +445,6 @@ float Avatar::getSimulationRate(const QString& rateName) const {
     return 0.0f;
 }
 
-void Avatar::getIdentity(Identity& identity) const {
-    identity.uuid = getSessionUUID();
-    identity.skeletonModelURL = _skeletonModelURL;
-    identity.attachmentData = _attachmentData;
-    identity.displayName = _displayName;
-    identity.sessionDisplayName = _sessionDisplayName;
-    identity.avatarEntityData = _avatarEntityData;
-}
-
-void Avatar::setIdentity(const Identity& identity) {
-    assert(identity.uuid == getSessionUUID());
-    setSkeletonModelURL(identity.skeletonModelURL);
-    _attachmentData = identity.attachmentData;
-    _displayName = identity.displayName;
-    _sessionDisplayName = identity.sessionDisplayName;
-    _avatarEntityData = identity.avatarEntityData;
-}
-
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
     const float HEAD_SPHERE_RADIUS = 0.1f;
     glm::vec3 theirLookAt = dynamic_pointer_cast<Avatar>(avatar)->getHead()->getLookAtPosition();

@@ -238,9 +238,6 @@ public:
         return (lerpValue*(4.0f - 2.0f * lerpValue) - 1.0f);
     }
 
-    void getIdentity(Identity& identity) const;
-    void setIdentity(const Identity& identity);
-
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead

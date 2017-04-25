@@ -326,16 +326,6 @@ AvatarSharedPointer AvatarManager::newSharedAvatar() {
     return std::make_shared<Avatar>(qApp->thread(), std::make_shared<Rig>());
 }
 
-AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
-    AvatarSharedPointer avatarData = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
-    QMap<QUuid, AvatarData::Identity>::iterator itr =  _identityCache.find(sessionUUID);
-	if (itr != _identityCache.end()) {
-        auto avatar = std::static_pointer_cast<Avatar>(avatarData);
-        avatar->setIdentity(*itr);
-    }
-    return avatarData;
-}
-
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     AvatarHashMap::handleRemovedAvatar(removedAvatar, removalReason);
 
@@ -347,7 +337,6 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     // therefore whenever we remove an avatar we cache the identity in case we need it later
     AvatarData::Identity identity;
     avatar->getIdentity(identity);
-    _identityCache[avatar->getSessionUUID()] = identity;
 
     AvatarMotionState* motionState = avatar->getMotionState();
     if (motionState) {
