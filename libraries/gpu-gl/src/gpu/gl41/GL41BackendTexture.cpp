@@ -69,9 +69,7 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 
 GLuint GL41Texture::allocate(const Texture& texture) {
     GLuint result;
-    // FIXME technically GL 4.2, but OSX includes the ARB_texture_storage extension
-    glCreateTextures(getGLTextureType(texture), 1, &result);
-    //glGenTextures(1, &result);
+    glGenTextures(1, &result);
     return result;
 }
 
@@ -280,7 +278,7 @@ void GL41VariableAllocationTexture::promote() {
 
     withPreservedTexture([&] {
         GLuint fbo { 0 };
-        glCreateFramebuffers(1, &fbo);
+        glGenFramebuffers(1, &fbo);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
 
         uint16_t mips = _gpuObject.getNumMips();
