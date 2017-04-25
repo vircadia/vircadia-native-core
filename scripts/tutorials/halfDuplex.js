@@ -20,7 +20,7 @@
 var averageLoudness = 0.0; 
 var AVERAGING_TIME = 0.9;
 var LOUDNESS_THRESHOLD = 100;
-var HYSTERESIS_GAP = 1.1; 
+var HYSTERESIS_GAP = 1.41; 			//  3db gap
 var MICROPHONE_DISPLAY_NAME = "Microphone";
 
 var debug = false; 
@@ -40,7 +40,9 @@ Script.update.connect(function () {
 			}
 			//  Mute other microphone avatars to not feedback with muti-source environment
 			if (avatar.displayName.indexOf(MICROPHONE_DISPLAY_NAME) == 0) {
-				Users.personalMute(avatar.sessionUUID, true);
+				if (!Users.getPersonalMuteStatus(avatar.sessionUUID)) {
+					Users.personalMute(avatar.sessionUUID, true);
+				}
 			}
         });
 
