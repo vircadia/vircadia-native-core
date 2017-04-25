@@ -43,8 +43,6 @@ public:
     size_t getDataSize() const;
     size_t getMessageSize() const;
     QByteArray getMessage() const;
-    MessageNumber getMessageNumber() const { return _messageNumber; }
-
     
     QByteArray getExtendedHeader() const { return _extendedHeader; }
     

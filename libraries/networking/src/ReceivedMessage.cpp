@@ -26,8 +26,7 @@ ReceivedMessage::ReceivedMessage(const NLPacketList& packetList)
       _sourceID(packetList.getSourceID()),
       _packetType(packetList.getType()),
       _packetVersion(packetList.getVersion()),
-      _senderSockAddr(packetList.getSenderSockAddr()),
-      _messageNumber(packetList.getMessageNumber())
+      _senderSockAddr(packetList.getSenderSockAddr())
 {
 }
 
@@ -39,8 +38,7 @@ ReceivedMessage::ReceivedMessage(NLPacket& packet)
       _packetType(packet.getType()),
       _packetVersion(packet.getVersion()),
       _senderSockAddr(packet.getSenderSockAddr()),
-      _isComplete(packet.getPacketPosition() == NLPacket::ONLY),
-      _messageNumber(packet.getMessageNumber())
+      _isComplete(packet.getPacketPosition() == NLPacket::ONLY)
 {
 }
 
