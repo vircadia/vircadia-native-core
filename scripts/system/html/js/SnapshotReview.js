@@ -18,7 +18,6 @@ function clearImages() {
     while (snapshotImagesDiv.hasChildNodes()) {
         snapshotImagesDiv.removeChild(snapshotImagesDiv.lastChild);
     }
-    twttr.events.unbind('click');
     paths = [];
     imageCount = 0;
     idCounter = 0;
@@ -57,9 +56,6 @@ function appendShareBar(divID, story_id, isGif, hifiShareButtonsDisabled) {
     var parentDiv = document.getElementById(divID);
     parentDiv.setAttribute('data-story-id', story_id);
     document.getElementById(divID).appendChild(createShareOverlay(divID, isGif, story_url, hifiShareButtonsDisabled));
-    twttr.events.bind('click', function (event) {
-        shareButtonClicked(divID);
-    });
 }
 function createShareOverlay(parentID, isGif, shareURL, hifiShareButtonsDisabled) {
     var shareOverlayContainer = document.createElement("DIV");
@@ -111,6 +107,8 @@ function createShareOverlay(parentID, isGif, shareURL, hifiShareButtonsDisabled)
     shareOverlay.style.zIndex = "2";
     var shareWithEveryoneButtonID = parentID + "shareWithEveryoneButton";
     var inviteConnectionsCheckboxID = parentID + "inviteConnectionsCheckbox";
+    var facebookButtonID = parentID + "facebookButton";
+    var twitterButtonID = parentID + "twitterButton";
     shareOverlay.innerHTML = '<label class="shareOverlayLabel">SHARE</label>' +
         '<br/>' +
         '<div class="shareControls">' +
@@ -118,15 +116,14 @@ function createShareOverlay(parentID, isGif, shareURL, hifiShareButtonsDisabled)
                 '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" value="SHARE WITH EVERYONE" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')" /><br>' +
                 '<input type="checkbox"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="inviteConnections" id="' + inviteConnectionsCheckboxID + '" checked="checked" />' +
                 '<label class="shareButtonLabel" for="' + inviteConnectionsCheckboxID + '">Invite My Connections</label><br>' +
-                '<input type="button" class="cancelShare" value="CANCEL" onclick="cancelSharing(' + parentID + ')" />' +
+                '<input type="button" value="CANCEL" onclick="cancelSharing(' + parentID + ')" />' +
             '</div>' +
-            '<div class="externalShareControls">' +
-                '<iframe src="https://www.facebook.com/plugins/share_button.php?href=' + shareURL + '&layout=button_count&size=small&mobile_iframe=false&width=84&height=20&appId" width="84" height="20" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowTransparency="true"></iframe>' +
-                '<a class="twitter-share-button" href="https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot%20in%20#HiFi!&url=' + shareURL + '&via=highfidelity&hashtags=VR"></a>' +
+            '<div class="buttonShareControls">' +
+                '<a class="facebookButton" id="' + facebookButtonID + '" onClick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://www.facebook.com/dialog/feed?app_id=1585088821786423&link=' + shareURL + '"></a>' +
+                '<a class="twitterButton" id="' + twitterButtonID + '" onClick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelity&hashtags=VR,HiFi"></a>' +
             '</div>' +
         '</div>';
     shareOverlayContainer.appendChild(shareOverlay);
-    twttr.widgets.load(shareOverlay);
 
     return shareOverlayContainer;
 }
@@ -167,6 +164,7 @@ function shareWithEveryone(selectedID, isGif) {
     }));
 }
 function shareButtonClicked(selectedID) {
+    selectedID = selectedID.id; // `selectedID` is passed as an HTML object to these functions; we just want the ID
     EventBridge.emitWebEvent(JSON.stringify({
         type: "snapshot",
         action: "shareButtonClicked",
@@ -209,16 +207,6 @@ function handleCaptureSetting(setting) {
 
 }
 window.onload = function () {
-    // TESTING FUNCTIONS START
-    // Uncomment and modify the lines below to test SnapshotReview in a browser.
-    //imageCount = 1;
-    //addImage({ localPath: 'C:/Users/Zach Fox/Desktop/hifi-snap-by-zfox-on-2017-04-20_14-59-12.gif' });
-    //addImage({ localPath: 'C:/Users/Zach Fox/Desktop/hifi-snap-by-zfox-on-2017-04-24_10-49-20.jpg' });
-    //document.getElementById('p0').appendChild(createShareOverlay('p0', false, ''));
-    //addImage({ localPath: 'http://lorempixel.com/553/255' });
-    //addImage({localPath: 'c:/Users/howar/OneDrive/Pictures/hifi-snap-by--on-2016-07-27_12-58-43.jpg'});
-    // TESTING FUNCTIONS END
-
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
@@ -300,4 +288,10 @@ function takeSnapshot() {
         type: "snapshot",
         action: "takeSnapshot"
     }));
+}
+
+function testInBrowser() {
+    imageCount = 1;
+    //addImage({ localPath: 'http://lorempixel.com/553/255' });
+    addImage({ localPath: 'C:/Users/Zach Fox/Desktop/hifi-snap-by-zfox-on-2017-04-25_11-35-13.jpg' }, false, true, true, false);   
 }

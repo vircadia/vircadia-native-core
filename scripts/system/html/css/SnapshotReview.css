@@ -140,12 +140,26 @@ input[type=button].naked:active {
     width: 40%;
     margin-left: 10%;
 }
-.externalShareControls {
+.buttonShareControls {
     text-align: left;
+    height: 50px;
+    line-height: 50px;
     width: 40%;
     margin-right: 10%;
 }
-.cancelShare {
+.facebookButton {
+    background-image: url(../img/fb_logo.png);
+    width: 29px;
+    height: 29px;
+    display: inline-block;
+    margin-right: 8px;
+}
+.twitterButton {
+    background-image: url(../img/twitter_logo.png);
+    width: 29px;
+    height: 29px;
+    display: inline-block;
+    margin-right: 8px;
 }
 /*
 // END styling of share overlay
