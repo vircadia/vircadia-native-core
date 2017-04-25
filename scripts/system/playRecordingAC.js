@@ -313,6 +313,8 @@
 
                     Recording.setPlayerTime(0.0);
                     Recording.startPlaying();
+
+                    UserActivityLogger.logAction("playRecordingAC_play_recording");
                 } else {
                     log("Failed to load recording " + recording);
                     autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Try again later.
@@ -415,6 +417,8 @@
 
         Player.autoPlay();
         sendHeartbeat();
+
+        UserActivityLogger.logAction("playRecordingAC_script_load");
     }
 
     function tearDown() {

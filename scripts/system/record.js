@@ -178,6 +178,7 @@
 
             recordingState = IDLE;
             log("Finish recording");
+            UserActivityLogger.logAction("record_finish_recording");
             playSound(finishRecordingSound);
             Recording.stopRecording();
             RecordingIndicator.hide();
@@ -496,6 +497,7 @@
                         value: Player.numberOfPlayers()
                     }));
                     updateRecordingStatus(!Recorder.isIdle());
+                    UserActivityLogger.logAction("record_open_dialog");
                     break;
                 case STOP_PLAYING_RECORDING_ACTION:
                     // Stop the specified player.
@@ -506,6 +508,7 @@
                     recording = Window.browseAssets("Select Recording to Play", "recordings", "*.hfr");
                     if (recording) {
                         log("Load recording " + recording);
+                        UserActivityLogger.logAction("record_load_recording");
                         Player.playRecording("atp:" + recording, MyAvatar.position, MyAvatar.orientation);
                     }
                     break;
