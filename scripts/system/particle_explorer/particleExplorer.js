@@ -208,9 +208,9 @@ function createColorPicker(key) {
 
     var $colPickContainer = $('<div>', {
         id: key.toString(), 
-        class: "color-box", 
-        style: { backgroundColor: "rgb(" + colorObject.red + "," + colorObject.green + "," + colorObject.blue + ")" }
+        class: "color-box"        
     });
+    $colPickContainer.css('background-color', "rgb(" + colorObject.red + "," + colorObject.green + "," + colorObject.blue + ")");
     container.appendChild($colPickContainer[0]);
 
     var $li = $('<li>', { class: 'cr object color' });    
