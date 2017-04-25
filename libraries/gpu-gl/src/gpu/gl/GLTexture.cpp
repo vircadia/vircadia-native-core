@@ -521,8 +521,7 @@ void GLVariableAllocationSupport::processWorkQueues() {
             vartexture->demote();
             _memoryPressureStateStale = true;
         } else if (MemoryPressureState::Undersubscribed == _memoryPressureState) {
-            if (!vartexture->canPromote()) {
-                vartexture->populateTransferQueue();
+            if (!vartexture->canPromote() || !vartexture->canPopulate()) {
                 continue;
             }
             vartexture->promote();
