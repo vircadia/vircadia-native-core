@@ -166,18 +166,18 @@ const gpu::TexturePointer& TextureCache::getBlackTexture() {
 /// Extra data for creating textures.
 class TextureExtra {
 public:
-    gpu::TextureType type;
+    image::TextureUsage::Type type;
     const QByteArray& content;
     int maxNumPixels;
 };
 
 ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNumPixels) {
     auto byteArray = QByteArray();
-    TextureExtra extra = { (gpu::TextureType)type, byteArray, maxNumPixels };
+    TextureExtra extra = { (image::TextureUsage::Type)type, byteArray, maxNumPixels };
     return ResourceCache::prefetch(url, &extra);
 }
 
-NetworkTexturePointer TextureCache::getTexture(const QUrl& url, gpu::TextureType type, const QByteArray& content, int maxNumPixels) {
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) {
     TextureExtra extra = { type, content, maxNumPixels };
     return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
 }
@@ -210,7 +210,7 @@ gpu::TexturePointer TextureCache::cacheTextureByHash(const std::string& hash, co
     return result;
 }
 
-gpu::TexturePointer getFallbackTextureForType(gpu::TextureType type) {
+gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
     gpu::TexturePointer result;
     auto textureCache = DependencyManager::get<TextureCache>();
     // Since this can be called on a background thread, there's a chance that the cache 
@@ -219,27 +219,27 @@ gpu::TexturePointer getFallbackTextureForType(gpu::TextureType type) {
         return result;
     }
     switch (type) {
-        case gpu::DEFAULT_TEXTURE:
-        case gpu::ALBEDO_TEXTURE:
-        case gpu::ROUGHNESS_TEXTURE:
-        case gpu::OCCLUSION_TEXTURE:
+        case image::TextureUsage::DEFAULT_TEXTURE:
+        case image::TextureUsage::ALBEDO_TEXTURE:
+        case image::TextureUsage::ROUGHNESS_TEXTURE:
+        case image::TextureUsage::OCCLUSION_TEXTURE:
             result = textureCache->getWhiteTexture();
             break;
 
-        case gpu::NORMAL_TEXTURE:
+        case image::TextureUsage::NORMAL_TEXTURE:
             result = textureCache->getBlueTexture();
             break;
 
-        case gpu::EMISSIVE_TEXTURE:
-        case gpu::LIGHTMAP_TEXTURE:
+        case image::TextureUsage::EMISSIVE_TEXTURE:
+        case image::TextureUsage::LIGHTMAP_TEXTURE:
             result = textureCache->getBlackTexture();
             break;
 
-        case gpu::BUMP_TEXTURE:
-        case gpu::SPECULAR_TEXTURE:
-        case gpu::GLOSS_TEXTURE:
-        case gpu::CUBE_TEXTURE:
-        case gpu::STRICT_TEXTURE:
+        case image::TextureUsage::BUMP_TEXTURE:
+        case image::TextureUsage::SPECULAR_TEXTURE:
+        case image::TextureUsage::GLOSS_TEXTURE:
+        case image::TextureUsage::CUBE_TEXTURE:
+        case image::TextureUsage::STRICT_TEXTURE:
         default:
             break;
     }
@@ -247,23 +247,23 @@ gpu::TexturePointer getFallbackTextureForType(gpu::TextureType type) {
 }
 
 /// Returns a texture version of an image file
-gpu::TexturePointer TextureCache::getImageTexture(const QString& path, gpu::TextureType type, QVariantMap options) {
+gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
     QImage image = QImage(path);
-    auto loader = image::getTextureLoaderForType(type, options);
+    auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
     return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
     const void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
-    auto type = textureExtra ? textureExtra->type : gpu::DEFAULT_TEXTURE;
+    auto type = textureExtra ? textureExtra->type : image::TextureUsage::DEFAULT_TEXTURE;
     auto content = textureExtra ? textureExtra->content : QByteArray();
     auto maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
     NetworkTexture* texture = new NetworkTexture(url, type, content, maxNumPixels);
     return QSharedPointer<Resource>(texture, &Resource::deleter);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url, gpu::TextureType type, const QByteArray& content, int maxNumPixels) :
+NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) :
     Resource(url),
     _type(type),
     _maxNumPixels(maxNumPixels)

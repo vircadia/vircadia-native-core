@@ -22,6 +22,7 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 #include <model/TextureMap.h>
+#include <image/Image.h>
 
 #include "KTXCache.h"
 
@@ -43,7 +44,7 @@ class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
 public:
-    NetworkTexture(const QUrl& url, gpu::TextureType type, const QByteArray& content, int maxNumPixels);
+    NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels);
 
     QString getType() const override { return "NetworkTexture"; }
 
@@ -51,7 +52,7 @@ public:
     int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
-    gpu::TextureType getTextureType() const { return _type; }
+    image::TextureUsage::Type getTextureType() const { return _type; }
 
     gpu::TexturePointer getFallbackTexture() const;
 
@@ -70,7 +71,7 @@ private:
     friend class KTXReader;
     friend class ImageReader;
 
-    gpu::TextureType _type;
+    image::TextureUsage::Type _type;
     KTXFilePointer _file;
     int _originalWidth { 0 };
     int _originalHeight { 0 };
@@ -105,10 +106,10 @@ public:
     const gpu::TexturePointer& getBlackTexture();
 
     /// Returns a texture version of an image file
-    static gpu::TexturePointer getImageTexture(const QString& path, gpu::TextureType type = gpu::DEFAULT_TEXTURE, QVariantMap options = QVariantMap());
+    static gpu::TexturePointer getImageTexture(const QString& path, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE, QVariantMap options = QVariantMap());
 
     /// Loads a texture from the specified URL.
-    NetworkTexturePointer getTexture(const QUrl& url, gpu::TextureType type = gpu::DEFAULT_TEXTURE,
+    NetworkTexturePointer getTexture(const QUrl& url, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
 

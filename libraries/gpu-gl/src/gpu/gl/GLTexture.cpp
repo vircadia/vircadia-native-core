@@ -123,7 +123,7 @@ void GLTexture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, u
     auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
     if (mipData) {
         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.format, texelFormat.internalFormat, texelFormat.type, mipSize, mipData->readData());
+        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.internalFormat, texelFormat.format, texelFormat.type, mipSize, mipData->readData());
     } else {
         qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
     }
@@ -239,7 +239,7 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
     Backend::updateTextureTransferPendingSize(0, _transferSize);
 
     _transferLambda = [=] {
-        _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, format, internalFormat, type, _buffer.size(), _buffer.data());
+        _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, internalFormat, format, type, _buffer.size(), _buffer.data());
         std::vector<uint8_t> emptyVector;
         _buffer.swap(emptyVector);
     };

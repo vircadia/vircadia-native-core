@@ -63,34 +63,34 @@ glm::uvec2 rectifyToSparseSize(const glm::uvec2& size) {
 
 namespace image {
 
-TextureLoader getTextureLoaderForType(gpu::TextureType type, const QVariantMap& options) {
+TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, const QVariantMap& options) {
     switch (type) {
-        case gpu::ALBEDO_TEXTURE:
+        case ALBEDO_TEXTURE:
             return image::TextureUsage::createAlbedoTextureFromImage;
-        case gpu::EMISSIVE_TEXTURE:
+        case EMISSIVE_TEXTURE:
             return image::TextureUsage::createEmissiveTextureFromImage;
-        case gpu::LIGHTMAP_TEXTURE:
+        case LIGHTMAP_TEXTURE:
             return image::TextureUsage::createLightmapTextureFromImage;
-        case gpu::CUBE_TEXTURE:
+        case CUBE_TEXTURE:
             if (options.value("generateIrradiance", true).toBool()) {
                 return image::TextureUsage::createCubeTextureFromImage;
             } else {
                 return image::TextureUsage::createCubeTextureFromImageWithoutIrradiance;
             }
-        case gpu::BUMP_TEXTURE:
+        case BUMP_TEXTURE:
             return image::TextureUsage::createNormalTextureFromBumpImage;
-        case gpu::NORMAL_TEXTURE:
+        case NORMAL_TEXTURE:
             return image::TextureUsage::createNormalTextureFromNormalImage;
-        case gpu::ROUGHNESS_TEXTURE:
+        case ROUGHNESS_TEXTURE:
             return image::TextureUsage::createRoughnessTextureFromImage;
-        case gpu::GLOSS_TEXTURE:
+        case GLOSS_TEXTURE:
             return image::TextureUsage::createRoughnessTextureFromGlossImage;
-        case gpu::SPECULAR_TEXTURE:
+        case SPECULAR_TEXTURE:
             return image::TextureUsage::createMetallicTextureFromImage;
-        case gpu::STRICT_TEXTURE:
+        case STRICT_TEXTURE:
             return image::TextureUsage::createStrict2DTextureFromImage;
 
-        case gpu::DEFAULT_TEXTURE:
+        case DEFAULT_TEXTURE:
         default:
             return image::TextureUsage::create2DTextureFromImage;
     }
@@ -144,7 +144,7 @@ gpu::TexturePointer TextureUsage::createCubeTextureFromImageWithoutIrradiance(co
     return processCubeTextureColorFromImage(srcImage, srcImageName, false);
 }
 
-gpu::TexturePointer processImage(const QByteArray& content, const std::string& filename, int maxNumPixels, gpu::TextureType textureType) {
+gpu::TexturePointer processImage(const QByteArray& content, const std::string& filename, int maxNumPixels, TextureUsage::Type textureType) {
     // Help the QImage loader by extracting the image file format from the url filename ext.
     // Some tga are not created properly without it.
     auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
@@ -193,7 +193,7 @@ gpu::TexturePointer processImage(const QByteArray& content, const std::string& f
             QSize(imageWidth, imageHeight) << ")";
     }
     
-    auto loader = getTextureLoaderForType(textureType);
+    auto loader = TextureUsage::getTextureLoaderForType(textureType);
     auto texture = loader(image, filename);
 
     return texture;

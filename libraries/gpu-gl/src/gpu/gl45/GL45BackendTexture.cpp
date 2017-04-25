@@ -117,7 +117,7 @@ void GL45Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum internalFormat, GLenum type, Size sourceSize, const void* sourcePointer) const {
+void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     if (GL_TEXTURE_2D == _target) {
         switch (internalFormat) {
             case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
