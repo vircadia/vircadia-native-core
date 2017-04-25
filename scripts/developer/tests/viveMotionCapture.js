@@ -8,7 +8,7 @@ var TRACKED_OBJECT_POSES = [
     "TrackedObject12", "TrackedObject13", "TrackedObject14", "TrackedObject15"
 ];
 
-var calibrated = false;
+var triggerPressHandled = false;
 var rightTriggerPressed = false;
 var leftTriggerPressed = false;
 
@@ -43,21 +43,6 @@ var SENSOR_CONFIG_NAMES = [
     "Auto"
 ];
 
-var ANIM_VARS = [
-    "leftFootType",
-    "leftFootPosition",
-    "leftFootRotation",
-    "rightFootType",
-    "rightFootPosition",
-    "rightFootRotation",
-    "hipsType",
-    "hipsPosition",
-    "hipsRotation",
-    "spine2Type",
-    "spine2Position",
-    "spine2Rotation"
-];
-
 var sensorConfig = AUTO;
 
 var Y_180 = {x: 0, y: 1, z: 0, w: 0};
@@ -86,7 +71,7 @@ function computeDefaultToReferenceXform() {
 
         return defaultToReferenceXform;
     } else {
-        return new Xform.ident();
+        return Xform.ident();
     }
 }
 
@@ -200,71 +185,86 @@ function computeIKTargetXform(jointInfo) {
 
 function update(dt) {
     if (rightTriggerPressed && leftTriggerPressed) {
-        if (!calibrated) {
-            calibrate();
-            calibrated = true;
-
+        if (!triggerPressHandled) {
+            triggerPressHandled = true;
             if (handlerId) {
-                MyAvatar.removeAnimationStateHandler(handlerId);
-            }
+                print("AJT: UN-CALIBRATE!");
 
-            handlerId = MyAvatar.addAnimationStateHandler(function (props) {
-
-                var result = {}, xform;
-                if (rightFoot) {
-                    xform = computeIKTargetXform(rightFoot);
-                    result.rightFootType = ikTypes.RotationAndPosition;
-                    result.rightFootPosition = xform.pos;
-                    result.rightFootRotation = xform.rot;
-                } else {
-                    result.rightFootType = props.rightFootType;
-                    result.rightFootPosition = props.rightFootPosition;
-                    result.rightFootRotation = props.rightFootRotation;
+                // go back to normal, vive pucks will be ignored.
+                leftFoot = undefined;
+                rightFoot = undefined;
+                hips = undefined;
+                spine2 = undefined;
+                if (handlerId) {
+                    print("AJT: un-hooking animation state handler");
+                    MyAvatar.removeAnimationStateHandler(handlerId);
+                    handlerId = undefined;
                 }
+            } else {
+                print("AJT: CALIBRATE!");
+                calibrate();
+
+                var animVars = [];
 
                 if (leftFoot) {
-                    xform = computeIKTargetXform(leftFoot);
-                    result.leftFootType = ikTypes.RotationAndPosition;
-                    result.leftFootPosition = xform.pos;
-                    result.leftFootRotation = xform.rot;
-                } else {
-                    result.leftFootType = props.leftFootType;
-                    result.leftFootPosition = props.leftFootPosition;
-                    result.leftFootRotation = props.leftFootRotation;
+                    animVars.push("leftFootType");
+                    animVars.push("leftFootPosition");
+                    animVars.push("leftFootRotation");
                 }
-
+                if (rightFoot) {
+                    animVars.push("rightFootType");
+                    animVars.push("rightFootPosition");
+                    animVars.push("rightFootRotation");
+                }
                 if (hips) {
-                    xform = computeIKTargetXform(hips);
-                    result.hipsType = ikTypes.RotationAndPosition;
-                    result.hipsPosition = xform.pos;
-                    result.hipsRotation = xform.rot;
-                } else {
-                    result.hipsType = props.hipsType;
-                    result.hipsPosition = props.hipsPosition;
-                    result.hipsRotation = props.hipsRotation;
+                    animVars.push("hipsType");
+                    animVars.push("hipsPosition");
+                    animVars.push("hipsRotation");
                 }
-
                 if (spine2) {
-                    xform = computeIKTargetXform(spine2);
-                    result.spine2Type = ikTypes.RotationAndPosition;
-                    result.spine2Position = xform.pos;
-                    result.spine2Rotation = xform.rot;
-                } else {
-                    result.spine2Type = ikTypes.Off;
+                    animVars.push("spine2Type");
+                    animVars.push("spine2Position");
+                    animVars.push("spine2Rotation");
                 }
 
-                return result;
-            }, ANIM_VARS);
-
+                // hook up new anim state handler that maps vive pucks to ik system.
+                handlerId = MyAvatar.addAnimationStateHandler(function (props) {
+                    var result = {}, xform;
+                    if (rightFoot) {
+                        xform = computeIKTargetXform(rightFoot);
+                        result.rightFootType = ikTypes.RotationAndPosition;
+                        result.rightFootPosition = xform.pos;
+                        result.rightFootRotation = xform.rot;
+                    }
+                    if (leftFoot) {
+                        xform = computeIKTargetXform(leftFoot);
+                        result.leftFootType = ikTypes.RotationAndPosition;
+                        result.leftFootPosition = xform.pos;
+                        result.leftFootRotation = xform.rot;
+                    }
+                    if (hips) {
+                        xform = computeIKTargetXform(hips);
+                        result.hipsType = ikTypes.RotationAndPosition;
+                        result.hipsPosition = xform.pos;
+                        result.hipsRotation = xform.rot;
+                    }
+                    if (spine2) {
+                        xform = computeIKTargetXform(spine2);
+                        result.spine2Type = ikTypes.RotationAndPosition;
+                        result.spine2Position = xform.pos;
+                        result.spine2Rotation = xform.rot;
+                    }
+                    return result;
+                }, animVars);
+            }
         }
     } else {
-        calibrated = false;
+        triggerPressHandled = false;
     }
 
     var drawMarkers = false;
     if (drawMarkers) {
         var RED = {x: 1, y: 0, z: 0, w: 1};
-        var GREEN = {x: 0, y: 1, z: 0, w: 1};
         var BLUE = {x: 0, y: 0, z: 1, w: 1};
 
         if (leftFoot) {
@@ -304,4 +304,4 @@ Script.scriptEnding.connect(function () {
     Controller.disableMapping(MAPPING_NAME);
     Script.update.disconnect(update);
 });
-var TRIGGER_OFF_VALUE = 0.1;
+
