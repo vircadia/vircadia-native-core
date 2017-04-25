@@ -98,25 +98,15 @@ Rectangle {
         
     }
         
+   
+
     HifiControls.Button {
-        id: load
+        id: browse
         anchors.right: parent.right
         anchors.top: selectedFile.bottom
         anchors.topMargin: 10
         
-        text: "Load"
-        color: hifi.buttons.black
-        enabled: true
-        onClicked: sendToScript({method: "Load", params: {file: path }}); 
-    }
-
-    HifiControls.Button {
-        id: browse
-        anchors.right: load.left
-        anchors.top: selectedFile.bottom
-        anchors.topMargin: 10
-        
-        text: "Browse"
+        text: "Load..."
         color: hifi.buttons.black
         enabled: true
         onClicked: {
@@ -146,6 +136,25 @@ Rectangle {
     function getFileSelected(file) {
         selectedFile.text = file;
         inputRecorder.path = file;
+        sendToScript({method: "Load", params: {file: path }}); 
+    }
+
+    function fromScript(message) {
+        switch (message.method) {
+        case "update":
+            updateButtonStatus(message.params);
+            break;
+        }
+    }
+
+    function updateButtonStatus(status) {
+        inputRecorder.recording = status;
+
+        if (inputRecorder.recording) {
+            start.text = "Stop Recording";
+        } else {
+            start.text = "Start Recording";
+        }
     }
 }
 

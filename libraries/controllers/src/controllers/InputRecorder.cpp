@@ -17,9 +17,14 @@
 #include <QStandardPaths>
 #include <QDateTime>
 #include <QByteArray>
-#include <GLMHelpers.h>
+#include <QStandardPaths>
+#include <PathUtils.h>
 
-QString SAVE_DIRECTORY = QDir::homePath()+"/hifi-input-recordings/";
+#include <BuildInfo.h>
+#include <GLMHelpers.h>
+ 
+QString SAVE_DIRECTORY = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/" + BuildInfo::INTERFACE_NAME +
+    "/interface" + "/hifi-input-recordings/";
 QString FILE_PREFIX_NAME = "input-recording-";
 QString COMPRESS_EXTENSION = ".tar.gz";
 namespace controller {

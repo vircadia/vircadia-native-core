@@ -7,6 +7,7 @@
 //
 
 (function() {
+    var recording = false;
     var onRecordingScreen = false;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
@@ -15,13 +16,20 @@
     function onClick() {
         if (onRecordingScreen) {
             tablet.gotoHomeScreen();
+            onRecordingScreen = false;
         } else {
             tablet.loadQMLSource("InputRecorder.qml");
+            onRecordingScreen = true;
         }
+    }
+
+    function onScreenChanged(type, url) {
+        onRecordingScreen = false;
     }
 
     button.clicked.connect(onClick);
     tablet.fromQml.connect(fromQml);
+    tablet.screenChanged.connect(onScreenChanged);
     function fromQml(message) {
         switch (message.method) {
         case "Start":
@@ -45,10 +53,12 @@
 
     function startRecording() {
         Controller.startInputRecording();
+        recording = true;
     }
     
     function stopRecording() {
         Controller.stopInputRecording();
+        recording = false;
     }
     
     function saveRecording() {
@@ -63,11 +73,23 @@
         Controller.startInputPlayback();
     }
 
+    function sendToQml(message) {
+        tablet.sendToQml(message);
+    }
+
+    function update() {
+        sendToQml({method: "update", params: recording});
+    }
+
+    Script.setInterval(update, 60);
+
     Script.scriptEnding.connect(function () {
         button.clicked.disconnect(onClick);
         if (tablet) {
             tablet.removeButton(button);
         }
+
+        Controller.stopInputRecording();
     });
 
 }());
