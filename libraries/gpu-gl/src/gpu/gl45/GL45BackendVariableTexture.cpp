@@ -76,10 +76,6 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
         _size += _gpuObject.evalMipSize(mip);
     }
 
-    if (!_gpuObject.isStoredMipFaceAvailable(allocatedMip, 0)) {
-        const_cast<gpu::Texture&>(_gpuObject).requestInterestInMip(allocatedMip);
-    }
-
     Backend::updateTextureGPUMemoryUsage(0, _size);
 
 }
