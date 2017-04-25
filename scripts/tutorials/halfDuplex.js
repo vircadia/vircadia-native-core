@@ -20,46 +20,49 @@
 var averageLoudness = 0.0; 
 var AVERAGING_TIME = 0.9;
 var LOUDNESS_THRESHOLD = 100;
-var HYSTERESIS_GAP = 1.41; 			//  3db gap
+var HYSTERESIS_GAP = 1.41;          //  3db gap
 var MICROPHONE_DISPLAY_NAME = "Microphone";
 
 var debug = false; 
 var isMuted = false;  
 
 Script.update.connect(function () {
-	//  
-	//  Check for other people's audio levels, mute if anyone is talking.  
- 	//
+    //  
+    //  Check for other people's audio levels, mute if anyone is talking.  
+    //
+    var othersLoudness = 0;
+    var avatars = AvatarList.getAvatarIdentifiers();
+    avatars.forEach(function (id) {
+        var avatar = AvatarList.getAvatar(id);
+        if ((MyAvatar.sessionUUID !== avatar.sessionUUID) && (avatar.displayName.indexOf(MICROPHONE_DISPLAY_NAME) !== 0)) {
+            othersLoudness += Math.round(avatar.audioLoudness); 
+        }
+        //  Mute other microphone avatars to not feedback with muti-source environment
+        if (avatar.displayName.indexOf(MICROPHONE_DISPLAY_NAME) === 0) {
+            if (!Users.getPersonalMuteStatus(avatar.sessionUUID)) {
+                Users.personalMute(avatar.sessionUUID, true);
+            }
+        }
+    });
 
- 	var othersLoudness = 0;
- 	var avatars = AvatarList.getAvatarIdentifiers();
-	avatars.forEach(function (id) {
-			var avatar = AvatarList.getAvatar(id);
-			if ((MyAvatar.sessionUUID !== avatar.sessionUUID) && (avatar.displayName.indexOf(MICROPHONE_DISPLAY_NAME) !== 0)) {
-				othersLoudness += Math.round(avatar.audioLoudness);	
-			}
-			//  Mute other microphone avatars to not feedback with muti-source environment
-			if (avatar.displayName.indexOf(MICROPHONE_DISPLAY_NAME) == 0) {
-				if (!Users.getPersonalMuteStatus(avatar.sessionUUID)) {
-					Users.personalMute(avatar.sessionUUID, true);
-				}
-			}
-        });
+    averageLoudness = AVERAGING_TIME * averageLoudness + (1.0 - AVERAGING_TIME) * othersLoudness;
 
-	averageLoudness = AVERAGING_TIME * averageLoudness +  (1.0 - AVERAGING_TIME) * othersLoudness;
-
-	if (!isMuted && (averageLoudness > LOUDNESS_THRESHOLD * HYSTERESIS_GAP)) {
-		if (debug) { print("Muted!"); }
-		isMuted = true;
-		if (!AudioDevice.getMuted()) {
-			AudioDevice.toggleMute();
-		}
-	} else if (isMuted && (averageLoudness < LOUDNESS_THRESHOLD)) {
-		if (debug) { print("UnMuted!"); }
-		isMuted = false;
-		if (AudioDevice.getMuted()) {
-			AudioDevice.toggleMute();
-		}
-	}
+    if (!isMuted && (averageLoudness > LOUDNESS_THRESHOLD * HYSTERESIS_GAP)) {
+        if (debug) { 
+            print("Muted!"); 
+        }
+        isMuted = true;
+        if (!AudioDevice.getMuted()) {
+            AudioDevice.toggleMute();
+        }
+    } else if (isMuted && (averageLoudness < LOUDNESS_THRESHOLD)) {
+        if (debug) { 
+            print("UnMuted!"); 
+        }
+        isMuted = false;
+        if (AudioDevice.getMuted()) {
+            AudioDevice.toggleMute();
+        }
+    }
 });
 
