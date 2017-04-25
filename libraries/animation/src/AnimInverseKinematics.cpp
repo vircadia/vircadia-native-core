@@ -458,7 +458,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             {
                 PROFILE_RANGE_EX(simulation_animation, "ik/shiftHips", 0xffff00ff, 0);
 
-                if (_hipsTargetIndex >= 0 && _hipsTargetIndex < targets.size()) {
+                if (_hipsTargetIndex >= 0 && _hipsTargetIndex < (int)targets.size()) {
                     // slam the hips to match the _hipsTarget
                     AnimPose absPose = targets[_hipsTargetIndex].getPose();
                     int parentIndex = _skeleton->getParentIndex(targets[_hipsTargetIndex].getIndex());
