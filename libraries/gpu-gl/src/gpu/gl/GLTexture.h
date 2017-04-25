@@ -49,8 +49,10 @@ public:
         using VoidLambdaQueue = std::queue<VoidLambda>;
         using ThreadPointer = std::shared_ptr<std::thread>;
         const GLTexture& _parent;
-        // Holds the contents to transfer to the GPU in CPU memory
-        std::vector<uint8_t> _buffer;
+        Texture::PixelsPointer _mipData;
+        size_t _transferOffset { 0 };
+        size_t _transferSize { 0 };
+
         // Indicates if a transfer from backing storage to interal storage has started
         bool _bufferingStarted { false };
         bool _bufferingCompleted { false };
@@ -78,7 +80,6 @@ public:
 #endif
 
     private:
-        size_t _transferSize { 0 };
 #if THREADED_TEXTURE_BUFFERING
         void startBuffering();
 #endif
