@@ -464,7 +464,7 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
         newState = MemoryPressureState::Transfer;
     } else if (pressure > OVERSUBSCRIBED_PRESSURE_VALUE && canDemote) {
         newState = MemoryPressureState::Oversubscribed;
-    } else if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && ((unallocated != 0 && canPromote) || canPopulate)) {
+    } else if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && ((unallocated != 0 && canPromote) && canPopulate)) {
         newState = MemoryPressureState::Undersubscribed;
     }
 
