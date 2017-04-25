@@ -21,6 +21,15 @@
 #include <InfoView.h>
 #include "SoundEffect.h"
 
+
+QScriptValue tabletToScriptValue(QScriptEngine* engine, TabletProxy* const &in) {
+    return engine->newQObject(in, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
+}
+
+void tabletFromScriptValue(const QScriptValue& value, TabletProxy* &out) {
+    out = qobject_cast<TabletProxy*>(value.toQObject());
+}
+
 TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
 }
@@ -41,7 +50,7 @@ QObject* TabletScriptingInterface::getSystemToolbarProxy() {
     }
 }
 
-QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
+TabletProxy* TabletScriptingInterface::getTablet(const QString& tabletId) {
 
     std::lock_guard<std::mutex> guard(_mutex);
 
