@@ -90,29 +90,29 @@ public:
     CheckDevicesThread(AudioClient* client) : BackgroundThread(client) {}
 
     void join() override {
-        _quit = true;
-        std::unique_lock<std::mutex> lock(mutex);
-        cv.wait(lock, [&]{ return !running; });
+        _shouldQuit = true;
+        std::unique_lock<std::mutex> lock(_joinMutex);
+        _joinCondition.wait(lock, [&]{ return !_isRunning; });
     }
 
 protected:
     void run() override {
-        while (!_quit) {
+        while (!_shouldQuit) {
             _client->checkDevices();
 
             const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
             QThread::msleep(DEVICE_CHECK_INTERVAL_MSECS);
         }
-        std::lock_guard<std::mutex> lock(mutex);
-        running = false;
-        cv.notify_one();
+        std::lock_guard<std::mutex> lock(_joinCondition);
+        _isRunning = false;
+        _joinCondition.notify_one();
     }
 
 private:
-    std::atomic<bool> _quit { false };
-    bool running { true };
-    std::mutex mutex;
-    std::condition_variable cv;
+    std::atomic<bool> _shouldQuit { false };
+    bool _isRunning { true };
+    std::mutex _joinMutex;
+    std::condition_variable _joinCondition;
 };
 
 // background thread buffering local injectors
