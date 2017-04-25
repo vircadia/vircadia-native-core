@@ -138,7 +138,7 @@
                     return;
                 }
                 stories[story.id] = story;
-                var message = story.username + " says something is happending in " + story.place_name + ". Open GOTO to join them.";
+                var message = story.username + " says something is happening in " + story.place_name + ". Open GOTO to join them.";
                 Window.displayAnnouncement(message);
                 didNotify = true;
             });
