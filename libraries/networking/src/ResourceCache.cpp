@@ -723,7 +723,7 @@ void Resource::handleReplyFinished() {
         _attempts++;
         switch (result) {
             case ResourceRequest::Result::Timeout: {
-                qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal ;
+                qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
                 // Fall through to other cases
             }
             case ResourceRequest::Result::ServerUnavailable: {
