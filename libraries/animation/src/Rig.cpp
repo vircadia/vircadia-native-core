@@ -1082,7 +1082,7 @@ void Rig::computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositi
 void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     if (_animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints()) {
         glm::quat yFlip180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        if (params.isInHMD) {
+        if (params.headEnabled) {
             glm::vec3 headPos, neckPos;
             glm::quat headRot, neckRot;
 

@@ -108,8 +108,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         Rig::HeadParameters headParams;
 
         if (qApp->isHMDMode()) {
-            headParams.isInHMD = true;
-
             // get HMD position from sensor space into world space, and back into rig space
             glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             glm::mat4 rigToWorld = createMatFromQuatAndPos(getRotation(), getTranslation());
@@ -119,18 +117,39 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.rigHeadPosition = extractTranslation(rigHMDMat);
             headParams.rigHeadOrientation = extractRotation(rigHMDMat);
             headParams.worldHeadOrientation = extractRotation(worldHMDMat);
+            headParams.headEnabled = true;
+        } else {
+            auto avatarHeadPose = myAvatar->getHeadControllerPoseInAvatarFrame();
+            if (avatarHeadPose.isValid()) {
+                glm::mat4 rigHeadMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
+                headParams.rigHeadPosition = extractTranslation(rigHeadMat);
+                headParams.rigHeadOrientation = glmExtractRotation(rigHeadMat);
+                headParams.worldHeadOrientation = myAvatar->getHeadControllerPoseInWorldFrame().getTranslation();
+                headParams.headEnabled = true;
+            } else {
+                // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and down in desktop mode.
+                headParams.rigHeadOrientation = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame();
+                headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+                headParams.headEnabled = false;
+            }
+        }
 
-            // TODO: if hips target sensor is valid.
-            // Copy it into headParams.hipsMatrix, and set headParams.hipsEnabled to true.
-
-            headParams.hipsEnabled = false;
+        auto avatarHipsPose = myAvatar->getHipsControllerPoseInAvatarFrame();
+        if (avatarHipsPose.isValid()) {
+            glm::mat4 rigHipsMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarHipsPose.getRotation(), avatarHipsPose.getTranslation());
+            headParams.hipsMatrix = rigHipsMat;
+            headParams.hipsEnabled = true;
         } else {
             headParams.hipsEnabled = false;
-            headParams.isInHMD = false;
+        }
 
-            // We don't have a valid localHeadPosition.
-            headParams.rigHeadOrientation = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame();
-            headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+        auto avatarSpine2Pose = myAvatar->getSpine2ControllerPoseInAvatarFrame();
+        if (avatarSpine2Pose.isValid()) {
+            glm::mat4 rigSpine2Mat = Matrices::Y_180 * createMatFromQuatAndPos(avatarSpine2Pose.getRotation(), avatarSpine2Pose.getTranslation());
+            headParams.spine2Matrix = rigSpine2Mat;
+            headParams.spine2Enabled = true;
+        } else {
+            headParams.spine2Enabled = false;
         }
 
         headParams.neckJointIndex = geometry.neckJointIndex;
