@@ -93,7 +93,6 @@ void GL45ResourceTexture::copyMipsFromTexture() {
 
 void GL45ResourceTexture::syncSampler() const {
     Parent::syncSampler();
-    qDebug() << "glTextureParameteri " << QString::fromStdString(_source) << _populatedMip << _populatedMip - _allocatedMip;
     glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, _populatedMip - _allocatedMip);
 }
 
