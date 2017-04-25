@@ -276,6 +276,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
     _maxNumPixels(maxNumPixels)
 {
     _textureSource = std::make_shared<gpu::TextureSource>();
+    _lowestRequestedMipLevel = 0;
 
     if (!url.isValid()) {
         _loaded = true;
