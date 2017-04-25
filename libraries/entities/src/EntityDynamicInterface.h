@@ -1,5 +1,5 @@
 //
-//  EntityActionInterface.h
+//  EntityDynamicInterface.h
 //  libraries/entities/src
 //
 //  Created by Seth Alves on 2015-6-2
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_EntityActionInterface_h
-#define hifi_EntityActionInterface_h
+#ifndef hifi_EntityDynamicInterface_h
+#define hifi_EntityDynamicInterface_h
 
 #include <memory>
 #include <QUuid>
@@ -23,22 +23,27 @@ using EntityItemWeakPointer = std::weak_ptr<EntityItem>;
 class EntitySimulation;
 using EntitySimulationPointer = std::shared_ptr<EntitySimulation>;
 
-enum EntityActionType {
-    // keep these synchronized with actionTypeFromString and actionTypeToString
-    ACTION_TYPE_NONE = 0,
-    ACTION_TYPE_OFFSET = 1000,
-    ACTION_TYPE_SPRING = 2000,
-    ACTION_TYPE_HOLD = 3000,
-    ACTION_TYPE_TRAVEL_ORIENTED = 4000
+enum EntityDynamicType {
+    // keep these synchronized with dynamicTypeFromString and dynamicTypeToString
+    DYNAMIC_TYPE_NONE = 0,
+    DYNAMIC_TYPE_OFFSET = 1000,
+    DYNAMIC_TYPE_SPRING = 2000,
+    DYNAMIC_TYPE_HOLD = 3000,
+    DYNAMIC_TYPE_TRAVEL_ORIENTED = 4000,
+    DYNAMIC_TYPE_HINGE = 5000,
+    DYNAMIC_TYPE_FAR_GRAB = 6000
 };
 
 
-class EntityActionInterface {
+class EntityDynamicInterface {
 public:
-    EntityActionInterface(EntityActionType type, const QUuid& id) : _id(id), _type(type) { }
-    virtual ~EntityActionInterface() { }
+    EntityDynamicInterface(EntityDynamicType type, const QUuid& id) : _id(id), _type(type) { }
+    virtual ~EntityDynamicInterface() { }
     const QUuid& getID() const { return _id; }
-    EntityActionType getType() const { return _type; }
+    EntityDynamicType getType() const { return _type; }
+    virtual bool isAction() const { return false; }
+    virtual bool isConstraint() const { return false; }
+    virtual bool isReadyForAdd() const { return true; }
 
     bool isActive() { return _active; }
 
@@ -51,8 +56,8 @@ public:
     virtual QByteArray serialize() const = 0;
     virtual void deserialize(QByteArray serializedArguments) = 0;
 
-    static EntityActionType actionTypeFromString(QString actionTypeString);
-    static QString actionTypeToString(EntityActionType actionType);
+    static EntityDynamicType dynamicTypeFromString(QString dynamicTypeString);
+    static QString dynamicTypeToString(EntityDynamicType dynamicType);
 
     virtual bool lifetimeIsOver() { return false; }
     virtual quint64 getExpires() { return 0; }
@@ -82,26 +87,26 @@ public:
 
 protected:
     virtual glm::vec3 getPosition() = 0;
-    virtual void setPosition(glm::vec3 position) = 0;
+    // virtual void setPosition(glm::vec3 position) = 0;
     virtual glm::quat getRotation() = 0;
-    virtual void setRotation(glm::quat rotation) = 0;
+    // virtual void setRotation(glm::quat rotation) = 0;
     virtual glm::vec3 getLinearVelocity() = 0;
     virtual void setLinearVelocity(glm::vec3 linearVelocity) = 0;
     virtual glm::vec3 getAngularVelocity() = 0;
     virtual void setAngularVelocity(glm::vec3 angularVelocity) = 0;
 
     QUuid _id;
-    EntityActionType _type;
+    EntityDynamicType _type;
     bool _active { false };
-    bool _isMine { false }; // did this interface create / edit this action?
+    bool _isMine { false }; // did this interface create / edit this dynamic?
 };
 
 
-typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
+typedef std::shared_ptr<EntityDynamicInterface> EntityDynamicPointer;
 
-QDataStream& operator<<(QDataStream& stream, const EntityActionType& entityActionType);
-QDataStream& operator>>(QDataStream& stream, EntityActionType& entityActionType);
+QDataStream& operator<<(QDataStream& stream, const EntityDynamicType& entityDynamicType);
+QDataStream& operator>>(QDataStream& stream, EntityDynamicType& entityDynamicType);
 
-QString serializedActionsToDebugString(QByteArray data);
+QString serializedDynamicsToDebugString(QByteArray data);
 
-#endif // hifi_EntityActionInterface_h
+#endif // hifi_EntityDynamicInterface_h

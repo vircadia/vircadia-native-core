@@ -1,5 +1,5 @@
 //
-//  AssignmentAction.h
+//  AssignmentDynamic.h
 //  assignment-client/src/
 //
 //  Created by Seth Alves 2015-6-19
@@ -8,21 +8,21 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  http://bulletphysics.org/Bullet/BulletFull/classbtActionInterface.html
+//  http://bulletphysics.org/Bullet/BulletFull/classbtDynamicInterface.html
 
-#ifndef hifi_AssignmentAction_h
-#define hifi_AssignmentAction_h
+#ifndef hifi_AssignmentDynamic_h
+#define hifi_AssignmentDynamic_h
 
 #include <QUuid>
 #include <EntityItem.h>
 
-#include "EntityActionInterface.h"
+#include "EntityDynamicInterface.h"
 
 
-class AssignmentAction : public EntityActionInterface, public ReadWriteLockable {
+class AssignmentDynamic : public EntityDynamicInterface, public ReadWriteLockable {
 public:
-    AssignmentAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
-    virtual ~AssignmentAction();
+    AssignmentDynamic(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity);
+    virtual ~AssignmentDynamic();
 
     virtual void removeFromSimulation(EntitySimulationPointer simulation) const override;
     virtual EntityItemWeakPointer getOwnerEntity() const override { return _ownerEntity; }
@@ -38,9 +38,7 @@ private:
 
 protected:
     virtual glm::vec3 getPosition() override;
-    virtual void setPosition(glm::vec3 position) override;
     virtual glm::quat getRotation() override;
-    virtual void setRotation(glm::quat rotation) override;
     virtual glm::vec3 getLinearVelocity() override;
     virtual void setLinearVelocity(glm::vec3 linearVelocity) override;
     virtual glm::vec3 getAngularVelocity() override;
@@ -50,4 +48,4 @@ protected:
     EntityItemWeakPointer _ownerEntity;
 };
 
-#endif // hifi_AssignmentAction_h
+#endif // hifi_AssignmentDynamic_h

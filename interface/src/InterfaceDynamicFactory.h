@@ -1,5 +1,5 @@
 //
-//  InterfaceActionFactory.cpp
+//  InterfaceDynamicFactory.cpp
 //  interface/src/
 //
 //  Created by Seth Alves on 2015-6-10
@@ -9,21 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_InterfaceActionFactory_h
-#define hifi_InterfaceActionFactory_h
+#ifndef hifi_InterfaceDynamicFactory_h
+#define hifi_InterfaceDynamicFactory_h
 
-#include "EntityActionFactoryInterface.h"
+#include "EntityDynamicFactoryInterface.h"
 
-class InterfaceActionFactory : public EntityActionFactoryInterface {
+class InterfaceDynamicFactory : public EntityDynamicFactoryInterface {
 public:
-    InterfaceActionFactory() : EntityActionFactoryInterface() { }
-    virtual ~InterfaceActionFactory() { }
-    virtual EntityActionPointer factory(EntityActionType type,
+    InterfaceDynamicFactory() : EntityDynamicFactoryInterface() { }
+    virtual ~InterfaceDynamicFactory() { }
+    virtual EntityDynamicPointer factory(EntityDynamicType type,
                                         const QUuid& id,
                                         EntityItemPointer ownerEntity,
                                         QVariantMap arguments) override;
-    virtual EntityActionPointer factoryBA(EntityItemPointer ownerEntity,
+    virtual EntityDynamicPointer factoryBA(EntityItemPointer ownerEntity,
                                           QByteArray data) override;
 };
 
-#endif // hifi_InterfaceActionFactory_h
+#endif // hifi_InterfaceDynamicFactory_h
