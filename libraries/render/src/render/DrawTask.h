@@ -65,8 +65,8 @@ public:
 private:
     const gpu::PipelinePointer getPipeline();
     gpu::PipelinePointer _boundsPipeline;
-    int _cornerLocation { -1 };
-    int _scaleLocation { -1 };
+    gpu::BufferPointer _drawBuffer;
+
     int _colorLocation { -1 };
 };
 
