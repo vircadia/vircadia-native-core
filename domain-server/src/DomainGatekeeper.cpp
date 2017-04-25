@@ -435,23 +435,8 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         return SharedNodePointer();
     }
 
-    QUuid hintNodeID;
-
-    // in case this is a node that's failing to connect
-    // double check we don't have a node whose sockets match exactly already in the list
-    limitedNodeList->eachNodeBreakable([&nodeConnection, &hintNodeID](const SharedNodePointer& node){
-        if (node->getPublicSocket() == nodeConnection.publicSockAddr
-            && node->getLocalSocket() == nodeConnection.localSockAddr) {
-            // we have a node that already has these exact sockets - this occurs if a node
-            // is unable to connect to the domain
-            hintNodeID = node->getUUID();
-            return false;
-        }
-        return true;
-    });
-
     // add the connecting node (or re-use the matched one from eachNodeBreakable above)
-    SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection, hintNodeID);
+    SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
 
     // set the edit rights for this user
     newNode->setPermissions(userPerms);
@@ -479,10 +464,11 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     return newNode;
 }
 
-SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection,
-                                                                      QUuid nodeID) {
+SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection) {
     HifiSockAddr discoveredSocket = nodeConnection.senderSockAddr;
     SharedNetworkPeer connectedPeer = _icePeers.value(nodeConnection.connectUUID);
+
+    QUuid nodeID;
 
     if (connectedPeer) {
         //  this user negotiated a connection with us via ICE, so re-use their ICE client ID
@@ -493,10 +479,8 @@ SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const Node
             discoveredSocket = *connectedPeer->getActiveSocket();
         }
     } else {
-        // we got a connectUUID we didn't recognize, either use the hinted node ID or randomly generate a new one
-        if (nodeID.isNull()) {
-            nodeID = QUuid::createUuid();
-        }
+        // we got a connectUUID we didn't recognize, randomly generate a new one
+        nodeID = QUuid::createUuid();
     }
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
