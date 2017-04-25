@@ -1007,6 +1007,7 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         }
 
         emit inputReceived({ audioBuffer.data(), numSamples });
+        emit inputReceivedBytes(audioBuffer);  // FIXME
 
         if (_noiseGate.openedInLastBlock()) {
             emit noiseGateOpened();

@@ -225,6 +225,7 @@ signals:
     bool muteToggled();
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
+    void inputReceivedBytes(const QByteArray inputSamples);
     void outputBytesToNetwork(int numBytes);
     void inputBytesFromNetwork(int numBytes);
     void noiseGateOpened();
