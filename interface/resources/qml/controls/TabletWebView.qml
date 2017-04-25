@@ -242,8 +242,8 @@ Item {
         }
 
         onLoadingChanged: {
-            //keyboardRaised = false;
-            //punctuationMode = false;
+            keyboardRaised = false;
+            punctuationMode = false;
             keyboard.resetShiftMode(false);
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
