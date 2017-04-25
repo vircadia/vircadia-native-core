@@ -210,6 +210,7 @@ endforeach()
 
 file(GLOB_RECURSE JS_SRC scripts/*.js)
 add_custom_target(js SOURCES ${JS_SRC})
+GroupSources("scripts")
 
 if (UNIX)
    install(

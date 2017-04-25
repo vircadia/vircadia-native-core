@@ -31,7 +31,7 @@ public:
     Antialiasing();
     ~Antialiasing();
     void configure(const Config& config) {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer);
+    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer);
 
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getBlendPipeline();

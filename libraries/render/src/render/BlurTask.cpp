@@ -200,7 +200,7 @@ void BlurGaussian::configure(const Config& config) {
 }
 
 
-void BlurGaussian::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer) {
+void BlurGaussian::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -308,7 +308,7 @@ void BlurGaussianDepthAware::configure(const Config& config) {
 }
 
 
-void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& SourceAndDepth, gpu::FramebufferPointer& blurredFramebuffer) {
+void BlurGaussianDepthAware::run(const RenderContextPointer& renderContext, const Inputs& SourceAndDepth, gpu::FramebufferPointer& blurredFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 

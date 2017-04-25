@@ -242,7 +242,7 @@ void SkeletonModel::updateAttitude() {
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     updateAttitude();
     if (fullUpdate) {
-        setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
+        setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
         Model::simulate(deltaTime, fullUpdate);
 

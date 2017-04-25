@@ -451,17 +451,17 @@ template<class T> void jobConfigure(T&, const JobConfig&) {
 template<class T> void jobConfigure(T&, const TaskConfig&) {
     // nop, as the default TaskConfig was used, so the data does not need a configure method
 }
-template <class T> void jobRun(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const JobNoIO& input, JobNoIO& output) {
-    data.run(sceneContext, renderContext);
+template <class T> void jobRun(T& data, const RenderContextPointer& renderContext, const JobNoIO& input, JobNoIO& output) {
+    data.run(renderContext);
 }
-template <class T, class I> void jobRun(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input, JobNoIO& output) {
-    data.run(sceneContext, renderContext, input);
+template <class T, class I> void jobRun(T& data, const RenderContextPointer& renderContext, const I& input, JobNoIO& output) {
+    data.run(renderContext, input);
 }
-template <class T, class O> void jobRun(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const JobNoIO& input, O& output) {
-    data.run(sceneContext, renderContext, output);
+template <class T, class O> void jobRun(T& data, const RenderContextPointer& renderContext, const JobNoIO& input, O& output) {
+    data.run(renderContext, output);
 }
-template <class T, class I, class O> void jobRun(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input, O& output) {
-    data.run(sceneContext, renderContext, input, output);
+template <class T, class I, class O> void jobRun(T& data, const RenderContextPointer& renderContext, const I& input, O& output) {
+    data.run(renderContext, input, output);
 }
 
 // The guts of a job
@@ -479,7 +479,7 @@ public:
     virtual QConfigPointer& getConfiguration() { return _config; }
     virtual void applyConfiguration() = 0;
 
-    virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
+    virtual void run(const RenderContextPointer& renderContext) = 0;
 
 protected:
     void setCPURunTime(double mstime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(mstime); }
@@ -529,10 +529,10 @@ public:
             jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) override {
+        void run(const RenderContextPointer& renderContext) override {
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->isEnabled()) {
-                jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
+                jobRun(_data, renderContext, _input.get<I>(), _output.edit<O>());
             }
             renderContext->jobConfig.reset();
         }
@@ -554,12 +554,12 @@ public:
         return concept->_data;
     }
 
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    void run(const RenderContextPointer& renderContext) {
         PerformanceTimer perfTimer(_name.c_str());
         PROFILE_RANGE(render, _name.c_str());
         auto start = usecTimestampNow();
 
-        _concept->run(sceneContext, renderContext);
+        _concept->run(renderContext);
 
         _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000.0);
     }
@@ -669,11 +669,11 @@ public:
             }
         }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) override {
+        void run(const RenderContextPointer& renderContext) override {
             auto config = std::static_pointer_cast<C>(_config);
             if (config->alwaysEnabled || config->enabled) {
                 for (auto job : _jobs) {
-                    job.run(sceneContext, renderContext);
+                    job.run(renderContext);
                 }
             }
         }

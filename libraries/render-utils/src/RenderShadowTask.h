@@ -24,7 +24,7 @@ public:
     using JobModel = render::Job::ModelI<RenderShadowMap, render::ShapeBounds>;
 
     RenderShadowMap(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+    void run(const render::RenderContextPointer& renderContext,
              const render::ShapeBounds& inShapes);
 
 protected:
@@ -56,14 +56,14 @@ class RenderShadowSetup {
 public:
     using Output = RenderArgs::RenderMode;
     using JobModel = render::Job::ModelO<RenderShadowSetup, Output>;
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, Output& output);
+    void run(const render::RenderContextPointer& renderContext, Output& output);
 };
 
 class RenderShadowTeardown {
 public:
     using Input = RenderArgs::RenderMode;
     using JobModel = render::Job::ModelI<RenderShadowTeardown, Input>;
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Input& input);
+    void run(const render::RenderContextPointer& renderContext, const Input& input);
 };
 
 #endif // hifi_RenderShadowTask_h
