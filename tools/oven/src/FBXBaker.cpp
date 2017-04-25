@@ -23,6 +23,7 @@
 #include <mutex>
 
 #include <NetworkAccessManager.h>
+#include <SharedUtil.h>
 
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
@@ -147,6 +148,8 @@ void FBXBaker::loadSourceFBX() {
         // setup the request to follow re-directs and always hit the network
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+
 
         networkRequest.setUrl(_fbxURL);
 
