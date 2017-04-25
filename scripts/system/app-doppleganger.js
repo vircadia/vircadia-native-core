@@ -5,8 +5,8 @@
 //  Created by Timothy Dedischew on 04/21/2017.
 //  Copyright 2017 High Fidelity, Inc.
 //
-//  This tablet app creates a mirrored projection of your avatar (ie: a "doppleganger") that you can walk around
-//  and inspect.
+//  This Client script creates can instance of a Doppleganger that can be toggled on/off via tablet button.
+//  (for more info see doppleganger.js)
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,39 +14,35 @@
 
 /* global */
 
-var TABLET_APP_ICON = Script.resolvePath('Spiegel-lineart-black.svg');
-var TABLET_APP_NAME = 'mirror';
+var DopplegangerClass = Script.require('./doppleganger.js');
+// uncomment the next line to sync via Script.update (instead of Script.setInterval)
+// DopplegangerClass.USE_SCRIPT_UPDATE = true;
 
-var EYE_TO_EYE = false; // whether to maintain the doppleganger's relative vertical positioning
-var DEBUG = true;
-var MIRRORED = true; // whether to mirror joints or simply transfer them as-is
+var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
+    button = tablet.addButton({
+        icon: "icons/tablet-icons/doppleganger-i.svg",
+        activeIcon: "icons/tablet-icons/doppleganger-a.svg",
+        text: 'MIRROR'
+    });
 
-var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system');
-var button = tablet.addButton({
-    icon: TABLET_APP_ICON,
-    text: TABLET_APP_NAME
+Script.scriptEnding.connect(function() {
+    tablet.removeButton(button);
 });
-
-var DopplegangerClass = Script.require('./doppleganger.js#'+ new Date().getTime().toString(36));
 
 var doppleganger = new DopplegangerClass({
     avatar: MyAvatar,
-    mirrored: MIRRORED,
-    debug: DEBUG,
-    eyeToEye: EYE_TO_EYE,
+    mirrored: true,
+    eyeToEye: true,
+    autoUpdate: true
 });
+Script.scriptEnding.connect(doppleganger, 'cleanup');
+
+if (Settings.getValue('debug.doppleganger', false)) {
+    DopplegangerClass.addDebugControls(doppleganger);
+}
 
 button.clicked.connect(function() {
-    print('click', doppleganger.active);
     doppleganger.toggle();
     button.editProperties({ isActive: doppleganger.active });
 });
 
-Script.scriptEnding.connect(function() {
-    try {
-        doppleganger.shutdown();
-    } finally {
-        // we want to remove the button even if an error is thrown during shutdown
-        tablet.removeButton(button);
-    }
-});

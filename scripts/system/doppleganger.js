@@ -5,63 +5,79 @@
 //  Created by Timothy Dedischew on 04/21/2017.
 //  Copyright 2017 High Fidelity, Inc.
 //
-//  This tablet app creates a mirrored projection of your avatar (ie: a "doppleganger") that you can walk around
-//  and inspect.
-//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global */
-
-var USE_SCRIPT_UPDATE = false; // if this is true then Script.update will be used to update the doppleganger joints
-var TARGET_FPS = 60; // when USE_SCRIPT_UPDATE is false, Script.setInterval will be used and target this FPS
+/* global module */
+// @module doppleganger
+//
+// This module contains the `Doppleganger` class implementation for creating an inspectable replica of
+// an Avatar (as a model directly in front of and facing them).  Joint positions and rotations are copied
+// over in an update thread, so that the model automatically mirrors the Avatar's joint movements.
+// An Avatar can then for example walk around "themselves" and examine from the back, etc.
+//
+// This should be helpful for inspecting your own look and debugging avatars, etc.
+//
+// The doppleganger is created as an overlay so that others do not see it -- and this also allows for the
+// highest possible update rate when keeping joint data in sync.
 
 module.exports = Doppleganger;
 
-if (!Function.prototype.bind) {
-    // FIXME: this inline version is meant to be temporary, pending either a system-wide version being adopted
-    //  or libraries/utils.js becoming a clean .require'able module
-    Function.prototype.bind = function(){var fn=this,s=[].slice,a=s.call(arguments),o=a.shift();return function(){return fn.apply(o,a.concat(s.call(arguments)))}};
-}
+// @property {bool} - when set true, Script.update will be used instead of setInterval for syncing joint data
+Doppleganger.USE_SCRIPT_UPDATE = false;
 
+// @property {int} - the frame rate to target when using setInterval for joint updates
+Doppleganger.TARGET_FPS = 60;
+
+// @class Doppleganger - Creates a new instance of a Doppleganger.
+// @param {Avatar} [options.avatar=MyAvatar] - Avatar used to retrieve position and joint data.
+// @param {bool}   [options.mirrored=true]   - Apply "symmetric mirroring" of Left/Right joints.
+// @param {bool}   [options.autoUpdate=true] - Automatically sync joint data.
 function Doppleganger(options) {
+    options = options || {};
     this.avatar = options.avatar || MyAvatar;
     this.mirrored = 'mirrored' in options ? options.mirrored : true;
-    this.debug = 'debug' in options ? options.debug : true;
-    this.eyeToEye = 'eyeToEye' in options ? options.eyeToEye : true;
+    this.autoUpdate = 'autoUpdate' in options ? options.autoUpdate : true;
 
-    // instance properties
-    this.active = false;
-    this.uuid = null;
-    this.interval = null;
-    this.selectedJoint = null;
-    this.positionNeedsUpdate = true;
+    // @public
+    this.active = false; // whether doppleganger is currently being displayed/updated
+    this.uuid = null;    // current doppleganger's Overlay id
+    this.ready = false;  // whether the underlying ModelOverlay has finished loading
+    this.frame = 0;      // current joint update frame
 }
 
 Doppleganger.prototype = {
+    // @public @method - toggles doppleganger on/off
     toggle: function() {
         if (this.active) {
-            print('toggling off');
+            log('toggling off');
             this.off();
             this.active = false;
         } else {
-            print('toggling on');
+            log('toggling on');
             this.on();
             this.active = true;
         }
         return this.active;
     },
-    syncJointName: 'LeftEye',
+
+    // @public @method - shutdown the dopplgeganger completely
+    cleanup: function() {
+        this.off();
+        this.active = false;
+    },
+
+    // @public @method - synchronize the joint data between Avatar / doppleganger
     update: function() {
+        this.frame++;
         try {
             if (!this.uuid) {
                 throw new Error('!this.uuid');
             }
+
             var rotations = this.avatar.getJointRotations();
-            var translations = this.avatar.getJointTranslations() || rotations.map(function(_, i) {
-                return this.avatar.getJointTranslation(i);
-            }.bind(this));
+            var translations = this.avatar.getJointTranslations();
 
             if (this.mirrored) {
                 var mirroredIndexes = this.mirroredIndexes;
@@ -82,28 +98,29 @@ Doppleganger.prototype = {
                 translations = outTranslations;
             }
             Overlays.editOverlay(this.uuid, {
-                visible: true,
                 jointRotations: rotations,
-                jointTranslations: translations,
+                jointTranslations: translations
             });
 
-            if (this.positionNeedsUpdate) {
-                this.positionNeedsUpdate = this.eyeToEye; // only continue updating if seeing eye-to-eye
-                this.fixVerticalPosition();
+            // debug plumbing
+            if (this.$update) {
+                this.$update();
             }
-            if (this.debug) {
-                this._drawDebugOverlays();
-            }
-        } catch(e) {
-            print('update ERROR: '+ e);
+        } catch (e) {
+            log('update ERROR: '+ e);
             this.off();
         }
     },
+
+    // @public @method - show the doppleganger (and start the update thread, if options.autoUpdate was specified).
     on: function() {
         if (this.uuid) {
-            print('doppleganger -- on() called but overlay model already exists', this.uuid);
+            log('on() called but overlay model already exists', this.uuid);
             return;
         }
+        this.ready = false;
+        this.frame = 0;
+
         this.position = Vec3.sum(this.avatar.position, Quat.getFront(this.avatar.orientation));
         this.orientation = this.avatar.orientation;
         this.skeletonModelURL = this.avatar.skeletonModelURL;
@@ -118,62 +135,43 @@ Doppleganger.prototype = {
             }
         });
 
+        var avatar = this.avatar;
         this.mirroredIndexes = this.mirroredNames.map(function(name) {
-            return name ? this.avatar.getJointIndex(name) : false;
-        }.bind(this));
+            return name ? avatar.getJointIndex(name) : false;
+        });
 
         this.uuid = Overlays.addOverlay('model', {
             visible: false,
             url: this.skeletonModelURL,
             position: this.position,
-            rotation: this.orientation,
+            rotation: this.orientation
         });
 
-        this._onModelReady(function() {
-            if (USE_SCRIPT_UPDATE) {
-                this.onUpdate = this.update;
-                Script.update.connect(this, 'onUpdate');
-                print('doppleganger will be updated from Script.update');
-            } else {
-                print('doppleganger will be updated using Script.setInterval at', TARGET_FPS +'fps');
-                this.interval = Script.setInterval(this.update.bind(this), 1000 / TARGET_FPS);
+        this._onModelOverlayReady(bind(this, function() {
+            this.ready = true;
+            Overlays.editOverlay(this.uuid, { visible: true });
+            this.syncVerticalPosition();
+            log('ModelOverlay is ready; # joints == ' + Overlays.getProperty(this.uuid, 'jointNames').length);
+            if (this.autoUpdate) {
+                this._createUpdateThread();
             }
-        });
+        }));
 
-        print('doppleganger created; overlayID =', this.uuid);
+        log('doppleganger created; overlayID =', this.uuid);
 
-        // trigger clean up (and stop updates) if the overlay gets deleted by any means
+        // trigger clean up (and stop updates) if the overlay gets deleted
         this.onDeletedOverlay = this._onDeletedOverlay;
         Overlays.overlayDeleted.connect(this, 'onDeletedOverlay');
 
-        // FIXME: remove this hook after verifying joint modes between mirrored/non-mirrored
-        if (true) {
-            this.onMousePressEvent = this._onMousePressEvent;
-            Controller.mousePressEvent.connect(this, 'onMousePressEvent');
+        // debug plumbing
+        if (this.$on) {
+            this.$on();
         }
     },
 
-    // execute callback only after the ModelOverlay has finished loading
-    _onModelReady: function(callback) {
-        const TIMEOUT_MS = 50;
-        var waited = 0;
-        var waitForJointNames = function() {
-            var names = Overlays.getProperty(this.uuid, 'jointNames');
-            if (Array.isArray(names) && names.length) {
-                print('jointNames', names);
-                callback.call(this, names);
-            } else {
-                print(waited++, 'waiting for doppleganger jointNames...');
-                Script.setTimeout(waitForJointNames, TIMEOUT_MS);
-            }
-        }.bind(this);
-        return Script.setTimeout(waitForJointNames, TIMEOUT_MS);
-    },
-    shutdown: function() {
-        this.off();
-        this.active = false;
-    },
+    // @public @method - hide the doppleganger
     off: function() {
+        this.ready = false;
         if (this.onUpdate) {
             Script.update.disconnect(this, 'onUpdate');
             delete this.onUpdate;
@@ -182,30 +180,27 @@ Doppleganger.prototype = {
             Overlays.overlayDeleted.disconnect(this, 'onDeletedOverlay');
             delete this.onDeletedOverlay;
         }
-        if (this.onMousePressEvent) {
-            Controller.mousePressEvent.disconnect(this, 'onMousePressEvent');
-            delete this.onMousePressEvent;
-        }
-        if (this.interval) {
-            Script.clearInterval(this.interval);
-            this.interval = undefined;
+        if (this._interval) {
+            Script.clearInterval(this._interval);
+            this._interval = undefined;
         }
         if (this.uuid) {
             Overlays.deleteOverlay(this.uuid);
             this.uuid = undefined;
         }
-        if (this.debugOverlayIDs) {
-            this.debugOverlayIDs.forEach(function(o) { Overlays.deleteOverlay(o); });
-            this.debugOverlayIDs = undefined;
+        // debug plumbing
+        if (this.$off) {
+            this.$off();
         }
     },
 
-    // ModelOverlays & ModelEntities get positioned slightly differently than rigged Avatars
-    // in EYE_TO_EYE mode this helper takes an actual measurement and adjusts the doppleganger
-    // so it always sees "eye to eye" with the avatar
-    fixVerticalPosition: function() {
-        var byJointName = this.syncJointName || 'Hips';
-
+    // @public @method - Reposition the doppleganger so it sees "eye to eye" with the Avatar.
+    // @param {String} [byJointName=Hips] - the reference joint that will be used to vertically match positions with Avatar
+    // @note This method attempts to make a direct measurement and then calculate where the doppleganger needs to be
+    //   in order to line-up vertically with the Avatar.  Otherwise, animations such as "away" mode can
+    //   result in the doppleganger floating above or below ground level.
+    syncVerticalPosition: function s(byJointName) {
+        byJointName = byJointName || 'Hips';
         var names = Overlays.getProperty(this.uuid, 'jointNames'),
             positions = Overlays.getProperty(this.uuid, 'jointPositions'),
             dopplePosition = Overlays.getProperty(this.uuid, 'position'),
@@ -214,77 +209,196 @@ Doppleganger.prototype = {
 
         var avatarPosition = this.avatar.position,
             avatarJointIndex = this.avatar.getJointIndex(byJointName),
-            avatarJointPosition = this.avatar.getAbsoluteJointTranslationInObjectFrame(avatarJointIndex);
+            avatarJointPosition = this.avatar.getJointPosition(avatarJointIndex);
 
-        var offset = Vec3.subtract(avatarJointPosition, doppleJointPosition);
-
-        dopplePosition.y = avatarPosition.y + offset.y;
+        var offset = avatarJointPosition.y - doppleJointPosition.y;
+        log('adjusting for offset', offset);
+        dopplePosition.y = avatarPosition.y + offset;
         this.position = dopplePosition;
         Overlays.editOverlay(this.uuid, { position: this.position });
     },
 
+    // @private @method - signal handler for Overlays.overlayDeleted
     _onDeletedOverlay: function(uuid) {
-        print('onDeletedOverlay', uuid);
+        log('onDeletedOverlay', uuid);
         if (uuid === this.uuid) {
             this.off();
         }
     },
 
-    // DEBUG methods for verifying mirrored joint behaviors
-    _onMousePressEvent: function(evt) {
-        if (evt.isRightButton) {
-            this.mirrored = !this.mirrored;
-        }
-        if (!this.debug || !evt.isLeftButton) {
+    // @private @method - creates the update thread to synchronize joint data
+    _createUpdateThread: function() {
+        if (!this.autoUpdate) {
+            log('options.autoUpdate == false -- call .update() manually to sync joint data');
             return;
         }
-        var ray = Camera.computePickRay(evt.x, evt.y),
-            hit = Overlays.findRayIntersection(ray, true, this.debugOverlayIDs);
-
-        hit.index = this.debugOverlayIDs.indexOf(hit.overlayID);
-        hit.jointName = this.jointNames[hit.index];
-        hit.mirroredJointName = this.mirroredNames[hit.index];
-        this.selectedJoint = hit.jointName;
-        print('selected joint:', JSON.stringify(hit,0,2));
+        if (Doppleganger.USE_SCRIPT_UPDATE) {
+            log('creating Script.update thread');
+            this.onUpdate = this.update;
+            Script.update.connect(this, 'onUpdate');
+        } else {
+            log('creating Script.setInterval thread @ ~', Doppleganger.TARGET_FPS +'fps');
+            var timeout = 1000 / Doppleganger.TARGET_FPS;
+            this._interval = Script.setInterval(bind(this, 'update'), timeout);
+        }
     },
 
-    _drawDebugOverlays: function() {
-        const COLOR_DEFAULT = { red: 255, blue: 255, green: 255 };
-        const COLOR_SELECTED = { red: 0, blue: 255, green: 0 };
+    // @private @method - Invokes a callback once the ModelOverlay is fully-initialized.
+    // @param {Function} callback
+    // @note This is needed because sometimes it takes a few frames for the underlying model
+    //   to become loaded even when already cached locally.
+    _onModelOverlayReady: function(callback) {
+        var RECHECK_MS = 50, MAX_WAIT_MS = 10000;
+        var id = this.uuid,
+            watchdogTimer = null,
+            boundCallback = bind(this, callback);
+
+        function waitForJointNames() {
+            if (!watchdogTimer) {
+                log('stopping waitForJointNames...');
+                return;
+            }
+            var names = Overlays.getProperty(id, 'jointNames');
+            if (Array.isArray(names) && names.length) {
+                log('ModelOverlay ready -- jointNames:', names);
+                boundCallback(names);
+                Script.clearTimeout(watchdogTimer);
+            } else {
+                return Script.setTimeout(waitForJointNames, RECHECK_MS);
+            }
+        }
+        watchdogTimer = Script.setTimeout(function() {
+            watchdogTimer = null;
+        }, MAX_WAIT_MS);
+        waitForJointNames();
+    }
+};
+
+// @function - bind a function to a `this` context
+// @param {Object} - the `this` context
+// @param {Function|String} - function or method name
+function bind(thiz, method) {
+    method = thiz[method] || method;
+    return function() {
+        return method.apply(thiz, arguments);
+    };
+}
+
+// @function - debug logging
+function log() {
+    print('doppleganger | ' + [].slice.call(arguments).join(' '));
+}
+
+// -- ADVANCED DEBUGGING --
+// @function - Add debug joint indicators / extra debugging info.
+// @param {Doppleganger} - existing Doppleganger instance to add controls to
+//
+// @note:
+//   * rightclick toggles mirror mode on/off
+//   * shift-rightclick toggles the debug indicators on/off
+//   * clicking on an indicator displays the joint name and mirrored joint name in the debug log.
+//
+// Example use:
+//    var doppleganger = new Doppleganger();
+//    Doppleganger.addDebugControls(doppleganger);
+Doppleganger.addDebugControls = function(doppleganger) {
+    var onMousePressEvent,
+        debugOverlayIDs,
+        selectedJointName;
+
+    if ('$update' in doppleganger) {
+        throw new Error('only one set of debug controls can be added per doppleganger');
+    }
+
+    function $on() {
+        onMousePressEvent = _onMousePressEvent;
+        Controller.mousePressEvent.connect(this, _onMousePressEvent);
+    }
+
+    function createOverlays(jointNames) {
+        return jointNames.map(function(name, i) {
+            return Overlays.addOverlay('shape', {
+                shape: 'Icosahedron',
+                scale: 0.1,
+                solid: false,
+                alpha: 0.5
+            });
+        });
+    }
+
+    function cleanupOverlays() {
+        if (debugOverlayIDs) {
+            debugOverlayIDs.forEach(Overlays.deleteOverlay);
+            debugOverlayIDs = undefined;
+        }
+    }
+
+    function $off() {
+        if (onMousePressEvent) {
+            Controller.mousePressEvent.disconnect(this, onMousePressEvent);
+            onMousePressEvent = undefined;
+        }
+        cleanupOverlays();
+    }
+
+    function $update() {
+        var COLOR_DEFAULT = { red: 255, blue: 255, green: 255 };
+        var COLOR_SELECTED = { red: 0, blue: 255, green: 0 };
 
         var id = this.uuid,
             jointOrientations = Overlays.getProperty(id, 'jointOrientations'),
             jointPositions = Overlays.getProperty(id, 'jointPositions'),
-            position = Overlays.getProperty(id, 'position'),
-            orientation = Overlays.getProperty(id, 'orientation'),
-            selectedIndex = this.jointNames.indexOf(this.selectedJoint);
+            selectedIndex = this.jointNames.indexOf(selectedJointName);
 
-        if (!this.debugOverlayIDs) {
-            // set up reference shapes per joint
-            this.debugOverlayIDs = jointOrientations.map(function(name, i) {
-                return Overlays.addOverlay('shape', {
-                    shape: 'Icosahedron',
-                    scale: .1,
-                    drawInFront: false,
-                    text: this.jointNames[i],
-                    solid: false,
-                    alpha: .5,
-                });
-            }.bind(this));
+        if (!debugOverlayIDs) {
+            debugOverlayIDs = createOverlays(this.jointNames);
         }
 
-        // group updates into { id: {props...}, ... } format
-        var updatedOverlays = this.debugOverlayIDs.reduce(function(updates, id, i) {
+        // batch all updates into a single call (using the editOverlays({ id: {props...}, ... }) API)
+        var updatedOverlays = debugOverlayIDs.reduce(function(updates, id, i) {
             updates[id] = {
-                position: jointPositions[i],//Vec3.sum(position, Vec3.multiplyQbyV(orientation, jointPositions[i])),
+                position: jointPositions[i],
                 rotation: jointOrientations[i],
                 color: i === selectedIndex ? COLOR_SELECTED : COLOR_DEFAULT,
-                solid: i === selectedIndex,
+                solid: i === selectedIndex
             };
             return updates;
         }, {});
         Overlays.editOverlays(updatedOverlays);
-    },
+    }
+
+    function _onMousePressEvent(evt) {
+        if (evt.isRightButton) {
+            if (evt.isShifted) {
+                if (this.$update) {
+                    // toggle debug overlays off
+                    cleanupOverlays();
+                    delete this.$update;
+                } else {
+                    this.$update = $update;
+                }
+            } else {
+                this.mirrored = !this.mirrored;
+            }
+            return;
+        }
+        if (!evt.isLeftButton || !debugOverlayIDs) {
+            return;
+        }
+
+        var ray = Camera.computePickRay(evt.x, evt.y),
+            hit = Overlays.findRayIntersection(ray, true, debugOverlayIDs);
+
+        hit.jointIndex = debugOverlayIDs.indexOf(hit.overlayID);
+        hit.jointName = this.jointNames[hit.jointIndex];
+        hit.mirroredJointName = this.mirroredNames[hit.jointIndex];
+        selectedJointName = hit.jointName;
+        log('selected joint:', JSON.stringify(hit, 0, 2));
+    }
+
+    doppleganger.$on = $on;
+    doppleganger.$off = $off;
+    doppleganger.$update = $update;
+
+    return doppleganger;
 };
-
-
