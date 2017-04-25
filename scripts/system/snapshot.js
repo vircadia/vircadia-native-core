@@ -149,16 +149,16 @@ function onMessage(message) {
                 Settings.setValue("previousStillSnapSharingDisabled", true);
             }
 
-            var requestBody = {
-                audience: "for_feed"
-            }
-
-            if (message.isAnnouncement) {
-                requestBody.action = "announcement";
-            }
-
             if (isLoggedIn) {
                 print('Modifying audience of story ID', message.story_id, "to 'for_feed'");
+                var requestBody = {
+                    audience: "for_feed"
+                }
+
+                if (message.isAnnouncement) {
+                    requestBody.action = "announcement";
+                    print('...Also announcing!');
+                }
                 request({
                     uri: METAVERSE_BASE + '/api/v1/user_stories/' + message.story_id,
                     method: 'PUT',
@@ -178,14 +178,10 @@ function onMessage(message) {
                     }
                 });
             } else {
-                // TODO
-                /*
                 needsLogin = true;
                 shareAfterLogin = true;
                 snapshotToShareAfterLogin = { path: message.data, href: message.href || href };
-                */
             }
-            /*
             if (needsLogin) {
                 if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
                     || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
@@ -194,7 +190,7 @@ function onMessage(message) {
                     tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
                     HMD.openTablet();
                 }
-            }*/
+            }
             break;
         case 'shareButtonClicked':
             print('Twitter or FB "Share" button clicked! Removing ID', message.story_id, 'from storyIDsToMaybeDelete[].');
@@ -265,8 +261,10 @@ function takeSnapshot() {
     }));
     Settings.setValue("previousStillSnapPath", "");
     Settings.setValue("previousStillSnapStoryID", "");
+    Settings.setValue("previousStillSnapSharingDisabled", false);
     Settings.setValue("previousAnimatedSnapPath", "");
     Settings.setValue("previousAnimatedSnapStoryID", "");
+    Settings.setValue("previousAnimatedSnapSharingDisabled", false);
 
     // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
     // Turn it off now, before we start futzing with things (and possibly moving).
@@ -452,7 +450,7 @@ function onTabletScreenChanged(type, url) {
         isInSnapshotReview = false;
     }
 }
-function onConnected() {
+function onUsernameChanged() {
     if (shareAfterLogin && Account.isLoggedIn()) {
         print('Sharing snapshot after login:', snapshotToShareAfterLogin.path);
         Window.shareSnapshot(snapshotToShareAfterLogin.path, snapshotToShareAfterLogin.href);
@@ -464,7 +462,7 @@ button.clicked.connect(openSnapApp);
 buttonConnected = true;
 Window.snapshotShared.connect(snapshotUploaded);
 tablet.screenChanged.connect(onTabletScreenChanged);
-Account.usernameChanged.connect(onConnected);
+Account.usernameChanged.connect(onUsernameChanged);
 Script.scriptEnding.connect(function () {
     if (buttonConnected) {
         button.clicked.disconnect(openSnapApp);
