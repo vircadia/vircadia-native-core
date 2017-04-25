@@ -249,7 +249,6 @@ static const float MIN_AVATAR_SCALE = .005f;
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
-const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_USECS = AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS * USECS_PER_MSEC;
 
 // See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
@@ -534,7 +533,7 @@ public:
         quint64 updatedAt;
     };
 
-    static void parseAvatarIdentityPacket(const QSharedPointer<ReceivedMessage>& message, Identity& identityOut);
+    static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
 
     // identityChanged returns true if identity has changed, false otherwise.
     // displayNameChanged returns true if displayName has changed, false otherwise.

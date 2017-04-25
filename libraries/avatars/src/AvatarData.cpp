@@ -14,7 +14,6 @@
 
 #include <cstdio>
 #include <cstring>
-#include <limits>
 #include <stdint.h>
 
 #include <QtCore/QDataStream>
@@ -1455,8 +1454,7 @@ QStringList AvatarData::getJointNames() const {
     return _jointNames;
 }
 
-void AvatarData::parseAvatarIdentityPacket(const QSharedPointer<ReceivedMessage>& message, Identity& identityOut) {
-    const QByteArray& data = message->getMessage();
+void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
     QDataStream packetStream(data);
 
     packetStream >> identityOut.uuid 
@@ -1491,9 +1489,6 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
         return;
     }
 
-    _identityUpdatedAt = identity.updatedAt;
-    qDebug() << __FUNCTION__ << "_identityUpdatedAt:" << _identityUpdatedAt;
-
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
         identityChanged = true;
@@ -1526,6 +1521,11 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
     // flag this avatar as non-stale by updating _averageBytesReceived
     const int BOGUS_NUM_BYTES = 1;
     _averageBytesReceived.updateAverage(BOGUS_NUM_BYTES);
+
+    // use the timestamp from this identity, since we want to honor the updated times in "server clock"
+    // this will overwrite any changes we made locally to this AvatarData's _identityUpdatedAt
+    _identityUpdatedAt = identity.updatedAt;
+    qDebug() << __FUNCTION__ << "_identityUpdatedAt:" << _identityUpdatedAt;
 }
 
 QByteArray AvatarData::identityByteArray() const {
