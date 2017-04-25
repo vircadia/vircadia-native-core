@@ -103,7 +103,7 @@ protected:
             const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
             QThread::msleep(DEVICE_CHECK_INTERVAL_MSECS);
         }
-        std::lock_guard<std::mutex> lock(_joinCondition);
+        std::lock_guard<std::mutex> lock(_joinMutex);
         _isRunning = false;
         _joinCondition.notify_one();
     }
