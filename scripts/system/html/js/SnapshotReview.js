@@ -122,7 +122,7 @@ function createShareOverlay(parentID, isGif, shareURL, hifiShareButtonsDisabled)
             '</div>' +
             '<div class="externalShareControls">' +
                 '<iframe src="https://www.facebook.com/plugins/share_button.php?href=' + shareURL + '&layout=button_count&size=small&mobile_iframe=false&width=84&height=20&appId" width="84" height="20" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowTransparency="true"></iframe>' +
-                '<a class="twitter-share-button" href="https://twitter.com/intent/tweet?text=I just took a snapshot in #HiFi!&url=' + shareURL + '&via=highfidelity"></a>' +
+                '<a class="twitter-share-button" href="https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot%20in%20#HiFi!&url=' + shareURL + '&via=highfidelity&hashtags=VR"></a>' +
             '</div>' +
         '</div>';
     shareOverlayContainer.appendChild(shareOverlay);
