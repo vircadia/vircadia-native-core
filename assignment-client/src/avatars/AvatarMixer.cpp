@@ -393,6 +393,7 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
 }
 
 void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    qDebug() << __FUNCTION__;
     auto start = usecTimestampNow();
     auto nodeList = DependencyManager::get<NodeList>();
     getOrCreateClientData(senderNode);
@@ -404,11 +405,10 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
 
             // parse the identity packet and update the change timestamp if appropriate
             AvatarData::Identity identity;
-            udt::Packet::MessageNumber messageNumber;
-            AvatarData::parseAvatarIdentityPacket(message, identity, messageNumber);
+            AvatarData::parseAvatarIdentityPacket(message, identity);
             bool identityChanged = false;
             bool displayNameChanged = false;
-            avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged, messageNumber);
+            avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged);
             if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();

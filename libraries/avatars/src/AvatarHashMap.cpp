@@ -127,8 +127,7 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
 
 void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     AvatarData::Identity identity;
-    udt::Packet::MessageNumber messageNumber;
-    AvatarData::parseAvatarIdentityPacket(message, identity, messageNumber);
+    AvatarData::parseAvatarIdentityPacket(message, identity);
 
     // make sure this isn't for an ignored avatar
     auto nodeList = DependencyManager::get<NodeList>();
@@ -149,7 +148,7 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
         auto avatar = newOrExistingAvatar(identity.uuid, sendingNode);
         bool identityChanged = false;
         bool displayNameChanged = false;
-        avatar->processAvatarIdentity(identity, identityChanged, displayNameChanged, messageNumber);
+        avatar->processAvatarIdentity(identity, identityChanged, displayNameChanged);
     }
 }
 

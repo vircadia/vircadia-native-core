@@ -414,8 +414,11 @@ void MyAvatar::update(float deltaTime) {
 
     uint64_t now = usecTimestampNow();
     if (now > _identityPacketExpiry || _avatarEntityDataLocallyEdited) {
-        _identityPacketExpiry = now + AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS;
-        sendIdentityPacket();
+        _identityPacketExpiry = now + AVATAR_IDENTITY_PACKET_SEND_INTERVAL_USECS;
+        if (getIdentityDataChanged()) {
+            qDebug() << __FUNCTION__ << "about to call... sendIdentityPacket();  --- _identityPacketExpiry:" << _identityPacketExpiry << "_avatarEntityDataLocallyEdited:" << _avatarEntityDataLocallyEdited;
+            sendIdentityPacket();
+        }
     }
 
     simulate(deltaTime);

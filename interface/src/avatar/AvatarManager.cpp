@@ -213,6 +213,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             }
         }
         avatar->animateScaleChanges(deltaTime);
+
         if (avatar->shouldDie()) {
             avatar->die();
             removeAvatar(avatar->getID());

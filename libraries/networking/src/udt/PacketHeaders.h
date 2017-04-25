@@ -229,7 +229,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     ImmediateSessionDisplayNameUpdates,
     VariableAvatarData,
     AvatarAsChildFixes,
-    StickAndBallDefaultAvatar
+    StickAndBallDefaultAvatar,
+    IdentityPacketsIncludeUpdateTime
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

@@ -249,6 +249,7 @@ static const float MIN_AVATAR_SCALE = .005f;
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
+const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_USECS = AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS * USECS_PER_MSEC;
 
 // See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
@@ -530,13 +531,14 @@ public:
         QString displayName;
         QString sessionDisplayName;
         AvatarEntityMap avatarEntityData;
+        quint64 updatedAt;
     };
 
-    static void parseAvatarIdentityPacket(const QSharedPointer<ReceivedMessage>& message, Identity& identityOut, udt::Packet::MessageNumber& messageNumberOut);
+    static void parseAvatarIdentityPacket(const QSharedPointer<ReceivedMessage>& message, Identity& identityOut);
 
     // identityChanged returns true if identity has changed, false otherwise.
     // displayNameChanged returns true if displayName has changed, false otherwise.
-    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, udt::Packet::MessageNumber messageNumber);
+    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
 
     QByteArray identityByteArray() const;
 
@@ -546,7 +548,10 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
-    virtual void setSessionDisplayName(const QString& sessionDisplayName) { _sessionDisplayName = sessionDisplayName; };
+    virtual void setSessionDisplayName(const QString& sessionDisplayName) { 
+        _sessionDisplayName = sessionDisplayName; 
+        markIdentityDataChanged();
+    }
 
     Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
     Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
@@ -619,6 +624,7 @@ public:
     static float _avatarSortCoefficientCenter;
     static float _avatarSortCoefficientAge;
 
+    bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
 
 
 signals:
@@ -778,7 +784,14 @@ protected:
     quint64 _audioLoudnessChanged { 0 };
     float _audioAverageLoudness { 0.0f };
 
-    udt::Packet::MessageNumber _lastIdentityPacketMessageNumber{ 0 };
+    bool _identityDataChanged { false };
+    quint64 _identityUpdatedAt { 0 };
+
+    void markIdentityDataChanged() {
+        _identityDataChanged = true;
+        _identityUpdatedAt = usecTimestampNow();
+    }
+
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

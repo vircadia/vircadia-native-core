@@ -5198,6 +5198,8 @@ void Application::resettingDomain() {
 void Application::nodeAdded(SharedNodePointer node) const {
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet right away
+
+        qDebug() << __FUNCTION__ << "about to call... getMyAvatar()->sendIdentityPacket();";
         getMyAvatar()->sendIdentityPacket();
         getMyAvatar()->resetLastSent();
     }

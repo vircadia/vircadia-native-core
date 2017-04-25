@@ -1454,16 +1454,20 @@ QStringList AvatarData::getJointNames() const {
     return _jointNames;
 }
 
-void AvatarData::parseAvatarIdentityPacket(const QSharedPointer<ReceivedMessage>& message, Identity& identityOut, udt::Packet::MessageNumber& messageNumberOut) {
+void AvatarData::parseAvatarIdentityPacket(const QSharedPointer<ReceivedMessage>& message, Identity& identityOut) {
     const QByteArray& data = message->getMessage();
-    messageNumberOut = message->getMessageNumber();
     QDataStream packetStream(data);
 
-    packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.sessionDisplayName >> identityOut.avatarEntityData;
+    packetStream >> identityOut.uuid 
+            >> identityOut.skeletonModelURL 
+            >> identityOut.attachmentData 
+            >> identityOut.displayName 
+            >> identityOut.sessionDisplayName 
+            >> identityOut.avatarEntityData
+            >> identityOut.updatedAt;
 
 #ifdef WANT_DEBUG
     qCDebug(avatars) << __FUNCTION__
-        << "messageNumberOut:" << messageNumberOut
         << "identityOut.uuid:" << identityOut.uuid
         << "identityOut.skeletonModelURL:" << identityOut.skeletonModelURL
         << "identityOut.displayName:" << identityOut.displayName
@@ -1478,15 +1482,16 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, udt::Packet::MessageNumber messageNumber) {
+void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
 
-    if (messageNumber < _lastIdentityPacketMessageNumber) {
+    if (identity.updatedAt < _identityUpdatedAt) {
         qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
-                         << "messageNumber:" << messageNumber << "_lastIdentityPacketMessageNumber:" << _lastIdentityPacketMessageNumber;
+                << "identity.updatedAt:" << identity.updatedAt << "_identityUpdatedAt:" << _identityUpdatedAt;
         return;
     }
 
-    _lastIdentityPacketMessageNumber = messageNumber;
+    _identityUpdatedAt = identity.updatedAt;
+    qDebug() << __FUNCTION__ << "_identityUpdatedAt:" << _identityUpdatedAt;
 
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
@@ -1525,10 +1530,16 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
 QByteArray AvatarData::identityByteArray() const {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL);
+    const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
     _avatarEntitiesLock.withReadLock([&] {
-        identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << getSessionDisplayNameForTransport() << _avatarEntityData;
+        identityStream << getSessionUUID() 
+                << urlToSend 
+                << _attachmentData 
+                << _displayName 
+                << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
+                << _avatarEntityData
+                << _identityUpdatedAt;
     });
 
     return identityData;
@@ -1547,6 +1558,7 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
     updateJointMappings();
+    markIdentityDataChanged();
 }
 
 void AvatarData::setDisplayName(const QString& displayName) {
@@ -1556,6 +1568,7 @@ void AvatarData::setDisplayName(const QString& displayName) {
     sendIdentityPacket();
 
     qCDebug(avatars) << "Changing display name for avatar to" << displayName;
+    markIdentityDataChanged();
 }
 
 QVector<AttachmentData> AvatarData::getAttachmentData() const {
@@ -1574,6 +1587,7 @@ void AvatarData::setAttachmentData(const QVector<AttachmentData>& attachmentData
         return;
     }
     _attachmentData = attachmentData;
+    markIdentityDataChanged();
 }
 
 void AvatarData::attach(const QString& modelURL, const QString& jointName,
@@ -1717,6 +1731,7 @@ void AvatarData::sendIdentityPacket() {
         });
 
     _avatarEntityDataLocallyEdited = false;
+    _identityDataChanged = false;
 }
 
 void AvatarData::updateJointMappings() {
@@ -2253,10 +2268,12 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
             if (_avatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
                 _avatarEntityData.insert(entityID, entityData);
                 _avatarEntityDataLocallyEdited = true;
+                markIdentityDataChanged();
             }
         } else {
             itr.value() = entityData;
             _avatarEntityDataLocallyEdited = true;
+            markIdentityDataChanged();
         }
     });
 }
@@ -2270,6 +2287,7 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID) {
     _avatarEntitiesLock.withWriteLock([&] {
         _avatarEntityData.remove(entityID);
         _avatarEntityDataLocallyEdited = true;
+        markIdentityDataChanged();
     });
 }
 
