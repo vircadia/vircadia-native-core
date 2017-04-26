@@ -83,6 +83,22 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
+// 2 meter tall dude (in avatar coordinates)
+static const glm::vec3 DEFAULT_AVATAR_MIDDLE_EYE_POS { 0.0f, 0.9f, 0.0f };
+static const glm::quat DEFAULT_AVATAR_MIDDLE_EYE_ROT { Quaternions::Y_180 };
+static const glm::vec3 DEFAULT_AVATAR_HEAD_POS { 0.0f, 0.8f, 0.0f };
+static const glm::quat DEFAULT_AVATAR_HEAD_ROT { Quaternions::Y_180 };
+static const glm::vec3 DEFAULT_AVATAR_NECK_POS { 0.0f, 0.7f, 0.0f };
+static const glm::quat DEFAULT_AVATAR_NECK_ROT { Quaternions::Y_180 };
+static const glm::vec3 DEFAULT_AVATAR_SPINE2_POS { 0.0f, 0.5f, 0.0f };
+static const glm::quat DEFAULT_AVATAR_SPINE2_ROT { Quaternions::Y_180};
+static const glm::vec3 DEFAULT_AVATAR_HIPS_POS { 0.0f, 0.05f, 0.0f };
+static const glm::quat DEFAULT_AVATAR_HIPS_ROT { Quaternions::Y_180 };
+static const glm::vec3 DEFAULT_AVATAR_LEFTFOOT_POS { -0.1f, -0.9f, 0.0f };  // AJT: TODO: WRONG FIX ME
+static const glm::quat DEFAULT_AVATAR_LEFTFOOT_ROT { Quaternions::IDENTITY }; // AJT: TODO: WRONG FIX ME
+static const glm::vec3 DEFAULT_AVATAR_RIGHTFOOT_POS { 0.1f, -0.9f, 0.0f }; // AJT: TODO: WRONG FIX ME
+static const glm::quat DEFAULT_AVATAR_RIGHTFOOT_ROT { Quaternions::IDENTITY }; // AJT: TODO: WRONG FIX ME
+
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
     _wasPushing(false),
@@ -2283,22 +2299,17 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     const glm::quat hmdOrientation = getHMDSensorOrientation();
     const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
 
-    // 2 meter tall dude (in rig coordinates)
-    const glm::vec3 DEFAULT_RIG_MIDDLE_EYE_POS(0.0f, 0.9f, 0.0f);
-    const glm::vec3 DEFAULT_RIG_NECK_POS(0.0f, 0.70f, 0.0f);
-    const glm::vec3 DEFAULT_RIG_HIPS_POS(0.0f, 0.05f, 0.0f);
-
     int rightEyeIndex = _rig->indexOfJoint("RightEye");
     int leftEyeIndex = _rig->indexOfJoint("LeftEye");
     int neckIndex = _rig->indexOfJoint("Neck");
     int hipsIndex = _rig->indexOfJoint("Hips");
 
-    glm::vec3 rigMiddleEyePos = DEFAULT_RIG_MIDDLE_EYE_POS;
+    glm::vec3 rigMiddleEyePos = DEFAULT_AVATAR_MIDDLE_EYE_POS;
     if (leftEyeIndex >= 0 && rightEyeIndex >= 0) {
         rigMiddleEyePos = (_rig->getAbsoluteDefaultPose(leftEyeIndex).trans() + _rig->getAbsoluteDefaultPose(rightEyeIndex).trans()) / 2.0f;
     }
-    glm::vec3 rigNeckPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(neckIndex).trans() : DEFAULT_RIG_NECK_POS;
-    glm::vec3 rigHipsPos = hipsIndex != -1 ? _rig->getAbsoluteDefaultPose(hipsIndex).trans() : DEFAULT_RIG_HIPS_POS;
+    glm::vec3 rigNeckPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(neckIndex).trans() : DEFAULT_AVATAR_NECK_POS;
+    glm::vec3 rigHipsPos = hipsIndex != -1 ? _rig->getAbsoluteDefaultPose(hipsIndex).trans() : DEFAULT_AVATAR_HIPS_POS;
 
     glm::vec3 localEyes = (rigMiddleEyePos - rigHipsPos);
     glm::vec3 localNeck = (rigNeckPos - rigHipsPos);
@@ -2659,6 +2670,79 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         default: {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);
         }
+    }
+}
+
+glm::mat4 MyAvatar::getCenterEyeCalibrationMat() const {
+    // TODO: as an optimization cache this computation, then invalidate the cache when the avatar model is changed.
+    int rightEyeIndex = _rig->indexOfJoint("RightEye");
+    int leftEyeIndex = _rig->indexOfJoint("LeftEye");
+    if (rightEyeIndex >= 0 && leftEyeIndex >= 0) {
+        auto centerEyePos = (getAbsoluteDefaultJointTranslationInObjectFrame(rightEyeIndex) + getAbsoluteDefaultJointTranslationInObjectFrame(leftEyeIndex)) * 0.5f;
+        auto centerEyeRot = Quaternions::Y_180;
+        return createMatFromQuatAndPos(centerEyeRot, centerEyePos);
+    } else {
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_MIDDLE_EYE_POS, DEFAULT_AVATAR_MIDDLE_EYE_POS);
+    }
+}
+
+glm::mat4 MyAvatar::getHeadCalibrationMat() const {
+    // TODO: as an optimization cache this computation, then invalidate the cache when the avatar model is changed.
+    int headIndex = _rig->indexOfJoint("Head");
+    if (headIndex >= 0) {
+        auto headPos = getAbsoluteDefaultJointTranslationInObjectFrame(headIndex);
+        auto headRot = getAbsoluteDefaultJointRotationInObjectFrame(headIndex);
+        return createMatFromQuatAndPos(headRot, headPos);
+    } else {
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_HEAD_POS, DEFAULT_AVATAR_HEAD_POS);
+    }
+}
+
+glm::mat4 MyAvatar::getSpine2CalibrationMat() const {
+    // TODO: as an optimization cache this computation, then invalidate the cache when the avatar model is changed.
+    int spine2Index = _rig->indexOfJoint("Spine2");
+    if (spine2Index >= 0) {
+        auto spine2Pos = getAbsoluteDefaultJointTranslationInObjectFrame(spine2Index);
+        auto spine2Rot = getAbsoluteDefaultJointRotationInObjectFrame(spine2Index);
+        return createMatFromQuatAndPos(spine2Rot, spine2Pos);
+    } else {
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_SPINE2_POS, DEFAULT_AVATAR_SPINE2_POS);
+    }
+}
+
+glm::mat4 MyAvatar::getHipsCalibrationMat() const {
+    // TODO: as an optimization cache this computation, then invalidate the cache when the avatar model is changed.
+    int hipsIndex = _rig->indexOfJoint("Hips");
+    if (hipsIndex >= 0) {
+        auto hipsPos = getAbsoluteDefaultJointTranslationInObjectFrame(hipsIndex);
+        auto hipsRot = getAbsoluteDefaultJointRotationInObjectFrame(hipsIndex);
+        return createMatFromQuatAndPos(hipsRot, hipsPos);
+    } else {
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_HIPS_POS, DEFAULT_AVATAR_HIPS_POS);
+    }
+}
+
+glm::mat4 MyAvatar::getLeftFootCalibrationMat() const {
+    // TODO: as an optimization cache this computation, then invalidate the cache when the avatar model is changed.
+    int leftFootIndex = _rig->indexOfJoint("LeftFoot");
+    if (leftFootIndex >= 0) {
+        auto leftFootPos = getAbsoluteDefaultJointTranslationInObjectFrame(leftFootIndex);
+        auto leftFootRot = getAbsoluteDefaultJointRotationInObjectFrame(leftFootIndex);
+        return createMatFromQuatAndPos(leftFootRot, leftFootPos);
+    } else {
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTFOOT_POS, DEFAULT_AVATAR_LEFTFOOT_POS);
+    }
+}
+
+glm::mat4 MyAvatar::getRightFootCalibrationMat() const {
+    // TODO: as an optimization cache this computation, then invalidate the cache when the avatar model is changed.
+    int rightFootIndex = _rig->indexOfJoint("RightFoot");
+    if (rightFootIndex >= 0) {
+        auto rightFootPos = getAbsoluteDefaultJointTranslationInObjectFrame(rightFootIndex);
+        auto rightFootRot = getAbsoluteDefaultJointRotationInObjectFrame(rightFootIndex);
+        return createMatFromQuatAndPos(rightFootRot, rightFootPos);
+    } else {
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTFOOT_POS, DEFAULT_AVATAR_RIGHTFOOT_POS);
     }
 }
 

@@ -473,6 +473,14 @@ public:
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
+    // all calibration matrices are in absolute avatar space.
+    glm::mat4 getCenterEyeCalibrationMat() const;
+    glm::mat4 getHeadCalibrationMat() const;
+    glm::mat4 getSpine2CalibrationMat() const;
+    glm::mat4 getHipsCalibrationMat() const;
+    glm::mat4 getLeftFootCalibrationMat() const;
+    glm::mat4 getRightFootCalibrationMat() const;
+
     void addHoldAction(AvatarActionHold* holdAction);  // thread-safe
     void removeHoldAction(AvatarActionHold* holdAction);  // thread-safe
     void updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose& postUpdatePose);

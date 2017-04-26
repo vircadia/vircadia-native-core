@@ -4347,7 +4347,13 @@ void Application::update(float deltaTime) {
     controller::InputCalibrationData calibrationData = {
         myAvatar->getSensorToWorldMatrix(),
         createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
-        myAvatar->getHMDSensorMatrix()
+        myAvatar->getHMDSensorMatrix(),
+        myAvatar->getCenterEyeCalibrationMat(),
+        myAvatar->getHeadCalibrationMat(),
+        myAvatar->getSpine2CalibrationMat(),
+        myAvatar->getHipsCalibrationMat(),
+        myAvatar->getLeftFootCalibrationMat(),
+        myAvatar->getRightFootCalibrationMat()
     };
 
     InputPluginPointer keyboardMousePlugin;
