@@ -627,14 +627,6 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                 texture = textureCache->cacheTextureByHash(filename, texture);
             }
 
-            _lowestKnownPopulatedMip = _originalKtxDescriptor->header.numberOfMipmapLevels;
-            for (uint16_t l = 0; l < 200; l++) {
-                if (texture->isStoredMipFaceAvailable(l)) {
-                    _lowestKnownPopulatedMip = l;
-                    break;
-                }
-            }
-
             _lowestKnownPopulatedMip = texture->minAvailableMipLevel();
 
             _ktxResourceState = WAITING_FOR_MIP_REQUEST;
