@@ -34,13 +34,15 @@ Script.update.connect(function () {
     var avatars = AvatarList.getAvatarIdentifiers();
     avatars.forEach(function (id) {
         var avatar = AvatarList.getAvatar(id);
-        if ((MyAvatar.sessionUUID !== avatar.sessionUUID) && (avatar.displayName.indexOf(MICROPHONE_DISPLAY_NAME) !== 0)) {
-            othersLoudness += Math.round(avatar.audioLoudness); 
-        }
-        //  Mute other microphone avatars to not feedback with muti-source environment
-        if (avatar.displayName.indexOf(MICROPHONE_DISPLAY_NAME) === 0) {
-            if (!Users.getPersonalMuteStatus(avatar.sessionUUID)) {
-                Users.personalMute(avatar.sessionUUID, true);
+        if (MyAvatar.sessionUUID !== avatar.sessionUUID) {
+            if (avatar.displayName.indexOf(MICROPHONE_DISPLAY_NAME) !== 0) {
+                othersLoudness += Math.round(avatar.audioLoudness); 
+            }
+            //  Mute other microphone avatars to not feedback with muti-source environment
+            if (avatar.displayName.indexOf(MICROPHONE_DISPLAY_NAME) === 0) {
+                if (!Users.getPersonalMuteStatus(avatar.sessionUUID)) {
+                    Users.personalMute(avatar.sessionUUID, true);
+                }
             }
         }
     });
