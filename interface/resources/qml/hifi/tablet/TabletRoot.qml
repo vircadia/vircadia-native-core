@@ -44,6 +44,12 @@ Item {
         return openModal; 
     }
 
+    Component { id: assetDialogBuilder; TabletAssetDialog { } }
+    function assetDialog(properties) {
+        openModal = assetDialogBuilder.createObject(tabletRoot, properties);
+        return openModal;
+    }
+
     function setMenuProperties(rootMenu, subMenu) {
         tabletRoot.rootMenu = rootMenu;
         tabletRoot.subMenu = subMenu;
