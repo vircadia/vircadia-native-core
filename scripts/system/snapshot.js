@@ -36,6 +36,8 @@ var shareAfterLogin = false;
 var snapshotToShareAfterLogin;
 var METAVERSE_BASE = location.metaverseServerUrl;
 
+// It's totally unnecessary to return to C++ to perform many of these requests, such as DELETEing an old story,
+// POSTING a new one, PUTTING a new audience, or GETTING story data. It's far more efficient to do all of that within JS
 function request(options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
     var httpRequest = new XMLHttpRequest(), key;
     // QT bug: apparently doesn't handle onload. Workaround using readyState.
