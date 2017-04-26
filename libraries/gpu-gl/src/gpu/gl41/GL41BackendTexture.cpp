@@ -245,6 +245,7 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
     _allocatedMip = mipLevels;
     _maxAllocatedMip = _populatedMip = mipLevels;
     _minAllocatedMip = texture.minAvailableMipLevel();
+
     uvec3 mipDimensions;
     for (uint16_t mip = _minAllocatedMip; mip < mipLevels; ++mip) {
         if (glm::all(glm::lessThanEqual(texture.evalMipDimensions(mip), INITIAL_MIP_TRANSFER_DIMENSIONS))) {
@@ -310,11 +311,7 @@ void GL41VariableAllocationTexture::promote() {
     Q_ASSERT(_allocatedMip > 0);
 
     uint16_t targetAllocatedMip = _allocatedMip - std::min<uint16_t>(_allocatedMip, 2);
-    targetAllocatedMip = std::max<uint16_t>(_gpuObject.minAvailableMipLevel(), targetAllocatedMip);
-
-    if (targetAllocatedMip >= _allocatedMip || !_gpuObject.isStoredMipFaceAvailable(targetAllocatedMip, 0)) {
-        return;
-    }
+    targetAllocatedMip = std::max<uint16_t>(_minAllocatedMip, targetAllocatedMip);
 
     GLuint oldId = _id;
     auto oldSize = _size;

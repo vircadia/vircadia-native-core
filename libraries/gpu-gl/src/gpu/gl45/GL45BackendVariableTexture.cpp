@@ -43,9 +43,7 @@ using GL45ResourceTexture = GL45Backend::GL45ResourceTexture;
 GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45VariableAllocationTexture(backend, texture) {
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
-
     _maxAllocatedMip = _populatedMip = mipLevels;
-
     _minAllocatedMip = texture.minAvailableMipLevel();
 
     uvec3 mipDimensions;
@@ -104,11 +102,8 @@ void GL45ResourceTexture::promote() {
     Q_ASSERT(_allocatedMip > 0);
 
     uint16_t targetAllocatedMip = _allocatedMip - std::min<uint16_t>(_allocatedMip, 2);
-    targetAllocatedMip = std::max<uint16_t>(_gpuObject.minAvailableMipLevel(), targetAllocatedMip);
+    targetAllocatedMip = std::max<uint16_t>(_minAllocatedMip, targetAllocatedMip);
 
-    if (targetAllocatedMip >= _allocatedMip || !_gpuObject.isStoredMipFaceAvailable(targetAllocatedMip, 0)) {
-        return;
-    }
     GLuint oldId = _id;
     auto oldSize = _size;
     // create new texture
