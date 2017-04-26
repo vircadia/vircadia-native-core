@@ -14,13 +14,13 @@ Download and install the CMake 3.8.0-rc2 "win64-x64 Installer" from the [CMake W
 
 Download and install the [Qt 5.6.2 for Windows 64-bit (VS 2013)](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea#section-2). 
 
-Make sure to select all components when going through the installer.
+Keep the default components checked when going through the installer.
 
 ###Step 4. Setting Qt Environment Variable
 
 Go to "Control Panel > System > Advanced System Settings > Environment Variables > New..." (or search “Environment Variables” in Start Search).
 * Set "Variable name": QT_CMAKE_PREFIX_PATH
-* Set "Variable value": `C:\Qt\Qt5.6.1\5.6\msvc2013_64\lib\cmake`
+* Set "Variable value": `C:\Qt\Qt5.6.2\5.6\msvc2013_64\lib\cmake`
 
 ###Step 5. Installing OpenSSL
 
@@ -77,5 +77,5 @@ If not, add the directory where nmake is located to the PATH environment variabl
 
 ####Qt is throwing an error
 
-Make sure you have the correct version (5.6.1-1) installed and 'QT_CMAKE_PREFIX_PATH' environment variable is set correctly.
+Make sure you have the correct version (5.6.2) installed and 'QT_CMAKE_PREFIX_PATH' environment variable is set correctly.
 
