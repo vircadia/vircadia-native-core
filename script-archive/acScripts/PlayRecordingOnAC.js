@@ -20,6 +20,9 @@ Avatar.orientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 Avatar.scale = 1.0;
 Agent.isAvatar = true;
 
+// Disable the privacy bubble
+Users.disableIgnoreRadius();
+
 Recording.loadRecording(recordingFile, function(success) {
     if (success) {
         Script.update.connect(update);
