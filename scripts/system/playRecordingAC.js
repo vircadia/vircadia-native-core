@@ -297,6 +297,8 @@
         playRecording = function (recording, position, orientation) {
             Recording.loadRecording(recording, function (success) {
                 if (success) {
+                    Users.disableIgnoreRadius();
+
                     Agent.isAvatar = true;
                     Avatar.position = position;
                     Avatar.orientation = orientation;
