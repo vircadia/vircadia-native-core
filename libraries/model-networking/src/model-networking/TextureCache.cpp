@@ -429,7 +429,7 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
     } else {
         ByteRange range;
         range.fromInclusive = ktx::KTX_HEADER_SIZE + _originalKtxDescriptor->header.bytesOfKeyValueData
-                              + _originalKtxDescriptor->images[low]._imageOffset + 4;
+                              + _originalKtxDescriptor->images[low]._imageOffset + ktx::IMAGE_SIZE_WIDTH;
         range.toExclusive = ktx::KTX_HEADER_SIZE + _originalKtxDescriptor->header.bytesOfKeyValueData
                               + _originalKtxDescriptor->images[high + 1]._imageOffset;
         _ktxMipRequest->setByteRange(range);
@@ -622,8 +622,8 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                     }
                     ktxData -= image._imageSize;
                     texture->assignStoredMip(static_cast<gpu::uint16>(level), image._imageSize, ktxData);
-                    ktxData -= 4;
-                    imageSizeRemaining -= (image._imageSize + 4);
+                    ktxData -= ktx::IMAGE_SIZE_WIDTH;
+                    imageSizeRemaining -= (image._imageSize + ktx::IMAGE_SIZE_WIDTH);
                 }
 
                 // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 

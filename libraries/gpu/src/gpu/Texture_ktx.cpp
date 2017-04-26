@@ -193,7 +193,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
 
     auto data = file->mutableData();
     data += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
-    data += 4;
+    data += ktx::IMAGE_SIZE_WIDTH;
 
     auto offset = _ktxDescriptor->getValueOffsetForKey(ktx::HIFI_MIN_POPULATED_MIP_KEY);
     {
@@ -207,7 +207,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
         memcpy(data, storage->data(), _ktxDescriptor->images[level]._imageSize);
         _minMipLevelAvailable = level;
         if (offset > 0) {
-            memcpy(file->mutableData() + ktx::KTX_HEADER_SIZE + 4 + offset, (void*)&_minMipLevelAvailable, 1);
+            memcpy(file->mutableData() + ktx::KTX_HEADER_SIZE + ktx::KV_SIZE_WIDTH + offset, (void*)&_minMipLevelAvailable, 1);
         }
     }
 }
@@ -300,7 +300,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
                 }
                 images.emplace_back(ktx::Image(imageOffset, (uint32_t)mip->getSize(), 0, cubeFaces));
             }
-            imageOffset += static_cast<uint32_t>(mip->getSize()) + 4;
+            imageOffset += static_cast<uint32_t>(mip->getSize()) + ktx::IMAGE_SIZE_WIDTH;
         }
     }
 

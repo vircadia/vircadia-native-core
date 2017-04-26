@@ -390,6 +390,8 @@ namespace ktx {
     };
     static const size_t KTX_HEADER_SIZE = 64;
     static_assert(sizeof(Header) == KTX_HEADER_SIZE, "KTX Header size is static and should not change from the spec");
+    static const size_t KV_SIZE_WIDTH = 4; // Number of bytes for keyAndValueByteSize
+    static const size_t IMAGE_SIZE_WIDTH = 4; // Number of bytes for imageSize
 
     // Key Values
     struct KeyValue {
