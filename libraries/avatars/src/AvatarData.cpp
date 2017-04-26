@@ -1532,11 +1532,22 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
 }
 
 QByteArray AvatarData::identityByteArray() const {
+    qDebug() << __FUNCTION__;
+
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
     _avatarEntitiesLock.withReadLock([&] {
+
+        qDebug() << __FUNCTION__
+            << "session:" << getSessionUUID()
+            << "url:" << urlToSend
+            << "displayName:" << _displayName
+            << "sessionDisplayName:" << getSessionDisplayNameForTransport()
+            << "identityUpdatedAt:" << _identityUpdatedAt;
+
+
         identityStream << getSessionUUID() 
                 << urlToSend 
                 << _attachmentData 
@@ -1720,6 +1731,7 @@ void AvatarData::sendAvatarDataPacket() {
 }
 
 void AvatarData::sendIdentityPacket() {
+    qDebug() << __FUNCTION__;
     auto nodeList = DependencyManager::get<NodeList>();
 
     QByteArray identityData = identityByteArray();
@@ -1728,9 +1740,14 @@ void AvatarData::sendIdentityPacket() {
     packetList->write(identityData);
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
+            if (node->getType() == NodeType::AvatarMixer) {
+                qDebug() << "AvatarData::sendIdentityPacket()... found mixer node, node->getActiveSocket():" << node->getActiveSocket();
+            }
+
             return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
         },
         [&](const SharedNodePointer& node) {
+            qDebug() << "AvatarData::sendIdentityPacket()... about to call.... nodeList->sendPacketList(std::move(packetList), *node);";
             nodeList->sendPacketList(std::move(packetList), *node);
         });
 
