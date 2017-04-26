@@ -5,7 +5,7 @@
 //  Created by Timothy Dedischew on 04/21/2017.
 //  Copyright 2017 High Fidelity, Inc.
 //
-//  This Client script creates can instance of a Doppleganger that can be toggled on/off via tablet button.
+//  This Client script creates an instance of a Doppleganger that can be toggled on/off via tablet button.
 //  (for more info see doppleganger.js)
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -27,22 +27,30 @@ var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
 
 Script.scriptEnding.connect(function() {
     tablet.removeButton(button);
+    button = null;
 });
 
 var doppleganger = new DopplegangerClass({
     avatar: MyAvatar,
     mirrored: true,
-    eyeToEye: true,
     autoUpdate: true
 });
-Script.scriptEnding.connect(doppleganger, 'cleanup');
+Script.scriptEnding.connect(doppleganger, 'stop');
+
+doppleganger.activeChanged.connect(function(active) {
+    if (button) {
+        button.editProperties({ isActive: active });
+    }
+});
+
+doppleganger.modelOverlayLoaded.connect(function(error, result) {
+    if (doppleganger.active && error) {
+        Window.alert('doppleganger | ' + error + '\n' + doppleganger.skeletonModelURL);
+    }
+});
+
+button.clicked.connect(doppleganger, 'toggle');
 
 if (Settings.getValue('debug.doppleganger', false)) {
     DopplegangerClass.addDebugControls(doppleganger);
 }
-
-button.clicked.connect(function() {
-    doppleganger.toggle();
-    button.editProperties({ isActive: doppleganger.active });
-});
-
