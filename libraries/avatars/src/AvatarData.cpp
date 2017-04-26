@@ -1489,6 +1489,9 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
         return;
     }
 
+    qCDebug(avatars) << __FUNCTION__ << "got identity packet for avatar " << getSessionUUID()
+                << "identity.updatedAt:" << identity.updatedAt << "_identityUpdatedAt:" << _identityUpdatedAt;
+
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
         identityChanged = true;

@@ -624,7 +624,10 @@ public:
     static float _avatarSortCoefficientAge;
 
     bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
-
+    void markIdentityDataChanged() {
+        _identityDataChanged = true;
+        _identityUpdatedAt = usecTimestampNow();
+    }
 
 signals:
     void displayNameChanged();
@@ -785,12 +788,6 @@ protected:
 
     bool _identityDataChanged { false };
     quint64 _identityUpdatedAt { 0 };
-
-    void markIdentityDataChanged() {
-        _identityDataChanged = true;
-        _identityUpdatedAt = usecTimestampNow();
-    }
-
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
