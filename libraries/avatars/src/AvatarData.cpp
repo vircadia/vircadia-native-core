@@ -1529,15 +1529,13 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
 }
 
 QByteArray AvatarData::identityByteArray() const {
-    qDebug() << __FUNCTION__;
-
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
     _avatarEntitiesLock.withReadLock([&] {
 
-        qDebug() << __FUNCTION__
+        qDebug() << "AvatarData::identityByteArray() ... "
             << "session:" << getSessionUUID()
             << "url:" << urlToSend
             << "displayName:" << _displayName
@@ -1731,6 +1729,7 @@ void AvatarData::sendIdentityPacket() {
     qDebug() << __FUNCTION__;
     auto nodeList = DependencyManager::get<NodeList>();
 
+    qDebug() << __FUNCTION__ << "about to call identityByteArray()... for getSessionUUID:" << getSessionUUID();
     QByteArray identityData = identityByteArray();
 
     auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);

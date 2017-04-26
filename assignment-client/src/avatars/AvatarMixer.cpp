@@ -70,6 +70,7 @@ AvatarMixer::~AvatarMixer() {
 }
 
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
+    qDebug() << __FUNCTION__ << "about to call nodeData->getAvatar().identityByteArray()... for node:" << nodeData->getNodeID();
     QByteArray individualData = nodeData->getAvatar().identityByteArray();
 
     auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
@@ -215,6 +216,8 @@ void AvatarMixer::manageDisplayName(const SharedNodePointer& node) {
         soFar.second++; // refcount
         nodeData->flagIdentityChange();
         nodeData->setAvatarSessionDisplayNameMustChange(false);
+
+        qCDebug(avatars) << __FUNCTION__ << "about to call sendIdentityPacket()";
         sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name.
         qCDebug(avatars) << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
     }
@@ -405,9 +408,14 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
 
             // parse the identity packet and update the change timestamp if appropriate
             AvatarData::Identity identity;
+
+            qCDebug(avatars) << __FUNCTION__ << "about to call parseAvatarIdentityPacket()";
             AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
+
             bool identityChanged = false;
             bool displayNameChanged = false;
+
+            qCDebug(avatars) << __FUNCTION__ << "about to call processAvatarIdentity()";
             avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged);
             if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());

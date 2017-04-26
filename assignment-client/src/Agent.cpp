@@ -583,6 +583,7 @@ void Agent::setIsAvatar(bool isAvatar) {
 void Agent::sendAvatarIdentityPacket() {
     if (_isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+        qDebug() << __FUNCTION__ << "about to call sendIdentityPacket()";
         scriptedAvatar->sendIdentityPacket();
     }
 }
