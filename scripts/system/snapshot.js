@@ -111,7 +111,7 @@ function onMessage(message) {
                     action: "showPreviousImages",
                     options: snapshotOptions,
                     image_data: imageData,
-                    canShare: !!isDomainOpen(Settings.getValue("previousSnapshotDomainID"))
+                    canShare: !isDomainOpen(Settings.getValue("previousSnapshotDomainID"))
                 }));
             } else {
                 tablet.emitScriptEvent(JSON.stringify({
@@ -229,11 +229,13 @@ function onMessage(message) {
 
 var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
 var isInSnapshotReview = false;
+var shouldActivateButton = false;
 function onButtonClicked() {
     if (isInSnapshotReview){
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
     } else {
+        shouldActivateButton = true;
         var previousStillSnapPath = Settings.getValue("previousStillSnapPath");
         var previousStillSnapStoryID = Settings.getValue("previousStillSnapStoryID");
         var previousStillSnapSharingDisabled = Settings.getValue("previousStillSnapSharingDisabled");
@@ -343,7 +345,7 @@ function isDomainOpen(id) {
     if (!id) {
         return false;
     }
-    var request = new XMLHttpRequest();
+
     var options = [
         'now=' + new Date().toISOString(),
         'include_actions=concurrency',
@@ -351,15 +353,19 @@ function isDomainOpen(id) {
         'restriction=open,hifi' // If we're sharing, we're logged in
         // If we're here, protocol matches, and it is online
     ];
-    var url = location.metaverseServerUrl + "/api/v1/user_stories?" + options.join('&');
-    request.open("GET", url, false);
-    request.send();
-    if (request.status !== 200) {
-        return false;
-    }
-    var response = JSON.parse(request.response); // Not parsed for us.
-    return (response.status === 'success') &&
-        response.total_entries;
+    var url = METAVERSE_BASE + "/api/v1/user_stories?" + options.join('&');
+
+    return request({
+        uri: url,
+        method: 'GET'
+    }, function (error, response) {
+        if (error || (response.status !== 'success')) {
+            print("ERROR getting open status of domain: ", error || response.status);
+            return false;
+        } else {
+            return response.total_entries;
+        }
+    });
 }
 
 function stillSnapshotTaken(pathStillSnapshot, notify) {
@@ -382,7 +388,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     snapshotOptions = {
         containsGif: false,
         processingGif: false,
-        canShare: !!isDomainOpen(domainId)
+        canShare: !isDomainOpen(domainId)
     };
     imageData = [{ localPath: pathStillSnapshot, href: href }];
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
@@ -414,7 +420,7 @@ function processingGifStarted(pathStillSnapshot) {
         containsGif: true,
         processingGif: true,
         loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
-        canShare: !!isDomainOpen(domainId)
+        canShare: !isDomainOpen(domainId)
     };
     imageData = [{ localPath: pathStillSnapshot, href: href }];
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
@@ -442,7 +448,7 @@ function processingGifCompleted(pathAnimatedSnapshot) {
     snapshotOptions = {
         containsGif: true,
         processingGif: false,
-        canShare: !!isDomainOpen(domainId)
+        canShare: !isDomainOpen(domainId)
     }
     imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
     Settings.setValue("previousAnimatedSnapPath", pathAnimatedSnapshot);
@@ -455,26 +461,24 @@ function processingGifCompleted(pathAnimatedSnapshot) {
     }));
 }
 function maybeDeleteSnapshotStories() {
-    if (storyIDsToMaybeDelete.length > 0) {
-        print("User took new snapshot & didn't share old one(s); deleting old snapshot stories");
-        storyIDsToMaybeDelete.forEach(function (element, idx, array) {
-            request({
-                uri: METAVERSE_BASE + '/api/v1/user_stories/' + element,
-                method: 'DELETE'
-            }, function (error, response) {
-                if (error || (response.status !== 'success')) {
-                    print("ERROR deleting snapshot story: ", error || response.status);
-                    return;
-                } else {
-                    print("SUCCESS deleting snapshot story with ID", element);
-                }
-            })
-        });
-        storyIDsToMaybeDelete = [];
-    }
+    storyIDsToMaybeDelete.forEach(function (element, idx, array) {
+        request({
+            uri: METAVERSE_BASE + '/api/v1/user_stories/' + element,
+            method: 'DELETE'
+        }, function (error, response) {
+            if (error || (response.status !== 'success')) {
+                print("ERROR deleting snapshot story: ", error || response.status);
+                return;
+            } else {
+                print("SUCCESS deleting snapshot story with ID", element);
+            }
+        })
+    });
+    storyIDsToMaybeDelete = [];
 }
 function onTabletScreenChanged(type, url) {
-    button.editProperties({ isActive: !isInSnapshotReview });
+    button.editProperties({ isActive: shouldActivateButton });
+    shouldActivateButton = false;
     if (isInSnapshotReview) {
         tablet.webEventReceived.disconnect(onMessage);
         isInSnapshotReview = false;
