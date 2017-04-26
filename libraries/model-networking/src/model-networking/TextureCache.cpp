@@ -422,9 +422,10 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 
     _ktxMipLevelRangeInFlight = { low, high };
     if (isHighMipRequest) {
+        static const int HIGH_MIP_MAX_SIZE = 5516;
         // This is a special case where we load the high 7 mips
         ByteRange range;
-        range.fromInclusive = -15000;
+        range.fromInclusive = -HIGH_MIP_MAX_SIZE;
         _ktxMipRequest->setByteRange(range);
     } else {
         ByteRange range;
