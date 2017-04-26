@@ -480,7 +480,7 @@ public:
 
     // Access the stored mips and faces
     const PixelsPointer accessStoredMipFace(uint16 level, uint8 face = 0) const { return _storage->getMipFace(level, face); }
-    bool isStoredMipFaceAvailable(uint16 level, uint8 face = 0) const;// { return _storage->isMipAvailable(level, face); }
+    bool isStoredMipFaceAvailable(uint16 level, uint8 face = 0) const;
     Size getStoredMipFaceSize(uint16 level, uint8 face = 0) const { return _storage->getMipFaceSize(level, face); }
     Size getStoredMipSize(uint16 level) const;
     Size getStoredSize() const;
