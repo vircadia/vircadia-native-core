@@ -1,4 +1,6 @@
 "use strict";
+/*jslint vars:true, plusplus:true, forin:true*/
+/*global Window, Script, Tablet, HMD, Controller, Account, XMLHttpRequest, location, print*/
 
 //
 //  goto.js
@@ -11,35 +13,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() { // BEGIN LOCAL_SCOPE
+(function () { // BEGIN LOCAL_SCOPE
     var gotoQmlSource = "TabletAddressDialog.qml";
     var buttonName = "GOTO";
     var onGotoScreen = false;
     var shouldActivateButton = false;
-
-    function onClicked() {
-        if (onGotoScreen) {
-            // for toolbar-mode: go back to home screen, this will close the window.
-            tablet.gotoHomeScreen();
-        } else {
-            shouldActivateButton = true;
-            tablet.loadQMLSource(gotoQmlSource);
-            onGotoScreen = true;
-        }
-    }
-
-    function onScreenChanged(type, url) {
-        if (url === gotoQmlSource) {
-            onGotoScreen = true;
-            shouldActivateButton = true;
-            button.editProperties({isActive: shouldActivateButton});
-            messagesWaiting(false);
-        } else { 
-            shouldActivateButton = false;
-            onGotoScreen = false;
-            button.editProperties({isActive: shouldActivateButton});
-        }
-    }
+    function ignore() { }
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var NORMAL_ICON    = "icons/tablet-icons/goto-i.svg";
@@ -58,10 +37,33 @@
         });
     }
 
+    function onClicked() {
+        if (onGotoScreen) {
+            // for toolbar-mode: go back to home screen, this will close the window.
+            tablet.gotoHomeScreen();
+        } else {
+            shouldActivateButton = true;
+            tablet.loadQMLSource(gotoQmlSource);
+            onGotoScreen = true;
+        }
+    }
+
+    function onScreenChanged(type, url) {
+        ignore(type);
+        if (url === gotoQmlSource) {
+            onGotoScreen = true;
+            shouldActivateButton = true;
+            button.editProperties({isActive: shouldActivateButton});
+            messagesWaiting(false);
+        } else {
+            shouldActivateButton = false;
+            onGotoScreen = false;
+            button.editProperties({isActive: shouldActivateButton});
+        }
+    }
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
 
-    var METAVERSE_BASE = location.metaverseServerUrl;
     function request(options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
         var httpRequest = new XMLHttpRequest(), key;
         // QT bug: apparently doesn't handle onload. Workaround using readyState.
@@ -129,7 +131,7 @@
             uri: url
         }, function (error, data) {
             if (error || (data.status !== 'success')) {
-                print("Error: unable to get", url,  error || response.status);
+                print("Error: unable to get", url,  error || data.status);
                 return;
             }
             var didNotify = false;
