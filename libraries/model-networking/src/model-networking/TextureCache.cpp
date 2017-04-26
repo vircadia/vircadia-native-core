@@ -338,7 +338,9 @@ void NetworkTexture::makeRequest() {
     if (_ktxResourceState == PENDING_INITIAL_LOAD) {
         _ktxResourceState = LOADING_INITIAL_DATA;
 
-        qDebug() << ">>> Making request to " << _url << " for header";
+        // Add a fragment to the base url so we can identify the section of the ktx being requested when debugging
+        // The actual requested url is _activeUrl and will not contain the fragment
+        _url.setFragment("head");
         _ktxHeaderRequest = ResourceManager::createResourceRequest(this, _activeUrl);
 
         if (!_ktxHeaderRequest) {
@@ -366,7 +368,12 @@ void NetworkTexture::makeRequest() {
     } else if (_ktxResourceState == PENDING_MIP_REQUEST) {
         if (_lowestKnownPopulatedMip > 0) {
             _ktxResourceState = REQUESTING_MIP;
-            startMipRangeRequest(_lowestKnownPopulatedMip - 1, _lowestKnownPopulatedMip - 1);
+
+            // Add a fragment to the base url so we can identify the section of the ktx being requested when debugging
+            // The actual requested url is _activeUrl and will not contain the fragment
+            uint16_t nextMip = _lowestKnownPopulatedMip - 1;
+            _url.setFragment(QString::number(nextMip));
+            startMipRangeRequest(nextMip, nextMip);
         }
     } else {
         qWarning(networking) << "NetworkTexture::makeRequest() called while not in a valid state: " << _ktxResourceState;
@@ -632,7 +639,6 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
 
             _ktxResourceState = WAITING_FOR_MIP_REQUEST;
             setImage(texture, header->getPixelWidth(), header->getPixelHeight());
-            qDebug() << "Loaded KTX: " << QString::fromStdString(hash) << " : " << _url;
 
             _ktxHeaderRequest->deleteLater();
             _ktxHeaderRequest = nullptr;

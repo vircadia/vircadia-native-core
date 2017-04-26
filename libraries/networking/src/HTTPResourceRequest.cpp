@@ -22,7 +22,6 @@
 #include "NetworkLogging.h"
 
 HTTPResourceRequest::~HTTPResourceRequest() {
-    qDebug() << "Cleaning up:" << _url << " " << _byteRange.fromInclusive << "-" << _byteRange.toExclusive;
     if (_reply) {
         _reply->disconnect(this);
         _reply->deleteLater();
@@ -68,7 +67,6 @@ void HTTPResourceRequest::doSend() {
             // HTTP byte ranges are inclusive on the `to` end: [from, to]
             byteRange = QString("bytes=%1-%2").arg(_byteRange.fromInclusive).arg(_byteRange.toExclusive - 1);
         }
-        qDebug() << "Setting http range to " << byteRange;
         networkRequest.setRawHeader("Range", byteRange.toLatin1());
     }
     networkRequest.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, false);
@@ -79,12 +77,9 @@ void HTTPResourceRequest::doSend() {
     connect(_reply, &QNetworkReply::downloadProgress, this, &HTTPResourceRequest::onDownloadProgress);
 
     setupTimer();
-    qDebug() << "Sent: " << _url;
 }
 
 void HTTPResourceRequest::onRequestFinished() {
-    qDebug() << "On request finished: " << _url;
-
     Q_ASSERT(_state == InProgress);
     Q_ASSERT(_reply);
 
