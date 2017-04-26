@@ -191,9 +191,9 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
 
     auto file = maybeOpenFile();
 
-    auto data = file->mutableData();
-    data += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
-    data += ktx::IMAGE_SIZE_WIDTH;
+    auto imageData = file->mutableData();
+    imageData += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
+    imageData += ktx::IMAGE_SIZE_WIDTH;
 
     auto offset = _ktxDescriptor->getValueOffsetForKey(ktx::HIFI_MIN_POPULATED_MIP_KEY);
     {
@@ -204,10 +204,11 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
             return;
         }
 
-        memcpy(data, storage->data(), _ktxDescriptor->images[level]._imageSize);
+        memcpy(imageData, storage->data(), _ktxDescriptor->images[level]._imageSize);
         _minMipLevelAvailable = level;
         if (offset > 0) {
-            memcpy(file->mutableData() + ktx::KTX_HEADER_SIZE + ktx::KV_SIZE_WIDTH + offset, (void*)&_minMipLevelAvailable, 1);
+            auto minMipKeyData = file->mutableData() + ktx::KTX_HEADER_SIZE + ktx::KV_SIZE_WIDTH + offset;
+            memcpy(minMipKeyData, (void*)&_minMipLevelAvailable, 1);
         }
     }
 }
