@@ -69,14 +69,7 @@ if (Settings.getValue('debug.doppleganger', false)) {
     DopplegangerClass.addDebugControls(doppleganger);
 }
 
-// TODO: uncomment after PR #10130 is merged (which provides the needed .logAction method)
-/*
 UserActivityLogger.logAction('doppleganger_app_load');
-
-// Script.scriptEnding.connect(function() {
-//     UserActivityLogger.logAction('doppleganger_app_unload');
-// });
-
 doppleganger.activeChanged.connect(function(active, reason) {
     if (active) {
         UserActivityLogger.logAction('doppleganger_enable');
@@ -90,5 +83,3 @@ doppleganger.activeChanged.connect(function(active, reason) {
         }
     }
 });
-
-*/
