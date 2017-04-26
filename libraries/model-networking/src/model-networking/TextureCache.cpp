@@ -50,6 +50,8 @@ Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.k
 const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
 const std::string TextureCache::KTX_EXT { "ktx" };
 
+static const int SKYBOX_LOAD_PRIORITY { 10 }; // Make sure skybox loads first
+
 TextureCache::TextureCache() :
     _ktxCache(KTX_DIRNAME, KTX_EXT) {
     setUnusedResourceCacheSize(0);
@@ -259,6 +261,9 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSh
     auto content = textureExtra ? textureExtra->content : QByteArray();
     auto maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
     NetworkTexture* texture = new NetworkTexture(url, type, content, maxNumPixels);
+    if (type == image::TextureUsage::CUBE_TEXTURE) {
+        texture->setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
+    }
     return QSharedPointer<Resource>(texture, &Resource::deleter);
 }
 

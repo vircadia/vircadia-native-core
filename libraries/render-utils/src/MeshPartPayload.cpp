@@ -558,7 +558,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     }
 
     if (_materialNeedsUpdate && _model->getGeometry()->areTexturesLoaded()) {
-        qDebug() << "Updating for textures";
         _model->setRenderItemsNeedUpdate();
         _materialNeedsUpdate = false;
     }
