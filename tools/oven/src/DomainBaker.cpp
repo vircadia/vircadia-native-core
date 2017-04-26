@@ -191,28 +191,28 @@ void DomainBaker::enumerateEntities() {
                     _entitiesNeedingRewrite.insert(modelURL, *it);
                 }
             } else {
-                // We check now to see if we have either a texture for a skybox or a keylight, or both.
-                if (entity.contains(ENTITY_SKYBOX_KEY)) {
-                    auto skyboxObject = entity[ENTITY_SKYBOX_KEY].toObject();
-                    if (skyboxObject.contains(ENTITY_SKYBOX_URL_KEY)) {
-                        // we have a URL to a skybox, grab it
-                        QUrl skyboxURL { skyboxObject[ENTITY_SKYBOX_URL_KEY].toString() };
-
-                        // setup a bake of the skybox
-                        bakeSkybox(skyboxURL, *it);
-                    }
-                }
-
-                if (entity.contains(ENTITY_KEYLIGHT_KEY)) {
-                    auto keyLightObject = entity[ENTITY_KEYLIGHT_KEY].toObject();
-                    if (keyLightObject.contains(ENTITY_KEYLIGHT_AMBIENT_URL_KEY)) {
-                        // we have a URL to a skybox, grab it
-                        QUrl skyboxURL { keyLightObject[ENTITY_KEYLIGHT_AMBIENT_URL_KEY].toString() };
-
-                        // setup a bake of the skybox
-                        bakeSkybox(skyboxURL, *it);
-                    }
-                }
+//                // We check now to see if we have either a texture for a skybox or a keylight, or both.
+//                if (entity.contains(ENTITY_SKYBOX_KEY)) {
+//                    auto skyboxObject = entity[ENTITY_SKYBOX_KEY].toObject();
+//                    if (skyboxObject.contains(ENTITY_SKYBOX_URL_KEY)) {
+//                        // we have a URL to a skybox, grab it
+//                        QUrl skyboxURL { skyboxObject[ENTITY_SKYBOX_URL_KEY].toString() };
+//
+//                        // setup a bake of the skybox
+//                        bakeSkybox(skyboxURL, *it);
+//                    }
+//                }
+//
+//                if (entity.contains(ENTITY_KEYLIGHT_KEY)) {
+//                    auto keyLightObject = entity[ENTITY_KEYLIGHT_KEY].toObject();
+//                    if (keyLightObject.contains(ENTITY_KEYLIGHT_AMBIENT_URL_KEY)) {
+//                        // we have a URL to a skybox, grab it
+//                        QUrl skyboxURL { keyLightObject[ENTITY_KEYLIGHT_AMBIENT_URL_KEY].toString() };
+//
+//                        // setup a bake of the skybox
+//                        bakeSkybox(skyboxURL, *it);
+//                    }
+//                }
             }
         }
     }
