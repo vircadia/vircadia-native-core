@@ -24,6 +24,7 @@ var buttonConnected = false;
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
     icon: "icons/tablet-icons/snap-i.svg",
+    activeIcon: "icons/tablet-icons/snap-a.svg",
     text: buttonName,
     sortOrder: 5
 });
@@ -137,8 +138,7 @@ function onMessage(message) {
             }
             break;
         case 'openSettings':
-            if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
-                    || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
+            if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", true)) || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", false))) {
                 Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "General Preferences");
             } else {
                 tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
@@ -229,29 +229,34 @@ function onMessage(message) {
 
 var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
 var isInSnapshotReview = false;
-function openSnapApp() {
-    var previousStillSnapPath = Settings.getValue("previousStillSnapPath");
-    var previousStillSnapStoryID = Settings.getValue("previousStillSnapStoryID");
-    var previousStillSnapSharingDisabled = Settings.getValue("previousStillSnapSharingDisabled");
-    var previousAnimatedSnapPath = Settings.getValue("previousAnimatedSnapPath");
-    var previousAnimatedSnapStoryID = Settings.getValue("previousAnimatedSnapStoryID");
-    var previousAnimatedSnapSharingDisabled = Settings.getValue("previousAnimatedSnapSharingDisabled");
-    snapshotOptions = {
-        containsGif: previousAnimatedSnapPath !== "",
-        processingGif: false,
-        shouldUpload: false
+function onButtonClicked() {
+    if (isInSnapshotReview){
+        // for toolbar-mode: go back to home screen, this will close the window.
+        tablet.gotoHomeScreen();
+    } else {
+        var previousStillSnapPath = Settings.getValue("previousStillSnapPath");
+        var previousStillSnapStoryID = Settings.getValue("previousStillSnapStoryID");
+        var previousStillSnapSharingDisabled = Settings.getValue("previousStillSnapSharingDisabled");
+        var previousAnimatedSnapPath = Settings.getValue("previousAnimatedSnapPath");
+        var previousAnimatedSnapStoryID = Settings.getValue("previousAnimatedSnapStoryID");
+        var previousAnimatedSnapSharingDisabled = Settings.getValue("previousAnimatedSnapSharingDisabled");
+        snapshotOptions = {
+            containsGif: previousAnimatedSnapPath !== "",
+            processingGif: false,
+            shouldUpload: false
+        }
+        imageData = [];
+        if (previousAnimatedSnapPath !== "") {
+            imageData.push({ localPath: previousAnimatedSnapPath, story_id: previousAnimatedSnapStoryID, buttonDisabled: previousAnimatedSnapSharingDisabled });
+        }
+        if (previousStillSnapPath !== "") {
+            imageData.push({ localPath: previousStillSnapPath, story_id: previousStillSnapStoryID, buttonDisabled: previousStillSnapSharingDisabled });
+        }
+        tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
+        tablet.webEventReceived.connect(onMessage);
+        HMD.openTablet();
+        isInSnapshotReview = true;
     }
-    imageData = [];
-    if (previousAnimatedSnapPath !== "") {
-        imageData.push({ localPath: previousAnimatedSnapPath, story_id: previousAnimatedSnapStoryID, buttonDisabled: previousAnimatedSnapSharingDisabled });
-    }
-    if (previousStillSnapPath !== "") {
-        imageData.push({ localPath: previousStillSnapPath, story_id: previousStillSnapStoryID, buttonDisabled: previousStillSnapSharingDisabled });
-    }
-    tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
-    tablet.webEventReceived.connect(onMessage);
-    HMD.openTablet();
-    isInSnapshotReview = true;
 }
 
 function snapshotUploaded(isError, reply) {
@@ -315,7 +320,7 @@ function takeSnapshot() {
         Window.stillSnapshotTaken.connect(stillSnapshotTaken);
     }
     if (buttonConnected) {
-        button.clicked.disconnect(openSnapApp);
+        button.clicked.disconnect(onButtonClicked);
         buttonConnected = false;
     }
 
@@ -366,7 +371,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     }
     Window.stillSnapshotTaken.disconnect(stillSnapshotTaken);
     if (!buttonConnected) {
-        button.clicked.connect(openSnapApp);
+        button.clicked.connect(onButtonClicked);
         buttonConnected = true;
     }
 
@@ -430,7 +435,7 @@ function processingGifStarted(pathStillSnapshot) {
 function processingGifCompleted(pathAnimatedSnapshot) {
     Window.processingGifCompleted.disconnect(processingGifCompleted);
     if (!buttonConnected) {
-        button.clicked.connect(openSnapApp);
+        button.clicked.connect(onButtonClicked);
         buttonConnected = true;
     }
 
@@ -469,6 +474,7 @@ function maybeDeleteSnapshotStories() {
     }
 }
 function onTabletScreenChanged(type, url) {
+    button.editProperties({ isActive: !isInSnapshotReview });
     if (isInSnapshotReview) {
         tablet.webEventReceived.disconnect(onMessage);
         isInSnapshotReview = false;
@@ -482,14 +488,14 @@ function onUsernameChanged() {
     }
 }
 
-button.clicked.connect(openSnapApp);
+button.clicked.connect(onButtonClicked);
 buttonConnected = true;
 Window.snapshotShared.connect(snapshotUploaded);
 tablet.screenChanged.connect(onTabletScreenChanged);
 Account.usernameChanged.connect(onUsernameChanged);
 Script.scriptEnding.connect(function () {
     if (buttonConnected) {
-        button.clicked.disconnect(openSnapApp);
+        button.clicked.disconnect(onButtonClicked);
         buttonConnected = false;
     }
     if (tablet) {
