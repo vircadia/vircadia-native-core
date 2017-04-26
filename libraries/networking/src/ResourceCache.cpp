@@ -555,6 +555,10 @@ void Resource::clearLoadPriority(const QPointer<QObject>& owner) {
 }
 
 float Resource::getLoadPriority() {
+    if (_loadPriorities.size() == 0) {
+        return 0;
+    }
+
     float highestPriority = -FLT_MAX;
     for (QHash<QPointer<QObject>, float>::iterator it = _loadPriorities.begin(); it != _loadPriorities.end(); ) {
         if (it.key().isNull()) {
