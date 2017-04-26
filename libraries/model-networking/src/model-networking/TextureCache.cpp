@@ -635,8 +635,6 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                 // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
                 // be the winner
                 texture = textureCache->cacheTextureByHash(filename, texture);
-
-
             }
 
             _lowestKnownPopulatedMip = _originalKtxDescriptor->header.numberOfMipmapLevels;
@@ -660,6 +658,7 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
             _ktxMipRequest->deleteLater();
             _ktxMipRequest = nullptr;
         }
+        startRequestForNextMipLevel();
     }
 }
 
