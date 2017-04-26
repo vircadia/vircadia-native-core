@@ -51,6 +51,7 @@ public slots:
     QScriptValue confirm(const QString& message = "");
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
     CustomPromptResult customPrompt(const QVariant& config);
+    QScriptValue browseDir(const QString& title = "", const QString& directory = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");

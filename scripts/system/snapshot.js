@@ -117,12 +117,18 @@ function onMessage(message) {
                     type: "snapshot",
                     action: "showSetupInstructions"
                 }));
+                Settings.setValue("previousStillSnapPath", "");
+                Settings.setValue("previousStillSnapStoryID", "");
+                Settings.setValue("previousStillSnapSharingDisabled", false);
+                Settings.setValue("previousAnimatedSnapPath", "");
+                Settings.setValue("previousAnimatedSnapStoryID", "");
+                Settings.setValue("previousAnimatedSnapSharingDisabled", false);
             }
             break;
         case 'chooseSnapshotLocation':
-            var snapshotPath = Window.browse("Choose Snapshots Directory","","");
+            var snapshotPath = Window.browseDir("Choose Snapshots Directory", "", "");
 
-            if (!snapshotPath.isEmpty()) { // not cancelled
+            if (snapshotPath) { // not cancelled
                 Settings.setValue("snapshotsLocation", snapshotPath);
                 tablet.emitScriptEvent(JSON.stringify({
                     type: "snapshot",

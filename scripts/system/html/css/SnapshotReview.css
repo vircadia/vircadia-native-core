@@ -204,6 +204,7 @@ input[type=button].naked:active {
     margin: auto;
     box-sizing: content-box;
     display: inline;
+    outline:none;
 }
 #snap-button:disabled {
     background: gray;

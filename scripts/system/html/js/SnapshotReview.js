@@ -25,6 +25,14 @@ function showSetupInstructions() {
     '<input type="button" value="CHOOSE" onclick="chooseSnapshotLocation()" />';
     document.getElementById("snap-button").disabled = true;
 }
+function showSetupComplete() {
+    var snapshotImagesDiv = document.getElementById("snapshot-images");
+    snapshotImagesDiv.className = "snapshotInstructions";
+    snapshotImagesDiv.innerHTML = '<img class="centeredImage" src="./img/snapshotIcon.png" alt="Snapshot Instructions" width="64" height="64"/>' +
+    '<br/>' +
+    "<h4>You're all set!</h4>" +
+    '<p>Try taking a snapshot by pressing the button below.</p>';
+}
 function chooseSnapshotLocation() {
     EventBridge.emitWebEvent(JSON.stringify({
         type: "snapshot",
@@ -244,6 +252,7 @@ window.onload = function () {
                     break;
                 case 'snapshotLocationChosen':
                     clearImages();
+                    showSetupComplete();
                     break;
                 case 'clearPreviousImages':
                     clearImages();
