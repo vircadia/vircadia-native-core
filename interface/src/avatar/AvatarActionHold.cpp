@@ -23,7 +23,7 @@ const int AvatarActionHold::velocitySmoothFrames = 6;
 AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectActionSpring(id, ownerEntity)
 {
-    _type = ACTION_TYPE_HOLD;
+    _type = DYNAMIC_TYPE_HOLD;
     _measuredLinearVelocities.resize(AvatarActionHold::velocitySmoothFrames);
 
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
@@ -323,28 +323,28 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     bool ignoreIK;
     bool needUpdate = false;
 
-    bool somethingChanged = ObjectAction::updateArguments(arguments);
+    bool somethingChanged = ObjectDynamic::updateArguments(arguments);
     withReadLock([&]{
         bool ok = true;
-        relativePosition = EntityActionInterface::extractVec3Argument("hold", arguments, "relativePosition", ok, false);
+        relativePosition = EntityDynamicInterface::extractVec3Argument("hold", arguments, "relativePosition", ok, false);
         if (!ok) {
             relativePosition = _relativePosition;
         }
 
         ok = true;
-        relativeRotation = EntityActionInterface::extractQuatArgument("hold", arguments, "relativeRotation", ok, false);
+        relativeRotation = EntityDynamicInterface::extractQuatArgument("hold", arguments, "relativeRotation", ok, false);
         if (!ok) {
             relativeRotation = _relativeRotation;
         }
 
         ok = true;
-        timeScale = EntityActionInterface::extractFloatArgument("hold", arguments, "timeScale", ok, false);
+        timeScale = EntityDynamicInterface::extractFloatArgument("hold", arguments, "timeScale", ok, false);
         if (!ok) {
             timeScale = _linearTimeScale;
         }
 
         ok = true;
-        hand = EntityActionInterface::extractStringArgument("hold", arguments, "hand", ok, false);
+        hand = EntityDynamicInterface::extractStringArgument("hold", arguments, "hand", ok, false);
         if (!ok || !(hand == "left" || hand == "right")) {
             hand = _hand;
         }
@@ -353,20 +353,20 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         holderID = myAvatar->getSessionUUID();
 
         ok = true;
-        kinematic = EntityActionInterface::extractBooleanArgument("hold", arguments, "kinematic", ok, false);
+        kinematic = EntityDynamicInterface::extractBooleanArgument("hold", arguments, "kinematic", ok, false);
         if (!ok) {
             kinematic = _kinematic;
         }
 
         ok = true;
-        kinematicSetVelocity = EntityActionInterface::extractBooleanArgument("hold", arguments,
+        kinematicSetVelocity = EntityDynamicInterface::extractBooleanArgument("hold", arguments,
                                                                              "kinematicSetVelocity", ok, false);
         if (!ok) {
             kinematicSetVelocity = _kinematicSetVelocity;
         }
 
         ok = true;
-        ignoreIK = EntityActionInterface::extractBooleanArgument("hold", arguments, "ignoreIK", ok, false);
+        ignoreIK = EntityDynamicInterface::extractBooleanArgument("hold", arguments, "ignoreIK", ok, false);
         if (!ok) {
             ignoreIK = _ignoreIK;
         }
@@ -400,8 +400,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
-                ownerEntity->setActionDataDirty(true);
-                ownerEntity->setActionDataNeedsTransmit(true);
+                ownerEntity->setDynamicDataDirty(true);
+                ownerEntity->setDynamicDataNeedsTransmit(true);
             }
         });
     }
@@ -410,7 +410,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap AvatarActionHold::getArguments() {
-    QVariantMap arguments = ObjectAction::getArguments();
+    QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&]{
         arguments["holderID"] = _holderID;
         arguments["relativePosition"] = glmToQMap(_relativePosition);
@@ -429,7 +429,7 @@ QByteArray AvatarActionHold::serialize() const {
     QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
 
     withReadLock([&]{
-        dataStream << ACTION_TYPE_HOLD;
+        dataStream << DYNAMIC_TYPE_HOLD;
         dataStream << getID();
         dataStream << AvatarActionHold::holdVersion;
 
@@ -451,7 +451,7 @@ QByteArray AvatarActionHold::serialize() const {
 void AvatarActionHold::deserialize(QByteArray serializedArguments) {
     QDataStream dataStream(serializedArguments);
 
-    EntityActionType type;
+    EntityDynamicType type;
     dataStream >> type;
     assert(type == getType());
 

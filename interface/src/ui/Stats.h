@@ -89,6 +89,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, downloadLimit, 0)
     STATS_PROPERTY(int, downloadsPending, 0)
     Q_PROPERTY(QStringList downloadUrls READ downloadUrls NOTIFY downloadUrlsChanged)
+    STATS_PROPERTY(int, processing, 0)
+    STATS_PROPERTY(int, processingPending, 0)
     STATS_PROPERTY(int, triangles, 0)
     STATS_PROPERTY(int, quads, 0)
     STATS_PROPERTY(int, materialSwitches, 0)
@@ -214,6 +216,8 @@ signals:
     void downloadLimitChanged();
     void downloadsPendingChanged();
     void downloadUrlsChanged();
+    void processingChanged();
+    void processingPendingChanged();
     void trianglesChanged();
     void quadsChanged();
     void materialSwitchesChanged();

@@ -30,7 +30,7 @@
 #include "EntitiesLogging.h"
 #include "EntityTree.h"
 #include "EntitySimulation.h"
-#include "EntityActionFactoryInterface.h"
+#include "EntityDynamicFactoryInterface.h"
 
 
 int EntityItem::_maxActionsDataSize = 800;
@@ -280,7 +280,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
-        APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getActionData());
+        APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getDynamicData());
 
         // convert AVATAR_SELF_ID to actual sessionUUID.
         QUuid actualParentID = getParentID();
@@ -821,7 +821,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
     READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
-    READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
+    READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setDynamicData);
 
     {   // parentID and parentJointIndex are also protected by simulation ownership
         bool oldOverwrite = overwriteLocalData;
@@ -1251,7 +1251,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(actionData, getActionData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(actionData, getDynamicData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentID, getParentID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
@@ -1358,7 +1358,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setActionData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setDynamicData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, updateParentID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
@@ -1872,10 +1872,20 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
                 iAmHoldingThis = true;
             }
             // also, don't bootstrap our own avatar with a hold action
-            QList<EntityActionPointer> holdActions = getActionsOfType(ACTION_TYPE_HOLD);
-            QList<EntityActionPointer>::const_iterator i = holdActions.begin();
+            QList<EntityDynamicPointer> holdActions = getActionsOfType(DYNAMIC_TYPE_HOLD);
+            QList<EntityDynamicPointer>::const_iterator i = holdActions.begin();
             while (i != holdActions.end()) {
-                EntityActionPointer action = *i;
+                EntityDynamicPointer action = *i;
+                if (action->isMine()) {
+                    iAmHoldingThis = true;
+                    break;
+                }
+                i++;
+            }
+            QList<EntityDynamicPointer> farGrabActions = getActionsOfType(DYNAMIC_TYPE_FAR_GRAB);
+            i = farGrabActions.begin();
+            while (i != farGrabActions.end()) {
+                EntityDynamicPointer action = *i;
                 if (action->isMine()) {
                     iAmHoldingThis = true;
                     break;
@@ -1941,18 +1951,18 @@ void EntityItem::rememberHasSimulationOwnershipBid() const {
 QString EntityItem::actionsToDebugString() {
     QString result;
     QVector<QByteArray> serializedActions;
-    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    QHash<QUuid, EntityDynamicPointer>::const_iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
         const QUuid id = i.key();
-        EntityActionPointer action = _objectActions[id];
-        EntityActionType actionType = action->getType();
+        EntityDynamicPointer action = _objectActions[id];
+        EntityDynamicType actionType = action->getType();
         result += QString("") + actionType + ":" + action->getID().toString() + " ";
         i++;
     }
     return result;
 }
 
-bool EntityItem::addAction(EntitySimulationPointer simulation, EntityActionPointer action) {
+bool EntityItem::addAction(EntitySimulationPointer simulation, EntityDynamicPointer action) {
     bool result;
     withWriteLock([&] {
         checkWaitingToRemove(simulation);
@@ -1960,7 +1970,7 @@ bool EntityItem::addAction(EntitySimulationPointer simulation, EntityActionPoint
         result = addActionInternal(simulation, action);
         if (result) {
             action->setIsMine(true);
-            _actionDataDirty = true;
+            _dynamicDataDirty = true;
         } else {
             removeActionInternal(action->getID());
         }
@@ -1969,7 +1979,7 @@ bool EntityItem::addAction(EntitySimulationPointer simulation, EntityActionPoint
     return result;
 }
 
-bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityActionPointer action) {
+bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityDynamicPointer action) {
     assert(action);
     assert(simulation);
     auto actionOwnerEntity = action->getOwnerEntity().lock();
@@ -1979,7 +1989,7 @@ bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityAct
     const QUuid& actionID = action->getID();
     assert(!_objectActions.contains(actionID) || _objectActions[actionID] == action);
     _objectActions[actionID] = action;
-    simulation->addAction(action);
+    simulation->addDynamic(action);
 
     bool success;
     QByteArray newDataCache;
@@ -2003,14 +2013,13 @@ bool EntityItem::updateAction(EntitySimulationPointer simulation, const QUuid& a
             return;
         }
 
-        EntityActionPointer action = _objectActions[actionID];
+        EntityDynamicPointer action = _objectActions[actionID];
 
         success = action->updateArguments(arguments);
         if (success) {
             action->setIsMine(true);
             serializeActions(success, _allActionsDataCache);
             _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-            _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
         } else {
             qCDebug(entities) << "EntityItem::updateAction failed";
         }
@@ -2035,7 +2044,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
             simulation = entityTree ? entityTree->getSimulation() : nullptr;
         }
 
-        EntityActionPointer action = _objectActions[actionID];
+        EntityDynamicPointer action = _objectActions[actionID];
 
         action->setOwnerEntity(nullptr);
         action->setIsMine(false);
@@ -2049,7 +2058,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
-        setActionDataNeedsTransmit(true);
+        setDynamicDataNeedsTransmit(true);
         return success;
     }
     return false;
@@ -2057,10 +2066,10 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
 
 bool EntityItem::clearActions(EntitySimulationPointer simulation) {
     withWriteLock([&] {
-        QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
+        QHash<QUuid, EntityDynamicPointer>::iterator i = _objectActions.begin();
         while (i != _objectActions.end()) {
             const QUuid id = i.key();
-            EntityActionPointer action = _objectActions[id];
+            EntityDynamicPointer action = _objectActions[id];
             i = _objectActions.erase(i);
             action->setOwnerEntity(nullptr);
             action->removeFromSimulation(simulation);
@@ -2101,12 +2110,12 @@ void EntityItem::deserializeActionsInternal() {
         serializedActionsStream >> serializedActions;
     }
 
-    // Keep track of which actions got added or updated by the new actionData
+    // Keep track of which actions got added or updated by the new dynamicData
     QSet<QUuid> updated;
 
     foreach(QByteArray serializedAction, serializedActions) {
         QDataStream serializedActionStream(serializedAction);
-        EntityActionType actionType;
+        EntityDynamicType actionType;
         QUuid actionID;
         serializedActionStream >> actionType;
         serializedActionStream >> actionID;
@@ -2115,7 +2124,7 @@ void EntityItem::deserializeActionsInternal() {
         }
 
         if (_objectActions.contains(actionID)) {
-            EntityActionPointer action = _objectActions[actionID];
+            EntityDynamicPointer action = _objectActions[actionID];
             // TODO: make sure types match?  there isn't currently a way to
             // change the type of an existing action.
             if (!action->isMine()) {
@@ -2123,9 +2132,9 @@ void EntityItem::deserializeActionsInternal() {
             }
             updated << actionID;
         } else {
-            auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
+            auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
             EntityItemPointer entity = getThisPointer();
-            EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);
+            EntityDynamicPointer action = actionFactory->factoryBA(entity, serializedAction);
             if (action) {
                 entity->addActionInternal(simulation, action);
                 updated << actionID;
@@ -2140,15 +2149,15 @@ void EntityItem::deserializeActionsInternal() {
     }
 
     // remove any actions that weren't included in the new data.
-    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    QHash<QUuid, EntityDynamicPointer>::const_iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
         QUuid id = i.key();
         if (!updated.contains(id)) {
-            EntityActionPointer action = i.value();
+            EntityDynamicPointer action = i.value();
 
             if (action->isMine()) {
                 // we just received an update that didn't include one of our actions.  tell the server about it (again).
-                setActionDataNeedsTransmit(true);
+                setDynamicDataNeedsTransmit(true);
             } else {
                 // don't let someone else delete my action.
                 _actionsToRemove << id;
@@ -2167,7 +2176,7 @@ void EntityItem::deserializeActionsInternal() {
         }
     }
 
-    _actionDataDirty = true;
+    _dynamicDataDirty = true;
 
     return;
 }
@@ -2179,15 +2188,15 @@ void EntityItem::checkWaitingToRemove(EntitySimulationPointer simulation) {
     _actionsToRemove.clear();
 }
 
-void EntityItem::setActionData(QByteArray actionData) {
+void EntityItem::setDynamicData(QByteArray dynamicData) {
     withWriteLock([&] {
-        setActionDataInternal(actionData);
+        setDynamicDataInternal(dynamicData);
     });
 }
 
-void EntityItem::setActionDataInternal(QByteArray actionData) {
-    if (_allActionsDataCache != actionData) {
-        _allActionsDataCache = actionData;
+void EntityItem::setDynamicDataInternal(QByteArray dynamicData) {
+    if (_allActionsDataCache != dynamicData) {
+        _allActionsDataCache = dynamicData;
         deserializeActionsInternal();
     }
     checkWaitingToRemove();
@@ -2201,10 +2210,10 @@ void EntityItem::serializeActions(bool& success, QByteArray& result) const {
     }
 
     QVector<QByteArray> serializedActions;
-    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    QHash<QUuid, EntityDynamicPointer>::const_iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
         const QUuid id = i.key();
-        EntityActionPointer action = _objectActions[id];
+        EntityDynamicPointer action = _objectActions[id];
         QByteArray bytesForAction = action->serialize();
         serializedActions << bytesForAction;
         i++;
@@ -2224,23 +2233,23 @@ void EntityItem::serializeActions(bool& success, QByteArray& result) const {
     return;
 }
 
-const QByteArray EntityItem::getActionDataInternal() const {
-    if (_actionDataDirty) {
+const QByteArray EntityItem::getDynamicDataInternal() const {
+    if (_dynamicDataDirty) {
         bool success;
         serializeActions(success, _allActionsDataCache);
         if (success) {
-            _actionDataDirty = false;
+            _dynamicDataDirty = false;
         }
     }
     return _allActionsDataCache;
 }
 
-const QByteArray EntityItem::getActionData() const {
+const QByteArray EntityItem::getDynamicData() const {
     QByteArray result;
 
-    if (_actionDataDirty) {
+    if (_dynamicDataDirty) {
         withWriteLock([&] {
-            getActionDataInternal();
+            getDynamicDataInternal();
             result = _allActionsDataCache;
         });
     } else {
@@ -2255,9 +2264,9 @@ QVariantMap EntityItem::getActionArguments(const QUuid& actionID) const {
     QVariantMap result;
     withReadLock([&] {
         if (_objectActions.contains(actionID)) {
-            EntityActionPointer action = _objectActions[actionID];
+            EntityDynamicPointer action = _objectActions[actionID];
             result = action->getArguments();
-            result["type"] = EntityActionInterface::actionTypeToString(action->getType());
+            result["type"] = EntityDynamicInterface::dynamicTypeToString(action->getType());
         }
     });
 
@@ -2265,7 +2274,7 @@ QVariantMap EntityItem::getActionArguments(const QUuid& actionID) const {
 }
 
 bool EntityItem::shouldSuppressLocationEdits() const {
-    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    QHash<QUuid, EntityDynamicPointer>::const_iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
         if (i.value()->shouldSuppressLocationEdits()) {
             return true;
@@ -2276,12 +2285,12 @@ bool EntityItem::shouldSuppressLocationEdits() const {
     return false;
 }
 
-QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToGet) const {
-    QList<EntityActionPointer> result;
+QList<EntityDynamicPointer> EntityItem::getActionsOfType(EntityDynamicType typeToGet) const {
+    QList<EntityDynamicPointer> result;
 
-    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    QHash<QUuid, EntityDynamicPointer>::const_iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
-        EntityActionPointer action = i.value();
+        EntityDynamicPointer action = i.value();
         if (action->getType() == typeToGet && action->isActive()) {
             result += action;
         }

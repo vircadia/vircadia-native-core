@@ -1,0 +1,251 @@
+[
+    {
+        "gameName": "checkers",
+        "matURL": "assets/mats/checker_large.gif",
+        "spawnStyle": "arranged",
+        "snapToGrid": true,
+        "startingArrangement": [
+            [
+                "1:checker",
+                "empty",
+                "1:checker",
+                "empty",
+                "1:checker",
+                "empty",
+                "1:checker",
+                "empty"
+            ],
+            [
+                "empty",
+                "1:checker",
+                "empty",
+                "1:checker",
+                "empty",
+                "1:checker",
+                "empty",
+                "1:checker"
+            ],
+            [
+                "1:checker",
+                "empty",
+                "1:checker",
+                "empty",
+                "1:checker",
+                "empty",
+                "1:checker",
+                "empty"
+            ],
+            [
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty"
+            ],
+            [
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty"
+            ],
+            [
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker"
+            ],
+            [
+                "2:checker",
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker",
+                "empty"
+            ],
+            [
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker",
+                "empty",
+                "2:checker"
+            ]
+        ],
+        "pieces": [
+            {
+                "checker": "assets/checkers/blackChecker.json"
+            },
+            {
+                "checker": "assets/checkers/redChecker.json"
+            }
+        ]
+    },
+    {
+        "gameName": "chess",
+        "matURL": "assets/mats/chessboard.png",
+        "spawnStyle": "arranged",
+        "snapToGrid": true,
+        "startingArrangement": [
+            [
+                "1:rook",
+                "1:knight",
+                "1:bishop",
+                "1:queen",
+                "1:king",
+                "1:bishop",
+                "1:knight",
+                "1:rook"
+            ],
+            [
+                "1:pawn",
+                "1:pawn",
+                "1:pawn",
+                "1:pawn",
+                "1:pawn",
+                "1:pawn",
+                "1:pawn",
+                "1:pawn"
+            ],
+            [
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty"
+            ],
+            [
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty"
+            ],
+            [
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty"
+            ],
+            [
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty",
+                "empty"
+            ],
+            [
+                "2:pawn",
+                "2:pawn",
+                "2:pawn",
+                "2:pawn",
+                "2:pawn",
+                "2:pawn",
+                "2:pawn",
+                "2:pawn"
+            ],
+            [
+                "2:rook",
+                "2:knight",
+                "2:bishop",
+                "2:queen",
+                "2:king",
+                "2:bishop",
+                "2:knight",
+                "2:rook"
+            ]
+        ],
+        "pieces": [
+            {
+                "king": "assets/chess/king_white.json",
+                "queen": "assets/chess/queen_white.json",
+                "rook": "assets/chess/rook_white.json",
+                "bishop": "assets/chess/bishop_white.json",
+                "knight": "assets/chess/knight_white.json",
+                "pawn": "assets/chess/pawn_white.json"
+            },
+            {
+                "king": "assets/chess/king_black.json",
+                "queen": "assets/chess/queen_black.json",
+                "rook": "assets/chess/rook_black.json",
+                "bishop": "assets/chess/bishop_black.json",
+                "knight": "assets/chess/knight_black.json",
+                "pawn": "assets/chess/pawn_black.json"
+            }
+        ]
+    },
+    {
+        "gameName": "dice",
+        "matURL": "assets/mats/Felt.jpg",
+        "spawnStyle": "pile",
+        "howMany": 5,
+        "identicalPieces": true,
+        "pieces": [
+            "assets/dice/dice.json"
+        ]
+    },
+    {
+        "gameName": "dominoes",
+        "matURL": "assets/mats/Felt.jpg",
+        "spawnStyle": "pile",
+        "howMany": 28,
+        "identicalPieces": false,
+        "pieces": [
+            "assets/dominoes/domino0.json",
+            "assets/dominoes/domino1.json",
+            "assets/dominoes/domino2.json",
+            "assets/dominoes/domino3.json",
+            "assets/dominoes/domino4.json",
+            "assets/dominoes/domino5.json",
+            "assets/dominoes/domino6.json",
+            "assets/dominoes/domino7.json",
+            "assets/dominoes/domino8.json",
+            "assets/dominoes/domino9.json",
+            "assets/dominoes/domino10.json",
+            "assets/dominoes/domino11.json",
+            "assets/dominoes/domino12.json",
+            "assets/dominoes/domino13.json",
+            "assets/dominoes/domino14.json",
+            "assets/dominoes/domino15.json",
+            "assets/dominoes/domino16.json",
+            "assets/dominoes/domino17.json",
+            "assets/dominoes/domino18.json",
+            "assets/dominoes/domino19.json",
+            "assets/dominoes/domino20.json",
+            "assets/dominoes/domino21.json",
+            "assets/dominoes/domino22.json",
+            "assets/dominoes/domino23.json",
+            "assets/dominoes/domino24.json",
+            "assets/dominoes/domino25.json",
+            "assets/dominoes/domino26.json",
+            "assets/dominoes/domino27.json"
+        ]
+    }
+]
