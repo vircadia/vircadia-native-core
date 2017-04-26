@@ -65,6 +65,7 @@ StackView {
             var card = tabletWebView.createObject();
             card.url = addressBarDialog.metaverseServerUrl + targetString;
             card.parentStackItem = root;
+            card.eventBridge = root.eventBridge;
             root.push(card);
             return;
         }
