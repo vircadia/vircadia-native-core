@@ -588,8 +588,7 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                     _ktxResourceState = FAILED_TO_LOAD;
                     finishedLoading(false);
                     return;
-                }
-                else {
+                } else {
                     _file = file;
                 }
 

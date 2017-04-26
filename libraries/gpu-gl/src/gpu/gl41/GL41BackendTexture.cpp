@@ -231,15 +231,20 @@ using GL41VariableAllocationTexture = GL41Backend::GL41VariableAllocationTexture
 GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41Texture(backend, texture) {
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
+    _maxAllocatedMip = _populatedMip = mipLevels;
+    uint16_t minAvailableMip = texture.minAvailableMipLevel();
     uvec3 mipDimensions;
     for (uint16_t mip = 0; mip < mipLevels; ++mip) {
-        if (glm::all(glm::lessThanEqual(texture.evalMipDimensions(mip), INITIAL_MIP_TRANSFER_DIMENSIONS))) {
+        if (glm::all(glm::lessThanEqual(texture.evalMipDimensions(mip), INITIAL_MIP_TRANSFER_DIMENSIONS))
+            && mip >= minAvailableMip) {
             _maxAllocatedMip = _populatedMip = mip;
             break;
         }
     }
 
-    uint16_t allocatedMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
+    auto targetMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
+    uint16_t allocatedMip = std::max<uint16_t>(minAvailableMip, targetMip);
+
     allocateStorage(allocatedMip);
     _memoryPressureStateStale = true;
     size_t maxFace = GLTexture::getFaceCount(_target);
@@ -292,6 +297,14 @@ void GL41VariableAllocationTexture::syncSampler() const {
 void GL41VariableAllocationTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
+
+    uint16_t targetAllocatedMip = _allocatedMip - std::min<uint16_t>(_allocatedMip, 2);
+    targetAllocatedMip = std::max<uint16_t>(_gpuObject.minAvailableMipLevel(), targetAllocatedMip);
+
+    if (targetAllocatedMip >= _allocatedMip || !_gpuObject.isStoredMipFaceAvailable(targetAllocatedMip, 0)) {
+        return;
+    }
+
     GLuint oldId = _id;
     auto oldSize = _size;
     // create new texture
@@ -299,7 +312,7 @@ void GL41VariableAllocationTexture::promote() {
     uint16_t oldAllocatedMip = _allocatedMip;
 
     // allocate storage for new level
-    allocateStorage(_allocatedMip - std::min<uint16_t>(_allocatedMip, 2));
+    allocateStorage(targetAllocatedMip);
 
     withPreservedTexture([&] {
         GLuint fbo { 0 };
