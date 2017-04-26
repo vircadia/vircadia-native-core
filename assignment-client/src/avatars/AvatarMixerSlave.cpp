@@ -67,7 +67,7 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
 
 
 int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    qDebug() << __FUNCTION__ << "about to call nodeData->getConstAvatarData().identityByteArray()... for node:" << nodeData->getNodeID();
+    qDebug() << __FUNCTION__ << "about to call nodeData->getConstAvatarData().identityByteArray()... for node:" << nodeData->getNodeID() << "destinationNode:" << destinationNode->getUUID();
     QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
     individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
     auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
@@ -303,7 +303,11 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
             // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
             // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
             if (nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
-                qCDebug(avatars) << __FUNCTION__ << "about to call sendIdentityPacket()";
+                qCDebug(avatars) << __FUNCTION__ << "about to call sendIdentityPacket()"
+                    << "other node:" << otherNode->getUUID()
+                    << "destination node:" << nodeData->getNodeID()
+                    << "nodeData->getLastBroadcastTime(otherNode->getUUID()):" << nodeData->getLastBroadcastTime(otherNode->getUUID())
+                    << "otherNodeData->getIdentityChangeTimestamp():" << otherNodeData->getIdentityChangeTimestamp();
                 identityBytesSent += sendIdentityPacket(otherNodeData, node);
             }
 

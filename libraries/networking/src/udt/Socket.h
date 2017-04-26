@@ -26,7 +26,7 @@
 #include "TCPVegasCC.h"
 #include "Connection.h"
 
-//#define UDT_CONNECTION_DEBUG
+#define UDT_CONNECTION_DEBUG
 
 class UDTTest;
 

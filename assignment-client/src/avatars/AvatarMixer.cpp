@@ -70,7 +70,7 @@ AvatarMixer::~AvatarMixer() {
 }
 
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    qDebug() << __FUNCTION__ << "about to call nodeData->getAvatar().identityByteArray()... for node:" << nodeData->getNodeID();
+    qDebug() << __FUNCTION__ << "about to call nodeData->getAvatar().identityByteArray()... for node:" << nodeData->getNodeID() << "destinationNode:" << destinationNode->getUUID();
     QByteArray individualData = nodeData->getAvatar().identityByteArray();
 
     auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
@@ -409,13 +409,13 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             // parse the identity packet and update the change timestamp if appropriate
             AvatarData::Identity identity;
 
-            qCDebug(avatars) << __FUNCTION__ << "about to call parseAvatarIdentityPacket()";
+            qCDebug(avatars) << __FUNCTION__ << "about to call parseAvatarIdentityPacket() for packet from node:" << nodeData->getNodeID();
             AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
 
             bool identityChanged = false;
             bool displayNameChanged = false;
 
-            qCDebug(avatars) << __FUNCTION__ << "about to call processAvatarIdentity()";
+            qCDebug(avatars) << __FUNCTION__ << "about to call processAvatarIdentity() node:" << nodeData->getNodeID();
             avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged);
             if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
