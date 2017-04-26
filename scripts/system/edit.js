@@ -213,6 +213,8 @@ function hideMarketplace() {
 // }
 
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
+var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
+var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
 
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
@@ -227,8 +229,11 @@ var toolBar = (function () {
         var position = getPositionToCreateEntity();
         var entityID = null;
         if (position !== null && position !== undefined) {
-            position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
-                properties.position = position;
+            position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
+            properties.position = position;
+            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM)) {
+                properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
+            }
             entityID = Entities.addEntity(properties);
             if (properties.type == "ParticleEffect") {
                 selectParticleEntity(entityID);
@@ -253,6 +258,7 @@ var toolBar = (function () {
         if (systemToolbar) {
             systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
         }
+        Menu.removeMenuItem(GRABBABLE_ENTITIES_MENU_CATEGORY, GRABBABLE_ENTITIES_MENU_ITEM);
     }
 
     var buttonHandlers = {}; // only used to tablet mode
@@ -903,11 +909,21 @@ function setupModelMenus() {
         afterItem: "Parent Entity to Last",
         grouping: "Advanced"
     });
+
+    Menu.addMenuItem({
+        menuName: GRABBABLE_ENTITIES_MENU_CATEGORY,
+        menuItemName: GRABBABLE_ENTITIES_MENU_ITEM,
+        afterItem: "Unparent Entity",
+        isCheckable: true,
+        isChecked: true,
+        grouping: "Advanced"
+    });
+
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Allow Selecting of Large Models",
         shortcutKey: "CTRL+META+L",
-        afterItem: "Unparent Entity",
+        afterItem: GRABBABLE_ENTITIES_MENU_ITEM,
         isCheckable: true,
         isChecked: true,
         grouping: "Advanced"
