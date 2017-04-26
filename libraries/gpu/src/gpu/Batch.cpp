@@ -292,8 +292,16 @@ void Batch::setUniformBuffer(uint32 slot, const BufferView& view) {
     setUniformBuffer(slot, view._buffer, view._offset, view._size);
 }
 
+void Batch::setResourceBuffer(uint32 slot, const BufferPointer& buffer) {
+    ADD_COMMAND(setResourceBuffer);
+
+    _params.emplace_back(_buffers.cache(buffer));
+    _params.emplace_back(slot);
+}
+
 void Batch::setResourceTexture(uint32 slot, const TexturePointer& texture) {
     ADD_COMMAND(setResourceTexture);
+
     _params.emplace_back(_textures.cache(texture));
     _params.emplace_back(slot);
 }

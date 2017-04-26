@@ -43,6 +43,7 @@
 #include <NetworkAccessManager.h>
 #include <PathUtils.h>
 #include <ResourceScriptingInterface.h>
+#include <UserActivityLoggerScriptingInterface.h>
 #include <NodeList.h>
 #include <ScriptAvatarData.h>
 #include <udt/PacketHeaders.h>
@@ -669,6 +670,7 @@ void ScriptEngine::init() {
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
     registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+    qScriptRegisterMetaType(this, tabletToScriptValue, tabletFromScriptValue);
     registerGlobalObject("Assets", &_assetScriptingInterface);
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
 
@@ -677,6 +679,8 @@ void ScriptEngine::init() {
     registerGlobalObject("Model", new ModelScriptingInterface(this));
     qScriptRegisterMetaType(this, meshToScriptValue, meshFromScriptValue);
     qScriptRegisterMetaType(this, meshesToScriptValue, meshesFromScriptValue);
+
+    registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {

@@ -23,6 +23,7 @@ struct GPUKTXPayload {
     Texture::Usage _usage;
     TextureUsageType _usageType;
 
+
     static std::string KEY;
     static bool isGPUKTX(const ktx::KeyValue& val) {
         return (val._key.compare(KEY) == 0);
@@ -161,7 +162,13 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     keyval._usage = texture.getUsage();
     keyval._usageType = texture.getUsageType();
     ktx::KeyValues keyValues;
-    keyValues.emplace_back(ktx::KeyValue(GPUKTXPayload::KEY, sizeof(GPUKTXPayload), (ktx::Byte*) &keyval)); 
+    keyValues.emplace_back(ktx::KeyValue(GPUKTXPayload::KEY, sizeof(GPUKTXPayload), (ktx::Byte*) &keyval));
+
+    static const std::string SOURCE_HASH_KEY = "hifi.sourceHash";
+    auto hash = texture.sourceHash();
+    if (!hash.empty()) {
+        keyValues.emplace_back(ktx::KeyValue(SOURCE_HASH_KEY, static_cast<uint32>(hash.size()), (ktx::Byte*) hash.c_str()));
+    }
 
     auto ktxBuffer = ktx::KTX::create(header, images, keyValues);
 #if 0
@@ -193,7 +200,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     return ktxBuffer;
 }
 
-Texture* Texture::unserialize(const std::string& ktxfile, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
+TexturePointer Texture::unserialize(const std::string& ktxfile, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
     std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(ktx::StoragePointer { new storage::FileStorage(ktxfile.c_str()) });
     if (!ktxPointer) {
         return nullptr;
@@ -260,6 +267,16 @@ bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RGBA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
     } else if (texelFormat == Format::COLOR_R_8 && mipFormat == Format::COLOR_R_8) {
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RED, ktx::GLInternalFormat_Uncompressed::R8, ktx::GLBaseInternalFormat::RED);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_SRGB && mipFormat == Format::COLOR_COMPRESSED_SRGB) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT, ktx::GLBaseInternalFormat::RGB);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_SRGBA_MASK && mipFormat == Format::COLOR_COMPRESSED_SRGBA_MASK) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_SRGBA && mipFormat == Format::COLOR_COMPRESSED_SRGBA) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_RED && mipFormat == Format::COLOR_COMPRESSED_RED) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1, ktx::GLBaseInternalFormat::RED);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_XY && mipFormat == Format::COLOR_COMPRESSED_XY) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2, ktx::GLBaseInternalFormat::RG);
     } else {
         return false;
     }
@@ -292,6 +309,25 @@ bool Texture::evalTextureFormat(const ktx::Header& header, Element& mipFormat, E
         mipFormat = Format::COLOR_R_8;
         if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::R8) {
             texelFormat = Format::COLOR_R_8;
+        } else {
+            return false;
+        }
+    } else if (header.getGLFormat() == ktx::GLFormat::COMPRESSED_FORMAT && header.getGLType() == ktx::GLType::COMPRESSED_TYPE) {
+        if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT) {
+            mipFormat = Format::COLOR_COMPRESSED_SRGB;
+            texelFormat = Format::COLOR_COMPRESSED_SRGB;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT) {
+            mipFormat = Format::COLOR_COMPRESSED_SRGBA_MASK;
+            texelFormat = Format::COLOR_COMPRESSED_SRGBA_MASK;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT) {
+            mipFormat = Format::COLOR_COMPRESSED_SRGBA;
+            texelFormat = Format::COLOR_COMPRESSED_SRGBA;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1) {
+            mipFormat = Format::COLOR_COMPRESSED_RED;
+            texelFormat = Format::COLOR_COMPRESSED_RED;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2) {
+            mipFormat = Format::COLOR_COMPRESSED_XY;
+            texelFormat = Format::COLOR_COMPRESSED_XY;
         } else {
             return false;
         }

@@ -14,7 +14,7 @@
 
 using namespace render;
 
-void EngineStats::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void EngineStats::run(const RenderContextPointer& renderContext) {
     // Tick time
 
     quint64 msecsElapsed = _frameTimer.restart();
