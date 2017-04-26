@@ -50,7 +50,7 @@ Rectangle {
                     sendToScript({method: "Stop"});
                     inputRecorder.recording = false;
                     start.text = "Start Recording";
-                    selectedFile.text = "";
+                    selectedFile.text = "Current recording is not saved";
                 } else {
                     sendToScript({method: "Start"});
                     inputRecorder.recording = true;
@@ -66,6 +66,7 @@ Rectangle {
             enabled: true
             onClicked: {
                 sendToScript({method: "Save"});
+                selectedFile.text = "";
             }
         }
 
@@ -126,7 +127,7 @@ Rectangle {
         spacing: 20
 
         Text {
-            text: "All files are saved under the folder 'hifi-input-recording' in your home directory";
+            text: "All files are saved under the folder 'hifi-input-recording' in interfaces AppData directory";
             color: "white"
             font.pointSize: 10
         }
