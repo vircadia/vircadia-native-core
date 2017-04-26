@@ -207,7 +207,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
         memcpy(data, storage->data(), _ktxDescriptor->images[level]._imageSize);
         _minMipLevelAvailable = level;
         if (offset > 0) {
-            memcpy(file->mutableData() + ktx::KTX_HEADER_SIZE + offset, (void*)&_minMipLevelAvailable, 1);
+            memcpy(file->mutableData() + ktx::KTX_HEADER_SIZE + 4 + offset, (void*)&_minMipLevelAvailable, 1);
         }
     }
 }
