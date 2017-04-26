@@ -12,11 +12,9 @@ Download and install the CMake 3.8.0-rc2 "win64-x64 Installer" from the [CMake W
 
 ###Step 3. Installing Qt
 
-Download and install the [Qt Online Installer for Windows](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea#section-2). 
+Download and install the [Qt 5.6.2 for Windows 64-bit (VS 2013)](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea#section-2). 
 
-Select the following components on the installer:
-
-
+Make sure to select all components when going through the installer.
 
 ###Step 4. Setting Qt Environment Variable
 
