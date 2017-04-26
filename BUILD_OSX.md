@@ -16,7 +16,7 @@ For OpenSSL installed via homebrew, set OPENSSL_ROOT_DIR:
 Note that this uses the version from the homebrew formula at the time of this writing, and the version in the path will likely change.
 
 ###Qt
-Download and install the [Qt 5.6.2 for macOS](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea#section-2). 
+Download and install the [Qt 5.6.2 for macOS](http://download.qt.io/official_releases/qt/5.6/5.6.2/qt-opensource-mac-x64-clang-5.6.2.dmg). 
 
 Keep the default components checked when going through the installer.
 

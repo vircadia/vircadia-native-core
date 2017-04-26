@@ -8,11 +8,11 @@ Note: Newer versions of Visual Studio are not yet compatible.
 
 ###Step 2. Installing CMake
 
-Download and install the CMake 3.8.0-rc2 "win64-x64 Installer" from the [CMake Website](https://cmake.org/download/). Make sure "Add CMake to system PATH for all users" is checked when going through the installer.
+Download and install the [CMake 3.8.0 win64-x64 Installer](https://cmake.org/files/v3.8/cmake-3.8.0-win64-x64.msi). Make sure "Add CMake to system PATH for all users" is checked when going through the installer.
 
 ###Step 3. Installing Qt
 
-Download and install the [Qt 5.6.2 for Windows 64-bit (VS 2013)](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea#section-2). 
+Download and install the [Qt 5.6.2 for Windows 64-bit (VS 2013)](http://download.qt.io/official_releases/qt/5.6/5.6.2/qt-opensource-windows-x86-msvc2013_64-5.6.2.exe). 
 
 Keep the default components checked when going through the installer.
 
@@ -24,7 +24,7 @@ Go to "Control Panel > System > Advanced System Settings > Environment Variables
 
 ###Step 5. Installing OpenSSL
 
-Download and install the "Win64 OpenSSL v1.0.2k" Installer from [this website](https://slproweb.com/products/Win32OpenSSL.html).
+Download and install the [Win64 OpenSSL v1.0.2k Installer](https://slproweb.com/download/Win64OpenSSL-1_0_2k.exe).
 
 ###Step 6. Running CMake to Generate Build Files
 
