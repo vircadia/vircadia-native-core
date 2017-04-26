@@ -33,9 +33,8 @@
     }
 
     function error(message, info) {
-        print(APP_NAME + ": " + message + (info !== "" ? " - " + info : ""));
+        print(APP_NAME + ": " + message + (info !== undefined ? " - " + info : ""));
         Window.alert(message);
-
     }
 
     RecordingIndicator = (function () {
@@ -309,7 +308,7 @@
 
         function playRecording(recording, position, orientation) {
             var index,
-                CHECK_PLAYING_TIMEOUT = 5000;
+                CHECK_PLAYING_TIMEOUT = 10000;
 
             // Optional function parameters.
             if (position === undefined) {
