@@ -104,13 +104,31 @@ function onMessage(message) {
                 action: "captureSettings",
                 setting: Settings.getValue("alsoTakeAnimatedSnapshot", true)
             }));
-            tablet.emitScriptEvent(JSON.stringify({
-                type: "snapshot",
-                action: "showPreviousImages",
-                options: snapshotOptions,
-                image_data: imageData,
-                canShare: !!isDomainOpen(Settings.getValue("previousSnapshotDomainID"))
-            }));
+            if (Settings.getValue("snapshotsLocation", "") !== "") {
+                tablet.emitScriptEvent(JSON.stringify({
+                    type: "snapshot",
+                    action: "showPreviousImages",
+                    options: snapshotOptions,
+                    image_data: imageData,
+                    canShare: !!isDomainOpen(Settings.getValue("previousSnapshotDomainID"))
+                }));
+            } else {
+                tablet.emitScriptEvent(JSON.stringify({
+                    type: "snapshot",
+                    action: "showSetupInstructions"
+                }));
+            }
+            break;
+        case 'chooseSnapshotLocation':
+            var snapshotPath = Window.browse("Choose Snapshots Directory","","");
+
+            if (!snapshotPath.isEmpty()) { // not cancelled
+                Settings.setValue("snapshotsLocation", snapshotPath);
+                tablet.emitScriptEvent(JSON.stringify({
+                    type: "snapshot",
+                    action: "snapshotLocationChosen"
+                }));
+            }
             break;
         case 'openSettings':
             if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))

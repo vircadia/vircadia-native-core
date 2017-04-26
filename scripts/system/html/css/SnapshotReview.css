@@ -8,12 +8,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
-body {
-    padding: 0;
-    margin: 0;
-    overflow: hidden;
-}
-
 /*
 // START styling of top bar and its contents
 */
@@ -58,6 +52,17 @@ input[type=button].naked:active {
 }
 /*
 // END styling of top bar and its contents
+*/
+
+/*
+// START styling of snapshot instructions panel
+*/
+.snapshotInstructions {
+    font-family: Raleway-Regular;
+    margin: 0 20px;
+}
+/*
+// END styling of snapshot instructions panel
 */
 
 /*
@@ -172,17 +177,18 @@ input[type=button].naked:active {
 // START styling of snapshot controls (bottom panel) and its contents
 */
 #snapshot-controls {
-    padding-left: 8px;
-    padding-right: 8px;
     width: 100%;
     position: absolute;
     left: 0;
     margin-top: 8px;
     overflow: hidden;
+    display: flex;
+    justify-content: center;
 }
 #snap-settings {
-    float: left;
-    margin-left: 10px;
+    display: inline;
+    width: 150px;
+    margin: auto;
 }
 #snap-settings form input {
     margin-bottom: 5px;
@@ -191,17 +197,27 @@ input[type=button].naked:active {
 #snap-button {
     width: 65px;
     height: 65px;
+    padding: 0;
     border-radius: 50%;
     background: #EA4C5F;
     border: 3px solid white;
-    margin-left: auto;
-    margin-right: auto;
+    margin: auto;
+    box-sizing: content-box;
+    display: inline;
 }
-#snap-button:hover {
+#snap-button:disabled {
+    background: gray;
+}
+#snap-button:hover:enabled {
     background: #C62147;
 }
-#snap-button:active {
+#snap-button:active:enabled {
     background: #EA4C5F;
+}
+#snap-settings-right {
+    display: inline;
+    width: 150px;
+    margin: auto;
 }
 /*
 // END styling of snapshot controls (bottom panel) and its contents
@@ -210,6 +226,22 @@ input[type=button].naked:active {
 /*
 // START misc styling
 */
+body {
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+p {
+    margin: 2px 0;
+}
+h4 {
+    margin: 14px 0 0 0;
+}
+.centeredImage {
+    margin: 0 auto;
+    display: block;
+}
+
 .prompt {
     font-family: Raleway-SemiBold;
     font-size: 14px;

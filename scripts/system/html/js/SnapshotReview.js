@@ -13,8 +13,28 @@
 var paths = [];
 var idCounter = 0;
 var imageCount = 0;
-function clearImages() {
+function showSetupInstructions() {
     var snapshotImagesDiv = document.getElementById("snapshot-images");
+    snapshotImagesDiv.className = "snapshotInstructions";
+    snapshotImagesDiv.innerHTML = '<img class="centeredImage" src="./img/snapshotIcon.png" alt="Snapshot Instructions" width="64" height="64"/>' +
+    '<br/>' +
+    '<p>This app lets you take and share snaps and GIFs with your connections in High Fidelity.</p>' +
+    "<h4>Setup Instructions</h4>" +
+    "<p>Before you can begin taking snaps, please choose where you'd like to save snaps on your computer:</p>" +
+    '<br/>' +
+    '<input type="button" value="CHOOSE" onclick="chooseSnapshotLocation()" />';
+    document.getElementById("snap-button").disabled = true;
+}
+function chooseSnapshotLocation() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "snapshot",
+        action: "chooseSnapshotLocation"
+    }));
+}
+function clearImages() {
+    document.getElementById("snap-button").disabled = false;
+    var snapshotImagesDiv = document.getElementById("snapshot-images");
+    snapshotImagesDiv.classList.remove("snapshotInstructions");
     while (snapshotImagesDiv.hasChildNodes()) {
         snapshotImagesDiv.removeChild(snapshotImagesDiv.lastChild);
     }
@@ -207,6 +227,7 @@ function handleCaptureSetting(setting) {
 
 }
 window.onload = function () {
+    testInBrowser(false);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
@@ -218,6 +239,12 @@ window.onload = function () {
             }
             
             switch (message.action) {
+                case 'showSetupInstructions':
+                    showSetupInstructions();
+                    break;
+                case 'snapshotLocationChosen':
+                    clearImages();
+                    break;
                 case 'clearPreviousImages':
                     clearImages();
                     break;
@@ -274,8 +301,7 @@ window.onload = function () {
             type: "snapshot",
             action: "ready"
         }));
-    });
-
+    });;
 };
 function snapshotSettings() {
     EventBridge.emitWebEvent(JSON.stringify({
@@ -290,8 +316,12 @@ function takeSnapshot() {
     }));
 }
 
-function testInBrowser() {
-    imageCount = 1;
-    //addImage({ localPath: 'http://lorempixel.com/553/255' });
-    addImage({ localPath: 'C:/Users/Zach Fox/Desktop/hifi-snap-by-zfox-on-2017-04-25_11-35-13.jpg' }, false, true, true, false);   
+function testInBrowser(isTestingSetupInstructions) {
+    if (isTestingSetupInstructions) {
+        showSetupInstructions();
+    } else {
+        imageCount = 1;
+        //addImage({ localPath: 'http://lorempixel.com/553/255' });
+        addImage({ localPath: 'C:/Users/valef/Desktop/hifi-snap-by-zfox-on-2017-04-26_10-26-53.jpg' }, false, true, true, false);
+    }
 }
