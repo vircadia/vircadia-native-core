@@ -11,18 +11,20 @@ var TRACKED_OBJECT_POSES = [
 var triggerPressHandled = false;
 var rightTriggerPressed = false;
 var leftTriggerPressed = false;
+var calibrationCount = 0;
 
-var MAPPING_NAME = "com.highfidelity.viveMotionCapture";
-
-var mapping = Controller.newMapping(MAPPING_NAME);
-mapping.from([Controller.Standard.RTClick]).peek().to(function (value) {
+var TRIGGER_MAPPING_NAME = "com.highfidelity.viveMotionCapture.triggers";
+var triggerMapping = Controller.newMapping(TRIGGER_MAPPING_NAME);
+triggerMapping.from([Controller.Standard.RTClick]).peek().to(function (value) {
     rightTriggerPressed = (value !== 0) ? true : false;
 });
-mapping.from([Controller.Standard.LTClick]).peek().to(function (value) {
+triggerMapping.from([Controller.Standard.LTClick]).peek().to(function (value) {
     leftTriggerPressed = (value !== 0) ? true : false;
 });
+Controller.enableMapping(TRIGGER_MAPPING_NAME);
 
-Controller.enableMapping(MAPPING_NAME);
+var CONTROLLER_MAPPING_NAME = "com.highfidelity.viveMotionCapture.controller";
+var controllerMapping;
 
 var leftFoot;
 var rightFoot;
@@ -92,7 +94,8 @@ function calibrate() {
             if (pose.valid) {
                 poses.push({
                     channel: channel,
-                    pose: pose
+                    pose: pose,
+                    lastestPose: pose
                 });
             }
         });
@@ -177,85 +180,76 @@ var ikTypes = {
 
 var handlerId;
 
-function computeIKTargetXform(jointInfo) {
-    var pose = Controller.getPoseValue(jointInfo.channel);
+function convertJointInfoToPose(jointInfo) {
+    var latestPose = jointInfo.latestPose;
     var offsetXform = jointInfo.offsetXform;
-    return Xform.mul(Y_180_XFORM, Xform.mul(new Xform(pose.rotation, pose.translation), offsetXform));
+    var xform = Xform.mul(new Xform(latestPose.rotation, latestPose.translation), offsetXform);
+    return {
+        valid: true,
+        translation: xform.pos,
+        rotation: xform.rot,
+        velocity: Vec3.sum(latestPose.velocity, Vec3.cross(latestPose.angularVelocity, Vec3.subtract(xform.pos, latestPose.translation))),
+        angularVelocity: latestPose.angularVelocity
+    };
 }
 
 function update(dt) {
     if (rightTriggerPressed && leftTriggerPressed) {
         if (!triggerPressHandled) {
             triggerPressHandled = true;
-            if (handlerId) {
-                print("AJT: UN-CALIBRATE!");
+            if (controllerMapping) {
 
                 // go back to normal, vive pucks will be ignored.
+                print("AJT: UN-CALIBRATE!");
+
                 leftFoot = undefined;
                 rightFoot = undefined;
                 hips = undefined;
                 spine2 = undefined;
-                if (handlerId) {
-                    print("AJT: un-hooking animation state handler");
-                    MyAvatar.removeAnimationStateHandler(handlerId);
-                    handlerId = undefined;
-                }
+
+                Controller.disableMapping(CONTROLLER_MAPPING_NAME + calibrationCount);
+                controllerMapping = undefined;
+
             } else {
                 print("AJT: CALIBRATE!");
                 calibrate();
+                calibrationCount++;
 
-                var animVars = [];
+                controllerMapping = Controller.newMapping(CONTROLLER_MAPPING_NAME + calibrationCount);
 
                 if (leftFoot) {
-                    animVars.push("leftFootType");
-                    animVars.push("leftFootPosition");
-                    animVars.push("leftFootRotation");
+                    controllerMapping.from(leftFoot.channel).to(function (pose) {
+                        leftFoot.latestPose = pose;
+                    });
+                    controllerMapping.from(function () {
+                        return convertJointInfoToPose(leftFoot);
+                    }).to(Controller.Standard.LeftFoot);
                 }
                 if (rightFoot) {
-                    animVars.push("rightFootType");
-                    animVars.push("rightFootPosition");
-                    animVars.push("rightFootRotation");
+                    controllerMapping.from(rightFoot.channel).to(function (pose) {
+                        rightFoot.latestPose = pose;
+                    });
+                    controllerMapping.from(function () {
+                        return convertJointInfoToPose(rightFoot);
+                    }).to(Controller.Standard.RightFoot);
                 }
                 if (hips) {
-                    animVars.push("hipsType");
-                    animVars.push("hipsPosition");
-                    animVars.push("hipsRotation");
+                    controllerMapping.from(hips.channel).to(function (pose) {
+                        hips.latestPose = pose;
+                    });
+                    controllerMapping.from(function () {
+                        return convertJointInfoToPose(hips);
+                    }).to(Controller.Standard.Hips);
                 }
                 if (spine2) {
-                    animVars.push("spine2Type");
-                    animVars.push("spine2Position");
-                    animVars.push("spine2Rotation");
+                    controllerMapping.from(spine2.channel).to(function (pose) {
+                        spine2.latestPose = pose;
+                    });
+                    controllerMapping.from(function () {
+                        return convertJointInfoToPose(spine2);
+                    }).to(Controller.Standard.Spine2);
                 }
-
-                // hook up new anim state handler that maps vive pucks to ik system.
-                handlerId = MyAvatar.addAnimationStateHandler(function (props) {
-                    var result = {}, xform;
-                    if (rightFoot) {
-                        xform = computeIKTargetXform(rightFoot);
-                        result.rightFootType = ikTypes.RotationAndPosition;
-                        result.rightFootPosition = xform.pos;
-                        result.rightFootRotation = xform.rot;
-                    }
-                    if (leftFoot) {
-                        xform = computeIKTargetXform(leftFoot);
-                        result.leftFootType = ikTypes.RotationAndPosition;
-                        result.leftFootPosition = xform.pos;
-                        result.leftFootRotation = xform.rot;
-                    }
-                    if (hips) {
-                        xform = computeIKTargetXform(hips);
-                        result.hipsType = ikTypes.RotationAndPosition;
-                        result.hipsPosition = xform.pos;
-                        result.hipsRotation = xform.rot;
-                    }
-                    if (spine2) {
-                        xform = computeIKTargetXform(spine2);
-                        result.spine2Type = ikTypes.RotationAndPosition;
-                        result.spine2Position = xform.pos;
-                        result.spine2Rotation = xform.rot;
-                    }
-                    return result;
-                }, animVars);
+                Controller.enableMapping(CONTROLLER_MAPPING_NAME + calibrationCount);
             }
         }
     } else {
@@ -301,7 +295,10 @@ function update(dt) {
 Script.update.connect(update);
 
 Script.scriptEnding.connect(function () {
-    Controller.disableMapping(MAPPING_NAME);
+    Controller.disableMapping(TRIGGER_MAPPING_NAME);
+    if (controllerMapping) {
+        Controller.disableMapping(CONTROLLER_MAPPING_NAME + calibrationCount);
+    }
     Script.update.disconnect(update);
 });
 
