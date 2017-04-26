@@ -44,6 +44,7 @@ namespace controller {
         void setActionState(controller::Action action, const controller::Pose pose);
         float getActionState(controller::Action action);
         controller::Pose getPoseState(controller::Action action);
+        QString getSaveDirectory();
         void frameTick();
     private:
         bool _recording { false };

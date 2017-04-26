@@ -23,8 +23,7 @@
 #include <BuildInfo.h>
 #include <GLMHelpers.h>
  
-QString SAVE_DIRECTORY = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/" + BuildInfo::INTERFACE_NAME +
-    "/interface" + "/hifi-input-recordings/";
+QString SAVE_DIRECTORY = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/" + BuildInfo::MODIFIED_ORGANIZATION + "/" + BuildInfo::INTERFACE_NAME + "/hifi-input-recordings/";
 QString FILE_PREFIX_NAME = "input-recording-";
 QString COMPRESS_EXTENSION = ".tar.gz";
 namespace controller {
@@ -133,6 +132,10 @@ namespace controller {
     InputRecorder* InputRecorder::getInstance() {
         static InputRecorder inputRecorder;
         return &inputRecorder;
+    }
+
+    QString InputRecorder::getSaveDirectory() {
+        return SAVE_DIRECTORY;
     }
 
     void InputRecorder::startRecording() {

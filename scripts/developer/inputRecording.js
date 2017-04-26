@@ -9,6 +9,7 @@
 (function() {
     var recording = false;
     var onRecordingScreen = false;
+    var passedSaveDirectory = false;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         text: "IRecord"
@@ -25,6 +26,7 @@
 
     function onScreenChanged(type, url) {
         onRecordingScreen = false;
+        passedSaveDirectory = false;
     }
 
     button.clicked.connect(onClick);
@@ -78,6 +80,12 @@
     }
 
     function update() {
+
+        if (!passedSaveDirectory) {
+            var directory = Controller.getInputRecorderSaveDirectory();
+            sendToQml({method: "path", params: directory});
+            passedSaveDirectory = true;
+        }
         sendToQml({method: "update", params: recording});
     }
 

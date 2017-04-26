@@ -105,6 +105,7 @@ namespace controller {
         Q_INVOKABLE void stopInputPlayback();
         Q_INVOKABLE void saveInputRecording();
         Q_INVOKABLE void loadInputRecording(const QString& file);
+        Q_INVOKABLE QString getInputRecorderSaveDirectory();
 
         bool isMouseCaptured() const { return _mouseCaptured; }
         bool isTouchCaptured() const { return _touchCaptured; }

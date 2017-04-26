@@ -23,6 +23,7 @@ Rectangle {
     signal sendToScript(var message);
     color: hifi.colors.baseGray;
     property string path: ""
+    property string dir: ""
     property var dialog: null;
     property bool recording: false;
 
@@ -49,6 +50,7 @@ Rectangle {
                     sendToScript({method: "Stop"});
                     inputRecorder.recording = false;
                     start.text = "Start Recording";
+                    selectedFile.text = "";
                 } else {
                     sendToScript({method: "Start"});
                     inputRecorder.recording = true;
@@ -111,6 +113,9 @@ Rectangle {
         enabled: true
         onClicked: {
             dialog = fileDialog.createObject(inputRecorder);
+            dialog.caption = "InputRecorder";
+            console.log(dialog.dir);
+            dialog.dir = "file:///" + inputRecorder.dir;
             dialog.selectedFile.connect(getFileSelected);
         }
     }
@@ -143,6 +148,10 @@ Rectangle {
         switch (message.method) {
         case "update":
             updateButtonStatus(message.params);
+            break;
+        case "path":
+            console.log(message.params);
+            inputRecorder.dir = message.params;
             break;
         }
     }
