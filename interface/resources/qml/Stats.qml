@@ -212,6 +212,11 @@ Item {
                               ", Pending: " + root.downloadsPending;
                     }
                     StatText {
+                        visible: root.expanded;
+                        text: "Processing: " + root.processing +
+                              ", Pending: " + root.processingPending;
+                    }
+                    StatText {
                         visible: root.expanded && root.downloadUrls.length > 0;
                         text: "Download URLs:"
                     }

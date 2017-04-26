@@ -148,8 +148,6 @@ const gpu::PipelinePointer DrawBounds::getPipeline() {
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
 
-        _cornerLocation = program->getUniforms().findLocation("inBoundPos");
-        _scaleLocation = program->getUniforms().findLocation("inBoundDim");
         _colorLocation = program->getUniforms().findLocation("inColor");
 
         auto state = std::make_shared<gpu::State>();
@@ -167,6 +165,18 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
     const Inputs& items) {
     RenderArgs* args = renderContext->args;
 
+    uint32_t numItems = (uint32_t) items.size();
+    if (numItems == 0) {
+        return;
+    }
+
+    static const uint32_t sizeOfItemBound = sizeof(ItemBound);
+    if (!_drawBuffer) {
+        _drawBuffer = std::make_shared<gpu::Buffer>(sizeOfItemBound);
+    }
+    
+    _drawBuffer->setData(numItems * sizeOfItemBound, (const gpu::Byte*) items.data());
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
@@ -181,22 +191,13 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
 
         // Bind program
         batch.setPipeline(getPipeline());
-        assert(_cornerLocation >= 0);
-        assert(_scaleLocation >= 0);
 
-        // Render bounds
-        float numItems = (float) items.size();
-        float itemNum = 0.0f;
-        for (const auto& item : items) {
-            glm::vec4 color(glm::vec3(itemNum / numItems), 1.0f);
-            batch._glUniform3fv(_cornerLocation, 1, (const float*)(&item.bound.getCorner()));
-            batch._glUniform3fv(_scaleLocation, 1, (const float*)(&item.bound.getScale()));
-            batch._glUniform4fv(_colorLocation, 1, (const float*)(&color));
+        glm::vec4 color(glm::vec3(0.0f), -(float) numItems);
+        batch._glUniform4fv(_colorLocation, 1, (const float*)(&color));
+        batch.setResourceBuffer(0, _drawBuffer);
 
-            static const int NUM_VERTICES_PER_CUBE = 24;
-            batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE, 0);
-            itemNum += 1.0f;
-        }
+        static const int NUM_VERTICES_PER_CUBE = 24;
+        batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE * numItems, 0);
     });
 }
 

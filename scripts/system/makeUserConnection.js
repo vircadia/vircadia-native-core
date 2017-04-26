@@ -582,8 +582,8 @@ function handleConnectionResponseAndMaybeRepeat(error, response) {
         UserActivityLogger.makeUserConnection(connectingId, false, error || response);
         connectionRequestCompleted();
     } else {
-        debug('server success', result);
         result = response;
+        debug('server success', result);
         if (pollCount++) {
             connectionRequestCompleted();
         } else { // Wait for other guy, so that final succcess is at roughly the same time.

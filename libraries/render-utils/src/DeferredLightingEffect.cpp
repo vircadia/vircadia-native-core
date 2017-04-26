@@ -259,12 +259,12 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
 
     locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
 
-    locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations->ambientBufferUnit = program->getBuffers().findLocation("lightAmbientBuffer");
-    locations->lightIndexBufferUnit = program->getBuffers().findLocation("lightIndexBuffer");
-    locations->deferredFrameTransformBuffer = program->getBuffers().findLocation("deferredFrameTransformBuffer");
-    locations->subsurfaceScatteringParametersBuffer = program->getBuffers().findLocation("subsurfaceScatteringParametersBuffer");
-    locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
+    locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
+    locations->ambientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
+    locations->lightIndexBufferUnit = program->getUniformBuffers().findLocation("lightIndexBuffer");
+    locations->deferredFrameTransformBuffer = program->getUniformBuffers().findLocation("deferredFrameTransformBuffer");
+    locations->subsurfaceScatteringParametersBuffer = program->getUniformBuffers().findLocation("subsurfaceScatteringParametersBuffer");
+    locations->shadowTransformBuffer = program->getUniformBuffers().findLocation("shadowTransformBuffer");
 
     return program;
 }
@@ -496,14 +496,14 @@ void PreparePrimaryFramebuffer::run(const RenderContextPointer& renderContext, g
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
 
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        auto primaryColorTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler));
+        auto primaryColorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
 
 
         _primaryFramebuffer->setRenderBuffer(0, primaryColorTexture);
 
 
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
-        auto primaryDepthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler));
+        auto primaryDepthTexture = gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
 
         _primaryFramebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
     }
