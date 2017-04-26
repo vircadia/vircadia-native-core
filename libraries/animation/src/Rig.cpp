@@ -1028,13 +1028,18 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     if (params.hipsEnabled) {
         _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
         _animVars.set("hipsPosition", extractTranslation(params.hipsMatrix));
-        _animVars.set("hipsRotation", glmExtractRotation(params.hipsMatrix) * Quaternions::Y_180);
+        _animVars.set("hipsRotation", glmExtractRotation(params.hipsMatrix));
     } else {
         _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
     }
 
-    // by default this IK target is disabled.
-    _animVars.set("spine2Type", (int)IKTarget::Type::Unknown);
+    if (params.spine2Enabled) {
+        _animVars.set("spine2Type", (int)IKTarget::Type::RotationAndPosition);
+        _animVars.set("spine2Position", extractTranslation(params.spine2Matrix));
+        _animVars.set("spine2Rotation", glmExtractRotation(params.spine2Matrix));
+    } else {
+        _animVars.set("spine2Type", (int)IKTarget::Type::Unknown);
+    }
 }
 
 void Rig::updateFromEyeParameters(const EyeParameters& params) {
@@ -1105,7 +1110,16 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 
             _animVars.set("headPosition", headPos);
             _animVars.set("headRotation", headRot);
-            _animVars.set("headType", (int)IKTarget::Type::HmdHead);
+
+            if (params.hipsEnabled) {
+                // Since there is an explicit hips ik target, switch the head to use the more generic RotationAndPosition IK chain type.
+                // this will allow the spine to bend more, ensuring that it can reach the head target position.
+                _animVars.set("headType", (int)IKTarget::Type::RotationAndPosition);
+            } else {
+                // When there is no hips IK target, use the HmdHead IK chain type.  This will make the spine very stiff,
+                // but because the IK _hipsOffset is enabled, the hips will naturally follow underneath the head.
+                _animVars.set("headType", (int)IKTarget::Type::HmdHead);
+            }
             _animVars.set("neckPosition", neckPos);
             _animVars.set("neckRotation", neckRot);
             _animVars.set("neckType", (int)IKTarget::Type::Unknown); // 'Unknown' disables the target
