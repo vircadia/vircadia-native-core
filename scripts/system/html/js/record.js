@@ -36,7 +36,7 @@ var isUsingToolbar = false,
     STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
     LOAD_RECORDING_ACTION = "loadRecording",
     START_RECORDING_ACTION = "startRecording",
-    COUNTDOWN_NUMBER_ACTION = "countdownNumber",
+    SET_COUNTDOWN_NUMBER_ACTION = "setCountdownNumber",
     STOP_RECORDING_ACTION = "stopRecording",
     FINISH_ON_OPEN_ACTION = "finishOnOpen";
 
@@ -193,7 +193,7 @@ function onScriptEventReceived(data) {
             updateSpinner();
             updateLoadButton();
             break;
-        case COUNTDOWN_NUMBER_ACTION:
+        case SET_COUNTDOWN_NUMBER_ACTION:
             elCountdownNumber.innerHTML = message.value;
             break;
         case STOP_RECORDING_ACTION:

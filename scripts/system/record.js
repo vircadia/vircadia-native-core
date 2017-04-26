@@ -199,7 +199,7 @@
         }
 
         function finishCountdown() {
-            Dialog.countdownNumber("");
+            Dialog.setCountdownNumber("");
             recordingState = RECORDING;
             startRecording();
         }
@@ -207,7 +207,7 @@
         function cancelCountdown() {
             recordingState = IDLE;
             Script.clearInterval(countdownTimer);
-            Dialog.countdownNumber("");
+            Dialog.setCountdownNumber("");
             log("Cancel countdown");
         }
 
@@ -215,7 +215,7 @@
             recordingState = COUNTING_DOWN;
             log("Start countdown");
             countdownSeconds = COUNTDOWN_SECONDS;
-            Dialog.countdownNumber(countdownSeconds);
+            Dialog.setCountdownNumber(countdownSeconds);
             playSound(tickSound);
             countdownTimer = Script.setInterval(function () {
                 countdownSeconds -= 1;
@@ -223,7 +223,7 @@
                     Script.clearInterval(countdownTimer);
                     finishCountdown();
                 } else {
-                    Dialog.countdownNumber(countdownSeconds);
+                    Dialog.setCountdownNumber(countdownSeconds);
                     playSound(tickSound);
                 }
             }, 1000);
@@ -405,6 +405,7 @@
 
     Dialog = (function () {
         var isFinishOnOpen = false,
+            countdownNumber = "",
             EVENT_BRIDGE_TYPE = "record",
             BODY_LOADED_ACTION = "bodyLoaded",
             USING_TOOLBAR_ACTION = "usingToolbar",
@@ -413,7 +414,7 @@
             STOP_PLAYING_RECORDING_ACTION = "stopPlayingRecording",
             LOAD_RECORDING_ACTION = "loadRecording",
             START_RECORDING_ACTION = "startRecording",
-            COUNTDOWN_NUMBER_ACTION = "countdownNumber",
+            SET_COUNTDOWN_NUMBER_ACTION = "setCountdownNumber",
             STOP_RECORDING_ACTION = "stopRecording",
             FINISH_ON_OPEN_ACTION = "finishOnOpen",
             SETTINGS_FINISH_ON_OPEN = "record/finishOnOpen";
@@ -428,6 +429,11 @@
                 tablet.emitScriptEvent(JSON.stringify({
                     type: EVENT_BRIDGE_TYPE,
                     action: START_RECORDING_ACTION
+                }));
+                tablet.emitScriptEvent(JSON.stringify({
+                    type: EVENT_BRIDGE_TYPE,
+                    action: SET_COUNTDOWN_NUMBER_ACTION,
+                    value: countdownNumber
                 }));
             } else {
                 tablet.emitScriptEvent(JSON.stringify({
@@ -463,11 +469,12 @@
             }));
         }
 
-        function countdownNumber(number) {
+        function setCountdownNumber(number) {
+            countdownNumber = number;
             tablet.emitScriptEvent(JSON.stringify({
                 type: EVENT_BRIDGE_TYPE,
-                action: COUNTDOWN_NUMBER_ACTION,
-                value: number
+                action: SET_COUNTDOWN_NUMBER_ACTION,
+                value: countdownNumber
             }));
         }
 
@@ -550,7 +557,7 @@
         return {
             updatePlayerDetails: updatePlayerDetails,
             updateRecordingStatus: updateRecordingStatus,
-            countdownNumber: countdownNumber,
+            setCountdownNumber: setCountdownNumber,
             finishOnOpen: finishOnOpen,
             setUp: setUp,
             tearDown: tearDown
