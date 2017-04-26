@@ -222,6 +222,21 @@ var toolBar = (function () {
         systemToolbar = null,
         tablet = null;
 
+    // add a menu item for setting newly created entities as grabbable
+    var GRABBABLEENTITIES_MENU_CATEGORY = "Developer";
+    var GRABBABLEENTITIES_MENU_ITEM = "Create Entities As Grabbable";
+
+    if (Menu.menuExists(GRABBABLEENTITIES_MENU_CATEGORY) &&
+    !Menu.menuItemExists(GRABBABLEENTITIES_MENU_CATEGORY, GRABBABLEENTITIES_MENU_ITEM)) {
+        Menu.addMenuItem({
+            menuName: GRABBABLEENTITIES_MENU_CATEGORY,
+            menuItemName: GRABBABLEENTITIES_MENU_ITEM,
+            isCheckable: true,
+            isChecked: true,
+            grouping: "Advanced"
+        });
+    }
+
     function createNewEntity(properties) {
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
@@ -229,7 +244,9 @@ var toolBar = (function () {
         if (position !== null && position !== undefined) {
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
-            properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
+            if (Menu.isOptionChecked(GRABBABLEENTITIES_MENU_ITEM)) {
+                properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
+            }
             entityID = Entities.addEntity(properties);
             if (properties.type == "ParticleEffect") {
                 selectParticleEntity(entityID);
@@ -254,6 +271,7 @@ var toolBar = (function () {
         if (systemToolbar) {
             systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
         }
+        Menu.removeMenuItem(GRABBABLEENTITIES_MENU_CATEGORY, GRABBABLEENTITIES_MENU_ITEM);
     }
 
     var buttonHandlers = {}; // only used to tablet mode
