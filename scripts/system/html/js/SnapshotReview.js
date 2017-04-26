@@ -104,8 +104,8 @@ function createShareBar(parentID, isGif, shareURL, hifiShareButtonsDisabled) {
     var twitterButtonID = parentID + "twitterButton";
     shareBar.innerHTML += '' +
         '<div class="shareButtons" id="' + shareButtonsDivID + '" style="opacity:0">' +
-            '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="blastToConnections" id="' + blastToConnectionsButtonID + '" value="BLAST TO CONNECTIONS" onclick="blastToConnections(' + parentID + ', ' + isGif + ')" />' +
-            '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" value="B" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')" />' +
+            '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="blastToConnections blueButton" id="' + blastToConnectionsButtonID + '" value="BLAST TO MY CONNECTIONS" onclick="blastToConnections(' + parentID + ', ' + isGif + ')" />' +
+            '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')" />' +
             '<a class="facebookButton" id="' + facebookButtonID + '" onClick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://www.facebook.com/dialog/feed?app_id=1585088821786423&link=' + shareURL + '"></a>' +
             '<a class="twitterButton" id="' + twitterButtonID + '" onClick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelity&hashtags=VR,HiFi"></a>' +
         '</div>' +
