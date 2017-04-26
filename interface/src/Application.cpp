@@ -78,6 +78,7 @@
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
+#include <controllers/InputRecorder.h>
 #include <controllers/ScriptingInterface.h>
 #include <controllers/StateController.h>
 #include <UserActivityLoggerScriptingInterface.h>
@@ -1465,46 +1466,53 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         const auto testScript = property(hifi::properties::TEST).toUrl();
         scriptEngines->loadScript(testScript, false);
     } else {
-        // Get sandbox content set version, if available
+        enum HandControllerType {
+            Vive,
+            Oculus
+        };
+        static const std::map<HandControllerType, int> MIN_CONTENT_VERSION = {
+            { Vive, 1 },
+            { Oculus, 27 }
+        };
+
+        // Get sandbox content set version
         auto acDirPath = PathUtils::getAppDataPath() + "../../" + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
         auto contentVersionPath = acDirPath + "content-version.txt";
         qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
-        auto contentVersion = 0;
+        int contentVersion = 0;
         QFile contentVersionFile(contentVersionPath);
         if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
             QString line = contentVersionFile.readAll();
-            // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
-            contentVersion = line.toInt();
+            contentVersion = line.toInt(); // returns 0 if conversion fails
         }
-        qCDebug(interfaceapp) << "Server content version: " << contentVersion;
 
-        static const int MIN_VIVE_CONTENT_VERSION = 1;
-        static const int MIN_OCULUS_TOUCH_CONTENT_VERSION = 27;
-
-        bool hasSufficientTutorialContent = false;
+        // Get controller availability
         bool hasHandControllers = false;
-
-        // Only specific hand controllers are currently supported, so only send users to the tutorial
-        // if they have one of those hand controllers.
+        HandControllerType handControllerType = Vive;
         if (PluginUtils::isViveControllerAvailable()) {
             hasHandControllers = true;
-            hasSufficientTutorialContent = contentVersion >= MIN_VIVE_CONTENT_VERSION;
+            handControllerType = Vive;
         } else if (PluginUtils::isOculusTouchControllerAvailable()) {
             hasHandControllers = true;
-            hasSufficientTutorialContent = contentVersion >= MIN_OCULUS_TOUCH_CONTENT_VERSION;
+            handControllerType = Oculus;
         }
 
+        // Check tutorial content versioning
+        bool hasTutorialContent = contentVersion >= MIN_CONTENT_VERSION.at(handControllerType);
+
+        // Check HMD use (may be technically available without being in use)
+        bool hasHMD = PluginUtils::isHMDAvailable();
+        bool isUsingHMD = hasHMD && hasHandControllers && _displayPlugin->isHmd();
+
+        Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
         Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable() && hasHandControllers;
-        Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
+        bool isTutorialComplete = tutorialComplete.get();
+        bool shouldGoToTutorial = isUsingHMD && hasTutorialContent && !isTutorialComplete;
 
-        bool shouldGoToTutorial = hasHMDAndHandControllers && hasSufficientTutorialContent && !tutorialComplete.get();
-
-        qCDebug(interfaceapp) << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
-        qCDebug(interfaceapp) << "Has sufficient tutorial content (" << contentVersion << ") : " << hasSufficientTutorialContent;
-        qCDebug(interfaceapp) << "Tutorial complete: " << tutorialComplete.get();
-        qCDebug(interfaceapp) << "Should go to tutorial: " << shouldGoToTutorial;
+        qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMD;
+        qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
+            ", complete:" << isTutorialComplete << ", should go:" << shouldGoToTutorial;
 
         // when --url in command line, teleport to location
         const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
@@ -1541,7 +1549,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
             // If this is a first run we short-circuit the address passed in
             if (isFirstRun) {
-                if (hasHMDAndHandControllers) {
+                if (isUsingHMD) {
                     if (sandboxIsRunning) {
                         qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                         DependencyManager::get<AddressManager>()->goToLocalSandbox();
@@ -2746,6 +2754,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
                     offscreenUi->load("Browser.qml");
+                } else if (isOption) {
+                    controller::InputRecorder* inputRecorder = controller::InputRecorder::getInstance();
+                    inputRecorder->stopPlayback();
                 }
                 break;
 

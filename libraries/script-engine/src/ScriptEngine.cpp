@@ -43,6 +43,7 @@
 #include <NetworkAccessManager.h>
 #include <PathUtils.h>
 #include <ResourceScriptingInterface.h>
+#include <UserActivityLoggerScriptingInterface.h>
 #include <NodeList.h>
 #include <ScriptAvatarData.h>
 #include <udt/PacketHeaders.h>
@@ -678,6 +679,8 @@ void ScriptEngine::init() {
     registerGlobalObject("Model", new ModelScriptingInterface(this));
     qScriptRegisterMetaType(this, meshToScriptValue, meshFromScriptValue);
     qScriptRegisterMetaType(this, meshesToScriptValue, meshesFromScriptValue);
+
+    registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {

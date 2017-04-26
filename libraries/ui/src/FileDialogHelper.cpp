@@ -26,6 +26,10 @@ QStringList FileDialogHelper::standardPath(StandardLocation location) {
     return QStandardPaths::standardLocations(static_cast<QStandardPaths::StandardLocation>(location)); 
 }
 
+QString FileDialogHelper::writableLocation(StandardLocation location) {
+    return QStandardPaths::writableLocation(static_cast<QStandardPaths::StandardLocation>(location));
+}
+
 QString FileDialogHelper::urlToPath(const QUrl& url) { 
     return url.toLocalFile(); 
 }

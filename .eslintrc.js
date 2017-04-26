@@ -34,6 +34,7 @@ module.exports = {
         "Quat": false,
         "Rates": false,
         "Recording": false,
+        "Resource": false,
         "Reticle": false,
         "Scene": false,
         "Script": false,
