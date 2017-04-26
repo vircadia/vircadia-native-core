@@ -41,7 +41,7 @@ public:
 };
 
 /// A texture loaded from the network.
-class NetworkTexture : public Resource, public Texture, public gpu::Texture::MipInterestListener {
+class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
 public:
@@ -57,9 +57,6 @@ public:
     image::TextureUsage::Type getTextureType() const { return _type; }
 
     gpu::TexturePointer getFallbackTexture() const;
-
-    void handleMipInterestCallback(uint16_t level) override;
-    Q_INVOKABLE void handleMipInterestLevel(int level);
 
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);

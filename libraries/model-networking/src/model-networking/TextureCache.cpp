@@ -245,13 +245,6 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
     return result;
 }
 
-NetworkTexture::~NetworkTexture() {
-    auto texture = _textureSource->getGPUTexture();
-    if (texture) {
-        texture->unregisterMipInterestListener(this);
-    }
-}
-
 /// Returns a texture version of an image file
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
     QImage image = QImage(path);
@@ -379,15 +372,6 @@ void NetworkTexture::makeRequest() {
         qWarning(networking) << "NetworkTexture::makeRequest() called while not in a valid state: " << _ktxResourceState;
     }
 
-}
-
-void NetworkTexture::handleMipInterestCallback(uint16_t level) {
-    QMetaObject::invokeMethod(this, "handleMipInterestLevel", Qt::QueuedConnection, Q_ARG(int, level));
-}
-
-void NetworkTexture::handleMipInterestLevel(int level) {
-    _lowestRequestedMipLevel = std::min((uint16_t)level, _lowestRequestedMipLevel);
-    startRequestForNextMipLevel();
 }
 
 void NetworkTexture::startRequestForNextMipLevel() {
@@ -647,8 +631,6 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
 
             _lowestKnownPopulatedMip = texture->minAvailableMipLevel();
 
-
-            texture->registerMipInterestListener(this);
             _ktxResourceState = WAITING_FOR_MIP_REQUEST;
             setImage(texture, header->getPixelWidth(), header->getPixelHeight());
             qDebug() << "Loaded KTX: " << QString::fromStdString(hash) << " : " << _url;

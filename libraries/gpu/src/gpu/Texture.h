@@ -488,17 +488,6 @@ public:
     void setStorage(std::unique_ptr<Storage>& newStorage);
     void setKtxBacking(const std::string& filename);
 
-    class MipInterestListener {
-        public:
-            virtual void handleMipInterestCallback(uint16 level) = 0;
-    };
-    void registerMipInterestListener(MipInterestListener* listener);
-    void unregisterMipInterestListener(MipInterestListener* listener);
-    std::vector<MipInterestListener*> _mipInterestListeners;
-    std::mutex _mipInterestListenersMutex;
-
-    void requestInterestInMip(uint16 level);
-
     // Usage is a a set of flags providing Semantic about the usage of the Texture.
     void setUsage(const Usage& usage) { _usage = usage; }
     Usage getUsage() const { return _usage; }
