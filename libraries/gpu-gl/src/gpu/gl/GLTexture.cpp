@@ -437,7 +437,6 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
     size_t idealMemoryAllocation = 0;
     bool canDemote = false;
     bool canPromote = false;
-    bool canPopulate = false;
     bool hasTransfers = false;
     for (const auto& texture : strongTextures) {
         // Race conditions can still leave nulls in the list, so we need to check
@@ -452,7 +451,6 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
         totalVariableMemoryAllocation += gltexture->size();
         canDemote |= vartexture->canDemote();
         canPromote |= vartexture->canPromote();
-        canPopulate |= vartexture->canPopulate();
         hasTransfers |= vartexture->hasPendingTransfers();
     }
 
@@ -464,7 +462,7 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
         newState = MemoryPressureState::Transfer;
     } else if (pressure > OVERSUBSCRIBED_PRESSURE_VALUE && canDemote) {
         newState = MemoryPressureState::Oversubscribed;
-    } else if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && ((unallocated != 0 && canPromote) && canPopulate)) {
+    } else if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && (unallocated != 0 && canPromote)) {
         newState = MemoryPressureState::Undersubscribed;
     }
 
@@ -521,7 +519,7 @@ void GLVariableAllocationSupport::processWorkQueues() {
             vartexture->demote();
             _memoryPressureStateStale = true;
         } else if (MemoryPressureState::Undersubscribed == _memoryPressureState) {
-            if (!vartexture->canPromote() || !vartexture->canPopulate()) {
+            if (!vartexture->canPromote()) {
                 continue;
             }
             vartexture->promote();

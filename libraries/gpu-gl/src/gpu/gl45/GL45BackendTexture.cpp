@@ -85,10 +85,13 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
         if (texture.getUsageType() == TextureUsageType::RESOURCE) {
             auto varTex = static_cast<GL45VariableAllocationTexture*> (object);
 
-            if (varTex->canPromote() && varTex->canPopulate()) {
-                GL45VariableAllocationTexture::_memoryPressureStateStale = true;
+            if (varTex->_minAllocatedMip > 0) {
+                auto minAvailableMip = texture.minAvailableMipLevel();
+                if (minAvailableMip < varTex->_minAllocatedMip) {
+                    varTex->_minAllocatedMip = minAvailableMip;
+                    GL45VariableAllocationTexture::_memoryPressureStateStale = true;
+                }
             }
-
         }
     }
 

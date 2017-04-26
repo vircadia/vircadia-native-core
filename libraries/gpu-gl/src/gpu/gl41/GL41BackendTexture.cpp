@@ -55,6 +55,18 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
             default:
                 Q_UNREACHABLE();
         }
+    } else {
+        if (texture.getUsageType() == TextureUsageType::RESOURCE) {
+            auto varTex = static_cast<GL41VariableAllocationTexture*> (object);
+
+            if (varTex->_minAllocatedMip > 0) {
+                auto minAvailableMip = texture.minAvailableMipLevel();
+                if (minAvailableMip < varTex->_minAllocatedMip) {
+                    varTex->_minAllocatedMip = minAvailableMip;
+                    GL41VariableAllocationTexture::_memoryPressureStateStale = true;
+                }
+            }
+        }
     }
 
     return object;
