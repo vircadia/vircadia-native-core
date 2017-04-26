@@ -1,5 +1,3 @@
-"use strict";
-
 //  doppleganger-app.js
 //
 //  Created by Timothy Dedischew on 04/21/2017.
@@ -12,11 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global */
-
 var DopplegangerClass = Script.require('./doppleganger.js');
-// uncomment the next line to sync via Script.update (instead of Script.setInterval)
-// DopplegangerClass.USE_SCRIPT_UPDATE = true;
 
 var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
     button = tablet.addButton({
@@ -35,22 +29,66 @@ var doppleganger = new DopplegangerClass({
     mirrored: true,
     autoUpdate: true
 });
+
+// hide the doppleganger if this client script is unloaded
 Script.scriptEnding.connect(doppleganger, 'stop');
 
-doppleganger.activeChanged.connect(function(active) {
+// hide the doppleganger if the user switches domains (which might place them arbitrarily far away in world space)
+function onDomainChanged() {
+    if (doppleganger.active) {
+        doppleganger.stop('domain_changed');
+    }
+}
+Window.domainChanged.connect(onDomainChanged);
+Window.domainConnectionRefused.connect(onDomainChanged);
+Script.scriptEnding.connect(function() {
+    Window.domainChanged.disconnect(onDomainChanged);
+    Window.domainConnectionRefused.disconnect(onDomainChanged);
+});
+
+// toggle on/off via tablet button
+button.clicked.connect(doppleganger, 'toggle');
+
+// highlight tablet button based on current doppleganger state
+doppleganger.activeChanged.connect(function(active, reason) {
     if (button) {
         button.editProperties({ isActive: active });
+        print('doppleganger.activeChanged', active, reason);
     }
 });
 
+// alert the user if there was an error applying their skeletonModelURL
 doppleganger.modelOverlayLoaded.connect(function(error, result) {
     if (doppleganger.active && error) {
         Window.alert('doppleganger | ' + error + '\n' + doppleganger.skeletonModelURL);
     }
 });
 
-button.clicked.connect(doppleganger, 'toggle');
-
+// add debug indicators, but only if the user has configured the settings value
 if (Settings.getValue('debug.doppleganger', false)) {
     DopplegangerClass.addDebugControls(doppleganger);
 }
+
+// TODO: uncomment after PR #10130 is merged (which provides the needed .logAction method)
+/*
+UserActivityLogger.logAction('doppleganger_app_load');
+
+// Script.scriptEnding.connect(function() {
+//     UserActivityLogger.logAction('doppleganger_app_unload');
+// });
+
+doppleganger.activeChanged.connect(function(active, reason) {
+    if (active) {
+        UserActivityLogger.logAction('doppleganger_enable');
+    } else {
+        if (reason === 'stop') {
+            // user intentionally toggled the doppleganger
+            UserActivityLogger.logAction('doppleganger_disable');
+        } else {
+            print('doppleganger stopped:', reason);
+            UserActivityLogger.logAction('doppleganger_autodisable', { reason: reason });
+        }
+    }
+});
+
+*/
