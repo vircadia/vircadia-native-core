@@ -244,18 +244,17 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
     _maxAllocatedMip = _populatedMip = mipLevels;
-    uint16_t minAvailableMip = texture.minAvailableMipLevel();
+    _minAllocatedMip = texture.minAvailableMipLevel();
     uvec3 mipDimensions;
-    for (uint16_t mip = 0; mip < mipLevels; ++mip) {
-        if (glm::all(glm::lessThanEqual(texture.evalMipDimensions(mip), INITIAL_MIP_TRANSFER_DIMENSIONS))
-            && mip >= minAvailableMip) {
+    for (uint16_t mip = _minAllocatedMip; mip < mipLevels; ++mip) {
+        if (glm::all(glm::lessThanEqual(texture.evalMipDimensions(mip), INITIAL_MIP_TRANSFER_DIMENSIONS))) {
             _maxAllocatedMip = _populatedMip = mip;
             break;
         }
     }
 
     auto targetMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
-    uint16_t allocatedMip = std::max<uint16_t>(minAvailableMip, targetMip);
+    uint16_t allocatedMip = std::max<uint16_t>(_minAllocatedMip, targetMip);
 
     allocateStorage(allocatedMip);
     _memoryPressureStateStale = true;
