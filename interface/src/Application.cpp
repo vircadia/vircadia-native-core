@@ -78,6 +78,7 @@
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
+#include <controllers/InputRecorder.h>
 #include <controllers/ScriptingInterface.h>
 #include <controllers/StateController.h>
 #include <UserActivityLoggerScriptingInterface.h>
@@ -2753,6 +2754,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
                     offscreenUi->load("Browser.qml");
+                } else if (isOption) {
+                    controller::InputRecorder* inputRecorder = controller::InputRecorder::getInstance();
+                    inputRecorder->stopPlayback();
                 }
                 break;
 
