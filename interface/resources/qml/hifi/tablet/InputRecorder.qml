@@ -127,7 +127,7 @@ Rectangle {
         spacing: 20
 
         Text {
-            text: "All files are saved under the folder 'hifi-input-recording' in interfaces AppData directory";
+            text: "All files are saved under the folder 'hifi-input-recording' in AppData directory";
             color: "white"
             font.pointSize: 10
         }
