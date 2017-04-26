@@ -85,6 +85,16 @@ function request(options, callback) { // cb(error, responseOfCorrectContentType)
     httpRequest.send(options.body);
 }
 
+function openLoginWindow() {
+    if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
+        || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
+        Menu.triggerOption("Login / Sign Up");
+    } else {
+        tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
+        HMD.openTablet();
+    }
+}
+
 function onMessage(message) {
     // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
     // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
@@ -97,7 +107,6 @@ function onMessage(message) {
     }
 
     var isLoggedIn;
-    var needsLogin = false;
     switch (message.action) {
         case 'ready': // DOM is ready and page has loaded
             tablet.emitScriptEvent(JSON.stringify({
@@ -138,7 +147,8 @@ function onMessage(message) {
             }
             break;
         case 'openSettings':
-            if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", true)) || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", false))) {
+            if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
+                || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
                 Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "General Preferences");
             } else {
                 tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
@@ -162,6 +172,64 @@ function onMessage(message) {
                 Window.shareSnapshot(message.data, message.href || href);
             } else {
                 // TODO
+            }
+            break;
+        case 'blastToConnections':
+            isLoggedIn = Account.isLoggedIn();
+            storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
+            if (message.isGif) {
+                Settings.setValue("previousAnimatedSnapSharingDisabled", true);
+            } else {
+                Settings.setValue("previousStillSnapSharingDisabled", true);
+            }
+
+            if (isLoggedIn) {
+                print('Uploading new story for announcement!');
+
+                request({
+                    uri: METAVERSE_BASE + '/api/v1/user_stories/' + message.story_id,
+                    method: 'GET'
+                }, function (error, response) {
+                    if (error || (response.status !== 'success')) {
+                        print("ERROR getting details about existing snapshot story:", error || response.status);
+                        return;
+                    } else {
+                        var requestBody = {
+                            user_story: {
+                                audience: "for_feed",
+                                action: "announcement",
+                                path: response.user_story.path,
+                                place_name: response.user_story.place_name,
+                                thumbnail_url: response.user_story.thumbnail_url,
+                                details: {
+                                    shareable_url: response.user_story.details.shareable_url,
+                                    image_url: response.user_story.details.image_url
+                                }
+                            }
+                        }
+                        request({
+                            uri: METAVERSE_BASE + '/api/v1/user_stories',
+                            method: 'POST',
+                            json: true,
+                            body: requestBody
+                        }, function (error, response) {
+                            if (error || (response.status !== 'success')) {
+                                print("ERROR uploading announcement story: ", error || response.status);
+                                if (message.isGif) {
+                                    Settings.setValue("previousAnimatedSnapSharingDisabled", false);
+                                } else {
+                                    Settings.setValue("previousStillSnapSharingDisabled", false);
+                                }
+                                return;
+                            } else {
+                                print("SUCCESS uploading announcement story! Story ID:", response.user_story.id);
+                            }
+                        });
+                    }
+                });
+
+            } else {
+                openLoginWindow();
             }
             break;
         case 'shareSnapshotWithEveryone':
@@ -202,18 +270,9 @@ function onMessage(message) {
                     }
                 });
             } else {
-                needsLogin = true;
+                openLoginWindow();
                 shareAfterLogin = true;
                 snapshotToShareAfterLogin = { path: message.data, href: message.href || href };
-            }
-            if (needsLogin) {
-                if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar"))
-                    || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar"))) {
-                    Menu.triggerOption("Login / Sign Up");
-                } else {
-                    tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
-                    HMD.openTablet();
-                }
             }
             break;
         case 'shareButtonClicked':
