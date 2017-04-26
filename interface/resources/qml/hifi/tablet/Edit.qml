@@ -22,10 +22,10 @@ StackView {
         editRoot.pop();
     }
 
-	// Passes script messages to the item on the top of the stack
-	function fromScript(message) {
-		var currentItem = editRoot.currentItem;
-		if (currentItem && currentItem.fromScript)
-			currentItem.fromScript(message);
-	}
+    // Passes script messages to the item on the top of the stack
+    function fromScript(message) {
+        var currentItem = editRoot.currentItem;
+        if (currentItem && currentItem.fromScript)
+            currentItem.fromScript(message);
+    }
 }

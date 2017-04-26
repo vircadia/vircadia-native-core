@@ -273,48 +273,46 @@ TabView {
         }
     }
 
-	function fromScript(message) {
-		switch (message.method) {
-			case 'selectTab':
-				selectTab(message.params.id);
-				break;
-			default:
-				console.warn('Unrecognized message:', JSON.stringify(message));
-		}
-	}
+    function fromScript(message) {
+        switch (message.method) {
+            case 'selectTab':
+                selectTab(message.params.id);
+                break;
+            default:
+                console.warn('Unrecognized message:', JSON.stringify(message));
+        }
+    }
 
-	// Changes the current tab based on tab index or title as input
-	function selectTab(id) {
-		if (typeof id === 'number') {
-			if (id >= 0 && id <= 4) {
-				editTabView.currentIndex = id;
-			} else {
-				console.warn('Attempt to switch to invalid tab:', id);
-			}			
-		}
-		else if (typeof id === 'string'){
-			switch (id.toLowerCase()) {
-				case 'create':
-					editTabView.currentIndex = 0;
-					break;
-				case 'list':
-					editTabView.currentIndex = 1;
-					break; 
-				case 'properties':
-					editTabView.currentIndex = 2;
-					break; 
-				case 'grid':
-					editTabView.currentIndex = 3;
-					break; 
-				case 'particle':
-					editTabView.currentIndex = 4;
-					break; 
-				default:
-					console.warn('Attempt to switch to invalid tab:', id);
-			}
-		}
-		else {
-			console.warn('Attempt to switch tabs with invalid input:', JSON.stringify(id));
-		}
-	}
+    // Changes the current tab based on tab index or title as input
+    function selectTab(id) {
+        if (typeof id === 'number') {
+            if (id >= 0 && id <= 4) {
+                editTabView.currentIndex = id;
+            } else {
+                console.warn('Attempt to switch to invalid tab:', id);
+            }			
+        } else if (typeof id === 'string'){
+            switch (id.toLowerCase()) {
+                case 'create':
+                    editTabView.currentIndex = 0;
+                    break;
+                case 'list':
+                    editTabView.currentIndex = 1;
+                    break; 
+                case 'properties':
+                    editTabView.currentIndex = 2;
+                    break; 
+                case 'grid':
+                    editTabView.currentIndex = 3;
+                    break; 
+                case 'particle':
+                    editTabView.currentIndex = 4;
+                    break; 
+                default:
+                    console.warn('Attempt to switch to invalid tab:', id);
+            }
+        } else {
+            console.warn('Attempt to switch tabs with invalid input:', JSON.stringify(id));
+        }
+    }
 }
