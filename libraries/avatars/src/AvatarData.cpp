@@ -1737,7 +1737,12 @@ void AvatarData::sendIdentityPacket() {
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
             if (node->getType() == NodeType::AvatarMixer) {
-                qDebug() << "AvatarData::sendIdentityPacket()... found mixer node, node->getActiveSocket():" << node->getActiveSocket();
+                qDebug() << "AvatarData::sendIdentityPacket()... found mixer node, node->getActiveSocket():" << node->getActiveSocket()
+                    << "getPublicSocket()" << node->getPublicSocket()
+                    << "getLocalSocket()" << node->getLocalSocket()
+                    << "getSymmetricSocket()" << node->getSymmetricSocket()
+                    << "getActiveSocket()" << *node->getActiveSocket();
+
             }
 
             return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();

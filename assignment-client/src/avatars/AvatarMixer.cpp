@@ -72,14 +72,12 @@ AvatarMixer::~AvatarMixer() {
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
     qDebug() << __FUNCTION__ << "about to call nodeData->getAvatar().identityByteArray()... for node:" << nodeData->getNodeID() << "destinationNode:" << destinationNode->getUUID();
     QByteArray individualData = nodeData->getAvatar().identityByteArray();
-
-    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
-
     individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122());
+    qDebug() << __FUNCTION__ << "REPLACED " << NUM_BYTES_RFC4122_UUID << "bytes in identityByteArray with:" << nodeData->getNodeID() << ".toRfc4122()...";
 
-    identityPacket->write(individualData);
-
-    DependencyManager::get<NodeList>()->sendPacket(std::move(identityPacket), *destinationNode);
+    auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+    identityPackets->write(individualData);
+    DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
 
     ++_sumIdentityPackets;
 }

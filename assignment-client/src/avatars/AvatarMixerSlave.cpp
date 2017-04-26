@@ -70,9 +70,12 @@ int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, 
     qDebug() << __FUNCTION__ << "about to call nodeData->getConstAvatarData().identityByteArray()... for node:" << nodeData->getNodeID() << "destinationNode:" << destinationNode->getUUID();
     QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
     individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
+    qDebug() << __FUNCTION__ << "REPLACED " << NUM_BYTES_RFC4122_UUID << "bytes in identityByteArray with:" << nodeData->getNodeID() << ".toRfc4122()...";
+
     auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
     identityPackets->write(individualData);
     DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
+
     _stats.numIdentityPackets++;
     return individualData.size();
 }
