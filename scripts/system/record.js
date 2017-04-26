@@ -647,6 +647,8 @@
 
         isConnected = Window.location.isConnected;
         Script.update.connect(onUpdate);
+
+        UserActivityLogger.logAction("record_run_script");
     }
 
     function tearDown() {
