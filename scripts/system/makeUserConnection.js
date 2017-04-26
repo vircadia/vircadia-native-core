@@ -186,9 +186,7 @@
         } else if (hand === Controller.Standard.LeftHand) {
             return "LeftHand";
         }
-        debug("handToString called without valid hand!");
-        debugger;
-        throw new Exception('hm');
+        debug("handToString called without valid hand! value: ", hand);
         return "";
     }
 
@@ -769,7 +767,7 @@
                     connectingId = senderID;
                     connectingHandString = message.hand;
                     connectingHandJointIndex = AvatarList.getAvatarIdentifiers().indexOf(connectingId) !== -1 ?
-                        getIdealHandJointIndex(AvatarList.getAvatar(connectingId), connectingHandString) : -1;
+                        getIdealHandJointIndex(AvatarList.getAvatar(connectingId), stringToHand(connectingHandString)) : -1;
                     messageSend({
                         key: "connectionAck",
                         id: senderID,
