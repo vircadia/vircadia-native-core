@@ -177,7 +177,7 @@ void SkyboxBakeWidget::bakeButtonClicked() {
 
         // everything seems to be in place, kick off a bake for this skybox now
         auto baker = std::unique_ptr<TextureBaker> {
-            new TextureBaker(skyboxToBakeURL, gpu::CUBE_TEXTURE, outputDirectory.absolutePath())
+            new TextureBaker(skyboxToBakeURL, image::TextureUsage::CUBE_TEXTURE, outputDirectory.absolutePath())
         };
 
         // move the baker to a worker thread

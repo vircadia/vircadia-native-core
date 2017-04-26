@@ -37,7 +37,8 @@ enum Type {
     CUBE_TEXTURE,
     OCCLUSION_TEXTURE,
     SCATTERING_TEXTURE = OCCLUSION_TEXTURE,
-    LIGHTMAP_TEXTURE
+    LIGHTMAP_TEXTURE,
+    UNUSED_TEXTURE
 };
 
 using TextureLoader = std::function<gpu::TexturePointer(const QImage&, const std::string&)>;

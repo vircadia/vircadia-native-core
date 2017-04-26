@@ -74,7 +74,7 @@ private:
     QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
     QUrl getTextureURL(const QFileInfo& textureFileInfo, fbxsdk::FbxFileTexture* fileTexture);
 
-    void bakeTexture(const QUrl& textureURL, gpu::TextureType textureType, const QDir& outputDir);
+    void bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir);
 
     QString pathToCopyOfOriginal() const;
 

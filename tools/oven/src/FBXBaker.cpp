@@ -277,8 +277,8 @@ QUrl FBXBaker::getTextureURL(const QFileInfo& textureFileInfo, FbxFileTexture* f
     return urlToTexture;
 }
 
-gpu::TextureType textureTypeForMaterialProperty(FbxProperty& property, FbxSurfaceMaterial* material) {
-    using namespace gpu;
+image::TextureUsage::Type textureTypeForMaterialProperty(FbxProperty& property, FbxSurfaceMaterial* material) {
+    using namespace image::TextureUsage;
     
     // this is a property we know has a texture, we need to match it to a High Fidelity known texture type
     // since that information is passed to the baking process
@@ -347,7 +347,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                     // figure out the type of texture from the material property
                     auto textureType = textureTypeForMaterialProperty(property, material);
 
-                    if (textureType != gpu::UNUSED_TEXTURE) {
+                    if (textureType != image::TextureUsage::UNUSED_TEXTURE) {
                         int numTextures = property.GetSrcObjectCount<FbxFileTexture>();
 
                         for (int j = 0; j < numTextures; j++) {
@@ -393,7 +393,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
     }
 }
 
-void FBXBaker::bakeTexture(const QUrl& textureURL, gpu::TextureType textureType, const QDir& outputDir) {
+void FBXBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir) {
     // start a bake for this texture and add it to our list to keep track of
     QSharedPointer<TextureBaker> bakingTexture {
         new TextureBaker(textureURL, textureType, outputDir),

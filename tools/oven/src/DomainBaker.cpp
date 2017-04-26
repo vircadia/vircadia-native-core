@@ -239,7 +239,7 @@ void DomainBaker::bakeSkybox(QUrl skyboxURL, QJsonValueRef entity) {
             // setup a baker for this skybox
 
             QSharedPointer<TextureBaker> skyboxBaker {
-                new TextureBaker(skyboxURL, gpu::CUBE_TEXTURE, _contentOutputPath),
+                new TextureBaker(skyboxURL, image::TextureUsage::CUBE_TEXTURE, _contentOutputPath),
                 &TextureBaker::deleteLater
             };
 

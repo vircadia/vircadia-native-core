@@ -16,7 +16,7 @@
 #include <QtCore/QUrl>
 #include <QtCore/QRunnable>
 
-#include <gpu/Texture.h>
+#include <image/Image.h>
 
 #include "Baker.h"
 
@@ -26,7 +26,7 @@ class TextureBaker : public Baker {
     Q_OBJECT
 
 public:
-    TextureBaker(const QUrl& textureURL, gpu::TextureType textureType, const QDir& outputDirectory);
+    TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDirectory);
 
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 
@@ -50,7 +50,7 @@ private:
 
     QUrl _textureURL;
     QByteArray _originalTexture;
-    gpu::TextureType _textureType;
+    image::TextureUsage::Type _textureType;
 
     QDir _outputDirectory;
     QString _bakedTextureFileName;

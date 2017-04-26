@@ -25,7 +25,7 @@
 
 const QString BAKED_TEXTURE_EXT = ".ktx";
 
-TextureBaker::TextureBaker(const QUrl& textureURL, gpu::TextureType textureType, const QDir& outputDirectory) :
+TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDirectory) :
     _textureURL(textureURL),
     _textureType(textureType),
     _outputDirectory(outputDirectory)
