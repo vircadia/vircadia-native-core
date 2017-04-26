@@ -114,7 +114,7 @@ protected:
     //bool canPromoteNoAllocate() const { return _allocatedMip < _populatedMip; }
     bool canPromote() const { return _allocatedMip > _minAllocatedMip; }
     bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
-    bool hasPendingTransfers() const { return _pendingTransfers.size() > 0; }
+    bool hasPendingTransfers() const { return _populatedMip > _allocatedMip; }
     void executeNextTransfer(const TexturePointer& currentTexture);
     virtual void populateTransferQueue() = 0;
     virtual void promote() = 0;
