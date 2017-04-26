@@ -1,0 +1,8 @@
+{
+    "gameName": "deckOfCards",
+    "matURL": "assets/mats/Felt.jpg",
+    "identicalPieces": true,
+    "howMany": 1,
+    "spawnStyle": "pile",
+    "pieces": ["deckOfCards/deckOfCards.json"]
+}

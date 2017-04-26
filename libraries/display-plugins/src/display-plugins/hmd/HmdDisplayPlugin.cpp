@@ -295,12 +295,11 @@ void HmdDisplayPlugin::internalPresent() {
         image = image.mirrored();
         image = image.convertToFormat(QImage::Format_RGBA8888);
         if (!_previewTexture) {
-            _previewTexture.reset(
-                gpu::Texture::createStrict(
+            _previewTexture = gpu::Texture::createStrict(
                 gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
                 image.width(), image.height(),
                 gpu::Texture::MAX_NUM_MIPS,
-                gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+                gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
             _previewTexture->setSource("HMD Preview Texture");
             _previewTexture->setUsage(gpu::Texture::Usage::Builder().withColor().build());
             _previewTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));

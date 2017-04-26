@@ -1445,8 +1445,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.jpg" };
     QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
 
-    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
-    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
+    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, image::TextureUsage::CUBE_TEXTURE, { { "generateIrradiance", false } });
+    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, image::TextureUsage::CUBE_TEXTURE, { { "generateIrradiance", true } });
 
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
 
@@ -6759,11 +6759,6 @@ void Application::updateDisplayMode() {
         return;
     }
 
-    UserActivityLogger::getInstance().logAction("changed_display_mode", {
-        { "previous_display_mode", _displayPlugin ? _displayPlugin->getName() : "" },
-        { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" }
-    });
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     // Make the switch atomic from the perspective of other threads
@@ -6818,13 +6813,16 @@ void Application::updateDisplayMode() {
         offscreenUi->getDesktop()->setProperty("repositionLocked", wasRepositionLocked);
     }
 
+    bool isHmd = _displayPlugin->isHmd();
+    qCDebug(interfaceapp) << "Entering into" << (isHmd ? "HMD" : "Desktop") << "Mode";
+
+    // Only log/emit after a successful change
+    UserActivityLogger::getInstance().logAction("changed_display_mode", {
+        { "previous_display_mode", _displayPlugin ? _displayPlugin->getName() : "" },
+        { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" },
+        { "hmd", isHmd }
+    });
     emit activeDisplayPluginChanged();
-    
-    if (_displayPlugin->isHmd()) {
-        qCDebug(interfaceapp) << "Entering into HMD Mode";
-    } else {
-        qCDebug(interfaceapp) << "Entering into Desktop Mode";
-    }
 
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);

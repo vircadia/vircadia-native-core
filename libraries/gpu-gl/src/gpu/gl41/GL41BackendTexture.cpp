@@ -69,9 +69,7 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 
 GLuint GL41Texture::allocate(const Texture& texture) {
     GLuint result;
-    // FIXME technically GL 4.2, but OSX includes the ARB_texture_storage extension
-    glCreateTextures(getGLTextureType(texture), 1, &result);
-    //glGenTextures(1, &result);
+    glGenTextures(1, &result);
     return result;
 }
 
@@ -94,12 +92,37 @@ void GL41Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
+void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     if (GL_TEXTURE_2D == _target) {
-        glTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
+                glCompressedTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                          static_cast<GLsizei>(sourceSize), sourcePointer);
+                break;
+            default:
+                glTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                break;
+        }
     } else if (GL_TEXTURE_CUBE_MAP == _target) {
         auto target = GLTexture::CUBE_FACE_LAYOUT[face];
-        glTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
+                glCompressedTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                          static_cast<GLsizei>(sourceSize), sourcePointer);
+                break;
+            default:
+                glTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                break;
+        }
     } else {
         assert(false);
     }
@@ -253,9 +276,9 @@ void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
 }
 
 
-void GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
+void GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     withPreservedTexture([&] {
-        Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, format, type, sourcePointer);
+        Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
     });
 }
 
@@ -280,7 +303,7 @@ void GL41VariableAllocationTexture::promote() {
 
     withPreservedTexture([&] {
         GLuint fbo { 0 };
-        glCreateFramebuffers(1, &fbo);
+        glGenFramebuffers(1, &fbo);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
 
         uint16_t mips = _gpuObject.getNumMips();
