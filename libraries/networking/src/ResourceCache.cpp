@@ -643,12 +643,12 @@ void Resource::attemptRequest() {
 void Resource::finishedLoading(bool success) {
     if (success) {
         qCDebug(networking).noquote() << "Finished loading:" << _url.toDisplayString();
+        _loadPriorities.clear();
         _loaded = true;
     } else {
         qCDebug(networking).noquote() << "Failed to load:" << _url.toDisplayString();
         _failedToLoad = true;
     }
-    _loadPriorities.clear();
     emit finished(success);
 }
 
