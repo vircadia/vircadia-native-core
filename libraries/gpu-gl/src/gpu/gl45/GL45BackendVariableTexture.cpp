@@ -186,7 +186,6 @@ void GL45ResourceTexture::populateTransferQueue() {
         --sourceMip;
         auto targetMip = sourceMip - _allocatedMip;
         auto mipDimensions = _gpuObject.evalMipDimensions(sourceMip);
-        bool didQueueTransfer = false;
         for (uint8_t face = 0; face < maxFace; ++face) {
             if (!_gpuObject.isStoredMipFaceAvailable(sourceMip, face)) {
                 continue;
@@ -196,7 +195,6 @@ void GL45ResourceTexture::populateTransferQueue() {
             if (glm::all(glm::lessThanEqual(mipDimensions, MAX_TRANSFER_DIMENSIONS))) {
                 // Can the mip be transferred in one go
                 _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face));
-                didQueueTransfer = true;
                 continue;
             }
 
@@ -212,17 +210,14 @@ void GL45ResourceTexture::populateTransferQueue() {
                 uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);
                 _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face, linesToCopy, lineOffset));
                 lineOffset += linesToCopy;
-                didQueueTransfer = true;
             }
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed
-        if (didQueueTransfer) {
-            _pendingTransfers.emplace(new TransferJob(*this, [=] {
-                _populatedMip = sourceMip;
-                syncSampler();
-            }));
-        }
+        _pendingTransfers.emplace(new TransferJob(*this, [=] {
+            _populatedMip = sourceMip;
+            syncSampler();
+        }));
     } while (sourceMip != _allocatedMip);
 }
 
