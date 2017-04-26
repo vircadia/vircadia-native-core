@@ -28,39 +28,40 @@ var COLOR3 = { red: 51, green: 51, blue: 255 };
 var inFront = Vec3.sum(Camera.getPosition(), Vec3.multiply(radius * 20, Quat.getFront(Camera.getOrientation())));
 
 for (var i = 0; i < n; i++) {
-  bodies.push(Entities.addEntity({
-    type: "Model",
-    modelURL: (i == 0) ? EARTH : MOON,
-    shapeType: "sphere",
-    dimensions: { x: radius * 2, y: radius * 2, z: radius * 2},
-    position: Vec3.sum(inFront, { x: 0, y: i * 2 * radius, z: 0 }),
-    gravity: { x: 0, y: 0, z: 0 },
-    damping: 0.0,
-    angularDamping: 0.0,
-    dynamic: true  
+    bodies.push(Entities.addEntity({
+        type: "Model",
+        modelURL: (i == 0) ? EARTH : MOON,
+        shapeType: "sphere",
+        dimensions: { x: radius * 2, y: radius * 2, z: radius * 2},
+        position: Vec3.sum(inFront, { x: 0, y: i * 2 * radius, z: 0 }),
+        gravity: { x: 0, y: 0, z: 0 },
+        damping: 0.0,
+        angularDamping: 0.0,
+        dynamic: true  
     }));
 }
 
 Script.update.connect(function(dt) {
-  var props = [];
-  for (var i = 0; i < n; i++) { 
-    props.push(Entities.getEntityProperties(bodies[i]));
-  }
-  for (var i = 0; i < n; i++) {
-    if (props[i].dynamic) {
-      var dv = { x: 0, y: 0, z: 0};
-      for (var j = 0; j < n; j++) {
-        if (i != j) {
-          dv = Vec3.sum(dv, Vec3.multiply(G * dt / Vec3.distance(props[i].position, props[j].position), Vec3.normalize(Vec3.subtract(props[j].position, props[i].position))));
-        }
-      }
-      Entities.editEntity(bodies[i], { velocity: Vec3.sum(props[i].velocity, dv)});  
+    var props = [];
+    for (var i = 0; i < n; i++) { 
+        props.push(Entities.getEntityProperties(bodies[i]));
     }
-  }
+    for (var i = 0; i < n; i++) {
+        if (props[i].dynamic) {
+            var dv = { x: 0, y: 0, z: 0};
+            for (var j = 0; j < n; j++) {
+                if (i != j) {
+                    dv = Vec3.sum(dv, Vec3.multiply(G * dt / Vec3.distance(props[i].position, props[j].position), 
+                                    Vec3.normalize(Vec3.subtract(props[j].position, props[i].position))));
+                }
+            }
+            Entities.editEntity(bodies[i], { velocity: Vec3.sum(props[i].velocity, dv)});  
+        }
+    } 
 });
 
 Script.scriptEnding.connect(function scriptEnding() {
-  for (var i = 0; i < n; i++) {
-    Entities.deleteEntity(bodies[i]);
-  }
+    for (var i = 0; i < n; i++) {
+        Entities.deleteEntity(bodies[i]);
+    }
 });

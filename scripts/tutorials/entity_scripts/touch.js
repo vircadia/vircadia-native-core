@@ -111,7 +111,6 @@
             ttl: ACTION_TTL
         };
         var success = Entities.updateAction(_this.copy, _this.actionID, props);
-        return;
     }
 
     function createSpringAction(timescale) {
@@ -148,7 +147,7 @@
                     grabbable:false
                 }
             })
-        }
+        };
         _this.copy = Entities.addEntity(props);
     }
 

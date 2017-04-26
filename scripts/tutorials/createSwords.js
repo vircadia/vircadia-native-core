@@ -34,7 +34,7 @@ var sword1 = Entities.addEntity({
                     grabbable:true
                 }
             })
-    })
+    });
 
 var sword2 = Entities.addEntity({
         type: "Box",
@@ -50,7 +50,7 @@ var sword2 = Entities.addEntity({
                     grabbable:true
                 }
             })
-    })
+    });
 
 Script.scriptEnding.connect(function scriptEnding() {
     Entities.deleteEntity(sword1);

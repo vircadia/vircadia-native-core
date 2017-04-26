@@ -31,8 +31,7 @@
             angularTimeScale: timescale,
             ttl: ACTION_TTL
         };
-        var success = Entities.updateAction(_this.copy, _this.actionID, props);
-        return;
+        Entities.updateAction(_this.copy, _this.actionID, props);
     }
 
     function createSpringAction(timescale) {
@@ -46,7 +45,6 @@
             ttl: ACTION_TTL
         };
         _this.actionID = Entities.addAction("spring", _this.copy, props);
-        return;
     }
 
     function createCopy() {
@@ -69,7 +67,7 @@
                     grabbable:false
                 }
             })
-        }
+        };
         _this.copy = Entities.addEntity(props);
     }
 
