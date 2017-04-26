@@ -22,6 +22,7 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 #include <model/TextureMap.h>
+#include <image/Image.h>
 
 #include "KTXCache.h"
 
@@ -43,29 +44,7 @@ class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
 public:
-     enum Type {
-        DEFAULT_TEXTURE,
-        STRICT_TEXTURE,
-        ALBEDO_TEXTURE,
-        NORMAL_TEXTURE,
-        BUMP_TEXTURE,
-        SPECULAR_TEXTURE,
-        METALLIC_TEXTURE = SPECULAR_TEXTURE, // for now spec and metallic texture are the same, converted to grey
-        ROUGHNESS_TEXTURE,
-        GLOSS_TEXTURE,
-        EMISSIVE_TEXTURE,
-        CUBE_TEXTURE,
-        OCCLUSION_TEXTURE,
-        SCATTERING_TEXTURE = OCCLUSION_TEXTURE,
-        LIGHTMAP_TEXTURE,
-        CUSTOM_TEXTURE
-    };
-    Q_ENUM(Type)
-
-    typedef gpu::Texture* TextureLoader(const QImage& image, const std::string& srcImageName);
-    using TextureLoaderFunc = std::function<TextureLoader>;
-
-    NetworkTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels);
+    NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels);
 
     QString getType() const override { return "NetworkTexture"; }
 
@@ -73,9 +52,8 @@ public:
     int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
-    Type getTextureType() const { return _type;  }
+    image::TextureUsage::Type getTextureType() const { return _type; }
 
-    TextureLoaderFunc getTextureLoader() const;
     gpu::TexturePointer getFallbackTexture() const;
 
 signals:
@@ -93,8 +71,7 @@ private:
     friend class KTXReader;
     friend class ImageReader;
 
-    Type _type;
-    TextureLoaderFunc _textureLoader { [](const QImage&, const std::string&){ return nullptr; } };
+    image::TextureUsage::Type _type;
     KTXFilePointer _file;
     int _originalWidth { 0 };
     int _originalHeight { 0 };
@@ -109,8 +86,6 @@ using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
 class TextureCache : public ResourceCache, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-
-    using Type = NetworkTexture::Type;
 
 public:
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
@@ -131,10 +106,10 @@ public:
     const gpu::TexturePointer& getBlackTexture();
 
     /// Returns a texture version of an image file
-    static gpu::TexturePointer getImageTexture(const QString& path, Type type = Type::DEFAULT_TEXTURE, QVariantMap options = QVariantMap());
+    static gpu::TexturePointer getImageTexture(const QString& path, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE, QVariantMap options = QVariantMap());
 
     /// Loads a texture from the specified URL.
-    NetworkTexturePointer getTexture(const QUrl& url, Type type = Type::DEFAULT_TEXTURE,
+    NetworkTexturePointer getTexture(const QUrl& url, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
 
