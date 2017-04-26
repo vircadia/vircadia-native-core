@@ -117,17 +117,47 @@ void GL45Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
+void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     if (GL_TEXTURE_2D == _target) {
-        glTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
+                glCompressedTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                              static_cast<GLsizei>(sourceSize), sourcePointer);
+                break;
+            default:
+                glTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                break;
+        }
     } else if (GL_TEXTURE_CUBE_MAP == _target) {
-        // DSA ARB does not work on AMD, so use EXT
-        // unless EXT is not available on the driver
-        if (glTextureSubImage2DEXT) {
-            auto target = GLTexture::CUBE_FACE_LAYOUT[face];
-            glTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
-        } else {
-            glTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, format, type, sourcePointer);
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
+                if (glCompressedTextureSubImage2DEXT) {
+                    auto target = GLTexture::CUBE_FACE_LAYOUT[face];
+                    glCompressedTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                                     static_cast<GLsizei>(sourceSize), sourcePointer);
+                } else {
+                    glCompressedTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, internalFormat,
+                                                  static_cast<GLsizei>(sourceSize), sourcePointer);
+                }
+                break;
+            default:
+                // DSA ARB does not work on AMD, so use EXT
+                // unless EXT is not available on the driver
+                if (glTextureSubImage2DEXT) {
+                    auto target = GLTexture::CUBE_FACE_LAYOUT[face];
+                    glTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                } else {
+                    glTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, format, type, sourcePointer);
+                }
+                break;
         }
     } else {
         Q_ASSERT(false);

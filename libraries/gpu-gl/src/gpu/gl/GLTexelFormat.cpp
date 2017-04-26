@@ -76,10 +76,6 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                     }
                     break;
 
-                case gpu::COMPRESSED_R:
-                    result = GL_COMPRESSED_RED_RGTC1;
-                    break;
-
                 case gpu::R11G11B10:
                     // the type should be float
                     result = GL_R11F_G11F_B10F;
@@ -149,12 +145,6 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                 case gpu::SRGBA:
                     result = GL_SRGB8; // standard 2.2 gamma correction color
                     break;
-                case gpu::COMPRESSED_RGB:
-                    result = GL_COMPRESSED_RGB;
-                    break;
-                case gpu::COMPRESSED_SRGB:
-                    result = GL_COMPRESSED_SRGB;
-                    break;
                 default:
                     qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
@@ -217,29 +207,22 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                 case gpu::SRGBA:
                     result = GL_SRGB8_ALPHA8; // standard 2.2 gamma correction color
                     break;
-                case gpu::COMPRESSED_RGBA:
-                    result = GL_COMPRESSED_RGBA;
-                    break;
-                case gpu::COMPRESSED_SRGBA:
-                    result = GL_COMPRESSED_SRGB_ALPHA;
-                    break;
 
-                    // FIXME: WE will want to support this later
-                    /*
-                    case gpu::COMPRESSED_BC3_RGBA:
-                    result = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+                case gpu::COMPRESSED_BC4_RED:
+                    result = GL_COMPRESSED_RED_RGTC1;
                     break;
-                    case gpu::COMPRESSED_BC3_SRGBA:
+                case gpu::COMPRESSED_BC1_SRGB:
+                    result = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
+                    break;
+                case gpu::COMPRESSED_BC1_SRGBA:
+                    result = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+                    break;
+                case gpu::COMPRESSED_BC3_SRGBA:
                     result = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
                     break;
-
-                    case gpu::COMPRESSED_BC7_RGBA:
-                    result = GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
+                case gpu::COMPRESSED_BC5_XY:
+                    result = GL_COMPRESSED_RG_RGTC2;
                     break;
-                    case gpu::COMPRESSED_BC7_SRGBA:
-                    result = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
-                    break;
-                    */
 
                 default:
                     qCWarning(gpugllogging) << "Unknown combination of texel format";
@@ -267,10 +250,6 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::RGB:
             case gpu::RGBA:
                 texel.internalFormat = GL_R8;
-                break;
-
-            case gpu::COMPRESSED_R:
-                texel.internalFormat = GL_COMPRESSED_RED_RGTC1;
                 break;
 
             case gpu::DEPTH:
@@ -315,12 +294,6 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::RGBA:
                 texel.internalFormat = GL_RGB8;
                 break;
-            case gpu::COMPRESSED_RGB:
-                texel.internalFormat = GL_COMPRESSED_RGB;
-                break;
-            case gpu::COMPRESSED_SRGB:
-                texel.internalFormat = GL_COMPRESSED_SRGB;
-                break;
             default:
                 qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
@@ -359,30 +332,22 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_SRGB8_ALPHA8;
                 break;
 
-            case gpu::COMPRESSED_RGBA:
-                texel.internalFormat = GL_COMPRESSED_RGBA;
-                break;
-            case gpu::COMPRESSED_SRGBA:
-                texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA;
 
+            case gpu::COMPRESSED_BC4_RED:
+                texel.internalFormat = GL_COMPRESSED_RED_RGTC1;
                 break;
-
-                // FIXME: WE will want to support this later
-                /*
-                case gpu::COMPRESSED_BC3_RGBA:
-                texel.internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+            case gpu::COMPRESSED_BC1_SRGB:
+                texel.internalFormat = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
                 break;
-                case gpu::COMPRESSED_BC3_SRGBA:
+            case gpu::COMPRESSED_BC1_SRGBA:
+                texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+                break;
+            case gpu::COMPRESSED_BC3_SRGBA:
                 texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
                 break;
-
-                case gpu::COMPRESSED_BC7_RGBA:
-                texel.internalFormat = GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
+            case gpu::COMPRESSED_BC5_XY:
+                texel.internalFormat = GL_COMPRESSED_RG_RGTC2;
                 break;
-                case gpu::COMPRESSED_BC7_SRGBA:
-                texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
-                break;
-                */
 
             default:
                 qCWarning(gpugllogging) << "Unknown combination of texel format";
@@ -403,10 +368,6 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
-            case gpu::COMPRESSED_R: {
-                texel.internalFormat = GL_COMPRESSED_RED_RGTC1;
-                break;
-            }
             case gpu::RED:
             case gpu::RGB:
             case gpu::RGBA:
@@ -564,12 +525,6 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::SRGBA:
                 texel.internalFormat = GL_SRGB8; // standard 2.2 gamma correction color
                 break;
-            case gpu::COMPRESSED_RGB:
-                texel.internalFormat = GL_COMPRESSED_RGB;
-                break;
-            case gpu::COMPRESSED_SRGB:
-                texel.internalFormat = GL_COMPRESSED_SRGB;
-                break;
             default:
                 qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
@@ -646,11 +601,21 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::SRGBA:
                 texel.internalFormat = GL_SRGB8_ALPHA8; // standard 2.2 gamma correction color
                 break;
-            case gpu::COMPRESSED_RGBA:
-                texel.internalFormat = GL_COMPRESSED_RGBA;
+
+            case gpu::COMPRESSED_BC4_RED:
+                texel.internalFormat = GL_COMPRESSED_RED_RGTC1;
                 break;
-            case gpu::COMPRESSED_SRGBA:
-                texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA;
+            case gpu::COMPRESSED_BC1_SRGB:
+                texel.internalFormat = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
+                break;
+            case gpu::COMPRESSED_BC1_SRGBA:
+                texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+                break;
+            case gpu::COMPRESSED_BC3_SRGBA:
+                texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+                break;
+            case gpu::COMPRESSED_BC5_XY:
+                texel.internalFormat = GL_COMPRESSED_RG_RGTC2;
                 break;
             default:
                 qCWarning(gpugllogging) << "Unknown combination of texel format";
