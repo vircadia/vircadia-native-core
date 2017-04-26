@@ -223,14 +223,14 @@ var toolBar = (function () {
         tablet = null;
 
     // add a menu item for setting newly created entities as grabbable
-    var GRABBABLEENTITIES_MENU_CATEGORY = "Developer";
-    var GRABBABLEENTITIES_MENU_ITEM = "Create Entities As Grabbable";
+    var GRABBABLE_ENTITIES_MENU_CATEGORY = "Developer";
+    var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
 
-    if (Menu.menuExists(GRABBABLEENTITIES_MENU_CATEGORY) &&
-    !Menu.menuItemExists(GRABBABLEENTITIES_MENU_CATEGORY, GRABBABLEENTITIES_MENU_ITEM)) {
+    if (Menu.menuExists(GRABBABLE_ENTITIES_MENU_CATEGORY) &&
+        !Menu.menuItemExists(GRABBABLE_ENTITIES_MENU_CATEGORY, GRABBABLE_ENTITIES_MENU_ITEM)) {
         Menu.addMenuItem({
-            menuName: GRABBABLEENTITIES_MENU_CATEGORY,
-            menuItemName: GRABBABLEENTITIES_MENU_ITEM,
+            menuName: GRABBABLE_ENTITIES_MENU_CATEGORY,
+            menuItemName: GRABBABLE_ENTITIES_MENU_ITEM,
             isCheckable: true,
             isChecked: true,
             grouping: "Advanced"
@@ -244,7 +244,7 @@ var toolBar = (function () {
         if (position !== null && position !== undefined) {
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
-            if (Menu.isOptionChecked(GRABBABLEENTITIES_MENU_ITEM)) {
+            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM)) {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
             }
             entityID = Entities.addEntity(properties);
@@ -271,7 +271,7 @@ var toolBar = (function () {
         if (systemToolbar) {
             systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
         }
-        Menu.removeMenuItem(GRABBABLEENTITIES_MENU_CATEGORY, GRABBABLEENTITIES_MENU_ITEM);
+        Menu.removeMenuItem(GRABBABLE_ENTITIES_MENU_CATEGORY, GRABBABLE_ENTITIES_MENU_ITEM);
     }
 
     var buttonHandlers = {}; // only used to tablet mode
