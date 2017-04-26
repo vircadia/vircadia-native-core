@@ -30,6 +30,7 @@
     var PARTICLE_ANGLE_INCREMENT = 360/45; // 1hz
     var HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/4beat_sweep.wav";
     var SUCCESSFUL_HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/3rdbeat_success_bell.wav";
+    var PREFERRER_HAND_JOINT_POSTFIX_ORDER = ['Middle1', 'Index1', ''];
     var HAPTIC_DATA = {
         initial: { duration: 20, strength: 0.6 }, // duration is in ms
         background: { duration: 100, strength: 0.3 }, // duration is in ms
@@ -93,6 +94,7 @@
     };
 
     var currentHand;
+    var currentHandJointIndex = -1;
     var state = STATES.INACTIVE;
     var connectingInterval;
     var waitingInterval;
@@ -100,6 +102,7 @@
     var animHandlerId;
     var connectingId;
     var connectingHand;
+    var connectingHandJointIndex = -1;
     var waitingList = {};
     var particleEffect;
     var particleRotationAngle = 0.0;
@@ -225,17 +228,29 @@
         }
     }
 
-// This returns the position of the palm, really.  Which relies on the avatar
-// having the expected middle1 joint.  TODO: fallback for when this isn't part
-// of the avatar?
-    function getHandPosition(avatar, hand) {
-        if (!hand) {
-            debug("calling getHandPosition with no hand! (returning avatar position but this is a BUG)");
+    // This returns the ideal hand joint index for the avatar.
+    // [hand]middle1 -> [hand]index1 -> [hand]
+    function getIdealHandJointIndex(avatar, hand) {
+        debug("got hand " + hand + " for avatar " + avatar.id);
+        var handString = handToString(hand);
+        for (var i = 0; i < PREFERRER_HAND_JOINT_POSTFIX_ORDER.length; i++) {
+            var jointName = handString + PREFERRER_HAND_JOINT_POSTFIX_ORDER[i];
+            var jointIndex = avatar.getJointIndex(jointName);
+            if (jointIndex !== -1) {
+                return jointIndex;
+            }
+        }
+        return -1;
+    }
+
+    // This returns the preferred hand position.
+    function getHandPosition(avatar, handJointIndex) {
+        if (handJointIndex === -1) {
+            debug("calling getHandPosition with no hand joint index! (returning avatar position but this is a BUG)");
             debug(new Error().stack);
             return avatar.position;
         }
-        var jointName = handToString(hand) + "Middle1";
-        return avatar.getJointPosition(avatar.getJointIndex(jointName));
+        return avatar.getJointPosition(handJointIndex);
     }
 
     function shakeHandsAnimation(animationProperties) {
@@ -295,17 +310,18 @@
             deleteMakeConnectionParticleEffect();
             // this should always be true if inactive, but just in case:
             currentHand = undefined;
+            currentHandJointIndex = -1;
             return;
         }
 
-        var myHandPosition = getHandPosition(MyAvatar, currentHand);
+        var myHandPosition = getHandPosition(MyAvatar, currentHandJointIndex);
         var otherHand;
         var otherOrientation;
         if (connectingId) {
             var other = AvatarList.getAvatar(connectingId);
             if (other) {
                 otherOrientation = other.orientation;
-                otherHand = getHandPosition(other, stringToHand(connectingHand));
+                otherHand = getHandPosition(other, connectingHandJointIndex);
             }
         }
 
@@ -367,7 +383,7 @@
 
     function isNearby(id, hand) {
         if (currentHand) {
-            var handPos = getHandPosition(MyAvatar, currentHand);
+            var handPos = getHandPosition(MyAvatar, currentHandJointIndex);
             var avatar = AvatarList.getAvatar(id);
             if (avatar) {
                 var otherHand = stringToHand(hand);
@@ -389,7 +405,7 @@
                 var distance = Vec3.distance(getHandPosition(avatar, hand), handPos);
                 if (distance < minDistance) {
                     minDistance = distance;
-                    nearestAvatar = {avatar: identifier, hand: hand};
+                    nearestAvatar = {avatar: identifier, hand: hand, avatarObject: avatar};
                 }
             }
         });
@@ -401,11 +417,11 @@
     // them a connectionRequest.  If nobody is close enough we send a waiting message, and wait for a
     // connectionRequest.  If the 2 people who want to connect are both somewhat out of range when they
     // initiate the shake, they will race to see who sends the connectionRequest after noticing the
-    // waiting message.  Either way, they will start connecting each other at that point.
+    // waiting message.  Either way, they will start connecting eachother at that point.
     function startHandshake(fromKeyboard) {
         if (fromKeyboard) {
             debug("adding animation");
-            // just in case order of press/release is broken
+            // just in case order of press/unpress is broken
             if (animHandlerId) {
                 animHandlerId = MyAvatar.removeAnimationStateHandler(animHandlerId);
             }
@@ -416,6 +432,7 @@
         state = STATES.WAITING;
         connectingId = undefined;
         connectingHand = undefined;
+        connectingHandJointIndex = -1;
         // just in case
         stopWaiting();
         stopConnecting();
@@ -425,6 +442,8 @@
         if (nearestAvatar.avatar) {
             connectingId = nearestAvatar.avatar;
             connectingHand = handToString(nearestAvatar.hand);
+            connectingHandJointIndex = getIdealHandJointIndex(nearestAvatar.avatarObject, nearestAvatar.hand);
+            currentHandJointIndex = getIdealHandJointIndex(MyAvatar, currentHand);
             debug("sending connectionRequest to", connectingId);
             messageSend({
                 key: "connectionRequest",
@@ -448,6 +467,7 @@
         deleteParticleEffect();
         deleteMakeConnectionParticleEffect();
         currentHand = undefined;
+        currentHandJointIndex = -1;
         // note that setting the state to inactive should really
         // only be done here, unless we change how the triggering works,
         // as we ignore the key release event when inactive.  See updateTriggers
@@ -455,6 +475,7 @@
         state = STATES.INACTIVE;
         connectingId = undefined;
         connectingHand = undefined;
+        connectingHandJointIndex = -1;
         stopWaiting();
         stopConnecting();
         stopMakingConnection();
@@ -480,6 +501,7 @@
         }
         if (!currentHand) {
             currentHand = hand;
+            currentHandJointIndex = getIdealHandJointIndex(MyAvatar, currentHand);
         }
         // ok now, we are either initiating or quitting...
         var isGripping = value > GRIP_MIN;
@@ -653,12 +675,14 @@
         // do we need to do this?
         connectingId = id;
         connectingHand = hand;
+        connectingHandJointIndex = AvatarList.getAvatarIdentifiers().indexOf(connectingId) !== -1 ?
+            getIdealHandJointIndex(AvatarList.getAvatar(connectingId), connectingHand) : -1;
         state = STATES.CONNECTING;
 
         // play sound
         if (!handshakeInjector) {
             handshakeInjector = Audio.playSound(handshakeSound, {
-                position: getHandPosition(MyAvatar, currentHand),
+                position: getHandPosition(MyAvatar, currentHandJointIndex),
                 volume: 0.5,
                 localOnly: true
             });
@@ -741,6 +765,8 @@
                     // guy raced and both send connectionRequests.  Handle that too
                     connectingId = senderID;
                     connectingHand = message.hand;
+                    connectingHandJointIndex = AvatarList.getAvatarIdentifiers().indexOf(connectingId) !== -1 ?
+                        getIdealHandJointIndex(AvatarList.getAvatar(connectingId), connectingHand) : -1;
                     messageSend({
                         key: "connectionAck",
                         id: senderID,
@@ -759,6 +785,8 @@
                         // start connecting...
                         connectingId = senderID;
                         connectingHand = message.hand;
+                        connectingHandJointIndex = AvatarList.getAvatarIdentifiers().indexOf(connectingId) !== -1 ?
+                            getIdealHandJointIndex(AvatarList.getAvatar(connectingId), connectingHand) : -1;
                         stopWaiting();
                         startConnecting(senderID, message.hand);
                     } else if (connectingId) {
@@ -805,6 +833,7 @@
                     if (state !== STATES.MAKING_CONNECTION && connectingId === senderID) {
                         connectingId = undefined;
                         connectingHand = undefined;
+                        connectingHandJointIndex = -1;
                         if (state !== STATES.INACTIVE) {
                             startHandshake();
                         }
