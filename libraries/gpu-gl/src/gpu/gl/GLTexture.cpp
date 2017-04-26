@@ -458,12 +458,12 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
     float pressure = (float)totalVariableMemoryAllocation / (float)allowedMemoryAllocation;
 
     auto newState = MemoryPressureState::Idle;
-    if (hasTransfers) {
-        newState = MemoryPressureState::Transfer;
+    if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && (unallocated != 0 && canPromote)) {
+        newState = MemoryPressureState::Undersubscribed;
     } else if (pressure > OVERSUBSCRIBED_PRESSURE_VALUE && canDemote) {
         newState = MemoryPressureState::Oversubscribed;
-    } else if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && (unallocated != 0 && canPromote)) {
-        newState = MemoryPressureState::Undersubscribed;
+    } else if (hasTransfers) {
+        newState = MemoryPressureState::Transfer;
     }
 
     if (newState != _memoryPressureState) {
@@ -539,6 +539,7 @@ void GLVariableAllocationSupport::processWorkQueues() {
     }
 
     if (workQueue.empty()) {
+        _memoryPressureState = MemoryPressureState::Idle;
         _memoryPressureStateStale = true;
     }
 }
