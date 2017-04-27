@@ -126,7 +126,7 @@ size_t KTXDescriptor::getValueOffsetForKey(const std::string& key) const {
     size_t offset { 0 };
     for (auto& kv : keyValues) {
         if (kv._key == key) {
-            return offset + kv._key.size() + 1;
+            return offset + ktx::KV_SIZE_WIDTH + kv._key.size() + 1;
         }
         offset += kv.serializedByteSize();
     }

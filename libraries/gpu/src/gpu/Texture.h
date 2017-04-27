@@ -330,6 +330,7 @@ public:
 
         std::string _filename;
         std::atomic<uint8_t> _minMipLevelAvailable;
+        size_t _offsetToMinMipKV;
 
         ktx::KTXDescriptorPointer _ktxDescriptor;
         friend class Texture;

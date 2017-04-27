@@ -109,17 +109,17 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
         if (_ktxDescriptor->images.size() < _ktxDescriptor->header.numberOfMipmapLevels) {
             qWarning() << "Bad images found in ktx";
         }
-        auto& keyValues = _ktxDescriptor->keyValues;
-        auto found = std::find_if(keyValues.begin(), keyValues.end(), [](const ktx::KeyValue& val) -> bool {
-            return val._key.compare(ktx::HIFI_MIN_POPULATED_MIP_KEY) == 0;
-        });
-        if (found != keyValues.end()) {
-            _minMipLevelAvailable = found->_value[0];
+
+        _offsetToMinMipKV = _ktxDescriptor->getValueOffsetForKey(ktx::HIFI_MIN_POPULATED_MIP_KEY);
+        if (_offsetToMinMipKV) {
+            auto data = storage->data() + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
+            _minMipLevelAvailable = *data;
         } else {
             // Assume all mip levels are available
             _minMipLevelAvailable = 0;
         }
     }
+
 
     // now that we know the ktx, let's get the header info to configure this Texture::Storage:
     Format mipFormat = Format::COLOR_BGRA_32;
@@ -195,7 +195,6 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     imageData += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
     imageData += ktx::IMAGE_SIZE_WIDTH;
 
-    auto offset = _ktxDescriptor->getValueOffsetForKey(ktx::HIFI_MIN_POPULATED_MIP_KEY);
     {
         std::lock_guard<std::mutex> lock { _cacheFileWriteMutex };
 
@@ -206,8 +205,8 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
 
         memcpy(imageData, storage->data(), _ktxDescriptor->images[level]._imageSize);
         _minMipLevelAvailable = level;
-        if (offset > 0) {
-            auto minMipKeyData = file->mutableData() + ktx::KTX_HEADER_SIZE + ktx::KV_SIZE_WIDTH + offset;
+        if (_offsetToMinMipKV > 0) {
+            auto minMipKeyData = file->mutableData() + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
             memcpy(minMipKeyData, (void*)&_minMipLevelAvailable, 1);
         }
     }
