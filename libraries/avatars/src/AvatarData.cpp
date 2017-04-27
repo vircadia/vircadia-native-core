@@ -1489,9 +1489,6 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
         return;
     }
 
-    qCDebug(avatars) << __FUNCTION__ << "got identity packet for avatar " << getSessionUUID()
-                << "identity.updatedAt:" << identity.updatedAt << "_identityUpdatedAt:" << _identityUpdatedAt;
-
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
         identityChanged = true;
@@ -1525,7 +1522,6 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
     // use the timestamp from this identity, since we want to honor the updated times in "server clock"
     // this will overwrite any changes we made locally to this AvatarData's _identityUpdatedAt
     _identityUpdatedAt = identity.updatedAt;
-    qDebug() << __FUNCTION__ << "_identityUpdatedAt:" << _identityUpdatedAt;
 }
 
 QByteArray AvatarData::identityByteArray() const {
@@ -1534,15 +1530,6 @@ QByteArray AvatarData::identityByteArray() const {
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
     _avatarEntitiesLock.withReadLock([&] {
-
-        qDebug() << "AvatarData::identityByteArray() ... "
-            << "session:" << getSessionUUID()
-            << "url:" << urlToSend
-            << "displayName:" << _displayName
-            << "sessionDisplayName:" << getSessionDisplayNameForTransport()
-            << "identityUpdatedAt:" << _identityUpdatedAt;
-
-
         identityStream << getSessionUUID() 
                 << urlToSend 
                 << _attachmentData 
@@ -1726,29 +1713,16 @@ void AvatarData::sendAvatarDataPacket() {
 }
 
 void AvatarData::sendIdentityPacket() {
-    qDebug() << __FUNCTION__;
     auto nodeList = DependencyManager::get<NodeList>();
-
-    qDebug() << __FUNCTION__ << "about to call identityByteArray()... for getSessionUUID:" << getSessionUUID();
     QByteArray identityData = identityByteArray();
 
     auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
     packetList->write(identityData);
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
-            if (node->getType() == NodeType::AvatarMixer) {
-                qDebug() << "AvatarData::sendIdentityPacket()... found mixer node, node->getActiveSocket():" << node->getActiveSocket()
-                    << "getPublicSocket()" << node->getPublicSocket()
-                    << "getLocalSocket()" << node->getLocalSocket()
-                    << "getSymmetricSocket()" << node->getSymmetricSocket()
-                    << "getActiveSocket()" << *node->getActiveSocket();
-
-            }
-
             return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
         },
         [&](const SharedNodePointer& node) {
-            qDebug() << "AvatarData::sendIdentityPacket()... about to call.... nodeList->sendPacketList(std::move(packetList), *node);";
             nodeList->sendPacketList(std::move(packetList), *node);
         });
 

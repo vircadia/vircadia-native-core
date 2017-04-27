@@ -5244,7 +5244,6 @@ void Application::nodeActivated(SharedNodePointer node) {
 
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet right away
-        qDebug() << __FUNCTION__ << "about to call... getMyAvatar()->sendIdentityPacket();";
         getMyAvatar()->markIdentityDataChanged();
         getMyAvatar()->sendIdentityPacket();
         getMyAvatar()->resetLastSent();

@@ -70,15 +70,11 @@ AvatarMixer::~AvatarMixer() {
 }
 
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    qDebug() << __FUNCTION__ << "about to call nodeData->getAvatar().identityByteArray()... for node:" << nodeData->getNodeID() << "destinationNode:" << destinationNode->getUUID();
     QByteArray individualData = nodeData->getAvatar().identityByteArray();
     individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122());
-    qDebug() << __FUNCTION__ << "REPLACED " << NUM_BYTES_RFC4122_UUID << "bytes in identityByteArray with:" << nodeData->getNodeID() << ".toRfc4122()...";
-
     auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
     identityPackets->write(individualData);
     DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
-
     ++_sumIdentityPackets;
 }
 
@@ -394,7 +390,6 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
 }
 
 void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    qDebug() << __FUNCTION__;
     auto start = usecTimestampNow();
     auto nodeList = DependencyManager::get<NodeList>();
     getOrCreateClientData(senderNode);
@@ -406,14 +401,9 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
 
             // parse the identity packet and update the change timestamp if appropriate
             AvatarData::Identity identity;
-
-            qCDebug(avatars) << __FUNCTION__ << "about to call parseAvatarIdentityPacket() for packet from node:" << nodeData->getNodeID();
             AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
-
             bool identityChanged = false;
             bool displayNameChanged = false;
-
-            qCDebug(avatars) << __FUNCTION__ << "about to call processAvatarIdentity() node:" << nodeData->getNodeID();
             avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged);
             if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());

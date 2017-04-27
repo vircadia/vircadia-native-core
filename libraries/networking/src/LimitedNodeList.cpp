@@ -437,8 +437,6 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
 qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList, const Node& destinationNode) {
     auto activeSocket = destinationNode.getActiveSocket();
     if (activeSocket) {
-        qDebug() << __FUNCTION__ << "activeSocket:" << *activeSocket;
-
         // close the last packet in the list
         packetList->closeCurrentPacket();
 

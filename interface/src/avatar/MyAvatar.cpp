@@ -413,7 +413,6 @@ void MyAvatar::update(float deltaTime) {
         Q_ARG(glm::vec3, (halfBoundingBoxDimensions*2.0f)));
 
     if (getIdentityDataChanged()) {
-        qDebug() << __FUNCTION__ << "about to call... sendIdentityPacket();";
         sendIdentityPacket();
     }
 
