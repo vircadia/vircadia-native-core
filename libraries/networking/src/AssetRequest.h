@@ -17,15 +17,15 @@
 #include <QString>
 
 #include "AssetClient.h"
-
 #include "AssetUtils.h"
+
+#include "ByteRange.h"
 
 class AssetRequest : public QObject {
    Q_OBJECT
 public:
     enum State {
         NotStarted = 0,
-        WaitingForInfo,
         WaitingForData,
         Finished
     };
@@ -36,11 +36,12 @@ public:
         InvalidByteRange,
         InvalidHash,
         HashVerificationFailed,
+        SizeVerificationFailed,
         NetworkError,
         UnknownError
     };
 
-    AssetRequest(const QString& hash);
+    AssetRequest(const QString& hash, const ByteRange& byteRange = ByteRange());
     virtual ~AssetRequest() override;
 
     Q_INVOKABLE void start();
@@ -59,13 +60,12 @@ private:
     int _requestID;
     State _state = NotStarted;
     Error _error = NoError;
-    AssetInfo _info;
     uint64_t _totalReceived { 0 };
     QString _hash;
     QByteArray _data;
     int _numPendingRequests { 0 };
     MessageID _assetRequestID { INVALID_MESSAGE_ID };
-    MessageID _assetInfoRequestID { INVALID_MESSAGE_ID };
+    const ByteRange _byteRange;
 };
 
 #endif

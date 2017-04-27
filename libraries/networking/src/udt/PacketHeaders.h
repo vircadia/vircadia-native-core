@@ -215,7 +215,8 @@ enum class EntityQueryPacketVersion: PacketVersion {
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
-    VegasCongestionControl = 19
+    VegasCongestionControl = 19,
+    RangeRequestSupport
 };
 
 enum class AvatarMixerPacketVersion : PacketVersion {
@@ -231,7 +232,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     ImmediateSessionDisplayNameUpdates,
     VariableAvatarData,
     AvatarAsChildFixes,
-    StickAndBallDefaultAvatar
+    StickAndBallDefaultAvatar,
+    IdentityPacketsIncludeUpdateTime
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

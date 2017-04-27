@@ -23,6 +23,7 @@
 #include <ResourceCache.h>
 #include <model/TextureMap.h>
 #include <image/Image.h>
+#include <ktx/KTX.h>
 
 #include "KTXCache.h"
 
@@ -59,7 +60,16 @@ public:
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
+public slots:
+    void ktxHeaderRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
+    void ktxHeaderRequestFinished();
+
+    void ktxMipRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
+    void ktxMipRequestFinished();
+
 protected:
+    void makeRequest() override;
+
     virtual bool isCacheable() const override { return _loaded; }
 
     virtual void downloadFinished(const QByteArray& data) override;
@@ -67,12 +77,51 @@ protected:
     Q_INVOKABLE void loadContent(const QByteArray& content);
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
+    void startRequestForNextMipLevel();
+
+    void startMipRangeRequest(uint16_t low, uint16_t high);
+    void maybeHandleFinishedInitialLoad();
+
 private:
     friend class KTXReader;
     friend class ImageReader;
 
     image::TextureUsage::Type _type;
+
+    static const uint16_t NULL_MIP_LEVEL;
+    enum KTXResourceState {
+        PENDING_INITIAL_LOAD = 0,
+        LOADING_INITIAL_DATA,    // Loading KTX Header + Low Resolution Mips
+        WAITING_FOR_MIP_REQUEST, // Waiting for the gpu layer to report that it needs higher resolution mips
+        PENDING_MIP_REQUEST,     // We have added ourselves to the ResourceCache queue
+        REQUESTING_MIP,          // We have a mip in flight
+        FAILED_TO_LOAD
+    };
+
+    bool _sourceIsKTX { false };
+    KTXResourceState _ktxResourceState { PENDING_INITIAL_LOAD };
+
+    // TODO Can this be removed?
     KTXFilePointer _file;
+
+    // The current mips that are currently being requested w/ _ktxMipRequest
+    std::pair<uint16_t, uint16_t> _ktxMipLevelRangeInFlight{ NULL_MIP_LEVEL, NULL_MIP_LEVEL };
+
+    ResourceRequest* _ktxHeaderRequest { nullptr };
+    ResourceRequest* _ktxMipRequest { nullptr };
+    bool _ktxHeaderRequestFinished{ false };
+    bool _ktxHighMipRequestFinished{ false };
+
+    uint16_t _lowestRequestedMipLevel { NULL_MIP_LEVEL };
+    uint16_t _lowestKnownPopulatedMip { NULL_MIP_LEVEL };
+
+    // This is a copy of the original KTX descriptor from the source url.
+    // We need this because the KTX that will be cached will likely include extra data
+    // in its key/value data, and so will not match up with the original, causing
+    // mip offsets to change.
+    ktx::KTXDescriptorPointer _originalKtxDescriptor;
+
+
     int _originalWidth { 0 };
     int _originalHeight { 0 };
     int _width { 0 };
