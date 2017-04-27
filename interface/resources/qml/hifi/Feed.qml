@@ -31,6 +31,7 @@ Column {
     property string labelText: actions;
     property string filter: '';
     onFilterChanged: filterChoicesByText();
+    property var goFunction: null;
 
     HifiConstants { id: hifi }
     ListModel { id: suggestions; }
@@ -57,7 +58,7 @@ Column {
             created_at: data.created_at || "",
             action: data.action || "",
             thumbnail_url: resolveUrl(thumbnail_url),
-            image_url: resolveUrl(data.details.image_url),
+            image_url: resolveUrl(data.details && data.details.image_url),
 
             metaverseId: (data.id || "").toString(), // Some are strings from server while others are numbers. Model objects require uniformity.
 
@@ -181,7 +182,7 @@ Column {
         delegate: Card {
             width: cardWidth;
             height: cardHeight;
-            goFunction: goCard; // fixme global
+            goFunction: root.goFunction;
             userName: model.username;
             placeName: model.place_name;
             hifiUrl: model.place_name + model.path;

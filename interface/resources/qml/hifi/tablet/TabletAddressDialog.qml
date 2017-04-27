@@ -242,7 +242,7 @@ StackView {
                     height: stack.height;
                     color: "transparent";
                     anchors {
-                        left: bgMain.left;
+                        left: parent.left;
                         leftMargin: column.pad;
                         topMargin: column.pad;
                     }
@@ -258,9 +258,10 @@ StackView {
                             cardHeight: places.cardHeight * happeningNow.cardScale;
                             metaverseServerUrl: addressBarDialog.metaverseServerUrl;
                             labelText: 'Happening Now';
-                            //actions: 'concurrency,snapshot'; // uncomment this line instead of next to produce fake announcement data for testing.
-                            actions: 'announcement';
+                            actions: 'concurrency,snapshot'; // uncomment this line instead of next to produce fake announcement data for testing.
+                            //actions: 'announcement';
                             filter: addressLine.text;
+                            goFunction: goCard;
                         }
                         Feed {
                             id: places;
@@ -269,6 +270,7 @@ StackView {
                             labelText: 'Places';
                             actions: 'concurrency';
                             filter: addressLine.text;
+                            goFunction: goCard;
                         }
                         Feed {
                             id: snapshots;
@@ -277,6 +279,7 @@ StackView {
                             labelText: 'Recent Activity';
                             actions: 'snapshot';
                             filter: addressLine.text;
+                            goFunction: goCard;
                         }
                     }
                 }

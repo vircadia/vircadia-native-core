@@ -130,7 +130,7 @@ Rectangle {
     property int dropSamples: 9;
     property int dropSpread: 0;
     DropShadow {
-        visible: showPlace && desktop.gradientsSupported;
+        visible: showPlace; // Do we have to check for whatever the modern equivalent is for desktop.gradientsSupported?
         source: place;
         anchors.fill: place;
         horizontalOffset: dropHorizontalOffset;
