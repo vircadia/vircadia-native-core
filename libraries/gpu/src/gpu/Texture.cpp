@@ -493,12 +493,11 @@ void Texture::setAutoGenerateMips(bool enable) {
 }
 
 Size Texture::getStoredMipSize(uint16 level) const {
-    PixelsPointer mipFace = accessStoredMipFace(level);
     Size size = 0;
-    if (mipFace && mipFace->getSize()) {
-        for (int face = 0; face < getNumFaces(); face++) {
+    for (int face = 0; face < getNumFaces(); face++) {
+        if (isStoredMipFaceAvailable(level, face)) {
             size += getStoredMipFaceSize(level, face);
-         }
+        }
     }
     return size;
 }

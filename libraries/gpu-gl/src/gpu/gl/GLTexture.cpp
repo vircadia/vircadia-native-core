@@ -140,7 +140,7 @@ GLExternalTexture::~GLExternalTexture() {
         if (recycler) {
             backend->releaseExternalTexture(_id, recycler);
         } else {
-            qWarning() << "No recycler available for texture " << _id << " possible leak";
+            qCWarning(gpugllogging) << "No recycler available for texture " << _id << " possible leak";
         }
         const_cast<GLuint&>(_id) = 0;
     }
@@ -210,42 +210,32 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
     format = texelFormat.format;
     internalFormat = texelFormat.internalFormat;
     type = texelFormat.type;
-    auto mipSize = _parent._gpuObject.getStoredMipFaceSize(sourceMip, face);
+    _transferSize = _parent._gpuObject.getStoredMipFaceSize(sourceMip, face);
 
-
-    if (0 == lines) {
-        _transferSize = mipSize;
-        _bufferingLambda = [=] {
-            auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
-            if (!mipData) {
-                qWarning() << "Mip not available: " << sourceMip;
-            } else {
-                _buffer.resize(_transferSize);
-                memcpy(&_buffer[0], mipData->readData(), _transferSize);
-            }
-            _bufferingCompleted = true;
-        };
-
-    } else {
+    // If we're copying a subsection of the mip, do additional calculations to find the size and offset of the segment
+    if (0 != lines) {
         transferDimensions.y = lines;
         auto dimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
-        auto bytesPerLine = (uint32_t)mipSize / dimensions.y;
-        auto sourceOffset = bytesPerLine * lineOffset;
+        auto bytesPerLine = (uint32_t)_transferSize / dimensions.y;
+        _transferOffset = bytesPerLine * lineOffset;
         _transferSize = bytesPerLine * lines;
-        _bufferingLambda = [=] {
-            auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
-            _buffer.resize(_transferSize);
-            memcpy(&_buffer[0], mipData->readData() + sourceOffset, _transferSize);
-            _bufferingCompleted = true;
-        };
     }
 
     Backend::updateTextureTransferPendingSize(0, _transferSize);
 
+    if (_transferSize > GLVariableAllocationSupport::MAX_TRANSFER_SIZE) {
+        qCWarning(gpugllogging) << "Transfer size of " << _transferSize << " exceeds theoretical maximum transfer size";
+    }
+
+    // Buffering can invoke disk IO, so it should be off of the main and render threads
+    _bufferingLambda = [=] {
+        _mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face)->createView(_transferSize, _transferOffset);
+        _bufferingCompleted = true;
+    };
+
     _transferLambda = [=] {
-        _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, internalFormat, format, type, _buffer.size(), _buffer.data());
-        std::vector<uint8_t> emptyVector;
-        _buffer.swap(emptyVector);
+        _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, internalFormat, format, type, _mipData->size(), _mipData->readData());
+        _mipData.reset();
     };
 }
 
