@@ -23,7 +23,7 @@
 
 static int requestID = 0;
 
-AssetRequest::AssetRequest(const QString& hash, ByteRange byteRange) :
+AssetRequest::AssetRequest(const QString& hash, const ByteRange& byteRange) :
     _requestID(++requestID),
     _hash(hash),
     _byteRange(byteRange)

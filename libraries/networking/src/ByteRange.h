@@ -16,8 +16,8 @@ struct ByteRange {
     int64_t fromInclusive { 0 };
     int64_t toExclusive { 0 };
 
-    bool isSet() { return fromInclusive < 0 || fromInclusive < toExclusive; }
-    int64_t size() { return toExclusive - fromInclusive; }
+    bool isSet() const { return fromInclusive < 0 || fromInclusive < toExclusive; }
+    int64_t size() const { return toExclusive - fromInclusive; }
 
     // byte ranges are invalid if:
     // (1) the toExclusive of the range is negative

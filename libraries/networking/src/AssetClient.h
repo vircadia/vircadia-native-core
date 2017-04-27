@@ -56,7 +56,7 @@ public:
     Q_INVOKABLE DeleteMappingsRequest* createDeleteMappingsRequest(const AssetPathList& paths);
     Q_INVOKABLE SetMappingRequest* createSetMappingRequest(const AssetPath& path, const AssetHash& hash);
     Q_INVOKABLE RenameMappingRequest* createRenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath);
-    Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash, ByteRange byteRange = ByteRange());
+    Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash, const ByteRange& byteRange = ByteRange());
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
     Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data);
 
