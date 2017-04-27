@@ -12,49 +12,56 @@
     font-family: Raleway-Regular;
     src: url(../../../../resources/fonts/Raleway-Regular.ttf),  /* Windows production */
          url(../../../../fonts/Raleway-Regular.ttf),  /* OSX production */
-         url(../../../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development, running script in /HiFi/examples */
+         url(../../../../interface/resources/fonts/Raleway-Regular.ttf),  /* Development, running script in /HiFi/examples */
+         url(../fonts/Raleway-Regular.ttf);  /* Marketplace script */
 }
 
 @font-face {
     font-family: Raleway-Light;
     src: url(../../../../resources/fonts/Raleway-Light.ttf),
          url(../../../../fonts/Raleway-Light.ttf),
-         url(../../../../interface/resources/fonts/Raleway-Light.ttf);
+         url(../../../../interface/resources/fonts/Raleway-Light.ttf),
+         url(../fonts/Raleway-Light.ttf);
 }
 
 @font-face {
     font-family: Raleway-Bold;
     src: url(../../../../resources/fonts/Raleway-Bold.ttf),
          url(../../../../fonts/Raleway-Bold.ttf),
-         url(../../../../interface/resources/fonts/Raleway-Bold.ttf);
+         url(../../../../interface/resources/fonts/Raleway-Bold.ttf),
+         url(../fonts/Raleway-Bold.ttf);
 }
 
 @font-face {
     font-family: Raleway-SemiBold;
     src: url(../../../../resources/fonts/Raleway-SemiBold.ttf),
          url(../../../../fonts/Raleway-SemiBold.ttf),
-         url(../../../../interface/resources/fonts/Raleway-SemiBold.ttf);
+         url(../../../../interface/resources/fonts/Raleway-SemiBold.ttf),
+         url(../fonts/Raleway-SemiBold.ttf);
 }
 
 @font-face {
     font-family: FiraSans-SemiBold;
     src: url(../../../../resources/fonts/FiraSans-SemiBold.ttf),
          url(../../../../fonts/FiraSans-SemiBold.ttf),
-         url(../../../../interface/resources/fonts/FiraSans-SemiBold.ttf);
+         url(../../../../interface/resources/fonts/FiraSans-SemiBold.ttf),
+         url(../fonts/FiraSans-SemiBold.ttf);
 }
 
 @font-face {
     font-family: AnonymousPro-Regular;
     src: url(../../../../resources/fonts/AnonymousPro-Regular.ttf),
          url(../../../../fonts/AnonymousPro-Regular.ttf),
-         url(../../../../interface/resources/fonts/AnonymousPro-Regular.ttf);
+         url(../../../../interface/resources/fonts/AnonymousPro-Regular.ttf),
+         url(../fonts/AnonymousPro-Regular.ttf);
 }
 
 @font-face {
     font-family: HiFi-Glyphs;
     src: url(../../../../resources/fonts/hifi-glyphs.ttf),
          url(../../../../fonts/hifi-glyphs.ttf),
-         url(../../../../interface/resources/fonts/hifi-glyphs.ttf);
+         url(../../../../interface/resources/fonts/hifi-glyphs.ttf),
+         url(../fonts/hifi-glyphs.ttf);
 }
 
 * {
@@ -289,7 +296,7 @@ input[type=number]::-webkit-inner-spin-button:after {
     bottom: 4px;
 }
 
-input[type=number].hover-up::-webkit-inner-spin-button:before, 
+input[type=number].hover-up::-webkit-inner-spin-button:before,
 input[type=number].hover-down::-webkit-inner-spin-button:after {
     color: #ffffff;
 }
@@ -1037,6 +1044,12 @@ th#entity-hasTransparent .sort-order {
     top: -1px;
 }
 
+#entity-table td.isBaked.glyph {
+    font-size: 22px;
+    position: relative;
+    top: -1px;
+}
+
 #entity-table tfoot {
     box-sizing: border-box;
     border: 2px solid #575757;
@@ -1062,7 +1075,7 @@ th#entity-hasTransparent .sort-order {
 #col-locked, #col-visible {
     width: 9%;
 }
-#col-verticesCount, #col-texturesCount, #col-texturesSize, #col-hasTransparent, #col-drawCalls, #col-hasScript {
+#col-verticesCount, #col-texturesCount, #col-texturesSize, #col-hasTransparent, #col-isBaked, #col-drawCalls, #col-hasScript {
     width: 0;
 }
 
@@ -1090,6 +1103,9 @@ th#entity-hasTransparent .sort-order {
 .showExtraInfo #col-hasTransparent {
     width: 4%;
 }
+.showExtraInfo #col-isBaked {
+    width: 8%;
+}
 .showExtraInfo #col-drawCalls {
     width: 8%;
 }
@@ -1097,12 +1113,12 @@ th#entity-hasTransparent .sort-order {
     width: 6%;
 }
 
-th#entity-verticesCount, th#entity-texturesCount, th#entity-texturesSize, th#entity-hasTransparent, th#entity-drawCalls, 
+th#entity-verticesCount, th#entity-texturesCount, th#entity-texturesSize, th#entity-hasTransparent, th#entity-isBaked, th#entity-drawCalls,
 th#entity-hasScript {
     display: none;
 }
 
-.verticesCount, .texturesCount, .texturesSize, .hasTransparent, .drawCalls, .hasScript {
+.verticesCount, .texturesCount, .texturesSize, .hasTransparent, .isBaked, .drawCalls, .hasScript {
     display: none;
 }
 
@@ -1110,13 +1126,13 @@ th#entity-hasScript {
     border: none;
 }
 
-.showExtraInfo #entity-verticesCount, .showExtraInfo #entity-texturesCount, .showExtraInfo #entity-texturesSize, 
-.showExtraInfo #entity-hasTransparent, .showExtraInfo #entity-drawCalls, .showExtraInfo #entity-hasScript {
+.showExtraInfo #entity-verticesCount, .showExtraInfo #entity-texturesCount, .showExtraInfo #entity-texturesSize,
+.showExtraInfo #entity-hasTransparent, .showExtraInfo #entity-isBaked, .showExtraInfo #entity-drawCalls, .showExtraInfo #entity-hasScript {
     display: inline-block;
 }
 
-.showExtraInfo .verticesCount, .showExtraInfo .texturesCount, .showExtraInfo .texturesSize, .showExtraInfo .hasTransparent, 
-.showExtraInfo .drawCalls, .showExtraInfo .hasScript {
+.showExtraInfo .verticesCount, .showExtraInfo .texturesCount, .showExtraInfo .texturesSize, .showExtraInfo .hasTransparent,
+.showExtraInfo .isBaked, .showExtraInfo .drawCalls, .showExtraInfo .hasScript {
     display: table-cell;
 }
 

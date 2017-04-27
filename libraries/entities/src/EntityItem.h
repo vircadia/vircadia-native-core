@@ -36,17 +36,17 @@
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
 #include "SimulationFlags.h"
-#include "EntityActionInterface.h"
+#include "EntityDynamicInterface.h"
 
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
-class EntityActionInterface;
+class EntityDynamicInterface;
 class EntityItemProperties;
 class EntityTree;
 class btCollisionShape;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
-typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
+typedef std::shared_ptr<EntityDynamicInterface> EntityDynamicPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
 
@@ -398,22 +398,22 @@ public:
     void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
     QString actionsToDebugString();
-    bool addAction(EntitySimulationPointer simulation, EntityActionPointer action);
+    bool addAction(EntitySimulationPointer simulation, EntityDynamicPointer action);
     bool updateAction(EntitySimulationPointer simulation, const QUuid& actionID, const QVariantMap& arguments);
     bool removeAction(EntitySimulationPointer simulation, const QUuid& actionID);
     bool clearActions(EntitySimulationPointer simulation);
-    void setActionData(QByteArray actionData);
-    const QByteArray getActionData() const;
+    void setDynamicData(QByteArray dynamicData);
+    const QByteArray getDynamicData() const;
     bool hasActions() const { return !_objectActions.empty(); }
     QList<QUuid> getActionIDs() const { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
 
-    void setActionDataDirty(bool value) const { _actionDataDirty = value; }
-    bool actionDataDirty() const { return _actionDataDirty; }
+    void setDynamicDataDirty(bool value) const { _dynamicDataDirty = value; }
+    bool dynamicDataDirty() const { return _dynamicDataDirty; }
 
-    void setActionDataNeedsTransmit(bool value) const { _actionDataNeedsTransmit = value; }
-    bool actionDataNeedsTransmit() const { return _actionDataNeedsTransmit; }
+    void setDynamicDataNeedsTransmit(bool value) const { _dynamicDataNeedsTransmit = value; }
+    bool dynamicDataNeedsTransmit() const { return _dynamicDataNeedsTransmit; }
 
     bool shouldSuppressLocationEdits() const;
 
@@ -421,7 +421,7 @@ public:
     const QUuid& getSourceUUID() const { return _sourceUUID; }
     bool matchesSourceUUID(const QUuid& sourceUUID) const { return _sourceUUID == sourceUUID; }
 
-    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet) const;
+    QList<EntityDynamicPointer> getActionsOfType(EntityDynamicType typeToGet) const;
 
     // these are in the frame of this object
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
@@ -479,8 +479,8 @@ protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }
 
-    const QByteArray getActionDataInternal() const;
-    void setActionDataInternal(QByteArray actionData);
+    const QByteArray getDynamicDataInternal() const;
+    void setDynamicDataInternal(QByteArray dynamicData);
 
     virtual void locationChanged(bool tellPhysics = true) override;
     virtual void dimensionsChanged() override;
@@ -570,22 +570,22 @@ protected:
     void* _physicsInfo { nullptr }; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
 
-    bool addActionInternal(EntitySimulationPointer simulation, EntityActionPointer action);
+    bool addActionInternal(EntitySimulationPointer simulation, EntityDynamicPointer action);
     bool removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation = nullptr);
     void deserializeActionsInternal();
     void serializeActions(bool& success, QByteArray& result) const;
-    QHash<QUuid, EntityActionPointer> _objectActions;
+    QHash<QUuid, EntityDynamicPointer> _objectActions;
 
     static int _maxActionsDataSize;
     mutable QByteArray _allActionsDataCache;
 
-    // when an entity-server starts up, EntityItem::setActionData is called before the entity-tree is
+    // when an entity-server starts up, EntityItem::setDynamicData is called before the entity-tree is
     // ready.  This means we can't find our EntityItemPointer or add the action to the simulation.  These
     // are used to keep track of and work around this situation.
     void checkWaitingToRemove(EntitySimulationPointer simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
-    mutable bool _actionDataDirty { false };
-    mutable bool _actionDataNeedsTransmit { false };
+    mutable bool _dynamicDataDirty { false };
+    mutable bool _dynamicDataNeedsTransmit { false };
     // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;

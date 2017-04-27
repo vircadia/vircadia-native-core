@@ -1,0 +1,53 @@
+{
+    "Entities": [{
+        "acceleration": {
+            "x": 0,
+            "y": -0.10,
+            "z": 0
+        },
+        "clientOnly": 0,
+        "collisionsWillMove": 1,
+        "created": "2016-09-13T22:01:47Z",
+        "description": "hifi:gameTable:piece:checkers",
+        "dimensions": {
+            "x": 0.08,
+            "y": 0.014,
+            "z": 0.08
+        },
+        "damping": 1,
+        "angularDamping": 0.9,
+        "restitution": 0,
+        "friction": 2,
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{551e5154-db28-4f65-a5cb-ef6214a83288}",
+        "modelURL": "assets/checkers/red_checker.fbx",
+        "name": "Checker Piece",
+        "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+        "queryAACube": {
+            "scale": 0.068905137479305267,
+            "x": -0.034452568739652634,
+            "y": -0.034452568739652634,
+            "z": -0.034452568739652634
+        },
+        "rotation": {
+            "w": 0.61089491844177246,
+            "x": -1.52587890625e-05,
+            "y": 0.79168379306793213,
+            "z": -1.52587890625e-05
+        },
+        "script": "snapToGrid.js",
+        "shapeType": "box",
+        "type": "Model",
+        "velocity": {
+            "x": -1.6112440158130847e-12,
+            "y": -20.055213928222656,
+            "z": 8.2404768772526005e-12
+        }
+    }],
+    "Version": 64
+}

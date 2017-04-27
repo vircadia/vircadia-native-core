@@ -88,6 +88,7 @@ EntityListTool = function(opts) {
                     texturesCount: valueIfDefined(properties.renderInfo.texturesCount),
                     texturesSize: valueIfDefined(properties.renderInfo.texturesSize),
                     hasTransparent: valueIfDefined(properties.renderInfo.hasTransparent),
+                    isBaked: properties.type == "Model" ? properties.modelURL.toLowerCase().endsWith(".baked.fbx") : false, 
                     drawCalls: valueIfDefined(properties.renderInfo.drawCalls),
                     hasScript: properties.script !== ""
                 });

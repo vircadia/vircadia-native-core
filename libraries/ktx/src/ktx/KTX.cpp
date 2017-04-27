@@ -12,6 +12,7 @@
 #include "KTX.h"
 
 #include <algorithm> //min max and more
+#include <QDebug>
 
 using namespace ktx;
 
@@ -34,30 +35,80 @@ uint32_t Header::evalMaxDimension() const {
     return std::max(getPixelWidth(), std::max(getPixelHeight(), getPixelDepth()));
 }
 
-uint32_t Header::evalPixelWidth(uint32_t level) const {
-    return std::max(getPixelWidth() >> level, 1U);
+uint32_t Header::evalPixelOrBlockWidth(uint32_t level) const {
+    auto pixelWidth = std::max(getPixelWidth() >> level, 1U);
+    if (getGLType() == GLType::COMPRESSED_TYPE) {
+        return (pixelWidth + 3) / 4;
+    } else {
+        return pixelWidth;
+    }
 }
-uint32_t Header::evalPixelHeight(uint32_t level) const {
-    return std::max(getPixelHeight() >> level, 1U);
+uint32_t Header::evalPixelOrBlockHeight(uint32_t level) const {
+    auto pixelWidth = std::max(getPixelHeight() >> level, 1U);
+    if (getGLType() == GLType::COMPRESSED_TYPE) {
+        auto format = getGLInternaFormat_Compressed();
+        switch (format) {
+            case GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT: // BC1
+            case GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: // BC1A
+            case GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: // BC3
+            case GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1: // BC4
+            case GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2: // BC5
+                return (pixelWidth + 3) / 4;
+            default:
+                throw std::runtime_error("Unknown format");
+        }
+    } else {
+        return pixelWidth;
+    }
 }
-uint32_t Header::evalPixelDepth(uint32_t level) const {
+uint32_t Header::evalPixelOrBlockDepth(uint32_t level) const {
     return std::max(getPixelDepth() >> level, 1U);
 }
 
-size_t Header::evalPixelSize() const {
-    return glTypeSize; // Really we should generate the size from the FOrmat etc
+size_t Header::evalPixelOrBlockSize() const {
+    if (getGLType() == GLType::COMPRESSED_TYPE) {
+        auto format = getGLInternaFormat_Compressed();
+        if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT) {
+            return 8;
+        } else if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT) {
+            return 8;
+        } else if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT) {
+            return 16;
+        } else if (format == GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1) {
+            return 8;
+        } else if (format == GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2) {
+            return 16;
+        }
+    } else {
+        auto baseFormat = getGLBaseInternalFormat();
+        if (baseFormat == GLBaseInternalFormat::RED) {
+            return 1;
+        } else if (baseFormat == GLBaseInternalFormat::RG) {
+            return 2;
+        } else if (baseFormat == GLBaseInternalFormat::RGB) {
+            return 3;
+        } else if (baseFormat == GLBaseInternalFormat::RGBA) {
+            return 4;
+        }
+    }
+
+    qWarning() << "Unknown ktx format: " << glFormat << " " << glBaseInternalFormat << " " << glInternalFormat;
+    return 0;
 }
 
 size_t Header::evalRowSize(uint32_t level) const {
-    auto pixWidth = evalPixelWidth(level);
-    auto pixSize = evalPixelSize();
+    auto pixWidth = evalPixelOrBlockWidth(level);
+    auto pixSize = evalPixelOrBlockSize();
+    if (pixSize == 0) {
+        return 0;
+    }
     auto netSize = pixWidth * pixSize;
     auto padding = evalPadding(netSize);
     return netSize + padding;
 }
 size_t Header::evalFaceSize(uint32_t level) const {
-    auto pixHeight = evalPixelHeight(level);
-    auto pixDepth = evalPixelDepth(level);
+    auto pixHeight = evalPixelOrBlockHeight(level);
+    auto pixDepth = evalPixelOrBlockDepth(level);
     auto rowSize = evalRowSize(level);
     return pixDepth * pixHeight * rowSize;
 }
@@ -68,6 +119,47 @@ size_t Header::evalImageSize(uint32_t level) const {
     } else {
         return (getNumberOfSlices() * numberOfFaces * faceSize);
     }
+}
+
+
+size_t KTXDescriptor::getValueOffsetForKey(const std::string& key) const {
+    size_t offset { 0 };
+    for (auto& kv : keyValues) {
+        if (kv._key == key) {
+            return offset + ktx::KV_SIZE_WIDTH + kv._key.size() + 1;
+        }
+        offset += kv.serializedByteSize();
+    }
+    return 0;
+}
+
+ImageDescriptors Header::generateImageDescriptors() const {
+    ImageDescriptors descriptors;
+
+    size_t imageOffset = 0;
+    for (uint32_t level = 0; level < numberOfMipmapLevels; ++level) {
+        auto imageSize = static_cast<uint32_t>(evalImageSize(level));
+        if (imageSize == 0) {
+            return ImageDescriptors();
+        }
+        ImageHeader header {
+            numberOfFaces == NUM_CUBEMAPFACES,
+            imageOffset,
+            imageSize,
+            0
+        };
+
+        imageOffset += (imageSize * numberOfFaces) + ktx::IMAGE_SIZE_WIDTH;
+
+        ImageHeader::FaceOffsets offsets;
+        // TODO Add correct face offsets
+        for (uint32_t i = 0; i < numberOfFaces; ++i) {
+            offsets.push_back(0);
+        }
+        descriptors.push_back(ImageDescriptor(header, offsets));
+    }
+
+    return descriptors;
 }
 
 
