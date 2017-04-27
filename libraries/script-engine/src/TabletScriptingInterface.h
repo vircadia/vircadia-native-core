@@ -14,7 +14,9 @@
 
 #include <QObject>
 #include <QVariant>
-#include <QScriptValue>
+#include <QtScript/QScriptValue>
+#include <QScriptEngine>
+#include <QScriptValueIterator>
 #include <QQuickItem>
 #include <QUuid>
 
@@ -45,7 +47,7 @@ public:
      * @param name {String} tablet name
      * @return {TabletProxy} tablet instance
      */
-    Q_INVOKABLE QObject* getTablet(const QString& tabletId);
+    Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 
     void setToolbarMode(bool toolbarMode);
 
@@ -258,6 +260,11 @@ protected:
     State _state { State::Uninitialized };
     bool _landscape { false };
 };
+
+Q_DECLARE_METATYPE(TabletProxy*);
+
+QScriptValue tabletToScriptValue(QScriptEngine* engine, TabletProxy* const &in);
+void tabletFromScriptValue(const QScriptValue& value, TabletProxy* &out);
 
 /**jsdoc
  * @class TabletButtonProxy

@@ -24,7 +24,7 @@
 
 #include "StandardController.h"
 #include "StateController.h"
-
+#include "InputRecorder.h"
 #include "Logging.h"
 
 #include "impl/conditionals/AndConditional.h"
@@ -245,10 +245,11 @@ void fixBisectedAxis(float& full, float& negative, float& positive) {
 
 void UserInputMapper::update(float deltaTime) {
     Locker locker(_lock);
-
+    InputRecorder* inputRecorder = InputRecorder::getInstance();
     static uint64_t updateCount = 0;
     ++updateCount;
 
+    inputRecorder->resetFrame();
     // Reset the axis state for next loop
     for (auto& channel : _actionStates) {
         channel = 0.0f;
@@ -300,6 +301,7 @@ void UserInputMapper::update(float deltaTime) {
             emit inputEvent(input.id, value);
         }
     }
+    inputRecorder->frameTick();
 }
 
 Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {

@@ -44,7 +44,8 @@ void AssetScriptingInterface::setMapping(QString path, QString hash, QScriptValu
 
     QObject::connect(setMappingRequest, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
         if (callback.isFunction()) {
-            QScriptValueList args { };
+            QString error = request->getErrorString();
+            QScriptValueList args { error };
             callback.call(_engine->currentContext()->thisObject(), args);
         }
         request->deleteLater();

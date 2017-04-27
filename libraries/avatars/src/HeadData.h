@@ -59,6 +59,7 @@ public:
 
     void setBlendshape(QString name, float val);
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    const QVector<float>& getSummedBlendshapeCoefficients();
     void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
 
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
@@ -92,6 +93,8 @@ protected:
     float _browAudioLift;
 
     QVector<float> _blendshapeCoefficients;
+    QVector<float> _baseBlendshapeCoefficients;
+    QVector<float> _currBlendShapeCoefficients;
     AvatarData* _owningAvatar;
 
 private:

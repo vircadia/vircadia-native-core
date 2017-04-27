@@ -126,6 +126,8 @@ Vec3.print("RANDOM LOCATION SELECTED:", LOCATION);
 var playFromCurrentLocation = true;
 var loop = true;
 
+// Disable the privacy bubble
+Users.disableIgnoreRadius();
 
 // Set position here if playFromCurrentLocation is true
 Avatar.position = LOCATION;

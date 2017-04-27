@@ -75,7 +75,7 @@ var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative numbe
 //
 // distant manipulation
 //
-
+var linearTimeScale = 0;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_UNITY_MASS = 1200; //  The mass at which the distance holding action timeframe is unmodified
@@ -1330,7 +1330,7 @@ function MyController(hand) {
         if (this.stylus) {
             return;
         }
-
+        
         var stylusProperties = {
             name: "stylus",
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
@@ -1419,6 +1419,14 @@ function MyController(hand) {
                                COLORS_GRAB_SEARCHING_HALF_SQUEEZE);
         }
     };
+
+    // Turns off indicators used for searching. Overlay line and sphere.
+    this.searchIndicatorOff = function() {
+        this.searchSphereOff();
+        if (PICK_WITH_HAND_RAY) {
+            this.overlayLineOff();
+        }
+    }
 
     this.otherGrabbingLineOn = function(avatarPosition, entityPosition, color) {
         if (this.otherGrabbingLine === null) {
@@ -1791,6 +1799,15 @@ function MyController(hand) {
         }
 
         this.processStylus();
+        
+        if (isInEditMode() && !this.isNearStylusTarget) {
+            // Always showing lasers while in edit mode and hands/stylus is not active.
+            var rayPickInfo = this.calcRayPickInfo(this.hand);
+            this.intersectionDistance = (rayPickInfo.entityID || rayPickInfo.overlayID) ? rayPickInfo.distance : 0;
+            this.searchIndicatorOn(rayPickInfo.searchRay);
+        } else {
+            this.searchIndicatorOff();
+        }        
     };
 
     this.handleLaserOnHomeButton = function(rayPickInfo) {
@@ -2237,15 +2254,22 @@ function MyController(hand) {
                 return;
             }
         }
-
+        
         if (isInEditMode()) {
             this.searchIndicatorOn(rayPickInfo.searchRay);
             if (this.triggerSmoothedGrab()) {
-                if (!this.editTriggered && rayPickInfo.entityID) {
-                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "selectEntity",
-                        entityID: rayPickInfo.entityID
-                    }));
+                if (!this.editTriggered){
+                    if (rayPickInfo.entityID) {
+                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            method: "selectEntity",
+                            entityID: rayPickInfo.entityID
+                        }));
+                    } else if (rayPickInfo.overlayID) {
+                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            method: "selectOverlay",
+                            overlayID: rayPickInfo.overlayID
+                        }));
+                    }
                 }
                 this.editTriggered = true;
             }
@@ -2274,7 +2298,7 @@ function MyController(hand) {
                     if (this.getOtherHandController().state === STATE_DISTANCE_HOLDING) {
                         this.setState(STATE_DISTANCE_ROTATING, "distance rotate '" + name + "'");
                     } else {
-                    this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
+                        this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     }
                     return;
                 } else {
@@ -2524,9 +2548,9 @@ function MyController(hand) {
         this.mass = this.getMass(grabbedProperties.dimensions, grabbedProperties.density);
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, grabbedProperties.position));
         var timeScale = this.distanceGrabTimescale(this.mass, distanceToObject);
-
+        this.linearTimeScale = timeScale;
         this.actionID = NULL_UUID;
-        this.actionID = Entities.addAction("spring", this.grabbedThingID, {
+        this.actionID = Entities.addAction("far-grab", this.grabbedThingID, {
             targetPosition: this.currentObjectPosition,
             linearTimeScale: timeScale,
             targetRotation: this.currentObjectRotation,
@@ -2574,7 +2598,6 @@ function MyController(hand) {
         var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
-
         var now = Date.now();
         var deltaObjectTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
         this.currentObjectTime = now;
@@ -2622,11 +2645,9 @@ function MyController(hand) {
         if (this.grabRadius < MINIMUM_GRAB_RADIUS) {
             this.grabRadius = MINIMUM_GRAB_RADIUS;
         }
-
         var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
         newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
         newTargetPosition = Vec3.sum(newTargetPosition, this.offsetPosition);
-
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, MyAvatar.position);
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedThingID, defaultMoveWithHeadData);
         if (handControllerData.disableMoveWithHead !== true) {
@@ -2659,9 +2680,13 @@ function MyController(hand) {
                            this.grabbedThingID);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
+        this.linearTimeScale = (this.linearTimeScale / 2);
+        if (this.linearTimeScale <= DISTANCE_HOLDING_ACTION_TIMEFRAME) {
+            this.linearTimeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
+        }
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
             targetPosition: newTargetPosition,
-            linearTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
+            linearTimeScale: this.linearTimeScale,
             targetRotation: this.currentObjectRotation,
             angularTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
             ttl: ACTION_TTL
@@ -2740,7 +2765,7 @@ function MyController(hand) {
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
             ttl: ACTION_TTL,
-            kinematic: NEAR_GRABBING_KINEMATIC,
+            kinematic: this.kinematicGrab,
             kinematicSetVelocity: true,
             ignoreIK: this.ignoreIK
         });
@@ -2837,12 +2862,14 @@ function MyController(hand) {
             this.ignoreIK = true;
         } else {
             grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
+            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedThingID, DEFAULT_GRABBABLE_DATA);
             if (FORCE_IGNORE_IK) {
                 this.ignoreIK = true;
             } else {
-                var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedThingID, DEFAULT_GRABBABLE_DATA);
                 this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
             }
+
+            this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
         }
 
         var handRotation;
@@ -3206,7 +3233,7 @@ function MyController(hand) {
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
                 ttl: ACTION_TTL,
-                kinematic: NEAR_GRABBING_KINEMATIC,
+                kinematic: this.kinematicGrab,
                 kinematicSetVelocity: true,
                 ignoreIK: this.ignoreIK
             });
@@ -3338,7 +3365,14 @@ function MyController(hand) {
     };
 
     this.offEnter = function() {
+        // Reuse the existing search distance if lasers were active since 
+        // they will be shown in OFF state while in edit mode.
+        var existingSearchDistance = this.searchSphereDistance;
         this.release();
+        
+        if (isInEditMode()) {
+            this.searchSphereDistance = existingSearchDistance;
+        }        
     };
 
     this.entityLaserTouchingEnter = function() {

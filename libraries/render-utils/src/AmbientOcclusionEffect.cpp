@@ -74,11 +74,11 @@ void AmbientOcclusionFramebuffer::allocate() {
     auto width = _frameSize.x;
     auto height = _frameSize.y;
 
-    _occlusionTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _occlusionTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT));
     _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
     _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
 
-    _occlusionBlurredTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+    _occlusionBlurredTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT));
     _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusionBlurred"));
     _occlusionBlurredFramebuffer->setRenderBuffer(0, _occlusionBlurredTexture);
 }
@@ -338,7 +338,7 @@ void AmbientOcclusionEffect::updateGaussianDistribution() {
     GaussianDistribution::evalSampling(coefs, Parameters::GAUSSIAN_COEFS_LENGTH, _parametersBuffer->getBlurRadius(), _parametersBuffer->getBlurDeviation());
 }
 
-void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -478,7 +478,7 @@ const gpu::PipelinePointer& DebugAmbientOcclusion::getDebugPipeline() {
     return _debugPipeline;
 }
 
-void DebugAmbientOcclusion::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+void DebugAmbientOcclusion::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 

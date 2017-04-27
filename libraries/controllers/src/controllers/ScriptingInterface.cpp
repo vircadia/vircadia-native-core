@@ -23,6 +23,7 @@
 #include "impl/MappingBuilderProxy.h"
 #include "Logging.h"
 #include "InputDevice.h"
+#include "InputRecorder.h"
 
 
 static QRegularExpression SANITIZE_NAME_EXPRESSION{ "[\\(\\)\\.\\s]" };
@@ -152,6 +153,41 @@ namespace controller {
     bool ScriptingInterface::triggerShortHapticPulse(float strength, controller::Hand hand) const {
         const float SHORT_HAPTIC_DURATION_MS = 250.0f;
         return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(strength, SHORT_HAPTIC_DURATION_MS, hand);
+    }
+
+    void ScriptingInterface::startInputRecording() {
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->startRecording();
+    }
+
+    void ScriptingInterface::stopInputRecording() {
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->stopRecording();
+    }
+
+    void ScriptingInterface::startInputPlayback() {
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->startPlayback();
+    }
+
+    void ScriptingInterface::stopInputPlayback() {
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->stopPlayback();
+    }
+
+    void ScriptingInterface::saveInputRecording() {
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->saveRecording();
+    }
+    
+    void ScriptingInterface::loadInputRecording(const QString& file) {
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        inputRecorder->loadRecording(file);
+    }
+
+    QString ScriptingInterface::getInputRecorderSaveDirectory() {
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        return inputRecorder->getSaveDirectory();
     }
 
     bool ScriptingInterface::triggerHapticPulseOnDevice(unsigned int device, float strength, float duration, controller::Hand hand) const {
