@@ -37,8 +37,9 @@ class GL41Backend : public GLBackend {
 public:
     static const GLint TRANSFORM_OBJECT_SLOT  { 31 };
     static const GLint RESOURCE_TRANSFER_TEX_UNIT { 32 };
-    static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 33 };
-    static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 34 };
+    static const GLint RESOURCE_TRANSFER_EXTRA_TEX_UNIT { 33 };
+    static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 34 };
+    static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 35 };
 
     explicit GL41Backend(bool syncCache) : Parent(syncCache) {}
     GL41Backend() : Parent() {}
