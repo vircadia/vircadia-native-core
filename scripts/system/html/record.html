@@ -1,0 +1,87 @@
+<!--
+//  record.html
+//
+//  Created by David Rowe on 5 Apr 2017.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+-->
+
+<html>
+    <head>
+        <title>Record</title>
+        <link rel="stylesheet" type="text/css" href="css/edit-style.css">
+        <link rel="stylesheet" type="text/css" href="css/record.css">
+        <script type="text/javascript" src="js/record.js"></script>
+    </head>
+    <body>
+        <div class="title">
+            <label>Record</label>
+        </div>
+        <hr />
+        <div id="recordings">
+            <div id="table-container">
+                <table id="recordings-table">
+                    <colgroup>
+                        <col />
+                        <col id="unload-column" />
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Recordings Being Played</th>
+                            <th>Unload</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordings-list"></tbody>
+                    <tbody id="instructions" class="hidden">
+                        <tr>
+                            <td colspan="2">
+                                <p>This app lets you record and play back multiple instances of your avatar in your Sandbox.</p>
+                                <h1>Setup Instructions</h1>
+                                <p>In your sandbox domain:</p>
+                                <ul>
+                                    <li>Right-click the High Fidelity Sandbox icon in your system tray and click &ldquo;Settings&rdquo;.</li>
+                                    <li>In the &ldquo;Scripts&rdquo; section add a new row and paste in this script URL:<br />
+                                        <input type="text" value="https://content.highfidelity.com/Scripts/playRecordingAC.js" readonly />
+                                    </li>
+                                    <li>Set the number of recordings you&rsquo;d like to run at a given time in the &ldquo;Instances&rdquo; slot.</li>
+                                    <li>Click &ldquo;Save and restart&rdquo;.</li>
+                                </ul>
+                                <p>Now you can record and play back recordings in your domain!</p>
+                                <p><input id="hide-info-button" type="button" class="blue" value="Got It" /></p>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td id="footer-text" colspan="2">
+                                Number of available instances: <span id="players-unused"></span>
+                                <span id="show-info-button">[</span>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        <div id="spinner" class="hidden">
+            <img src="img/loader-red-countdown-ring.gif" />
+            <span id="countdown-number">3</span>
+        </div>
+        <div id="record-controls">
+            <div id="load-container">
+                <input id="load-button" type="button" value="Load" disabled />
+            </div>
+            <div id="record-container">
+                <input id="record-button" class="red" type="button" value="Record" />
+            </div>
+            <div id="checkbox-container" class="property checkbox">
+                <input type="checkbox" id="finish-on-open">
+                <label for="finish-on-open" id="finish-on-open-label">Stop recording automatically when ...</label>
+            </div>
+        </div>
+        <script>
+            onBodyLoaded();
+        </script>
+    </body>
+</html>

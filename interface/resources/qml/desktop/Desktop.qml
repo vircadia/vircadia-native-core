@@ -466,6 +466,11 @@ FocusScope {
         return fileDialogBuilder.createObject(desktop, properties);
     } 
 
+    Component { id: assetDialogBuilder; AssetDialog { } }
+    function assetDialog(properties) {
+        return assetDialogBuilder.createObject(desktop, properties);
+    }
+
     function unfocusWindows() {
         // First find the active focus item, and unfocus it, all the way
         // up the parent chain to the window

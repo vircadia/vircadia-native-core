@@ -29,9 +29,10 @@ public:
         float tutorialElapsedTime, QString tutorialRunID = "", int tutorialVersion = 0, QString controllerType = "");
     Q_INVOKABLE void palAction(QString action, QString target);
     Q_INVOKABLE void palOpened(float secondsOpen);
-    Q_INVOKABLE void makeUserConnection(QString otherUser, bool success, QString details="");
+    Q_INVOKABLE void makeUserConnection(QString otherUser, bool success, QString details = "");
+    Q_INVOKABLE void logAction(QString action, QVariantMap details = QVariantMap{});
 private:
-    void logAction(QString action, QJsonObject details = {});
+    void doLogAction(QString action, QJsonObject details = {});
 };
 
 #endif // hifi_UserActivityLoggerScriptingInterface_h

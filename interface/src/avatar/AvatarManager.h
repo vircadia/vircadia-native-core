@@ -98,9 +98,6 @@ public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
-protected slots:
-    void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) override;
-
 private:
     explicit AvatarManager(QObject* parent = 0);
     explicit AvatarManager(const AvatarManager& other);

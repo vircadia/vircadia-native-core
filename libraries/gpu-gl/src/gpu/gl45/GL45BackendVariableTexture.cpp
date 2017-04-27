@@ -43,16 +43,22 @@ using GL45ResourceTexture = GL45Backend::GL45ResourceTexture;
 GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45VariableAllocationTexture(backend, texture) {
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
+    _maxAllocatedMip = _populatedMip = mipLevels;
+    _minAllocatedMip = texture.minAvailableMipLevel();
+
     uvec3 mipDimensions;
-    for (uint16_t mip = 0; mip < mipLevels; ++mip) {
+    for (uint16_t mip = _minAllocatedMip; mip < mipLevels; ++mip) {
         if (glm::all(glm::lessThanEqual(texture.evalMipDimensions(mip), INITIAL_MIP_TRANSFER_DIMENSIONS))) {
             _maxAllocatedMip = _populatedMip = mip;
             break;
         }
     }
 
-    uint16_t allocatedMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
+    auto targetMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
+    uint16_t allocatedMip = std::max<uint16_t>(_minAllocatedMip, targetMip);
+
     allocateStorage(allocatedMip);
+    _memoryPressureStateStale = true;
     copyMipsFromTexture();
     syncSampler();
 
@@ -70,6 +76,7 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
     for (uint16_t mip = _allocatedMip; mip < mipLevels; ++mip) {
         _size += _gpuObject.evalMipSize(mip);
     }
+
     Backend::updateTextureGPUMemoryUsage(0, _size);
 
 }
@@ -93,13 +100,17 @@ void GL45ResourceTexture::syncSampler() const {
 void GL45ResourceTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
+
+    uint16_t targetAllocatedMip = _allocatedMip - std::min<uint16_t>(_allocatedMip, 2);
+    targetAllocatedMip = std::max<uint16_t>(_minAllocatedMip, targetAllocatedMip);
+
     GLuint oldId = _id;
     auto oldSize = _size;
     // create new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
     uint16_t oldAllocatedMip = _allocatedMip;
     // allocate storage for new level
-    allocateStorage(_allocatedMip - std::min<uint16_t>(_allocatedMip, 2));
+    allocateStorage(targetAllocatedMip);
     uint16_t mips = _gpuObject.getNumMips();
     // copy pre-existing mips
     for (uint16_t mip = _populatedMip; mip < mips; ++mip) {

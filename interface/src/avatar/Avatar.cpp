@@ -115,8 +115,6 @@ Avatar::Avatar(QThread* thread, RigPointer rig) :
 }
 
 Avatar::~Avatar() {
-    assert(isDead()); // mark dead before calling the dtor
-
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
@@ -510,12 +508,13 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
 void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
-    _renderItemID = scene->allocateID();
-    transaction.resetItem(_renderItemID, avatarPayloadPointer);
-    _skeletonModel->addToScene(scene, transaction);
+    if (_skeletonModel->addToScene(scene, transaction)) {
+        _renderItemID = scene->allocateID();
+        transaction.resetItem(_renderItemID, avatarPayloadPointer);
 
-    for (auto& attachmentModel : _attachmentModels) {
-        attachmentModel->addToScene(scene, transaction);
+        for (auto& attachmentModel : _attachmentModels) {
+            attachmentModel->addToScene(scene, transaction);
+        }
     }
 }
 
@@ -929,6 +928,17 @@ QVector<glm::quat> Avatar::getJointRotations() const {
     return jointRotations;
 }
 
+QVector<glm::vec3> Avatar::getJointTranslations() const {
+    if (QThread::currentThread() != thread()) {
+        return AvatarData::getJointTranslations();
+    }
+    QVector<glm::vec3> jointTranslations(_skeletonModel->getJointStateCount());
+    for (int i = 0; i < _skeletonModel->getJointStateCount(); ++i) {
+        _skeletonModel->getJointTranslation(i, jointTranslations[i]);
+    }
+    return jointTranslations;
+}
+
 glm::quat Avatar::getJointRotation(int index) const {
     glm::quat rotation;
     _skeletonModel->getJointRotation(index, rotation);
@@ -1112,11 +1122,20 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setModelURLFinished(bool success) {
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
-        qCWarning(interfaceapp) << "Using default after failing to load Avatar model: " << _skeletonModelURL;
-        // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
-        // we don't redo this every time we receive an identity packet from the avatar with the bad url.
-        QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
-                                  Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
+        const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
+        if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
+            _skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
+            qCWarning(interfaceapp) << "Using default after failing to load Avatar model: " << _skeletonModelURL 
+                                    << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
+            // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
+            // we don't redo this every time we receive an identity packet from the avatar with the bad url.
+            QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
+                Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
+        } else {
+            qCWarning(interfaceapp) << "Avatar model: " << _skeletonModelURL 
+                    << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts() 
+                    << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
+        }
     }
 }
 
