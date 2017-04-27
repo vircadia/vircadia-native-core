@@ -13,6 +13,7 @@
 
 #include "AtpReply.h"
 #include "NetworkAccessManager.h"
+#include <QtNetwork/QNetworkProxy>
 
 QThreadStorage<QNetworkAccessManager*> networkAccessManagers;
 

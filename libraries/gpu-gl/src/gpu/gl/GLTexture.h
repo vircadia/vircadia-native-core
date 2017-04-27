@@ -112,7 +112,7 @@ protected:
     static void manageMemory();
 
     //bool canPromoteNoAllocate() const { return _allocatedMip < _populatedMip; }
-    bool canPromote() const { return _allocatedMip > 0; }
+    bool canPromote() const { return _allocatedMip > _minAllocatedMip; }
     bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
     bool hasPendingTransfers() const { return _populatedMip > _allocatedMip; }
     void executeNextTransfer(const TexturePointer& currentTexture);
@@ -130,6 +130,9 @@ protected:
     // The highest (lowest resolution) mip that we will support, relative to the number 
     // of mips in the gpu::Texture object
     uint16 _maxAllocatedMip { 0 };
+    // The lowest (highest resolution) mip that we will support, relative to the number
+    // of mips in the gpu::Texture object
+    uint16 _minAllocatedMip { 0 };
     // Contains a series of lambdas that when executed will transfer data to the GPU, modify 
     // the _populatedMip and update the sampler in order to fully populate the allocated texture 
     // until _populatedMip == _allocatedMip

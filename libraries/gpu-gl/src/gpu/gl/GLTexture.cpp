@@ -217,8 +217,12 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
         _transferSize = mipSize;
         _bufferingLambda = [=] {
             auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
-            _buffer.resize(_transferSize);
-            memcpy(&_buffer[0], mipData->readData(), _transferSize);
+            if (!mipData) {
+                qWarning() << "Mip not available: " << sourceMip;
+            } else {
+                _buffer.resize(_transferSize);
+                memcpy(&_buffer[0], mipData->readData(), _transferSize);
+            }
             _bufferingCompleted = true;
         };
 
@@ -454,10 +458,10 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
     float pressure = (float)totalVariableMemoryAllocation / (float)allowedMemoryAllocation;
 
     auto newState = MemoryPressureState::Idle;
-    if (pressure > OVERSUBSCRIBED_PRESSURE_VALUE && canDemote) {
-        newState = MemoryPressureState::Oversubscribed;
-    } else if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && unallocated != 0 && canPromote) {
+    if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && (unallocated != 0 && canPromote)) {
         newState = MemoryPressureState::Undersubscribed;
+    } else if (pressure > OVERSUBSCRIBED_PRESSURE_VALUE && canDemote) {
+        newState = MemoryPressureState::Oversubscribed;
     } else if (hasTransfers) {
         newState = MemoryPressureState::Transfer;
     }
@@ -535,6 +539,7 @@ void GLVariableAllocationSupport::processWorkQueues() {
     }
 
     if (workQueue.empty()) {
+        _memoryPressureState = MemoryPressureState::Idle;
         _memoryPressureStateStale = true;
     }
 }
