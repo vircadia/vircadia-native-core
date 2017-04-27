@@ -210,6 +210,13 @@ QVector<glm::quat> ScriptAvatarData::getJointRotations() const {
         return QVector<glm::quat>();
     }
 }
+QVector<glm::vec3> ScriptAvatarData::getJointTranslations() const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getJointTranslations();
+    } else {
+        return QVector<glm::vec3>();
+    }
+}
 bool ScriptAvatarData::isJointDataValid(const QString& name) const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->isJointDataValid(name);
