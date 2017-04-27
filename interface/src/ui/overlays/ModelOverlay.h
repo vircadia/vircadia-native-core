@@ -41,6 +41,8 @@ public:
 
     void locationChanged(bool tellPhysics) override;
 
+    float getLoadPriority() const { return _loadPriority; }
+
 private:
 
     ModelPointer _model;
@@ -49,6 +51,7 @@ private:
     QUrl _url;
     bool _updateModel = { false };
     bool _scaleToFit = { false };
+    float _loadPriority { 0.0f };
 };
 
 #endif // hifi_ModelOverlay_h

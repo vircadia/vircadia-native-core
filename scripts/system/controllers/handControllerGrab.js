@@ -1336,6 +1336,7 @@ function MyController(hand) {
         var stylusProperties = {
             name: "stylus",
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
+            loadPriority: 10.0,
             localPosition: Vec3.sum({ x: 0.0,
                                       y: WEB_TOUCH_Y_OFFSET,
                                       z: 0.0 },

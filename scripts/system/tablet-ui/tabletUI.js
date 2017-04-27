@@ -219,6 +219,7 @@
                     var tmpStylusID = Overlays.addOverlay("model", {
                         name: "stylus",
                         url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
+                        loadPriority: 10.0,
                         position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.1, z: -2})),
                         dimensions: { x: 0.01, y: 0.01, z: 0.2 },
                         solid: true,
