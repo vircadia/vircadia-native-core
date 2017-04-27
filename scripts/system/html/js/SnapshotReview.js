@@ -111,8 +111,8 @@ function createShareBar(parentID, isGif, shareURL, hifiShareButtonsDisabled) {
         '<div class="shareButtons" id="' + shareButtonsDivID + '" style="visibility:hidden">' +
             '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="blastToConnections blueButton" id="' + blastToConnectionsButtonID + '" value="BLAST TO MY CONNECTIONS" onclick="blastToConnections(' + parentID + ', ' + isGif + ')" />' +
             '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')" />' +
-            '<a class="facebookButton" id="' + facebookButtonID + '" onClick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://www.facebook.com/dialog/feed?app_id=1585088821786423&link=' + shareURL + '"></a>' +
-            '<a class="twitterButton" id="' + twitterButtonID + '" onClick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelity&hashtags=VR,HiFi"></a>' +
+            '<a class="facebookButton" id="' + facebookButtonID + '" onclick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://www.facebook.com/dialog/feed?app_id=1585088821786423&link=' + shareURL + '"></a>' +
+            '<a class="twitterButton" id="' + twitterButtonID + '" onclick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelity&hashtags=VR,HiFi"></a>' +
         '</div>' +
         '<div class="showShareButtonsButtonDiv" id="' + showShareButtonsButtonDivID + '">' +
             '<label id="' + showShareButtonsLabelID + '" for="' + showShareButtonsButtonID + '">SHARE</label>' +
@@ -122,6 +122,9 @@ function createShareBar(parentID, isGif, shareURL, hifiShareButtonsDisabled) {
             '</div>' +
         '</div>';
 
+    // Add onclick handler to parent DIV's img to toggle share buttons
+    document.getElementById(parentID + 'img').onclick = function () { selectImageToShare(parentID, true) };
+
     return shareBar;
 }
 function selectImageToShare(selectedID, isSelected) {
@@ -129,6 +132,7 @@ function selectImageToShare(selectedID, isSelected) {
         selectedID = selectedID.id; // sometimes (?), `selectedID` is passed as an HTML object to these functions; we just want the ID
     }
     var imageContainer = document.getElementById(selectedID);
+    var image = document.getElementById(selectedID + 'img');
     var shareBar = document.getElementById(selectedID + "shareBar");
     var shareButtonsDiv = document.getElementById(selectedID + "shareButtonsDiv");
     var showShareButtonsButton = document.getElementById(selectedID + "showShareButtonsButton");
@@ -138,6 +142,7 @@ function selectImageToShare(selectedID, isSelected) {
         showShareButtonsButton.classList.remove("inactive");
         showShareButtonsButton.classList.add("active");
 
+        image.onclick = function () { selectImageToShare(selectedID, false) };
         imageContainer.style.outline = "4px solid #00b4ef";
         imageContainer.style.outlineOffset = "-4px";
 
@@ -149,6 +154,7 @@ function selectImageToShare(selectedID, isSelected) {
         showShareButtonsButton.classList.remove("active");
         showShareButtonsButton.classList.add("inactive");
 
+        image.onclick = function () { selectImageToShare(selectedID, true) };
         imageContainer.style.outline = "none";
 
         shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.0)";
