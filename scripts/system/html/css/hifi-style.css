@@ -156,6 +156,8 @@ input[type=radio]:active + label > span > span{
     border-radius: 3px;
     border-width: 0px;
     background-image: linear-gradient(#00B4EF, #1080B8);
+    min-height: 30px;
+
 }
 .blueButton:hover {
     background-image: linear-gradient(#00B4EF, #00B4EF);

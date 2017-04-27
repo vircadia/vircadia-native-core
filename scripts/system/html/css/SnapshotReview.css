@@ -60,6 +60,8 @@ input[type=button].naked:active {
 .snapshotInstructions {
     font-family: Raleway-Regular;
     margin: 0 20px;
+    width: 100%;
+    height: 50%;
 }
 /*
 // END styling of snapshot instructions panel
@@ -119,6 +121,7 @@ input[type=button].naked:active {
     align-items: center;
     margin-left: 30px;
     height: 100%;
+    width: 80%;
 }
 .blastToConnections {
     text-align: left;
@@ -158,6 +161,7 @@ input[type=button].naked:active {
     text-shadow: 2px 2px 3px #000000;
     height: 100%;
     margin-right: 10px;
+    width: 20%;
 }
 .showShareButton {
     width: 40px;
@@ -217,7 +221,6 @@ input[type=button].naked:active {
     width: 100%;
     position: absolute;
     left: 0;
-    margin-top: 8px;
     overflow: hidden;
     display: flex;
     justify-content: center;
@@ -225,20 +228,20 @@ input[type=button].naked:active {
 #snap-settings {
     display: inline;
     width: 150px;
-    margin: auto;
+    margin: 2px auto 0 auto;
 }
 #snap-settings form input {
     margin-bottom: 5px;
 }
 
 #snap-button {
-    width: 75px;
-    height: 75px;
+    width: 72px;
+    height: 72px;
     padding: 0;
     border-radius: 50%;
     background: #EA4C5F;
     border: 3px solid white;
-    margin: auto;
+    margin: 2px auto 0 auto;
     box-sizing: content-box;
     display: inline;
     outline:none;

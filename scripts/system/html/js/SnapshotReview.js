@@ -22,7 +22,9 @@ function showSetupInstructions() {
     "<h4>Setup Instructions</h4>" +
     "<p>Before you can begin taking snaps, please choose where you'd like to save snaps on your computer:</p>" +
     '<br/>' +
-    '<input type="button" value="CHOOSE" onclick="chooseSnapshotLocation()" />';
+    '<div style="text-align:center;">' +
+        '<input class="blueButton" style="margin-left:auto;margin-right:auto;width:130px;" type="button" value="CHOOSE" onclick="chooseSnapshotLocation()" />' +
+    '</div>';
     document.getElementById("snap-button").disabled = true;
 }
 function showSetupComplete() {
@@ -106,7 +108,7 @@ function createShareBar(parentID, isGif, shareURL, hifiShareButtonsDisabled) {
     var facebookButtonID = parentID + "facebookButton";
     var twitterButtonID = parentID + "twitterButton";
     shareBar.innerHTML += '' +
-        '<div class="shareButtons" id="' + shareButtonsDivID + '" style="opacity:0">' +
+        '<div class="shareButtons" id="' + shareButtonsDivID + '" style="visibility:hidden">' +
             '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="blastToConnections blueButton" id="' + blastToConnectionsButtonID + '" value="BLAST TO MY CONNECTIONS" onclick="blastToConnections(' + parentID + ', ' + isGif + ')" />' +
             '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')" />' +
             '<a class="facebookButton" id="' + facebookButtonID + '" onClick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://www.facebook.com/dialog/feed?app_id=1585088821786423&link=' + shareURL + '"></a>' +
@@ -141,7 +143,7 @@ function selectImageToShare(selectedID, isSelected) {
 
         shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
 
-        shareButtonsDiv.style.opacity = "1.0";
+        shareButtonsDiv.style.visibility = "visible";
     } else {
         showShareButtonsButton.onclick = function () { selectImageToShare(selectedID, true) };
         showShareButtonsButton.classList.remove("active");
@@ -151,7 +153,7 @@ function selectImageToShare(selectedID, isSelected) {
 
         shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.0)";
 
-        shareButtonsDiv.style.opacity = "0.0";
+        shareButtonsDiv.style.visibility = "hidden";
     }
 }
 function shareForUrl(selectedID) {
@@ -223,7 +225,9 @@ function handleCaptureSetting(setting) {
 
 }
 window.onload = function () {
-    testInBrowser(false);
+    // Uncomment the line below to test functionality in a browser.
+    // See definition of "testInBrowser()" to modify tests.
+    //testInBrowser(true);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
