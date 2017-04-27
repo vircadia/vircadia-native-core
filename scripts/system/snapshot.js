@@ -7,7 +7,7 @@
 // Distributed under the Apache License, Version 2.0
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* globals Tablet, Script, HMD, Settings, DialogsManager, Menu, Reticle, OverlayWebWindow, Desktop, Account, MyAvatar */
+/* globals Tablet, Script, HMD, Settings, DialogsManager, Menu, Reticle, OverlayWebWindow, Desktop, Account, MyAvatar, Snapshot */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -116,7 +116,7 @@ function onMessage(message) {
                 action: "captureSettings",
                 setting: Settings.getValue("alsoTakeAnimatedSnapshot", true)
             }));
-            if (Settings.getValue("snapshotsLocation", "") !== "") {
+            if (Snapshot.getSnapshotsLocation() !== "") {
                 tablet.emitScriptEvent(JSON.stringify({
                     type: "snapshot",
                     action: "showPreviousImages",
@@ -141,7 +141,7 @@ function onMessage(message) {
             var snapshotPath = Window.browseDir("Choose Snapshots Directory", "", "");
 
             if (snapshotPath) { // not cancelled
-                Settings.setValue("snapshotsLocation", snapshotPath);
+                Snapshot.setSnapshotsLocation(snapshotPath);
                 tablet.emitScriptEvent(JSON.stringify({
                     type: "snapshot",
                     action: "snapshotLocationChosen"
