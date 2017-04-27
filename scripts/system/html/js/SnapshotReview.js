@@ -109,8 +109,8 @@ function createShareBar(parentID, isGif, shareURL, hifiShareButtonsDisabled) {
     var twitterButtonID = parentID + "twitterButton";
     shareBar.innerHTML += '' +
         '<div class="shareButtons" id="' + shareButtonsDivID + '" style="visibility:hidden">' +
-            '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="blastToConnections blueButton" id="' + blastToConnectionsButtonID + '" value="BLAST TO MY CONNECTIONS" onclick="blastToConnections(' + parentID + ', ' + isGif + ')" />' +
-            '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled="disabled"' : '') + ' class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')" />' +
+            '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled' : '') + ' class="blastToConnections blueButton" id="' + blastToConnectionsButtonID + '" value="BLAST TO MY CONNECTIONS" onclick="blastToConnections(' + parentID + ', ' + isGif + ')" />' +
+            '<input type="button"' + (hifiShareButtonsDisabled ? ' disabled' : '') + ' class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')" />' +
             '<a class="facebookButton" id="' + facebookButtonID + '" onclick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://www.facebook.com/dialog/feed?app_id=1585088821786423&link=' + shareURL + '"></a>' +
             '<a class="twitterButton" id="' + twitterButtonID + '" onclick="shareButtonClicked(' + parentID + ')" target="_blank" href="https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelity&hashtags=VR,HiFi"></a>' +
         '</div>' +
@@ -172,8 +172,8 @@ function shareForUrl(selectedID) {
 function blastToConnections(selectedID, isGif) {
     selectedID = selectedID.id; // `selectedID` is passed as an HTML object to these functions; we just want the ID
 
-    document.getElementById(selectedID + "blastToConnectionsButton").setAttribute("disabled", "disabled");
-    document.getElementById(selectedID + "shareWithEveryoneButton").setAttribute("disabled", "disabled");
+    document.getElementById(selectedID + "blastToConnectionsButton").disabled = true;
+    document.getElementById(selectedID + "shareWithEveryoneButton").disabled = true;
 
     EventBridge.emitWebEvent(JSON.stringify({
         type: "snapshot",
@@ -185,8 +185,8 @@ function blastToConnections(selectedID, isGif) {
 function shareWithEveryone(selectedID, isGif) {
     selectedID = selectedID.id; // `selectedID` is passed as an HTML object to these functions; we just want the ID
 
-    document.getElementById(selectedID + "blastToConnectionsButton").setAttribute("disabled", "disabled");
-    document.getElementById(selectedID + "shareWithEveryoneButton").setAttribute("disabled", "disabled");
+    document.getElementById(selectedID + "blastToConnectionsButton").disabled = true;
+    document.getElementById(selectedID + "shareWithEveryoneButton").disabled = true;
 
     EventBridge.emitWebEvent(JSON.stringify({
         type: "snapshot",

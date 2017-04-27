@@ -198,7 +198,7 @@ function onMessage(message) {
                     } else {
                         var requestBody = {
                             user_story: {
-                                audience: "for_feed",
+                                audience: "for_connections",
                                 action: "announcement",
                                 path: response.user_story.path,
                                 place_name: response.user_story.place_name,

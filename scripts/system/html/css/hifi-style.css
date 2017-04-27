@@ -166,5 +166,5 @@ input[type=radio]:active + label > span > span{
     background-image: linear-gradient(#1080B8, #1080B8);
 }
 .blueButton:disabled {
-    background-image: linear-gradient(#FFFFFF, ##AFAFAF);
+    background-image: linear-gradient(#FFFFFF, #AFAFAF);
 }
