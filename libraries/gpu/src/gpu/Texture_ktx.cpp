@@ -97,7 +97,6 @@ struct GPUKTXPayload {
         return false;
     }
 };
-const std::string gpu::SOURCE_HASH_KEY { "hifi.sourceHash" };
 const std::string GPUKTXPayload::KEY { "hifi.gpu" };
 
 KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {

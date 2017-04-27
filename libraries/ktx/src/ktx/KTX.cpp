@@ -136,7 +136,7 @@ size_t KTXDescriptor::getValueOffsetForKey(const std::string& key) const {
 ImageDescriptors Header::generateImageDescriptors() const {
     ImageDescriptors descriptors;
 
-    uint32_t imageOffset = 0;
+    size_t imageOffset = 0;
     for (uint32_t level = 0; level < numberOfMipmapLevels; ++level) {
         auto imageSize = static_cast<uint32_t>(evalImageSize(level));
         if (imageSize == 0) {
@@ -149,7 +149,7 @@ ImageDescriptors Header::generateImageDescriptors() const {
             0
         };
 
-        imageOffset += (imageSize * numberOfFaces) + 4;
+        imageOffset += (imageSize * numberOfFaces) + ktx::IMAGE_SIZE_WIDTH;
 
         ImageHeader::FaceOffsets offsets;
         // TODO Add correct face offsets
