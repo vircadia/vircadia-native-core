@@ -210,8 +210,6 @@ void AvatarMixer::manageDisplayName(const SharedNodePointer& node) {
         soFar.second++; // refcount
         nodeData->flagIdentityChange();
         nodeData->setAvatarSessionDisplayNameMustChange(false);
-
-        qCDebug(avatars) << __FUNCTION__ << "about to call sendIdentityPacket()";
         sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name.
         qCDebug(avatars) << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
     }
