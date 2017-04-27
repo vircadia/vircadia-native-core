@@ -43,7 +43,7 @@ namespace storage {
         MemoryStorage(size_t size, const uint8_t* data = nullptr);
         const uint8_t* data() const override { return _data.data(); }
         uint8_t* data() { return _data.data(); }
-        uint8_t* mutableData() override { return 0; }
+        uint8_t* mutableData() override { return _data.data(); }
         size_t size() const override { return _data.size(); }
         operator bool() const override { return true; }
     private:
@@ -73,7 +73,7 @@ namespace storage {
     public:
         ViewStorage(const storage::StoragePointer& owner, size_t size, const uint8_t* data);
         const uint8_t* data() const override { return _data; }
-        uint8_t* mutableData() override { return 0; }
+        uint8_t* mutableData() override { throw std::runtime_error("Cannot modify ViewStorage");  }
         size_t size() const override { return _size; }
         operator bool() const override { return *_owner; }
     private:
