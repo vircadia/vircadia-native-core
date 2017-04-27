@@ -5216,11 +5216,7 @@ void Application::resettingDomain() {
 }
 
 void Application::nodeAdded(SharedNodePointer node) const {
-    if (node->getType() == NodeType::AvatarMixer) {
-        // new avatar mixer, send off our identity packet right away
-        getMyAvatar()->sendIdentityPacket();
-        getMyAvatar()->resetLastSent();
-    }
+    // nothing to do here
 }
 
 void Application::nodeActivated(SharedNodePointer node) {
@@ -5255,6 +5251,13 @@ void Application::nodeActivated(SharedNodePointer node) {
 
     if (node->getType() == NodeType::AudioMixer) {
         DependencyManager::get<AudioClient>()->negotiateAudioFormat();
+    }
+
+    if (node->getType() == NodeType::AvatarMixer) {
+        // new avatar mixer, send off our identity packet right away
+        getMyAvatar()->markIdentityDataChanged();
+        getMyAvatar()->sendIdentityPacket();
+        getMyAvatar()->resetLastSent();
     }
 }
 

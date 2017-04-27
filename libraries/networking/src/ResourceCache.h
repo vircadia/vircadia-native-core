@@ -395,6 +395,9 @@ public:
     
     const QUrl& getURL() const { return _url; }
 
+    unsigned int getDownloadAttempts() { return _attempts; }
+    unsigned int getDownloadAttemptsRemaining() { return _attemptsRemaining; }
+
 signals:
     /// Fired when the resource begins downloading.
     void loading();
@@ -483,7 +486,9 @@ private:
     
     int _lruKey{ 0 };
     QTimer* _replyTimer{ nullptr };
-    int _attempts{ 0 };
+    unsigned int _attempts{ 0 };
+    static const int MAX_ATTEMPTS = 8;
+    unsigned int _attemptsRemaining { MAX_ATTEMPTS };
     bool _isInScript{ false };
 };
 
