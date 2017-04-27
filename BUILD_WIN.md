@@ -20,7 +20,7 @@ Keep the default components checked when going through the installer.
 
 Go to "Control Panel > System > Advanced System Settings > Environment Variables > New..." (or search “Environment Variables” in Start Search).
 * Set "Variable name": QT_CMAKE_PREFIX_PATH
-* Set "Variable value": `C:\Qt\Qt5.6.2\5.6\msvc2013_64\lib\cmake`
+* Set "Variable value": `%QT_DIR%\5.6\msvc2013_64\lib\cmake`
 
 ###Step 5. Installing OpenSSL
 
