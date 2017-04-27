@@ -346,7 +346,7 @@ NetworkTexture::~NetworkTexture() {
             _ktxMipRequest->deleteLater();
             _ktxMipRequest = nullptr;
         }
-        ResourceCache::requestCompleted(_self);
+        TextureCache::requestCompleted(_self);
     }
 }
 
