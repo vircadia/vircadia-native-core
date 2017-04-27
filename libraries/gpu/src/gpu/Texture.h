@@ -324,11 +324,11 @@ public:
         void reset() override { }
 
     protected:
-        std::shared_ptr<storage::FileStorage> maybeOpenFile();
+        std::shared_ptr<storage::FileStorage> maybeOpenFile() const;
 
-        std::mutex _cacheFileCreateMutex;
-        std::mutex _cacheFileWriteMutex;
-        std::weak_ptr<storage::FileStorage> _cacheFile;
+        mutable std::mutex _cacheFileCreateMutex;
+        mutable std::mutex _cacheFileWriteMutex;
+        mutable std::weak_ptr<storage::FileStorage> _cacheFile;
 
         std::string _filename;
         std::atomic<uint8_t> _minMipLevelAvailable;
