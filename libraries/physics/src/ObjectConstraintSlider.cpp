@@ -63,8 +63,6 @@ void ObjectConstraintSlider::updateSlider() {
         return;
     }
 
-
-
     // constraint->setFrames (const btTransform &frameA, const btTransform &frameB);
     constraint->setLowerLinLimit(_linearLow);
     constraint->setUpperLinLimit(_linearHigh);
@@ -133,7 +131,7 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
     forceBodyNonStatic();
     activateBody();
 
-    // updateSlider();
+    updateSlider();
 
     return constraint;
 }
