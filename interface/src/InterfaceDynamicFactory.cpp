@@ -43,7 +43,7 @@ EntityDynamicPointer interfaceDynamicFactory(EntityDynamicType type, const QUuid
             return std::make_shared<ObjectConstraintSlider>(id, ownerEntity);
     }
 
-    Q_ASSERT_X(false, Q_FUNC_INFO, "Unknown entity dynamic type");
+    qDebug() << "Unknown entity dynamic type";
     return EntityDynamicPointer();
 }
 
