@@ -2796,8 +2796,8 @@ SelectionDisplay = (function() {
             };
             if (directionFor3DStretch) {
                 lastPick3D = rayPlaneIntersection(pickRay,
-                pickRayPosition3D,
-                planeNormal3D);
+                    pickRayPosition3D,
+                    planeNormal3D);
                 distanceFor3DStretch = Vec3.length(Vec3.subtract(pickRayPosition3D, pickRay.origin));
             }
         
@@ -2839,7 +2839,8 @@ SelectionDisplay = (function() {
             
             // Are we using handControllers or Mouse - only relevant for 3D tools
             var controllerPose = getControllerWorldLocation(activeHand, true);
-            if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && controllerPose.valid && that.triggered && directionFor3DStretch) {
+            if (HMD.isHMDAvailable() 
+                && HMD.isHandControllerAvailable() && controllerPose.valid && that.triggered && directionFor3DStretch) {
                 localDeltaPivot = deltaPivot3D;
 
                 newPick = pickRay.origin;
