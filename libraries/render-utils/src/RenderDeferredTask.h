@@ -86,6 +86,7 @@ class DrawStateSortConfig : public render::Job::Config {
         Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
         Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
         Q_PROPERTY(bool stateSort MEMBER stateSort NOTIFY dirty)
+        Q_PROPERTY(bool debugFade MEMBER debugFade NOTIFY dirty)
 public:
 
     int getNumDrawn() { return numDrawn; }
@@ -93,6 +94,7 @@ public:
 
     int maxDrawn{ -1 };
     bool stateSort{ true };
+    bool debugFade{ false };
 
 signals:
     void numDrawnChanged();
@@ -109,15 +111,17 @@ public:
     using Config = DrawStateSortConfig;
     using JobModel = render::Job::ModelI<DrawStateSortDeferred, Inputs, Config>;
 
-    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber, gpu::TexturePointer fadeMaskMap) : _shapePlumber{ shapePlumber }, _fadeMaskMap{ fadeMaskMap } {}
 
-    void configure(const Config& config) { _maxDrawn = config.maxDrawn; _stateSort = config.stateSort; }
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; _stateSort = config.stateSort; _debugFade = config.debugFade; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
+    gpu::TexturePointer _fadeMaskMap;
     int _maxDrawn; // initialized by Config
     bool _stateSort;
+    bool _debugFade;
 };
 
 class DeferredFramebuffer;

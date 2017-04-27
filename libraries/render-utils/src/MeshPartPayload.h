@@ -93,7 +93,7 @@ public:
             const Transform& boundTransform,
             const gpu::BufferPointer& buffer);
 
-    float computeFadeAlpha() const;
+    float computeFadePercent(bool isDebugEnabled) const;
 
     // Render Item interface
     render::ItemKey getKey() const override;
@@ -104,6 +104,7 @@ public:
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) const override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
+    void bindFade(gpu::Batch& batch, bool isDebugEnabled) const;
 
     void initCache();
 
@@ -119,6 +120,10 @@ public:
     bool _isBlendShaped{ false };
 
 private:
+
+    struct Fade;
+
+    mutable gpu::BufferView _fadeBuffer;
     mutable quint64 _fadeStartTime { 0 };
     mutable uint8_t _fadeState { FADE_WAITING_TO_START };
 };

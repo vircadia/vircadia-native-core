@@ -69,6 +69,8 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), Slot::BUFFER::LIGHT_AMBIENT_BUFFER));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), Slot::MAP::FADE_MASK));
+    slotBindings.insert(gpu::Shader::Binding(std::string("fadeBuffer"), Slot::BUFFER::FADE));
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -87,6 +89,8 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
     locations->lightAmbientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
     locations->lightAmbientMapUnit = program->getTextures().findLocation("skyboxMap");
+    locations->fadeMaskTextureUnit = program->getTextures().findLocation("fadeMaskMap");
+    locations->fadeBufferUnit = program->getUniformBuffers().findLocation("fadeBuffer");
     
     ShapeKey key{filter._flags};
     auto gpuPipeline = gpu::Pipeline::create(program, state);
