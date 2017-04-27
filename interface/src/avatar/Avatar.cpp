@@ -928,6 +928,17 @@ QVector<glm::quat> Avatar::getJointRotations() const {
     return jointRotations;
 }
 
+QVector<glm::vec3> Avatar::getJointTranslations() const {
+    if (QThread::currentThread() != thread()) {
+        return AvatarData::getJointTranslations();
+    }
+    QVector<glm::vec3> jointTranslations(_skeletonModel->getJointStateCount());
+    for (int i = 0; i < _skeletonModel->getJointStateCount(); ++i) {
+        _skeletonModel->getJointTranslation(i, jointTranslations[i]);
+    }
+    return jointTranslations;
+}
+
 glm::quat Avatar::getJointRotation(int index) const {
     glm::quat rotation;
     _skeletonModel->getJointRotation(index, rotation);

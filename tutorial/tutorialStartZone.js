@@ -13,7 +13,7 @@
             var self = this;
             // send message to outer zone
             print("TutorialStartZone | Entered the tutorial start area");
-            if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable()) {
+            if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && HMD.active) {
                 function sendStart() {
                     print("TutorialStartZone | Checking parent ID");
                     var parentID = Entities.getEntityProperties(self.entityID, 'parentID').parentID;
@@ -28,8 +28,8 @@
                 this.sendStartIntervalID = Script.setInterval(sendStart, 1500);
                 sendStart();
             } else {
-                print("TutorialStartZone | User tried to go to tutorial with HMD and hand controllers, sending back to /");
-                Window.alert("To proceed with this tutorial, please connect your Vive headset and hand controllers.");
+                print("TutorialStartZone | User tried to go to tutorial without active HMD and hand controllers, sending back to /");
+                Window.alert("To proceed with this tutorial, please connect your Vive or Oculus headset and hand controllers.");
                 location = "/";
             }
         },

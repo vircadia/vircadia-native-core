@@ -64,7 +64,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
-            return static_cast<PacketVersion>(AssetServerPacketVersion::VegasCongestionControl);
+            return static_cast<PacketVersion>(AssetServerPacketVersion::RangeRequestSupport);
         case PacketType::NodeIgnoreRequest:
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
