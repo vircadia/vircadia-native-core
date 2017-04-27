@@ -18,6 +18,7 @@
 
 #define INCREMENTAL_TRANSFER 0
 #define THREADED_TEXTURE_BUFFERING 1
+#define GPU_SSBO_TRANSFORM_OBJECT 1
 
 namespace gpu { namespace gl45 {
     
@@ -30,6 +31,13 @@ class GL45Backend : public GLBackend {
     friend class Context;
 
 public:
+
+#ifdef GPU_SSBO_TRANSFORM_OBJECT
+    static const GLint TRANSFORM_OBJECT_SLOT  { 14 }; // SSBO binding slot
+#else
+    static const GLint TRANSFORM_OBJECT_SLOT  { 31 }; // TBO binding slot
+#endif
+
     explicit GL45Backend(bool syncCache) : Parent(syncCache) {}
     GL45Backend() : Parent() {}
 
@@ -40,7 +48,7 @@ public:
     protected:
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         void generateMips() const override;
-        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const override;
+        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         virtual void syncSampler() const;
     };
 
@@ -177,8 +185,17 @@ protected:
     void initTransform() override;
     void updateTransform(const Batch& batch) override;
 
+    // Resource Stage
+    bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) override;
+    void releaseResourceBuffer(uint32_t slot) override;
+
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
+
+    // Shader Stage
+    std::string getBackendShaderHeader() const override;
+    void makeProgramBindings(ShaderObject& shaderObject) override;
+    int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
 
     // Texture Management Stage
     void initTextureManagementStage() override;

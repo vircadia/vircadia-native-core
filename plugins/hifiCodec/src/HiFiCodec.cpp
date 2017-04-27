@@ -14,8 +14,6 @@
 #include <AudioCodec.h>
 #include <AudioConstants.h>
 
-#include <PerfStat.h>
-
 #include "HiFiCodec.h"
 
 const char* HiFiCodec::NAME { "hifiAC" };

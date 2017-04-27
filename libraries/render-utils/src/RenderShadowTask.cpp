@@ -31,7 +31,7 @@
 
 using namespace render;
 
-void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
                           const render::ShapeBounds& inShapes) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
@@ -74,7 +74,7 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
             if (items.first.isSkinned()) {
                 skinnedShapeKeys.push_back(items.first);
             } else {
-                renderItems(sceneContext, renderContext, items.second);
+                renderItems(renderContext, items.second);
             }
         }
 
@@ -82,7 +82,7 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
         args->_pipeline = shadowSkinnedPipeline;
         batch.setPipeline(shadowSkinnedPipeline->pipeline);
         for (const auto& key : skinnedShapeKeys) {
-            renderItems(sceneContext, renderContext, inShapes.at(key));
+            renderItems(renderContext, inShapes.at(key));
         }
 
         args->_pipeline = nullptr;
@@ -139,7 +139,7 @@ void RenderShadowTask::configure(const Config& configuration) {
 //    Task::configure(configuration);
 }
 
-void RenderShadowSetup::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, Output& output) {
+void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Output& output) {
     auto lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalShadow = lightStage->getShadow(0);
 
@@ -157,7 +157,7 @@ void RenderShadowSetup::run(const SceneContextPointer& sceneContext, const rende
     args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
 }
 
-void RenderShadowTeardown::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Input& input) {
+void RenderShadowTeardown::run(const render::RenderContextPointer& renderContext, const Input& input) {
     RenderArgs* args = renderContext->args;
 
     // Reset the render args

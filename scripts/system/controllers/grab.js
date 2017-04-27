@@ -529,7 +529,7 @@ Grabber.prototype.moveEvent = function(event) {
 
     if (!this.actionID) {
         if (!entityIsGrabbedByOther(this.entityID)) {
-            this.actionID = Entities.addAction("spring", this.entityID, actionArgs);
+            this.actionID = Entities.addAction("far-grab", this.entityID, actionArgs);
         }
     } else {
         Entities.updateAction(this.entityID, this.actionID, actionArgs);

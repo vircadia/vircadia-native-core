@@ -25,7 +25,7 @@ namespace render {
     class FetchNonspatialItems {
     public:
         using JobModel = Job::ModelO<FetchNonspatialItems, ItemBounds>;
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, ItemBounds& outItems);
     };
 
     class FetchSpatialTreeConfig : public Job::Config {
@@ -63,7 +63,7 @@ namespace render {
         ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
 
         void configure(const Config& config);
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection);
+        void run(const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection);
     };
 
     class CullSpatialSelectionConfig : public Job::Config {
@@ -106,7 +106,7 @@ namespace render {
         ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
 
         void configure(const Config& config);
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems);
     };
 
 }

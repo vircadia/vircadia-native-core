@@ -1,0 +1,49 @@
+{
+    "Entities": [{
+        "clientOnly": 0,
+        "created": "2016-08-15T22:32:50Z",
+        "description": "hifi:gameTable:piece:chess",
+        "dimensions": {
+            "x": 0.06596171110868454,
+            "y": 0.13834938406944275,
+            "z": 0.06596171110868454
+        },
+        "velocity": {
+            "x": 0,
+            "y": -0.10,
+            "z": 0
+        },
+        "shapeType": "box",
+        "dynamic": "true",
+        "gravity": {
+            "x": 0,
+            "y": -9.8,
+            "z": 0
+        },
+        "id": "{a6cf9687-b697-413c-aded-5b876544d5b4}",
+        "marketplaceID": "31987a70-7a69-4ba8-b022-80f1d2320c93",
+        "modelURL": "assets/chess/lowPoly/bishop_lt.fbx",
+        "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+        "queryAACube": {
+            "scale": 0.2920001745223999,
+            "x": -0.14600008726119995,
+            "y": -0.14600008726119995,
+            "z": -0.14600008726119995
+        },
+        "registrationPoint": {
+            "x": 0.5,
+            "y": 0,
+            "z": 0.5
+        },
+        "rotation": {
+            "w": -0.97436833381652832,
+            "x": -3.0403498385567218e-06,
+            "y": 0.22488787770271301,
+            "z": -3.822671715170145e-06
+        },
+        "script": "snapToGrid.js",
+        "type": "Model",
+        "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
+    }],
+    "Version": 62
+}

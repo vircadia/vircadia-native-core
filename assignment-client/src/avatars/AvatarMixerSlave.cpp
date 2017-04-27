@@ -263,16 +263,8 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                         // make sure we haven't already sent this data from this sender to this receiver
                         // or that somehow we haven't sent
                         if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
-                            // don't ignore this avatar if we haven't sent any update for a long while
-                            // in an effort to prevent other interfaces from deleting a stale avatar instance
-                            uint64_t lastBroadcastTime = nodeData->getLastBroadcastTime(avatarNode->getUUID());
-                            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
-                            const uint64_t AVATAR_UPDATE_STALE = AVATAR_UPDATE_TIMEOUT - USECS_PER_SECOND;
-                            if (lastBroadcastTime > otherNodeData->getIdentityChangeTimestamp() &&
-                                    lastBroadcastTime + AVATAR_UPDATE_STALE > startIgnoreCalculation) {
-                                ++numAvatarsHeldBack;
-                                shouldIgnore = true;
-                            }
+                            ++numAvatarsHeldBack;
+                            shouldIgnore = true;
                         } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                             // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                             ++numAvatarsWithSkippedFrames;
@@ -285,7 +277,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         int avatarRank = 0;
 
         // this is overly conservative, because it includes some avatars we might not consider
-        int remainingAvatars = (int)sortedAvatars.size(); 
+        int remainingAvatars = (int)sortedAvatars.size();
 
         while (!sortedAvatars.empty()) {
             AvatarPriority sortData = sortedAvatars.top();

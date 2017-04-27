@@ -78,6 +78,7 @@
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
+#include <controllers/InputRecorder.h>
 #include <controllers/ScriptingInterface.h>
 #include <controllers/StateController.h>
 #include <UserActivityLoggerScriptingInterface.h>
@@ -140,7 +141,7 @@
 #include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
-#include "InterfaceActionFactory.h"
+#include "InterfaceDynamicFactory.h"
 #include "InterfaceLogging.h"
 #include "LODManager.h"
 #include "ModelPackager.h"
@@ -462,7 +463,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
-    DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
+    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, InterfaceDynamicFactory>();
     DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
 
     // Set dependencies
@@ -516,7 +517,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<OffscreenUi>();
     DependencyManager::set<AutoUpdater>();
     DependencyManager::set<PathUtils>();
-    DependencyManager::set<InterfaceActionFactory>();
+    DependencyManager::set<InterfaceDynamicFactory>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
@@ -594,7 +595,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _aboutToQuit(false),
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
-    _lastFaceTrackerUpdate(0)
+    _lastFaceTrackerUpdate(0),
+    _snapshotSound(nullptr)
 {
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
@@ -1444,8 +1446,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.jpg" };
     QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
 
-    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
-    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
+    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, image::TextureUsage::CUBE_TEXTURE, { { "generateIrradiance", false } });
+    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, image::TextureUsage::CUBE_TEXTURE, { { "generateIrradiance", true } });
 
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
 
@@ -1454,6 +1456,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return entityServerNode && !isPhysicsEnabled();
     });
 
+    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
+    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
+
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
     if (testProperty.isValid()) {
@@ -1461,46 +1466,53 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         const auto testScript = property(hifi::properties::TEST).toUrl();
         scriptEngines->loadScript(testScript, false);
     } else {
-        // Get sandbox content set version, if available
+        enum HandControllerType {
+            Vive,
+            Oculus
+        };
+        static const std::map<HandControllerType, int> MIN_CONTENT_VERSION = {
+            { Vive, 1 },
+            { Oculus, 27 }
+        };
+
+        // Get sandbox content set version
         auto acDirPath = PathUtils::getAppDataPath() + "../../" + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
         auto contentVersionPath = acDirPath + "content-version.txt";
         qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
-        auto contentVersion = 0;
+        int contentVersion = 0;
         QFile contentVersionFile(contentVersionPath);
         if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
             QString line = contentVersionFile.readAll();
-            // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
-            contentVersion = line.toInt();
+            contentVersion = line.toInt(); // returns 0 if conversion fails
         }
-        qCDebug(interfaceapp) << "Server content version: " << contentVersion;
 
-        static const int MIN_VIVE_CONTENT_VERSION = 1;
-        static const int MIN_OCULUS_TOUCH_CONTENT_VERSION = 27;
-
-        bool hasSufficientTutorialContent = false;
+        // Get controller availability
         bool hasHandControllers = false;
-
-        // Only specific hand controllers are currently supported, so only send users to the tutorial
-        // if they have one of those hand controllers.
+        HandControllerType handControllerType = Vive;
         if (PluginUtils::isViveControllerAvailable()) {
             hasHandControllers = true;
-            hasSufficientTutorialContent = contentVersion >= MIN_VIVE_CONTENT_VERSION;
+            handControllerType = Vive;
         } else if (PluginUtils::isOculusTouchControllerAvailable()) {
             hasHandControllers = true;
-            hasSufficientTutorialContent = contentVersion >= MIN_OCULUS_TOUCH_CONTENT_VERSION;
+            handControllerType = Oculus;
         }
 
+        // Check tutorial content versioning
+        bool hasTutorialContent = contentVersion >= MIN_CONTENT_VERSION.at(handControllerType);
+
+        // Check HMD use (may be technically available without being in use)
+        bool hasHMD = PluginUtils::isHMDAvailable();
+        bool isUsingHMD = hasHMD && hasHandControllers && _displayPlugin->isHmd();
+
+        Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
         Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable() && hasHandControllers;
-        Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
+        bool isTutorialComplete = tutorialComplete.get();
+        bool shouldGoToTutorial = isUsingHMD && hasTutorialContent && !isTutorialComplete;
 
-        bool shouldGoToTutorial = hasHMDAndHandControllers && hasSufficientTutorialContent && !tutorialComplete.get();
-
-        qCDebug(interfaceapp) << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
-        qCDebug(interfaceapp) << "Has sufficient tutorial content (" << contentVersion << ") : " << hasSufficientTutorialContent;
-        qCDebug(interfaceapp) << "Tutorial complete: " << tutorialComplete.get();
-        qCDebug(interfaceapp) << "Should go to tutorial: " << shouldGoToTutorial;
+        qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMD;
+        qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
+            ", complete:" << isTutorialComplete << ", should go:" << shouldGoToTutorial;
 
         // when --url in command line, teleport to location
         const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
@@ -1537,7 +1549,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
             // If this is a first run we short-circuit the address passed in
             if (isFirstRun) {
-                if (hasHMDAndHandControllers) {
+                if (isUsingHMD) {
                     if (sandboxIsRunning) {
                         qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                         DependencyManager::get<AddressManager>()->goToLocalSandbox();
@@ -1776,11 +1788,16 @@ void Application::cleanupBeforeQuit() {
     // stop QML
     DependencyManager::destroy<OffscreenUi>();
 
+    if (_snapshotSoundInjector != nullptr) {
+        _snapshotSoundInjector->stop();
+    }
+
     // stop audio after QML, as there are unexplained audio crashes originating in qtwebengine
 
     // stop the AudioClient, synchronously
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
+
 
     // destroy Audio so it and its threads have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
@@ -2737,6 +2754,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
                     offscreenUi->load("Browser.qml");
+                } else if (isOption) {
+                    controller::InputRecorder* inputRecorder = controller::InputRecorder::getInstance();
+                    inputRecorder->stopPlayback();
                 }
                 break;
 
@@ -4431,7 +4451,7 @@ void Application::update(float deltaTime) {
                 _entitySimulation->setObjectsToChange(stillNeedChange);
             });
 
-            _entitySimulation->applyActionChanges();
+            _entitySimulation->applyDynamicChanges();
 
              avatarManager->getObjectsToRemoveFromPhysics(motionStates);
             _physicsEngine->removeObjects(motionStates);
@@ -4441,8 +4461,8 @@ void Application::update(float deltaTime) {
             _physicsEngine->changeObjects(motionStates);
 
             myAvatar->prepareForPhysicsSimulation();
-            _physicsEngine->forEachAction([&](EntityActionPointer action) {
-                action->prepareForPhysicsSimulation();
+            _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
+                dynamic->prepareForPhysicsSimulation();
             });
         }
         {
@@ -5196,11 +5216,7 @@ void Application::resettingDomain() {
 }
 
 void Application::nodeAdded(SharedNodePointer node) const {
-    if (node->getType() == NodeType::AvatarMixer) {
-        // new avatar mixer, send off our identity packet right away
-        getMyAvatar()->sendIdentityPacket();
-        getMyAvatar()->resetLastSent();
-    }
+    // nothing to do here
 }
 
 void Application::nodeActivated(SharedNodePointer node) {
@@ -5235,6 +5251,13 @@ void Application::nodeActivated(SharedNodePointer node) {
 
     if (node->getType() == NodeType::AudioMixer) {
         DependencyManager::get<AudioClient>()->negotiateAudioFormat();
+    }
+
+    if (node->getType() == NodeType::AvatarMixer) {
+        // new avatar mixer, send off our identity packet right away
+        getMyAvatar()->markIdentityDataChanged();
+        getMyAvatar()->sendIdentityPacket();
+        getMyAvatar()->resetLastSent();
     }
 }
 
@@ -6406,15 +6429,24 @@ void Application::loadAddAvatarBookmarkDialog() const {
 }
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
-    postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
-        QMediaPlayer* player = new QMediaPlayer();
-        QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
-        player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
-        player->play();
+    
+    //keep sound thread out of event loop scope
 
+    AudioInjectorOptions options;
+    options.localOnly = true;
+    options.stereo = true;
+
+    if (_snapshotSoundInjector) {
+        _snapshotSoundInjector->setOptions(options);
+        _snapshotSoundInjector->restart();
+    } else {
+        QByteArray samples = _snapshotSound->getByteArray();
+        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+    }
+
+    postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
-
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated || !(SnapshotAnimated::alsoTakeAnimatedSnapshot.get())) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
@@ -6425,6 +6457,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         }
     });
 }
+
 void Application::shareSnapshot(const QString& path, const QUrl& href) {
     postLambdaEvent([path, href] {
         // not much to do here, everything is done in snapshot code...
@@ -6740,11 +6773,6 @@ void Application::updateDisplayMode() {
         return;
     }
 
-    UserActivityLogger::getInstance().logAction("changed_display_mode", {
-        { "previous_display_mode", _displayPlugin ? _displayPlugin->getName() : "" },
-        { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" }
-    });
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     // Make the switch atomic from the perspective of other threads
@@ -6799,13 +6827,16 @@ void Application::updateDisplayMode() {
         offscreenUi->getDesktop()->setProperty("repositionLocked", wasRepositionLocked);
     }
 
+    bool isHmd = _displayPlugin->isHmd();
+    qCDebug(interfaceapp) << "Entering into" << (isHmd ? "HMD" : "Desktop") << "Mode";
+
+    // Only log/emit after a successful change
+    UserActivityLogger::getInstance().logAction("changed_display_mode", {
+        { "previous_display_mode", _displayPlugin ? _displayPlugin->getName() : "" },
+        { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" },
+        { "hmd", isHmd }
+    });
     emit activeDisplayPluginChanged();
-    
-    if (_displayPlugin->isHmd()) {
-        qCDebug(interfaceapp) << "Entering into HMD Mode";
-    } else {
-        qCDebug(interfaceapp) << "Entering into Desktop Mode";
-    }
 
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
