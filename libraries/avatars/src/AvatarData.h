@@ -603,6 +603,9 @@ public:
 
     bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_UPDATE_TIMEOUT; }
 
+	// Overload the local orientation function for this.
+	virtual glm::quat getLocalOrientation() const override;
+
     static const float OUT_OF_VIEW_PENALTY;
 
     static void sortAvatars(
@@ -619,7 +622,16 @@ public:
     static float _avatarSortCoefficientCenter;
     static float _avatarSortCoefficientAge;
 
+	// Basic ease-in-ease-out function for smoothing values.
+	static inline float easeInOutQuad(float lerpValue) {
+		assert(!((lerpValue < 0.0f) || (lerpValue > 1.0f)));
 
+		if (lerpValue < 0.5f) {
+			return (2.0f * lerpValue * lerpValue);
+		}
+
+		return (lerpValue*(4.0f - 2.0f * lerpValue) - 1.0f);
+	}
 
 signals:
     void displayNameChanged();
@@ -777,6 +789,15 @@ protected:
     float _audioLoudness { 0.0f };
     quint64 _audioLoudnessChanged { 0 };
     float _audioAverageLoudness { 0.0f };
+
+	// Smoothing.
+	const float SMOOTH_TIME_ORIENTATION = 0.15f;
+
+	// Smoothing data for blending from one position/orientation to another on remote agents.
+	float _smoothOrientationTime;
+	float _smoothOrientationTimer;
+	glm::quat _smoothOrientationInitial;
+	glm::quat _smoothOrientationTarget;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

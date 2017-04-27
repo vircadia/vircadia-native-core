@@ -375,6 +375,10 @@ void MyAvatar::update(float deltaTime) {
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     _hmdSensorFacingMovingAverage = lerp(_hmdSensorFacingMovingAverage, _hmdSensorFacing, tau);
 
+	if (_smoothOrientationTimer < _smoothOrientationTime) {
+		_smoothOrientationTimer = min(_smoothOrientationTimer + deltaTime, _smoothOrientationTime);
+	}
+
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
     glm::vec3 p = transformPoint(getSensorToWorldMatrix(), _hmdSensorPosition + glm::vec3(_hmdSensorFacingMovingAverage.x, 0.0f, _hmdSensorFacingMovingAverage.y));
     DebugDraw::getInstance().addMarker("facing-avg", getOrientation(), p, glm::vec4(1.0f));
@@ -1742,8 +1746,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
     // snap turn every half second.
+	bool snapTurn = false;
     if (getDriveKey(STEP_YAW) != 0.0f) {
         totalBodyYaw += getDriveKey(STEP_YAW);
+		snapTurn = true;
     }
 
     // use head/HMD orientation to turn while flying
@@ -1776,9 +1782,16 @@ void MyAvatar::updateOrientation(float deltaTime) {
         totalBodyYaw += (speedFactor * deltaAngle * (180.0f / PI));
     }
 
-
     // update body orientation by movement inputs
+	glm::quat initialOrientation = getOrientation();
     setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
+
+	if (snapTurn) {
+		// Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
+		_smoothOrientationInitial = initialOrientation;
+		_smoothOrientationTarget = getOrientation();
+		_smoothOrientationTimer = 0.0f;
+	}
 
     getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
