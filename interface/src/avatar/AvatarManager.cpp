@@ -32,9 +32,9 @@
 #include <SettingHandle.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
+#include <avatars-renderer/OtherAvatar.h>
 
 #include "Application.h"
-#include "Avatar.h"
 #include "AvatarManager.h"
 #include "InterfaceLogging.h"
 #include "Menu.h"
@@ -299,7 +299,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return std::make_shared<Avatar>(qApp->thread(), std::make_shared<Rig>());
+    return std::make_shared<OtherAvatar>(qApp->thread(), std::make_shared<Rig>());
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {

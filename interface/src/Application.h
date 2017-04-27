@@ -372,6 +372,7 @@ public slots:
     static void showHelp();
 
     void cycleCamera();
+    void cameraModeChanged();
     void cameraMenuChanged();
     void toggleOverlays();
     void setOverlaysVisible(bool visible);

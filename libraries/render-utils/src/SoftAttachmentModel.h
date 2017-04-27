@@ -1,7 +1,4 @@
 //
-//  SoftAttachmentModel.h
-//  interface/src/avatar
-//
 //  Created by Anthony J. Thibault on 12/17/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
