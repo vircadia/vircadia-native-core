@@ -54,7 +54,7 @@ void ObjectConstraintHinge::prepareForPhysicsSimulation() {
     // https://www.bulletphysics.org/Bullet/phpBB3/viewtopic.php?f=9&t=7020
 
     if (!isMine()) {
-        // XXX
+        // TODO
         // don't activate motor for someone else's action?
         // maybe don't if this interface isn't the sim owner?
         return;
@@ -77,11 +77,6 @@ void ObjectConstraintHinge::prepareForPhysicsSimulation() {
             float t = (float)(now - _startMotorTime) / (float)USECS_PER_SECOND;
             float motorTarget = _motorVelocity * t;
 
-            // // bring motorTarget into the range of [-PI, PI]
-            // motorTarget += PI;
-            // motorTarget = fmodf(motorTarget, 2.0f * PI);
-            // motorTarget -= PI;
-
             if (!_motorEnabled) {
                 constraint->enableMotor(true);
                 _motorEnabled = true;
@@ -90,7 +85,7 @@ void ObjectConstraintHinge::prepareForPhysicsSimulation() {
             constraint->setMotorTarget(motorTarget, dt);
 
         } else if (_motorTargetTimeScale > 0.0f) {
-            // XXX
+            // TODO -- we probably want a spring-like action here
         } else if (_motorEnabled) {
             constraint->enableMotor(false);
             _motorEnabled = false;

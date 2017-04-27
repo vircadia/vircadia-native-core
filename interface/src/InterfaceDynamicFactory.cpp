@@ -17,6 +17,7 @@
 #include <ObjectActionSpring.h>
 #include <ObjectActionTravelOriented.h>
 #include <ObjectConstraintHinge.h>
+#include <ObjectConstraintSlider.h>
 #include <LogHandler.h>
 
 #include "InterfaceDynamicFactory.h"
@@ -38,6 +39,8 @@ EntityDynamicPointer interfaceDynamicFactory(EntityDynamicType type, const QUuid
             return std::make_shared<ObjectConstraintHinge>(id, ownerEntity);
         case DYNAMIC_TYPE_FAR_GRAB:
             return std::make_shared<AvatarActionFarGrab>(id, ownerEntity);
+        case DYNAMIC_TYPE_SLIDER:
+            return std::make_shared<ObjectConstraintSlider>(id, ownerEntity);
     }
 
     Q_ASSERT_X(false, Q_FUNC_INFO, "Unknown entity dynamic type");

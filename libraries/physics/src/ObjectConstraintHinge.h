@@ -44,8 +44,8 @@ protected:
     glm::vec3 _pivotInB;
     glm::vec3 _axisInB;
 
-    float _low { -2.0f * PI };
-    float _high { 2.0f * PI };
+    float _low { -TWO_PI };
+    float _high { TWO_PI };
 
     // https://gamedev.stackexchange.com/questions/71436/what-are-the-parameters-for-bthingeconstraintsetlimit
     //
