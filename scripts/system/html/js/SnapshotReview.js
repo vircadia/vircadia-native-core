@@ -89,6 +89,9 @@ function appendShareBar(divID, story_id, isGif, hifiShareButtonsDisabled) {
     var parentDiv = document.getElementById(divID);
     parentDiv.setAttribute('data-story-id', story_id);
     document.getElementById(divID).appendChild(createShareBar(divID, isGif, story_url, hifiShareButtonsDisabled));
+    if (divID === "p0") {
+        selectImageToShare(divID, true);
+    }
 }
 function createShareBar(parentID, isGif, shareURL, hifiShareButtonsDisabled) {
     var shareBar = document.createElement("div");
