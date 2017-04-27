@@ -203,10 +203,12 @@ function onMessage(message) {
                                 path: response.user_story.path,
                                 place_name: response.user_story.place_name,
                                 thumbnail_url: response.user_story.thumbnail_url,
-                                details: {
+                                // For historical reasons, the server doesn't take nested JSON objects.
+                                // Thus, I'm required to STRINGIFY what should be a nested object.
+                                details: JSON.stringify({
                                     shareable_url: response.user_story.details.shareable_url,
                                     image_url: response.user_story.details.image_url
-                                }
+                                })
                             }
                         }
                         request({
