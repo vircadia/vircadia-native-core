@@ -13,7 +13,6 @@
         var childZeroUserData = JSON.parse(Entities.getEntityProperties(children[0]).userData);
 
         if (childZeroUserData.name === "bar") {
-
             barID = childZero.id;
             textID = childOne.id;
         } else {
@@ -32,13 +31,11 @@
         var avatarLoudnessPool = [];
 
         function average(a) {
-
             var sum = 0;
             var total = a.length;
             for (var i = 0; i < total; i++) {
                 sum += a[i];
             }
-
             return Math.round(sum / total)
         }
 
@@ -63,21 +60,21 @@
 
         function normalizedAverage(a) {
             a = a.map(function (v) {
-                return Math.round(( 100 / MAX_AUDIO_THRESHOLD ) * v)
+                return Math.round(( 100 / MAX_AUDIO_THRESHOLD ) * v);
             });
             return average(a);
         }
 
-        var norm = normalizedAverage(framePool) ;
+        var norm = normalizedAverage(framePool);
 
         Entities.editEntity(textID, {text: "Loudness: % " + norm});
 
         var barProperties = Entities.getEntityProperties(barID);
-        JSON.stringify(barProperties) ;
 
-        var colorShift = 2.55 * norm; //shifiting the scale to 0 - 255
+
+        var colorShift = 2.55 * norm; //shifting the scale to 0 - 255
         var xShift = norm / 100; // changing scale from 0-100 to 0-1
-        var normShift = xShift - .5; //shifitg scale form 0-1 to -.5 to .5
+        var normShift = xShift - .5; //shifting scale form 0-1 to -.5 to .5
         var halfShift = xShift / 2 ;
         Entities.editEntity(barID, {
             dimensions: {x: xShift, y: barProperties.dimensions.y, z: barProperties.dimensions.z},
