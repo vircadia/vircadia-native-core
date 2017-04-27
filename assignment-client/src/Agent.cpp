@@ -544,7 +544,7 @@ void Agent::setIsAvatar(bool isAvatar) {
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
 
         // start the timers
-        _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
+        _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
 
         // tell the avatarAudioTimer to start ticking
         emit startAvatarAudioTimer();

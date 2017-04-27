@@ -118,6 +118,7 @@ Texture::Size Texture::getAllowedGPUMemoryUsage() {
     return _allowedCPUMemoryUsage;
 }
 
+
 void Texture::setAllowedGPUMemoryUsage(Size size) {
     qCDebug(gpulogging) << "New MAX texture memory " << BYTES_TO_MB(size) << " MB";
     _allowedCPUMemoryUsage = size;
@@ -411,6 +412,7 @@ const Element& Texture::getStoredMipFormat() const {
 }
 
 void Texture::assignStoredMip(uint16 level, Size size, const Byte* bytes) {
+    // TODO Skip the extra allocation here
     storage::StoragePointer storage = std::make_shared<storage::MemoryStorage>(size, bytes);
     assignStoredMip(level, storage);
 }
@@ -474,6 +476,10 @@ void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePoin
     }
 }
 
+bool Texture::isStoredMipFaceAvailable(uint16 level, uint8 face) const {
+    return _storage->isMipAvailable(level, face);
+}
+
 void Texture::setAutoGenerateMips(bool enable) {
     bool changed = false;
     if (!_autoGenerateMips) {
@@ -487,12 +493,11 @@ void Texture::setAutoGenerateMips(bool enable) {
 }
 
 Size Texture::getStoredMipSize(uint16 level) const {
-    PixelsPointer mipFace = accessStoredMipFace(level);
     Size size = 0;
-    if (mipFace && mipFace->getSize()) {
-        for (int face = 0; face < getNumFaces(); face++) {
+    for (int face = 0; face < getNumFaces(); face++) {
+        if (isStoredMipFaceAvailable(level, face)) {
             size += getStoredMipFaceSize(level, face);
-         }
+        }
     }
     return size;
 }

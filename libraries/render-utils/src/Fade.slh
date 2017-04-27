@@ -27,7 +27,7 @@ vec2 hash2D(vec3 position) {
 }
 
 float evalFadeMask(vec3 position, vec3 normal) {
-    const float FADE_MASK_INV_SCALE = 3.0;
+    const float FADE_MASK_INV_SCALE = 1.0;
 
     // Do tri-linear interpolation
     vec3    noisePosition = position * FADE_MASK_INV_SCALE;
