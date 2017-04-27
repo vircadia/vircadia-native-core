@@ -747,7 +747,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
             _attempts++;
             _attemptsRemaining--;
 
-            qCDebug(networking) << "Retriable error while loading" << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
+            qCDebug(networking) << "Retryable error while loading" << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
 
             // retry with increasing delays
             const int BASE_DELAY_MS = 1000;
@@ -765,7 +765,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
             _attemptsRemaining = 0;
             qCDebug(networking) << "Error loading " << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
             auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError
-                                                                : QNetworkReply::UnknownNetworkError;
+                                                              : QNetworkReply::UnknownNetworkError;
             emit failed(error);
             willRetry = false;
             finishedLoading(false);

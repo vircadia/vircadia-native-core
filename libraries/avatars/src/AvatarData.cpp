@@ -1474,12 +1474,12 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
     QDataStream packetStream(data);
 
     packetStream >> identityOut.uuid 
-            >> identityOut.skeletonModelURL 
-            >> identityOut.attachmentData 
-            >> identityOut.displayName 
-            >> identityOut.sessionDisplayName 
-            >> identityOut.avatarEntityData
-            >> identityOut.updatedAt;
+                 >> identityOut.skeletonModelURL 
+                 >> identityOut.attachmentData
+                 >> identityOut.displayName
+                 >> identityOut.sessionDisplayName
+                 >> identityOut.avatarEntityData
+                 >> identityOut.updatedAt;
 
 #ifdef WANT_DEBUG
     qCDebug(avatars) << __FUNCTION__
@@ -1547,12 +1547,12 @@ QByteArray AvatarData::identityByteArray() const {
 
     _avatarEntitiesLock.withReadLock([&] {
         identityStream << getSessionUUID() 
-                << urlToSend 
-                << _attachmentData 
-                << _displayName 
-                << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
-                << _avatarEntityData
-                << _identityUpdatedAt;
+                       << urlToSend 
+                       << _attachmentData
+                       << _displayName
+                       << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
+                       << _avatarEntityData
+                       << _identityUpdatedAt;
     });
 
     return identityData;
