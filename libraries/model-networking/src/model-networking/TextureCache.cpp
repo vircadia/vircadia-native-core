@@ -473,19 +473,16 @@ void NetworkTexture::ktxMipRequestFinished() {
                 texture->assignStoredMip(_ktxMipLevelRangeInFlight.first,
                     _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
                 _lowestKnownPopulatedMip = _textureSource->getGPUTexture()->minAvailableMipLevel();
-            }
-            else {
+            } else {
                 qWarning(networking) << "Trying to update mips but texture is null";
             }
             finishedLoading(true);
             _ktxResourceState = WAITING_FOR_MIP_REQUEST;
-        }
-        else {
+        } else {
             finishedLoading(false);
             if (handleFailedRequest(_ktxMipRequest->getResult())) {
                 _ktxResourceState = PENDING_MIP_REQUEST;
-            }
-            else {
+            } else {
                 qWarning(networking) << "Failed to load mip: " << _url;
                 _ktxResourceState = FAILED_TO_LOAD;
             }
@@ -497,8 +494,7 @@ void NetworkTexture::ktxMipRequestFinished() {
         if (_ktxResourceState == WAITING_FOR_MIP_REQUEST && _lowestRequestedMipLevel < _lowestKnownPopulatedMip) {
             startRequestForNextMipLevel();
         }
-    }
-    else {
+    } else {
         qWarning() << "Mip request finished in an unexpected state: " << _ktxResourceState;
     }
 }
