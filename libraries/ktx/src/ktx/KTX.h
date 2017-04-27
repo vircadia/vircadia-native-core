@@ -70,10 +70,9 @@ end
 
 
 namespace ktx {
-    const std::string HIFI_MIN_POPULATED_MIP_KEY = "hifi.minMip";
-
-
     const uint32_t PACKING_SIZE { sizeof(uint32_t) };
+    const std::string HIFI_MIN_POPULATED_MIP_KEY{ "hifi.minMip" };
+
     using Byte = uint8_t;
 
     enum class GLType : uint32_t {
