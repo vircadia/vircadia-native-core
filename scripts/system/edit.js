@@ -2094,3 +2094,4 @@ entityListTool.webView.webEventReceived.connect(function (data) {
 });
 
 }()); // END LOCAL_SCOPE
+
