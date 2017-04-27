@@ -343,7 +343,7 @@ var toolBar = (function () {
         activeButton = tablet.addButton({
             icon: "icons/tablet-icons/edit-i.svg",
             activeIcon: "icons/tablet-icons/edit-a.svg",
-            text: "EDIT",
+            text: "CREATE",
             sortOrder: 10
         });
         tablet.screenChanged.connect(function (type, url) {
