@@ -18,6 +18,8 @@ public:
     GLenum format;
     GLenum type;
 
+    bool isCompressed() const;
+
     static GLTexelFormat evalGLTexelFormat(const Element& dstFormat) {
         return evalGLTexelFormat(dstFormat, dstFormat);
     }
