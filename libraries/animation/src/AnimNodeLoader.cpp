@@ -79,10 +79,10 @@ static AnimStateMachine::InterpType stringToInterpType(const QString& str) {
 
 static const char* animManipulatorJointVarTypeToString(AnimManipulator::JointVar::Type type) {
     switch (type) {
-    case AnimManipulator::JointVar::Type::AbsoluteRotation: return "absoluteRotation";
-    case AnimManipulator::JointVar::Type::AbsolutePosition: return "absolutePosition";
-    case AnimManipulator::JointVar::Type::RelativeRotation: return "relativeRotation";
-    case AnimManipulator::JointVar::Type::RelativePosition: return "relativePosition";
+    case AnimManipulator::JointVar::Type::Absolute: return "absolute";
+    case AnimManipulator::JointVar::Type::Relative: return "relative";
+    case AnimManipulator::JointVar::Type::UnderPose: return "underPose";
+    case AnimManipulator::JointVar::Type::Default: return "default";
     case AnimManipulator::JointVar::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -339,7 +339,8 @@ static const char* boneSetStrings[AnimOverlay::NumBoneSets] = {
     "spineOnly",
     "empty",
     "leftHand",
-    "rightHand"
+    "rightHand",
+    "hipsOnly"
 };
 
 static AnimOverlay::BoneSet stringToBoneSetEnum(const QString& str) {
@@ -406,17 +407,25 @@ static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const Q
         }
         auto jointObj = jointValue.toObject();
 
-        READ_STRING(type, jointObj, id, jsonUrl, nullptr);
         READ_STRING(jointName, jointObj, id, jsonUrl, nullptr);
-        READ_STRING(var, jointObj, id, jsonUrl, nullptr);
+        READ_STRING(rotationType, jointObj, id, jsonUrl, nullptr);
+        READ_STRING(translationType, jointObj, id, jsonUrl, nullptr);
+        READ_STRING(rotationVar, jointObj, id, jsonUrl, nullptr);
+        READ_STRING(translationVar, jointObj, id, jsonUrl, nullptr);
 
-        AnimManipulator::JointVar::Type jointVarType = stringToAnimManipulatorJointVarType(type);
-        if (jointVarType == AnimManipulator::JointVar::Type::NumTypes) {
-            qCCritical(animation) << "AnimNodeLoader, bad type in \"joints\", id =" << id << ", url =" << jsonUrl.toDisplayString();
-            return nullptr;
+        AnimManipulator::JointVar::Type jointVarRotationType = stringToAnimManipulatorJointVarType(rotationType);
+        if (jointVarRotationType == AnimManipulator::JointVar::Type::NumTypes) {
+            qCWarning(animation) << "AnimNodeLoader, bad rotationType in \"joints\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            jointVarRotationType = AnimManipulator::JointVar::Type::Default;
         }
 
-        AnimManipulator::JointVar jointVar(var, jointName, jointVarType);
+        AnimManipulator::JointVar::Type jointVarTranslationType = stringToAnimManipulatorJointVarType(translationType);
+        if (jointVarTranslationType == AnimManipulator::JointVar::Type::NumTypes) {
+            qCWarning(animation) << "AnimNodeLoader, bad translationType in \"joints\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            jointVarTranslationType = AnimManipulator::JointVar::Type::Default;
+        }
+
+        AnimManipulator::JointVar jointVar(jointName, jointVarRotationType, jointVarTranslationType, rotationVar, translationVar);
         node->addJointVar(jointVar);
     };
 

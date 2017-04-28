@@ -16,16 +16,12 @@ For OpenSSL installed via homebrew, set OPENSSL_ROOT_DIR:
 Note that this uses the version from the homebrew formula at the time of this writing, and the version in the path will likely change.
 
 ###Qt
-You can use the online installer or the offline installer.
+Download and install the [Qt 5.6.2 for macOS](http://download.qt.io/official_releases/qt/5.6/5.6.2/qt-opensource-mac-x64-clang-5.6.2.dmg). 
 
-* [Download the online installer](https://www.qt.io/download-open-source/#section-2)
-    * When it asks you to select components, select the following:
-        * Qt > Qt 5.6
-
-* [Download the offline installer](https://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-mac-x64-clang-5.6.1-1.dmg)
+Keep the default components checked when going through the installer.
 
 Once Qt is installed, you need to manually configure the following:
-* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt5.6.1/5.6/clang_64/lib/cmake/` directory.
+* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt5.6.2/5.6/clang_64/lib/cmake/` directory.
 
 ###Xcode
 If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.
