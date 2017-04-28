@@ -25,6 +25,9 @@ Item {
     property bool isDesktop: false
     property bool removingPage: false
     property bool loadingPage: false
+    property alias webView: webview
+    property alias profile: webview.profile
+    property bool remove: false
 
     
     property int currentPage: -1 // used as a model for repeater
@@ -110,6 +113,10 @@ Item {
 
 
     function closeWebEngine() {
+        if (remove) {
+            web.destroy();
+            return;
+        }
         if (parentStackItem) {
             parentStackItem.pop();
         } else {
@@ -263,7 +270,12 @@ Item {
         }
 
         onNewViewRequested: {
+            console.log("--------------> new window opened <-------------");
             request.openIn(webview);
+        }
+
+        onWindowCloseRequested: {
+            console.log("-------------> requested to cloes window <---------------");
         }
     }
 

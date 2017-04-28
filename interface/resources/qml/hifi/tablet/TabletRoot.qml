@@ -1,7 +1,9 @@
 import QtQuick 2.0
 import Hifi 1.0
 import QtQuick.Controls 1.4
+import HFTabletWebEngineProfile 1.0
 import "../../dialogs"
+import "../../controls"
 
 Item {
     id: tabletRoot
@@ -11,6 +13,7 @@ Item {
     property var rootMenu;
     property var openModal: null;
     property var openMessage: null;
+    property var openBrowser: null;
     property string subMenu: ""
     signal showDesktop();
     property bool shown: true
@@ -21,6 +24,7 @@ Item {
         option = value;
     }
 
+    Component { id: profileCreator; HFTabletWebEngineProfile {} }
     Component { id: inputDialogBuilder; TabletQueryDialog { } }
     function inputDialog(properties) {
         openModal = inputDialogBuilder.createObject(tabletRoot, properties);
@@ -101,8 +105,20 @@ Item {
         }
     }
 
+    function openBrowserWindow(request, profile) {
+        var component = Qt.createComponent("../../controls/TabletWebView.qml");
+        var newWindow = component.createObject(tabletRoot);
+        newWindow.eventBridge = tabletRoot.eventBridge;
+        newWindow.remove = true;
+        newWindow.profile = profile;
+        request.openIn(newWindow.webView);
+        tabletRoot.openBrowser = newWindow;
+    }
+
     function loadWebUrl(url, injectedJavaScriptUrl) {
         tabletApps.clear();
+        var newProfile = profileCreator.createObject();
+        loader.item.viewProfile = newProfile;
         loader.item.url = url;
         loader.item.scriptURL = injectedJavaScriptUrl;
         tabletApps.append({"appUrl": "TabletWebView.qml", "isWebUrl": true, "scriptUrl": injectedJavaScriptUrl, "appWebUrl": url});
@@ -179,6 +195,11 @@ Item {
                 openModal.canceled();
                 openModal.destroy();
                 openModal = null;
+            }
+
+            if (openBrowser) {
+                openBrowser.destroy();
+                openBrowser = null;
             }
         }
     }
