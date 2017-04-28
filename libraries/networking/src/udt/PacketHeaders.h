@@ -113,7 +113,8 @@ public:
         EntityPhysics,
         EntityServerScriptLog,
         AdjustAvatarSorting,
-        LAST_PACKET_TYPE = AdjustAvatarSorting
+        OctreeFileReplacement,
+        LAST_PACKET_TYPE = OctreeFileReplacement
     };
 };
 
