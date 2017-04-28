@@ -64,13 +64,14 @@ function setupAudioMenus() {
     // Setup audio input devices
     Menu.addSeparator("Audio", "Input Audio Device");
     var inputDevices = AudioDevice.getInputDevices();
+    var currentInputDevice = AudioDevice.getInputDevice()
     for (var i = 0; i < inputDevices.length; i++) {
         var audioDeviceMenuString = "Use " + inputDevices[i] + " for Input";
         Menu.addMenuItem({
             menuName: "Audio",
             menuItemName: audioDeviceMenuString,
             isCheckable: true,
-            isChecked: inputDevices[i] == AudioDevice.getInputDevice()
+            isChecked: inputDevices[i] == currentInputDevice
         });
         audioDevicesList.push(audioDeviceMenuString);
     }
@@ -78,13 +79,14 @@ function setupAudioMenus() {
     // Setup audio output devices
     Menu.addSeparator("Audio", "Output Audio Device");
     var outputDevices = AudioDevice.getOutputDevices();
+    var currentOutputDevice = AudioDevice.getOutputDevice()
     for (var i = 0; i < outputDevices.length; i++) {
         var audioDeviceMenuString = "Use " + outputDevices[i] + " for Output";
         Menu.addMenuItem({
             menuName: "Audio",
             menuItemName: audioDeviceMenuString,
             isCheckable: true,
-            isChecked: outputDevices[i] == AudioDevice.getOutputDevice()
+            isChecked: outputDevices[i] == currentOutputDevice
         });
         audioDevicesList.push(audioDeviceMenuString);
     }
@@ -131,6 +133,11 @@ function onMenuEvent(audioDeviceMenuString) {
     if (!skipMenuEvents) {
         switchAudioDevice(audioDeviceMenuString);
     }
+}
+
+function onCurrentDeviceChanged() {
+    debug("System audio device switched. ");
+    setupAudioMenus()
 }
 
 function switchAudioDevice(audioDeviceMenuString) {
@@ -254,7 +261,9 @@ function checkHMDAudio() {
 // Wait for the C++ systems to fire up before trying to do anything with audio devices
 Script.setTimeout(function () {
     debug("Connecting deviceChanged(), displayModeChanged(), and switchAudioDevice()...");
-    AudioDevice.deviceChanged.connect(onDevicechanged);
+//    AudioDevice.deviceChanged.connect(onDevicechanged);
+//    AudioDevice.currentInputDeviceChanged.connect(onCurrentDeviceChanged);
+//    AudioDevice.currentOutputDeviceChanged.connect(onCurrentDeviceChanged);
     HMD.displayModeChanged.connect(checkHMDAudio);
     Menu.menuItemEvent.connect(onMenuEvent);
     debug("Setting up Audio I/O menu for the first time...");

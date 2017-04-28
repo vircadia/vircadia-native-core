@@ -15,10 +15,18 @@
 #include <QObject>
 #include <QString>
 #include <QVector>
+#include <QAbstractListModel>
+#include <QAudio>
 
 class AudioEffectOptions;
 
-class AudioDeviceScriptingInterface : public QObject {
+struct AudioDeviceInfo {
+    QString name;
+    bool selected;
+    QAudio::Mode mode;
+};
+
+class AudioDeviceScriptingInterface : public QAbstractListModel {
     Q_OBJECT
 
     Q_PROPERTY(QStringList inputAudioDevices READ inputAudioDevices NOTIFY inputAudioDevicesChanged)
@@ -31,6 +39,22 @@ public:
     QStringList inputAudioDevices() const;
     QStringList outputAudioDevices() const;
     bool muted();
+
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+    QHash<int, QByteArray> roleNames() const override;
+
+    enum Roles {
+        DisplayNameRole = Qt::UserRole,
+        SelectedRole,
+        AudioModeRole
+    };
+
+private slots:
+    void onDeviceChanged();
+    void onCurrentInputDeviceChanged();
+    void onCurrentOutputDeviceChanged();
+    void currentDeviceUpdate(const QString &name, QAudio::Mode mode);
 
 public slots:
     bool setInputDevice(const QString& deviceName);
@@ -55,15 +79,22 @@ public slots:
     
     void setMuted(bool muted);
 
+    void setInputDeviceAsync(const QString &deviceName);
+    void setOutputDeviceAsync(const QString &deviceName);
 private:
     AudioDeviceScriptingInterface();
 
 signals:
     void muteToggled();
     void deviceChanged();
+    void currentInputDeviceChanged();
+    void currentOutputDeviceChanged();
     void mutedChanged(bool muted);
     void inputAudioDevicesChanged(QStringList inputAudioDevices);
     void outputAudioDevicesChanged(QStringList outputAudioDevices);
+
+private:
+    QVector<AudioDeviceInfo> _devices;
 };
 
 #endif // hifi_AudioDeviceScriptingInterface_h

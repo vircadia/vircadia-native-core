@@ -8,6 +8,7 @@ Row {
     id: row
     spacing: 16
     property alias checkbox: cb
+    property alias cbchecked: cb.checked
     property alias text: txt
     signal checkBoxClicked(bool checked)
 
@@ -17,6 +18,7 @@ Row {
         colorScheme: hifi.colorSchemes.dark
         anchors.verticalCenter: parent.verticalCenter
         onClicked: checkBoxClicked(cb.checked)
+        onCheckedChanged: console.log("checked", checked, "device ",txt.text)
     }
     RalewayBold {
         id: txt
