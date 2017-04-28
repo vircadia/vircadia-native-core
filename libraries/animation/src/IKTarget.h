@@ -21,13 +21,14 @@ public:
         RotationOnly,
         HmdHead,
         HipsRelativeRotationAndPosition,
-        Unknown,
+        Unknown
     };
 
     IKTarget() {}
 
     const glm::vec3& getTranslation() const { return _pose.trans(); }
     const glm::quat& getRotation() const { return _pose.rot(); }
+    const AnimPose& getPose() const { return _pose; }
     int getIndex() const { return _index; }
     Type getType() const { return _type; }
 
