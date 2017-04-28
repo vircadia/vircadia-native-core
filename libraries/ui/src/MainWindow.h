@@ -29,6 +29,7 @@ public slots:
 signals:
     void windowGeometryChanged(QRect geometry);
     void windowShown(bool shown);
+    void windowMinimizedChanged(bool minimized);
 
 protected:
     virtual void closeEvent(QCloseEvent* event) override;

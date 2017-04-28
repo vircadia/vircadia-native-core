@@ -495,7 +495,7 @@ bool EntityTreeRenderer::applySkyboxAndHasAmbient() {
 
     bool isAmbientSet = false;
     if (_pendingAmbientTexture && !_ambientTexture) {
-        _ambientTexture = textureCache->getTexture(_ambientTextureURL, NetworkTexture::CUBE_TEXTURE);
+        _ambientTexture = textureCache->getTexture(_ambientTextureURL, image::TextureUsage::CUBE_TEXTURE);
     }
     if (_ambientTexture && _ambientTexture->isLoaded()) {
         _pendingAmbientTexture = false;
@@ -512,7 +512,7 @@ bool EntityTreeRenderer::applySkyboxAndHasAmbient() {
 
     if (_pendingSkyboxTexture && 
         (!_skyboxTexture || (_skyboxTexture->getURL() != _skyboxTextureURL))) {
-        _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, NetworkTexture::CUBE_TEXTURE);
+        _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, image::TextureUsage::CUBE_TEXTURE);
     }
     if (_skyboxTexture && _skyboxTexture->isLoaded()) {
         _pendingSkyboxTexture = false;
@@ -1015,11 +1015,11 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
 }
 
 
-void EntityTreeRenderer::entityScriptChanging(const EntityItemID& entityID, const bool reload) {
+void EntityTreeRenderer::entityScriptChanging(const EntityItemID& entityID, bool reload) {
     checkAndCallPreload(entityID, reload, true);
 }
 
-void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload, const bool unloadFirst) {
+void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool reload, bool unloadFirst) {
     if (_tree && !_shuttingDown) {
         EntityItemPointer entity = getTree()->findEntityByEntityItemID(entityID);
         if (!entity) {
@@ -1027,11 +1027,11 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
         }
         bool shouldLoad = entity->shouldPreloadScript() && _entitiesScriptEngine;
         QString scriptUrl = entity->getScript();
-        if (shouldLoad && (unloadFirst || scriptUrl.isEmpty())) {
+        if ((shouldLoad && unloadFirst) || scriptUrl.isEmpty()) {
             _entitiesScriptEngine->unloadEntityScript(entityID);
             entity->scriptHasUnloaded();
         }
-        if (shouldLoad && !scriptUrl.isEmpty()) {
+        if (shouldLoad) {
             scriptUrl = ResourceManager::normalizeURL(scriptUrl);
             _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
             entity->scriptHasPreloaded();

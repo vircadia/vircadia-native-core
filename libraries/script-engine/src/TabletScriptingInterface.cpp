@@ -21,6 +21,15 @@
 #include <InfoView.h>
 #include "SoundEffect.h"
 
+
+QScriptValue tabletToScriptValue(QScriptEngine* engine, TabletProxy* const &in) {
+    return engine->newQObject(in, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
+}
+
+void tabletFromScriptValue(const QScriptValue& value, TabletProxy* &out) {
+    out = qobject_cast<TabletProxy*>(value.toQObject());
+}
+
 TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
 }
@@ -41,7 +50,7 @@ QObject* TabletScriptingInterface::getSystemToolbarProxy() {
     }
 }
 
-QObject* TabletScriptingInterface::getTablet(const QString& tabletId) {
+TabletProxy* TabletScriptingInterface::getTablet(const QString& tabletId) {
 
     std::lock_guard<std::mutex> guard(_mutex);
 
@@ -410,19 +419,19 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
 }
 
 void TabletProxy::pushOntoStack(const QVariant& path) {
-    if (_qmlTabletRoot) {
-        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        auto stack = root->findChild<QQuickItem*>("stack");
         if (stack) {
             QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
         } else {
             loadQMLSource(path);
-        }
-    } else if (_desktopWindow) {
-        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
-        } else {
-            qCDebug(scriptengine) << "tablet cannot push QML because _desktopWindow doesn't have child stack";
         }
     } else {
         qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
@@ -430,20 +439,16 @@ void TabletProxy::pushOntoStack(const QVariant& path) {
 }
 
 void TabletProxy::popFromStack() {
-    if (_qmlTabletRoot) {
-        auto stack = _qmlTabletRoot->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "popSource");
-        } else {
-            qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot doesn't have child stack";
-        }
-    } else if (_desktopWindow) {
-        auto stack = _desktopWindow->asQuickItem()->findChild<QQuickItem*>("stack");
-        if (stack) {
-            QMetaObject::invokeMethod(stack, "popSource");
-        } else {
-            qCDebug(scriptengine) << "tablet cannot pop QML because _desktopWindow doesn't have child stack";
-        }
+    QObject* root = nullptr;
+    if (!_toolbarMode && _qmlTabletRoot) {
+        root = _qmlTabletRoot;
+    } else if (_toolbarMode && _desktopWindow) {
+        root = _desktopWindow->asQuickItem();
+    }
+
+    if (root) {
+        auto stack = root->findChild<QQuickItem*>("stack");
+        QMetaObject::invokeMethod(stack, "popSource");
     } else {
         qCDebug(scriptengine) << "tablet cannot pop QML because _qmlTabletRoot or _desktopWindow is null";
     }

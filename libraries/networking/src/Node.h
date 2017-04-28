@@ -54,9 +54,6 @@ public:
     NodeData* getLinkedData() const { return _linkedData.get(); }
     void setLinkedData(std::unique_ptr<NodeData> linkedData) { _linkedData = std::move(linkedData); }
 
-    bool isAlive() const { return _isAlive; }
-    void setAlive(bool isAlive) { _isAlive = isAlive; }
-
     int getPingMs() const { return _pingMs; }
     void setPingMs(int pingMs) { _pingMs = pingMs; }
 
@@ -92,7 +89,6 @@ private:
 
     QUuid _connectionSecret;
     std::unique_ptr<NodeData> _linkedData;
-    bool _isAlive;
     int _pingMs;
     qint64 _clockSkewUsec;
     QMutex _mutex;

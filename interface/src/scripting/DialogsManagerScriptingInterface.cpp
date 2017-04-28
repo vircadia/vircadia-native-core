@@ -16,15 +16,24 @@
 #include "ui/DialogsManager.h"
 
 DialogsManagerScriptingInterface::DialogsManagerScriptingInterface() {
-    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarToggled,
-            this, &DialogsManagerScriptingInterface::addressBarToggled);
     connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarShown,
             this, &DialogsManagerScriptingInterface::addressBarShown);
 }
 
-void DialogsManagerScriptingInterface::toggleAddressBar() {
+
+DialogsManagerScriptingInterface* DialogsManagerScriptingInterface::getInstance() {
+    static DialogsManagerScriptingInterface sharedInstance;
+    return &sharedInstance;
+}
+
+void DialogsManagerScriptingInterface::showAddressBar() {
     QMetaObject::invokeMethod(DependencyManager::get<DialogsManager>().data(),
-                              "toggleAddressBar", Qt::QueuedConnection);
+        "showAddressBar", Qt::QueuedConnection);
+}
+
+void DialogsManagerScriptingInterface::hideAddressBar() {
+    QMetaObject::invokeMethod(DependencyManager::get<DialogsManager>().data(),
+        "hideAddressBar", Qt::QueuedConnection);
 }
 
 void DialogsManagerScriptingInterface::showFeed() {

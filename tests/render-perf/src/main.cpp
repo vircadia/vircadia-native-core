@@ -48,8 +48,8 @@
 #include <gpu/StandardShaderLib.h>
 
 #include <SimpleEntitySimulation.h>
-#include <EntityActionInterface.h>
-#include <EntityActionFactoryInterface.h>
+#include <EntityDynamicInterface.h>
+#include <EntityDynamicFactoryInterface.h>
 #include <WebEntityItem.h>
 #include <OctreeUtils.h>
 #include <render/Engine.h>
@@ -365,17 +365,17 @@ public:
     }
 };
 
-class TestActionFactory : public EntityActionFactoryInterface {
+class TestActionFactory : public EntityDynamicFactoryInterface {
 public:
-    virtual EntityActionPointer factory(EntityActionType type,
+    virtual EntityDynamicPointer factory(EntityDynamicType type,
         const QUuid& id,
         EntityItemPointer ownerEntity,
         QVariantMap arguments) override {
-        return EntityActionPointer();
+        return EntityDynamicPointer();
     }
 
 
-    virtual EntityActionPointer factoryBA(EntityItemPointer ownerEntity, QByteArray data) override {
+    virtual EntityDynamicPointer factoryBA(EntityItemPointer ownerEntity, QByteArray data) override {
         return nullptr;
     }
 };
@@ -475,7 +475,7 @@ protected:
 public:
     //"/-17.2049,-8.08629,-19.4153/0,0.881994,0,-0.47126"
     static void setup() {
-        DependencyManager::registerInheritance<EntityActionFactoryInterface, TestActionFactory>();
+        DependencyManager::registerInheritance<EntityDynamicFactoryInterface, TestActionFactory>();
         DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
         DependencyManager::registerInheritance<SpatialParentFinder, ParentFinder>();
         DependencyManager::set<tracing::Tracer>();
