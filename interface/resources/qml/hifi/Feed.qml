@@ -23,7 +23,15 @@ Column {
 
     property int cardWidth: 212;
     property int cardHeight: 152;
-    property int stackedCardShadowHeight: 10;
+    property int textPadding: 10;
+    property int smallMargin: 4;
+    property int messageHeight: 40;
+    property int textSize: 24;
+    property int textSizeSmall: 18;
+    property int stackShadowNarrowing: 5;
+    property int stackedCardShadowHeight: 4;
+    property int labelSize: 20;
+
     property string metaverseServerUrl: '';
     property string actions: 'snapshot';
     onActionsChanged: fillDestinations();
@@ -118,7 +126,7 @@ Column {
     }
     function makeFilteredStoryProcessor() { // answer a function(storyData) that adds it to suggestions if it matches
         var words = filter.toUpperCase().split(/\s+/).filter(identity);
-        function suggestable(story) { // fixme add to makeFilteredStoryProcessor
+        function suggestable(story) {
             if (story.action === 'snapshot') {
                 return true;
             }
@@ -161,25 +169,26 @@ Column {
         root.visible = !!suggestions.count;
     }
 
-    RalewayLight {
+    RalewayBold {
         id: label;
         text: labelText;
-        color: hifi.colors.white;
-        size: 28;
+        color: hifi.colors.blueAccent;
+        size: labelSize;
     }
     ListView {
         id: scroll;
-        clip: true;
         model: suggestions;
         orientation: ListView.Horizontal;
         highlightMoveDuration: -1;
         highlightMoveVelocity: -1;
-        highlight: Rectangle { color: "transparent"; border.width: 4; border.color: hifiStyleConstants.colors.blueHighlight; z: 1; }
+        highlight: Rectangle { color: "transparent"; border.width: 4; border.color: hifiStyleConstants.colors.primaryHighlight; z: 1; }
+        currentIndex: -1;
 
-        spacing: 14;
+        spacing: 12;
         width: parent.width;
         height: cardHeight + stackedCardShadowHeight;
         delegate: Card {
+            id: card;
             width: cardWidth;
             height: cardHeight;
             goFunction: root.goFunction;
@@ -193,7 +202,15 @@ Column {
             onlineUsers: model.online_users;
             storyId: model.metaverseId;
             drillDownToPlace: model.drillDownToPlace;
-            shadowHeight: stackedCardShadowHeight;
+
+            textPadding: root.textPadding;
+            smallMargin: root.smallMargin;
+            messageHeight: root.messageHeight;
+            textSize: root.textSize;
+            textSizeSmall: root.textSizeSmall;
+            stackShadowNarrowing: root.stackShadowNarrowing;
+            shadowHeight: root.stackedCardShadowHeight;
+
             hoverThunk: function () { scroll.currentIndex = index; }
             unhoverThunk: function () { scroll.currentIndex = -1; }
         }

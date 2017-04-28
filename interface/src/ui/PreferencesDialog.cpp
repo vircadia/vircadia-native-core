@@ -117,11 +117,6 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = []()->bool { return SnapshotAnimated::alsoTakeAnimatedSnapshot.get(); };
-        auto setter = [](bool value) { SnapshotAnimated::alsoTakeAnimatedSnapshot.set(value); };
-        preferences->addPreference(new CheckPreference(SNAPSHOTS, "Take Animated GIF Snapshot", getter, setter));
-    }
-    {
         auto getter = []()->float { return SnapshotAnimated::snapshotAnimatedDuration.get(); };
         auto setter = [](float value) { SnapshotAnimated::snapshotAnimatedDuration.set(value); };
         auto preference = new SpinnerPreference(SNAPSHOTS, "Animated Snapshot Duration", getter, setter);

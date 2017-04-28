@@ -17,7 +17,7 @@ import QtGraphicalEffects 1.0
 import "toolbars"
 import "../styles-uit"
 
-Rectangle {
+Item {
     id: root;
     property string userName: "";
     property string placeName: "";
@@ -45,7 +45,7 @@ Rectangle {
     property int textSizeSmall: 18;
     property int stackShadowNarrowing: 5;
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
-    property int shadowHeight: 20;
+    property int shadowHeight: 10;
     HifiConstants { id: hifi }
 
     function pastTime(timestamp) { // Answer a descriptive string
@@ -70,6 +70,40 @@ Rectangle {
     }
 
     property bool hasGif: imageUrl.indexOf('.gif') === (imageUrl.length - 4);
+
+    DropShadow {
+        visible: isStacked;
+        anchors.fill: shadow1;
+        source: shadow1;
+        verticalOffset: 2;
+        radius: 4;
+        samples: 9;
+        color: hifi.colors.baseGrayShadow;
+    }
+    Rectangle {
+        id: shadow1;
+        visible: isStacked;
+        width: parent.width - stackShadowNarrowing;
+        height: shadowHeight;
+        anchors {
+            top: parent.bottom;
+            horizontalCenter: parent.horizontalCenter;
+        }
+    }
+    DropShadow {
+        anchors.fill: base;
+        source: base;
+        verticalOffset: 2;
+        radius: 4;
+        samples: 9;
+        color: hifi.colors.baseGrayShadow;
+    }
+    Rectangle {
+        id: base;
+        color: "white";
+        anchors.fill: parent;
+    }
+
     AnimatedImage {
         id: animation;
         // Always visible, to drive loading, but initially covered up by lobby during load.
@@ -94,34 +128,6 @@ Rectangle {
                 console.log("source: " + source + ": failed to load " + hifiUrl);
                 source = defaultThumbnail;
             }
-        }
-    }
-    Rectangle {
-        id: shadow1;
-        visible: isStacked;
-        width: parent.width - stackShadowNarrowing;
-        height: shadowHeight / 2;
-        anchors {
-            top: parent.bottom;
-            horizontalCenter: parent.horizontalCenter;
-        }
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: "gray" }
-            GradientStop { position: 1.0; color: "white" }
-        }
-    }
-    Rectangle {
-        id: shadow2;
-        visible: isStacked;
-        width: shadow1.width - stackShadowNarrowing;
-        height: shadowHeight / 2;
-        anchors {
-            top: shadow1.bottom;
-            horizontalCenter: parent.horizontalCenter;
-        }
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: "gray" }
-            GradientStop { position: 1.0; color: "white" }
         }
     }
     property int dropHorizontalOffset: 0;
@@ -168,7 +174,7 @@ Rectangle {
             source: "../../images/snap-icon.svg"
             width: 40;
             height: 40;
-            visible: action === 'snapshot';
+            visible: (action === 'snapshot') && (messageHeight >= 40);
         }
         RalewayRegular {
             id: message;
@@ -209,7 +215,7 @@ Rectangle {
     StateImage {
         id: actionIcon;
         imageURL: "../../images/info-icon-2-state.svg";
-        size: 32;
+        size: 30;
         buttonState: messageArea.containsMouse ? 1 : 0;
         anchors {
             bottom: parent.bottom;
