@@ -77,7 +77,7 @@ void AssetRequest::start() {
     _assetRequestID = assetClient->getAsset(_hash, _byteRange.fromInclusive, _byteRange.toExclusive,
         [this, that, hash](bool responseReceived, AssetServerError serverError, const QByteArray& data) {
 
-            if (!that) {
+        if (!that) {
             qCWarning(asset_client) << "Got reply for dead asset request " << hash << "- error code" << _error;
             // If the request is dead, return
             return;
