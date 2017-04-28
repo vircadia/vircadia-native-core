@@ -113,8 +113,10 @@ void AssetRequest::start() {
                 _data = data;
                 _totalReceived += data.size();
                 emit progress(_totalReceived, data.size());
-                
-                saveToCache(getUrl(), data);
+
+                if (!_byteRange.isSet()) {
+                    saveToCache(getUrl(), data);
+                }
             }
         }
         
