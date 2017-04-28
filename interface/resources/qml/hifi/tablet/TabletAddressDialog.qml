@@ -154,7 +154,7 @@ StackView {
                 left: parent.left;
             }
 
-            HifiStyles.RalewayLight {
+            HifiStyles.RalewayRegular {
                 id: notice;
                 font.pixelSize: hifi.fonts.pixelSize * 0.7;
                 anchors {
@@ -224,63 +224,73 @@ StackView {
 
         Rectangle {
             id: bgMain;
-            color: hifiStyleConstants.colors.faintGray50;
             anchors {
                 top: addressBar.bottom;
                 bottom: parent.keyboardEnabled ? keyboard.top : parent.bottom;
                 left: parent.left;
                 right: parent.right;
             }
-            ScrollView {
-                anchors.fill: bgMain;
-                horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff;
-                verticalScrollBarPolicy: Qt.ScrollBarAsNeeded;
-                Rectangle { // Column margins require QtQuick 2.7, which we don't use yet.
-                    id: column;
-                    property real pad: 10;
-                    width: bgMain.width - column.pad;
-                    height: stack.height;
-                    color: "transparent";
-                    anchors {
-                        left: parent.left;
-                        leftMargin: column.pad;
-                        topMargin: column.pad;
+            Rectangle {
+                id: addressShadow;
+                width: parent.width;
+                height: 42 - 33;
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "gray" }
+                    GradientStop { position: 1.0; color: "white" }
+                }
+            }
+            Rectangle { // Column margins require QtQuick 2.7, which we don't use yet.
+                id: column;
+                property real pad: 10;
+                width: bgMain.width - column.pad;
+                height: stack.height;
+                color: "transparent";
+                anchors {
+                    left: parent.left;
+                    leftMargin: column.pad;
+                    top: addressShadow.bottom;
+                    topMargin: column.pad;
+                }
+                Column {
+                    id: stack;
+                    width: column.width;
+                    spacing: 33 - places.labelSize;
+                    Feed {
+                        id: happeningNow;
+                        width: parent.width;
+                        cardWidth: 312 + (2 * 4);
+                        cardHeight: 163 + (2 * 4);
+                        metaverseServerUrl: addressBarDialog.metaverseServerUrl;
+                        labelText: 'HAPPENING NOW';
+                        actions: 'concurrency,snapshot'; // uncomment this line instead of next to produce fake announcement data for testing.
+                        //actions: 'announcement';
+                        filter: addressLine.text;
+                        goFunction: goCard;
                     }
-                    Column {
-                        id: stack;
-                        width: column.width;
-                        spacing: column.pad;
-                        Feed {
-                            id: happeningNow;
-                            width: parent.width;
-                            property real cardScale: 1.5;
-                            cardWidth: places.cardWidth * happeningNow.cardScale;
-                            cardHeight: places.cardHeight * happeningNow.cardScale;
-                            metaverseServerUrl: addressBarDialog.metaverseServerUrl;
-                            labelText: 'Happening Now';
-                            //actions: 'concurrency,snapshot'; // uncomment this line instead of next to produce fake announcement data for testing.
-                            actions: 'announcement';
-                            filter: addressLine.text;
-                            goFunction: goCard;
-                        }
-                        Feed {
-                            id: places;
-                            width: parent.width;
-                            metaverseServerUrl: addressBarDialog.metaverseServerUrl;
-                            labelText: 'Places';
-                            actions: 'concurrency';
-                            filter: addressLine.text;
-                            goFunction: goCard;
-                        }
-                        Feed {
-                            id: snapshots;
-                            width: parent.width;
-                            metaverseServerUrl: addressBarDialog.metaverseServerUrl;
-                            labelText: 'Recent Activity';
-                            actions: 'snapshot';
-                            filter: addressLine.text;
-                            goFunction: goCard;
-                        }
+                    Feed {
+                        id: places;
+                        width: parent.width;
+                        cardWidth: 210;
+                        cardHeight: 110 + messageHeight;
+                        messageHeight: 44;
+                        metaverseServerUrl: addressBarDialog.metaverseServerUrl;
+                        labelText: 'PLACES';
+                        actions: 'concurrency';
+                        filter: addressLine.text;
+                        goFunction: goCard;
+                    }
+                    Feed {
+                        id: snapshots;
+                        width: parent.width;
+                        cardWidth: 143 + (2 * 4);
+                        cardHeight: 75 + messageHeight + 4;
+                        messageHeight: 32;
+                        textPadding: 6;
+                        metaverseServerUrl: addressBarDialog.metaverseServerUrl;
+                        labelText: 'RECENT SNAPS';
+                        actions: 'snapshot';
+                        filter: addressLine.text;
+                        goFunction: goCard;
                     }
                 }
             }
@@ -369,8 +379,8 @@ StackView {
             notice.text = "Go To a place, @user, path, or network address:";
             notice.color = hifiStyleConstants.colors.baseGrayHighlight;
         } else {
-            notice.text = AddressManager.isConnected ? "Your location:" : "Not Connected";
-            notice.color = AddressManager.isConnected ? hifiStyleConstants.colors.baseGrayHighlight : hifiStyleConstants.colors.redHighlight;
+            notice.text = AddressManager.isConnected ? "YOUR LOCATION" : "NOT CONNECTED";
+            notice.color = AddressManager.isConnected ? hifiStyleConstants.colors.blueHighlight : hifiStyleConstants.colors.redHighlight;
             // Display hostname, which includes ip address, localhost, and other non-placenames.
             location.text = (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
         }
