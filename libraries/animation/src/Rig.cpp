@@ -46,7 +46,6 @@ static bool isEqual(const glm::quat& p, const glm::quat& q) {
 const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 0.9f, 0.0f);
 const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 0.9f, 0.0f);
 const glm::vec3 DEFAULT_HEAD_POS(0.0f, 0.75f, 0.0f);
-const glm::vec3 DEFAULT_NECK_POS(0.0f, 0.70f, 0.0f);
 
 void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
 
@@ -1020,7 +1019,7 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
 }
 
 void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
-    updateNeckJoint(params.neckJointIndex, params);
+    updateHeadAnimVars(params);
 
     _animVars.set("isTalking", params.isTalking);
     _animVars.set("notIsTalking", !params.isTalking);
@@ -1043,74 +1042,40 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
 }
 
 void Rig::updateFromEyeParameters(const EyeParameters& params) {
-    updateEyeJoint(params.leftEyeJointIndex, params.modelTranslation, params.modelRotation,
-                   params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
-    updateEyeJoint(params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
-                   params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoint(params.leftEyeJointIndex, params.modelTranslation, params.modelRotation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoint(params.rightEyeJointIndex, params.modelTranslation, params.modelRotation, params.eyeLookAt, params.eyeSaccade);
 }
 
-void Rig::computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut,
-                                  glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const {
+void Rig::computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const {
 
     // the input hmd values are in avatar/rig space
     const glm::vec3& hmdPosition = hmdPose.trans();
-    const glm::quat& hmdOrientation = hmdPose.rot();
+
+    // the HMD looks down the negative z axis, but the head bone looks down the z axis, so apply a 180 degree rotation.
+    const glm::quat& hmdOrientation = hmdPose.rot() * Quaternions::Y_180;
 
     // TODO: cache jointIndices
     int rightEyeIndex = indexOfJoint("RightEye");
     int leftEyeIndex = indexOfJoint("LeftEye");
     int headIndex = indexOfJoint("Head");
-    int neckIndex = indexOfJoint("Neck");
 
     glm::vec3 absRightEyePos = rightEyeIndex != -1 ? getAbsoluteDefaultPose(rightEyeIndex).trans() : DEFAULT_RIGHT_EYE_POS;
     glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? getAbsoluteDefaultPose(leftEyeIndex).trans() : DEFAULT_LEFT_EYE_POS;
     glm::vec3 absHeadPos = headIndex != -1 ? getAbsoluteDefaultPose(headIndex).trans() : DEFAULT_HEAD_POS;
-    glm::vec3 absNeckPos = neckIndex != -1 ? getAbsoluteDefaultPose(neckIndex).trans() : DEFAULT_NECK_POS;
 
     glm::vec3 absCenterEyePos = (absRightEyePos + absLeftEyePos) / 2.0f;
     glm::vec3 eyeOffset = absCenterEyePos - absHeadPos;
-    glm::vec3 headOffset = absHeadPos - absNeckPos;
 
-    // apply simplistic head/neck model
-
-    // head
     headPositionOut = hmdPosition - hmdOrientation * eyeOffset;
+
     headOrientationOut = hmdOrientation;
-
-    // neck
-    neckPositionOut = hmdPosition - hmdOrientation * (headOffset + eyeOffset);
-
-    // slerp between default orientation and hmdOrientation
-    neckOrientationOut = safeMix(hmdOrientation, _animSkeleton->getRelativeDefaultPose(neckIndex).rot(), 0.5f);
 }
 
-void Rig::updateNeckJoint(int index, const HeadParameters& params) {
-    if (_animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints()) {
-        glm::quat yFlip180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+void Rig::updateHeadAnimVars(const HeadParameters& params) {
+    if (_animSkeleton) {
         if (params.headEnabled) {
-            glm::vec3 headPos, neckPos;
-            glm::quat headRot, neckRot;
-
-            AnimPose hmdPose(glm::vec3(1.0f), params.rigHeadOrientation * yFlip180, params.rigHeadPosition);
-            computeHeadNeckAnimVars(hmdPose, headPos, headRot, neckPos, neckRot);
-
-            // debug rendering
-#ifdef DEBUG_RENDERING
-            const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
-            const glm::vec4 green(0.0f, 1.0f, 0.0f, 1.0f);
-
-            // transform from bone into avatar space
-            AnimPose headPose(glm::vec3(1), headRot, headPos);
-            DebugDraw::getInstance().addMyAvatarMarker("headTarget", headPose.rot, headPose.trans, red);
-
-            // transform from bone into avatar space
-            AnimPose neckPose(glm::vec3(1), neckRot, neckPos);
-            DebugDraw::getInstance().addMyAvatarMarker("neckTarget", neckPose.rot, neckPose.trans, green);
-#endif
-
-            _animVars.set("headPosition", headPos);
-            _animVars.set("headRotation", headRot);
-
+            _animVars.set("headPosition", params.rigHeadPosition);
+            _animVars.set("headRotation", params.rigHeadOrientation);
             if (params.hipsEnabled) {
                 // Since there is an explicit hips ik target, switch the head to use the more generic RotationAndPosition IK chain type.
                 // this will allow the spine to bend more, ensuring that it can reach the head target position.
@@ -1120,23 +1085,15 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                 // but because the IK _hipsOffset is enabled, the hips will naturally follow underneath the head.
                 _animVars.set("headType", (int)IKTarget::Type::HmdHead);
             }
-            _animVars.set("neckPosition", neckPos);
-            _animVars.set("neckRotation", neckRot);
-            _animVars.set("neckType", (int)IKTarget::Type::Unknown); // 'Unknown' disables the target
-
         } else {
             _animVars.unset("headPosition");
-            _animVars.set("headRotation", params.rigHeadOrientation * yFlip180);
-            _animVars.set("headAndNeckType", (int)IKTarget::Type::RotationOnly);
+            _animVars.set("headRotation", params.rigHeadOrientation);
             _animVars.set("headType", (int)IKTarget::Type::RotationOnly);
-            _animVars.unset("neckPosition");
-            _animVars.unset("neckRotation");
-            _animVars.set("neckType", (int)IKTarget::Type::RotationOnly);
         }
     }
 }
 
-void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
+void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
 
     // TODO: does not properly handle avatar scale.
 

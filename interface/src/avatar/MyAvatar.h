@@ -460,7 +460,7 @@ public:
     controller::Pose getHipsControllerPoseInAvatarFrame() const;
     controller::Pose getSpine2ControllerPoseInAvatarFrame() const;
 
-    void setHeadControllerPoseInSensorFrame(const controller::Pose& headPose);
+    void setHeadControllerPoseInSensorFrame(const controller::Pose& head);
     controller::Pose getHeadControllerPoseInSensorFrame() const;
     controller::Pose getHeadControllerPoseInWorldFrame() const;
     controller::Pose getHeadControllerPoseInAvatarFrame() const;

@@ -107,29 +107,27 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         Rig::HeadParameters headParams;
 
-        if (qApp->isHMDMode()) {
-            // get HMD position from sensor space into world space, and back into rig space
-            glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-            glm::mat4 rigToWorld = createMatFromQuatAndPos(getRotation(), getTranslation());
-            glm::mat4 worldToRig = glm::inverse(rigToWorld);
-            glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
-
-            headParams.rigHeadPosition = extractTranslation(rigHMDMat);
-            headParams.rigHeadOrientation = extractRotation(rigHMDMat);
-            headParams.worldHeadOrientation = extractRotation(worldHMDMat);
+        // input action is the highest priority source for head orientation.
+        auto avatarHeadPose = myAvatar->getHeadControllerPoseInAvatarFrame();
+        if (avatarHeadPose.isValid()) {
+            glm::mat4 rigHeadMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
+            headParams.rigHeadPosition = extractTranslation(rigHeadMat);
+            headParams.rigHeadOrientation = glmExtractRotation(rigHeadMat);
             headParams.headEnabled = true;
         } else {
-            auto avatarHeadPose = myAvatar->getHeadControllerPoseInAvatarFrame();
-            if (avatarHeadPose.isValid()) {
-                glm::mat4 rigHeadMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
-                headParams.rigHeadPosition = extractTranslation(rigHeadMat);
-                headParams.rigHeadOrientation = glmExtractRotation(rigHeadMat);
-                headParams.worldHeadOrientation = myAvatar->getHeadControllerPoseInWorldFrame().getTranslation();
+            if (qApp->isHMDMode()) {
+                // get HMD position from sensor space into world space, and back into rig space
+                glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+                glm::mat4 rigToWorld = createMatFromQuatAndPos(getRotation(), getTranslation());
+                glm::mat4 worldToRig = glm::inverse(rigToWorld);
+                glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
+                _rig->computeHeadFromHMD(AnimPose(rigHMDMat), headParams.rigHeadPosition, headParams.rigHeadOrientation);
                 headParams.headEnabled = true;
             } else {
                 // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and down in desktop mode.
-                headParams.rigHeadOrientation = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame();
-                headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+                // preMult 180 is necessary to convert from avatar to rig coordinates.
+                // postMult 180 is necessary to convert head from -z forward to z forward.
+                headParams.rigHeadOrientation = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame() * Quaternions::Y_180;
                 headParams.headEnabled = false;
             }
         }
@@ -152,7 +150,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.spine2Enabled = false;
         }
 
-        headParams.neckJointIndex = geometry.neckJointIndex;
         headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
 
         _rig->updateFromHeadParameters(headParams, deltaTime);
@@ -212,7 +209,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         Model::updateRig(deltaTime, parentTransform);
 
         Rig::EyeParameters eyeParams;
-        eyeParams.worldHeadOrientation = headParams.worldHeadOrientation;
         eyeParams.eyeLookAt = lookAt;
         eyeParams.eyeSaccade = head->getSaccade();
         eyeParams.modelRotation = getRotation();
@@ -244,7 +240,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         head->setBaseRoll(glm::degrees(-eulers.z));
 
         Rig::EyeParameters eyeParams;
-        eyeParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
         eyeParams.eyeLookAt = lookAt;
         eyeParams.eyeSaccade = glm::vec3(0.0f);
         eyeParams.modelRotation = getRotation();

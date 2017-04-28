@@ -26,6 +26,7 @@ Controller.enableMapping(TRIGGER_MAPPING_NAME);
 var CONTROLLER_MAPPING_NAME = "com.highfidelity.viveMotionCapture.controller";
 var controllerMapping;
 
+var head;
 var leftFoot;
 var rightFoot;
 var hips;
@@ -77,14 +78,42 @@ function computeDefaultToReferenceXform() {
     }
 }
 
+function computeHeadOffsetXform() {
+    var leftEyeIndex = MyAvatar.getJointIndex("LeftEye");
+    var rightEyeIndex = MyAvatar.getJointIndex("RightEye");
+    var headIndex = MyAvatar.getJointIndex("Head");
+    if (leftEyeIndex > 0 && rightEyeIndex > 0 && headIndex > 0) {
+        var defaultHeadXform = new Xform(MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame(headIndex),
+                                         MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(headIndex));
+        var defaultLeftEyeXform = new Xform(MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame(leftEyeIndex),
+                                            MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(leftEyeIndex));
+        var defaultRightEyeXform = new Xform(MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame(rightEyeIndex),
+                                             MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(rightEyeIndex));
+        var defaultCenterEyePos = Vec3.multiply(0.5, Vec3.sum(defaultLeftEyeXform.pos, defaultRightEyeXform.pos));
+        var defaultCenterEyeXform = new Xform(defaultLeftEyeXform.rot, defaultCenterEyePos);
+
+        return Xform.mul(defaultCenterEyeXform.inv(), defaultHeadXform);
+    } else {
+        return undefined;
+    }
+}
+
 function calibrate() {
 
+    head = undefined;
     leftFoot = undefined;
     rightFoot = undefined;
     hips = undefined;
     spine2 = undefined;
 
     var defaultToReferenceXform = computeDefaultToReferenceXform();
+
+    var headOffsetXform = computeHeadOffsetXform();
+    print("AJT: computed headOffsetXform " + (headOffsetXform ? JSON.stringify(headOffsetXform) : "undefined"));
+
+    if (headOffsetXform) {
+        head = { offsetXform: headOffsetXform };
+    }
 
     var poses = [];
     if (Controller.Hardware.Vive) {
@@ -202,6 +231,7 @@ function update(dt) {
                 // go back to normal, vive pucks will be ignored.
                 print("AJT: UN-CALIBRATE!");
 
+                head = undefined;
                 leftFoot = undefined;
                 rightFoot = undefined;
                 hips = undefined;
@@ -216,6 +246,20 @@ function update(dt) {
                 calibrationCount++;
 
                 controllerMapping = Controller.newMapping(CONTROLLER_MAPPING_NAME + calibrationCount);
+
+                if (head) {
+                    controllerMapping.from(function () {
+                        var worldToAvatarXform = (new Xform(MyAvatar.orientation, MyAvatar.position)).inv();
+                        head.latestPose = {
+                            valid: true,
+                            translation: worldToAvatarXform.xformPoint(HMD.position),
+                            rotation: Quat.multiply(worldToAvatarXform.rot, Quat.multiply(HMD.orientation, Y_180)), // postMult 180 rot flips head direction
+                            velocity: {x: 0, y: 0, z: 0},  // TODO: currently this is unused anyway...
+                            angularVelocity: {x: 0, y: 0, z: 0}
+                        };
+                        return convertJointInfoToPose(head);
+                    }).to(Controller.Standard.Head);
+                }
 
                 if (leftFoot) {
                     controllerMapping.from(leftFoot.channel).to(function (pose) {
