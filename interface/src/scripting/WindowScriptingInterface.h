@@ -51,6 +51,7 @@ public slots:
     QScriptValue confirm(const QString& message = "");
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
     CustomPromptResult customPrompt(const QVariant& config);
+    QScriptValue browseDir(const QString& title = "", const QString& directory = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
@@ -74,7 +75,7 @@ signals:
     void svoImportRequested(const QString& url);
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode, const QString& extraInfo);
     void stillSnapshotTaken(const QString& pathStillSnapshot, bool notify);
-    void snapshotShared(const QString& error);
+    void snapshotShared(bool isError, const QString& reply);
     void processingGifStarted(const QString& pathStillSnapshot);
     void processingGifCompleted(const QString& pathAnimatedSnapshot);
 

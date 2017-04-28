@@ -535,6 +535,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
+    DependencyManager::set<Snapshot>();
 
     return previousSessionCrashed;
 }
@@ -2052,6 +2053,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
+    rootContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
@@ -5504,6 +5506,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Snapshot", DependencyManager::get<Snapshot>().data());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
@@ -6448,7 +6451,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
         // If we're not doing an animated snapshot as well...
-        if (!includeAnimated || !(SnapshotAnimated::alsoTakeAnimatedSnapshot.get())) {
+        if (!includeAnimated) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
             emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
         } else {
