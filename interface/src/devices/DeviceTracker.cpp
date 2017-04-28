@@ -1,7 +1,4 @@
 //
-//  DeviceTracker.cpp
-//  interface/src/devices
-//
 //  Created by Sam Cake on 6/20/14.
 //  Copyright 2014 High Fidelity, Inc.
 //

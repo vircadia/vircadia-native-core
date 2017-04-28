@@ -23,7 +23,6 @@
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
-#include "devices/Faceshift.h"
 #include <Rig.h>
 
 using namespace std;
@@ -209,14 +208,14 @@ void Head::simulate(float deltaTime, bool isMine) {
 
         // use data to update fake Faceshift blendshape coefficients
         calculateMouthShapes(deltaTime);
-        DependencyManager::get<Faceshift>()->updateFakeCoefficients(_leftEyeBlink,
-                                                                    _rightEyeBlink,
-                                                                    _browAudioLift,
-                                                                    _audioJawOpen,
-                                                                    _mouth2,
-                                                                    _mouth3,
-                                                                    _mouth4,
-                                                                    _blendshapeCoefficients);
+        FaceTracker::updateFakeCoefficients(_leftEyeBlink,
+                                            _rightEyeBlink,
+                                            _browAudioLift,
+                                            _audioJawOpen,
+                                            _mouth2,
+                                            _mouth3,
+                                            _mouth4,
+                                            _blendshapeCoefficients);
 
         applyEyelidOffset(getOrientation());
 

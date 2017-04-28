@@ -1,7 +1,4 @@
 //
-//  FaceTracker.cpp
-//  interface/src/devices
-//
 //  Created by Andrzej Kapolka on 4/9/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
@@ -9,22 +6,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QTimer>
-
-#include <GLMHelpers.h>
-
 #include "FaceTracker.h"
-#include "InterfaceLogging.h"
-#include "Menu.h"
+
+#include <QTimer>
+#include <GLMHelpers.h>
+#include "Logging.h"
+//#include "Menu.h"
 
 const int FPS_TIMER_DELAY = 2000;  // ms
 const int FPS_TIMER_DURATION = 2000;  // ms
 
 const float DEFAULT_EYE_DEFLECTION = 0.25f;
 Setting::Handle<float> FaceTracker::_eyeDeflection("faceshiftEyeDeflection", DEFAULT_EYE_DEFLECTION);
+bool FaceTracker::_isMuted { true };
 
 void FaceTracker::init() {
-    _isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
     _isInitialized = true;  // FaceTracker can be used now
 }
 
@@ -101,7 +97,7 @@ void FaceTracker::countFrame() {
 }
 
 void FaceTracker::finishFPSTimer() {
-    qCDebug(interfaceapp) << "Face tracker FPS =" << (float)_frameCount / ((float)FPS_TIMER_DURATION / 1000.0f);
+    qCDebug(trackers) << "Face tracker FPS =" << (float)_frameCount / ((float)FPS_TIMER_DURATION / 1000.0f);
     _isCalculatingFPS = false;
 }
 
@@ -113,3 +109,25 @@ void FaceTracker::toggleMute() {
 void FaceTracker::setEyeDeflection(float eyeDeflection) {
     _eyeDeflection.set(eyeDeflection);
 }
+
+void FaceTracker::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
+    float jawOpen, float mouth2, float mouth3, float mouth4, QVector<float>& coefficients) {
+    const int MMMM_BLENDSHAPE = 34;
+    const int FUNNEL_BLENDSHAPE = 40;
+    const int SMILE_LEFT_BLENDSHAPE = 28;
+    const int SMILE_RIGHT_BLENDSHAPE = 29;
+    const int MAX_FAKE_BLENDSHAPE = 40;  //  Largest modified blendshape from above and below
+
+    coefficients.resize(std::max((int)coefficients.size(), MAX_FAKE_BLENDSHAPE + 1));
+    qFill(coefficients.begin(), coefficients.end(), 0.0f);
+    coefficients[_leftBlinkIndex] = leftBlink;
+    coefficients[_rightBlinkIndex] = rightBlink;
+    coefficients[_browUpCenterIndex] = browUp;
+    coefficients[_browUpLeftIndex] = browUp;
+    coefficients[_browUpRightIndex] = browUp;
+    coefficients[_jawOpenIndex] = jawOpen;
+    coefficients[SMILE_LEFT_BLENDSHAPE] = coefficients[SMILE_RIGHT_BLENDSHAPE] = mouth4;
+    coefficients[MMMM_BLENDSHAPE] = mouth2;
+    coefficients[FUNNEL_BLENDSHAPE] = mouth3;
+}
+

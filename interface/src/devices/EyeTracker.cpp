@@ -1,7 +1,4 @@
 //
-//  EyeTracker.cpp
-//  interface/src/devices
-//
 //  Created by David Rowe on 27 Jul 2015.
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -17,8 +14,8 @@
 
 #include <SharedUtil.h>
 
-#include "InterfaceLogging.h"
-#include "OctreeConstants.h"
+#include "Logging.h"
+#include <OctreeConstants.h>
 
 #ifdef HAVE_IVIEWHMD
 char* HIGH_FIDELITY_EYE_TRACKER_CALIBRATION = "HighFidelityEyeTrackerCalibration";
@@ -115,7 +112,7 @@ void EyeTracker::processData(smi_CallbackDataStruct* data) {
 
 void EyeTracker::init() {
     if (_isInitialized) {
-        qCWarning(interfaceapp) << "Eye Tracker: Already initialized";
+        qCWarning(trackers) << "Eye Tracker: Already initialized";
         return;
     }
 }

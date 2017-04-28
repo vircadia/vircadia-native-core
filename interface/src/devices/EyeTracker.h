@@ -1,7 +1,4 @@
 //
-//  EyeTracker.h
-//  interface/src/devices
-//
 //  Created by David Rowe on 27 Jul 2015.
 //  Copyright 2015 High Fidelity, Inc.
 //
