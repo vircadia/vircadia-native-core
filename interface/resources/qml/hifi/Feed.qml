@@ -126,7 +126,7 @@ Column {
     }
     function makeFilteredStoryProcessor() { // answer a function(storyData) that adds it to suggestions if it matches
         var words = filter.toUpperCase().split(/\s+/).filter(identity);
-        function suggestable(story) { // fixme add to makeFilteredStoryProcessor
+        function suggestable(story) {
             if (story.action === 'snapshot') {
                 return true;
             }
@@ -177,7 +177,6 @@ Column {
     }
     ListView {
         id: scroll;
-        //fixme clip: true;
         model: suggestions;
         orientation: ListView.Horizontal;
         highlightMoveDuration: -1;
