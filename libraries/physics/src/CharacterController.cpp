@@ -746,6 +746,10 @@ void CharacterController::preSimulation() {
 
     _previousFlags = _pendingFlags;
     _pendingFlags &= ~PENDING_FLAG_JUMP;
+
+    _followTime = 0.0f;
+    _followLinearDisplacement = btVector3(0, 0, 0);
+    _followAngularDisplacement = btQuaternion::getIdentity();
 }
 
 void CharacterController::postSimulation() {
