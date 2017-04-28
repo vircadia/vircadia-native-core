@@ -33,8 +33,32 @@ StackView {
     property int cardWidth: 212;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
-
     property var tablet: null;
+
+    // This version only implements rpc(method, parameters, callback(error, result)) calls initiated from here, not initiated from .js, nor "notifications".
+    property var rpcCalls: ({});
+    property var rpcCounter: 0;
+    signal sendToScript(var message);
+    function rpc(method, parameters, callback) {
+        console.log('fixme rpc', method);
+        sendToScript('foo');
+        console.log('fixme sent to script');
+        /*rpcCalls[rpcCounter] = callback;
+        var message = {method: method, params: parameters, id: rpcCounter++, jsonrpc: "2.0"};
+        console.log('fixme sending rpc', JSON.stringify(message));
+        sendToScript(message);
+        console.log('fixme sent rpc', message.id);*/
+    }
+    function fromScript(message) {
+        console.log('fixme got message from script:', JSON.stringify(message));
+        var callback = rpcCalls[message.id];
+        if (!callback) {
+            console.log('No callback for message fromScript', JSON.stringify(message));
+            return;
+        }
+        delete rpcCalls[message.id];
+        callback(message.error, message.result);
+    }
 
     Component { id: tabletWebView; TabletWebView {} }
     Component.onCompleted: {
@@ -266,6 +290,7 @@ StackView {
                         actions: 'announcement';
                         filter: addressLine.text;
                         goFunction: goCard;
+                        rpc: root.rpc;
                     }
                     Feed {
                         id: places;
@@ -278,6 +303,7 @@ StackView {
                         actions: 'concurrency';
                         filter: addressLine.text;
                         goFunction: goCard;
+                        rpc: root.rpc;
                     }
                     Feed {
                         id: snapshots;
@@ -291,6 +317,7 @@ StackView {
                         actions: 'snapshot';
                         filter: addressLine.text;
                         goFunction: goCard;
+                        rpc: root.rpc;
                     }
                 }
             }
@@ -328,50 +355,6 @@ StackView {
             }
         }
         
-    }
-
-    function getRequest(url, cb) { // cb(error, responseOfCorrectContentType) of url. General for 'get' text/html/json, but without redirects.
-        // TODO: make available to other .qml.
-        var request = new XMLHttpRequest();
-        // QT bug: apparently doesn't handle onload. Workaround using readyState.
-        request.onreadystatechange = function () {
-            var READY_STATE_DONE = 4;
-            var HTTP_OK = 200;
-            if (request.readyState >= READY_STATE_DONE) {
-                var error = (request.status !== HTTP_OK) && request.status.toString() + ':' + request.statusText,
-                    response = !error && request.responseText,
-                    contentType = !error && request.getResponseHeader('content-type');
-                if (!error && contentType.indexOf('application/json') === 0) {
-                    try {
-                        response = JSON.parse(response);
-                    } catch (e) {
-                        error = e;
-                    }
-                }
-                cb(error, response);
-            }
-        };
-        request.open("GET", url, true);
-        request.send();
-    }
-
-    function identity(x) {
-        return x;
-    }
-
-    function handleError(url, error, data, cb) { // cb(error) and answer truthy if needed, else falsey
-        if (!error && (data.status === 'success')) {
-            return;
-        }
-        if (!error) { // Create a message from the data
-            error = data.status + ': ' + data.error;
-        }
-        if (typeof(error) === 'string') { // Make a proper Error object
-            error = new Error(error);
-        }
-        error.message += ' in ' + url; // Include the url.
-        cb(error);
-        return true;
     }
 
     function updateLocationText(enteringAddress) {

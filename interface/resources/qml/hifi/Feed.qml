@@ -34,12 +34,12 @@ Column {
 
     property string metaverseServerUrl: '';
     property string actions: 'snapshot';
-    onActionsChanged: fillDestinations();
     Component.onCompleted: fillDestinations();
     property string labelText: actions;
     property string filter: '';
     onFilterChanged: filterChoicesByText();
     property var goFunction: null;
+    property var rpc: null;
 
     HifiConstants { id: hifi }
     ListModel { id: suggestions; }
@@ -81,10 +81,24 @@ Column {
     property var allStories: [];
     property var placeMap: ({}); // Used for making stacks.
     property int requestId: 0;
+    function handleError(url, error, data, cb) { // cb(error) and answer truthy if needed, else falsey
+        if (!error && (data.status === 'success')) {
+            return;
+        }
+        if (!error) { // Create a message from the data
+            error = data.status + ': ' + data.error;
+        }
+        if (typeof(error) === 'string') { // Make a proper Error object
+            error = new Error(error);
+        }
+        error.message += ' in ' + url; // Include the url.
+        cb(error);
+        return true;
+    }
     function getUserStoryPage(pageNumber, cb, cb1) { // cb(error) after all pages of domain data have been added to model
         // If supplied, cb1 will be run after the first page IFF it is not the last, for responsiveness.
         var options = [
-            'now=' + new Date().toISOString(),
+            //'now=' + new Date().toISOString(),
             'include_actions=' + actions,
             'restriction=' + (Account.isLoggedIn() ? 'open,hifi' : 'open'),
             'require_online=true',
@@ -93,8 +107,17 @@ Column {
         ];
         var url = metaverseBase + 'user_stories?' + options.join('&');
         var thisRequestId = ++requestId;
-        getRequest(url, function (error, data) {
-            if ((thisRequestId !== requestId) || handleError(url, error, data, cb)) {
+        rpc('request', {
+            uri: url
+        }, function (error, data) {
+            console.log('fixme response', url, JSON.stringify(error), JSON.stringify(data));
+            data.total_pages = 1; // fixme remove after testing
+            if (thisRequestId !== requestId) {
+                error = 'stale';
+            }
+            //console.log('fixme', actions, pageNumber, thisRequestId, requestId, url, error)
+            //console.log('fixme data', actions, pageNumber, JSON.stringify(data));
+            if (handleError(url, error, data, cb)) {
                 return; // abandon stale requests
             }
             allStories = allStories.concat(data.user_stories.map(makeModelData));
@@ -108,21 +131,28 @@ Column {
         });
     }
     function fillDestinations() { // Public
+        function report(label, error) {
+            console.log(label, actions, error || 'ok', allStories.length, 'filtered to', suggestions.count);
+        }
         var filter = makeFilteredStoryProcessor(), counter = 0;
         allStories = [];
         suggestions.clear();
         placeMap = {};
         getUserStoryPage(1, function (error) {
             allStories.slice(counter).forEach(filter);
-            console.log('user stories query', actions, error || 'ok', allStories.length, 'filtered to', suggestions.count);
+            report('user stories update', error);
             root.visible = !!suggestions.count;
-        }, function () { // If there's more than a page, put what we have in the model right away, keeping track of how many are processed.
+        }/*, function () { // If there's more than a page, put what we have in the model right away, keeping track of how many are processed.
             allStories.forEach(function (story) {
                 counter++;
                 filter(story);
                 root.visible = !!suggestions.count;
             });
-        });
+            report('user stories');
+        }*/);
+    }
+    function identity(x) {
+        return x;
     }
     function makeFilteredStoryProcessor() { // answer a function(storyData) that adds it to suggestions if it matches
         var words = filter.toUpperCase().split(/\s+/).filter(identity);
@@ -130,7 +160,7 @@ Column {
             if (story.action === 'snapshot') {
                 return true;
             }
-            return (story.place_name !== AddressManager.placename); // Not our entry, but do show other entry points to current domain.
+            return true; // fixme restore (story.place_name !== AddressManager.placename); // Not our entry, but do show other entry points to current domain.
         }
         function matches(story) {
             if (!words.length) {

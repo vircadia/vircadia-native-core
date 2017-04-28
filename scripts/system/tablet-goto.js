@@ -30,40 +30,6 @@
         text: buttonName,
         sortOrder: 8
     });
-    function messagesWaiting(isWaiting) {
-        button.editProperties({
-            icon: isWaiting ? WAITING_ICON : NORMAL_ICON
-            // No need for a different activeIcon, because we issue messagesWaiting(false) when the button goes active anyway.
-        });
-    }
-
-    function onClicked() {
-        if (onGotoScreen) {
-            // for toolbar-mode: go back to home screen, this will close the window.
-            tablet.gotoHomeScreen();
-        } else {
-            shouldActivateButton = true;
-            tablet.loadQMLSource(gotoQmlSource);
-            onGotoScreen = true;
-        }
-    }
-
-    function onScreenChanged(type, url) {
-        ignore(type);
-        if (url === gotoQmlSource) {
-            onGotoScreen = true;
-            shouldActivateButton = true;
-            button.editProperties({isActive: shouldActivateButton});
-            messagesWaiting(false);
-        } else {
-            shouldActivateButton = false;
-            onGotoScreen = false;
-            button.editProperties({isActive: shouldActivateButton});
-        }
-    }
-    button.clicked.connect(onClicked);
-    tablet.screenChanged.connect(onScreenChanged);
-
     function request(options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
         var httpRequest = new XMLHttpRequest(), key;
         // QT bug: apparently doesn't handle onload. Workaround using readyState.
@@ -112,6 +78,74 @@
         httpRequest.open(options.method, options.uri, true);
         httpRequest.send(options.body);
     }
+    function fromQmlXX(message) {
+        print('fixme got fromQml', JSON.stringify(message));
+        /*var response = {id: message.id, jsonrpc: "2.0"};
+        switch (message.method) {
+        case 'request':
+            request(message.params, function (error, data) {
+                response.error = error;
+                response.result = data;
+                tablet.sendToQml(response);
+            });
+            return;
+        default:
+            response.error = {message: 'Unrecognized message', data: message};
+        }
+        tablet.sendToQml(response);*/
+    }
+    function messagesWaiting(isWaiting) {
+        button.editProperties({
+            icon: isWaiting ? WAITING_ICON : NORMAL_ICON
+            // No need for a different activeIcon, because we issue messagesWaiting(false) when the button goes active anyway.
+        });
+    }
+    var hasEventBridge = false;
+    function wireEventBridge(on) {
+        print('fixme wireEventBridge', on, hasEventBridge);
+        if (on) {
+            if (!hasEventBridge) {
+                tablet.fromQml.connect(fromQmlXX);
+                print('fixme wired', tablet);
+                hasEventBridge = true;
+            }
+        } else {
+            if (hasEventBridge) {
+                tablet.fromQml.disconnect(fromQmlXX);
+                hasEventBridge = false;
+            }
+        }
+    }
+    wireEventBridge(true);
+
+    function onClicked() {
+        if (onGotoScreen) {
+            // for toolbar-mode: go back to home screen, this will close the window.
+            tablet.gotoHomeScreen();
+        } else {
+            shouldActivateButton = true;
+            tablet.loadQMLSource(gotoQmlSource);
+            onGotoScreen = true;
+        }
+    }
+
+    function onScreenChanged(type, url) {
+        ignore(type);
+        if (url === gotoQmlSource) {
+            onGotoScreen = true;
+            shouldActivateButton = true;
+            button.editProperties({isActive: shouldActivateButton});
+            wireEventBridge(true);
+            messagesWaiting(false);
+        } else {
+            shouldActivateButton = false;
+            onGotoScreen = false;
+            button.editProperties({isActive: shouldActivateButton});
+            wireEventBridge(false);
+        }
+    }
+    button.clicked.connect(onClicked);
+    tablet.screenChanged.connect(onScreenChanged);
 
     var stories = {};
     var DEBUG = false;
@@ -135,6 +169,7 @@
                 return;
             }
             var didNotify = false;
+            print('fixme poll', url, JSON.stringify(data.user_stories));
             data.user_stories.forEach(function (story) {
                 if (stories[story.id]) { // already seen
                     return;
