@@ -152,9 +152,10 @@ void OctreePersistThread::possiblyReplaceContent() {
             } else {
                 qWarning() << "Could not backup previous models file to" << backupFileName << "- removing replacement models file";
 
-                if (!QFile::remove(replacementFileName)) {
+                if (!replacementFile.remove()) {
                     qWarning() << "Could not remove replacement models file from" << replacementFileName
                         << "- replacement will be re-attempted on next server restart";
+                    return;
                 }
             }
         }

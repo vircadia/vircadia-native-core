@@ -5177,7 +5177,6 @@ void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
 
     resetPhysicsReadyInformation();
-    getMyAvatar()->setAvatarEntityDataChanged(true); // to recreate worn entities
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _entityServerJurisdictions.withWriteLock([&] {
@@ -5204,6 +5203,7 @@ void Application::clearDomainOctreeDetails() {
 }
 
 void Application::clearDomainAvatars() {
+    getMyAvatar()->setAvatarEntityDataChanged(true); // to recreate worn entities
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
 }
 

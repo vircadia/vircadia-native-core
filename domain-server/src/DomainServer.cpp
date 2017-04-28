@@ -2593,9 +2593,9 @@ void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
     // enumerate the nodes and find any octree type servers with active sockets
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node){
+    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
         return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-    }, [&octreeFile, limitedNodeList](const SharedNodePointer& octreeNode){
+    }, [&octreeFile, limitedNodeList](const SharedNodePointer& octreeNode) {
         // setup a packet to send to this octree server with the new octree file data
         auto octreeFilePacketList = NLPacketList::create(PacketType::OctreeFileReplacement, QByteArray(), true, true);
         octreeFilePacketList->write(octreeFile);
