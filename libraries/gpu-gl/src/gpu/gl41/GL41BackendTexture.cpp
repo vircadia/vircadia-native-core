@@ -386,7 +386,9 @@ void GL41VariableAllocationTexture::promote() {
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 
-        withPreservedTexture([&] {
+        glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_TRANSFER_TEX_UNIT);
+        glBindTexture(_target, _texture);
+
             // Transfer from pbo to new texture
             for (uint16_t mip = _populatedMip; mip < numMips; ++mip) {
                 auto& sourceMip = sourceMips[mip];
@@ -394,12 +396,13 @@ void GL41VariableAllocationTexture::promote() {
                 uint16_t destLevel = mip - _allocatedMip;
 
                 for (GLint f = 0; f < faceTargets.size(); f++) {
-                    glCompressedTexSubImage2D(faceTargets[f], destLevel, 0, 0, sourceMip._dims.x, sourceMip._dims.y, internalFormat,
+                    glCompressedTexImage2D(faceTargets[f], destLevel, internalFormat, sourceMip._dims.x, sourceMip._dims.y, 0,
                         sourceMip._faceSize, (void*)(sourceMip._offset + f * sourceMip._faceSize));
                 }
             }
             syncSampler();
-        });
+
+        glBindTexture(_target, 0);
 
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
         glDeleteBuffers(1, &pbo);
@@ -445,7 +448,6 @@ void GL41VariableAllocationTexture::demote() {
     auto oldSize = _size;
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
     uint16_t oldAllocatedMip = _allocatedMip;
-    uint16_t oldPopulatedMip = _populatedMip;
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
 
@@ -469,7 +471,7 @@ void GL41VariableAllocationTexture::demote() {
 
         // Collect the mip description from the source texture
         GLint bufferOffset { 0 };
-        for (uint16_t mip = oldPopulatedMip; mip < numMips; ++mip) {
+        for (uint16_t mip = _populatedMip; mip < numMips; ++mip) {
             auto& sourceMip = sourceMips[mip];
             sourceMip._dims = _gpuObject.evalMipDimensions(mip);
 
@@ -493,7 +495,7 @@ void GL41VariableAllocationTexture::demote() {
         (void)CHECK_GL_ERROR();
 
         // Transfer from source texture to pbo
-        for (uint16_t mip = oldPopulatedMip; mip < numMips; ++mip) {
+        for (uint16_t mip = _populatedMip; mip < numMips; ++mip) {
             auto& sourceMip = sourceMips[mip];
 
             uint16_t sourceLevel = mip - oldAllocatedMip;
@@ -517,7 +519,7 @@ void GL41VariableAllocationTexture::demote() {
                 uint16_t destLevel = mip - _allocatedMip;
 
                 for (GLint f = 0; f < faceTargets.size(); f++) {
-                    glCompressedTexSubImage2D(faceTargets[f], destLevel, 0, 0, sourceMip._dims.x, sourceMip._dims.y, internalFormat,
+                    glCompressedTexImage2D(faceTargets[f], destLevel, internalFormat, sourceMip._dims.x, sourceMip._dims.y, 0,
                         sourceMip._faceSize, (void*)(sourceMip._offset + f * sourceMip._faceSize));
                 }
             }
