@@ -289,16 +289,6 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
                 avatar->removeFromScene(*avatarItr, scene, transaction);
                 scene->enqueueTransaction(transaction);
             }
-
-            // delete the motionState
-            // TODO: use SharedPointer technology to make this happen automagically
-            assert(!avatar->isInPhysicsSimulation());
-            AvatarMotionStateMap::iterator motionStateItr = _motionStates.find(avatar.get());
-            if (motionStateItr != _motionStates.end()) {
-                delete *motionStateItr;
-                _motionStates.erase(motionStateItr);
-            }
-
             avatarItr = _avatarsToFade.erase(avatarItr);
         } else {
             const bool inView = true; // HACK
@@ -312,24 +302,19 @@ AvatarSharedPointer AvatarManager::newSharedAvatar() {
     return std::make_shared<Avatar>(qApp->thread(), std::make_shared<Rig>());
 }
 
-void AvatarManager::removeAvatarFromPhysicsSimulation(Avatar* avatar) {
-    assert(avatar);
+void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
+    AvatarHashMap::handleRemovedAvatar(removedAvatar, removalReason);
+
+    // remove from physics
+    auto avatar = std::static_pointer_cast<Avatar>(removedAvatar);
     avatar->setPhysicsCallback(nullptr);
-    AvatarMotionStateMap::iterator itr = _motionStates.find(avatar);
+    AvatarMotionStateMap::iterator itr = _motionStates.find(avatar.get());
     if (itr != _motionStates.end()) {
         AvatarMotionState* motionState = *itr;
         _motionStatesToAddToPhysics.remove(motionState);
         _motionStatesToRemoveFromPhysics.push_back(motionState);
+        _motionStates.erase(itr);
     }
-}
-
-void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
-    AvatarHashMap::handleRemovedAvatar(removedAvatar, removalReason);
-
-    // removedAvatar is a shared pointer to an AvatarData but we need to get to the derived Avatar
-    // class in this context so we can call methods that don't exist at the base class.
-    auto avatar = std::static_pointer_cast<Avatar>(removedAvatar);
-    removeAvatarFromPhysicsSimulation(avatar.get());
 
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
@@ -370,14 +355,8 @@ void AvatarManager::clearOtherAvatars() {
 }
 
 void AvatarManager::deleteAllAvatars() {
-    // delete motionStates
-    // TODO: use shared_ptr technology to make this work automagically
-    AvatarMotionStateMap::iterator motionStateItr = _motionStates.begin();
-    while (motionStateItr != _motionStates.end()) {
-        delete *motionStateItr;
-        ++motionStateItr;
-    }
-    _motionStates.clear();
+    assert(_motionStates.empty()); // should have called clearOtherAvatars() before getting here
+    deleteMotionStates();
 
     QReadLocker locker(&_hashLock);
     AvatarHash::iterator avatarIterator =  _avatarHash.begin();
@@ -388,9 +367,18 @@ void AvatarManager::deleteAllAvatars() {
     }
 }
 
+void AvatarManager::deleteMotionStates() {
+    // delete motionstates that were removed from physics last frame
+    for (auto state : _motionStatesToDelete) {
+        delete state;
+    }
+    _motionStatesToDelete.clear();
+}
+
 void AvatarManager::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
-    result.clear();
-    result.swap(_motionStatesToRemoveFromPhysics);
+    deleteMotionStates();
+    result = _motionStatesToRemoveFromPhysics;
+    _motionStatesToDelete.swap(_motionStatesToRemoveFromPhysics);
 }
 
 void AvatarManager::getObjectsToAddToPhysics(VectorOfMotionStates& result) {

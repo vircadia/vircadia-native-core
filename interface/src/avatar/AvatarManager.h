@@ -92,7 +92,7 @@ private:
     void simulateAvatarFades(float deltaTime);
 
     AvatarSharedPointer newSharedAvatar() override;
-    void removeAvatarFromPhysicsSimulation(Avatar* avatar);
+    void deleteMotionStates();
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
     QVector<AvatarSharedPointer> _avatarsToFade;
@@ -100,6 +100,7 @@ private:
     using AvatarMotionStateMap = QMap<Avatar*, AvatarMotionState*>;
     AvatarMotionStateMap _motionStates;
     VectorOfMotionStates _motionStatesToRemoveFromPhysics;
+    VectorOfMotionStates _motionStatesToDelete;
     SetOfMotionStates _motionStatesToAddToPhysics;
 
     std::shared_ptr<MyAvatar> _myAvatar;
