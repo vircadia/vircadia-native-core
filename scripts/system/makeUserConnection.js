@@ -13,7 +13,7 @@
 
     var LABEL = "makeUserConnection";
     var MAX_AVATAR_DISTANCE = 0.2; // m
-    var GRIP_MIN = 0.05; // goes from 0-1, so 5% pressed is pressed
+    var GRIP_MIN = 0.25; // goes from 0-1, so 25% pressed is pressed
     var MESSAGE_CHANNEL = "io.highfidelity.makeUserConnection";
     var STATES = {
         INACTIVE: 0,
