@@ -568,8 +568,10 @@ void AnimInverseKinematics::computeHipsOffset(const std::vector<IKTarget>& targe
                 newHipsOffset += targetPosition - actualPosition;
 
                 // Add downward pressure on the hips
-                newHipsOffset *= 0.95f;
-                newHipsOffset -= 1.0f;
+                const float PRESSURE_SCALE_FACTOR = 0.95f;
+                const float PRESSURE_TRANSLATION_OFFSET = 1.0f;
+                newHipsOffset *= PRESSURE_SCALE_FACTOR;
+                newHipsOffset -= PRESSURE_TRANSLATION_OFFSET;
             }
         } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
             glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
@@ -627,7 +629,7 @@ static void setEllipticalSwingLimits(SwingTwistConstraint* stConstraint, float l
     const int NUM_SUBDIVISIONS = 8;
     std::vector<float> minDots;
     minDots.reserve(NUM_SUBDIVISIONS);
-    float dTheta = (2.0f * PI) / NUM_SUBDIVISIONS;
+    float dTheta = TWO_PI / NUM_SUBDIVISIONS;
     float theta = 0.0f;
     for (int i = 0; i < NUM_SUBDIVISIONS; i++) {
         minDots.push_back(cosf(glm::length(glm::vec2(anteriorSwingTheta * cosf(theta), lateralSwingTheta * sinf(theta)))));
@@ -829,7 +831,9 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
 
             // limit lateral swings more then forward-backward swings
-            setEllipticalSwingLimits(stConstraint, PI / 30.0f, PI / 20.0f);
+            const float MAX_SPINE_LATERAL_SWING = PI / 30.0f;
+            const float MAX_SPINE_ANTERIOR_SWING = PI / 20.0f;
+            setEllipticalSwingLimits(stConstraint, MAX_SPINE_LATERAL_SWING, MAX_SPINE_ANTERIOR_SWING);
 
             if (0 == baseName.compare("Spine1", Qt::CaseSensitive)
                     || 0 == baseName.compare("Spine", Qt::CaseSensitive)) {
@@ -844,7 +848,10 @@ void AnimInverseKinematics::initConstraints() {
             const float MAX_NECK_TWIST = PI / 10.0f;
             stConstraint->setTwistLimits(-MAX_NECK_TWIST, MAX_NECK_TWIST);
 
-            setEllipticalSwingLimits(stConstraint, PI / 10.0f, PI / 8.0f);
+            // limit lateral swings more then forward-backward swings
+            const float MAX_NECK_LATERAL_SWING = PI / 10.0f;
+            const float MAX_NECK_ANTERIOR_SWING = PI / 8.0f;
+            setEllipticalSwingLimits(stConstraint, MAX_NECK_LATERAL_SWING, MAX_NECK_ANTERIOR_SWING);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (0 == baseName.compare("Head", Qt::CaseSensitive)) {
