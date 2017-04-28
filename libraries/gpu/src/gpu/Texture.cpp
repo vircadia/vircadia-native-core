@@ -407,8 +407,12 @@ void Texture::setStoredMipFormat(const Element& format) {
     _storage->setFormat(format);
 }
 
-const Element& Texture::getStoredMipFormat() const {
-    return _storage->getFormat();
+const Element Texture::getStoredMipFormat() const {
+    if (_storage) {
+        return _storage->getFormat();
+    } else {
+        return Element();
+    }
 }
 
 void Texture::assignStoredMip(uint16 level, Size size, const Byte* bytes) {

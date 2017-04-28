@@ -102,7 +102,8 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
 GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id) :
     GLObject(backend, texture, id),
     _source(texture.source()),
-    _target(getGLTextureType(texture))
+    _target(getGLTextureType(texture)),
+    _texelFormat(GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), texture.getStoredMipFormat()))
 {
     Backend::setGPUObject(texture, this);
 }

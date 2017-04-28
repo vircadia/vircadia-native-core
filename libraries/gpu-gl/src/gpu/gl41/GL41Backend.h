@@ -110,7 +110,6 @@ public:
 
         Size size() const override { return _size; }
         Size _size { 0 };
-        GLTexelFormat _texelFormat;
     };
 
     class GL41ResourceTexture : public GL41VariableAllocationTexture {

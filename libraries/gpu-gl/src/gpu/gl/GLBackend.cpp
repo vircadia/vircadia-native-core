@@ -48,7 +48,7 @@ BackendPointer GLBackend::createBackend() {
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
     std::shared_ptr<GLBackend> result;
-    if (false && !disableOpenGL45 && version >= 0x0405) {
+    if (!disableOpenGL45 && version >= 0x0405) {
         qCDebug(gpugllogging) << "Using OpenGL 4.5 backend";
         result = std::make_shared<gpu::gl45::GL45Backend>();
     } else {
