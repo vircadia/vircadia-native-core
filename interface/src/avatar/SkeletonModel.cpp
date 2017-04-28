@@ -119,7 +119,13 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.rigHeadPosition = extractTranslation(rigHMDMat);
             headParams.rigHeadOrientation = extractRotation(rigHMDMat);
             headParams.worldHeadOrientation = extractRotation(worldHMDMat);
+
+            // TODO: if hips target sensor is valid.
+            // Copy it into headParams.hipsMatrix, and set headParams.hipsEnabled to true.
+
+            headParams.hipsEnabled = false;
         } else {
+            headParams.hipsEnabled = false;
             headParams.isInHMD = false;
 
             // We don't have a valid localHeadPosition.

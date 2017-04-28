@@ -18,14 +18,14 @@ function shutdown() {
     });
 }
 
-var WHITE = {x: 1, y: 1, z: 1, w: 1};
+var BLUE = {x: 0, y: 0, z: 1, w: 1};
 
 function update(dt) {
     if (Controller.Hardware.Vive) {
         TRACKED_OBJECT_POSES.forEach(function (key) {
             var pose = Controller.getPoseValue(Controller.Hardware.Vive[key]);
             if (pose.valid) {
-                DebugDraw.addMyAvatarMarker(key, pose.rotation, pose.translation, WHITE);
+                DebugDraw.addMyAvatarMarker(key, pose.rotation, pose.translation, BLUE);
             } else {
                 DebugDraw.removeMyAvatarMarker(key);
             }
