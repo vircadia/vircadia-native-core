@@ -43,6 +43,7 @@
 #include <gl/Config.h>
 #include <model/TextureMap.h>
 #include <ktx/KTX.h>
+#include <image/Image.h>
 
 
 QSharedPointer<FileLogger> logger;
@@ -94,7 +95,7 @@ int main(int argc, char** argv) {
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
 
     QImage image(TEST_IMAGE);
-    gpu::Texture* testTexture = model::TextureUsage::process2DTextureColorFromImage(image, TEST_IMAGE.toStdString(), true, false, true);
+    gpu::TexturePointer testTexture = image::TextureUsage::process2DTextureColorFromImage(image, TEST_IMAGE.toStdString(), true);
 
     auto ktxMemory = gpu::Texture::serialize(*testTexture);
     {

@@ -36,7 +36,7 @@ namespace MenuOption {
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
     const QString Attachments = "Attachments...";
-    const QString AudioNoiseReduction = "Audio Noise Reduction";
+    const QString AudioNoiseReduction = "Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";
@@ -47,10 +47,11 @@ namespace MenuOption {
     const QString AudioTools = "Show Level Meter";
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
+    const QString AvatarBookmarks = "Avatar Bookmarks";
     const QString Back = "Back";
     const QString BinaryEyelidControl = "Binary Eyelid Control";
+    const QString BookmarkAvatar = "Bookmark Avatar";
     const QString BookmarkLocation = "Bookmark Location";
-    const QString Bookmarks = "Bookmarks";
     const QString CalibrateCamera = "Calibrate Camera";
     const QString CameraEntityMode = "Entity Mode";
     const QString CenterPlayerInView = "Center Player In View";
@@ -78,6 +79,7 @@ namespace MenuOption {
     const QString DeadlockInterface = "Deadlock Interface";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DefaultSkybox = "Default Skybox";
+    const QString DeleteAvatarBookmark = "Delete Avatar Bookmark...";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableEyelidAdjustment = "Disable Eyelid Adjustment";
@@ -89,11 +91,12 @@ namespace MenuOption {
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayDebugTimingDetails = "Display Timing Details";
+    const QString LocationBookmarks = "Bookmarks";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
-    const QString EnableCharacterController = "Enable avatar collisions";
+    const QString EnableCharacterController = "Collide with world";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString EntityScriptServerLog = "Entity Script Server Log";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";

@@ -56,7 +56,6 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
     _connectionSecret(connectionSecret),
-    _isAlive(true),
     _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),

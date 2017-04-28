@@ -15,6 +15,7 @@
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
+#include <QVector>
 
 #include <FaceshiftConstants.h>
 #include <GLMHelpers.h>
@@ -38,6 +39,8 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _rightEyeBlink(0.0f),
     _averageLoudness(0.0f),
     _browAudioLift(0.0f),
+    _baseBlendshapeCoefficients(QVector<float>(0, 0.0f)),
+    _currBlendShapeCoefficients(QVector<float>(0, 0.0f)),
     _owningAvatar(owningAvatar)
 {
 
@@ -86,6 +89,24 @@ static const QMap<QString, int>& getBlendshapesLookupMap() {
     return blendshapeLookupMap;
 }
 
+const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
+    int maxSize = std::max(_baseBlendshapeCoefficients.size(), _blendshapeCoefficients.size());
+    if (_currBlendShapeCoefficients.size() != maxSize) {
+        _currBlendShapeCoefficients.resize(maxSize);
+    }
+
+    for (int i = 0; i < maxSize; i++) {
+        if (i >= _baseBlendshapeCoefficients.size()) {
+            _currBlendShapeCoefficients[i] = _blendshapeCoefficients[i];
+        } else if (i >= _blendshapeCoefficients.size()) {
+            _currBlendShapeCoefficients[i] = _baseBlendshapeCoefficients[i];
+        } else {
+            _currBlendShapeCoefficients[i] = _baseBlendshapeCoefficients[i] + _blendshapeCoefficients[i];
+        }
+    }
+
+    return _currBlendShapeCoefficients;
+}
 
 void HeadData::setBlendshape(QString name, float val) {
     const auto& blendshapeLookupMap = getBlendshapesLookupMap();
@@ -96,7 +117,10 @@ void HeadData::setBlendshape(QString name, float val) {
         if (_blendshapeCoefficients.size() <= it.value()) {
             _blendshapeCoefficients.resize(it.value() + 1);
         }
-        _blendshapeCoefficients[it.value()] = val;
+        if (_baseBlendshapeCoefficients.size() <= it.value()) {
+            _baseBlendshapeCoefficients.resize(it.value() + 1);
+        }
+        _baseBlendshapeCoefficients[it.value()] = val;
     }
 }
 

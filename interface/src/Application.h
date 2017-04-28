@@ -52,8 +52,7 @@
 
 #include "avatar/MyAvatar.h"
 #include "BandwidthRecorder.h"
-#include "Bookmarks.h"
-#include "Camera.h"
+#include "FancyCamera.h"
 #include "ConnectionMonitor.h"
 #include "gpu/Context.h"
 #include "Menu.h"
@@ -74,6 +73,7 @@
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
 
+#include "Sound.h"
 
 class OffscreenGLCanvas;
 class GLCanvas;
@@ -81,6 +81,7 @@ class FaceTracker;
 class MainWindow;
 class AssetUpload;
 class CompositorHelper;
+class AudioInjector;
 
 namespace controller {
     class StateController;
@@ -175,8 +176,8 @@ public:
 
     bool isThrottleRendering() const;
 
-    Camera* getCamera() { return &_myCamera; }
-    const Camera* getCamera() const { return &_myCamera; }
+    Camera& getCamera() { return _myCamera; }
+    const Camera& getCamera() const { return _myCamera; }
     // Represents the current view frustum of the avatar.
     void copyViewFrustum(ViewFrustum& viewOut) const;
     // Represents the view frustum of the current rendering pass,
@@ -261,7 +262,6 @@ public:
     glm::mat4 getEyeProjection(int eye) const;
 
     QRect getDesirableApplicationGeometry() const;
-    Bookmarks* getBookmarks() const { return _bookmarks; }
 
     virtual bool canAcceptURL(const QString& url) const override;
     virtual bool acceptURL(const QString& url, bool defaultUpload = false) override;
@@ -270,7 +270,7 @@ public:
     int getMaxOctreePacketsPerSecond() const;
 
     render::ScenePointer getMain3DScene() override { return _main3DScene; }
-    render::ScenePointer getMain3DScene() const { return _main3DScene; }
+    const render::ScenePointer& getMain3DScene() const { return _main3DScene; }
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
@@ -280,7 +280,7 @@ public:
 
     float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
-    
+
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
@@ -330,6 +330,7 @@ public slots:
     void toggleEntityScriptServerLogDialog();
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
+    Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
 
     void showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const;
 
@@ -416,6 +417,7 @@ private slots:
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
+    void windowMinimizedChanged(bool minimized);
 
     void notifyPacketVersionMismatch();
 
@@ -463,7 +465,6 @@ private:
     void updateDialogs(float deltaTime) const;
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
-    static void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection() const;
 
@@ -559,7 +560,7 @@ private:
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};
-    Camera _myCamera;                            // My view onto the world
+    FancyCamera _myCamera;                            // My view onto the world
 
     Setting::Handle<QString> _previousScriptLocation;
     Setting::Handle<float> _fieldOfView;
@@ -598,8 +599,6 @@ private:
     quint64 _lastSendDownstreamAudioStats;
 
     bool _aboutToQuit;
-
-    Bookmarks* _bookmarks;
 
     bool _notifiedPacketVersionMismatchThisDomain;
 
@@ -686,6 +685,8 @@ private:
     QTimer _addAssetToWorldErrorTimer;
 
     FileScriptingInterface* _fileDownload;
+    AudioInjector* _snapshotSoundInjector { nullptr };
+    SharedSoundPointer _snapshotSound;
 };
 
 

@@ -20,8 +20,6 @@ using namespace gpu::gl45;
 
 void GL45Backend::recycle() const {
     Parent::recycle();
-    GL45VariableAllocationTexture::manageMemory();
-    GL45VariableAllocationTexture::_frameTexturesCreated = 0;
 }
 
 void GL45Backend::do_draw(const Batch& batch, size_t paramOffset) {

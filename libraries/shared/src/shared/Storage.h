@@ -20,10 +20,12 @@ namespace storage {
     class Storage;
     using StoragePointer = std::shared_ptr<const Storage>;
 
+    // Abstract class to represent memory that stored _somewhere_ (in system memory or in a file, for example)
     class Storage : public std::enable_shared_from_this<Storage> {
     public:
         virtual ~Storage() {}
         virtual const uint8_t* data() const = 0;
+        virtual uint8_t* mutableData() = 0;
         virtual size_t size() const = 0;
         virtual operator bool() const { return true; }
 
@@ -41,6 +43,7 @@ namespace storage {
         MemoryStorage(size_t size, const uint8_t* data = nullptr);
         const uint8_t* data() const override { return _data.data(); }
         uint8_t* data() { return _data.data(); }
+        uint8_t* mutableData() override { return _data.data(); }
         size_t size() const override { return _data.size(); }
         operator bool() const override { return true; }
     private:
@@ -57,6 +60,7 @@ namespace storage {
         FileStorage& operator=(const FileStorage& other) = delete;
 
         const uint8_t* data() const override { return _mapped; }
+        uint8_t* mutableData() override { return _mapped; }
         size_t size() const override { return _file.size(); }
         operator bool() const override { return _valid; }
     private:
@@ -69,6 +73,7 @@ namespace storage {
     public:
         ViewStorage(const storage::StoragePointer& owner, size_t size, const uint8_t* data);
         const uint8_t* data() const override { return _data; }
+        uint8_t* mutableData() override { throw std::runtime_error("Cannot modify ViewStorage");  }
         size_t size() const override { return _size; }
         operator bool() const override { return *_owner; }
     private:

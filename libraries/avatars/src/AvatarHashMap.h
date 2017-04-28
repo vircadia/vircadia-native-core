@@ -41,7 +41,7 @@ public:
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
 
     // Null/Default-constructed QUuids will return MyAvatar
-    virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
+    Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
 
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const { return findAvatar(sessionID); }
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
@@ -57,7 +57,7 @@ public slots:
 protected slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
 
-    virtual void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processExitingSpaceBubble(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);

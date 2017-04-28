@@ -198,6 +198,7 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getRootContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
             _webSurface->getRootContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
             _webSurface->getRootContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+            _webSurface->getRootContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
 
             _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
@@ -297,7 +298,7 @@ void Web3DOverlay::render(RenderArgs* args) {
 
     if (!_texture) {
         auto webSurface = _webSurface;
-        _texture = gpu::TexturePointer(gpu::Texture::createExternal(OffscreenQmlSurface::getDiscardLambda()));
+        _texture = gpu::Texture::createExternal(OffscreenQmlSurface::getDiscardLambda());
         _texture->setSource(__FUNCTION__);
     }
     OffscreenQmlSurface::TextureAndFence newTextureAndFence;

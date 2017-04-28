@@ -816,7 +816,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
 }
 
 bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
-                                             std::shared_ptr<render::Scene> scene,
+                                             const render::ScenePointer& scene,
                                              render::Transaction& transaction) {
     _myItem = scene->allocateID();
 
@@ -834,7 +834,7 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
 }
 
 void RenderablePolyVoxEntityItem::removeFromScene(EntityItemPointer self,
-                                                  std::shared_ptr<render::Scene> scene,
+                                                  const render::ScenePointer& scene,
                                                   render::Transaction& transaction) {
     transaction.removeItem(_myItem);
     render::Item::clearID(_myItem);
