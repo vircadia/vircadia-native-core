@@ -358,7 +358,7 @@ void GL41VariableAllocationTexture::promote() {
 
             // Collect the size of the first face, and then compute the total size offset needed for this mip level
             glGetTexLevelParameteriv(faceTargets.front(), sourceLevel, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &sourceMip._faceSize);
-            sourceMip._size = faceTargets.size() * sourceMip._faceSize;
+            sourceMip._size = (GLint) faceTargets.size() * sourceMip._faceSize;
             sourceMip._offset = bufferOffset;
             bufferOffset += sourceMip._size;
         }
@@ -482,7 +482,7 @@ void GL41VariableAllocationTexture::demote() {
 
             // Collect the size of the first face, and then compute the total size offset needed for this mip level
             glGetTexLevelParameteriv(faceTargets.front(), sourceLevel, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &sourceMip._faceSize);
-            sourceMip._size = faceTargets.size() * sourceMip._faceSize;
+            sourceMip._size = (GLint) faceTargets.size() * sourceMip._faceSize;
             sourceMip._offset = bufferOffset;
             bufferOffset += sourceMip._size;
         }

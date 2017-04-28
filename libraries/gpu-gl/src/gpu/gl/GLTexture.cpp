@@ -103,7 +103,7 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& tex
     GLObject(backend, texture, id),
     _source(texture.source()),
     _target(getGLTextureType(texture)),
-    _texelFormat(GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), texture.getStoredMipFormat()))
+    _texelFormat(GLTexelFormat::evalGLTexelFormatInternal(texture.getTexelFormat()))
 {
     Backend::setGPUObject(texture, this);
 }

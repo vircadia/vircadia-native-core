@@ -216,6 +216,7 @@ void Texture::MemoryStorage::assignMipFaceData(uint16 level, uint8 face, const s
 TexturePointer Texture::createExternal(const ExternalRecycler& recycler, const Sampler& sampler) {
     TexturePointer tex = std::make_shared<Texture>(TextureUsageType::EXTERNAL);
     tex->_type = TEX_2D;
+    tex->_texelFormat = Element::COLOR_RGBA_32;
     tex->_maxMipLevel = 0;
     tex->_sampler = sampler;
     tex->setExternalRecycler(recycler);
