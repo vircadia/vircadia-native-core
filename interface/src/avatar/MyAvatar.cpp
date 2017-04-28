@@ -41,7 +41,7 @@
 #include <recording/Clip.h>
 #include <recording/Frame.h>
 #include <RecordingScriptingInterface.h>
-#include <devices/FaceTracker.h>
+#include <trackers/FaceTracker.h>
 
 #include "Application.h"
 #include "AvatarManager.h"

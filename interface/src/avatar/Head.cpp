@@ -13,6 +13,7 @@
 
 #include <NodeList.h>
 #include <recording/Deck.h>
+#include <trackers/EyeTracker.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -22,7 +23,6 @@
 #include "Menu.h"
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
-#include "devices/EyeTracker.h"
 #include <Rig.h>
 
 using namespace std;
