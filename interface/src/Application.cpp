@@ -78,6 +78,7 @@
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
+#include <controllers/InputRecorder.h>
 #include <controllers/ScriptingInterface.h>
 #include <controllers/StateController.h>
 #include <UserActivityLoggerScriptingInterface.h>
@@ -534,6 +535,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
+    DependencyManager::set<Snapshot>();
 
     return previousSessionCrashed;
 }
@@ -1465,46 +1467,53 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         const auto testScript = property(hifi::properties::TEST).toUrl();
         scriptEngines->loadScript(testScript, false);
     } else {
-        // Get sandbox content set version, if available
+        enum HandControllerType {
+            Vive,
+            Oculus
+        };
+        static const std::map<HandControllerType, int> MIN_CONTENT_VERSION = {
+            { Vive, 1 },
+            { Oculus, 27 }
+        };
+
+        // Get sandbox content set version
         auto acDirPath = PathUtils::getAppDataPath() + "../../" + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
         auto contentVersionPath = acDirPath + "content-version.txt";
         qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
-        auto contentVersion = 0;
+        int contentVersion = 0;
         QFile contentVersionFile(contentVersionPath);
         if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
             QString line = contentVersionFile.readAll();
-            // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
-            contentVersion = line.toInt();
+            contentVersion = line.toInt(); // returns 0 if conversion fails
         }
-        qCDebug(interfaceapp) << "Server content version: " << contentVersion;
 
-        static const int MIN_VIVE_CONTENT_VERSION = 1;
-        static const int MIN_OCULUS_TOUCH_CONTENT_VERSION = 27;
-
-        bool hasSufficientTutorialContent = false;
+        // Get controller availability
         bool hasHandControllers = false;
-
-        // Only specific hand controllers are currently supported, so only send users to the tutorial
-        // if they have one of those hand controllers.
+        HandControllerType handControllerType = Vive;
         if (PluginUtils::isViveControllerAvailable()) {
             hasHandControllers = true;
-            hasSufficientTutorialContent = contentVersion >= MIN_VIVE_CONTENT_VERSION;
+            handControllerType = Vive;
         } else if (PluginUtils::isOculusTouchControllerAvailable()) {
             hasHandControllers = true;
-            hasSufficientTutorialContent = contentVersion >= MIN_OCULUS_TOUCH_CONTENT_VERSION;
+            handControllerType = Oculus;
         }
 
+        // Check tutorial content versioning
+        bool hasTutorialContent = contentVersion >= MIN_CONTENT_VERSION.at(handControllerType);
+
+        // Check HMD use (may be technically available without being in use)
+        bool hasHMD = PluginUtils::isHMDAvailable();
+        bool isUsingHMD = hasHMD && hasHandControllers && _displayPlugin->isHmd();
+
+        Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
         Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable() && hasHandControllers;
-        Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
+        bool isTutorialComplete = tutorialComplete.get();
+        bool shouldGoToTutorial = isUsingHMD && hasTutorialContent && !isTutorialComplete;
 
-        bool shouldGoToTutorial = hasHMDAndHandControllers && hasSufficientTutorialContent && !tutorialComplete.get();
-
-        qCDebug(interfaceapp) << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
-        qCDebug(interfaceapp) << "Has sufficient tutorial content (" << contentVersion << ") : " << hasSufficientTutorialContent;
-        qCDebug(interfaceapp) << "Tutorial complete: " << tutorialComplete.get();
-        qCDebug(interfaceapp) << "Should go to tutorial: " << shouldGoToTutorial;
+        qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMD;
+        qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
+            ", complete:" << isTutorialComplete << ", should go:" << shouldGoToTutorial;
 
         // when --url in command line, teleport to location
         const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
@@ -1541,7 +1550,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
             // If this is a first run we short-circuit the address passed in
             if (isFirstRun) {
-                if (hasHMDAndHandControllers) {
+                if (isUsingHMD) {
                     if (sandboxIsRunning) {
                         qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                         DependencyManager::get<AddressManager>()->goToLocalSandbox();
@@ -2044,6 +2053,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
+    rootContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
@@ -2746,6 +2756,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
                     offscreenUi->load("Browser.qml");
+                } else if (isOption) {
+                    controller::InputRecorder* inputRecorder = controller::InputRecorder::getInstance();
+                    inputRecorder->stopPlayback();
                 }
                 break;
 
@@ -5205,11 +5218,7 @@ void Application::resettingDomain() {
 }
 
 void Application::nodeAdded(SharedNodePointer node) const {
-    if (node->getType() == NodeType::AvatarMixer) {
-        // new avatar mixer, send off our identity packet right away
-        getMyAvatar()->sendIdentityPacket();
-        getMyAvatar()->resetLastSent();
-    }
+    // nothing to do here
 }
 
 void Application::nodeActivated(SharedNodePointer node) {
@@ -5244,6 +5253,13 @@ void Application::nodeActivated(SharedNodePointer node) {
 
     if (node->getType() == NodeType::AudioMixer) {
         DependencyManager::get<AudioClient>()->negotiateAudioFormat();
+    }
+
+    if (node->getType() == NodeType::AvatarMixer) {
+        // new avatar mixer, send off our identity packet right away
+        getMyAvatar()->markIdentityDataChanged();
+        getMyAvatar()->sendIdentityPacket();
+        getMyAvatar()->resetLastSent();
     }
 }
 
@@ -5490,6 +5506,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Snapshot", DependencyManager::get<Snapshot>().data());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
@@ -6434,7 +6451,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
         // If we're not doing an animated snapshot as well...
-        if (!includeAnimated || !(SnapshotAnimated::alsoTakeAnimatedSnapshot.get())) {
+        if (!includeAnimated) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
             emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
         } else {

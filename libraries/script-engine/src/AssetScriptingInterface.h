@@ -72,6 +72,7 @@ public:
     /**jsdoc
      * Called when setMapping is complete
      * @callback Assets~setMappingCallback
+     * @param {string} error
      */
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
 
