@@ -126,6 +126,55 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         QMetaObject::invokeMethod(_model.get(), "setTextures", Qt::AutoConnection,
                                   Q_ARG(const QVariantMap&, textureMap));
     }
+
+    // relative
+    auto jointTranslationsValue = properties["jointTranslations"];
+    if (jointTranslationsValue.canConvert(QVariant::List)) {
+        const QVariantList& jointTranslations = jointTranslationsValue.toList();
+        int translationCount = jointTranslations.size();
+        int jointCount = _model->getJointStateCount();
+        if (translationCount < jointCount) {
+            jointCount = translationCount;
+        }
+        for (int i=0; i < jointCount; i++) {
+            const auto& translationValue = jointTranslations[i];
+            if (translationValue.isValid()) {
+                _model->setJointTranslation(i, true, vec3FromVariant(translationValue), 1.0f);
+            }
+        }
+        _updateModel = true;
+    }
+
+    // relative
+    auto jointRotationsValue = properties["jointRotations"];
+    if (jointRotationsValue.canConvert(QVariant::List)) {
+        const QVariantList& jointRotations = jointRotationsValue.toList();
+        int rotationCount = jointRotations.size();
+        int jointCount = _model->getJointStateCount();
+        if (rotationCount < jointCount) {
+            jointCount = rotationCount;
+        }
+        for (int i=0; i < jointCount; i++) {
+            const auto& rotationValue = jointRotations[i];
+            if (rotationValue.isValid()) {
+                _model->setJointRotation(i, true, quatFromVariant(rotationValue), 1.0f);
+            }
+        }
+        _updateModel = true;
+    }
+}
+
+template <typename vectorType, typename itemType>
+vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
+    vectorType result;
+    if (_model && _model->isActive()) {
+        const int jointCount = _model->getJointStateCount();
+        result.reserve(jointCount);
+        for (int i = 0; i < jointCount; i++) {
+            result << function(i);
+        }
+    }
+    return result;
 }
 
 QVariant ModelOverlay::getProperty(const QString& property) {
@@ -148,6 +197,58 @@ QVariant ModelOverlay::getProperty(const QString& property) {
         } else {
             return QVariant();
         }
+    }
+
+    if (property == "jointNames") {
+        if (_model && _model->isActive()) {
+            // note: going through Rig because Model::getJointNames() (which proxies to FBXGeometry) was always empty
+            const RigPointer rig = _model->getRig();
+            if (rig) {
+                return mapJoints<QStringList, QString>([rig](int jointIndex) -> QString {
+                    return rig->nameOfJoint(jointIndex);
+                });
+            }
+        }
+    }
+
+    // relative
+    if (property == "jointRotations") {
+        return mapJoints<QVariantList, QVariant>(
+            [this](int jointIndex) -> QVariant {
+                glm::quat rotation;
+                _model->getJointRotation(jointIndex, rotation);
+                return quatToVariant(rotation);
+            });
+    }
+
+    // relative
+    if (property == "jointTranslations") {
+        return mapJoints<QVariantList, QVariant>(
+            [this](int jointIndex) -> QVariant {
+                glm::vec3 translation;
+                _model->getJointTranslation(jointIndex, translation);
+                return vec3toVariant(translation);
+            });
+    }
+
+    // absolute
+    if (property == "jointOrientations") {
+        return mapJoints<QVariantList, QVariant>(
+            [this](int jointIndex) -> QVariant {
+                glm::quat orientation;
+                _model->getJointRotationInWorldFrame(jointIndex, orientation);
+                return quatToVariant(orientation);
+            });
+    }
+
+    // absolute
+    if (property == "jointPositions") {
+        return mapJoints<QVariantList, QVariant>(
+            [this](int jointIndex) -> QVariant {
+                glm::vec3 position;
+                _model->getJointPositionInWorldFrame(jointIndex, position);
+                return vec3toVariant(position);
+            });
     }
 
     return Volume3DOverlay::getProperty(property);

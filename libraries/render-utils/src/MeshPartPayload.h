@@ -46,11 +46,11 @@ public:
     virtual render::ItemKey getKey() const;
     virtual render::Item::Bound getBound() const;
     virtual render::ShapeKey getShapeKey() const; // shape interface
-    virtual void render(RenderArgs* args) const;
+    virtual void render(RenderArgs* args);
 
     // ModelMeshPartPayload functions to perform render
     void drawCall(gpu::Batch& batch) const;
-    virtual void bindMesh(gpu::Batch& batch) const;
+    virtual void bindMesh(gpu::Batch& batch);
     virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool enableTextures) const;
     virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const;
 
@@ -93,16 +93,16 @@ public:
             const Transform& boundTransform,
             const gpu::BufferPointer& buffer);
 
-    float computeFadeAlpha() const;
+    float computeFadeAlpha();
 
     // Render Item interface
     render::ItemKey getKey() const override;
     int getLayer() const;
     render::ShapeKey getShapeKey() const override; // shape interface
-    void render(RenderArgs* args) const override;
+    void render(RenderArgs* args) override;
 
     // ModelMeshPartPayload functions to perform render
-    void bindMesh(gpu::Batch& batch) const override;
+    void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
     void initCache();
@@ -116,11 +116,12 @@ public:
     int _shapeID;
 
     bool _isSkinned{ false };
-    bool _isBlendShaped{ false };
+    bool _isBlendShaped { false };
+    bool _materialNeedsUpdate { true };
 
 private:
-    mutable quint64 _fadeStartTime { 0 };
-    mutable uint8_t _fadeState { FADE_WAITING_TO_START };
+    quint64 _fadeStartTime { 0 };
+    uint8_t _fadeState { FADE_WAITING_TO_START };
 };
 
 namespace render {

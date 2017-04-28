@@ -49,8 +49,10 @@ public:
         using VoidLambdaQueue = std::queue<VoidLambda>;
         using ThreadPointer = std::shared_ptr<std::thread>;
         const GLTexture& _parent;
-        // Holds the contents to transfer to the GPU in CPU memory
-        std::vector<uint8_t> _buffer;
+        Texture::PixelsPointer _mipData;
+        size_t _transferOffset { 0 };
+        size_t _transferSize { 0 };
+
         // Indicates if a transfer from backing storage to interal storage has started
         bool _bufferingStarted { false };
         bool _bufferingCompleted { false };
@@ -78,7 +80,6 @@ public:
 #endif
 
     private:
-        size_t _transferSize { 0 };
 #if THREADED_TEXTURE_BUFFERING
         void startBuffering();
 #endif
@@ -112,7 +113,7 @@ protected:
     static void manageMemory();
 
     //bool canPromoteNoAllocate() const { return _allocatedMip < _populatedMip; }
-    bool canPromote() const { return _allocatedMip > 0; }
+    bool canPromote() const { return _allocatedMip > _minAllocatedMip; }
     bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
     bool hasPendingTransfers() const { return _populatedMip > _allocatedMip; }
     void executeNextTransfer(const TexturePointer& currentTexture);
@@ -130,6 +131,9 @@ protected:
     // The highest (lowest resolution) mip that we will support, relative to the number 
     // of mips in the gpu::Texture object
     uint16 _maxAllocatedMip { 0 };
+    // The lowest (highest resolution) mip that we will support, relative to the number
+    // of mips in the gpu::Texture object
+    uint16 _minAllocatedMip { 0 };
     // Contains a series of lambdas that when executed will transfer data to the GPU, modify 
     // the _populatedMip and update the sampler in order to fully populate the allocated texture 
     // until _populatedMip == _allocatedMip
@@ -163,7 +167,7 @@ public:
 protected:
     virtual Size size() const = 0;
     virtual void generateMips() const = 0;
-    virtual void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const = 0;
+    virtual void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const = 0;
     virtual void copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const final;
 
     GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
@@ -177,7 +181,7 @@ public:
 protected:
     GLExternalTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
     void generateMips() const override {}
-    void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const override {}
+    void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override {}
 
     Size size() const override { return 0; }
 };

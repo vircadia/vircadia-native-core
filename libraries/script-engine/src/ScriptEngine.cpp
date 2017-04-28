@@ -43,6 +43,7 @@
 #include <NetworkAccessManager.h>
 #include <PathUtils.h>
 #include <ResourceScriptingInterface.h>
+#include <UserActivityLoggerScriptingInterface.h>
 #include <NodeList.h>
 #include <ScriptAvatarData.h>
 #include <udt/PacketHeaders.h>
@@ -678,6 +679,8 @@ void ScriptEngine::init() {
     registerGlobalObject("Model", new ModelScriptingInterface(this));
     qScriptRegisterMetaType(this, meshToScriptValue, meshFromScriptValue);
     qScriptRegisterMetaType(this, meshesToScriptValue, meshesFromScriptValue);
+
+    registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
@@ -2317,6 +2320,8 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID, bool shouldR
 
     if (_entityScripts.contains(entityID)) {
         const EntityScriptDetails &oldDetails = _entityScripts[entityID];
+        auto scriptText = oldDetails.scriptText;
+
         if (isEntityScriptRunning(entityID)) {
             callEntityScriptMethod(entityID, "unload");
         }
@@ -2334,14 +2339,14 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID, bool shouldR
             newDetails.status = EntityScriptStatus::UNLOADED;
             newDetails.lastModified = QDateTime::currentMSecsSinceEpoch();
             // keep scriptText populated for the current need to "debouce" duplicate calls to unloadEntityScript
-            newDetails.scriptText = oldDetails.scriptText;
+            newDetails.scriptText = scriptText;
             setEntityScriptDetails(entityID, newDetails);
         }
 
         stopAllTimersForEntityScript(entityID);
         {
             // FIXME: shouldn't have to do this here, but currently something seems to be firing unloads moments after firing initial load requests
-            processDeferredEntityLoads(oldDetails.scriptText, entityID);
+            processDeferredEntityLoads(scriptText, entityID);
         }
     }
 }
