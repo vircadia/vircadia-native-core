@@ -325,6 +325,27 @@ void GL41VariableAllocationTexture::promote() {
     allocateStorage(targetAllocatedMip);
 
     if (_texelFormat.isCompressed()) {
+#if defined(USE_45IMAGECOPY_PROMOTE)
+        withPreservedTexture([&] {
+            uint16_t numMips = _gpuObject.getNumMips();
+            // copy pre-existing mips
+            for (uint16_t mip = _populatedMip; mip < numMips; ++mip) {
+                auto mipDimensions = _gpuObject.evalMipDimensions(mip);
+                uint16_t targetMip = mip - _allocatedMip;
+                uint16_t sourceMip = mip - oldAllocatedMip;
+                auto faces = getFaceCount(_target);
+                for (uint8_t face = 0; face < faces; ++face) {
+                    glCopyImageSubData(
+                        oldId, _target, sourceMip, 0, 0, face,
+                        _id, _target, targetMip, 0, 0, face,
+                        mipDimensions.x, mipDimensions.y, 1
+                        );
+                    (void)CHECK_GL_ERROR();
+                }
+            }
+            syncSampler();
+        });
+#else
         GLuint pbo { 0 };
         glGenBuffers(1, &pbo);
         glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
@@ -406,6 +427,7 @@ void GL41VariableAllocationTexture::promote() {
 
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
         glDeleteBuffers(1, &pbo);
+#endif
     } else {
         withPreservedTexture([&] {
             GLuint fbo { 0 };
@@ -452,6 +474,27 @@ void GL41VariableAllocationTexture::demote() {
     _populatedMip = std::max(_populatedMip, _allocatedMip);
 
     if (_texelFormat.isCompressed()) {
+#if defined(USE_45IMAGECOPY_DEMOTE)
+        withPreservedTexture([&] {
+            uint16_t numMips = _gpuObject.getNumMips();
+            // copy pre-existing mips
+            for (uint16_t mip = _populatedMip; mip < numMips; ++mip) {
+                auto mipDimensions = _gpuObject.evalMipDimensions(mip);
+                uint16_t targetMip = mip - _allocatedMip;
+                uint16_t sourceMip = targetMip + 1;
+                auto faces = getFaceCount(_target);
+                for (uint8_t face = 0; face < faces; ++face) {
+                    glCopyImageSubData(
+                        oldId, _target, sourceMip, 0, 0, face,
+                        _id, _target, targetMip, 0, 0, face,
+                        mipDimensions.x, mipDimensions.y, 1
+                        );
+                    (void)CHECK_GL_ERROR();
+                }
+            }
+            syncSampler();
+        });
+#else
         GLuint pbo { 0 };
         glGenBuffers(1, &pbo);
         glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
@@ -528,7 +571,7 @@ void GL41VariableAllocationTexture::demote() {
 
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
         glDeleteBuffers(1, &pbo);
-
+#endif
     } else {
         withPreservedTexture([&] {
             GLuint fbo { 0 };
