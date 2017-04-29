@@ -1024,6 +1024,17 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
 
     _animVars.set("isTalking", params.isTalking);
     _animVars.set("notIsTalking", !params.isTalking);
+
+    if (params.hipsEnabled) {
+        _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
+        _animVars.set("hipsPosition", extractTranslation(params.hipsMatrix));
+        _animVars.set("hipsRotation", glmExtractRotation(params.hipsMatrix) * Quaternions::Y_180);
+    } else {
+        _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
+    }
+
+    // by default this IK target is disabled.
+    _animVars.set("spine2Type", (int)IKTarget::Type::Unknown);
 }
 
 void Rig::updateFromEyeParameters(const EyeParameters& params) {
@@ -1161,13 +1172,19 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
         const glm::vec3 bodyCapsuleStart = bodyCapsuleCenter - glm::vec3(0, params.bodyCapsuleHalfHeight, 0);
         const glm::vec3 bodyCapsuleEnd = bodyCapsuleCenter + glm::vec3(0, params.bodyCapsuleHalfHeight, 0);
 
+        // TODO: add isHipsEnabled
+        bool bodySensorTrackingEnabled = params.isLeftFootEnabled || params.isRightFootEnabled;
+
         if (params.isLeftEnabled) {
 
-            // prevent the hand IK targets from intersecting the body capsule
             glm::vec3 handPosition = params.leftPosition;
-            glm::vec3 displacement;
-            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
-                handPosition -= displacement;
+
+            if (!bodySensorTrackingEnabled) {
+                // prevent the hand IK targets from intersecting the body capsule
+                glm::vec3 displacement;
+                if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
+                    handPosition -= displacement;
+                }
             }
 
             _animVars.set("leftHandPosition", handPosition);
@@ -1181,11 +1198,14 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
 
         if (params.isRightEnabled) {
 
-            // prevent the hand IK targets from intersecting the body capsule
             glm::vec3 handPosition = params.rightPosition;
-            glm::vec3 displacement;
-            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
-                handPosition -= displacement;
+
+            if (!bodySensorTrackingEnabled) {
+                // prevent the hand IK targets from intersecting the body capsule
+                glm::vec3 displacement;
+                if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
+                    handPosition -= displacement;
+                }
             }
 
             _animVars.set("rightHandPosition", handPosition);

@@ -33,6 +33,7 @@
 #include "OctreePersistThread.h"
 
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
+const QString OctreePersistThread::REPLACEMENT_FILE_EXTENSION = ".replace";
 
 OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, const QString& backupDirectory, int persistInterval,
                                          bool wantBackup, const QJsonObject& settings, bool debugTimestampNow,
@@ -131,10 +132,47 @@ quint64 OctreePersistThread::getMostRecentBackupTimeInUsecs(const QString& forma
     return mostRecentBackupInUsecs;
 }
 
+void OctreePersistThread::possiblyReplaceContent() {
+    // before we load the normal file, check if there's a pending replacement file
+    auto replacementFileName = _filename + REPLACEMENT_FILE_EXTENSION;
+
+    QFile replacementFile { replacementFileName };
+    if (replacementFile.exists()) {
+        // we have a replacement file to process
+        qDebug() << "Replacing models file with" << replacementFileName;
+
+        // first take the current models file and move it to a different filename, appended with the timestamp
+        QFile currentFile { _filename };
+        if (currentFile.exists()) {
+            static const QString FILENAME_TIMESTAMP_FORMAT = "yyyyMMdd-hhmmss";
+            auto backupFileName = _filename + ".backup." + QDateTime::currentDateTime().toString(FILENAME_TIMESTAMP_FORMAT);
+
+            if (currentFile.rename(backupFileName)) {
+                qDebug() << "Moved previous models file to" << backupFileName;
+            } else {
+                qWarning() << "Could not backup previous models file to" << backupFileName << "- removing replacement models file";
+
+                if (!replacementFile.remove()) {
+                    qWarning() << "Could not remove replacement models file from" << replacementFileName
+                        << "- replacement will be re-attempted on next server restart";
+                    return;
+                }
+            }
+        }
+
+        // rename the replacement file to match what the persist thread is just about to read
+        if (!replacementFile.rename(_filename)) {
+            qWarning() << "Could not replace models file with" << replacementFileName << "- starting with empty models file";
+        }
+    }
+}
+
 
 bool OctreePersistThread::process() {
 
     if (!_initialLoadComplete) {
+        possiblyReplaceContent();
+
         quint64 loadStarted = usecTimestampNow();
         qCDebug(octree) << "loading Octrees from file: " << _filename << "...";
 
