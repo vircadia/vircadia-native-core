@@ -49,20 +49,20 @@
 
 
 
-An dynamic is a callback which is registered with bullet.  An dynamic is called-back every physics
+A dynamic is a callback which is registered with bullet.  A dynamic is called-back every physics
 simulation step and can do whatever it wants with the various datastructures it has available.  An
 dynamic, for example, can pull an EntityItem toward a point as if that EntityItem were connected to that
 point by a spring.
 
-In this system, an dynamic is a property of an EntityItem (rather, an EntityItem has a property which
+In this system, a dynamic is a property of an EntityItem (rather, an EntityItem has a property which
 encodes a list of dynamics).  Each dynamic has a type and some arguments.  Dynamics can be created by a
 script or when receiving information via an EntityTree data-stream (either over the network or from an
 svo file).
 
 In the interface, if an EntityItem has dynamics, this EntityItem will have pointers to ObjectDynamic
-subclass (like ObjectDynamicSpring) instantiations.  Code in the entities library affects an dynamic-object
+subclass (like ObjectDynamicSpring) instantiations.  Code in the entities library affects a dynamic-object
 via the EntityDynamicInterface (which knows nothing about bullet).  When the ObjectDynamic subclass
-instance is created, it is registered as an dynamic with bullet.  Bullet will call into code in this
+instance is created, it is registered as a dynamic with bullet.  Bullet will call into code in this
 instance with the btDynamicInterface every physics-simulation step.
 
 Because the dynamic can exist next to the interface's EntityTree or the entity-server's EntityTree,
