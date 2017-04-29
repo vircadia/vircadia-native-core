@@ -55,7 +55,6 @@ void ObjectConstraintSlider::updateSlider() {
     btSliderConstraint* constraint { nullptr };
 
     withReadLock([&]{
-        // TODO -- write this
         constraint = static_cast<btSliderConstraint*>(_constraint);
     });
 
