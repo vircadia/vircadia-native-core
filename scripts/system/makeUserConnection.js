@@ -260,7 +260,20 @@
         return avatar.getJointPosition(handJointIndex);
     }
 
+    var animationData = {};
     function shakeHandsAnimation() {
+        return animationData;
+    }
+    function endHandshakeAnimation() {
+        if (animHandlerId) {
+            debug("removing animation");
+            animHandlerId = MyAvatar.removeAnimationStateHandler(animHandlerId);
+        }
+    }
+    function startHandshakeAnimation() {
+        endHandshakeAnimation(); // just in case order of press/unpress is broken
+        debug("adding animation");
+
         // all we are doing here is moving the right hand to a spot
         // that is in front of and a bit above the hips.  Basing how
         // far in front as scaling with the avatar's height (say hips
@@ -273,7 +286,8 @@
         }
         result.rightHandPosition = Vec3.multiply(offset, {x: -0.25, y: 0.8, z: 1.3});
         result.rightHandRotation = Quat.fromPitchYawRollDegrees(90, 0, 90);
-        return result;
+
+        animHandlerId = MyAvatar.addAnimationStateHandler(shakeHandsAnimation, []);
     }
 
     function positionFractionallyTowards(posA, posB, frac) {
@@ -460,12 +474,7 @@
     // waiting message.  Either way, they will start connecting eachother at that point.
     function startHandshake(fromKeyboard) {
         if (fromKeyboard) {
-            debug("adding animation");
-            // just in case order of press/unpress is broken
-            if (animHandlerId) {
-                animHandlerId = MyAvatar.removeAnimationStateHandler(animHandlerId);
-            }
-            animHandlerId = MyAvatar.addAnimationStateHandler(shakeHandsAnimation, []);
+            startHandshakeAnimation();
         }
         debug("starting handshake for", currentHand);
         pollCount = 0;
@@ -525,10 +534,7 @@
             key: "done"
         });
 
-        if (animHandlerId) {
-            debug("removing animation");
-            MyAvatar.removeAnimationStateHandler(animHandlerId);
-        }
+        endHandshakeAnimation();
         // No-op if we were successful, but this way we ensure that failures and abandoned handshakes don't leave us
         // in a weird state.
         request({uri: requestUrl, method: 'DELETE'}, debug);
