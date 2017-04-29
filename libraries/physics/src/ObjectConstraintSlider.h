@@ -49,15 +49,6 @@ protected:
 
     float _angularLow { -TWO_PI };
     float _angularHigh { TWO_PI };
-
-    float _linearTarget { 0.0f };
-    float _linearTimeScale { 0.0f };
-    bool _linearTargetSet { false };
-
-    float _angularTarget { 0.0f };
-    float _angularTimeScale { 0.0f };
-    bool _angularTargetSet { false };
-
 };
 
 #endif // hifi_ObjectConstraintSlider_h

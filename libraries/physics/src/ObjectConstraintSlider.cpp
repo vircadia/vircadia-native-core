@@ -146,13 +146,6 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
     float linearHigh;
     float angularLow;
     float angularHigh;
-    float linearTarget;
-    float linearTimeScale;
-    bool linearTargetSet;
-    float angularTarget;
-    float angularTimeScale;
-    bool angularTargetSet;
-
 
     bool needUpdate = false;
     bool somethingChanged = ObjectDynamic::updateArguments(arguments);
@@ -212,44 +205,6 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
             angularHigh = _angularHigh;
         }
 
-
-        ok = true;
-        linearTarget = EntityDynamicInterface::extractFloatArgument("slider constraint", arguments,
-                                                                    "linearTarget", ok, false);
-        if (!ok) {
-            linearTarget = _linearTarget;
-            linearTargetSet = _linearTargetSet;
-        } else {
-            linearTargetSet = true;
-        }
-
-
-        ok = true;
-        linearTimeScale = EntityDynamicInterface::extractFloatArgument("slider constraint", arguments,
-                                                                       "linearTimeScale", ok, false);
-        if (!ok) {
-            linearTimeScale = _linearTimeScale;
-        }
-
-        ok = true;
-        angularTarget = EntityDynamicInterface::extractFloatArgument("slider constraint", arguments,
-                                                                     "angularTarget", ok, false);
-        if (!ok) {
-            angularTarget = _angularTarget;
-            angularTargetSet = _angularTargetSet;
-        } else {
-            angularTargetSet = true;
-        }
-
-
-        ok = true;
-        angularTimeScale = EntityDynamicInterface::extractFloatArgument("slider constraint", arguments,
-                                                                        "angularTimeScale", ok, false);
-        if (!ok) {
-            angularTimeScale = _angularTimeScale;
-        }
-
-
         if (somethingChanged ||
             pointInA != _pointInA ||
             axisInA != _axisInA ||
@@ -259,13 +214,7 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
             linearLow != _linearLow ||
             linearHigh != _linearHigh ||
             angularLow != _angularLow ||
-            angularHigh != _angularHigh ||
-            linearTarget != _linearTarget ||
-            linearTimeScale != _linearTimeScale ||
-            linearTargetSet != _linearTargetSet ||
-            angularTarget != _angularTarget ||
-            angularTimeScale != _angularTimeScale ||
-            angularTargetSet != _angularTargetSet) {
+            angularHigh != _angularHigh) {
             // something changed
             needUpdate = true;
         }
@@ -282,12 +231,6 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
             _linearHigh = linearHigh;
             _angularLow = angularLow;
             _angularHigh = angularHigh;
-            _linearTarget = linearTarget;
-            _linearTimeScale = linearTimeScale;
-            _linearTargetSet = linearTargetSet;
-            _angularTarget = angularTarget;
-            _angularTimeScale = angularTimeScale;
-            _angularTargetSet = angularTargetSet;
 
             _active = true;
 
@@ -317,12 +260,6 @@ QVariantMap ObjectConstraintSlider::getArguments() {
             arguments["linearHigh"] = _linearHigh;
             arguments["angularLow"] = _angularLow;
             arguments["angularHigh"] = _angularHigh;
-            arguments["linearTarget"] = _linearTarget;
-            arguments["linearTimeScale"] = _linearTimeScale;
-            arguments["linearTargetSet"] = _linearTargetSet;
-            arguments["angularTarget"] = _angularTarget;
-            arguments["angularTimeScale"] = _angularTimeScale;
-            arguments["angularTargetSet"] = _angularTargetSet;
             arguments["linearPosition"] = static_cast<btSliderConstraint*>(_constraint)->getLinearPos();
             arguments["angularPosition"] = static_cast<btSliderConstraint*>(_constraint)->getAngularPos();
         }
@@ -351,12 +288,6 @@ QByteArray ObjectConstraintSlider::serialize() const {
         dataStream << _linearHigh;
         dataStream << _angularLow;
         dataStream << _angularHigh;
-        dataStream << _linearTarget;
-        dataStream << _linearTimeScale;
-        dataStream << _linearTargetSet;
-        dataStream << _angularTarget;
-        dataStream << _angularTimeScale;
-        dataStream << _angularTargetSet;
     });
 
     return serializedConstraintArguments;
@@ -395,12 +326,6 @@ void ObjectConstraintSlider::deserialize(QByteArray serializedArguments) {
         dataStream >> _linearHigh;
         dataStream >> _angularLow;
         dataStream >> _angularHigh;
-        dataStream >> _linearTarget;
-        dataStream >> _linearTimeScale;
-        dataStream >> _linearTargetSet;
-        dataStream >> _angularTarget;
-        dataStream >> _angularTimeScale;
-        dataStream >> _angularTargetSet;
 
         _active = true;
     });

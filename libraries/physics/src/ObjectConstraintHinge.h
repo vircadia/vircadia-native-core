@@ -67,7 +67,6 @@ protected:
     //             limits. A low value will make the the limits more spongy.
 
 
-    float _maxImpulse { 1.0f };
     float _softness { 0.9f };
     float _biasFactor { 0.3f };
     float _relaxationFactor { 1.0f };
