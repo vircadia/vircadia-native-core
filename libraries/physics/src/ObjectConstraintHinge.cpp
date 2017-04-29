@@ -59,14 +59,12 @@ void ObjectConstraintHinge::updateHinge() {
     float softness;
     float biasFactor;
     float relaxationFactor;
-    float maxImpulse;
 
     withReadLock([&]{
         axisInA = _axisInA;
         constraint = static_cast<btHingeConstraint*>(_constraint);
         low = _low;
         high = _high;
-        maxImpulse = _maxImpulse;
         biasFactor = _biasFactor;
         relaxationFactor = _relaxationFactor;
         softness = _softness;
@@ -76,8 +74,8 @@ void ObjectConstraintHinge::updateHinge() {
         return;
     }
 
-    auto bulletAxisInA = glmToBullet(axisInA);
-    constraint->setAxis(bulletAxisInA);
+    // auto bulletAxisInA = glmToBullet(axisInA);
+    // constraint->setAxis(bulletAxisInA);
     constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
 }
 
