@@ -68,21 +68,9 @@ protected:
 
 
     float _maxImpulse { 1.0f };
-
     float _softness { 0.9f };
-
     float _biasFactor { 0.3f };
-
     float _relaxationFactor { 1.0f };
-
-    float _motorVelocity { 0.0f };
-    float _motorTarget { 0.0f };
-    float _motorTargetTimeScale { 0.0f };
-
-    uint64_t _startMotorTime { 0 };
-    uint64_t _previousMotorTime { 0 };
-
-    bool _motorEnabled { false };
 };
 
 #endif // hifi_ObjectConstraintHinge_h
