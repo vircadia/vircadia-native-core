@@ -1,4 +1,6 @@
 "use strict";
+/*jslint vars:true, plusplus:true, forin:true*/
+/*global Window, Script, Controller, MyAvatar, AvatarList, Entities, Messages, Audio, SoundCache, Account, UserActivityLogger, Vec3, Quat, XMLHttpRequest, location, print*/
 //
 //  makeUserConnection.js
 //  scripts/system
@@ -9,7 +11,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-(function() { // BEGIN LOCAL_SCOPE
+(function () { // BEGIN LOCAL_SCOPE
 
     var LABEL = "makeUserConnection";
     var MAX_AVATAR_DISTANCE = 0.2; // m
@@ -27,7 +29,7 @@
     var MAKING_CONNECTION_TIMEOUT = 800; // ms
     var CONNECTING_TIME = 1600; // ms
     var PARTICLE_RADIUS = 0.15; // m
-    var PARTICLE_ANGLE_INCREMENT = 360/45; // 1hz
+    var PARTICLE_ANGLE_INCREMENT = 360 / 45; // 1hz
     var HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/4beat_sweep.wav";
     var SUCCESSFUL_HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/3rdbeat_success_bell.wav";
     var PREFERRER_HAND_JOINT_POSTFIX_ORDER = ['Middle1', 'Index1', ''];
@@ -39,7 +41,7 @@
     var PARTICLE_EFFECT_PROPS = {
         "alpha": 0.8,
         "azimuthFinish": Math.PI,
-        "azimuthStart": -1*Math.PI,
+        "azimuthStart": -1 * Math.PI,
         "emitRate": 500,
         "emitSpeed": 0.0,
         "emitterShouldTrail": 1,
@@ -56,10 +58,10 @@
         "color": {"red": 255, "green": 255, "blue": 255},
         "colorFinish": {"red": 0, "green": 164, "blue": 255},
         "colorStart": {"red": 255, "green": 255, "blue": 255},
-        "emitOrientation": {"w": -0.71, "x":0.0, "y":0.0, "z": 0.71},
+        "emitOrientation": {"w": -0.71, "x": 0.0, "y": 0.0, "z": 0.71},
         "emitAcceleration": {"x": 0.0, "y": 0.0, "z": 0.0},
         "accelerationSpread": {"x": 0.0, "y": 0.0, "z": 0.0},
-        "dimensions": {"x":0.05, "y": 0.05, "z": 0.05},
+        "dimensions": {"x": 0.05, "y": 0.05, "z": 0.05},
         "type": "ParticleEffect"
     };
     var MAKING_CONNECTION_PARTICLE_PROPS = {
@@ -68,7 +70,7 @@
         "alphaSpread": 0,
         "alphaFinish": 0,
         "azimuthFinish": Math.PI,
-        "azimuthStart": -1*Math.PI,
+        "azimuthStart": -1 * Math.PI,
         "emitRate": 2000,
         "emitSpeed": 0.0,
         "emitterShouldTrail": 1,
@@ -86,14 +88,14 @@
         "color": {"red": 200, "green": 170, "blue": 255},
         "colorFinish": {"red": 0, "green": 134, "blue": 255},
         "colorStart": {"red": 185, "green": 222, "blue": 255},
-        "emitOrientation": {"w": -0.71, "x":0.0, "y":0.0, "z": 0.71},
+        "emitOrientation": {"w": -0.71, "x": 0.0, "y": 0.0, "z": 0.71},
         "emitAcceleration": {"x": 0.0, "y": 0.0, "z": 0.0},
         "accelerationSpread": {"x": 0.0, "y": 0.0, "z": 0.0},
-        "dimensions": {"x":0.05, "y": 0.05, "z": 0.05},
+        "dimensions": {"x": 0.05, "y": 0.05, "z": 0.05},
         "type": "ParticleEffect"
     };
 
-    var currentHand = undefined;
+    var currentHand;
     var currentHandJointIndex = -1;
     var state = STATES.INACTIVE;
     var connectingInterval;
@@ -183,7 +185,8 @@
     function handToString(hand) {
         if (hand === Controller.Standard.RightHand) {
             return "RightHand";
-        } else if (hand === Controller.Standard.LeftHand) {
+        }
+        if (hand === Controller.Standard.LeftHand) {
             return "LeftHand";
         }
         debug("handToString called without valid hand! value: ", hand);
@@ -193,7 +196,8 @@
     function stringToHand(hand) {
         if (hand === "RightHand") {
             return Controller.Standard.RightHand;
-        } else if (hand === "LeftHand") {
+        }
+        if (hand === "LeftHand") {
             return Controller.Standard.LeftHand;
         }
         debug("stringToHand called with bad hand string:", hand);
@@ -203,7 +207,8 @@
     function handToHaptic(hand) {
         if (hand === Controller.Standard.RightHand) {
             return 1;
-        } else if (hand === Controller.Standard.LeftHand) {
+        }
+        if (hand === Controller.Standard.LeftHand) {
             return 0;
         }
         debug("handToHaptic called without a valid hand!");
@@ -231,11 +236,11 @@
     // This returns the ideal hand joint index for the avatar.
     // [hand]middle1 -> [hand]index1 -> [hand]
     function getIdealHandJointIndex(avatar, hand) {
-        debug("got hand " + hand + " for avatar " + avatar.sessionUUID);
-        var handString = handToString(hand);
-        for (var i = 0; i < PREFERRER_HAND_JOINT_POSTFIX_ORDER.length; i++) {
-            var jointName = handString + PREFERRER_HAND_JOINT_POSTFIX_ORDER[i];
-            var jointIndex = avatar.getJointIndex(jointName);
+        debug("get hand " + hand + " for avatar " + avatar.sessionUUID);
+        var suffixIndex, jointName, jointIndex, handString = handToString(hand);
+        for (suffixIndex = 0; suffixIndex < PREFERRER_HAND_JOINT_POSTFIX_ORDER.length; suffixIndex++) {
+            jointName = handString + PREFERRER_HAND_JOINT_POSTFIX_ORDER[suffixIndex];
+            jointIndex = avatar.getJointIndex(jointName);
             if (jointIndex !== -1) {
                 debug('found joint ' + jointName + ' (' + jointIndex + ')');
                 return jointIndex;
@@ -255,7 +260,7 @@
         return avatar.getJointPosition(handJointIndex);
     }
 
-    function shakeHandsAnimation(animationProperties) {
+    function shakeHandsAnimation() {
         // all we are doing here is moving the right hand to a spot
         // that is in front of and a bit above the hips.  Basing how
         // far in front as scaling with the avatar's height (say hips
@@ -325,58 +330,58 @@
         }
 
         switch (state) {
-            case STATES.WAITING:
-                // no visualization while waiting
-                deleteParticleEffect();
-                deleteMakeConnectionParticleEffect();
-                stopHandshakeSound();
-                break;
-            case STATES.CONNECTING:
-                var particleProps = {};
-                // put the position between the 2 hands, if we have a connectingId.  This
-                // helps define the plane in which the particles move.
-                positionFractionallyTowards(myHandPosition, otherHand, 0.5);
-                // now manage the rest of the entity
-                if (!particleEffect) {
-                    particleRotationAngle = 0.0;
-                    particleEmitRate = 500;
-                    particleProps = PARTICLE_EFFECT_PROPS;
-                    particleProps.isEmitting = 0;
-                    particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
-                    particleProps.parentID = MyAvatar.sessionUUID;
-                    particleEffect = Entities.addEntity(particleProps, true);
-                } else {
-                    particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
-                    particleProps.isEmitting = 1;
-                    Entities.editEntity(particleEffect, particleProps);
-                }
-                if (!makingConnectionParticleEffect) {
-                    var props = MAKING_CONNECTION_PARTICLE_PROPS;
-                    props.parentID = MyAvatar.sessionUUID;
-                    makingConnectionEmitRate = 2000;
-                    props.emitRate = makingConnectionEmitRate;
-                    props.position = myHandPosition;
-                    makingConnectionParticleEffect = Entities.addEntity(props, true);
-                } else {
-                    makingConnectionEmitRate *= 0.5;
-                    Entities.editEntity(makingConnectionParticleEffect, {
-                        emitRate: makingConnectionEmitRate,
-                        position: myHandPosition,
-                        isEmitting: true
-                    });
-                }
-                break;
-            case STATES.MAKING_CONNECTION:
-                particleEmitRate = Math.max(50, particleEmitRate * 0.5);
-                Entities.editEntity(makingConnectionParticleEffect, {emitRate: 0, isEmitting: 0, position: myHandPosition});
-                Entities.editEntity(particleEffect, {
-                    position: calcParticlePos(myHandPosition, otherHand, otherOrientation),
-                    emitRate: particleEmitRate
+        case STATES.WAITING:
+            // no visualization while waiting
+            deleteParticleEffect();
+            deleteMakeConnectionParticleEffect();
+            stopHandshakeSound();
+            break;
+        case STATES.CONNECTING:
+            var particleProps = {};
+            // put the position between the 2 hands, if we have a connectingId.  This
+            // helps define the plane in which the particles move.
+            positionFractionallyTowards(myHandPosition, otherHand, 0.5);
+            // now manage the rest of the entity
+            if (!particleEffect) {
+                particleRotationAngle = 0.0;
+                particleEmitRate = 500;
+                particleProps = PARTICLE_EFFECT_PROPS;
+                particleProps.isEmitting = 0;
+                particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
+                particleProps.parentID = MyAvatar.sessionUUID;
+                particleEffect = Entities.addEntity(particleProps, true);
+            } else {
+                particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
+                particleProps.isEmitting = 1;
+                Entities.editEntity(particleEffect, particleProps);
+            }
+            if (!makingConnectionParticleEffect) {
+                var props = MAKING_CONNECTION_PARTICLE_PROPS;
+                props.parentID = MyAvatar.sessionUUID;
+                makingConnectionEmitRate = 2000;
+                props.emitRate = makingConnectionEmitRate;
+                props.position = myHandPosition;
+                makingConnectionParticleEffect = Entities.addEntity(props, true);
+            } else {
+                makingConnectionEmitRate *= 0.5;
+                Entities.editEntity(makingConnectionParticleEffect, {
+                    emitRate: makingConnectionEmitRate,
+                    position: myHandPosition,
+                    isEmitting: true
                 });
-                break;
-            default:
-                debug("unexpected state", state);
-                break;
+            }
+            break;
+        case STATES.MAKING_CONNECTION:
+            particleEmitRate = Math.max(50, particleEmitRate * 0.5);
+            Entities.editEntity(makingConnectionParticleEffect, {emitRate: 0, isEmitting: 0, position: myHandPosition});
+            Entities.editEntity(particleEffect, {
+                position: calcParticlePos(myHandPosition, otherHand, otherOrientation),
+                emitRate: particleEmitRate
+            });
+            break;
+        default:
+            debug("unexpected state", state);
+            break;
         }
     }
 
@@ -412,8 +417,42 @@
         });
         return nearestAvatar;
     }
+    function messageSend(message) {
+        Messages.sendMessage(MESSAGE_CHANNEL, JSON.stringify(message));
+    }
 
+    function lookForWaitingAvatar() {
+        // we started with nobody close enough, but maybe I've moved
+        // or they did.  Note that 2 people doing this race, so stop
+        // as soon as you have a connectingId (which means you got their
+        // message before noticing they were in range in this loop)
 
+        // just in case we re-enter before stopping
+        stopWaiting();
+        debug("started looking for waiting avatars");
+        waitingInterval = Script.setInterval(function () {
+            if (state === STATES.WAITING && !connectingId) {
+                // find the closest in-range avatar, and send connection request
+                var nearestAvatar = findNearestWaitingAvatar();
+                if (nearestAvatar.avatar) {
+                    connectingId = nearestAvatar.avatar;
+                    connectingHandString = handToString(nearestAvatar.hand);
+                    debug("sending connectionRequest to", connectingId);
+                    messageSend({
+                        key: "connectionRequest",
+                        id: connectingId,
+                        hand: handToString(currentHand)
+                    });
+                }
+            } else {
+                // something happened, stop looking for avatars to connect
+                stopWaiting();
+                debug("stopped looking for waiting avatars");
+            }
+        }, WAITING_INTERVAL);
+    }
+
+    var pollCount = 0, requestUrl = location.metaverseServerUrl + '/api/v1/user/connection_request';
     // As currently implemented, we select the closest waiting avatar (if close enough) and send
     // them a connectionRequest.  If nobody is close enough we send a waiting message, and wait for a
     // connectionRequest.  If the 2 people who want to connect are both somewhat out of range when they
@@ -510,9 +549,8 @@
             debug("updateTriggers called - gripping", handToString(hand));
             if (state !== STATES.INACTIVE) {
                 return;
-            } else {
-                startHandshake(fromKeyboard);
             }
+            startHandshake(fromKeyboard);
         } else {
             // TODO: should we end handshake even when inactive?  Ponder
             debug("updateTriggers called -- no longer gripping", handToString(hand));
@@ -524,47 +562,12 @@
         }
     }
 
-    function messageSend(message) {
-        Messages.sendMessage(MESSAGE_CHANNEL, JSON.stringify(message));
-    }
-
-    function lookForWaitingAvatar() {
-        // we started with nobody close enough, but maybe I've moved
-        // or they did.  Note that 2 people doing this race, so stop
-        // as soon as you have a connectingId (which means you got their
-        // message before noticing they were in range in this loop)
-
-        // just in case we re-enter before stopping
-        stopWaiting();
-        debug("started looking for waiting avatars");
-        waitingInterval = Script.setInterval(function () {
-            if (state === STATES.WAITING && !connectingId) {
-                // find the closest in-range avatar, and send connection request
-                var nearestAvatar = findNearestWaitingAvatar();
-                if (nearestAvatar.avatar) {
-                    connectingId = nearestAvatar.avatar;
-                    connectingHandString = handToString(nearestAvatar.hand);
-                    debug("sending connectionRequest to", connectingId);
-                    messageSend({
-                        key: "connectionRequest",
-                        id: connectingId,
-                        hand: handToString(currentHand)
-                    });
-                }
-            } else {
-                // something happened, stop looking for avatars to connect
-                stopWaiting();
-                debug("stopped looking for waiting avatars");
-            }
-        }, WAITING_INTERVAL);
-    }
-
     /* There is a mini-state machine after entering STATES.makingConnection.
        We make a request (which might immediately succeed, fail, or neither.
        If we immediately fail, we tell the user.
        Otherwise, we wait MAKING_CONNECTION_TIMEOUT. At that time, we poll until success or fail.
      */
-    var result, requestBody, pollCount = 0, requestUrl = location.metaverseServerUrl + '/api/v1/user/connection_request';
+    var result, requestBody;
     function connectionRequestCompleted() { // Final result is in. Do effects.
         if (result.status === 'success') { // set earlier
             if (!successfulHandshakeInjector) {
@@ -580,10 +583,15 @@
                 handToHaptic(currentHand));
             // don't change state (so animation continues while gripped)
             // but do send a notification, by calling the slot that emits the signal for it
-            Window.makeConnection(true, result.connection.new_connection ?
-                "You and " + result.connection.username + " are now connected!" : result.connection.username);
-            UserActivityLogger.makeUserConnection(connectingId, true, result.connection.new_connection ?
-                "new connection" : "already connected");
+            Window.makeConnection(true,
+                                  result.connection.new_connection ?
+                                  "You and " + result.connection.username + " are now connected!" :
+                                  result.connection.username);
+            UserActivityLogger.makeUserConnection(connectingId,
+                                                  true,
+                                                  result.connection.new_connection ?
+                                                  "new connection" :
+                                                  "already connected");
             return;
         } // failed
         endHandshake();
@@ -658,12 +666,15 @@
 
         // This will immediately set response if successful (e.g., the other guy got his request in first),
         // or immediate failure, and will otherwise poll (using the requestBody we just set).
-        request({ //
+        request({
             uri: requestUrl,
             method: 'POST',
             json: true,
             body: {'user_connection_request': requestBody}
         }, handleConnectionResponseAndMaybeRepeat);
+    }
+    function getConnectingHandJointIndex() {
+        return AvatarList.getAvatarIdentifiers().indexOf(connectingId) !== -1 ? getIdealHandJointIndex(AvatarList.getAvatar(connectingId), stringToHand(connectingHandString)) : -1;
     }
 
     // we change states, start the connectionInterval where we check
@@ -676,8 +687,7 @@
         // do we need to do this?
         connectingId = id;
         connectingHandString = hand;
-        connectingHandJointIndex = AvatarList.getAvatarIdentifiers().indexOf(connectingId) !== -1 ?
-            getIdealHandJointIndex(AvatarList.getAvatar(connectingId), stringToHand(connectingHandString)) : -1;
+        connectingHandJointIndex = getConnectingHandJointIndex();
         state = STATES.CONNECTING;
 
         // play sound
@@ -714,7 +724,7 @@
                     key: "done"
                 });
                 startHandshake();
-            } else if (count > CONNECTING_TIME/CONNECTING_INTERVAL) {
+            } else if (count > CONNECTING_TIME / CONNECTING_INTERVAL) {
                 debug("made connection with " + id);
                 makeConnection(id);
                 stopConnecting();
@@ -753,127 +763,119 @@
             debug(e);
         }
         switch (message.key) {
-            case "waiting":
-                // add this guy to waiting object.  Any other message from this person will
-                // remove it from the list
-                waitingList[senderID] = message.hand;
-                break;
-            case "connectionRequest":
-                delete waitingList[senderID];
-                if (state === STATES.WAITING && message.id === MyAvatar.sessionUUID &&
-                   (!connectingId || connectingId === senderID)) {
-                    // you were waiting for a connection request, so send the ack.  Or, you and the other
-                    // guy raced and both send connectionRequests.  Handle that too
+        case "waiting":
+            // add this guy to waiting object.  Any other message from this person will
+            // remove it from the list
+            waitingList[senderID] = message.hand;
+            break;
+        case "connectionRequest":
+            delete waitingList[senderID];
+            if (state === STATES.WAITING && message.id === MyAvatar.sessionUUID && (!connectingId || connectingId === senderID)) {
+                // you were waiting for a connection request, so send the ack.  Or, you and the other
+                // guy raced and both send connectionRequests.  Handle that too
+                connectingId = senderID;
+                connectingHandString = message.hand;
+                connectingHandJointIndex = getConnectingHandJointIndex();
+                messageSend({
+                    key: "connectionAck",
+                    id: senderID,
+                    hand: handToString(currentHand)
+                });
+            } else if (state === STATES.WAITING && connectingId === senderID) {
+                // the person you are trying to connect sent a request to someone else.  See the
+                // if statement above.  So, don't cry, just start the handshake over again
+                startHandshake();
+            }
+            break;
+        case "connectionAck":
+            delete waitingList[senderID];
+            if (state === STATES.WAITING && (!connectingId || connectingId === senderID)) {
+                if (message.id === MyAvatar.sessionUUID) {
+                    // start connecting...
                     connectingId = senderID;
                     connectingHandString = message.hand;
-                    connectingHandJointIndex = AvatarList.getAvatarIdentifiers().indexOf(connectingId) !== -1 ?
-                        getIdealHandJointIndex(AvatarList.getAvatar(connectingId), stringToHand(connectingHandString)) : -1;
-                    messageSend({
-                        key: "connectionAck",
-                        id: senderID,
-                        hand: handToString(currentHand)
-                    });
-                } else if (state === STATES.WAITING && connectingId === senderID) {
-                    // the person you are trying to connect sent a request to someone else.  See the
-                    // if statement above.  So, don't cry, just start the handshake over again
+                    connectingHandJointIndex = getConnectingHandJointIndex();
+                    stopWaiting();
+                    startConnecting(senderID, connectingHandString);
+                } else if (connectingId) {
+                    // this is for someone else (we lost race in connectionRequest),
+                    // so lets start over
                     startHandshake();
                 }
-                break;
-            case "connectionAck":
-                delete waitingList[senderID];
-                if (state === STATES.WAITING && (!connectingId || connectingId === senderID)) {
-                    if (message.id === MyAvatar.sessionUUID) {
-                        // start connecting...
-                        connectingId = senderID;
-                        connectingHandString = message.hand;
-                        connectingHandJointIndex = AvatarList.getAvatarIdentifiers().indexOf(connectingId) !== -1 ?
-                            getIdealHandJointIndex(AvatarList.getAvatar(connectingId), stringToHand(connectingHandString)) : -1;
-                        stopWaiting();
-                        startConnecting(senderID, connectingHandString);
-                    } else if (connectingId) {
-                        // this is for someone else (we lost race in connectionRequest),
-                        // so lets start over
+            }
+            // TODO: check to see if we are waiting for this but the person we are connecting sent it to
+            // someone else, and try again
+            break;
+        case "connecting":
+            delete waitingList[senderID];
+            if (state === STATES.WAITING && senderID === connectingId) {
+                // temporary logging
+                if (connectingHandString !== message.hand) {
+                    debug("connecting hand", connectingHandString, "not same as connecting hand in message", message.hand);
+                }
+                connectingHandString = message.hand;
+                if (message.id !== MyAvatar.sessionUUID) {
+                    // the person we were trying to connect is connecting to someone else
+                    // so try again
+                    startHandshake();
+                    break;
+                }
+                startConnecting(senderID, message.hand);
+            }
+            break;
+        case "done":
+            delete waitingList[senderID];
+            if (state === STATES.CONNECTING && connectingId === senderID) {
+                // if they are done, and didn't connect us, terminate our
+                // connecting
+                if (message.connectionId !== MyAvatar.sessionUUID) {
+                    stopConnecting();
+                    // now just call startHandshake.  Should be ok to do so without a
+                    // value for isKeyboard, as we should not change the animation
+                    // state anyways (if any)
+                    startHandshake();
+                }
+            } else {
+                // if waiting or inactive, lets clear the connecting id. If in makingConnection,
+                // do nothing
+                if (state !== STATES.MAKING_CONNECTION && connectingId === senderID) {
+                    connectingId = undefined;
+                    connectingHandString = undefined;
+                    connectingHandJointIndex = -1;
+                    if (state !== STATES.INACTIVE) {
                         startHandshake();
                     }
                 }
-                // TODO: check to see if we are waiting for this but the person we are connecting sent it to
-                // someone else, and try again
-                break;
-            case "connecting":
-                delete waitingList[senderID];
-                if (state === STATES.WAITING && senderID === connectingId) {
-                    // temporary logging
-                    if (connectingHandString !== message.hand) {
-                        debug("connecting hand", connectingHandString, "not same as connecting hand in message", message.hand);
-                    }
-                    connectingHandString = message.hand;
-                    if (message.id !== MyAvatar.sessionUUID) {
-                        // the person we were trying to connect is connecting to someone else
-                        // so try again
-                        startHandshake();
-                        break;
-                    }
-                    startConnecting(senderID, message.hand);
-                }
-                break;
-            case "done":
-                delete waitingList[senderID];
-                if (state === STATES.CONNECTING && connectingId === senderID) {
-                    // if they are done, and didn't connect us, terminate our
-                    // connecting
-                    if (message.connectionId !== MyAvatar.sessionUUID) {
-                        stopConnecting();
-                        // now just call startHandshake.  Should be ok to do so without a
-                        // value for isKeyboard, as we should not change the animation
-                        // state anyways (if any)
-                        startHandshake();
-                    }
-                } else {
-                    // if waiting or inactive, lets clear the connecting id. If in makingConnection,
-                    // do nothing
-                    if (state !== STATES.MAKING_CONNECTION && connectingId === senderID) {
-                        connectingId = undefined;
-                        connectingHandString = undefined;
-                        connectingHandJointIndex = -1;
-                        if (state !== STATES.INACTIVE) {
-                            startHandshake();
-                        }
-                    }
-                }
-                break;
-            default:
-                debug("unknown message", message);
-                break;
+            }
+            break;
+        default:
+            debug("unknown message", message);
+            break;
         }
     }
 
     Messages.subscribe(MESSAGE_CHANNEL);
     Messages.messageReceived.connect(messageHandler);
 
-
     function makeGripHandler(hand, animate) {
         // determine if we are gripping or un-gripping
         if (animate) {
-            return function(value) {
+            return function (value) {
                 updateTriggers(value, true, hand);
             };
-
-        } else {
-            return function (value) {
-                updateTriggers(value, false, hand);
-            };
         }
+        return function (value) {
+            updateTriggers(value, false, hand);
+        };
     }
 
     function keyPressEvent(event) {
-        if ((event.text === "x") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && !event.isControl &&
-           !event.isAlt) {
+        if ((event.text === "x") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && !event.isControl && !event.isAlt) {
             updateTriggers(1.0, true, Controller.Standard.RightHand);
         }
     }
     function keyReleaseEvent(event) {
-        if ((event.text === "x") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && !event.isControl &&
-           !event.isAlt) {
+        if ((event.text === "x") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && !event.isControl && !event.isAlt) {
             updateTriggers(0.0, true, Controller.Standard.RightHand);
         }
     }
