@@ -40,17 +40,11 @@ StackView {
     property var rpcCounter: 0;
     signal sendToScript(var message);
     function rpc(method, parameters, callback) {
-        console.log('fixme rpc', method);
-        sendToScript('foo');
-        console.log('fixme sent to script');
-        /*rpcCalls[rpcCounter] = callback;
+        rpcCalls[rpcCounter] = callback;
         var message = {method: method, params: parameters, id: rpcCounter++, jsonrpc: "2.0"};
-        console.log('fixme sending rpc', JSON.stringify(message));
         sendToScript(message);
-        console.log('fixme sent rpc', message.id);*/
     }
     function fromScript(message) {
-        console.log('fixme got message from script:', JSON.stringify(message));
         var callback = rpcCalls[message.id];
         if (!callback) {
             console.log('No callback for message fromScript', JSON.stringify(message));
@@ -78,7 +72,7 @@ StackView {
     }
 
 
-     function resetAfterTeleport() {
+    function resetAfterTeleport() {
         //storyCardFrame.shown = root.shown = false;
     }
     function goCard(targetString) {

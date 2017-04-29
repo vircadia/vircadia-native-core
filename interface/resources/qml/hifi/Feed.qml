@@ -34,7 +34,8 @@ Column {
 
     property string metaverseServerUrl: '';
     property string actions: 'snapshot';
-    Component.onCompleted: fillDestinations();
+    // sendToScript doesn't get wired until after everything gets created. So we have to queue fillDestinations on nextTick.
+    Component.onCompleted: delay.start();
     property string labelText: actions;
     property string filter: '';
     onFilterChanged: filterChoicesByText();
@@ -98,7 +99,7 @@ Column {
     function getUserStoryPage(pageNumber, cb, cb1) { // cb(error) after all pages of domain data have been added to model
         // If supplied, cb1 will be run after the first page IFF it is not the last, for responsiveness.
         var options = [
-            //'now=' + new Date().toISOString(),
+            'now=' + new Date().toISOString(),
             'include_actions=' + actions,
             'restriction=' + (Account.isLoggedIn() ? 'open,hifi' : 'open'),
             'require_online=true',
@@ -107,16 +108,10 @@ Column {
         ];
         var url = metaverseBase + 'user_stories?' + options.join('&');
         var thisRequestId = ++requestId;
-        rpc('request', {
-            uri: url
-        }, function (error, data) {
-            console.log('fixme response', url, JSON.stringify(error), JSON.stringify(data));
-            data.total_pages = 1; // fixme remove after testing
+        rpc('request', url, function (error, data) {
             if (thisRequestId !== requestId) {
                 error = 'stale';
             }
-            //console.log('fixme', actions, pageNumber, thisRequestId, requestId, url, error)
-            //console.log('fixme data', actions, pageNumber, JSON.stringify(data));
             if (handleError(url, error, data, cb)) {
                 return; // abandon stale requests
             }
@@ -130,6 +125,10 @@ Column {
             cb();
         });
     }
+    property var delay: Timer { // No setTimeout or nextTick in QML.
+        interval: 0;
+        onTriggered: fillDestinations();
+    }
     function fillDestinations() { // Public
         function report(label, error) {
             console.log(label, actions, error || 'ok', allStories.length, 'filtered to', suggestions.count);
@@ -142,14 +141,14 @@ Column {
             allStories.slice(counter).forEach(filter);
             report('user stories update', error);
             root.visible = !!suggestions.count;
-        }/*, function () { // If there's more than a page, put what we have in the model right away, keeping track of how many are processed.
+        }, function () { // If there's more than a page, put what we have in the model right away, keeping track of how many are processed.
             allStories.forEach(function (story) {
                 counter++;
                 filter(story);
                 root.visible = !!suggestions.count;
             });
             report('user stories');
-        }*/);
+        });
     }
     function identity(x) {
         return x;
@@ -160,7 +159,7 @@ Column {
             if (story.action === 'snapshot') {
                 return true;
             }
-            return true; // fixme restore (story.place_name !== AddressManager.placename); // Not our entry, but do show other entry points to current domain.
+            return story.place_name !== AddressManager.placename; // Not our entry, but do show other entry points to current domain.
         }
         function matches(story) {
             if (!words.length) {

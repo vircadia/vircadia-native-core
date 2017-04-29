@@ -78,9 +78,8 @@
         httpRequest.open(options.method, options.uri, true);
         httpRequest.send(options.body);
     }
-    function fromQmlXX(message) {
-        print('fixme got fromQml', JSON.stringify(message));
-        /*var response = {id: message.id, jsonrpc: "2.0"};
+    function fromQml(message) {
+        var response = {id: message.id, jsonrpc: "2.0"};
         switch (message.method) {
         case 'request':
             request(message.params, function (error, data) {
@@ -92,7 +91,7 @@
         default:
             response.error = {message: 'Unrecognized message', data: message};
         }
-        tablet.sendToQml(response);*/
+        tablet.sendToQml(response);
     }
     function messagesWaiting(isWaiting) {
         button.editProperties({
@@ -102,21 +101,18 @@
     }
     var hasEventBridge = false;
     function wireEventBridge(on) {
-        print('fixme wireEventBridge', on, hasEventBridge);
         if (on) {
             if (!hasEventBridge) {
-                tablet.fromQml.connect(fromQmlXX);
-                print('fixme wired', tablet);
+                tablet.fromQml.connect(fromQml);
                 hasEventBridge = true;
             }
         } else {
             if (hasEventBridge) {
-                tablet.fromQml.disconnect(fromQmlXX);
+                tablet.fromQml.disconnect(fromQml);
                 hasEventBridge = false;
             }
         }
     }
-    wireEventBridge(true);
 
     function onClicked() {
         if (onGotoScreen) {
@@ -169,7 +165,6 @@
                 return;
             }
             var didNotify = false;
-            print('fixme poll', url, JSON.stringify(data.user_stories));
             data.user_stories.forEach(function (story) {
                 if (stories[story.id]) { // already seen
                     return;
