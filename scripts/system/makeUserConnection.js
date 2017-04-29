@@ -261,6 +261,19 @@
     }
 
     var animationData = {};
+    function updateAnimationData() {
+        // all we are doing here is moving the right hand to a spot
+        // that is in front of and a bit above the hips.  Basing how
+        // far in front as scaling with the avatar's height (say hips
+        // to head distance)
+        var headIndex = MyAvatar.getJointIndex("Head");
+        var offset = 0.5; // default distance of hand in front of you
+        if (headIndex) {
+            offset = 0.8 * MyAvatar.getAbsoluteJointTranslationInObjectFrame(headIndex).y;
+        }
+        animationData.rightHandPosition = Vec3.multiply(offset, {x: -0.25, y: 0.8, z: 1.3});
+        animationData.rightHandRotation = Quat.fromPitchYawRollDegrees(90, 0, 90);
+    }
     function shakeHandsAnimation() {
         return animationData;
     }
@@ -273,20 +286,7 @@
     function startHandshakeAnimation() {
         endHandshakeAnimation(); // just in case order of press/unpress is broken
         debug("adding animation");
-
-        // all we are doing here is moving the right hand to a spot
-        // that is in front of and a bit above the hips.  Basing how
-        // far in front as scaling with the avatar's height (say hips
-        // to head distance)
-        var headIndex = MyAvatar.getJointIndex("Head");
-        var offset = 0.5; // default distance of hand in front of you
-        var result = {};
-        if (headIndex) {
-            offset = 0.8 * MyAvatar.getAbsoluteJointTranslationInObjectFrame(headIndex).y;
-        }
-        result.rightHandPosition = Vec3.multiply(offset, {x: -0.25, y: 0.8, z: 1.3});
-        result.rightHandRotation = Quat.fromPitchYawRollDegrees(90, 0, 90);
-
+        updateAnimationData();
         animHandlerId = MyAvatar.addAnimationStateHandler(shakeHandsAnimation, []);
     }
 
