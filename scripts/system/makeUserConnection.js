@@ -439,6 +439,19 @@
         message[HAND_STRING_PROPERTY] = handString;
         messageSend(message);
     }
+    function setupCandidate() { // find the closest in-range avatar, send connection request, an return true. (Otherwise falsey)
+        var nearestAvatar = findNearestWaitingAvatar();
+        if (nearestAvatar.avatar) {
+            connectingId = nearestAvatar.avatar;
+            connectingHandString = handToString(nearestAvatar.hand);
+            debug("sending connectionRequest to", connectingId);
+            handStringMessageSend({
+                key: "connectionRequest",
+                id: connectingId
+            }, handToString(currentHand));
+            return true;
+        }
+    }
 
     function lookForWaitingAvatar() {
         // we started with nobody close enough, but maybe I've moved
@@ -451,17 +464,7 @@
         debug("started looking for waiting avatars");
         waitingInterval = Script.setInterval(function () {
             if (state === STATES.WAITING && !connectingId) {
-                // find the closest in-range avatar, and send connection request
-                var nearestAvatar = findNearestWaitingAvatar();
-                if (nearestAvatar.avatar) {
-                    connectingId = nearestAvatar.avatar;
-                    connectingHandString = handToString(nearestAvatar.hand);
-                    debug("sending connectionRequest to", connectingId);
-                    handStringMessageSend({
-                        key: "connectionRequest",
-                        id: connectingId
-                    }, handToString(currentHand));
-                }
+                setupCandidate();
             } else {
                 // something happened, stop looking for avatars to connect
                 stopWaiting();
@@ -490,18 +493,8 @@
         stopWaiting();
         stopConnecting();
         stopMakingConnection();
-
-        var nearestAvatar = findNearestWaitingAvatar();
-        if (nearestAvatar.avatar) {
-            connectingId = nearestAvatar.avatar;
-            connectingHandString = handToString(nearestAvatar.hand);
-            connectingHandJointIndex = getIdealHandJointIndex(nearestAvatar.avatarObject, nearestAvatar.hand);
+        if (setupCandidate()) {
             currentHandJointIndex = getIdealHandJointIndex(MyAvatar, currentHand);
-            debug("sending connectionRequest to", connectingId);
-            handStringMessageSend({
-                key: "connectionRequest",
-                id: connectingId,
-            }, handToString(currentHand));
         } else {
             // send waiting message
             debug("sending waiting message");
