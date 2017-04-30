@@ -452,6 +452,11 @@
             return true;
         }
     }
+    function clearConnecting() {
+        connectingId = undefined;
+        connectingHandString = undefined;
+        connectingHandJointIndex = -1;
+    }
 
     function lookForWaitingAvatar() {
         // we started with nobody close enough, but maybe I've moved
@@ -486,9 +491,7 @@
         debug("starting handshake for", currentHand);
         pollCount = 0;
         state = STATES.WAITING;
-        connectingId = undefined;
-        connectingHandString = undefined;
-        connectingHandJointIndex = -1;
+        clearConnecting();
         // just in case
         stopWaiting();
         stopConnecting();
@@ -517,9 +520,7 @@
         // as we ignore the key release event when inactive.  See updateTriggers
         // below.
         state = STATES.INACTIVE;
-        connectingId = undefined;
-        connectingHandString = undefined;
-        connectingHandJointIndex = -1;
+        clearConnecting();
         stopWaiting();
         stopConnecting();
         stopMakingConnection();
@@ -674,6 +675,11 @@
     function getConnectingHandJointIndex() {
         return AvatarList.getAvatarIdentifiers().indexOf(connectingId) !== -1 ? getIdealHandJointIndex(AvatarList.getAvatar(connectingId), stringToHand(connectingHandString)) : -1;
     }
+    function setupConnecting(id, handString) {
+        connectingId = id;
+        connectingHandString = handString;
+        connectingHandJointIndex = getConnectingHandJointIndex();
+    }
 
     // we change states, start the connectionInterval where we check
     // to be sure the hand is still close enough.  If not, we terminate
@@ -683,9 +689,7 @@
         var count = 0;
         debug("connecting", id, "hand", handString);
         // do we need to do this?
-        connectingId = id;
-        connectingHandString = handString;
-        connectingHandJointIndex = getConnectingHandJointIndex();
+        setupConnecting(id, handString);
         state = STATES.CONNECTING;
 
         // play sound
@@ -770,9 +774,7 @@
             if (state === STATES.WAITING && message.id === MyAvatar.sessionUUID && (!connectingId || connectingId === senderID)) {
                 // you were waiting for a connection request, so send the ack.  Or, you and the other
                 // guy raced and both send connectionRequests.  Handle that too
-                connectingId = senderID;
-                connectingHandString = message[HAND_STRING_PROPERTY];
-                connectingHandJointIndex = getConnectingHandJointIndex();
+                setupConnecting(senderID, message[HAND_STRING_PROPERTY]);
                 handStringMessageSend({
                     key: "connectionAck",
                     id: senderID,
@@ -787,10 +789,7 @@
             delete waitingList[senderID];
             if (state === STATES.WAITING && (!connectingId || connectingId === senderID)) {
                 if (message.id === MyAvatar.sessionUUID) {
-                    // start connecting...
-                    connectingId = senderID;
-                    connectingHandString = message[HAND_STRING_PROPERTY];
-                    connectingHandJointIndex = getConnectingHandJointIndex();
+                    setupConnecting(senderID, message[HAND_STRING_PROPERTY]);
                     stopWaiting();
                     startConnecting(senderID, connectingHandString);
                 } else if (connectingId) {
@@ -835,9 +834,7 @@
                 // if waiting or inactive, lets clear the connecting id. If in makingConnection,
                 // do nothing
                 if (state !== STATES.MAKING_CONNECTION && connectingId === senderID) {
-                    connectingId = undefined;
-                    connectingHandString = undefined;
-                    connectingHandJointIndex = -1;
+                    clearConnecting();
                     if (state !== STATES.INACTIVE) {
                         startHandshake();
                     }
