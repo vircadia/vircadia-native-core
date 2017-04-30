@@ -255,7 +255,6 @@
     function getHandPosition(avatar, handJointIndex) {
         if (handJointIndex === -1) {
             debug("calling getHandPosition with no hand joint index! (returning avatar position but this is a BUG)");
-            debug(new Error().stack);
             return avatar.position;
         }
         return avatar.getJointPosition(handJointIndex);
@@ -439,7 +438,7 @@
         message[HAND_STRING_PROPERTY] = handString;
         messageSend(message);
     }
-    function setupCandidate() { // find the closest in-range avatar, send connection request, an return true. (Otherwise falsey)
+    function setupCandidate() { // find the closest in-range avatar, send connection request, and return true. (Otherwise falsey)
         var nearestAvatar = findNearestWaitingAvatar();
         if (nearestAvatar.avatar) {
             connectingId = nearestAvatar.avatar;
@@ -483,7 +482,7 @@
     // them a connectionRequest.  If nobody is close enough we send a waiting message, and wait for a
     // connectionRequest.  If the 2 people who want to connect are both somewhat out of range when they
     // initiate the shake, they will race to see who sends the connectionRequest after noticing the
-    // waiting message.  Either way, they will start connecting eachother at that point.
+    // waiting message.  Either way, they will start connecting each other at that point.
     function startHandshake(fromKeyboard) {
         if (fromKeyboard) {
             startHandshakeAnimation();
@@ -496,9 +495,7 @@
         stopWaiting();
         stopConnecting();
         stopMakingConnection();
-        if (setupCandidate()) {
-            currentHandJointIndex = getIdealHandJointIndex(MyAvatar, currentHand);
-        } else {
+        if (!setupCandidate()) {
             // send waiting message
             debug("sending waiting message");
             handStringMessageSend({
@@ -541,10 +538,8 @@
             debug("currentHand", currentHand, "ignoring messages from", hand);
             return;
         }
-        if (!currentHand) {
-            currentHand = hand;
-            currentHandJointIndex = getIdealHandJointIndex(MyAvatar, currentHand);
-        }
+        currentHand = hand;
+        currentHandJointIndex = getIdealHandJointIndex(MyAvatar, currentHand); // Always, in case of changed skeleton.
         // ok now, we are either initiating or quitting...
         var isGripping = value > GRIP_MIN;
         if (isGripping) {
