@@ -93,7 +93,7 @@ public:
             const Transform& boundTransform,
             const gpu::BufferPointer& buffer);
 
-    float computeFadePercent(bool isDebugEnabled) const;
+    float computeFadePercent() const;
 
     // Render Item interface
     render::ItemKey getKey() const override;
@@ -104,7 +104,7 @@ public:
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
-    void bindFade(gpu::Batch& batch, bool isDebugEnabled) const;
+    void bindFade(gpu::Batch& batch, const RenderArgs* args) const;
 
     void initCache();
 

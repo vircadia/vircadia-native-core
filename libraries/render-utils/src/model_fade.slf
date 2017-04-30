@@ -19,10 +19,10 @@
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
 
 <@include Fade.slh@>
-<$declareFade()$>
+<$declareFadeFragment()$>
 
 in vec4 _position;
-in vec4 _worldPosition;
+in vec4 _worldFadePosition;
 in vec3 _normal;
 in vec3 _color;
 in vec2 _texCoord0;
@@ -30,7 +30,7 @@ in vec2 _texCoord1;
 
 
 void main(void) {
-    applyFade(_worldPosition.xyz, _normal);
+    applyFade(_worldFadePosition.xyz, _normal);
 
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);

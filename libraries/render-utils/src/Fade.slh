@@ -9,11 +9,18 @@
 <@if not FADE_SLH@>
 <@def FADE_SLH@>
 
-<@func declareFade()@>
+<@func transformModelToFadePos(objectTransform, objectPosition, fadePosition)@>
+    {
+        <$transformModelToWorldPos($objectTransform$, $objectPosition$, $fadePosition$)$>
+        <$fadePosition$> -= vec4(<$objectTransform$>._model[3].xyz, 0.f);
+    }
+<@endfunc@>
+
+<@func declareFadeFragment()@>
 
 struct Fade {
     vec3 _Offset;
-    float   _Percent;
+    float  _Percent;
 };
 
 uniform fadeBuffer {
@@ -30,8 +37,8 @@ float evalFadeMask(vec3 position, vec3 normal) {
     const float FADE_MASK_INV_SCALE = 1.0;
 
     // Do tri-linear interpolation
-    vec3    noisePosition = position * FADE_MASK_INV_SCALE;
-    vec3    noisePositionFloored = floor(noisePosition) + fade._Offset;
+    vec3    noisePosition = position * FADE_MASK_INV_SCALE + fade._Offset;
+    vec3    noisePositionFloored = floor(noisePosition);
     vec3    noisePositionFraction = fract(noisePosition);
     float   noiseLowXLowYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored), 0).r;
     float   noiseLowXHighYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(0,1,0)), 0).r;

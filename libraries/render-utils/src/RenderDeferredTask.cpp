@@ -325,6 +325,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         if (_debugFade) {
             args->_debugFlags = static_cast<RenderArgs::DebugFlags>(args->_debugFlags |
                 static_cast<int>(RenderArgs::RENDER_DEBUG_FADE));
+            args->_debugFadePercent = _debugFadePercent;
             // Force fade for everyone
             keyBuilder.withFade();
         }

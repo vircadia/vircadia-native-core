@@ -133,6 +133,7 @@ public:
     RenderDetails _details;
     render::ScenePointer _scene; // HACK
     int8_t _cameraMode { -1 }; // HACK
+    float _debugFadePercent{ 0.f }; // HACK too
 };
 
 #endif // hifi_RenderArgs_h
