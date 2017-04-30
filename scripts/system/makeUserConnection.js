@@ -399,14 +399,12 @@
         }
     }
 
-    function isNearby(id, handString) {
+    function isNearby() {
         if (currentHand) {
             var handPosition = getHandPosition(MyAvatar, currentHandJointIndex);
-            var avatar = AvatarList.getAvatar(id);
+            var avatar = AvatarList.getAvatar(connectingId);
             if (avatar) {
-                var otherHand = stringToHand(handString);
-                var otherHandJointIndex = getIdealHandJointIndex(avatar, otherHand);
-                var distance = Vec3.distance(getHandPosition(avatar, otherHandJointIndex), handPosition);
+                var distance = Vec3.distance(getHandPosition(avatar, connectingHandJointIndex), handPosition);
                 return (distance < MAX_AVATAR_DISTANCE);
             }
         }
@@ -728,7 +726,7 @@
             if (state !== STATES.CONNECTING) {
                 debug("stopping connecting interval, state changed");
                 stopConnecting();
-            } else if (!isNearby(id, handString)) {
+            } else if (!isNearby()) {
                 // gotta go back to waiting
                 debug(id, "moved, back to waiting");
                 stopConnecting();
@@ -800,9 +798,8 @@
             delete waitingList[senderID];
             if (state === STATES.WAITING && (!connectingId || connectingId === senderID)) {
                 if (message.id === MyAvatar.sessionUUID) {
-                    setupConnecting(senderID, message[HAND_STRING_PROPERTY]);
                     stopWaiting();
-                    startConnecting(senderID, connectingHandString);
+                    startConnecting(senderID, message[HAND_STRING_PROPERTY]);
                 } else if (connectingId) {
                     // this is for someone else (we lost race in connectionRequest),
                     // so lets start over
