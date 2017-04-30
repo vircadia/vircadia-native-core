@@ -261,9 +261,9 @@ function checkHMDAudio() {
 // Wait for the C++ systems to fire up before trying to do anything with audio devices
 Script.setTimeout(function () {
     debug("Connecting deviceChanged(), displayModeChanged(), and switchAudioDevice()...");
-//    AudioDevice.deviceChanged.connect(onDevicechanged);
-//    AudioDevice.currentInputDeviceChanged.connect(onCurrentDeviceChanged);
-//    AudioDevice.currentOutputDeviceChanged.connect(onCurrentDeviceChanged);
+    AudioDevice.deviceChanged.connect(onDevicechanged);
+    AudioDevice.currentInputDeviceChanged.connect(onCurrentDeviceChanged);
+    AudioDevice.currentOutputDeviceChanged.connect(onCurrentDeviceChanged);
     HMD.displayModeChanged.connect(checkHMDAudio);
     Menu.menuItemEvent.connect(onMenuEvent);
     debug("Setting up Audio I/O menu for the first time...");
