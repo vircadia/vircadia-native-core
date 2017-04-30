@@ -42,12 +42,53 @@ ObjectActionSpring::~ObjectActionSpring() {
     #endif
 }
 
+SpatiallyNestablePointer ObjectActionSpring::getOther() {
+    SpatiallyNestablePointer other;
+    withWriteLock([&]{
+        if (_otherID == QUuid()) {
+            // no other
+            return;
+        }
+        other = _other.lock();
+        if (other && other->getID() == _otherID) {
+            // other is already up-to-date
+            return;
+        }
+        if (other) {
+            // we have a pointer to other, but it's wrong
+            other.reset();
+            _other.reset();
+        }
+        // we have an other-id but no pointer to other cached
+        QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+        if (!parentFinder) {
+            return;
+        }
+        EntityItemPointer ownerEntity = _ownerEntity.lock();
+        if (!ownerEntity) {
+            return;
+        }
+        bool success;
+        _other = parentFinder->find(_otherID, success, ownerEntity->getParentTree());
+        if (success) {
+            other = _other.lock();
+        }
+    });
+    return other;
+}
+
 bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
                                    glm::vec3& linearVelocity, glm::vec3& angularVelocity,
                                    float& linearTimeScale, float& angularTimeScale) {
+    SpatiallyNestablePointer other = getOther();
     withReadLock([&]{
-        rotation = _desiredRotationalTarget;
-        position = _desiredPositionalTarget;
+        if (other) {
+            rotation = _desiredRotationalTarget * other->getRotation();
+            position = _desiredPositionalTarget + other->getPosition();
+        } else {
+            rotation = _desiredRotationalTarget;
+            position = _desiredPositionalTarget;
+        }
         linearVelocity = glm::vec3();
         angularVelocity = glm::vec3();
         linearTimeScale = _linearTimeScale;
@@ -210,6 +251,8 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     float linearTimeScale;
     glm::quat rotationalTarget;
     float angularTimeScale;
+    QUuid otherID;
+
 
     bool needUpdate = false;
     bool somethingChanged = ObjectDynamic::updateArguments(arguments);
@@ -239,11 +282,19 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
             angularTimeScale = _angularTimeScale;
         }
 
+        ok = true;
+        otherID = QUuid(EntityDynamicInterface::extractStringArgument("spring action",
+                                                                            arguments, "otherID", ok, false));
+        if (!ok) {
+            otherID = _otherID;
+        }
+
         if (somethingChanged ||
             positionalTarget != _desiredPositionalTarget ||
             linearTimeScale != _linearTimeScale ||
             rotationalTarget != _desiredRotationalTarget ||
-            angularTimeScale != _angularTimeScale) {
+            angularTimeScale != _angularTimeScale ||
+            otherID != _otherID) {
             // something changed
             needUpdate = true;
         }
@@ -255,6 +306,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
             _linearTimeScale = glm::max(MIN_TIMESCALE, glm::abs(linearTimeScale));
             _desiredRotationalTarget = rotationalTarget;
             _angularTimeScale = glm::max(MIN_TIMESCALE, glm::abs(angularTimeScale));
+            _otherID = otherID;
             _active = true;
 
             auto ownerEntity = _ownerEntity.lock();
@@ -277,6 +329,8 @@ QVariantMap ObjectActionSpring::getArguments() {
 
         arguments["targetRotation"] = glmToQMap(_desiredRotationalTarget);
         arguments["angularTimeScale"] = _angularTimeScale;
+
+        arguments["otherID"] = _otherID;
     });
     return arguments;
 }
@@ -291,6 +345,7 @@ void ObjectActionSpring::serializeParameters(QDataStream& dataStream) const {
         dataStream << _rotationalTargetSet;
         dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
+        dataStream << _otherID;
     });
 }
 
@@ -322,6 +377,8 @@ void ObjectActionSpring::deserializeParameters(QByteArray serializedArguments, Q
         _expires = serverTimeToLocalTime(serverExpires);
 
         dataStream >> _tag;
+
+        dataStream >> _otherID;
 
         _active = true;
     });
