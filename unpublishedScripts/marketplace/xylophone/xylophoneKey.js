@@ -29,7 +29,6 @@
             _this.entityID = entityID;
             var soundURL = Script.resolvePath(JSON.parse(Entities.getEntityProperties(_this.entityID, ["userData"]).userData).soundFile);
             _this.sound = SoundCache.getSound(soundURL);
-            //Explicitly setting dimensions is a workaround for collisionWithEntity not being triggered after entity is reloaded. Fogbugz Case no. 1939
             Entities.editEntity(_this.entityID, {dimensions: {x: 0.15182036161422729, y: 0.049085158854722977, z: 0.39702033996582031}});
         },
 
@@ -48,10 +47,7 @@
                 _this.isWaiting = true;
                 _this.homePos = Entities.getEntityProperties(_this.entityID, ["position"]).position;
                 _this.injector = Audio.playSound(_this.sound, {position: _this.homePos, volume: 1});
-                Controller.triggerHapticPulse(1, 15, 2); //This should be made to only pulse the hand thats holding the mallet.
                 editEntityTextures(_this.entityID, "file5", TEXGRAY);
-                var newPos = Vec3.sum(_this.homePos, {x:0,y:-0.025,z:0});
-                Entities.editEntity(_this.entityID, {position: newPos});
                 _this.timeout();
             }
         },
@@ -59,10 +55,8 @@
         timeout: function() {
             Script.setTimeout(function() {
                 editEntityTextures(_this.entityID, "file5", TEXBLACK);
-                Entities.editEntity(_this.entityID, {position: _this.homePos});
                 _this.isWaiting = false;
             }, TIMEOUT);
-        },
     };
 
     return new XylophoneKey();
