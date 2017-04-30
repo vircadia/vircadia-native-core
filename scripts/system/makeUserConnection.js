@@ -24,6 +24,7 @@
         MAKING_CONNECTION: 3
     };
     var STATE_STRINGS = ["inactive", "waiting", "connecting", "makingConnection"];
+    var HAND_STRING_PROPERTY = 'hand'; // Used in our message protocol. IWBNI we changed it to handString, but that would break compatability.
     var WAITING_INTERVAL = 100; // ms
     var CONNECTING_INTERVAL = 100; // ms
     var MAKING_CONNECTION_TIMEOUT = 800; // ms
@@ -234,7 +235,7 @@
     }
 
     // This returns the ideal hand joint index for the avatar.
-    // [hand]middle1 -> [hand]index1 -> [hand]
+    // [handString]middle1 -> [handString]index1 -> [handString]
     function getIdealHandJointIndex(avatar, hand) {
         debug("get hand " + hand + " for avatar " + avatar.sessionUUID);
         var suffixIndex, jointName, jointIndex, handString = handToString(hand);
@@ -313,11 +314,11 @@
         }
     }
 
-    function calcParticlePos(myHand, otherHand, otherOrientation, reset) {
+    function calcParticlePos(myHandPosition, otherHandPosition, otherOrientation, reset) {
         if (reset) {
             particleRotationAngle = 0.0;
         }
-        var position = positionFractionallyTowards(myHand, otherHand, 0.5);
+        var position = positionFractionallyTowards(myHandPosition, otherHandPosition, 0.5);
         particleRotationAngle += PARTICLE_ANGLE_INCREMENT; // about 0.5 hz
         var radius = Math.min(PARTICLE_RADIUS, PARTICLE_RADIUS * particleRotationAngle / 360);
         var axis = Vec3.mix(Quat.getFront(MyAvatar.orientation), Quat.inverse(Quat.getFront(otherOrientation)), 0.5);
@@ -333,13 +334,13 @@
         }
 
         var myHandPosition = getHandPosition(MyAvatar, currentHandJointIndex);
-        var otherHand;
+        var otherHandPosition;
         var otherOrientation;
         if (connectingId) {
             var other = AvatarList.getAvatar(connectingId);
             if (other) {
                 otherOrientation = other.orientation;
-                otherHand = getHandPosition(other, connectingHandJointIndex);
+                otherHandPosition = getHandPosition(other, connectingHandJointIndex);
             }
         }
 
@@ -354,18 +355,18 @@
             var particleProps = {};
             // put the position between the 2 hands, if we have a connectingId.  This
             // helps define the plane in which the particles move.
-            positionFractionallyTowards(myHandPosition, otherHand, 0.5);
+            positionFractionallyTowards(myHandPosition, otherHandPosition, 0.5);
             // now manage the rest of the entity
             if (!particleEffect) {
                 particleRotationAngle = 0.0;
                 particleEmitRate = 500;
                 particleProps = PARTICLE_EFFECT_PROPS;
                 particleProps.isEmitting = 0;
-                particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
+                particleProps.position = calcParticlePos(myHandPosition, otherHandPosition, otherOrientation);
                 particleProps.parentID = MyAvatar.sessionUUID;
                 particleEffect = Entities.addEntity(particleProps, true);
             } else {
-                particleProps.position = calcParticlePos(myHandPosition, otherHand, otherOrientation);
+                particleProps.position = calcParticlePos(myHandPosition, otherHandPosition, otherOrientation);
                 particleProps.isEmitting = 1;
                 Entities.editEntity(particleEffect, particleProps);
             }
@@ -389,7 +390,7 @@
             particleEmitRate = Math.max(50, particleEmitRate * 0.5);
             Entities.editEntity(makingConnectionParticleEffect, {emitRate: 0, isEmitting: 0, position: myHandPosition});
             Entities.editEntity(particleEffect, {
-                position: calcParticlePos(myHandPosition, otherHand, otherOrientation),
+                position: calcParticlePos(myHandPosition, otherHandPosition, otherOrientation),
                 emitRate: particleEmitRate
             });
             break;
@@ -399,14 +400,14 @@
         }
     }
 
-    function isNearby(id, hand) {
+    function isNearby(id, handString) {
         if (currentHand) {
-            var handPos = getHandPosition(MyAvatar, currentHandJointIndex);
+            var handPosition = getHandPosition(MyAvatar, currentHandJointIndex);
             var avatar = AvatarList.getAvatar(id);
             if (avatar) {
-                var otherHand = stringToHand(hand);
+                var otherHand = stringToHand(handString);
                 var otherHandJointIndex = getIdealHandJointIndex(avatar, otherHand);
-                var distance = Vec3.distance(getHandPosition(avatar, otherHandJointIndex), handPos);
+                var distance = Vec3.distance(getHandPosition(avatar, otherHandJointIndex), handPosition);
                 return (distance < MAX_AVATAR_DISTANCE);
             }
         }
@@ -414,7 +415,7 @@
     }
 
     function findNearestWaitingAvatar() {
-        var handPos = getHandPosition(MyAvatar, currentHandJointIndex);
+        var handPosition = getHandPosition(MyAvatar, currentHandJointIndex);
         var minDistance = MAX_AVATAR_DISTANCE;
         var nearestAvatar = {};
         Object.keys(waitingList).forEach(function (identifier) {
@@ -422,7 +423,7 @@
             if (avatar) {
                 var hand = stringToHand(waitingList[identifier]);
                 var handJointIndex = getIdealHandJointIndex(avatar, hand);
-                var distance = Vec3.distance(getHandPosition(avatar, handJointIndex), handPos);
+                var distance = Vec3.distance(getHandPosition(avatar, handJointIndex), handPosition);
                 if (distance < minDistance) {
                     minDistance = distance;
                     nearestAvatar = {avatar: identifier, hand: hand, avatarObject: avatar};
@@ -433,6 +434,10 @@
     }
     function messageSend(message) {
         Messages.sendMessage(MESSAGE_CHANNEL, JSON.stringify(message));
+    }
+    function handStringMessageSend(message, handString) {
+        message[HAND_STRING_PROPERTY] = handString;
+        messageSend(message);
     }
 
     function lookForWaitingAvatar() {
@@ -452,11 +457,10 @@
                     connectingId = nearestAvatar.avatar;
                     connectingHandString = handToString(nearestAvatar.hand);
                     debug("sending connectionRequest to", connectingId);
-                    messageSend({
+                    handStringMessageSend({
                         key: "connectionRequest",
-                        id: connectingId,
-                        hand: handToString(currentHand)
-                    });
+                        id: connectingId
+                    }, handToString(currentHand));
                 }
             } else {
                 // something happened, stop looking for avatars to connect
@@ -494,18 +498,16 @@
             connectingHandJointIndex = getIdealHandJointIndex(nearestAvatar.avatarObject, nearestAvatar.hand);
             currentHandJointIndex = getIdealHandJointIndex(MyAvatar, currentHand);
             debug("sending connectionRequest to", connectingId);
-            messageSend({
+            handStringMessageSend({
                 key: "connectionRequest",
                 id: connectingId,
-                hand: handToString(currentHand)
-            });
+            }, handToString(currentHand));
         } else {
             // send waiting message
             debug("sending waiting message");
-            messageSend({
+            handStringMessageSend({
                 key: "waiting",
-                hand: handToString(currentHand)
-            });
+            }, handToString(currentHand));
             lookForWaitingAvatar();
         }
     }
@@ -684,12 +686,12 @@
     // to be sure the hand is still close enough.  If not, we terminate
     // the interval, go back to the waiting state.  If we make it
     // the entire CONNECTING_TIME, we make the connection.
-    function startConnecting(id, hand) {
+    function startConnecting(id, handString) {
         var count = 0;
-        debug("connecting", id, "hand", hand);
+        debug("connecting", id, "hand", handString);
         // do we need to do this?
         connectingId = id;
-        connectingHandString = hand;
+        connectingHandString = handString;
         connectingHandJointIndex = getConnectingHandJointIndex();
         state = STATES.CONNECTING;
 
@@ -705,11 +707,10 @@
         }
 
         // send message that we are connecting with them
-        messageSend({
+        handStringMessageSend({
             key: "connecting",
-            id: id,
-            hand: handToString(currentHand)
-        });
+            id: id
+        }, handToString(currentHand));
         Controller.triggerHapticPulse(HAPTIC_DATA.initial.strength, HAPTIC_DATA.initial.duration, handToHaptic(currentHand));
 
         connectingInterval = Script.setInterval(function () {
@@ -719,7 +720,7 @@
             if (state !== STATES.CONNECTING) {
                 debug("stopping connecting interval, state changed");
                 stopConnecting();
-            } else if (!isNearby(id, hand)) {
+            } else if (!isNearby(id, handString)) {
                 // gotta go back to waiting
                 debug(id, "moved, back to waiting");
                 stopConnecting();
@@ -769,7 +770,7 @@
         case "waiting":
             // add this guy to waiting object.  Any other message from this person will
             // remove it from the list
-            waitingList[senderID] = message.hand;
+            waitingList[senderID] = message[HAND_STRING_PROPERTY];
             break;
         case "connectionRequest":
             delete waitingList[senderID];
@@ -777,13 +778,12 @@
                 // you were waiting for a connection request, so send the ack.  Or, you and the other
                 // guy raced and both send connectionRequests.  Handle that too
                 connectingId = senderID;
-                connectingHandString = message.hand;
+                connectingHandString = message[HAND_STRING_PROPERTY];
                 connectingHandJointIndex = getConnectingHandJointIndex();
-                messageSend({
+                handStringMessageSend({
                     key: "connectionAck",
                     id: senderID,
-                    hand: handToString(currentHand)
-                });
+                }, handToString(currentHand));
             } else if (state === STATES.WAITING && connectingId === senderID) {
                 // the person you are trying to connect sent a request to someone else.  See the
                 // if statement above.  So, don't cry, just start the handshake over again
@@ -796,7 +796,7 @@
                 if (message.id === MyAvatar.sessionUUID) {
                     // start connecting...
                     connectingId = senderID;
-                    connectingHandString = message.hand;
+                    connectingHandString = message[HAND_STRING_PROPERTY];
                     connectingHandJointIndex = getConnectingHandJointIndex();
                     stopWaiting();
                     startConnecting(senderID, connectingHandString);
@@ -813,17 +813,17 @@
             delete waitingList[senderID];
             if (state === STATES.WAITING && senderID === connectingId) {
                 // temporary logging
-                if (connectingHandString !== message.hand) {
-                    debug("connecting hand", connectingHandString, "not same as connecting hand in message", message.hand);
+                if (connectingHandString !== message[HAND_STRING_PROPERTY]) {
+                    debug("connecting hand", connectingHandString, "not same as connecting hand in message", message[HAND_STRING_PROPERTY]);
                 }
-                connectingHandString = message.hand;
+                connectingHandString = message[HAND_STRING_PROPERTY];
                 if (message.id !== MyAvatar.sessionUUID) {
                     // the person we were trying to connect is connecting to someone else
                     // so try again
                     startHandshake();
                     break;
                 }
-                startConnecting(senderID, message.hand);
+                startConnecting(senderID, connectingHandString);
             }
             break;
         case "done":
