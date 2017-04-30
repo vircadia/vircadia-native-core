@@ -293,10 +293,6 @@ QVariantMap ObjectConstraintConeTwist::getArguments() {
             arguments["softness"] = _softness;
             arguments["biasFactor"] = _biasFactor;
             arguments["relaxationFactor"] = _relaxationFactor;
-
-
-            // arguments["linearPosition"] = static_cast<btConeTwistConstraint*>(_constraint)->getLinearPos();
-            // arguments["angularPosition"] = static_cast<btConeTwistConstraint*>(_constraint)->getAngularPos();
         }
     });
     return arguments;
