@@ -16,6 +16,7 @@
 #include "PhysicsLogging.h"
 
 const float SPRING_MAX_SPEED = 10.0f;
+const float MAX_SPRING_TIMESCALE = 600.0f; // 10 min is a long time
 
 const uint16_t ObjectActionSpring::springVersion = 1;
 
@@ -42,11 +43,16 @@ ObjectActionSpring::~ObjectActionSpring() {
 }
 
 bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
-                                   glm::vec3& linearVelocity, glm::vec3& angularVelocity) {
-    rotation = _desiredRotationalTarget;
-    position = _desiredPositionalTarget;
-    linearVelocity = glm::vec3();
-    angularVelocity = glm::vec3();
+                                   glm::vec3& linearVelocity, glm::vec3& angularVelocity,
+                                   float& linearTimeScale, float& angularTimeScale) {
+    withReadLock([&]{
+        rotation = _desiredRotationalTarget;
+        position = _desiredPositionalTarget;
+        linearVelocity = glm::vec3();
+        angularVelocity = glm::vec3();
+        linearTimeScale = _linearTimeScale;
+        angularTimeScale = _angularTimeScale;
+    });
     return true;
 }
 
@@ -61,8 +67,10 @@ bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
     glm::vec3 linearVelocity;
     glm::vec3 angularVelocity;
 
-    bool valid = false;
-    int springCount = 0;
+    bool linearValid = false;
+    int linearSpringCount = 0;
+    bool angularValid = false;
+    int angularSpringCount = 0;
 
     QList<EntityDynamicPointer> springDerivedActions;
     springDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_SPRING));
@@ -73,41 +81,55 @@ bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
         std::shared_ptr<ObjectActionSpring> springAction = std::static_pointer_cast<ObjectActionSpring>(action);
         glm::quat rotationForAction;
         glm::vec3 positionForAction;
-        glm::vec3 linearVelocityForAction, angularVelocityForAction;
-        bool success = springAction->getTarget(deltaTimeStep, rotationForAction,
-                                               positionForAction,  linearVelocityForAction,
-                                               angularVelocityForAction);
+        glm::vec3 linearVelocityForAction;
+        glm::vec3 angularVelocityForAction;
+        float linearTimeScale;
+        float angularTimeScale;
+        bool success = springAction->getTarget(deltaTimeStep,
+                                               rotationForAction, positionForAction,
+                                               linearVelocityForAction, angularVelocityForAction,
+                                               linearTimeScale, angularTimeScale);
         if (success) {
-            springCount ++;
-            if (springAction.get() == this) {
-                // only use the rotation for this action
-                valid = true;
-                rotation = rotationForAction;
+            if (angularTimeScale < MAX_SPRING_TIMESCALE) {
+                angularValid = true;
+                angularSpringCount++;
+                angularVelocity += angularVelocityForAction;
+                if (springAction.get() == this) {
+                    // only use the rotation for this action
+                    rotation = rotationForAction;
+                }
             }
 
-            position += positionForAction;
-            linearVelocity += linearVelocityForAction;
-            angularVelocity += angularVelocityForAction;
+            if (linearTimeScale < MAX_SPRING_TIMESCALE) {
+                linearValid = true;
+                linearSpringCount++;
+                position += positionForAction;
+                linearVelocity += linearVelocityForAction;
+            }
         }
     }
 
-    if (valid && springCount > 0) {
-        position /= springCount;
-        linearVelocity /= springCount;
-        angularVelocity /= springCount;
-
+    if ((angularValid && angularSpringCount > 0) || (linearValid && linearSpringCount > 0)) {
         withWriteLock([&]{
-            _positionalTarget = position;
-            _rotationalTarget = rotation;
-            _linearVelocityTarget = linearVelocity;
-            _angularVelocityTarget = angularVelocity;
-            _positionalTargetSet = true;
-            _rotationalTargetSet = true;
-            _active = true;
+            if (linearValid && linearSpringCount > 0) {
+                position /= linearSpringCount;
+                linearVelocity /= linearSpringCount;
+                _positionalTarget = position;
+                _linearVelocityTarget = linearVelocity;
+                _positionalTargetSet = true;
+                _active = true;
+            }
+            if (angularValid && angularSpringCount > 0) {
+                angularVelocity /= angularSpringCount;
+                _rotationalTarget = rotation;
+                _angularVelocityTarget = angularVelocity;
+                _rotationalTargetSet = true;
+                _active = true;
+            }
         });
     }
 
-    return valid;
+    return linearValid || angularValid;
 }
 
 
@@ -133,8 +155,7 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
             return;
         }
 
-        const float MAX_TIMESCALE = 600.0f; // 10 min is a long time
-        if (_linearTimeScale < MAX_TIMESCALE) {
+        if (_linearTimeScale < MAX_SPRING_TIMESCALE) {
             btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
             btVector3 offset = rigidBody->getCenterOfMassPosition() - glmToBullet(_positionalTarget);
             float offsetLength = offset.length();
@@ -150,7 +171,7 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
             rigidBody->setLinearVelocity(targetVelocity);
         }
 
-        if (_angularTimeScale < MAX_TIMESCALE) {
+        if (_angularTimeScale < MAX_SPRING_TIMESCALE) {
             btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
 
             btQuaternion bodyRotation = rigidBody->getOrientation();
