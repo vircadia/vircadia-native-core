@@ -14,7 +14,7 @@ getEntityTextures = function(id) {
     if (properties.textures) { 
         try {
             results = JSON.parse(properties.textures);
-        } catch(err) {
+        } catch (err) {
             logDebug(err);
             logDebug(properties.textures);
         }
@@ -23,12 +23,12 @@ getEntityTextures = function(id) {
 };
 
 setEntityTextures = function(id, textureList) {
-	var json = JSON.stringify(textureList);
-	Entities.editEntity(id, {textures: json});
+    var json = JSON.stringify(textureList);
+    Entities.editEntity(id, {textures: json});
 };
 
 editEntityTextures = function(id, textureName, textureURL) {
-	var textureList = getEntityTextures(id);
-	textureList[textureName] = textureURL;
-	setEntityTextures(id, textureList);
+    var textureList = getEntityTextures(id);
+    textureList[textureName] = textureURL;
+    setEntityTextures(id, textureList);
 };
