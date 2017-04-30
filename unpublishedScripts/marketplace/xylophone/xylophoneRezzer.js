@@ -8,11 +8,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var soundFiles = ["C2.wav", "D2.wav", "E2.wav", "F2.wav", "G2.wav", "A2.wav", "B2.wav", "C3.wav"];
+var soundFiles = ["C4.wav", "D4.wav", "E4.wav", "F4.wav", "G4.wav", "A4.wav", "B4.wav", "C5.wav"];
 var keyModelURL = Script.resolvePath("xyloKey_2_a_e.fbx");
 var keyScriptURL = Script.resolvePath("xylophoneKey.js");
 var TEXBLACK = Script.resolvePath("xylotex_bar_black.png");
-var malletModelURL = Script.resolvePath("Mallet2-2pc.fbx");
+var malletModelURL = Script.resolvePath("Mallet3-2pc.fbx");
+var malletModelColliderURL = Script.resolvePath("Mallet3-2bpc_phys.obj");
 var center = MyAvatar.position;
 var fwd = {x:0, y:0, z:-1};
 
@@ -26,7 +27,7 @@ var xyloFrameID = Entities.addEntity( {
     shapeType: "static-mesh"
 });
 
-center.y += (0.45); //key Y offset from frame
+center.y += (0.45); // key Y offset from frame
 var keyPos, keyRot, ud, td, keyID;
 for (var i = 1; i <= soundFiles.length; i++) {
 
@@ -52,22 +53,22 @@ for (var i = 1; i <= soundFiles.length; i++) {
         script: keyScriptURL,
         textures: JSON.stringify(td),
         userData: JSON.stringify(ud),
-        parentID: xyloFrameID,
+        parentID: xyloFrameID
     } );
 }
 
-//if rezzed on/above something, wait until after model has loaded so you can read its dimensions then move object on to that surface.
+// if rezzed on/above something, wait until after model has loaded so you can read its dimensions then move object on to that surface.
 var pickRay = {origin: center, direction: {x:0, y:-1, z:0}};
 var intersection = Entities.findRayIntersection(pickRay, true);
 if (intersection.intersects && (intersection.distance < 10)) {
     var surfaceY = intersection.intersection.y;
     Script.setTimeout( function() {
-        //should add loop to check for fbx loaded instead of delay
+        // should add loop to check for fbx loaded instead of delay
         var xyloDimensions = Entities.getEntityProperties(xyloFrameID, ["dimensions"]).dimensions;
         xyloFramePos.y = surfaceY + (xyloDimensions.y/2);
         Entities.editEntity(xyloFrameID, {position: xyloFramePos});
         rezMallets();
-    }, 2000); //timeout (ms)
+    }, 2000);
 } else {
     print("No surface detected.");
     rezMallets();
@@ -78,14 +79,16 @@ function rezMallets() {
         name: "Xylophone Mallet",
         type: "Model",
         modelURL: malletModelURL,
+        compoundShapeURL: malletModelColliderURL,
         collidesWith: "static,dynamic,kinematic,",
         collisionMask: 7,
         collisionsWillMove: 1,
         dynamic: 1,
         damping: 1,
         angularDamping: 1,
-        shapeType: "simple-compound",
-        userData: "{\"grabbableKey\":{\"grabbable\":true}}"
+        shapeType: "compound",
+        userData: "{\"grabbableKey\":{\"grabbable\":true}}",
+        dimensions: {"x": 0.057845603674650192, "y": 0.057845607399940491, "z": 0.30429631471633911} // not being set from fbx for some reason.
     };
 
     malletProps.position = Vec3.sum(xyloFramePos, {x: 0.1, y: 0.55, z: 0});
