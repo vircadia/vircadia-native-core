@@ -122,3 +122,10 @@ bool Quat::equal(const glm::quat& q1, const glm::quat& q2) {
     return q1 == q2;
 }
 
+glm::quat Quat::cancelOutRollAndPitch(const glm::quat& q) {
+    return ::cancelOutRollAndPitch(q);
+}
+
+glm::quat Quat::cancelOutRoll(const glm::quat& q) {
+    return ::cancelOutRoll(q);
+}
