@@ -24,7 +24,6 @@ Item {
         option = value;
     }
 
-    Component { id: profileCreator; HFTabletWebEngineProfile {} }
     Component { id: inputDialogBuilder; TabletQueryDialog { } }
     function inputDialog(properties) {
         openModal = inputDialogBuilder.createObject(tabletRoot, properties);
@@ -91,6 +90,11 @@ Item {
             loader.item.gotoPreviousApp = true;
         }
     }
+
+    function loadWebBase() {
+	loader.source = "";
+	loader.source = "TabletWebView.qml";
+    }
         
     function returnToPreviousApp() {
         tabletApps.remove(currentApp);
@@ -117,8 +121,6 @@ Item {
 
     function loadWebUrl(url, injectedJavaScriptUrl) {
         tabletApps.clear();
-        var newProfile = profileCreator.createObject();
-        loader.item.viewProfile = newProfile;
         loader.item.url = url;
         loader.item.scriptURL = injectedJavaScriptUrl;
         tabletApps.append({"appUrl": "TabletWebView.qml", "isWebUrl": true, "scriptUrl": injectedJavaScriptUrl, "appWebUrl": url});

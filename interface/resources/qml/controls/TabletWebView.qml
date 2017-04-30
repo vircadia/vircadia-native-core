@@ -270,12 +270,7 @@ Item {
         }
 
         onNewViewRequested: {
-            console.log("--------------> new window opened <-------------");
             request.openIn(webview);
-        }
-
-        onWindowCloseRequested: {
-            console.log("-------------> requested to cloes window <---------------");
         }
     }
 
