@@ -348,18 +348,19 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
     // Store message in case we need to disconnect from it later.
     callbacks.message = message;
 
+
+    auto weakNode = senderNode.toWeakRef();
+    connect(message.data(), &ReceivedMessage::progress, this, [this, weakNode, messageID, length](qint64 size) {
+        handleProgressCallback(weakNode, messageID, size, length);
+    });
+    connect(message.data(), &ReceivedMessage::completed, this, [this, weakNode, messageID]() {
+        handleCompleteCallback(weakNode, messageID);
+    });
+
     if (message->isComplete()) {
+        disconnect(message.data(), nullptr, this, nullptr);
         callbacks.completeCallback(true, error, message->readAll());
         messageCallbackMap.erase(requestIt);
-    } else {
-        auto weakNode = senderNode.toWeakRef();
-
-        connect(message.data(), &ReceivedMessage::progress, this, [this, weakNode, messageID, length](qint64 size) {
-            handleProgressCallback(weakNode, messageID, size, length);
-        });
-        connect(message.data(), &ReceivedMessage::completed, this, [this, weakNode, messageID]() {
-            handleCompleteCallback(weakNode, messageID);
-        });
     }
 }
 

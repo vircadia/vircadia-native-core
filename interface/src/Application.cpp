@@ -798,7 +798,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, SIGNAL(resetting()), SLOT(resettingDomain()));
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
-    connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &Application::clearDomainAvatars);
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
         getOverlays().deleteOverlay(getTabletScreenID());
         getOverlays().deleteOverlay(getTabletHomeButtonID());
@@ -5179,7 +5179,6 @@ void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
 
     resetPhysicsReadyInformation();
-    getMyAvatar()->setAvatarEntityDataChanged(true); // to recreate worn entities
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _entityServerJurisdictions.withWriteLock([&] {
@@ -5198,12 +5197,16 @@ void Application::clearDomainOctreeDetails() {
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
     _recentlyClearedDomain = true;
-
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
     DependencyManager::get<TextureCache>()->clearUnusedResources();
+}
+
+void Application::clearDomainAvatars() {
+    getMyAvatar()->setAvatarEntityDataChanged(true); // to recreate worn entities
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -5275,33 +5278,8 @@ void Application::nodeKilled(SharedNodePointer node) {
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
     } else if (node->getType() == NodeType::EntityServer) {
-        QUuid nodeUUID = node->getUUID();
-        // see if this is the first we've heard of this node...
-        _entityServerJurisdictions.withReadLock([&] {
-            if (_entityServerJurisdictions.find(nodeUUID) == _entityServerJurisdictions.end()) {
-                return;
-            }
-
-            auto rootCode = _entityServerJurisdictions[nodeUUID].getRootOctalCode();
-            VoxelPositionSize rootDetails;
-            voxelDetailsForCode(rootCode.get(), rootDetails);
-
-            qCDebug(interfaceapp, "model server going away...... v[%f, %f, %f, %f]",
-                (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
-
-        });
-
-        // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
-        _entityServerJurisdictions.withWriteLock([&] {
-            _entityServerJurisdictions.erase(_entityServerJurisdictions.find(nodeUUID));
-        });
-
-        // also clean up scene stats for that server
-        _octreeServerSceneStats.withWriteLock([&] {
-            if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-                _octreeServerSceneStats.erase(nodeUUID);
-            }
-        });
+        // we lost an entity server, clear all of the domain octree details
+        clearDomainOctreeDetails();
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
