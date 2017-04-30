@@ -79,6 +79,25 @@ int main(int argc, const char* argv[]) {
         instanceMightBeRunning = false;
     }
 
+    QCommandLineParser parser;
+    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
+    QCommandLineOption runServerOption("runServer", "Whether to run the server");
+    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
+    QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
+    parser.addOption(checkMinSpecOption);
+    parser.addOption(runServerOption);
+    parser.addOption(serverContentPathOption);
+    parser.addOption(allowMultipleInstancesOption);
+    parser.parse(arguments);
+    bool runServer = parser.isSet(runServerOption);
+    bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
+    QString serverContentPathOptionValue = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
+    bool allowMultipleInstances = parser.isSet(allowMultipleInstancesOption);
+
+    if (allowMultipleInstances) {
+        instanceMightBeRunning = false;
+    }
+
     if (instanceMightBeRunning) {
         // Try to connect and send message to existing interface instance
         QLocalSocket socket;
@@ -136,18 +155,6 @@ int main(int argc, const char* argv[]) {
             }
         }
     }
-
-    QCommandLineParser parser;
-    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
-    QCommandLineOption runServerOption("runServer", "Whether to run the server");
-    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
-    parser.addOption(checkMinSpecOption);
-    parser.addOption(runServerOption);
-    parser.addOption(serverContentPathOption);
-    parser.parse(arguments);
-    bool runServer = parser.isSet(runServerOption);
-    bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
-    QString serverContentPathOptionValue = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
 
     QElapsedTimer startupTime;
     startupTime.start();

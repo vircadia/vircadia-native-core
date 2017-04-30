@@ -12,7 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
+/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, 
+   Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -96,6 +97,10 @@ selectionManager.addEventListener(function () {
                     particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
                 }
             });
+
+            // Switch to particle explorer
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.sendToQml({method: 'selectTab', params: {id: 'particle'}});
         } else {
             needToDestroyParticleExplorer = true;
         }
@@ -213,6 +218,8 @@ function hideMarketplace() {
 // }
 
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
+var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
+var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
 
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
@@ -227,8 +234,11 @@ var toolBar = (function () {
         var position = getPositionToCreateEntity();
         var entityID = null;
         if (position !== null && position !== undefined) {
-            position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
-                properties.position = position;
+            position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
+            properties.position = position;
+            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM)) {
+                properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
+            }
             entityID = Entities.addEntity(properties);
             if (properties.type == "ParticleEffect") {
                 selectParticleEntity(entityID);
@@ -253,6 +263,7 @@ var toolBar = (function () {
         if (systemToolbar) {
             systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
         }
+        Menu.removeMenuItem(GRABBABLE_ENTITIES_MENU_CATEGORY, GRABBABLE_ENTITIES_MENU_ITEM);
     }
 
     var buttonHandlers = {}; // only used to tablet mode
@@ -332,7 +343,7 @@ var toolBar = (function () {
         activeButton = tablet.addButton({
             icon: "icons/tablet-icons/edit-i.svg",
             activeIcon: "icons/tablet-icons/edit-a.svg",
-            text: "EDIT",
+            text: "CREATE",
             sortOrder: 10
         });
         tablet.screenChanged.connect(function (type, url) {
@@ -638,6 +649,27 @@ function findClickedEntity(event) {
     };
 }
 
+// Handles selections on overlays while in edit mode by querying entities from
+// entityIconOverlayManager.
+function handleOverlaySelectionToolUpdates(channel, message, sender) {
+    if (sender !== MyAvatar.sessionUUID || channel !== 'entityToolUpdates')
+        return;
+
+    var data = JSON.parse(message);
+    
+    if (data.method === "selectOverlay") {
+        print("setting selection to overlay " + data.overlayID);
+        var entity = entityIconOverlayManager.findEntity(data.overlayID);
+
+        if (entity !== null) {
+            selectionManager.setSelections([entity]);
+        }
+    } 
+}
+
+Messages.subscribe("entityToolUpdates");
+Messages.messageReceived.connect(handleOverlaySelectionToolUpdates);
+
 var mouseHasMovedSincePress = false;
 var mousePressStartTime = 0;
 var mousePressStartPosition = {
@@ -903,11 +935,21 @@ function setupModelMenus() {
         afterItem: "Parent Entity to Last",
         grouping: "Advanced"
     });
+
+    Menu.addMenuItem({
+        menuName: GRABBABLE_ENTITIES_MENU_CATEGORY,
+        menuItemName: GRABBABLE_ENTITIES_MENU_ITEM,
+        afterItem: "Unparent Entity",
+        isCheckable: true,
+        isChecked: true,
+        grouping: "Advanced"
+    });
+
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Allow Selecting of Large Models",
         shortcutKey: "CTRL+META+L",
-        afterItem: "Unparent Entity",
+        afterItem: GRABBABLE_ENTITIES_MENU_ITEM,
         isCheckable: true,
         isChecked: true,
         grouping: "Advanced"
@@ -1047,6 +1089,13 @@ Script.scriptEnding.connect(function () {
 
     Controller.keyReleaseEvent.disconnect(keyReleaseEvent);
     Controller.keyPressEvent.disconnect(keyPressEvent);
+
+    Controller.mousePressEvent.disconnect(mousePressEvent);
+    Controller.mouseMoveEvent.disconnect(mouseMoveEventBuffered);
+    Controller.mouseReleaseEvent.disconnect(mouseReleaseEvent);
+
+    Messages.messageReceived.disconnect(handleOverlaySelectionToolUpdates);
+    Messages.unsubscribe("entityToolUpdates");
 });
 
 var lastOrientation = null;
@@ -2013,7 +2062,11 @@ function selectParticleEntity(entityID) {
 
     selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
-    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));    
+
+    // Switch to particle explorer
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    tablet.sendToQml({method: 'selectTab', params: {id: 'particle'}});
 }
 
 entityListTool.webView.webEventReceived.connect(function (data) {
@@ -2041,3 +2094,4 @@ entityListTool.webView.webEventReceived.connect(function (data) {
 });
 
 }()); // END LOCAL_SCOPE
+

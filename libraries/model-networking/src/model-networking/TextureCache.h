@@ -22,6 +22,8 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 #include <model/TextureMap.h>
+#include <image/Image.h>
+#include <ktx/KTX.h>
 
 #include "KTXCache.h"
 
@@ -43,29 +45,7 @@ class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
 public:
-     enum Type {
-        DEFAULT_TEXTURE,
-        STRICT_TEXTURE,
-        ALBEDO_TEXTURE,
-        NORMAL_TEXTURE,
-        BUMP_TEXTURE,
-        SPECULAR_TEXTURE,
-        METALLIC_TEXTURE = SPECULAR_TEXTURE, // for now spec and metallic texture are the same, converted to grey
-        ROUGHNESS_TEXTURE,
-        GLOSS_TEXTURE,
-        EMISSIVE_TEXTURE,
-        CUBE_TEXTURE,
-        OCCLUSION_TEXTURE,
-        SCATTERING_TEXTURE = OCCLUSION_TEXTURE,
-        LIGHTMAP_TEXTURE,
-        CUSTOM_TEXTURE
-    };
-    Q_ENUM(Type)
-
-    typedef gpu::Texture* TextureLoader(const QImage& image, const std::string& srcImageName);
-    using TextureLoaderFunc = std::function<TextureLoader>;
-
-    NetworkTexture(const QUrl& url, Type type, const QByteArray& content, int maxNumPixels);
+    NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels);
 
     QString getType() const override { return "NetworkTexture"; }
 
@@ -73,15 +53,23 @@ public:
     int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
-    Type getTextureType() const { return _type;  }
+    image::TextureUsage::Type getTextureType() const { return _type; }
 
-    TextureLoaderFunc getTextureLoader() const;
     gpu::TexturePointer getFallbackTexture() const;
 
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
+public slots:
+    void ktxHeaderRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
+    void ktxHeaderRequestFinished();
+
+    void ktxMipRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
+    void ktxMipRequestFinished();
+
 protected:
+    void makeRequest() override;
+
     virtual bool isCacheable() const override { return _loaded; }
 
     virtual void downloadFinished(const QByteArray& data) override;
@@ -89,13 +77,51 @@ protected:
     Q_INVOKABLE void loadContent(const QByteArray& content);
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
+    void startRequestForNextMipLevel();
+
+    void startMipRangeRequest(uint16_t low, uint16_t high);
+    void maybeHandleFinishedInitialLoad();
+
 private:
     friend class KTXReader;
     friend class ImageReader;
 
-    Type _type;
-    TextureLoaderFunc _textureLoader { [](const QImage&, const std::string&){ return nullptr; } };
+    image::TextureUsage::Type _type;
+
+    static const uint16_t NULL_MIP_LEVEL;
+    enum KTXResourceState {
+        PENDING_INITIAL_LOAD = 0,
+        LOADING_INITIAL_DATA,    // Loading KTX Header + Low Resolution Mips
+        WAITING_FOR_MIP_REQUEST, // Waiting for the gpu layer to report that it needs higher resolution mips
+        PENDING_MIP_REQUEST,     // We have added ourselves to the ResourceCache queue
+        REQUESTING_MIP,          // We have a mip in flight
+        FAILED_TO_LOAD
+    };
+
+    bool _sourceIsKTX { false };
+    KTXResourceState _ktxResourceState { PENDING_INITIAL_LOAD };
+
+    // TODO Can this be removed?
     KTXFilePointer _file;
+
+    // The current mips that are currently being requested w/ _ktxMipRequest
+    std::pair<uint16_t, uint16_t> _ktxMipLevelRangeInFlight{ NULL_MIP_LEVEL, NULL_MIP_LEVEL };
+
+    ResourceRequest* _ktxHeaderRequest { nullptr };
+    ResourceRequest* _ktxMipRequest { nullptr };
+    bool _ktxHeaderRequestFinished{ false };
+    bool _ktxHighMipRequestFinished{ false };
+
+    uint16_t _lowestRequestedMipLevel { NULL_MIP_LEVEL };
+    uint16_t _lowestKnownPopulatedMip { NULL_MIP_LEVEL };
+
+    // This is a copy of the original KTX descriptor from the source url.
+    // We need this because the KTX that will be cached will likely include extra data
+    // in its key/value data, and so will not match up with the original, causing
+    // mip offsets to change.
+    ktx::KTXDescriptorPointer _originalKtxDescriptor;
+
+
     int _originalWidth { 0 };
     int _originalHeight { 0 };
     int _width { 0 };
@@ -109,8 +135,6 @@ using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
 class TextureCache : public ResourceCache, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-
-    using Type = NetworkTexture::Type;
 
 public:
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
@@ -131,10 +155,10 @@ public:
     const gpu::TexturePointer& getBlackTexture();
 
     /// Returns a texture version of an image file
-    static gpu::TexturePointer getImageTexture(const QString& path, Type type = Type::DEFAULT_TEXTURE, QVariantMap options = QVariantMap());
+    static gpu::TexturePointer getImageTexture(const QString& path, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE, QVariantMap options = QVariantMap());
 
     /// Loads a texture from the specified URL.
-    NetworkTexturePointer getTexture(const QUrl& url, Type type = Type::DEFAULT_TEXTURE,
+    NetworkTexturePointer getTexture(const QUrl& url, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
 

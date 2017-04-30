@@ -18,9 +18,34 @@
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-uniform vec3 inBoundPos;
-uniform vec3 inBoundDim;
-uniform ivec4 inCellLocation;
+uniform vec4 inColor;
+
+
+struct ItemBound {
+    vec4 id_boundPos;
+    vec4 boundDim_s;
+};
+
+#if defined(GPU_GL410)
+uniform samplerBuffer ssbo0Buffer;
+ItemBound getItemBound(int i) {
+    int offset = 2 * i;
+    ItemBound bound;
+    bound.id_boundPos = texelFetch(ssbo0Buffer, offset);
+    bound.boundDim_s = texelFetch(ssbo0Buffer, offset + 1);
+    return bound;
+}
+#else
+layout(std140) buffer ssbo0Buffer {
+    ItemBound bounds[];
+};
+ItemBound getItemBound(int i) {
+    ItemBound bound = bounds[i];
+    return bound;
+}
+#endif
+
+
 
 out vec4 varColor;
 out vec2 varTexcoord;
@@ -50,18 +75,28 @@ void main(void) {
         0, 4,
         1, 5
     );
-    vec4 cubeVec = UNIT_BOX[UNIT_BOX_LINE_INDICES[gl_VertexID]];
 
-    vec4 pos = vec4(inBoundPos + inBoundDim * cubeVec.xyz, 1.0);
+    int boundID = gl_VertexID / 24;
+    int vertexID = gl_VertexID - boundID * 24;
+
+    vec4 cubeVec = UNIT_BOX[UNIT_BOX_LINE_INDICES[vertexID]];
+
+    ItemBound bound = getItemBound(boundID);
+    vec3 boundPos = bound.id_boundPos.yzw;
+    vec3 boundDim = bound.boundDim_s.xyz;
+
+    vec4 pos = vec4(boundPos + boundDim * cubeVec.xyz, 1.0);
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    bool subcell = bool((inCellLocation.z));
-    float cellDepth = float(inCellLocation.w);
-    varColor = vec4(colorWheel(fract(cellDepth / 5.0)), 1.0 - float(subcell));
-    varTexcoord = vec2(cubeVec.w, length(inBoundDim));
+    if (inColor.w < 0.0) {
+        varColor = vec4(colorWheel(float(boundID)/(-inColor.w)), 1.0);
+    } else {
+        varColor = vec4(colorWheel(float(inColor.w)), 1.0);
+    }
+    varTexcoord = vec2(cubeVec.w, length(boundDim));
 
 }

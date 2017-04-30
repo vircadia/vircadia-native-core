@@ -136,6 +136,7 @@ private slots:
     void handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleOctreeDataNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> message);
     void removeSendThread();
 
 protected:
@@ -172,6 +173,7 @@ protected:
     QString _statusHost;
 
     QString _persistFilePath;
+    QString _persistAbsoluteFilePath;
     QString _persistAsFileType;
     QString _backupDirectoryPath;
     int _packetsPerClientPerInterval;

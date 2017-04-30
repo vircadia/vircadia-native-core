@@ -86,7 +86,9 @@ void AnimInverseKinematics::setTargetVars(
 void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses) {
     // build a list of valid targets from _targetVarVec and animVars
     _maxTargetIndex = -1;
+    _hipsTargetIndex = -1;
     bool removeUnfoundJoints = false;
+
     for (auto& targetVar : _targetVarVec) {
         if (targetVar.jointIndex == -1) {
             // this targetVar hasn't been validated yet...
@@ -105,14 +107,17 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
                 glm::quat rotation = animVars.lookupRigToGeometry(targetVar.rotationVar, defaultPose.rot());
                 glm::vec3 translation = animVars.lookupRigToGeometry(targetVar.positionVar, defaultPose.trans());
-                if (target.getType() == IKTarget::Type::HipsRelativeRotationAndPosition) {
-                    translation += _hipsOffset;
-                }
+
                 target.setPose(rotation, translation);
                 target.setIndex(targetVar.jointIndex);
                 targets.push_back(target);
                 if (targetVar.jointIndex > _maxTargetIndex) {
                     _maxTargetIndex = targetVar.jointIndex;
+                }
+
+                // record the index of the hips ik target.
+                if (target.getIndex() == _hipsIndex) {
+                    _hipsTargetIndex = (int)targets.size() - 1;
                 }
             }
         }
@@ -242,18 +247,21 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
     // the tip's parent-relative as we proceed up the chain
     glm::quat tipParentOrientation = absolutePoses[pivotIndex].rot();
 
+    // NOTE: if this code is removed, the head will remain rigid, causing the spine/hips to thrust forward backward
+    // as the head is nodded.
     if (targetType == IKTarget::Type::HmdHead) {
+
         // rotate tip directly to target orientation
         tipOrientation = target.getRotation();
-        glm::quat tipRelativeRotation = glm::normalize(tipOrientation * glm::inverse(tipParentOrientation));
+        glm::quat tipRelativeRotation = glm::inverse(tipParentOrientation) * tipOrientation;
 
-        // enforce tip's constraint
+        // then enforce tip's constraint
         RotationConstraint* constraint = getConstraint(tipIndex);
         if (constraint) {
             bool constrained = constraint->apply(tipRelativeRotation);
             if (constrained) {
-                tipOrientation = glm::normalize(tipRelativeRotation * tipParentOrientation);
-                tipRelativeRotation = glm::normalize(tipOrientation * glm::inverse(tipParentOrientation));
+                tipOrientation = tipParentOrientation * tipRelativeRotation;
+                tipRelativeRotation = tipRelativeRotation;
             }
         }
         // store the relative rotation change in the accumulator
@@ -277,7 +285,9 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
 
             const float MIN_AXIS_LENGTH = 1.0e-4f;
             RotationConstraint* constraint = getConstraint(pivotIndex);
-            if (constraint && constraint->isLowerSpine() && tipIndex != _headIndex) {
+
+            // only allow swing on lowerSpine if there is a hips IK target.
+            if (_hipsTargetIndex < 0 && constraint && constraint->isLowerSpine() && tipIndex != _headIndex) {
                 // for these types of targets we only allow twist at the lower-spine
                 // (this prevents the hand targets from bending the spine too much and thereby driving the hips too far)
                 glm::vec3 twistAxis = absolutePoses[pivotIndex].trans() - absolutePoses[pivotsParentIndex].trans();
@@ -420,13 +430,13 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             _relativePoses[i].trans() = underPoses[i].trans();
         }
 
-        if (!_relativePoses.empty()) {
+        if (!underPoses.empty()) {
             // Sometimes the underpose itself can violate the constraints.  Rather than
             // clamp the animation we dynamically expand each constraint to accomodate it.
             std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
             while (constraintItr != _constraints.end()) {
                 int index = constraintItr->first;
-                constraintItr->second->dynamicallyAdjustLimits(_relativePoses[index].rot());
+                constraintItr->second->dynamicallyAdjustLimits(underPoses[index].rot());
                 ++constraintItr;
             }
         }
@@ -441,64 +451,76 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             computeTargets(animVars, targets, underPoses);
         }
 
-        // debug render ik targets
-        if (context.getEnableDebugDrawIKTargets()) {
-            const vec4 WHITE(1.0f);
-            glm::mat4 rigToAvatarMat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
-
-            for (auto& target : targets) {
-                glm::mat4 geomTargetMat = createMatFromQuatAndPos(target.getRotation(), target.getTranslation());
-                glm::mat4 avatarTargetMat = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat;
-
-                QString name = QString("ikTarget%1").arg(target.getIndex());
-                DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
-            }
-        } else if (context.getEnableDebugDrawIKTargets() != _previousEnableDebugIKTargets) {
-            // remove markers if they were added last frame.
-            for (auto& target : targets) {
-                QString name = QString("ikTarget%1").arg(target.getIndex());
-                DebugDraw::getInstance().removeMyAvatarMarker(name);
-            }
-        }
-
-        _previousEnableDebugIKTargets = context.getEnableDebugDrawIKTargets();
-
         if (targets.empty()) {
-            // no IK targets but still need to enforce constraints
-            std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
-            while (constraintItr != _constraints.end()) {
-                int index = constraintItr->first;
-                glm::quat rotation = _relativePoses[index].rot();
-                constraintItr->second->apply(rotation);
-                _relativePoses[index].rot() = rotation;
-                ++constraintItr;
-            }
+            _relativePoses = underPoses;
         } else {
 
             {
                 PROFILE_RANGE_EX(simulation_animation, "ik/shiftHips", 0xffff00ff, 0);
 
-                // shift hips according to the _hipsOffset from the previous frame
-                float offsetLength = glm::length(_hipsOffset);
-                const float MIN_HIPS_OFFSET_LENGTH = 0.03f;
-                if (offsetLength > MIN_HIPS_OFFSET_LENGTH && _hipsIndex >= 0) {
-                    // but only if offset is long enough
-                    float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
-                    if (_hipsParentIndex == -1) {
-                        // the hips are the root so _hipsOffset is in the correct frame
-                        _relativePoses[_hipsIndex].trans() = underPoses[_hipsIndex].trans() + scaleFactor * _hipsOffset;
+                if (_hipsTargetIndex >= 0 && _hipsTargetIndex < (int)targets.size()) {
+                    // slam the hips to match the _hipsTarget
+                    AnimPose absPose = targets[_hipsTargetIndex].getPose();
+                    int parentIndex = _skeleton->getParentIndex(targets[_hipsTargetIndex].getIndex());
+                    if (parentIndex != -1) {
+                        _relativePoses[_hipsIndex] = _skeleton->getAbsolutePose(parentIndex, _relativePoses).inverse() * absPose;
                     } else {
-                        // the hips are NOT the root so we need to transform _hipsOffset into hips local-frame
-                        glm::quat hipsFrameRotation = _relativePoses[_hipsParentIndex].rot();
-                        int index = _skeleton->getParentIndex(_hipsParentIndex);
-                        while (index != -1) {
-                            hipsFrameRotation *= _relativePoses[index].rot();
-                            index = _skeleton->getParentIndex(index);
+                        _relativePoses[_hipsIndex] = absPose;
+                    }
+                } else {
+                    // if there is no hips target, shift hips according to the _hipsOffset from the previous frame
+                    float offsetLength = glm::length(_hipsOffset);
+                    const float MIN_HIPS_OFFSET_LENGTH = 0.03f;
+                    if (offsetLength > MIN_HIPS_OFFSET_LENGTH && _hipsIndex >= 0) {
+                        float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
+                        glm::vec3 hipsOffset = scaleFactor * _hipsOffset;
+                        if (_hipsParentIndex == -1) {
+                            _relativePoses[_hipsIndex].trans() = underPoses[_hipsIndex].trans() + hipsOffset;
+                        } else {
+                            auto absHipsPose = _skeleton->getAbsolutePose(_hipsIndex, underPoses);
+                            absHipsPose.trans() += hipsOffset;
+                            _relativePoses[_hipsIndex] = _skeleton->getAbsolutePose(_hipsParentIndex, _relativePoses).inverse() * absHipsPose;
                         }
-                        _relativePoses[_hipsIndex].trans() = underPoses[_hipsIndex].trans()
-                            + glm::inverse(glm::normalize(hipsFrameRotation)) * (scaleFactor * _hipsOffset);
                     }
                 }
+
+                // update all HipsRelative targets to account for the hips shift/ik target.
+                auto shiftedHipsAbsPose = _skeleton->getAbsolutePose(_hipsIndex, _relativePoses);
+                auto underHipsAbsPose = _skeleton->getAbsolutePose(_hipsIndex, underPoses);
+                auto absHipsOffset = shiftedHipsAbsPose.trans() - underHipsAbsPose.trans();
+                for (auto& target: targets) {
+                    if (target.getType() == IKTarget::Type::HipsRelativeRotationAndPosition) {
+                        auto pose = target.getPose();
+                        pose.trans() = pose.trans() + absHipsOffset;
+                        target.setPose(pose.rot(), pose.trans());
+                    }
+                }
+            }
+
+            {
+                PROFILE_RANGE_EX(simulation_animation, "ik/debugDraw", 0xffff00ff, 0);
+
+                // debug render ik targets
+                if (context.getEnableDebugDrawIKTargets()) {
+                    const vec4 WHITE(1.0f);
+                    glm::mat4 rigToAvatarMat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
+
+                    for (auto& target : targets) {
+                        glm::mat4 geomTargetMat = createMatFromQuatAndPos(target.getRotation(), target.getTranslation());
+                        glm::mat4 avatarTargetMat = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat;
+
+                        QString name = QString("ikTarget%1").arg(target.getIndex());
+                        DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
+                    }
+                } else if (context.getEnableDebugDrawIKTargets() != _previousEnableDebugIKTargets) {
+                    // remove markers if they were added last frame.
+                    for (auto& target : targets) {
+                        QString name = QString("ikTarget%1").arg(target.getIndex());
+                        DebugDraw::getInstance().removeMyAvatarMarker(name);
+                    }
+                }
+
+                _previousEnableDebugIKTargets = context.getEnableDebugDrawIKTargets();
             }
 
             {
@@ -506,62 +528,68 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 solveWithCyclicCoordinateDescent(targets);
             }
 
-            {
+            if (_hipsTargetIndex < 0) {
                 PROFILE_RANGE_EX(simulation_animation, "ik/measureHipsOffset", 0xffff00ff, 0);
-
-                // measure new _hipsOffset for next frame
-                // by looking for discrepancies between where a targeted endEffector is
-                // and where it wants to be (after IK solutions are done)
-                glm::vec3 newHipsOffset = Vectors::ZERO;
-                for (auto& target: targets) {
-                    int targetIndex = target.getIndex();
-                    if (targetIndex == _headIndex && _headIndex != -1) {
-                        // special handling for headTarget
-                        if (target.getType() == IKTarget::Type::RotationOnly) {
-                            // we want to shift the hips to bring the underPose closer
-                            // to where the head happens to be (overpose)
-                            glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans();
-                            glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
-                            const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
-                            newHipsOffset += HEAD_OFFSET_SLAVE_FACTOR * (actual - under);
-                        } else if (target.getType() == IKTarget::Type::HmdHead) {
-                            // we want to shift the hips to bring the head to its designated position
-                            glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
-                            _hipsOffset += target.getTranslation() - actual;
-                            // and ignore all other targets
-                            newHipsOffset = _hipsOffset;
-                            break;
-                        } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
-                            glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
-                            glm::vec3 targetPosition = target.getTranslation();
-                            newHipsOffset += targetPosition - actualPosition;
-
-                            // Add downward pressure on the hips
-                            newHipsOffset *= 0.95f;
-                            newHipsOffset -= 1.0f;
-                        }
-                    } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
-                        glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
-                        glm::vec3 targetPosition = target.getTranslation();
-                        newHipsOffset += targetPosition - actualPosition;
-                    }
-                }
-
-                // smooth transitions by relaxing _hipsOffset toward the new value
-                const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.10f;
-                float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
-                _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
-
-                // clamp the hips offset
-                float hipsOffsetLength = glm::length(_hipsOffset);
-                if (hipsOffsetLength > _maxHipsOffsetLength) {
-                    _hipsOffset *= _maxHipsOffsetLength / hipsOffsetLength;
-                }
-
+                computeHipsOffset(targets, underPoses, dt);
+            } else {
+                _hipsOffset = Vectors::ZERO;
             }
         }
     }
     return _relativePoses;
+}
+
+void AnimInverseKinematics::computeHipsOffset(const std::vector<IKTarget>& targets, const AnimPoseVec& underPoses, float dt) {
+    // measure new _hipsOffset for next frame
+    // by looking for discrepancies between where a targeted endEffector is
+    // and where it wants to be (after IK solutions are done)
+    glm::vec3 newHipsOffset = Vectors::ZERO;
+    for (auto& target: targets) {
+        int targetIndex = target.getIndex();
+        if (targetIndex == _headIndex && _headIndex != -1) {
+            // special handling for headTarget
+            if (target.getType() == IKTarget::Type::RotationOnly) {
+                // we want to shift the hips to bring the underPose closer
+                // to where the head happens to be (overpose)
+                glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans();
+                glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
+                const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
+                newHipsOffset += HEAD_OFFSET_SLAVE_FACTOR * (actual - under);
+            } else if (target.getType() == IKTarget::Type::HmdHead) {
+                // we want to shift the hips to bring the head to its designated position
+                glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
+                _hipsOffset += target.getTranslation() - actual;
+                // and ignore all other targets
+                newHipsOffset = _hipsOffset;
+                break;
+            } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
+                glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
+                glm::vec3 targetPosition = target.getTranslation();
+                newHipsOffset += targetPosition - actualPosition;
+
+                // Add downward pressure on the hips
+                const float PRESSURE_SCALE_FACTOR = 0.95f;
+                const float PRESSURE_TRANSLATION_OFFSET = 1.0f;
+                newHipsOffset *= PRESSURE_SCALE_FACTOR;
+                newHipsOffset -= PRESSURE_TRANSLATION_OFFSET;
+            }
+        } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
+            glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
+            glm::vec3 targetPosition = target.getTranslation();
+            newHipsOffset += targetPosition - actualPosition;
+        }
+    }
+
+    // smooth transitions by relaxing _hipsOffset toward the new value
+    const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.10f;
+    float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
+    _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
+
+    // clamp the hips offset
+    float hipsOffsetLength = glm::length(_hipsOffset);
+    if (hipsOffsetLength > _maxHipsOffsetLength) {
+        _hipsOffset *= _maxHipsOffsetLength / hipsOffsetLength;
+    }
 }
 
 void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
@@ -592,6 +620,22 @@ void AnimInverseKinematics::clearConstraints() {
         ++constraintItr;
     }
     _constraints.clear();
+}
+
+// set up swing limits around a swingTwistConstraint in an ellipse, where lateralSwingTheta is the swing limit for lateral swings (side to side)
+// anteriorSwingTheta is swing limit for forward and backward swings.  (where x-axis of reference rotation is sideways and -z-axis is forward)
+static void setEllipticalSwingLimits(SwingTwistConstraint* stConstraint, float lateralSwingTheta, float anteriorSwingTheta) {
+    assert(stConstraint);
+    const int NUM_SUBDIVISIONS = 8;
+    std::vector<float> minDots;
+    minDots.reserve(NUM_SUBDIVISIONS);
+    float dTheta = TWO_PI / NUM_SUBDIVISIONS;
+    float theta = 0.0f;
+    for (int i = 0; i < NUM_SUBDIVISIONS; i++) {
+        minDots.push_back(cosf(glm::length(glm::vec2(anteriorSwingTheta * cosf(theta), lateralSwingTheta * sinf(theta)))));
+        theta += dTheta;
+    }
+    stConstraint->setSwingLimits(minDots);
 }
 
 void AnimInverseKinematics::initConstraints() {
@@ -783,41 +827,31 @@ void AnimInverseKinematics::initConstraints() {
         } else if (baseName.startsWith("Spine", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            const float MAX_SPINE_TWIST = PI / 12.0f;
+            const float MAX_SPINE_TWIST = PI / 20.0f;
             stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
 
-            std::vector<float> minDots;
-            const float MAX_SPINE_SWING = PI / 10.0f;
-            minDots.push_back(cosf(MAX_SPINE_SWING));
-            stConstraint->setSwingLimits(minDots);
+            // limit lateral swings more then forward-backward swings
+            const float MAX_SPINE_LATERAL_SWING = PI / 30.0f;
+            const float MAX_SPINE_ANTERIOR_SWING = PI / 20.0f;
+            setEllipticalSwingLimits(stConstraint, MAX_SPINE_LATERAL_SWING, MAX_SPINE_ANTERIOR_SWING);
+
             if (0 == baseName.compare("Spine1", Qt::CaseSensitive)
                     || 0 == baseName.compare("Spine", Qt::CaseSensitive)) {
                 stConstraint->setLowerSpine(true);
             }
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (baseName.startsWith("Hips2", Qt::CaseSensitive)) {
-            SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
-            stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            const float MAX_SPINE_TWIST = PI / 8.0f;
-            stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
 
-            std::vector<float> minDots;
-            const float MAX_SPINE_SWING = PI / 14.0f;
-            minDots.push_back(cosf(MAX_SPINE_SWING));
-            stConstraint->setSwingLimits(minDots);
-
-            constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (0 == baseName.compare("Neck", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            const float MAX_NECK_TWIST = PI / 9.0f;
+            const float MAX_NECK_TWIST = PI / 10.0f;
             stConstraint->setTwistLimits(-MAX_NECK_TWIST, MAX_NECK_TWIST);
 
-            std::vector<float> minDots;
-            const float MAX_NECK_SWING = PI / 8.0f;
-            minDots.push_back(cosf(MAX_NECK_SWING));
-            stConstraint->setSwingLimits(minDots);
+            // limit lateral swings more then forward-backward swings
+            const float MAX_NECK_LATERAL_SWING = PI / 10.0f;
+            const float MAX_NECK_ANTERIOR_SWING = PI / 8.0f;
+            setEllipticalSwingLimits(stConstraint, MAX_NECK_LATERAL_SWING, MAX_NECK_ANTERIOR_SWING);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (0 == baseName.compare("Head", Qt::CaseSensitive)) {
@@ -872,7 +906,7 @@ void AnimInverseKinematics::initConstraints() {
 
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
-            const float MIN_KNEE_ANGLE = 0.0f;
+            const float MIN_KNEE_ANGLE = 0.097f;  // ~5 deg
             const float MAX_KNEE_ANGLE = 7.0f * PI / 8.0f;
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
             glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_KNEE_ANGLE, hingeAxis) * Vectors::UNIT_Y;

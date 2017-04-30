@@ -114,7 +114,7 @@ public:
     AmbientOcclusionEffect();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
     
 
     // Class describing the uniform buffer with all the parameters common to the AO shaders
@@ -200,7 +200,7 @@ public:
     DebugAmbientOcclusion();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
     
 private:
        

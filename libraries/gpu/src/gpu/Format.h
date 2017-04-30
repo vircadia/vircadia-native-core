@@ -157,20 +157,12 @@ enum Semantic {
 
     // These are generic compression format smeantic for images
     _FIRST_COMPRESSED,
-    COMPRESSED_R,
 
-    COMPRESSED_RGB, 
-    COMPRESSED_RGBA,
-
-    COMPRESSED_SRGB,
-    COMPRESSED_SRGBA,
-
-    // FIXME: Will have to be supported later:
-    /*COMPRESSED_BC3_RGBA,  // RGBA_S3TC_DXT5_EXT,
-    COMPRESSED_BC3_SRGBA, // SRGB_ALPHA_S3TC_DXT5_EXT
-
-    COMPRESSED_BC7_RGBA,
-    COMPRESSED_BC7_SRGBA, */
+    COMPRESSED_BC1_SRGB,
+    COMPRESSED_BC1_SRGBA,
+    COMPRESSED_BC3_SRGBA,
+    COMPRESSED_BC4_RED,
+    COMPRESSED_BC5_XY,
 
     _LAST_COMPRESSED,
 
@@ -178,6 +170,7 @@ enum Semantic {
 
     UNIFORM,
     UNIFORM_BUFFER,
+    RESOURCE_BUFFER,
     SAMPLER,
     SAMPLER_MULTISAMPLE,
     SAMPLER_SHADOW,
@@ -236,6 +229,11 @@ public:
     static const Element COLOR_BGRA_32;
     static const Element COLOR_SBGRA_32;
     static const Element COLOR_R11G11B10;
+    static const Element COLOR_COMPRESSED_RED;
+    static const Element COLOR_COMPRESSED_SRGB;
+    static const Element COLOR_COMPRESSED_SRGBA_MASK;
+    static const Element COLOR_COMPRESSED_SRGBA;
+    static const Element COLOR_COMPRESSED_XY;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;
     static const Element VEC2F_XY;

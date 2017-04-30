@@ -119,7 +119,13 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.rigHeadPosition = extractTranslation(rigHMDMat);
             headParams.rigHeadOrientation = extractRotation(rigHMDMat);
             headParams.worldHeadOrientation = extractRotation(worldHMDMat);
+
+            // TODO: if hips target sensor is valid.
+            // Copy it into headParams.hipsMatrix, and set headParams.hipsEnabled to true.
+
+            headParams.hipsEnabled = false;
         } else {
+            headParams.hipsEnabled = false;
             headParams.isInHMD = false;
 
             // We don't have a valid localHeadPosition.
@@ -240,9 +246,9 @@ void SkeletonModel::updateAttitude() {
 // Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
 // but just before head has been simulated.
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+    updateAttitude();
     if (fullUpdate) {
-        updateAttitude();
-        setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
+        setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
         Model::simulate(deltaTime, fullUpdate);
 

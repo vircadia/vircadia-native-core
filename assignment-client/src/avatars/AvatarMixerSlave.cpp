@@ -67,15 +67,13 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
 
 
 int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    int bytesSent = 0;
     QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
-    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
     individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-    bytesSent += individualData.size();
-    identityPacket->write(individualData);
-    DependencyManager::get<NodeList>()->sendPacket(std::move(identityPacket), *destinationNode);
+    auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+    identityPackets->write(individualData);
+    DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
     _stats.numIdentityPackets++;
-    return bytesSent;
+    return individualData.size();
 }
 
 static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
@@ -279,7 +277,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
         int avatarRank = 0;
 
         // this is overly conservative, because it includes some avatars we might not consider
-        int remainingAvatars = (int)sortedAvatars.size(); 
+        int remainingAvatars = (int)sortedAvatars.size();
 
         while (!sortedAvatars.empty()) {
             AvatarPriority sortData = sortedAvatars.top();
@@ -325,7 +323,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
                 _stats.overBudgetAvatars++;
                 detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::NoData;
             } else if (!isInView) {
-                detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::NoData;
+                detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::MinimumData;
                 nodeData->incrementAvatarOutOfView();
             } else {
                 detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO

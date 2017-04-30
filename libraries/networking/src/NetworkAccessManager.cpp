@@ -13,13 +13,13 @@
 
 #include "AtpReply.h"
 #include "NetworkAccessManager.h"
+#include <QtNetwork/QNetworkProxy>
 
 QThreadStorage<QNetworkAccessManager*> networkAccessManagers;
 
 QNetworkAccessManager& NetworkAccessManager::getInstance() {
     if (!networkAccessManagers.hasLocalData()) {
         networkAccessManagers.setLocalData(new QNetworkAccessManager());
-        
     }
     
     return *networkAccessManagers.localData();

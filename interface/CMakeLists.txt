@@ -65,6 +65,7 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
 add_custom_target(qml SOURCES ${QML_SRC})
+GroupSources("resources/qml")
 
 if (UNIX)
   install(
@@ -193,7 +194,7 @@ link_hifi_libraries(
   recording fbx networking model-networking entities avatars
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui auto-updater
-  controllers plugins
+  controllers plugins image
   ui-plugins display-plugins input-plugins
   ${NON_ANDROID_LIBRARIES}
 )

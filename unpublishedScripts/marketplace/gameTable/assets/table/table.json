@@ -1,0 +1,26 @@
+{
+    "Entities": [
+        {
+            "clientOnly": 0,
+            "created": "2016-08-30T18:11:21Z",
+            "dimensions": {
+                "x": 1.2551242113113403,
+                "y": 1.0120930671691895,
+                "z": 1.240851879119873
+            },
+            "id": "{3da1d402-0a96-480b-9a6f-8b7f08036614}",
+            "modelURL": "atp:/tableOnly.fbx",
+            "name": "tableOnly.fbx",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "queryAACube": {
+                "scale": 2.0345473289489746,
+                "x": -1.0172736644744873,
+                "y": -1.0172736644744873,
+                "z": -1.0172736644744873
+            },
+            "shapeType": "static-mesh",
+            "type": "Model"
+        }
+    ],
+    "Version": 63
+}

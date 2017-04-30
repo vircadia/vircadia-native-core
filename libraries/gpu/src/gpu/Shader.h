@@ -134,10 +134,11 @@ public:
 
     // Access the exposed uniform, input and output slot
     const SlotSet& getUniforms() const { return _uniforms; }
-    const SlotSet& getBuffers() const { return _buffers; }
+    const SlotSet& getUniformBuffers() const { return _uniformBuffers; }
+    const SlotSet& getResourceBuffers() const { return _resourceBuffers; }
     const SlotSet& getTextures() const { return _textures; }
     const SlotSet& getSamplers() const { return _samplers; }
-
+    
     const SlotSet& getInputs() const { return _inputs; }
     const SlotSet& getOutputs() const { return _outputs; }
 
@@ -146,7 +147,13 @@ public:
     // to correctly bind resource to the shader.
     // These can be build "manually" from knowledge of the atual shader code
     // or automatically by calling "makeShader()", this is the preferred way
-    void defineSlots(const SlotSet& uniforms, const SlotSet& buffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs);
+    void defineSlots(const SlotSet& uniforms,
+                     const SlotSet& uniformBuffers,
+                     const SlotSet& resourceBuffers,
+                     const SlotSet& textures,
+                     const SlotSet& samplers,
+                     const SlotSet& inputs,
+                     const SlotSet& outputs);
 
     // makeProgram(...) make a program shader ready to be used in a Batch.
     // It compiles the sub shaders, link them and defines the Slots and their bindings.
@@ -181,7 +188,8 @@ protected:
 
     // List of exposed uniform, input and output slots
     SlotSet _uniforms;
-    SlotSet _buffers;
+    SlotSet _uniformBuffers;
+    SlotSet _resourceBuffers;
     SlotSet _textures;
     SlotSet _samplers;
     SlotSet _inputs;

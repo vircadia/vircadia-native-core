@@ -24,6 +24,7 @@
 #include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "ObjectAction.h"
+#include "ObjectConstraint.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
@@ -84,12 +85,13 @@ public:
 
     void dumpNextStats() { _dumpNextStats = true; }
 
-    EntityActionPointer getActionByID(const QUuid& actionID) const;
-    void addAction(EntityActionPointer action);
-    void removeAction(const QUuid actionID);
-    void forEachAction(std::function<void(EntityActionPointer)> actor);
+    EntityDynamicPointer getDynamicByID(const QUuid& dynamicID) const;
+    bool addDynamic(EntityDynamicPointer dynamic);
+    void removeDynamic(const QUuid dynamicID);
+    void forEachDynamic(std::function<void(EntityDynamicPointer)> actor);
 
 private:
+    QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);
     void recursivelyHarvestPerformanceStats(CProfileIterator* profileIterator, QString contextName);
 
@@ -110,7 +112,8 @@ private:
 
     ContactMap _contactMap;
     CollisionEvents _collisionEvents;
-    QHash<QUuid, EntityActionPointer> _objectActions;
+    QHash<QUuid, EntityDynamicPointer> _objectDynamics;
+    QHash<btRigidBody*, QSet<QUuid>> _objectDynamicsByBody;
     std::vector<btRigidBody*> _activeStaticBodies;
 
     glm::vec3 _originOffset;
@@ -122,6 +125,7 @@ private:
 
     bool _dumpNextStats = false;
     bool _hasOutgoingChanges = false;
+
 };
 
 typedef std::shared_ptr<PhysicsEngine> PhysicsEnginePointer;

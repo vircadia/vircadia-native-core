@@ -19,7 +19,7 @@
 const uint16_t ObjectActionOffset::offsetVersion = 1;
 
 ObjectActionOffset::ObjectActionOffset(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectAction(ACTION_TYPE_OFFSET, id, ownerEntity),
+    ObjectAction(DYNAMIC_TYPE_OFFSET, id, ownerEntity),
     _pointToOffsetFrom(0.0f),
     _linearDistance(0.0f),
     _linearTimeScale(FLT_MAX),
@@ -88,26 +88,26 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
     float linearDistance;
 
     bool needUpdate = false;
-    bool somethingChanged = ObjectAction::updateArguments(arguments);
+    bool somethingChanged = ObjectDynamic::updateArguments(arguments);
 
     withReadLock([&]{
         bool ok = true;
         pointToOffsetFrom =
-            EntityActionInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", ok, true);
+            EntityDynamicInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", ok, true);
         if (!ok) {
             pointToOffsetFrom = _pointToOffsetFrom;
         }
 
         ok = true;
         linearTimeScale =
-            EntityActionInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", ok, false);
+            EntityDynamicInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", ok, false);
         if (!ok) {
             linearTimeScale = _linearTimeScale;
         }
 
         ok = true;
         linearDistance =
-            EntityActionInterface::extractFloatArgument("offset action", arguments, "linearDistance", ok, false);
+            EntityDynamicInterface::extractFloatArgument("offset action", arguments, "linearDistance", ok, false);
         if (!ok) {
             linearDistance = _linearDistance;
         }
@@ -132,8 +132,8 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
-                ownerEntity->setActionDataDirty(true);
-                ownerEntity->setActionDataNeedsTransmit(true);
+                ownerEntity->setDynamicDataDirty(true);
+                ownerEntity->setDynamicDataNeedsTransmit(true);
             }
         });
         activateBody();
@@ -143,7 +143,7 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap ObjectActionOffset::getArguments() {
-    QVariantMap arguments = ObjectAction::getArguments();
+    QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
         arguments["pointToOffsetFrom"] = glmToQMap(_pointToOffsetFrom);
         arguments["linearTimeScale"] = _linearTimeScale;
@@ -155,7 +155,7 @@ QVariantMap ObjectActionOffset::getArguments() {
 QByteArray ObjectActionOffset::serialize() const {
     QByteArray ba;
     QDataStream dataStream(&ba, QIODevice::WriteOnly);
-    dataStream << ACTION_TYPE_OFFSET;
+    dataStream << DYNAMIC_TYPE_OFFSET;
     dataStream << getID();
     dataStream << ObjectActionOffset::offsetVersion;
 
@@ -174,7 +174,7 @@ QByteArray ObjectActionOffset::serialize() const {
 void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
     QDataStream dataStream(serializedArguments);
 
-    EntityActionType type;
+    EntityDynamicType type;
     dataStream >> type;
     assert(type == getType());
 
