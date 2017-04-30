@@ -156,6 +156,8 @@ Menu::Menu() {
     // Audio > Show Level Meter
     addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, false);
 
+    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioNoiseReduction, 0, true,
+        audioIO.data(), SLOT(toggleAudioNoiseReduction()));
 
     // Avatar menu ----------------------------------
     MenuWrapper* avatarMenu = addMenu("Avatar");
@@ -195,6 +197,9 @@ Menu::Menu() {
         MenuOption::ResetSensors,
         0, // QML Qt::Key_Apostrophe,
         qApp, SLOT(resetSensors()));
+
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
+        avatar.get(), SLOT(updateMotionBehaviorFromMenu()));
 
     // Avatar > AvatarBookmarks related menus -- Note: the AvatarBookmarks class adds its own submenus here.
     auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
@@ -532,10 +537,6 @@ Menu::Menu() {
         avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableCharacterController, 0, true,
-        avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
-        UNSPECIFIED_POSITION, "Developer");
-
     // Developer > Hands >>>
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false,
@@ -622,8 +623,6 @@ Menu::Menu() {
             QString("../../hifi/tablet/TabletAudioPreferences.qml"), "AudioPreferencesDialog");
     });
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction, 0, true,
-        audioIO.data(), SLOT(toggleAudioNoiseReduction()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
         audioIO.data(), SLOT(toggleServerEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,

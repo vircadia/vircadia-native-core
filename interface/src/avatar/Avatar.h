@@ -112,6 +112,7 @@ public:
 
     virtual QVector<glm::quat> getJointRotations() const override;
     virtual glm::quat getJointRotation(int index) const override;
+    virtual QVector<glm::vec3> getJointTranslations() const override;
     virtual glm::vec3 getJointTranslation(int index) const override;
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;

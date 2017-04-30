@@ -80,6 +80,19 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
             default:
                 Q_UNREACHABLE();
         }
+    } else {
+
+        if (texture.getUsageType() == TextureUsageType::RESOURCE) {
+            auto varTex = static_cast<GL45VariableAllocationTexture*> (object);
+
+            if (varTex->_minAllocatedMip > 0) {
+                auto minAvailableMip = texture.minAvailableMipLevel();
+                if (minAvailableMip < varTex->_minAllocatedMip) {
+                    varTex->_minAllocatedMip = minAvailableMip;
+                    GL45VariableAllocationTexture::_memoryPressureStateStale = true;
+                }
+            }
+        }
     }
 
     return object;
@@ -109,6 +122,10 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 GLuint GL45Texture::allocate(const Texture& texture) {
     GLuint result;
     glCreateTextures(getGLTextureType(texture), 1, &result);
+#ifdef DEBUG
+    auto source = texture.source();
+    glObjectLabel(GL_TEXTURE, result, source.length(), source.data());
+#endif
     return result;
 }
 
