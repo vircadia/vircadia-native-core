@@ -82,17 +82,24 @@ bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm
                                    float& linearTimeScale, float& angularTimeScale) {
     SpatiallyNestablePointer other = getOther();
     withReadLock([&]{
-        if (other) {
-            rotation = _desiredRotationalTarget * other->getRotation();
-            position = _desiredPositionalTarget + other->getPosition();
+        linearTimeScale = _linearTimeScale;
+        angularTimeScale = _angularTimeScale;
+
+        if (_otherID != QUuid()) {
+            if (other) {
+                rotation = _desiredRotationalTarget * other->getRotation();
+                position = _desiredPositionalTarget + other->getPosition();
+            } else {
+                // we should have an "other" but can't find it, so disable the spring.
+                linearTimeScale = FLT_MAX;
+                angularTimeScale = FLT_MAX;
+            }
         } else {
             rotation = _desiredRotationalTarget;
             position = _desiredPositionalTarget;
         }
         linearVelocity = glm::vec3();
         angularVelocity = glm::vec3();
-        linearTimeScale = _linearTimeScale;
-        angularTimeScale = _angularTimeScale;
     });
     return true;
 }
