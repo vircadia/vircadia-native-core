@@ -395,6 +395,7 @@ function takeSnapshot() {
     resetOverlays = Menu.isOptionChecked("Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
+    Reticle.allowMouseCapture = false;
     
     var includeAnimated = Settings.getValue("alsoTakeAnimatedSnapshot", true);
     if (includeAnimated) {
@@ -454,6 +455,7 @@ function isDomainOpen(id, callback) {
 function stillSnapshotTaken(pathStillSnapshot, notify) {
     // show hud
     Reticle.visible = reticleVisible;
+    Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true);
@@ -496,6 +498,7 @@ function processingGifStarted(pathStillSnapshot) {
     Window.processingGifCompleted.connect(processingGifCompleted);
     // show hud
     Reticle.visible = reticleVisible;
+    Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true);
