@@ -23,6 +23,7 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool isDesktop: false
+    property string initialPage: ""
     property bool startingUp: true
     property bool removingPage: false
     property alias webView: webview
@@ -32,6 +33,7 @@ Item {
     property bool loadingStarted: false
     property bool loadingFinished: false
     property var urlList: []
+    property var forwardList: []
 
     
     property int currentPage: -1 // used as a model for repeater
@@ -103,15 +105,15 @@ Item {
     }
         
     function goBack() {
-        if (webview.canGoBack && !isUrlLoaded(webview.url)) {
-            if (currentPage > 0) {
-                removingPage = true;
-                pagesModel.remove(currentPage);
-            }
+        if (webview.canGoBack) {
+            forwardList.push(webview.url);
             webview.goBack();
-        } else if (currentPage > 0) {
+        } else if (web.urlList.length > 0) {
             removingPage = true;
-            pagesModel.remove(currentPage);
+            var url = web.urlList.pop();
+            loadUrl(url);
+        } else if (fowardList.length == 1) {
+            console.log("--------------> going foward <---------------");
         }
     }
 
@@ -147,53 +149,43 @@ Item {
         view.setActiveFocusOnPress(true);
         view.setEnabled(true);
     }
-    
-    function shouldLoadUrl(url) {
-	switch (url) {
-	case "https://twitter.com/intent/sessions":
-	    return true;
-	}
-	return false;
+
+    function loadUrl(url) {
+        webview.url = url
+        web.url = webview.url;
+        web.address = webview.url;
     }
+
+    function onInitialPage(url) {
+        return (url === webview.url);
+    }
+        
     
     function urlAppend(url) {
-	console.log(url);
-        if (removingPage || shouldLoadUrl(url)) {
-            removingPage = false;
-            return;
-        }
         var lurl = decodeURIComponent(url)
         if (lurl[lurl.length - 1] !== "/") {
             lurl = lurl + "/"
         }
-        console.log("-------> trying to append url <------------");
-        console.log(currentPage);
-        console.log(pagesModel.get(currentPage).webUrl !== lurl);
-        if (currentPage === -1 || (pagesModel.get(currentPage).webUrl !== lurl)) {
-            timer.start();
-            console.log("---------> appending url <-------------");
-            pagesModel.append({webUrl: lurl});
-        };
+        web.urlList.push(url);
+        setBackButtonStatus();
     }
 
-    onCurrentPageChanged: {
-        if (currentPage >= 0 && currentPage < pagesModel.count && removingPage) {
-            timer.start();
-            webview.url = pagesModel.get(currentPage).webUrl;
-            web.url = webview.url;
-            web.address = webview.url;
-            removingPage = false;
-        } else if (startingUp) {
-            webview.url = pagesModel.get(currentPage).webUrl;
-            web.url = webview.url;
-            web.address = webview.url;
-            startingUp = false;
+    function setBackButtonStatus() {
+        if (web.urlList.length > 0 || webview.canGoBack) {
+            back.enabledColor = hifi.colors.darkGray;
+            back.enabled = true;
+        } else {
+            back.enabledColor = hifi.colors.baseGray;
+            back.enabled = false;
         }
-            
     }
 
     onUrlChanged: {
-        gotoPage(url)
+        loadUrl(url);
+        if (startingUp) {
+            web.initialPage = webview.url;
+            startingUp = false;
+        }
     }
 
     QtObject {
@@ -201,18 +193,7 @@ Item {
         WebChannel.id: "eventBridgeWrapper"
         property var eventBridge;
     }
-
-    Timer {
-        id: timer
-        interval: 200
-        running: false
-        repeat: false
-        onTriggered: timer.stop();
-    }
-
-        
-
-
+    
     WebEngineView {
         id: webview
         objectName: "webEngineView"
@@ -280,9 +261,6 @@ Item {
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
 		var url = loadRequest.url.toString();
-                web.urlList.push(url);
-                //urlAppend(url);
-                web.loadingStarted  = true;
                 if (urlHandler.canHandleUrl(url)) {
                     if (urlHandler.handleUrl(url)) {
                         root.stop();
@@ -295,19 +273,16 @@ Item {
             }
 
             if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
-                console.log
-                urlList = [];
+                web.address = webview.url;
+                if (startingUp) {
+                    web.initialPage = webview.url;
+                    startingUp = false;
+                }
             }
         }
-
-        onWindowCloseRequested: {
-            console.log("---------->requested to closeWindow <--------------");
-        }
-
+        
         onNewViewRequested: {
-            console.log("-----------> newViewRequested <--------------");
             var currentUrl = webview.url;
-            console.log(currentUrl);
             urlAppend(currentUrl);
             request.openIn(webview);
         }
