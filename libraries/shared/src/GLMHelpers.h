@@ -54,6 +54,13 @@ const glm::vec3 IDENTITY_FORWARD = glm::vec3( 0.0f, 0.0f,-1.0f);
 
 glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 
+class Matrices {
+public:
+    static const mat4 IDENTITY;
+    static const mat4 X_180;
+    static const mat4 Y_180;
+    static const mat4 Z_180;
+};
 
 class Quaternions {
  public:

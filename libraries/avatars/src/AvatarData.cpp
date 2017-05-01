@@ -393,9 +393,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         if (isFingerPointing) {
             setAtBit(flags, HAND_STATE_FINGER_POINTING_BIT);
         }
-        // faceshift state
+        // face tracker state
         if (_headData->_isFaceTrackerConnected) {
-            setAtBit(flags, IS_FACESHIFT_CONNECTED);
+            setAtBit(flags, IS_FACE_TRACKER_CONNECTED);
         }
         // eye tracker state
         if (_headData->_isEyeTrackerConnected) {
@@ -883,7 +883,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newHandState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
             + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
-        auto newFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+        auto newFaceTrackerConnected = oneAtBit(bitItems, IS_FACE_TRACKER_CONNECTED);
         auto newEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
 
         bool keyStateChanged = (_keyState != newKeyState);

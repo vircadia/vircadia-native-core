@@ -1,7 +1,4 @@
 //
-//  FaceTracker.h
-//  interface/src/devices
-//
 //  Created by Andrzej Kapolka on 4/9/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
@@ -20,7 +17,7 @@
 
 #include <SettingHandle.h>
 
-/// Base class for face trackers (Faceshift, DDE).
+/// Base class for face trackers (DDE, BinaryVR).
 class FaceTracker : public QObject {
     Q_OBJECT
     
@@ -45,11 +42,20 @@ public:
     const QVector<float>& getBlendshapeCoefficients() const;
     float getBlendshapeCoefficient(int index) const;
 
-    bool isMuted() const { return _isMuted; }
-    void setIsMuted(bool isMuted) { _isMuted = isMuted; }
+    static bool isMuted() { return _isMuted; }
+    static void setIsMuted(bool isMuted) { _isMuted = isMuted; }
 
     static float getEyeDeflection() { return _eyeDeflection.get(); }
     static void setEyeDeflection(float eyeDeflection);
+
+    static void updateFakeCoefficients(float leftBlink,
+                                float rightBlink,
+                                float browUp,
+                                float jawOpen,
+                                float mouth2,
+                                float mouth3,
+                                float mouth4,
+                                QVector<float>& coefficients);
 
 signals:
     void muteToggled();
@@ -63,7 +69,7 @@ protected:
     virtual ~FaceTracker() {};
 
     bool _isInitialized = false;
-    bool _isMuted = true;
+    static bool _isMuted;
 
     glm::vec3 _headTranslation = glm::vec3(0.0f);
     glm::quat _headRotation = glm::quat();
@@ -83,6 +89,24 @@ private slots:
 private:
     bool _isCalculatingFPS = false;
     int _frameCount = 0;
+
+    // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+    static const int _leftBlinkIndex = 0;
+    static const int _rightBlinkIndex = 1;
+    static const int _leftEyeOpenIndex = 8;
+    static const int _rightEyeOpenIndex = 9;
+
+    // Brows
+    static const int _browDownLeftIndex = 14;
+    static const int _browDownRightIndex = 15;
+    static const int _browUpCenterIndex = 16;
+    static const int _browUpLeftIndex = 17;
+    static const int _browUpRightIndex = 18;
+
+    static const int _mouthSmileLeftIndex = 28;
+    static const int _mouthSmileRightIndex = 29;
+
+    static const int _jawOpenIndex = 21;
 
     static Setting::Handle<float> _eyeDeflection;
 };
