@@ -12,9 +12,9 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var RequestModule = Script.require('./request.js');
-
 (function() { // BEGIN LOCAL_SCOPE
+
+    var request = Script.require('../modules/request.js').request;
 
 var populateNearbyUserList, color, textures, removeOverlays,
     controllerComputePickRay, onTabletButtonClicked, onTabletScreenChanged,
@@ -273,7 +273,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'removeConnection':
         connectionUserName = message.params;
-        RequestModule.request({
+        request({
             uri: METAVERSE_BASE + '/api/v1/user/connections/' + connectionUserName,
             method: 'DELETE'
         }, function (error, response) {
@@ -287,7 +287,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 
     case 'removeFriend':
         friendUserName = message.params;
-        RequestModule.request({
+        request({
             uri: METAVERSE_BASE + '/api/v1/user/friends/' + friendUserName,
             method: 'DELETE'
         }, function (error, response) {
@@ -300,7 +300,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break
     case 'addFriend':
         friendUserName = message.params;
-        RequestModule.request({
+        request({
             uri: METAVERSE_BASE + '/api/v1/user/friends',
             method: 'POST',
             json: true,
@@ -335,7 +335,7 @@ function updateUser(data) {
 var METAVERSE_BASE = location.metaverseServerUrl;
 
 function requestJSON(url, callback) { // callback(data) if successfull. Logs otherwise.
-    RequestModule.request({
+    request({
         uri: url
     }, function (error, response) {
         if (error || (response.status !== 'success')) {
@@ -347,7 +347,7 @@ function requestJSON(url, callback) { // callback(data) if successfull. Logs oth
 }
 function getProfilePicture(username, callback) { // callback(url) if successfull. (Logs otherwise)
     // FIXME Prototype scrapes profile picture. We should include in user status, and also make available somewhere for myself
-    RequestModule.request({
+    request({
         uri: METAVERSE_BASE + '/users/' + username
     }, function (error, html) {
         var matched = !error && html.match(/img class="users-img" src="([^"]*)"/);
@@ -676,7 +676,6 @@ function startup() {
         activeIcon: "icons/tablet-icons/people-a.svg",
         sortOrder: 7
     });
-    tablet.fromQml.connect(fromQml);
     button.clicked.connect(onTabletButtonClicked);
     tablet.screenChanged.connect(onTabletScreenChanged);
     Users.usernameFromIDReply.connect(usernameFromIDReply);
@@ -742,8 +741,23 @@ function onTabletButtonClicked() {
         audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
     }
 }
+var hasEventBridge = false;
+function wireEventBridge(on) {
+    if (on) {
+        if (!hasEventBridge) {
+            tablet.fromQml.connect(fromQml);
+            hasEventBridge = true;
+        }
+    } else {
+        if (hasEventBridge) {
+            tablet.fromQml.disconnect(fromQml);
+            hasEventBridge = false;
+        }
+    }
+}
 
 function onTabletScreenChanged(type, url) {
+    wireEventBridge(shouldActivateButton);
     // for toolbar mode: change button to active when window is first openend, false otherwise.
     button.editProperties({isActive: shouldActivateButton});
     shouldActivateButton = false;
