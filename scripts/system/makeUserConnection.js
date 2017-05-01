@@ -13,7 +13,7 @@
 
     var LABEL = "makeUserConnection";
     var MAX_AVATAR_DISTANCE = 0.2; // m
-    var GRIP_MIN = 0.05; // goes from 0-1, so 5% pressed is pressed
+    var GRIP_MIN = 0.75; // goes from 0-1, so 75% pressed is pressed
     var MESSAGE_CHANNEL = "io.highfidelity.makeUserConnection";
     var STATES = {
         INACTIVE: 0,
@@ -592,7 +592,11 @@
         Window.makeConnection(false, result.connection);
         UserActivityLogger.makeUserConnection(connectingId, false, result.connection);
     }
-    var POLL_INTERVAL_MS = 200, POLL_LIMIT = 5;
+    // This is a bit fragile - but to account for skew in when people actually create the
+    // connection request, I've upped this to 2 seconds (plus the round-trip times)
+    // TODO: keep track of when the person we are connecting with is done, and don't stop
+    // until say 1 second after that.
+    var POLL_INTERVAL_MS = 200, POLL_LIMIT = 10;
     function handleConnectionResponseAndMaybeRepeat(error, response) {
         // If response is 'pending', set a short timeout to try again.
         // If we fail other than pending, set result and immediately call connectionRequestCompleted.
