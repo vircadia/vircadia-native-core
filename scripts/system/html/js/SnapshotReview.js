@@ -232,7 +232,7 @@ function handleCaptureSetting(setting) {
 window.onload = function () {
     // Uncomment the line below to test functionality in a browser.
     // See definition of "testInBrowser()" to modify tests.
-    testInBrowser(false);
+    //testInBrowser(false);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {

@@ -110,7 +110,7 @@ input[type=button].naked:active {
     justify-content: space-between;
     flex-direction: row;
     align-items: center;
-    height: 50px;
+    height: 45px;
     line-height: 60px;
     width: calc(100% - 8px);
     position: absolute;
@@ -203,7 +203,7 @@ input[type=button].naked:active {
     font-size: 60px;
     position: absolute;
     right: 20px;
-    bottom: 15px;
+    bottom: 12px;
     color: #00b4ef;
     pointer-events: none;
 }
