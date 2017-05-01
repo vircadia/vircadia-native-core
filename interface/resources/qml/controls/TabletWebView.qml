@@ -23,12 +23,15 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool isDesktop: false
+    property bool startingUp: true
     property bool removingPage: false
-    property bool loadingPage: false
     property alias webView: webview
     property alias profile: webview.profile
     property bool remove: false
-    property bool newPage: false
+    property bool windowClosed: false
+    property bool loadingStarted: false
+    property bool loadingFinished: false
+    property var urlList: []
 
     
     property int currentPage: -1 // used as a model for repeater
@@ -144,10 +147,6 @@ Item {
         view.setActiveFocusOnPress(true);
         view.setEnabled(true);
     }
-
-    function isNewPageOpen() {
-	return (web.newPage && web.currentPage > 0);
-    }
     
     function shouldLoadUrl(url) {
 	switch (url) {
@@ -156,30 +155,41 @@ Item {
 	}
 	return false;
     }
+    
     function urlAppend(url) {
 	console.log(url);
-        if (removingPage || shouldLoadUrl(url) || isNewPageOpen()) {
+        if (removingPage || shouldLoadUrl(url)) {
             removingPage = false;
-	    web.newPage = false;
             return;
         }
         var lurl = decodeURIComponent(url)
         if (lurl[lurl.length - 1] !== "/") {
             lurl = lurl + "/"
         }
-        if (currentPage === -1 || (pagesModel.get(currentPage).webUrl !== lurl && !timer.running)) {
+        console.log("-------> trying to append url <------------");
+        console.log(currentPage);
+        console.log(pagesModel.get(currentPage).webUrl !== lurl);
+        if (currentPage === -1 || (pagesModel.get(currentPage).webUrl !== lurl)) {
             timer.start();
+            console.log("---------> appending url <-------------");
             pagesModel.append({webUrl: lurl});
         };
     }
 
     onCurrentPageChanged: {
-        if (currentPage >= 0 && currentPage < pagesModel.count) {
+        if (currentPage >= 0 && currentPage < pagesModel.count && removingPage) {
             timer.start();
             webview.url = pagesModel.get(currentPage).webUrl;
             web.url = webview.url;
             web.address = webview.url;
+            removingPage = false;
+        } else if (startingUp) {
+            webview.url = pagesModel.get(currentPage).webUrl;
+            web.url = webview.url;
+            web.address = webview.url;
+            startingUp = false;
         }
+            
     }
 
     onUrlChanged: {
@@ -270,8 +280,9 @@ Item {
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
 		var url = loadRequest.url.toString();
-                urlAppend(url);
-                loadingPage = true;
+                web.urlList.push(url);
+                //urlAppend(url);
+                web.loadingStarted  = true;
                 if (urlHandler.canHandleUrl(url)) {
                     if (urlHandler.handleUrl(url)) {
                         root.stop();
@@ -282,10 +293,22 @@ Item {
             if (WebEngineView.LoadFailedStatus == loadRequest.status) {
                 console.log(" Tablet WebEngineView failed to laod url: " + loadRequest.url.toString());
             }
+
+            if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
+                console.log
+                urlList = [];
+            }
+        }
+
+        onWindowCloseRequested: {
+            console.log("---------->requested to closeWindow <--------------");
         }
 
         onNewViewRequested: {
-	    web.newPage = true;
+            console.log("-----------> newViewRequested <--------------");
+            var currentUrl = webview.url;
+            console.log(currentUrl);
+            urlAppend(currentUrl);
             request.openIn(webview);
         }
     }
