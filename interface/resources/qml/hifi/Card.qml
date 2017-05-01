@@ -31,7 +31,7 @@ Item {
 
     property bool drillDownToPlace: false;
     property bool showPlace: isConcurrency;
-    property string messageColor: lozenge.visible ? "white" : hifi.colors.blueAccent;
+    property string messageColor: isAnnouncement ? "white" : hifi.colors.blueAccent;
     property string timePhrase: pastTime(timestamp);
     property int onlineUsers: 0;
     property bool isConcurrency: action === 'concurrency';
@@ -70,6 +70,10 @@ Item {
     }
 
     property bool hasGif: imageUrl.indexOf('.gif') === (imageUrl.length - 4);
+
+    function pluralize(count, singular, optionalPlural) {
+        return (count === 1) ? singular : (optionalPlural || (singular + "s"));
+    }
 
     DropShadow {
         visible: isStacked;
@@ -189,7 +193,7 @@ Item {
         RalewayRegular {
             id: message;
             visible: !isAnnouncement;
-            text: isConcurrency ? ((onlineUsers === 1) ? "person" : "people") : (isAnnouncement ? "connections" : (drillDownToPlace ? "snapshots" : ("by " + userName)));
+            text: isConcurrency ? pluralize(onlineUsers, "person", "people") : (drillDownToPlace ? "snapshots" : ("by " + userName));
             size: textSizeSmall;
             color: messageColor;
             elide: Text.ElideRight; // requires a width to be specified`
@@ -205,14 +209,14 @@ Item {
         Column {
             visible: isAnnouncement;
             RalewayRegular {
-                text: "connections" + "   ";  // fixme: pluralize
+                text: pluralize(onlineUsers, "connection") + "   "; // hack padding
                 size: textSizeSmall;
-                color: "white"; // fixme not needed? get rid of complication in messageColor?
+                color: messageColor;
             }
             RalewayRegular {
-                text: "are here now"; // fixme pluralize
+                text: pluralize(onlineUsers, "is here now", "are here now");
                 size: textSizeSmall * 0.7;
-                color: "white"; //' fixme not needed? get rid of complication in messageColor?
+                color: messageColor;
             }
         }
         spacing: textPadding;
