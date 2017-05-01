@@ -25,6 +25,9 @@ Item {
     property bool isDesktop: false
     property bool removingPage: false
     property bool loadingPage: false
+    property alias webView: webview
+    property alias profile: webview.profile
+    property bool remove: false
 
     
     property int currentPage: -1 // used as a model for repeater
@@ -81,6 +84,13 @@ Item {
                 horizontalCenter: parent.horizontalCenter;
             }
         }
+
+
+        MouseArea {
+            anchors.fill: parent
+            preventStealing: true
+            propagateComposedEvents: true
+        }
     }
 
     ListModel {
@@ -110,6 +120,10 @@ Item {
 
 
     function closeWebEngine() {
+        if (remove) {
+            web.destroy();
+            return;
+        }
         if (parentStackItem) {
             parentStackItem.pop();
         } else {

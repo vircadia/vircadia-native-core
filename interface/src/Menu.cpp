@@ -34,7 +34,6 @@
 #include "avatar/AvatarManager.h"
 #include "AvatarBookmarks.h"
 #include "devices/DdeFaceTracker.h"
-#include "devices/Faceshift.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -451,12 +450,6 @@ Menu::Menu() {
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(noFaceTracker);
 
-#ifdef HAVE_FACESHIFT
-        QAction* faceshiftFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Faceshift,
-            0, false,
-            qApp, SLOT(setActiveFaceTracker()));
-        faceTrackerGroup->addAction(faceshiftFaceTracker);
-#endif
 #ifdef HAVE_DDE
         QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseCamera,
             0, true,
@@ -477,11 +470,10 @@ Menu::Menu() {
     QAction* ddeCalibrate = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::CalibrateCamera, 0,
         DependencyManager::get<DdeFaceTracker>().data(), SLOT(calibrate()));
     ddeCalibrate->setVisible(true);  // DDE face tracking is on by default
-#endif
-#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
     faceTrackingMenu->addSeparator();
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking,
-        Qt::CTRL | Qt::SHIFT | Qt::Key_F, true);  // DDE face tracking is on by default
+        [](bool mute) { FaceTracker::setIsMuted(mute); },
+        Qt::CTRL | Qt::SHIFT | Qt::Key_F, FaceTracker::isMuted());
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::AutoMuteAudio, 0, false);
 #endif
 
