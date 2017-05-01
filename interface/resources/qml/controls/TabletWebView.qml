@@ -23,6 +23,8 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool isDesktop: false
+    property bool removingPage: false
+    property bool loadingPage: false
 
     
     property int currentPage: -1 // used as a model for repeater
@@ -94,10 +96,14 @@ Item {
     }
         
     function goBack() {
-        if (webview.canGoBack) {
-            pagesModel.remove(currentPage);
+        if (webview.canGoBack && !isUrlLoaded(webview.url)) {
+            if (currentPage > 0) {
+                removingPage = true;
+                pagesModel.remove(currentPage);
+            }
             webview.goBack();
         } else if (currentPage > 0) {
+            removingPage = true;
             pagesModel.remove(currentPage);
         }
     }
@@ -121,6 +127,10 @@ Item {
         urlAppend(url)
     }
 
+    function isUrlLoaded(url) {
+        return (pagesModel.get(currentPage).webUrl === url);
+    }
+    
     function reloadPage() {
         view.reloadAndBypassCache()
         view.setActiveFocusOnPress(true);
@@ -128,6 +138,10 @@ Item {
     }
 
     function urlAppend(url) {
+        if (removingPage) {
+            removingPage = false;
+            return;
+        }
         var lurl = decodeURIComponent(url)
         if (lurl[lurl.length - 1] !== "/") {
             lurl = lurl + "/"
@@ -140,6 +154,7 @@ Item {
 
     onCurrentPageChanged: {
         if (currentPage >= 0 && currentPage < pagesModel.count) {
+            timer.start();
             webview.url = pagesModel.get(currentPage).webUrl;
             web.url = webview.url;
             web.address = webview.url;
@@ -158,7 +173,7 @@ Item {
 
     Timer {
         id: timer
-        interval: 100
+        interval: 200
         running: false
         repeat: false
         onTriggered: timer.stop();
@@ -230,10 +245,10 @@ Item {
             keyboardRaised = false;
             punctuationMode = false;
             keyboard.resetShiftMode(false);
-
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-                urlAppend(loadRequest.url.toString())
+                urlAppend(loadRequest.url.toString());
+                loadingPage = true;
                 var url = loadRequest.url.toString();
                 if (urlHandler.canHandleUrl(url)) {
                     if (urlHandler.handleUrl(url)) {
@@ -241,10 +256,25 @@ Item {
                     }
                 }
             }
+
+            if (WebEngineView.LoadFailedStatus == loadRequest.status) {
+                console.log(" Tablet WebEngineView failed to laod url: " + loadRequest.url.toString());
+            }
         }
 
         onNewViewRequested: {
             request.openIn(webview);
+        }
+    }
+
+    HiFiControls.Keyboard {
+        id: keyboard
+        raised: parent.keyboardEnabled && parent.keyboardRaised
+
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
         }
     }
     

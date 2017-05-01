@@ -30,6 +30,7 @@
 #include <ShutdownEventListener.h>
 #include <SoundCache.h>
 #include <ResourceScriptingInterface.h>
+#include <UserActivityLoggerScriptingInterface.h>
 
 #include "AssignmentFactory.h"
 #include "AssignmentDynamicFactory.h"
@@ -66,6 +67,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
     auto dynamicFactory = DependencyManager::set<AssignmentDynamicFactory>();
     DependencyManager::set<ResourceScriptingInterface>();
+    DependencyManager::set<UserActivityLoggerScriptingInterface>();
 
     // setup a thread for the NodeList and its PacketReceiver
     QThread* nodeThread = new QThread(this);

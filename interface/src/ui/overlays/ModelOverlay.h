@@ -66,6 +66,12 @@ protected:
 	glm::quat _smoothOrientationInitial;
 	glm::quat _smoothOrientationTarget;
 
+protected:
+    // helper to extract metadata from our Model's rigged joints
+    template <typename itemType> using mapFunction = std::function<itemType(int jointIndex)>;
+    template <typename vectorType, typename itemType>
+        vectorType mapJoints(mapFunction<itemType> function) const;
+
 private:
 
     ModelPointer _model;

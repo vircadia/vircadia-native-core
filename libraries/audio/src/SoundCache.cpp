@@ -14,6 +14,8 @@
 #include "AudioLogging.h"
 #include "SoundCache.h"
 
+static const int SOUNDS_LOADING_PRIORITY { -7 }; // Make sure sounds load after the low rez texture mips
+
 int soundPointerMetaTypeId = qRegisterMetaType<SharedSoundPointer>();
 
 SoundCache::SoundCache(QObject* parent) :
@@ -37,5 +39,7 @@ SharedSoundPointer SoundCache::getSound(const QUrl& url) {
 QSharedPointer<Resource> SoundCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
     const void* extra) {
     qCDebug(audio) << "Requesting sound at" << url.toString();
-    return QSharedPointer<Resource>(new Sound(url), &Resource::deleter);
+    auto resource = QSharedPointer<Resource>(new Sound(url), &Resource::deleter);
+    resource->setLoadPriority(this, SOUNDS_LOADING_PRIORITY);
+    return resource;
 }

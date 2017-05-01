@@ -416,9 +416,7 @@ void MyAvatar::update(float deltaTime) {
         Q_ARG(glm::vec3, (getPosition() - halfBoundingBoxDimensions)),
         Q_ARG(glm::vec3, (halfBoundingBoxDimensions*2.0f)));
 
-    uint64_t now = usecTimestampNow();
-    if (now > _identityPacketExpiry || _avatarEntityDataLocallyEdited) {
-        _identityPacketExpiry = now + AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS;
+    if (getIdentityDataChanged()) {
         sendIdentityPacket();
     }
 
@@ -1262,7 +1260,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         setSkeletonModelURL(fullAvatarURL);
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
-    _identityPacketExpiry = 0; // triggers an identity packet next update()
+    markIdentityDataChanged();
 }
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {

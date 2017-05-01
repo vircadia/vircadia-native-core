@@ -67,7 +67,6 @@ void AssetClient::init() {
     }
 }
 
-
 void AssetClient::cacheInfoRequest(QObject* reciever, QString slot) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "cacheInfoRequest", Qt::QueuedConnection,
@@ -182,8 +181,8 @@ RenameMappingRequest* AssetClient::createRenameMappingRequest(const AssetPath& o
     return request;
 }
 
-AssetRequest* AssetClient::createRequest(const AssetHash& hash) {
-    auto request = new AssetRequest(hash);
+AssetRequest* AssetClient::createRequest(const AssetHash& hash, const ByteRange& byteRange) {
+    auto request = new AssetRequest(hash, byteRange);
 
     // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
     request->moveToThread(thread());
@@ -349,18 +348,19 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
     // Store message in case we need to disconnect from it later.
     callbacks.message = message;
 
+
+    auto weakNode = senderNode.toWeakRef();
+    connect(message.data(), &ReceivedMessage::progress, this, [this, weakNode, messageID, length](qint64 size) {
+        handleProgressCallback(weakNode, messageID, size, length);
+    });
+    connect(message.data(), &ReceivedMessage::completed, this, [this, weakNode, messageID]() {
+        handleCompleteCallback(weakNode, messageID);
+    });
+
     if (message->isComplete()) {
+        disconnect(message.data(), nullptr, this, nullptr);
         callbacks.completeCallback(true, error, message->readAll());
         messageCallbackMap.erase(requestIt);
-    } else {
-        auto weakNode = senderNode.toWeakRef();
-
-        connect(message.data(), &ReceivedMessage::progress, this, [this, weakNode, messageID, length](qint64 size) {
-            handleProgressCallback(weakNode, messageID, size, length);
-        });
-        connect(message.data(), &ReceivedMessage::completed, this, [this, weakNode, messageID]() {
-            handleCompleteCallback(weakNode, messageID);
-        });
     }
 }
 
