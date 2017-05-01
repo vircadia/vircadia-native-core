@@ -4355,7 +4355,13 @@ void Application::update(float deltaTime) {
     controller::InputCalibrationData calibrationData = {
         myAvatar->getSensorToWorldMatrix(),
         createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
-        myAvatar->getHMDSensorMatrix()
+        myAvatar->getHMDSensorMatrix(),
+        myAvatar->getCenterEyeCalibrationMat(),
+        myAvatar->getHeadCalibrationMat(),
+        myAvatar->getSpine2CalibrationMat(),
+        myAvatar->getHipsCalibrationMat(),
+        myAvatar->getLeftFootCalibrationMat(),
+        myAvatar->getRightFootCalibrationMat()
     };
 
     InputPluginPointer keyboardMousePlugin;
@@ -4402,6 +4408,13 @@ void Application::update(float deltaTime) {
     controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
     controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
     myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
+
+    controller::Pose hipsPose = userInputMapper->getPoseState(controller::Action::HIPS);
+    controller::Pose spine2Pose = userInputMapper->getPoseState(controller::Action::SPINE2);
+    myAvatar->setSpineControllerPosesInSensorFrame(hipsPose.transform(avatarToSensorMatrix), spine2Pose.transform(avatarToSensorMatrix));
+
+    controller::Pose headPose = userInputMapper->getPoseState(controller::Action::HEAD);
+    myAvatar->setHeadControllerPoseInSensorFrame(headPose.transform(avatarToSensorMatrix));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
