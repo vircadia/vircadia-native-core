@@ -92,16 +92,16 @@ Item {
     }
 
     function loadWebBase() {
-	loader.source = "";
-	loader.source = "TabletWebView.qml";
+        loader.source = "";
+        loader.source = "TabletWebView.qml";
     }
         
     function returnToPreviousApp() {
         tabletApps.remove(currentApp);
         var isWebPage = tabletApps.get(currentApp).isWebUrl;
         if (isWebPage) {
-	    var webUrl = tabletApps.get(currentApp).appWebUrl;
-	    var scriptUrl = tabletApps.get(currentApp).scriptUrl;
+            var webUrl = tabletApps.get(currentApp).appWebUrl;
+            var scriptUrl = tabletApps.get(currentApp).scriptUrl;
             loadSource("TabletWebView.qml");
             loadWebUrl(webUrl, scriptUrl);
         } else {

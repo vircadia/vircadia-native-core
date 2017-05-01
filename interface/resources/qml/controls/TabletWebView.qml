@@ -90,6 +90,13 @@ Item {
                 horizontalCenter: parent.horizontalCenter;
             }
         }
+
+
+        MouseArea {
+            anchors.fill: parent
+            preventStealing: true
+            propagateComposedEvents: true
+        }
     }
 
     ListModel {

@@ -39,8 +39,8 @@ Windows.ScrollingWindow {
     }
 
     function loadWebBase() {
-	loader.source = "";
-	loader.source = "WindowWebView.qml";
+        loader.source = "";
+        loader.source = "WindowWebView.qml";
     }
 
     function loadWebUrl(url, injectedJavaScriptUrl) {
