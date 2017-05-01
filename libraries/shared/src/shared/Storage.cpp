@@ -68,7 +68,7 @@ StoragePointer FileStorage::create(const QString& filename, size_t size, const u
 }
 
 FileStorage::FileStorage(const QString& filename) : _file(filename) {
-    if (_file.open(QFile::ReadOnly)) {
+    if (_file.open(QFile::ReadWrite)) {
         _mapped = _file.map(0, _file.size());
         if (_mapped) {
             _valid = true;

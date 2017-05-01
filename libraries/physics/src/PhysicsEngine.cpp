@@ -142,6 +142,26 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     motionState->clearIncomingDirtyFlags();
 }
 
+QList<EntityDynamicPointer> PhysicsEngine::removeDynamicsForBody(btRigidBody* body) {
+    // remove dynamics that are attached to this body
+    QList<EntityDynamicPointer> removedDynamics;
+    QMutableSetIterator<QUuid> i(_objectDynamicsByBody[body]);
+
+    while (i.hasNext()) {
+        QUuid dynamicID = i.next();
+        if (dynamicID.isNull()) {
+            continue;
+        }
+        EntityDynamicPointer dynamic = _objectDynamics[dynamicID];
+        if (!dynamic) {
+            continue;
+        }
+        removeDynamic(dynamicID);
+        removedDynamics += dynamic;
+    }
+    return removedDynamics;
+}
+
 void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
     // bump and prune contacts for all objects in the list
     for (auto object : objects) {
@@ -175,6 +195,7 @@ void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
         if (body) {
+            removeDynamicsForBody(body);
             _dynamicsWorld->removeRigidBody(body);
 
             // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
@@ -191,6 +212,7 @@ void PhysicsEngine::removeObjects(const SetOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
         if (body) {
+            removeDynamicsForBody(body);
             _dynamicsWorld->removeRigidBody(body);
 
             // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
@@ -240,7 +262,6 @@ void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
     btRigidBody* body = object->getRigidBody();
     if (body) {
         _dynamicsWorld->removeRigidBody(body);
-
         // add it back
         addObjectToDynamicsWorld(object);
     }
@@ -548,44 +569,84 @@ void PhysicsEngine::setCharacterController(CharacterController* character) {
     }
 }
 
-EntityActionPointer PhysicsEngine::getActionByID(const QUuid& actionID) const {
-    if (_objectActions.contains(actionID)) {
-        return _objectActions[actionID];
+EntityDynamicPointer PhysicsEngine::getDynamicByID(const QUuid& dynamicID) const {
+    if (_objectDynamics.contains(dynamicID)) {
+        return _objectDynamics[dynamicID];
     }
     return nullptr;
 }
 
-void PhysicsEngine::addAction(EntityActionPointer action) {
-    assert(action);
-    const QUuid& actionID = action->getID();
-    if (_objectActions.contains(actionID)) {
-        if (_objectActions[actionID] == action) {
+bool PhysicsEngine::addDynamic(EntityDynamicPointer dynamic) {
+    assert(dynamic);
+
+    if (!dynamic->isReadyForAdd()) {
+        return false;
+    }
+
+    const QUuid& dynamicID = dynamic->getID();
+    if (_objectDynamics.contains(dynamicID)) {
+        if (_objectDynamics[dynamicID] == dynamic) {
+            return true;
+        }
+        removeDynamic(dynamic->getID());
+    }
+
+    bool success { false };
+    if (dynamic->isAction()) {
+        ObjectAction* objectAction = static_cast<ObjectAction*>(dynamic.get());
+        _dynamicsWorld->addAction(objectAction);
+        success = true;
+    } else if (dynamic->isConstraint()) {
+        ObjectConstraint* objectConstraint = static_cast<ObjectConstraint*>(dynamic.get());
+        btTypedConstraint* constraint = objectConstraint->getConstraint();
+        if (constraint) {
+            _dynamicsWorld->addConstraint(constraint);
+            success = true;
+        } // else perhaps not all the rigid bodies are available, yet
+    }
+
+    if (success) {
+        _objectDynamics[dynamicID] = dynamic;
+        foreach(btRigidBody* rigidBody, std::static_pointer_cast<ObjectDynamic>(dynamic)->getRigidBodies()) {
+            _objectDynamicsByBody[rigidBody] += dynamic->getID();
+        }
+    }
+    return success;
+}
+
+void PhysicsEngine::removeDynamic(const QUuid dynamicID) {
+    if (_objectDynamics.contains(dynamicID)) {
+        ObjectDynamicPointer dynamic = std::static_pointer_cast<ObjectDynamic>(_objectDynamics[dynamicID]);
+        if (!dynamic) {
             return;
         }
-        removeAction(action->getID());
+        QList<btRigidBody*> rigidBodies = dynamic->getRigidBodies();
+        if (dynamic->isAction()) {
+            ObjectAction* objectAction = static_cast<ObjectAction*>(dynamic.get());
+            _dynamicsWorld->removeAction(objectAction);
+        } else {
+            ObjectConstraint* objectConstraint = static_cast<ObjectConstraint*>(dynamic.get());
+            btTypedConstraint* constraint = objectConstraint->getConstraint();
+            if (constraint) {
+                _dynamicsWorld->removeConstraint(constraint);
+            } else {
+                qCDebug(physics) << "PhysicsEngine::removeDynamic of constraint failed";
+            }
+        }
+        _objectDynamics.remove(dynamicID);
+        foreach(btRigidBody* rigidBody, rigidBodies) {
+            _objectDynamicsByBody[rigidBody].remove(dynamic->getID());
+        }
+        dynamic->invalidate();
     }
-
-    _objectActions[actionID] = action;
-
-    // bullet needs a pointer to the action, but it doesn't use shared pointers.
-    // is there a way to bump the reference count?
-    ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
-    _dynamicsWorld->addAction(objectAction);
 }
 
-void PhysicsEngine::removeAction(const QUuid actionID) {
-    if (_objectActions.contains(actionID)) {
-        EntityActionPointer action = _objectActions[actionID];
-        ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
-        _dynamicsWorld->removeAction(objectAction);
-        _objectActions.remove(actionID);
-    }
-}
-
-void PhysicsEngine::forEachAction(std::function<void(EntityActionPointer)> actor) {
-    QHashIterator<QUuid, EntityActionPointer> iter(_objectActions);
+void PhysicsEngine::forEachDynamic(std::function<void(EntityDynamicPointer)> actor) {
+    QMutableHashIterator<QUuid, EntityDynamicPointer> iter(_objectDynamics);
     while (iter.hasNext()) {
         iter.next();
-        actor(iter.value());
+        if (iter.value()) {
+            actor(iter.value());
+        }
     }
 }

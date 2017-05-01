@@ -55,6 +55,18 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
             default:
                 Q_UNREACHABLE();
         }
+    } else {
+        if (texture.getUsageType() == TextureUsageType::RESOURCE) {
+            auto varTex = static_cast<GL41VariableAllocationTexture*> (object);
+
+            if (varTex->_minAllocatedMip > 0) {
+                auto minAvailableMip = texture.minAvailableMipLevel();
+                if (minAvailableMip < varTex->_minAllocatedMip) {
+                    varTex->_minAllocatedMip = minAvailableMip;
+                    GL41VariableAllocationTexture::_memoryPressureStateStale = true;
+                }
+            }
+        }
     }
 
     return object;
@@ -69,9 +81,7 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 
 GLuint GL41Texture::allocate(const Texture& texture) {
     GLuint result;
-    // FIXME technically GL 4.2, but OSX includes the ARB_texture_storage extension
-    glCreateTextures(getGLTextureType(texture), 1, &result);
-    //glGenTextures(1, &result);
+    glGenTextures(1, &result);
     return result;
 }
 
@@ -94,12 +104,37 @@ void GL41Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
+void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     if (GL_TEXTURE_2D == _target) {
-        glTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
+                glCompressedTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                          static_cast<GLsizei>(sourceSize), sourcePointer);
+                break;
+            default:
+                glTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                break;
+        }
     } else if (GL_TEXTURE_CUBE_MAP == _target) {
         auto target = GLTexture::CUBE_FACE_LAYOUT[face];
-        glTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
+                glCompressedTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                          static_cast<GLsizei>(sourceSize), sourcePointer);
+                break;
+            default:
+                glTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                break;
+        }
     } else {
         assert(false);
     }
@@ -208,15 +243,20 @@ using GL41VariableAllocationTexture = GL41Backend::GL41VariableAllocationTexture
 GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41Texture(backend, texture) {
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
+    _maxAllocatedMip = _populatedMip = mipLevels;
+    _minAllocatedMip = texture.minAvailableMipLevel();
+
     uvec3 mipDimensions;
-    for (uint16_t mip = 0; mip < mipLevels; ++mip) {
+    for (uint16_t mip = _minAllocatedMip; mip < mipLevels; ++mip) {
         if (glm::all(glm::lessThanEqual(texture.evalMipDimensions(mip), INITIAL_MIP_TRANSFER_DIMENSIONS))) {
             _maxAllocatedMip = _populatedMip = mip;
             break;
         }
     }
 
-    uint16_t allocatedMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
+    auto targetMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
+    uint16_t allocatedMip = std::max<uint16_t>(_minAllocatedMip, targetMip);
+
     allocateStorage(allocatedMip);
     _memoryPressureStateStale = true;
     size_t maxFace = GLTexture::getFaceCount(_target);
@@ -253,9 +293,9 @@ void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
 }
 
 
-void GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
+void GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     withPreservedTexture([&] {
-        Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, format, type, sourcePointer);
+        Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
     });
 }
 
@@ -269,6 +309,10 @@ void GL41VariableAllocationTexture::syncSampler() const {
 void GL41VariableAllocationTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
+
+    uint16_t targetAllocatedMip = _allocatedMip - std::min<uint16_t>(_allocatedMip, 2);
+    targetAllocatedMip = std::max<uint16_t>(_minAllocatedMip, targetAllocatedMip);
+
     GLuint oldId = _id;
     auto oldSize = _size;
     // create new texture
@@ -276,11 +320,11 @@ void GL41VariableAllocationTexture::promote() {
     uint16_t oldAllocatedMip = _allocatedMip;
 
     // allocate storage for new level
-    allocateStorage(_allocatedMip - std::min<uint16_t>(_allocatedMip, 2));
+    allocateStorage(targetAllocatedMip);
 
     withPreservedTexture([&] {
         GLuint fbo { 0 };
-        glCreateFramebuffers(1, &fbo);
+        glGenFramebuffers(1, &fbo);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
 
         uint16_t mips = _gpuObject.getNumMips();

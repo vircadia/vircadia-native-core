@@ -723,7 +723,6 @@ function startup() {
         activeIcon: "icons/tablet-icons/people-a.svg",
         sortOrder: 7
     });
-    tablet.fromQml.connect(fromQml);
     button.clicked.connect(onTabletButtonClicked);
     tablet.screenChanged.connect(onTabletScreenChanged);
     Users.usernameFromIDReply.connect(usernameFromIDReply);
@@ -789,8 +788,23 @@ function onTabletButtonClicked() {
         audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
     }
 }
+var hasEventBridge = false;
+function wireEventBridge(on) {
+    if (on) {
+        if (!hasEventBridge) {
+            tablet.fromQml.connect(fromQml);
+            hasEventBridge = true;
+        }
+    } else {
+        if (hasEventBridge) {
+            tablet.fromQml.disconnect(fromQml);
+            hasEventBridge = false;
+        }
+    }
+}
 
 function onTabletScreenChanged(type, url) {
+    wireEventBridge(shouldActivateButton);
     // for toolbar mode: change button to active when window is first openend, false otherwise.
     button.editProperties({isActive: shouldActivateButton});
     shouldActivateButton = false;

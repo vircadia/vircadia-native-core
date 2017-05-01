@@ -99,7 +99,7 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 // Referential Data - R is found in the 7th bit
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
-const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
+const int IS_FACE_TRACKER_CONNECTED = 4; // 5th bit
 const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
@@ -110,9 +110,7 @@ const char LEFT_HAND_POINTING_FLAG = 1;
 const char RIGHT_HAND_POINTING_FLAG = 2;
 const char IS_FINGER_POINTING_FLAG = 4;
 
-const qint64 AVATAR_UPDATE_TIMEOUT = 5 * USECS_PER_SECOND;
-
-// AvatarData state flags - we store the details about the packet encoding in the first byte, 
+// AvatarData state flags - we store the details about the packet encoding in the first byte,
 // before the "header" structure
 const char AVATARDATA_FLAGS_MINIMUM = 0;
 
@@ -220,7 +218,7 @@ namespace AvatarDataPacket {
     } PACKED_END;
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
 
-    // only present if IS_FACESHIFT_CONNECTED flag is set in AvatarInfo.flags
+    // only present if IS_FACE_TRACKER_CONNECTED flag is set in AvatarInfo.flags
     PACKED_BEGIN struct FaceTrackerInfo {
         float leftEyeBlink;
         float rightEyeBlink;
@@ -497,6 +495,7 @@ public:
     Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
 
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
+    Q_INVOKABLE virtual QVector<glm::vec3> getJointTranslations() const;
     Q_INVOKABLE virtual void setJointRotations(QVector<glm::quat> jointRotations);
     Q_INVOKABLE virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
 
@@ -530,6 +529,7 @@ public:
         QString displayName;
         QString sessionDisplayName;
         AvatarEntityMap avatarEntityData;
+        quint64 updatedAt;
     };
 
     static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
@@ -546,7 +546,10 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
-    virtual void setSessionDisplayName(const QString& sessionDisplayName) { _sessionDisplayName = sessionDisplayName; };
+    virtual void setSessionDisplayName(const QString& sessionDisplayName) { 
+        _sessionDisplayName = sessionDisplayName; 
+        markIdentityDataChanged();
+    }
 
     Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
     Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
@@ -564,7 +567,6 @@ public:
 
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
 
-    int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
 
@@ -600,9 +602,6 @@ public:
         return _lastSentJointData;
     }
 
-
-    bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_UPDATE_TIMEOUT; }
-
     static const float OUT_OF_VIEW_PENALTY;
 
     static void sortAvatars(
@@ -619,11 +618,15 @@ public:
     static float _avatarSortCoefficientCenter;
     static float _avatarSortCoefficientAge;
 
-
+    bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
+    void markIdentityDataChanged() {
+        _identityDataChanged = true;
+        _identityUpdatedAt = usecTimestampNow();
+    }
 
 signals:
     void displayNameChanged();
-    
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -777,6 +780,9 @@ protected:
     float _audioLoudness { 0.0f };
     quint64 _audioLoudnessChanged { 0 };
     float _audioAverageLoudness { 0.0f };
+
+    bool _identityDataChanged { false };
+    quint64 _identityUpdatedAt { 0 };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

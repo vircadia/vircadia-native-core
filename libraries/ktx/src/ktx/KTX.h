@@ -71,6 +71,8 @@ end
 
 namespace ktx {
     const uint32_t PACKING_SIZE { sizeof(uint32_t) };
+    const std::string HIFI_MIN_POPULATED_MIP_KEY{ "hifi.minMip" };
+
     using Byte = uint8_t;
 
     enum class GLType : uint32_t {
@@ -101,8 +103,6 @@ namespace ktx {
         UNSIGNED_INT_10F_11F_11F_REV    = 0x8C3B,
         UNSIGNED_INT_5_9_9_9_REV        = 0x8C3E,
         FLOAT_32_UNSIGNED_INT_24_8_REV  = 0x8DAD,
-
-        NUM_GLTYPES = 25,
     };
 
     enum class GLFormat : uint32_t {
@@ -130,8 +130,6 @@ namespace ktx {
         RGBA_INTEGER                    = 0x8D99,
         BGR_INTEGER                     = 0x8D9A,
         BGRA_INTEGER                    = 0x8D9B,
-
-        NUM_GLFORMATS = 20,
     };
 
     enum class GLInternalFormat_Uncompressed : uint32_t {
@@ -232,8 +230,6 @@ namespace ktx {
         STENCIL_INDEX4 = 0x8D47,
         STENCIL_INDEX8 = 0x8D48,
         STENCIL_INDEX16 = 0x8D49,
-
-        NUM_UNCOMPRESSED_GLINTERNALFORMATS = 74,
     };
 
     enum class GLInternalFormat_Compressed : uint32_t {
@@ -245,6 +241,11 @@ namespace ktx {
 
         COMPRESSED_SRGB = 0x8C48,
         COMPRESSED_SRGB_ALPHA = 0x8C49,
+
+        COMPRESSED_SRGB_S3TC_DXT1_EXT = 0x8C4C,
+        COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT = 0x8C4D,
+        COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT = 0x8C4E,
+        COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT = 0x8C4F,
 
         COMPRESSED_RED_RGTC1 = 0x8DBB,
         COMPRESSED_SIGNED_RED_RGTC1 = 0x8DBC,
@@ -267,8 +268,6 @@ namespace ktx {
         COMPRESSED_SIGNED_R11_EAC = 0x9271,
         COMPRESSED_RG11_EAC = 0x9272,
         COMPRESSED_SIGNED_RG11_EAC = 0x9273,
-
-         NUM_COMPRESSED_GLINTERNALFORMATS = 24,
     };
  
     enum class GLBaseInternalFormat : uint32_t {
@@ -280,8 +279,6 @@ namespace ktx {
         RGB = 0x1907,
         RGBA = 0x1908,
         STENCIL_INDEX = 0x1901,
-
-        NUM_GLBASEINTERNALFORMATS = 7,
     };
 
     enum CubeMapFace {
@@ -296,6 +293,11 @@ namespace ktx {
 
     using Storage = storage::Storage;
     using StoragePointer = std::shared_ptr<Storage>;
+
+    struct ImageDescriptor;
+    using ImageDescriptors = std::vector<ImageDescriptor>;
+
+    bool checkIdentifier(const Byte* identifier);
 
     // Header
     struct Header {
@@ -335,11 +337,11 @@ namespace ktx {
         uint32_t getNumberOfLevels() const { return (numberOfMipmapLevels ? numberOfMipmapLevels : 1); }
 
         uint32_t evalMaxDimension() const;
-        uint32_t evalPixelWidth(uint32_t level) const;
-        uint32_t evalPixelHeight(uint32_t level) const;
-        uint32_t evalPixelDepth(uint32_t level) const;
+        uint32_t evalPixelOrBlockWidth(uint32_t level) const;
+        uint32_t evalPixelOrBlockHeight(uint32_t level) const;
+        uint32_t evalPixelOrBlockDepth(uint32_t level) const;
 
-        size_t evalPixelSize() const;
+        size_t evalPixelOrBlockSize() const;
         size_t evalRowSize(uint32_t level) const;
         size_t evalFaceSize(uint32_t level) const;
         size_t evalImageSize(uint32_t level) const;
@@ -383,7 +385,12 @@ namespace ktx {
         void setCube(uint32_t width, uint32_t height) { setDimensions(width, height, 0, 0, NUM_CUBEMAPFACES); }
         void setCubeArray(uint32_t width, uint32_t height, uint32_t numSlices) { setDimensions(width, height, 0, (numSlices > 0 ? numSlices : 1), NUM_CUBEMAPFACES); }
 
+        ImageDescriptors generateImageDescriptors() const;
     };
+    static const size_t KTX_HEADER_SIZE = 64;
+    static_assert(sizeof(Header) == KTX_HEADER_SIZE, "KTX Header size is static and should not change from the spec");
+    static const size_t KV_SIZE_WIDTH = 4; // Number of bytes for keyAndValueByteSize
+    static const size_t IMAGE_SIZE_WIDTH = 4; // Number of bytes for imageSize
 
     // Key Values
     struct KeyValue {
@@ -410,12 +417,17 @@ namespace ktx {
     struct ImageHeader {
         using FaceOffsets = std::vector<size_t>;
         using FaceBytes = std::vector<const Byte*>;
+
+        // This is the byte offset from the _start_ of the image region. For example, level 0
+        // will have a byte offset of 0.
         const uint32_t _numFaces;
+        const size_t _imageOffset;
         const uint32_t _imageSize;
         const uint32_t _faceSize;
         const uint32_t _padding;
-        ImageHeader(bool cube, uint32_t imageSize, uint32_t padding) : 
+        ImageHeader(bool cube, size_t imageOffset, uint32_t imageSize, uint32_t padding) :
             _numFaces(cube ? NUM_CUBEMAPFACES : 1),
+            _imageOffset(imageOffset),
             _imageSize(imageSize * _numFaces),
             _faceSize(imageSize),
             _padding(padding) {
@@ -424,22 +436,22 @@ namespace ktx {
 
     struct Image;
 
+    // Image without the image data itself
     struct ImageDescriptor : public ImageHeader {
         const FaceOffsets _faceOffsets;
         ImageDescriptor(const ImageHeader& header, const FaceOffsets& offsets) : ImageHeader(header), _faceOffsets(offsets) {}
         Image toImage(const ktx::StoragePointer& storage) const;
     };
 
-    using ImageDescriptors = std::vector<ImageDescriptor>;
-
+    // Image with the image data itself
     struct Image : public ImageHeader {
         FaceBytes _faceBytes;
         Image(const ImageHeader& header, const FaceBytes& faces) : ImageHeader(header), _faceBytes(faces) {}
-        Image(uint32_t imageSize, uint32_t padding, const Byte* bytes) :
-            ImageHeader(false, imageSize, padding),
+        Image(size_t imageOffset, uint32_t imageSize, uint32_t padding, const Byte* bytes) :
+            ImageHeader(false, imageOffset, imageSize, padding),
             _faceBytes(1, bytes) {}
-        Image(uint32_t pageSize, uint32_t padding, const FaceBytes& cubeFaceBytes) :
-            ImageHeader(true, pageSize, padding)
+        Image(size_t imageOffset, uint32_t pageSize, uint32_t padding, const FaceBytes& cubeFaceBytes) :
+            ImageHeader(true, imageOffset, pageSize, padding)
             {
                 if (cubeFaceBytes.size() == NUM_CUBEMAPFACES) {
                     _faceBytes = cubeFaceBytes;
@@ -462,6 +474,7 @@ namespace ktx {
         const ImageDescriptors images;
         size_t getMipFaceTexelsSize(uint16_t mip = 0, uint8_t face = 0) const;
         size_t getMipFaceTexelsOffset(uint16_t mip = 0, uint8_t face = 0) const;
+        size_t getValueOffsetForKey(const std::string& key) const;
     };
 
     class KTX {
@@ -476,6 +489,7 @@ namespace ktx {
         // This path allocate the Storage where to store header, keyvalues and copy mips
         // Then COPY all the data
         static std::unique_ptr<KTX> create(const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
+        static std::unique_ptr<KTX> createBare(const Header& header, const KeyValues& keyValues = KeyValues());
 
         // Instead of creating a full Copy of the src data in a KTX object, the write serialization can be performed with the
         // following two functions
@@ -489,9 +503,13 @@ namespace ktx {
         //
         // This is exactly what is done in the create function
         static size_t evalStorageSize(const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
+        static size_t evalStorageSize(const Header& header, const ImageDescriptors& images, const KeyValues& keyValues = KeyValues());
         static size_t write(Byte* destBytes, size_t destByteSize, const Header& header, const Images& images, const KeyValues& keyValues = KeyValues());
+        static size_t writeWithoutImages(Byte* destBytes, size_t destByteSize, const Header& header, const ImageDescriptors& descriptors, const KeyValues& keyValues = KeyValues());
         static size_t writeKeyValues(Byte* destBytes, size_t destByteSize, const KeyValues& keyValues);
         static Images writeImages(Byte* destBytes, size_t destByteSize, const Images& images);
+
+        void writeMipData(uint16_t level, const Byte* sourceBytes, size_t source_size);
 
         // Parse a block of memory and create a KTX object from it
         static std::unique_ptr<KTX> create(const StoragePointer& src);

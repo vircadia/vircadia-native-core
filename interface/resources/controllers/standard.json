@@ -61,6 +61,11 @@
         { "from": "Standard.RightHand", "to": "Actions.RightHand" },
 
         { "from": "Standard.LeftFoot", "to": "Actions.LeftFoot" },
-        { "from": "Standard.RightFoot", "to": "Actions.RightFoot" }
+        { "from": "Standard.RightFoot", "to": "Actions.RightFoot" },
+
+        { "from": "Standard.Hips", "to": "Actions.Hips" },
+        { "from": "Standard.Spine2", "to": "Actions.Spine2" },
+
+        { "from": "Standard.Head", "to": "Actions.Head" }
     ]
 }

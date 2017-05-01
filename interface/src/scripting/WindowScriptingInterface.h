@@ -51,12 +51,15 @@ public slots:
     QScriptValue confirm(const QString& message = "");
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
     CustomPromptResult customPrompt(const QVariant& config);
+    QScriptValue browseDir(const QString& title = "", const QString& directory = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    QScriptValue browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
     void showAssetServer(const QString& upload = "");
     void copyToClipboard(const QString& text);
     void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
     void makeConnection(bool success, const QString& userNameOrError);
+    void displayAnnouncement(const QString& message);
     void shareSnapshot(const QString& path, const QUrl& href = QUrl(""));
     bool isPhysicsEnabled();
 
@@ -72,12 +75,13 @@ signals:
     void svoImportRequested(const QString& url);
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode, const QString& extraInfo);
     void stillSnapshotTaken(const QString& pathStillSnapshot, bool notify);
-    void snapshotShared(const QString& error);
+    void snapshotShared(bool isError, const QString& reply);
     void processingGifStarted(const QString& pathStillSnapshot);
     void processingGifCompleted(const QString& pathAnimatedSnapshot);
 
     void connectionAdded(const QString& connectionName);
     void connectionError(const QString& errorString);
+    void announcement(const QString& message);
 
     void messageBoxClosed(int id, int button);
 
@@ -87,6 +91,9 @@ signals:
 private:
     QString getPreviousBrowseLocation() const;
     void setPreviousBrowseLocation(const QString& location);
+
+    QString getPreviousBrowseAssetLocation() const;
+    void setPreviousBrowseAssetLocation(const QString& location);
 
     void ensureReticleVisible() const;
 

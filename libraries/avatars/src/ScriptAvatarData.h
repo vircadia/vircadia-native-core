@@ -106,6 +106,7 @@ public:
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
     Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
     Q_INVOKABLE QVector<glm::quat> getJointRotations() const;
+    Q_INVOKABLE QVector<glm::vec3> getJointTranslations() const;
     Q_INVOKABLE bool isJointDataValid(const QString& name) const;
     Q_INVOKABLE int getJointIndex(const QString& name) const;
     Q_INVOKABLE QStringList getJointNames() const;
