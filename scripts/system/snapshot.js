@@ -117,13 +117,15 @@ function onMessage(message) {
                 setting: Settings.getValue("alsoTakeAnimatedSnapshot", true)
             }));
             if (Snapshot.getSnapshotsLocation() !== "") {
-                tablet.emitScriptEvent(JSON.stringify({
-                    type: "snapshot",
-                    action: "showPreviousImages",
-                    options: snapshotOptions,
-                    image_data: imageData,
-                    canShare: !isDomainOpen(Settings.getValue("previousSnapshotDomainID"))
-                }));
+                isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: "snapshot",
+                        action: "showPreviousImages",
+                        options: snapshotOptions,
+                        image_data: imageData,
+                        canShare: canShare
+                    }));
+                });                
             } else {
                 tablet.emitScriptEvent(JSON.stringify({
                     type: "snapshot",
@@ -131,10 +133,12 @@ function onMessage(message) {
                 }));
                 Settings.setValue("previousStillSnapPath", "");
                 Settings.setValue("previousStillSnapStoryID", "");
-                Settings.setValue("previousStillSnapSharingDisabled", false);
+                Settings.setValue("previousStillSnapBlastingDisabled", false);
+                Settings.setValue("previousStillSnapHifiSharingDisabled", false);
                 Settings.setValue("previousAnimatedSnapPath", "");
                 Settings.setValue("previousAnimatedSnapStoryID", "");
-                Settings.setValue("previousAnimatedSnapSharingDisabled", false);
+                Settings.setValue("previousAnimatedSnapBlastingDisabled", false);
+                Settings.setValue("previousAnimatedSnapHifiSharingDisabled", false);
             }
             break;
         case 'chooseSnapshotLocation':
@@ -180,9 +184,9 @@ function onMessage(message) {
             isLoggedIn = Account.isLoggedIn();
             storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
             if (message.isGif) {
-                Settings.setValue("previousAnimatedSnapSharingDisabled", true);
+                Settings.setValue("previousAnimatedSnapBlastingDisabled", true);
             } else {
-                Settings.setValue("previousStillSnapSharingDisabled", true);
+                Settings.setValue("previousStillSnapBlastingDisabled", true);
             }
 
             if (isLoggedIn) {
@@ -220,9 +224,9 @@ function onMessage(message) {
                             if (error || (response.status !== 'success')) {
                                 print("ERROR uploading announcement story: ", error || response.status);
                                 if (message.isGif) {
-                                    Settings.setValue("previousAnimatedSnapSharingDisabled", false);
+                                    Settings.setValue("previousAnimatedSnapBlastingDisabled", false);
                                 } else {
-                                    Settings.setValue("previousStillSnapSharingDisabled", false);
+                                    Settings.setValue("previousStillSnapBlastingDisabled", false);
                                 }
                                 return;
                             } else {
@@ -240,9 +244,9 @@ function onMessage(message) {
             isLoggedIn = Account.isLoggedIn();
             storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
             if (message.isGif) {
-                Settings.setValue("previousAnimatedSnapSharingDisabled", true);
+                Settings.setValue("previousAnimatedSnapHifiSharingDisabled", true);
             } else {
-                Settings.setValue("previousStillSnapSharingDisabled", true);
+                Settings.setValue("previousStillSnapHifiSharingDisabled", true);
             }
 
             if (isLoggedIn) {
@@ -264,9 +268,9 @@ function onMessage(message) {
                     if (error || (response.status !== 'success')) {
                         print("ERROR changing audience: ", error || response.status);
                         if (message.isGif) {
-                            Settings.setValue("previousAnimatedSnapSharingDisabled", false);
+                            Settings.setValue("previousAnimatedSnapHifiSharingDisabled", false);
                         } else {
-                            Settings.setValue("previousStillSnapSharingDisabled", false);
+                            Settings.setValue("previousStillSnapHifiSharingDisabled", false);
                         }
                         return;
                     } else {
@@ -301,10 +305,12 @@ function onButtonClicked() {
         shouldActivateButton = true;
         var previousStillSnapPath = Settings.getValue("previousStillSnapPath");
         var previousStillSnapStoryID = Settings.getValue("previousStillSnapStoryID");
-        var previousStillSnapSharingDisabled = Settings.getValue("previousStillSnapSharingDisabled");
+        var previousStillSnapBlastingDisabled = Settings.getValue("previousStillSnapBlastingDisabled");
+        var previousStillSnapHifiSharingDisabled = Settings.getValue("previousStillSnapHifiSharingDisabled");
         var previousAnimatedSnapPath = Settings.getValue("previousAnimatedSnapPath");
         var previousAnimatedSnapStoryID = Settings.getValue("previousAnimatedSnapStoryID");
-        var previousAnimatedSnapSharingDisabled = Settings.getValue("previousAnimatedSnapSharingDisabled");
+        var previousAnimatedSnapBlastingDisabled = Settings.getValue("previousAnimatedSnapBlastingDisabled");
+        var previousAnimatedSnapHifiSharingDisabled = Settings.getValue("previousAnimatedSnapHifiSharingDisabled");
         snapshotOptions = {
             containsGif: previousAnimatedSnapPath !== "",
             processingGif: false,
@@ -312,10 +318,20 @@ function onButtonClicked() {
         }
         imageData = [];
         if (previousAnimatedSnapPath !== "") {
-            imageData.push({ localPath: previousAnimatedSnapPath, story_id: previousAnimatedSnapStoryID, buttonDisabled: previousAnimatedSnapSharingDisabled });
+            imageData.push({
+                localPath: previousAnimatedSnapPath,
+                story_id: previousAnimatedSnapStoryID,
+                blastButtonDisabled: previousAnimatedSnapBlastingDisabled,
+                hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled
+            });
         }
         if (previousStillSnapPath !== "") {
-            imageData.push({ localPath: previousStillSnapPath, story_id: previousStillSnapStoryID, buttonDisabled: previousStillSnapSharingDisabled });
+            imageData.push({
+                localPath: previousStillSnapPath,
+                story_id: previousStillSnapStoryID,
+                blastButtonDisabled: previousStillSnapBlastingDisabled,
+                hifiButtonDisabled: previousStillSnapHifiSharingDisabled
+            });
         }
         tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
         tablet.webEventReceived.connect(onMessage);
@@ -355,10 +371,12 @@ function takeSnapshot() {
     }));
     Settings.setValue("previousStillSnapPath", "");
     Settings.setValue("previousStillSnapStoryID", "");
-    Settings.setValue("previousStillSnapSharingDisabled", false);
+    Settings.setValue("previousStillSnapBlastingDisabled", false);
+    Settings.setValue("previousStillSnapHifiSharingDisabled", false);
     Settings.setValue("previousAnimatedSnapPath", "");
     Settings.setValue("previousAnimatedSnapStoryID", "");
-    Settings.setValue("previousAnimatedSnapSharingDisabled", false);
+    Settings.setValue("previousAnimatedSnapBlastingDisabled", false);
+    Settings.setValue("previousAnimatedSnapHifiSharingDisabled", false);
 
     // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
     // Turn it off now, before we start futzing with things (and possibly moving).
@@ -403,32 +421,34 @@ function takeSnapshot() {
     }, FINISH_SOUND_DELAY);
 }
 
-function isDomainOpen(id) {
+function isDomainOpen(id, callback) {
     print("Checking open status of domain with ID:", id);
-    if (!id) {
-        return false;
+    var status = false;
+    if (id) {
+        var options = [
+            'now=' + new Date().toISOString(),
+            'include_actions=concurrency',
+            'domain_id=' + id.slice(1, -1),
+            'restriction=open,hifi' // If we're sharing, we're logged in
+            // If we're here, protocol matches, and it is online
+        ];
+        var url = METAVERSE_BASE + "/api/v1/user_stories?" + options.join('&');
+
+        request({
+            uri: url,
+            method: 'GET'
+        }, function (error, response) {
+            if (error || (response.status !== 'success')) {
+                print("ERROR getting open status of domain: ", error || response.status);
+            } else {
+                status = response.total_entries ? true : false;
+            }
+            print("Domain open status:", status);
+            callback(status);
+        });
+    } else {
+        callback(status);
     }
-
-    var options = [
-        'now=' + new Date().toISOString(),
-        'include_actions=concurrency',
-        'domain_id=' + id.slice(1, -1),
-        'restriction=open,hifi' // If we're sharing, we're logged in
-        // If we're here, protocol matches, and it is online
-    ];
-    var url = METAVERSE_BASE + "/api/v1/user_stories?" + options.join('&');
-
-    return request({
-        uri: url,
-        method: 'GET'
-    }, function (error, response) {
-        if (error || (response.status !== 'success')) {
-            print("ERROR getting open status of domain: ", error || response.status);
-            return false;
-        } else {
-            return response.total_entries;
-        }
-    });
 }
 
 function stillSnapshotTaken(pathStillSnapshot, notify) {
@@ -448,25 +468,27 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     // during which time the user may have moved. So stash that info in the dialog so that
     // it records the correct href. (We can also stash in .jpegs, but not .gifs.)
     // last element in data array tells dialog whether we can share or not
-    snapshotOptions = {
-        containsGif: false,
-        processingGif: false,
-        canShare: !isDomainOpen(domainId)
-    };
-    imageData = [{ localPath: pathStillSnapshot, href: href }];
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
-
-    tablet.emitScriptEvent(JSON.stringify({
-        type: "snapshot",
-        action: "addImages",
-        options: snapshotOptions,
-        image_data: imageData
-    }));
 
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
     HMD.openTablet();
+
+    isDomainOpen(domainId, function (canShare) {
+        snapshotOptions = {
+            containsGif: false,
+            processingGif: false,
+            canShare: canShare
+        };
+        imageData = [{ localPath: pathStillSnapshot, href: href }];
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "addImages",
+            options: snapshotOptions,
+            image_data: imageData
+        }));
+    });
 }
 
 function processingGifStarted(pathStillSnapshot) {
@@ -478,27 +500,28 @@ function processingGifStarted(pathStillSnapshot) {
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true);
     }
-
-    snapshotOptions = {
-        containsGif: true,
-        processingGif: true,
-        loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
-        canShare: !isDomainOpen(domainId)
-    };
-    imageData = [{ localPath: pathStillSnapshot, href: href }];
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
-
-    tablet.emitScriptEvent(JSON.stringify({
-        type: "snapshot",
-        action: "addImages",
-        options: snapshotOptions,
-        image_data: imageData
-    }));
 
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
     HMD.openTablet();
+    
+    isDomainOpen(domainId, function (canShare) {
+        snapshotOptions = {
+            containsGif: true,
+            processingGif: true,
+            loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
+            canShare: canShare
+        };
+        imageData = [{ localPath: pathStillSnapshot, href: href }];
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "addImages",
+            options: snapshotOptions,
+            image_data: imageData
+        }));
+    });
 }
 
 function processingGifCompleted(pathAnimatedSnapshot) {
@@ -508,20 +531,22 @@ function processingGifCompleted(pathAnimatedSnapshot) {
         buttonConnected = true;
     }
 
-    snapshotOptions = {
-        containsGif: true,
-        processingGif: false,
-        canShare: !isDomainOpen(domainId)
-    }
-    imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
     Settings.setValue("previousAnimatedSnapPath", pathAnimatedSnapshot);
 
-    tablet.emitScriptEvent(JSON.stringify({
-        type: "snapshot",
-        action: "addImages",
-        options: snapshotOptions,
-        image_data: imageData
-    }));
+    isDomainOpen(domainId, function (canShare) {
+        snapshotOptions = {
+            containsGif: true,
+            processingGif: false,
+            canShare: canShare
+        };
+        imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "addImages",
+            options: snapshotOptions,
+            image_data: imageData
+        }));
+    });
 }
 function maybeDeleteSnapshotStories() {
     storyIDsToMaybeDelete.forEach(function (element, idx, array) {
