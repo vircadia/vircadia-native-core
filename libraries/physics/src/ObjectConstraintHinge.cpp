@@ -74,8 +74,6 @@ void ObjectConstraintHinge::updateHinge() {
         return;
     }
 
-    // auto bulletAxisInA = glmToBullet(axisInA);
-    // constraint->setAxis(bulletAxisInA);
     constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
 }
 

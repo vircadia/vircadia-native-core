@@ -85,10 +85,10 @@ bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm
         linearTimeScale = _linearTimeScale;
         angularTimeScale = _angularTimeScale;
 
-        if (_otherID != QUuid()) {
+        if (!_otherID.isNull()) {
             if (other) {
                 rotation = _desiredRotationalTarget * other->getRotation();
-                position = _desiredPositionalTarget + other->getPosition();
+                position = other->getRotation() * _desiredPositionalTarget + other->getPosition();
             } else {
                 // we should have an "other" but can't find it, so disable the spring.
                 linearTimeScale = FLT_MAX;
