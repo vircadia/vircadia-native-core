@@ -150,6 +150,7 @@ GLExternalTexture::~GLExternalTexture() {
 // Variable sized textures
 using MemoryPressureState = GLVariableAllocationSupport::MemoryPressureState;
 using WorkQueue = GLVariableAllocationSupport::WorkQueue;
+using TransferJobPointer = GLVariableAllocationSupport::TransferJobPointer;
 
 std::list<TextureWeakPointer> GLVariableAllocationSupport::_memoryManagedTextures;
 MemoryPressureState GLVariableAllocationSupport::_memoryPressureState { MemoryPressureState::Idle };
@@ -159,6 +160,7 @@ WorkQueue GLVariableAllocationSupport::_transferQueue;
 WorkQueue GLVariableAllocationSupport::_promoteQueue;
 WorkQueue GLVariableAllocationSupport::_demoteQueue;
 TexturePointer GLVariableAllocationSupport::_currentTransferTexture;
+TransferJobPointer GLVariableAllocationSupport::_currentTransferJob;
 size_t GLVariableAllocationSupport::_frameTexturesCreated { 0 };
 
 #define OVERSUBSCRIBED_PRESSURE_VALUE 0.95f
@@ -553,9 +555,15 @@ void GLVariableAllocationSupport::executeNextTransfer(const TexturePointer& curr
     if (!_pendingTransfers.empty()) {
         // Keeping hold of a strong pointer during the transfer ensures that the transfer thread cannot try to access a destroyed texture
         _currentTransferTexture = currentTexture;
-        if (_pendingTransfers.front()->tryTransfer()) {
+        // Keeping hold of a strong pointer to the transfer job ensures that if the pending transfer queue is rebuilt, the transfer job
+        // doesn't leave scope, causing a crash in the buffering thread
+        _currentTransferJob = _pendingTransfers.front();
+        // transfer jobs use asynchronous buffering of the texture data because it may involve disk IO, so we execute a try here to determine if the buffering 
+        // is complete
+        if (_currentTransferJob->tryTransfer()) {
             _pendingTransfers.pop();
             _currentTransferTexture.reset();
+            _currentTransferJob.reset();
         }
     }
 }
