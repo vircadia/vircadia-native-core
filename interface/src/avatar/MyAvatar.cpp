@@ -376,6 +376,7 @@ void MyAvatar::update(float deltaTime) {
     _hmdSensorFacingMovingAverage = lerp(_hmdSensorFacingMovingAverage, _hmdSensorFacing, tau);
 
 	if (_smoothOrientationTimer < _smoothOrientationTime) {
+		rotationForceChange();
 		_smoothOrientationTimer = min(_smoothOrientationTimer + deltaTime, _smoothOrientationTime);
 	}
 

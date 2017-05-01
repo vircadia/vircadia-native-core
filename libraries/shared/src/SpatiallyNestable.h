@@ -183,6 +183,8 @@ public:
     bool tranlationChangedSince(quint64 time) const { return _translationChanged > time; }
     bool rotationChangedSince(quint64 time) const { return _rotationChanged > time; }
 
+	inline void rotationForceChange() { _rotationChanged = usecTimestampNow(); }
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
