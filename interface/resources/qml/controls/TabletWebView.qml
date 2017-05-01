@@ -28,6 +28,7 @@ Item {
     property alias webView: webview
     property alias profile: webview.profile
     property bool remove: false
+    property bool newPage: false
 
     
     property int currentPage: -1 // used as a model for repeater
@@ -144,9 +145,22 @@ Item {
         view.setEnabled(true);
     }
 
+    function isNewPageOpen() {
+	return (web.newPage && web.currentPage > 0);
+    }
+    
+    function shouldLoadUrl(url) {
+	switch (url) {
+	case "https://twitter.com/intent/sessions":
+	    return true;
+	}
+	return false;
+    }
     function urlAppend(url) {
-        if (removingPage) {
+	console.log(url);
+        if (removingPage || shouldLoadUrl(url) || isNewPageOpen()) {
             removingPage = false;
+	    web.newPage = false;
             return;
         }
         var lurl = decodeURIComponent(url)
@@ -156,7 +170,7 @@ Item {
         if (currentPage === -1 || (pagesModel.get(currentPage).webUrl !== lurl && !timer.running)) {
             timer.start();
             pagesModel.append({webUrl: lurl});
-        }
+        };
     }
 
     onCurrentPageChanged: {
@@ -228,6 +242,7 @@ Item {
             worldId: WebEngineScript.MainWorld
         }
 
+	property string urlTag: "noDownload=false";
         userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
         property string newUrl: ""
@@ -254,9 +269,9 @@ Item {
             keyboard.resetShiftMode(false);
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-                urlAppend(loadRequest.url.toString());
+		var url = loadRequest.url.toString();
+                urlAppend(url);
                 loadingPage = true;
-                var url = loadRequest.url.toString();
                 if (urlHandler.canHandleUrl(url)) {
                     if (urlHandler.handleUrl(url)) {
                         root.stop();
@@ -270,6 +285,7 @@ Item {
         }
 
         onNewViewRequested: {
+	    web.newPage = true;
             request.openIn(webview);
         }
     }
