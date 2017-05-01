@@ -60,8 +60,9 @@ function addImage(image_data, isGifLoading, canShare, isShowingPreviousImages, b
     // imageContainer setup
     var imageContainer = document.createElement("DIV");
     imageContainer.id = id;
-    imageContainer.style.width = "100%";
-    imageContainer.style.height = "251px";
+    imageContainer.style.width = "95%";
+    imageContainer.style.height = "240px";
+    imageContainer.style.margin = "5px 0";
     imageContainer.style.display = "flex";
     imageContainer.style.justifyContent = "center";
     imageContainer.style.alignItems = "center";
@@ -118,7 +119,7 @@ function createShareBar(parentID, isGif, shareURL, blastButtonDisabled, hifiButt
             '<label id="' + showShareButtonsLabelID + '" for="' + showShareButtonsButtonID + '">SHARE</label>' +
             '<input type="button" class="showShareButton inactive" id="' + showShareButtonsButtonID + '" onclick="selectImageToShare(' + parentID + ', true)" />' +
             '<div class="showShareButtonDots">' +
-                '<span></span><span></span><span></span>' +
+                '&#xe019;' +
             '</div>' +
         '</div>';
 
@@ -231,7 +232,7 @@ function handleCaptureSetting(setting) {
 window.onload = function () {
     // Uncomment the line below to test functionality in a browser.
     // See definition of "testInBrowser()" to modify tests.
-    //testInBrowser(true);
+    testInBrowser(false);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
