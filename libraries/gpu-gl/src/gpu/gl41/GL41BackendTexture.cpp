@@ -309,6 +309,30 @@ void GL41VariableAllocationTexture::syncSampler() const {
 }
 
 
+void copyUncompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcAllocatedMip, uint16_t destAllocatedMip, uint16_t populatedMips) {
+    GLuint fbo { 0 };
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+
+    uint16_t mips = numMips;
+    // copy pre-existing mips
+    for (uint16_t mip = populatedMips; mip < mips; ++mip) {
+        auto mipDimensions = texture.evalMipDimensions(mip);
+        uint16_t targetMip = mip - destAllocatedMip;
+        uint16_t sourceMip = mip - srcAllocatedMip;
+        for (GLenum target : GLTexture::getFaceTargets(texTarget)) {
+            glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, srcId, sourceMip);
+            (void)CHECK_GL_ERROR();
+            glCopyTexSubImage2D(target, targetMip, 0, 0, 0, 0, mipDimensions.x, mipDimensions.y);
+            (void)CHECK_GL_ERROR();
+        }
+    }
+
+    // destroy the transfer framebuffer
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glDeleteFramebuffers(1, &fbo);
+}
+
 void copyCompressedTexGPUMem(GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcAllocatedMip, uint16_t destAllocatedMip, uint16_t populatedMips) {
     GLuint pbo { 0 };
     glGenBuffers(1, &pbo);
@@ -347,12 +371,14 @@ void copyCompressedTexGPUMem(GLenum texTarget, GLuint srcId, GLuint destId, uint
         sourceMip._size = (GLint)faceTargets.size() * sourceMip._faceSize;
         sourceMip._offset = bufferOffset;
         bufferOffset += sourceMip._size;
+        gpu::gl::checkGLError();
     }
     (void)CHECK_GL_ERROR();
 
     // Allocate the PBO to accomodate for all the mips to copy
     glBufferData(GL_PIXEL_PACK_BUFFER, bufferOffset, nullptr, GL_STREAM_COPY);
     (void)CHECK_GL_ERROR();
+    gpu::gl::checkGLError();
 
     // Transfer from source texture to pbo
     for (uint16_t mip = populatedMips; mip < numMips; ++mip) {
@@ -364,6 +390,7 @@ void copyCompressedTexGPUMem(GLenum texTarget, GLuint srcId, GLuint destId, uint
             glGetCompressedTexImage(faceTargets[f], sourceLevel, (void*)(sourceMip._offset + f * sourceMip._faceSize));
         }
         (void)CHECK_GL_ERROR();
+        gpu::gl::checkGLError();
     }
 
     // Now populate the new texture from the pbo
@@ -380,8 +407,9 @@ void copyCompressedTexGPUMem(GLenum texTarget, GLuint srcId, GLuint destId, uint
         uint16_t destLevel = mip - destAllocatedMip;
 
         for (GLint f = 0; f < faceTargets.size(); f++) {
-            glCompressedTexImage2D(faceTargets[f], destLevel, internalFormat, sourceMip._width, sourceMip._height, 0,
+            glCompressedTexSubImage2D(faceTargets[f], destLevel,0, 0, sourceMip._width, sourceMip._height, internalFormat,
                 sourceMip._faceSize, (void*)(sourceMip._offset + f * sourceMip._faceSize));
+            gpu::gl::checkGLError();
         }
     }
 
@@ -405,6 +433,8 @@ void GL41VariableAllocationTexture::promote() {
     // allocate storage for new level
     allocateStorage(targetAllocatedMip);
 
+    uint16_t numMips = _gpuObject.getNumMips();
+
     if (_texelFormat.isCompressed()) {
 #if defined(USE_45IMAGECOPY_PROMOTE)
         withPreservedTexture([&] {
@@ -427,7 +457,6 @@ void GL41VariableAllocationTexture::promote() {
             syncSampler();
         });
 #else
-        uint16_t numMips = _gpuObject.getNumMips();
         withPreservedTexture([&] {
             copyCompressedTexGPUMem(_target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
             syncSampler();
@@ -435,7 +464,8 @@ void GL41VariableAllocationTexture::promote() {
 #endif
     } else {
         withPreservedTexture([&] {
-            GLuint fbo { 0 };
+            copyUncompressedTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
+           /* GLuint fbo { 0 };
             glGenFramebuffers(1, &fbo);
             glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
 
@@ -456,7 +486,7 @@ void GL41VariableAllocationTexture::promote() {
             // destroy the transfer framebuffer
             glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
             glDeleteFramebuffers(1, &fbo);
-
+            */
             syncSampler();
         });
     }
@@ -477,6 +507,8 @@ void GL41VariableAllocationTexture::demote() {
     uint16_t oldAllocatedMip = _allocatedMip;
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
+
+    uint16_t numMips = _gpuObject.getNumMips();
 
     if (_texelFormat.isCompressed()) {
 #if defined(USE_45IMAGECOPY_DEMOTE)
@@ -500,7 +532,6 @@ void GL41VariableAllocationTexture::demote() {
             syncSampler();
         });
 #else
-        uint16_t numMips = _gpuObject.getNumMips();
         withPreservedTexture([&] {
             copyCompressedTexGPUMem(_target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
             syncSampler();
@@ -508,7 +539,9 @@ void GL41VariableAllocationTexture::demote() {
 #endif
     } else {
         withPreservedTexture([&] {
-            GLuint fbo { 0 };
+            copyUncompressedTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
+      
+      /*      GLuint fbo { 0 };
             glGenFramebuffers(1, &fbo);
             glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
 
@@ -529,7 +562,7 @@ void GL41VariableAllocationTexture::demote() {
             // destroy the transfer framebuffer
             glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
             glDeleteFramebuffers(1, &fbo);
-
+*/
             syncSampler();
         });
     }
