@@ -508,7 +508,7 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
 
     if (root) {
         removeButtonsFromHomeScreen();
-        QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
+        QMetaObject::invokeMethod(root, "loadWebBase");
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         QMetaObject::invokeMethod(root, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
     }
