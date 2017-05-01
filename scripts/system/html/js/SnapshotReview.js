@@ -62,7 +62,7 @@ function addImage(image_data, isGifLoading, canShare, isShowingPreviousImages, b
     imageContainer.id = id;
     imageContainer.style.width = "95%";
     imageContainer.style.height = "240px";
-    imageContainer.style.margin = "5px 0";
+    imageContainer.style.margin = "5px auto";
     imageContainer.style.display = "flex";
     imageContainer.style.justifyContent = "center";
     imageContainer.style.alignItems = "center";
@@ -150,6 +150,15 @@ function selectImageToShare(selectedID, isSelected) {
         shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
 
         shareButtonsDiv.style.visibility = "visible";
+
+        var containers = document.getElementsByClassName("shareControls");
+        var parentID;
+        for (var i = 0; i < containers.length; ++i) {
+            parentID = containers[i].id.slice(0, 2);
+            if (parentID !== selectedID) {
+                selectImageToShare(parentID, false);
+            }
+        }
     } else {
         showShareButtonsButton.onclick = function () { selectImageToShare(selectedID, true) };
         showShareButtonsButton.classList.remove("active");
@@ -232,7 +241,7 @@ function handleCaptureSetting(setting) {
 window.onload = function () {
     // Uncomment the line below to test functionality in a browser.
     // See definition of "testInBrowser()" to modify tests.
-    //testInBrowser(false);
+    testInBrowser(false);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
@@ -330,6 +339,7 @@ function testInBrowser(isTestingSetupInstructions) {
     } else {
         imageCount = 1;
         //addImage({ localPath: 'http://lorempixel.com/553/255' });
-        addImage({ localPath: 'C:/Users/valef/Desktop/hifi-snap-by-zfox-on-2017-04-26_10-26-53.gif' }, false, true, true, false, false);
+        addImage({ localPath: 'C:/Users/valef/Desktop/hifi-snap-by-zfox-on-2017-05-01_15-48-15.gif' }, false, true, true, false, false);
+        addImage({ localPath: 'C:/Users/valef/Desktop/hifi-snap-by-zfox-on-2017-05-01_15-48-15.jpg' }, false, true, true, false, false);
     }
 }

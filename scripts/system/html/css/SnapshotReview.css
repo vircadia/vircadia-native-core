@@ -82,6 +82,7 @@ input[type=button].naked:active {
     width: 100%;
     display: flex;
     justify-content: center;
+    flex-direction: column;
 }
 
 #snapshot-images img {
