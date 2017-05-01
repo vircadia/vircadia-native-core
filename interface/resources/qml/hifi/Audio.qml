@@ -79,7 +79,7 @@ Rectangle {
         }
 
         Connections {
-            target: AvatarInputs
+            target: AvatarInputs !== undefined ? AvatarInputs : null
             onShowAudioToolsChanged: {
                 audioTools.checkbox.checked = showAudioTools
             }
@@ -100,10 +100,12 @@ Rectangle {
             id: audioTools
             width: parent.width
             anchors { left: parent.left; right: parent.right; leftMargin: 30 }
-            checkbox.checked: AvatarInputs.showAudioTools
+            checkbox.checked: AvatarInputs !== undefined ? AvatarInputs.showAudioTools : false
             text.text: qsTr("Show audio level meter")
             onCheckBoxClicked: {
-                AvatarInputs.showAudioTools = checked
+                if (AvatarInputs !== undefined) {
+                    AvatarInputs.showAudioTools = checked
+                }
             }
         }
 

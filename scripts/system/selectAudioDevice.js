@@ -137,7 +137,16 @@ function onMenuEvent(audioDeviceMenuString) {
 
 function onCurrentDeviceChanged() {
     debug("System audio device switched. ");
-    setupAudioMenus()
+    var interfaceInputDevice = "Use " + AudioDevice.getInputDevice() + " for Input";
+    var interfaceOutputDevice = "Use " + AudioDevice.getOutputDevice() + " for Output";
+    for (var index = 0; index < audioDevicesList.length; index++) {
+        if (audioDevicesList[index] === interfaceInputDevice ||
+                audioDevicesList[index] === interfaceOutputDevice) {
+            Menu.setIsOptionChecked(audioDevicesList[index], true);
+        } else {
+            Menu.setIsOptionChecked(audioDevicesList[index], false);
+        }
+    }
 }
 
 function switchAudioDevice(audioDeviceMenuString) {
@@ -279,6 +288,8 @@ Script.scriptEnding.connect(function () {
     removeAudioMenus();
     Menu.menuItemEvent.disconnect(onMenuEvent);
     HMD.displayModeChanged.disconnect(checkHMDAudio);
+    AudioDevice.currentInputDeviceChanged.disconnect(onCurrentDeviceChanged);
+    AudioDevice.currentOutputDeviceChanged.disconnect(onCurrentDeviceChanged);
     AudioDevice.deviceChanged.disconnect(onDevicechanged);
 });
 

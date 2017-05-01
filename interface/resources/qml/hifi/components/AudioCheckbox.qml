@@ -18,7 +18,6 @@ Row {
         colorScheme: hifi.colorSchemes.dark
         anchors.verticalCenter: parent.verticalCenter
         onClicked: checkBoxClicked(cb.checked)
-        onCheckedChanged: console.log("checked", checked, "device ",txt.text)
     }
     RalewayBold {
         id: txt
