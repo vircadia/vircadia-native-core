@@ -99,7 +99,6 @@ Item {
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
                 var url = loadRequest.url.toString();
-		console.log(url);
                 url = (url.indexOf("?") >= 0) ? url + urlTag : url + "?" + urlTag;
                 if (urlHandler.canHandleUrl(url)) {
                     if (urlHandler.handleUrl(url)) {
