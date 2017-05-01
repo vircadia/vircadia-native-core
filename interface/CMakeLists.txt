@@ -194,7 +194,7 @@ link_hifi_libraries(
   recording fbx networking model-networking entities avatars
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui auto-updater
-  controllers plugins image
+  controllers plugins image trackers
   ui-plugins display-plugins input-plugins
   ${NON_ANDROID_LIBRARIES}
 )
@@ -202,17 +202,12 @@ link_hifi_libraries(
 # include the binary directory of render-utils for shader includes
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries/render-utils")
 
-#fixme find a way to express faceshift as a plugin
 target_bullet()
 target_opengl()
 
 if (NOT ANDROID)
   target_glew()
 endif ()
-
-if (WIN32 OR APPLE)
-  target_faceshift()
-endif()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
