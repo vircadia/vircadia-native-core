@@ -86,7 +86,8 @@ public:
         void transfer();
     };
 
-    using TransferQueue = std::queue<std::unique_ptr<TransferJob>>;
+    using TransferJobPointer = std::shared_ptr<TransferJob>;
+    using TransferQueue = std::queue<TransferJobPointer>;
     static MemoryPressureState _memoryPressureState;
 
 public:
@@ -100,6 +101,7 @@ protected:
     static WorkQueue _promoteQueue;
     static WorkQueue _demoteQueue;
     static TexturePointer _currentTransferTexture;
+    static TransferJobPointer _currentTransferJob;
     static const uvec3 INITIAL_MIP_TRANSFER_DIMENSIONS;
     static const uvec3 MAX_TRANSFER_DIMENSIONS;
     static const size_t MAX_TRANSFER_SIZE;
