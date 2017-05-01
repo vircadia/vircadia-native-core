@@ -14,9 +14,9 @@
 #include <QNetworkDiskCache>
 #include <QStandardPaths>
 #include <QThread>
+#include <QFileInfo>
 
 #include <SharedUtil.h>
-
 
 #include "AssetResourceRequest.h"
 #include "FileResourceRequest.h"
