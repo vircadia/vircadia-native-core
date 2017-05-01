@@ -41,9 +41,9 @@
 #include <recording/Clip.h>
 #include <recording/Frame.h>
 #include <RecordingScriptingInterface.h>
+#include <trackers/FaceTracker.h>
 
 #include "Application.h"
-#include "devices/Faceshift.h"
 #include "AvatarManager.h"
 #include "AvatarActionHold.h"
 #include "Menu.h"
@@ -650,7 +650,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
 
     FaceTracker* tracker = qApp->getActiveFaceTracker();
-    bool inFacetracker = tracker && !tracker->isMuted();
+    bool inFacetracker = tracker && !FaceTracker::isMuted();
 
     if (inHmd) {
         estimatedPosition = extractTranslation(getHMDSensorMatrix());
