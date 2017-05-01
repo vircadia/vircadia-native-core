@@ -602,10 +602,10 @@ public:
         return _lastSentJointData;
     }
 
-	// Overload the local orientation function for this.
-	virtual glm::quat getLocalOrientation() const override;
+    // Overload the local orientation function for this.
+    virtual glm::quat getLocalOrientation() const override;
 
-	static const float OUT_OF_VIEW_PENALTY;
+    static const float OUT_OF_VIEW_PENALTY;
 
     static void sortAvatars(
         QList<AvatarSharedPointer> avatarList,
@@ -621,18 +621,18 @@ public:
     static float _avatarSortCoefficientCenter;
     static float _avatarSortCoefficientAge;
 
-	// Basic ease-in-ease-out function for smoothing values.
-	static inline float easeInOutQuad(float lerpValue) {
-		assert(!((lerpValue < 0.0f) || (lerpValue > 1.0f)));
+    // Basic ease-in-ease-out function for smoothing values.
+    static inline float easeInOutQuad(float lerpValue) {
+        assert(!((lerpValue < 0.0f) || (lerpValue > 1.0f)));
 
-		if (lerpValue < 0.5f) {
-			return (2.0f * lerpValue * lerpValue);
-		}
+        if (lerpValue < 0.5f) {
+            return (2.0f * lerpValue * lerpValue);
+        }
 
-		return (lerpValue*(4.0f - 2.0f * lerpValue) - 1.0f);
-	}
+        return (lerpValue*(4.0f - 2.0f * lerpValue) - 1.0f);
+    }
 
-	bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
+    bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
     void markIdentityDataChanged() {
         _identityDataChanged = true;
         _identityUpdatedAt = usecTimestampNow();
@@ -795,16 +795,16 @@ protected:
     quint64 _audioLoudnessChanged { 0 };
     float _audioAverageLoudness { 0.0f };
 
-	// Smoothing.
-	const float SMOOTH_TIME_ORIENTATION = 0.15f;
+    // Smoothing.
+    const float SMOOTH_TIME_ORIENTATION = 0.15f;
 
-	// Smoothing data for blending from one position/orientation to another on remote agents.
-	float _smoothOrientationTime;
-	float _smoothOrientationTimer;
-	glm::quat _smoothOrientationInitial;
-	glm::quat _smoothOrientationTarget;
+    // Smoothing data for blending from one position/orientation to another on remote agents.
+    float _smoothOrientationTime;
+    float _smoothOrientationTimer;
+    glm::quat _smoothOrientationInitial;
+    glm::quat _smoothOrientationTarget;
 
-	bool _identityDataChanged { false };
+    bool _identityDataChanged { false };
     quint64 _identityUpdatedAt { 0 };
 
 private:
