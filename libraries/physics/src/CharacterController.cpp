@@ -363,7 +363,7 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
     if (glm::abs(radius - _radius) > FLT_EPSILON || glm::abs(halfHeight - _halfHeight) > FLT_EPSILON) {
         _radius = radius;
         _halfHeight = halfHeight;
-        const btScalar DEFAULT_MIN_STEP_HEIGHT = 0.041f; // HACK: hardcoded now but should just larger than shape margin
+        const btScalar DEFAULT_MIN_STEP_HEIGHT = 0.005f;
         const btScalar MAX_STEP_FRACTION_OF_HALF_HEIGHT = 0.56f;
         _minStepHeight = DEFAULT_MIN_STEP_HEIGHT;
         _maxStepHeight = MAX_STEP_FRACTION_OF_HALF_HEIGHT * (_halfHeight + _radius);
