@@ -1801,15 +1801,15 @@ function MyController(hand) {
         }
 
         this.processStylus();
-        
-        if (isInEditMode() && !this.isNearStylusTarget) {
+
+        if (isInEditMode() && !this.isNearStylusTarget && HMD.isHandControllerAvailable()) {
             // Always showing lasers while in edit mode and hands/stylus is not active.
             var rayPickInfo = this.calcRayPickInfo(this.hand);
             this.intersectionDistance = (rayPickInfo.entityID || rayPickInfo.overlayID) ? rayPickInfo.distance : 0;
             this.searchIndicatorOn(rayPickInfo.searchRay);
         } else {
             this.searchIndicatorOff();
-        }        
+        }
     };
 
     this.handleLaserOnHomeButton = function(rayPickInfo) {
