@@ -274,3 +274,38 @@ QList<btRigidBody*> ObjectDynamic::getRigidBodies() {
     result += getRigidBody();
     return result;
 }
+
+SpatiallyNestablePointer ObjectDynamic::getOther() {
+    SpatiallyNestablePointer other;
+    withWriteLock([&]{
+        if (_otherID == QUuid()) {
+            // no other
+            return;
+        }
+        other = _other.lock();
+        if (other && other->getID() == _otherID) {
+            // other is already up-to-date
+            return;
+        }
+        if (other) {
+            // we have a pointer to other, but it's wrong
+            other.reset();
+            _other.reset();
+        }
+        // we have an other-id but no pointer to other cached
+        QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+        if (!parentFinder) {
+            return;
+        }
+        EntityItemPointer ownerEntity = _ownerEntity.lock();
+        if (!ownerEntity) {
+            return;
+        }
+        bool success;
+        _other = parentFinder->find(_otherID, success, ownerEntity->getParentTree());
+        if (success) {
+            other = _other.lock();
+        }
+    });
+    return other;
+}

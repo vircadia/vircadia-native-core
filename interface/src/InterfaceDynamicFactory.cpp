@@ -20,6 +20,7 @@
 #include <ObjectConstraintSlider.h>
 #include <ObjectConstraintBallSocket.h>
 #include <ObjectConstraintConeTwist.h>
+#include <ObjectActionMotor.h>
 #include <LogHandler.h>
 
 #include "InterfaceDynamicFactory.h"
@@ -47,6 +48,8 @@ EntityDynamicPointer interfaceDynamicFactory(EntityDynamicType type, const QUuid
             return std::make_shared<ObjectConstraintBallSocket>(id, ownerEntity);
         case DYNAMIC_TYPE_CONE_TWIST:
             return std::make_shared<ObjectConstraintConeTwist>(id, ownerEntity);
+        case DYNAMIC_TYPE_MOTOR:
+            return std::make_shared<ObjectActionMotor>(id, ownerEntity);
     }
 
     qDebug() << "Unknown entity dynamic type";

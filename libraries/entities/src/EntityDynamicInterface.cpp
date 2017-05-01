@@ -126,6 +126,9 @@ EntityDynamicType EntityDynamicInterface::dynamicTypeFromString(QString dynamicT
     if (normalizedDynamicTypeString == "conetwist") {
         return DYNAMIC_TYPE_CONE_TWIST;
     }
+    if (normalizedDynamicTypeString == "motor") {
+        return DYNAMIC_TYPE_MOTOR;
+    }
 
     qCDebug(entities) << "Warning -- EntityDynamicInterface::dynamicTypeFromString got unknown dynamic-type name"
                       << dynamicTypeString;
@@ -154,6 +157,8 @@ QString EntityDynamicInterface::dynamicTypeToString(EntityDynamicType dynamicTyp
             return "ball-socket";
         case DYNAMIC_TYPE_CONE_TWIST:
             return "cone-twist";
+        case DYNAMIC_TYPE_MOTOR:
+            return "motor";
     }
     assert(false);
     return "none";

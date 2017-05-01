@@ -67,6 +67,10 @@ protected:
     QString _tag;
     quint64 _expires { 0 }; // in seconds since epoch
 
+    EntityItemID _otherID;
+    SpatiallyNestableWeakPointer _other;
+    SpatiallyNestablePointer getOther();
+
 private:
     qint64 getEntityServerClockSkew() const;
 };
