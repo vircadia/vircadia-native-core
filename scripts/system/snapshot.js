@@ -317,20 +317,20 @@ function onButtonClicked() {
             shouldUpload: false
         }
         imageData = [];
-        if (previousAnimatedSnapPath !== "") {
-            imageData.push({
-                localPath: previousAnimatedSnapPath,
-                story_id: previousAnimatedSnapStoryID,
-                blastButtonDisabled: previousAnimatedSnapBlastingDisabled,
-                hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled
-            });
-        }
         if (previousStillSnapPath !== "") {
             imageData.push({
                 localPath: previousStillSnapPath,
                 story_id: previousStillSnapStoryID,
                 blastButtonDisabled: previousStillSnapBlastingDisabled,
                 hifiButtonDisabled: previousStillSnapHifiSharingDisabled
+            });
+        }
+        if (previousAnimatedSnapPath !== "") {
+            imageData.push({
+                localPath: previousAnimatedSnapPath,
+                story_id: previousAnimatedSnapStoryID,
+                blastButtonDisabled: previousAnimatedSnapBlastingDisabled,
+                hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled
             });
         }
         tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);

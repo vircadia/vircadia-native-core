@@ -83,7 +83,7 @@ function addImage(image_data, isGifLoading, canShare, isShowingPreviousImages, b
     }
     if (!isGifLoading && !isShowingPreviousImages && canShare) {
         shareForUrl(id);
-    } else if (isShowingPreviousImages && canShare) {
+    } else if (isShowingPreviousImages && canShare && image_data.story_id) {
         appendShareBar(id, image_data.story_id, isGif, blastButtonDisabled, hifiButtonDisabled)
     }
 }
@@ -241,7 +241,7 @@ function handleCaptureSetting(setting) {
 window.onload = function () {
     // Uncomment the line below to test functionality in a browser.
     // See definition of "testInBrowser()" to modify tests.
-    testInBrowser(false);
+    //testInBrowser(false);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
@@ -280,18 +280,18 @@ window.onload = function () {
                     if (messageOptions.containsGif) {
                         if (messageOptions.processingGif) {
                             imageCount = message.image_data.length + 1; // "+1" for the GIF that'll finish processing soon
-                            message.image_data.unshift({ localPath: messageOptions.loadingGifPath });
+                            message.image_data.push({ localPath: messageOptions.loadingGifPath });
                             message.image_data.forEach(function (element, idx, array) {
-                                addImage(element, idx === 0, messageOptions.canShare, false);
+                                addImage(element, idx === 1, idx === 0 && messageOptions.canShare, false);
                             });
                         } else {
                             var gifPath = message.image_data[0].localPath;
-                            var p0img = document.getElementById('p0img');
-                            p0img.src = gifPath;
+                            var p1img = document.getElementById('p1img');
+                            p1img.src = gifPath;
 
-                            paths[0] = gifPath;
+                            paths[1] = gifPath;
                             if (messageOptions.canShare) {
-                                shareForUrl("p0");
+                                shareForUrl("p1");
                             }
                         }
                     } else {
@@ -306,7 +306,7 @@ window.onload = function () {
                     break;
                 case 'snapshotUploadComplete':
                     var isGif = message.image_url.split('.').pop().toLowerCase() === "gif";
-                    appendShareBar(isGif || imageCount === 1 ? "p0" : "p1", message.story_id, isGif);
+                    appendShareBar(isGif ? "p1" : "p0", message.story_id, isGif);
                     break;
                 default:
                     console.log("Unknown message action received in SnapshotReview.js.");
