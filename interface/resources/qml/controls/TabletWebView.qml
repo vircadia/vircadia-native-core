@@ -25,13 +25,9 @@ Item {
     property bool isDesktop: false
     property string initialPage: ""
     property bool startingUp: true
-    property bool removingPage: false
     property alias webView: webview
     property alias profile: webview.profile
     property bool remove: false
-    property bool windowClosed: false
-    property bool loadingStarted: false
-    property bool loadingFinished: false
     property var urlList: []
     property var forwardList: []
 
@@ -85,9 +81,12 @@ Item {
             id: displayUrl
             color: hifi.colors.baseGray
             font.pixelSize: 12
+            verticalAlignment: Text.AlignLeft
             anchors {
                 top: nav.bottom
                 horizontalCenter: parent.horizontalCenter;
+                left: parent.left
+                leftMargin: 20
             }
         }
 
@@ -116,14 +115,14 @@ Item {
             forwardList.push(webview.url);
             webview.goBack();
         } else if (web.urlList.length > 0) {
-            removingPage = true;
             var url = web.urlList.pop();
             loadUrl(url);
-        } else if (fowardList.length == 1) {
-            console.log("--------------> going foward <---------------");
+        } else if (web.forwardList.length > 0) {
+            var url = web.forwardList.pop();
+            loadUrl(url);
+            web.forwardList = [];
         }
     }
-
 
     function closeWebEngine() {
         if (remove) {
