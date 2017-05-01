@@ -50,7 +50,8 @@ Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.k
 const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
 const std::string TextureCache::KTX_EXT { "ktx" };
 
-static const int SKYBOX_LOAD_PRIORITY { 10 }; // Make sure skybox loads first
+static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
+static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
 
 TextureCache::TextureCache() :
     _ktxCache(KTX_DIRNAME, KTX_EXT) {
@@ -261,9 +262,6 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSh
     auto content = textureExtra ? textureExtra->content : QByteArray();
     auto maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
     NetworkTexture* texture = new NetworkTexture(url, type, content, maxNumPixels);
-    if (type == image::TextureUsage::CUBE_TEXTURE) {
-        texture->setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
-    }
     return QSharedPointer<Resource>(texture, &Resource::deleter);
 }
 
@@ -275,6 +273,12 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
 {
     _textureSource = std::make_shared<gpu::TextureSource>();
     _lowestRequestedMipLevel = 0;
+
+    if (type == image::TextureUsage::CUBE_TEXTURE) {
+        setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
+    } else if (_sourceIsKTX) {
+        setLoadPriority(this, HIGH_MIPS_LOAD_PRIORITY);
+    }
 
     if (!url.isValid()) {
         _loaded = true;
@@ -397,7 +401,8 @@ void NetworkTexture::startRequestForNextMipLevel() {
         _ktxResourceState = PENDING_MIP_REQUEST;
 
         init();
-        setLoadPriority(this, -static_cast<int>(_originalKtxDescriptor->header.numberOfMipmapLevels) + _lowestKnownPopulatedMip);
+        float priority = -(float)_originalKtxDescriptor->header.numberOfMipmapLevels + (float)_lowestKnownPopulatedMip;
+        setLoadPriority(this, priority);
         _url.setFragment(QString::number(_lowestKnownPopulatedMip - 1));
         TextureCache::attemptRequest(_self);
     }
