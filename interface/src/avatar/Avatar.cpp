@@ -28,10 +28,8 @@
 #include <VariantMapToScriptValue.h>
 #include <DebugDraw.h>
 
-#include "AvatarManager.h"
 #include "AvatarMotionState.h"
 #include "Camera.h"
-#include "Menu.h"
 #include "InterfaceLogging.h"
 #include "SceneScriptingInterface.h"
 #include "SoftAttachmentModel.h"
@@ -59,7 +57,6 @@ namespace render {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         if (avatarPtr->isInitialized() && args) {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
-            // TODO AVATARS_RENDERER: remove need for qApp
             avatarPtr->render(args);
         }
     }
@@ -72,6 +69,31 @@ namespace render {
         }
         return 0;
     }
+}
+
+static bool showReceiveStats = false;
+void Avatar::setShowReceiveStats(bool receiveStats) {
+    showReceiveStats = receiveStats;
+}
+
+static bool showMyLookAtVectors = false;
+void Avatar::setShowMyLookAtVectors(bool showMine) {
+    showMyLookAtVectors = showMine;
+}
+
+static bool showOtherLookAtVectors = false;
+void Avatar::setShowOtherLookAtVectors(bool showOthers) {
+    showOtherLookAtVectors = showOthers;
+}
+
+static bool showCollisionShapes = false;
+void Avatar::setShowCollisionShapes(bool render) {
+    showCollisionShapes = render;
+}
+
+static bool showNamesAboveHeads = false;
+void Avatar::setShowNamesAboveHeads(bool show) {
+    showNamesAboveHeads = show;
 }
 
 Avatar::Avatar(QThread* thread, RigPointer rig) :
@@ -116,11 +138,6 @@ Avatar::~Avatar() {
                 entityTree->deleteEntity(entityID, true, true);
             }
         });
-    }
-
-    if (_motionState) {
-        delete _motionState;
-        _motionState = nullptr;
     }
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -499,14 +516,7 @@ void Avatar::updateRenderItem(render::Transaction& transaction) {
 
 void Avatar::postUpdate(float deltaTime) {
 
-    bool renderLookAtVectors;
-    if (isMyAvatar()) {
-        renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderMyLookAtVectors);
-    } else {
-        renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderOtherLookAtVectors);
-    }
-
-    if (renderLookAtVectors) {
+    if (isMyAvatar() ? showMyLookAtVectors : showOtherLookAtVectors) {
         const float EYE_RAY_LENGTH = 10.0;
         const glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
         const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
@@ -547,7 +557,6 @@ void Avatar::render(RenderArgs* renderArgs) {
         bool havePosition, haveRotation;
 
         if (_handState & LEFT_HAND_POINTING_FLAG) {
-
             if (_handState & IS_FINGER_POINTING_FLAG) {
                 int leftIndexTip = getJointIndex("LeftHandIndex4");
                 int leftIndexTipJoint = getJointIndex("LeftHandIndex3");
@@ -600,44 +609,25 @@ void Avatar::render(RenderArgs* renderArgs) {
         return;
     }
 
-    glm::vec3 toTarget = frustum.getPosition() - getPosition();
-    float distanceToTarget = glm::length(toTarget);
+    fixupModelsInScene(renderArgs->_scene);
 
-    {
-        fixupModelsInScene(renderArgs->_scene);
-
-        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
-            // add local lights
-            const float BASE_LIGHT_DISTANCE = 2.0f;
-            const float LIGHT_FALLOFF_RADIUS = 0.01f;
-            const float LIGHT_EXPONENT = 1.0f;
-            const float LIGHT_CUTOFF = glm::radians(80.0f);
-            float distance = BASE_LIGHT_DISTANCE * getUniformScale();
-            glm::vec3 position = _skeletonModel->getTranslation();
-            glm::quat orientation = getOrientation();
-            foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
-                glm::vec3 direction = orientation * light.direction;
-                DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
-                    distance * 2.0f, light.color, 0.5f, LIGHT_FALLOFF_RADIUS, orientation, LIGHT_EXPONENT, LIGHT_CUTOFF);
-            }
-        }
-
-        bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
-        if (renderBounding && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
-            PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
-            const float BOUNDING_SHAPE_ALPHA = 0.7f;
-            _skeletonModel->renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
-        }
+    if (showCollisionShapes && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
+        PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
+        const float BOUNDING_SHAPE_ALPHA = 0.7f;
+        _skeletonModel->renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
     }
 
-    const float DISPLAYNAME_DISTANCE = 20.0f;
-    setShowDisplayName(distanceToTarget < DISPLAYNAME_DISTANCE);
-
-    if (!isMyAvatar() || renderArgs->_cameraMode != (int8_t)CAMERA_MODE_FIRST_PERSON) {
-        auto& frustum = renderArgs->getViewFrustum();
-        auto textPosition = getDisplayNamePosition();
-        if (frustum.pointIntersectsFrustum(textPosition)) {
-            renderDisplayName(batch, frustum, textPosition);
+    if (showReceiveStats || showNamesAboveHeads) {
+        glm::vec3 toTarget = frustum.getPosition() - getPosition();
+        float distanceToTarget = glm::length(toTarget);
+        const float DISPLAYNAME_DISTANCE = 20.0f;
+        updateDisplayNameAlpha(distanceToTarget < DISPLAYNAME_DISTANCE);
+        if (!isMyAvatar() || renderArgs->_cameraMode != (int8_t)CAMERA_MODE_FIRST_PERSON) {
+            auto& frustum = renderArgs->getViewFrustum();
+            auto textPosition = getDisplayNamePosition();
+            if (frustum.pointIntersectsFrustum(textPosition)) {
+                renderDisplayName(batch, frustum, textPosition);
+            }
         }
     }
 }
@@ -793,7 +783,7 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& view, const g
 void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const {
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
-    bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
+    bool shouldShowReceiveStats = showReceiveStats && !isMyAvatar();
 
     // If we have nothing to draw, or it's totally transparent, or it's too close or behind the camera, return
     static const float CLIP_DISTANCE = 0.2f;
@@ -1164,8 +1154,8 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, getPosition()) > MOVE_DISTANCE_THRESHOLD;
-    if (_moving && _motionState) {
-        _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
+    if (_moving) {
+        addPhysicsFlags(Simulation::DIRTY_POSITION);
     }
     if (_moving || _hasNewJointData) {
         locationChanged();
@@ -1248,8 +1238,8 @@ float Avatar::getPelvisFloatingHeight() const {
     return -_skeletonModel->getBindExtents().minimum.y;
 }
 
-void Avatar::setShowDisplayName(bool showDisplayName) {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::NamesAboveHeads)) {
+void Avatar::updateDisplayNameAlpha(bool showDisplayName) {
+    if (!(showNamesAboveHeads || showReceiveStats)) {
         _displayNameAlpha = 0.0f;
         return;
     }
@@ -1287,14 +1277,18 @@ void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
     radius = halfExtents.x;
 }
 
-void Avatar::setMotionState(AvatarMotionState* motionState) {
-    _motionState = motionState;
-}
-
 // virtual
 void Avatar::rebuildCollisionShape() {
-    if (_motionState) {
-        _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);
+    addPhysicsFlags(Simulation::DIRTY_SHAPE);
+}
+
+void Avatar::setPhysicsCallback(AvatarPhysicsCallback cb) {
+    _physicsCallback = cb;
+}
+
+void Avatar::addPhysicsFlags(uint32_t flags) {
+    if (_physicsCallback) {
+        _physicsCallback(flags);
     }
 }
 
@@ -1439,16 +1433,16 @@ QList<QVariant> Avatar::getSkeleton() {
 
 void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer& scene) {
     if (scene) {
-        render::Transaction transaction;
         auto nodelist = DependencyManager::get<NodeList>();
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()
             && !nodelist->isIgnoringNode(getSessionUUID())
             && !nodelist->isRadiusIgnoringNode(getSessionUUID())) {
+            render::Transaction transaction;
             addToScene(myHandle, scene, transaction);
+            scene->enqueueTransaction(transaction);
         }
-        scene->enqueueTransaction(transaction);
     } else {
-        qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
+        qCWarning(interfaceapp) << "Avatar::addAvatar() : Unexpected null scene, possibly during application shutdown";
     }
 }
 
