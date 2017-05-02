@@ -395,7 +395,7 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
 
         uint16_t sourceLevel = mip - srcMipOffset;
 
-        for (GLuint f = 0; f < faceTargets.size(); f++) {
+        for (GLint f = 0; f < (GLint)faceTargets.size(); f++) {
              glGetCompressedTexImage(faceTargets[f], sourceLevel, (void*) (sourceMip._offset + f * sourceMip._faceSize));
         }
         (void)CHECK_GL_ERROR();
@@ -414,7 +414,7 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
 
         uint16_t destLevel = mip - destMipOffset;
 
-        for (GLuint f = 0; f < faceTargets.size(); f++) {
+        for (GLint f = 0; f < (GLint)faceTargets.size(); f++) {
 #ifdef DEBUG_COPY
             GLint destWidth, destHeight, destSize;
             glGetTexLevelParameteriv(faceTargets.front(), destLevel, GL_TEXTURE_WIDTH, &destWidth);
