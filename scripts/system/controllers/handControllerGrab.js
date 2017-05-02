@@ -3020,7 +3020,7 @@ function MyController(hand) {
                             var worldEntities = Entities.findEntities(MyAvatar.position, 50);
                             var count = 0;
                             worldEntities.forEach(function(item) {
-                                var itemWE = Entities.getEntityProperties(itemWE, ["name"]);
+                                var itemWE = Entities.getEntityProperties(item, ["name"]);
                                 if (itemWE.name.indexOf('-clone-' + grabbedProperties.id) !== -1) {
                                     count++;
                                 }
