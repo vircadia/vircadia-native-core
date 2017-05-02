@@ -20,7 +20,7 @@ function showSetupInstructions() {
     snapshotImagesDiv.className = "snapshotInstructions";
     snapshotImagesDiv.innerHTML = '<img class="centeredImage" src="./img/snapshotIcon.png" alt="Snapshot Instructions" width="64" height="64"/>' +
         '<br/>' +
-        '<p>This app lets you take and share snaps and GIFs with your connections in High Fidelity.</p>' +
+        '<p>Take and share snaps and GIFs with people in High Fidelity, Facebook, and Twitter.</p>' +
         "<h4>Setup Instructions</h4>" +
         "<p>Before you can begin taking snaps, please choose where you'd like to save snaps on your computer:</p>" +
         '<br/>' +
@@ -34,8 +34,21 @@ function showSetupComplete() {
     snapshotImagesDiv.className = "snapshotInstructions";
     snapshotImagesDiv.innerHTML = '<img class="centeredImage" src="./img/snapshotIcon.png" alt="Snapshot Instructions" width="64" height="64"/>' +
         '<br/>' +
-        "<h4>You're all set!</h4>" +
-        '<p>Try taking a snapshot by pressing the red button below.</p>';
+        '<div style="text-align:center;font-weight:bold;">' +
+            '<p>Snapshot location set.</p>' +
+            '<p>Press the big red button to take a snap!</p>' +
+        '</div>';
+}
+function showSnapshotInstructions() {
+    var snapshotImagesDiv = document.getElementById("snapshot-images");
+    snapshotImagesDiv.className = "snapshotInstructions";
+    snapshotImagesDiv.innerHTML = '<img class="centeredImage" src="./img/snapshotIcon.png" alt="Snapshot Instructions" width="64" height="64"/>' +
+        '<br/>' +
+        '<p>Take and share snaps and GIFs with people in High Fidelity, Facebook, and Twitter.</p>' +
+        '<br/>' +
+        '<div style="text-align:center;font-weight:bold;">' +
+            '<p>Press the big red button to take a snap!</p>' +
+        '</div>';
 }
 function chooseSnapshotLocation() {
     EventBridge.emitWebEvent(JSON.stringify({
@@ -367,9 +380,13 @@ window.onload = function () {
                 case 'showPreviousImages':
                     clearImages();
                     imageCount = message.image_data.length;
-                    message.image_data.forEach(function (element, idx) {
-                        addImage(element, true, message.canShare, true, message.image_data[idx].blastButtonDisabled, message.image_data[idx].hifiButtonDisabled);
-                    });
+                    if (imageCount > 0) {
+                        message.image_data.forEach(function (element, idx) {
+                            addImage(element, true, message.canShare, true, message.image_data[idx].blastButtonDisabled, message.image_data[idx].hifiButtonDisabled);
+                        });
+                    } else {
+                        showSnapshotInstructions();
+                    }
                     break;
                 case 'addImages':
                     // The last element of the message contents list contains a bunch of options,
