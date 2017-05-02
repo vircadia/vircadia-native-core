@@ -273,7 +273,6 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
     if (_steppingUp) {
         // compute a stepUpSpeed that will reach the top of the step in the time it would take
         // to move over the _stepPoint at target speed
-        btVector3 horizontalStep = _stepPoint - _stepPoint.dot(_currentUp) * _currentUp;
         float hDistance = sqrtf(_stepPoint.getX() * _stepPoint.getX() + _stepPoint.getZ() * _stepPoint.getZ());
         float targetSpeed = _targetVelocity.length();
         float timeToStep = hDistance / targetSpeed;
