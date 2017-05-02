@@ -143,9 +143,22 @@
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
 
-    var stories = {};
-    var DEBUG = false;
+    var stories = {}, pingPong = false;
+    var DEBUG = true; //fixme
+    function expire(id) {
+        request({
+            uri: location.metaverseServerUrl + '/api/v1/user_stories/' + id,
+            method: 'PUT',
+            body: {expired: true}
+        }, function (error, response) {
+            if (error || (response.status !== 'success')) {
+                print("ERROR expiring story: ", error || response.status);
+                return;
+            }
+        });
+    }
     function pollForAnnouncements() {
+        // We could bail now if !Account.isLoggedIn(), but what if we someday have system-wide announcments?
         var actions = DEBUG ? 'snapshot' : 'announcement';
         var count = DEBUG ? 10 : 100;
         var options = [
@@ -164,9 +177,16 @@
                 print("Error: unable to get", url,  error || data.status);
                 return;
             }
-            var didNotify = false;
+            var didNotify = false, key;
+            pingPong = !pingPong;
             data.user_stories.forEach(function (story) {
-                if (stories[story.id]) { // already seen
+                var stored = stories[story.id], storedOrNew = stored || story;
+                if ((storedOrNew.username === Account.username) && (storyOrNew.place_name !== location.placename)) {
+                    expire(story.id);
+                    return; // before marking
+                }
+                storedOrNew.pingPong = pingPong;
+                if (stored) { // already seen
                     return;
                 }
                 stories[story.id] = story;
@@ -174,12 +194,19 @@
                 Window.displayAnnouncement(message);
                 didNotify = true;
             });
+            for (key in stories) { // Any story we were tracking that was not marked, has expired.
+                if (stories[key].pingPong !== pingPong) {
+                    delete stories[key];
+                }
+            }
             if (didNotify) {
                 messagesWaiting(true);
                 if (HMD.isHandControllerAvailable()) {
                     var STRENGTH = 1.0, DURATION_MS = 60, HAND = 2; // both hands
                     Controller.triggerHapticPulse(STRENGTH, DURATION_MS, HAND);
                 }
+            } else if (!Object.keys(stories).length) { // If there's nothing being tracked, then any messageWaiting has expired.
+                messagesWaiting(false);
             }
         });
     }
