@@ -280,7 +280,6 @@ StackView {
                         cardHeight: 163 + (2 * 4);
                         metaverseServerUrl: addressBarDialog.metaverseServerUrl;
                         labelText: 'HAPPENING NOW';
-                        //actions: 'concurrency,snapshot'; // uncomment this line instead of next to produce fake announcement data for testing.
                         actions: 'announcement';
                         filter: addressLine.text;
                         goFunction: goCard;
