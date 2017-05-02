@@ -36,7 +36,7 @@ namespace MenuOption {
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
     const QString Attachments = "Attachments...";
-    const QString AudioNoiseReduction = "Audio Noise Reduction";
+    const QString AudioNoiseReduction = "Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";
@@ -96,7 +96,7 @@ namespace MenuOption {
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
-    const QString EnableCharacterController = "Enable avatar collisions";
+    const QString EnableCharacterController = "Collide with world";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString EntityScriptServerLog = "Entity Script Server Log";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
@@ -105,7 +105,6 @@ namespace MenuOption {
     const QString ExpandPaintGLTiming = "Expand /paintGL";
     const QString ExpandPhysicsSimulationTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
-    const QString Faceshift = "Faceshift";
     const QString FirstPerson = "First Person";
     const QString FivePointCalibration = "5 Point Calibration";
     const QString FixGaze = "Fix Gaze (no saccade)";
