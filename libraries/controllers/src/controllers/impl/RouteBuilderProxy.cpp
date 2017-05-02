@@ -26,6 +26,10 @@
 #include "filters/InvertFilter.h"
 #include "filters/PulseFilter.h"
 #include "filters/ScaleFilter.h"
+#include "filters/TranslateFilter.h"
+#include "filters/TransformFilter.h"
+#include "filters/PostTransformFilter.h"
+#include "filters/RotateFilter.h"
 #include "conditionals/AndConditional.h"
 
 using namespace controller;
@@ -100,6 +104,26 @@ QObject* RouteBuilderProxy::hysteresis(float min, float max) {
 
 QObject* RouteBuilderProxy::deadZone(float min) {
     addFilter(std::make_shared<DeadZoneFilter>(min));
+    return this;
+}
+
+QObject* RouteBuilderProxy::translate(glm::vec3 translate) {
+    addFilter(std::make_shared<TranslateFilter>(translate));
+    return this;
+}
+
+QObject* RouteBuilderProxy::transform(glm::mat4 transform) {
+    addFilter(std::make_shared<TransformFilter>(transform));
+    return this;
+}
+
+QObject* RouteBuilderProxy::postTransform(glm::mat4 transform) {
+    addFilter(std::make_shared<PostTransformFilter>(transform));
+    return this;
+}
+
+QObject* RouteBuilderProxy::rotate(glm::quat rotation) {
+    addFilter(std::make_shared<RotateFilter>(rotation));
     return this;
 }
 
