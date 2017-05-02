@@ -34,7 +34,6 @@ namespace render {
 }
 
 static const float SCALING_RATIO = .05f;
-static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;

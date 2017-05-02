@@ -67,11 +67,7 @@ AvatarData::AvatarData() :
     _displayNameAlpha(1.0f),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
-    _targetVelocity(0.0f),
-    _smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
-    _smoothOrientationTimer(std::numeric_limits<float>::max()),
-    _smoothOrientationInitial(),
-    _smoothOrientationTarget()
+    _targetVelocity(0.0f)
 {
     setBodyPitch(0.0f);
     setBodyYaw(-90.0f);
@@ -1495,15 +1491,8 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
 
 }
 
-glm::quat AvatarData::getLocalOrientation() const {
-    if (!isMyAvatar() || (_smoothOrientationTimer > _smoothOrientationTime)) {
-        return (SpatiallyNestable::getLocalOrientation());
-    }
-
-    // Smooth the remote avatar movement.
-    float t = _smoothOrientationTimer / _smoothOrientationTime;
-    float l = easeInOutQuad(glm::clamp(t, 0.0f, 1.0f));
-    return (slerp(_smoothOrientationInitial, _smoothOrientationTarget, l));
+glm::quat AvatarData::getOrientationOutbound() const {
+	return (getLocalOrientation());
 }
 
 static const QUrl emptyURL("");

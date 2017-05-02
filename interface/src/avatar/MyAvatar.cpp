@@ -117,6 +117,10 @@ MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", false),
+    _smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
+    _smoothOrientationTimer(std::numeric_limits<float>::max()),
+    _smoothOrientationInitial(),
+    _smoothOrientationTarget(),
     _hmdSensorMatrix(),
     _hmdSensorOrientation(),
     _hmdSensorPosition(),
@@ -388,7 +392,7 @@ void MyAvatar::update(float deltaTime) {
     _hmdSensorFacingMovingAverage = lerp(_hmdSensorFacingMovingAverage, _hmdSensorFacing, tau);
 
 	if (_smoothOrientationTimer < _smoothOrientationTime) {
-		rotationForceChange();
+        _rotationChanged = true;
 		_smoothOrientationTimer = min(_smoothOrientationTimer + deltaTime, _smoothOrientationTime);
 	}
 

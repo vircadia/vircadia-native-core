@@ -1361,13 +1361,11 @@ glm::quat Avatar::getUncachedRightPalmRotation() const {
 }
 
 void Avatar::setPosition(const glm::vec3& position) {
-    // This is the local avatar, no need to handle any position smoothing.
     AvatarData::setPosition(position);
     updateAttitude();
 }
 
 void Avatar::setOrientation(const glm::quat& orientation) {
-    // This is the local avatar, no need to handle any position smoothing.
     AvatarData::setOrientation(orientation);
     updateAttitude();
 }

@@ -577,6 +577,17 @@ private:
 
     void setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visiblity);
 
+    // Basic ease-in-ease-out function for smoothing values.
+    static inline float easeInOutQuad(float lerpValue) {
+        assert(!((lerpValue < 0.0f) || (lerpValue > 1.0f)));
+
+        if (lerpValue < 0.5f) {
+            return (2.0f * lerpValue * lerpValue);
+        }
+
+        return (lerpValue*(4.0f - 2.0f * lerpValue) - 1.0f);
+    }
+
 private:
 
     virtual void updatePalms() override {}
@@ -625,6 +636,15 @@ private:
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
+
+    // Smoothing.
+    const float SMOOTH_TIME_ORIENTATION = 0.15f;
+
+    // Smoothing data for blending from one position/orientation to another on remote agents.
+    float _smoothOrientationTime;
+    float _smoothOrientationTimer;
+    glm::quat _smoothOrientationInitial;
+    glm::quat _smoothOrientationTarget;
 
     // private methods
     void updateOrientation(float deltaTime);
