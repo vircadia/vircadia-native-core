@@ -2527,6 +2527,11 @@ bool Application::event(QEvent* event) {
         isPaintingThrottled = false;
 
         return true;
+    } else if ((int)event->type() == (int)Idle) {
+        float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
+        idle(nsecsElapsed);
+
+        return true;
     }
 
     if ((int)event->type() == (int)Lambda) {
@@ -6491,10 +6496,22 @@ void Application::activeChanged(Qt::ApplicationState state) {
 }
 
 void Application::windowMinimizedChanged(bool minimized) {
+    // initialize the _minimizedWindowTimer
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        connect(&_minimizedWindowTimer, &QTimer::timeout, this, [] {
+            QCoreApplication::postEvent(QCoreApplication::instance(), new QEvent(static_cast<QEvent::Type>(Idle)), Qt::HighEventPriority);
+        });
+    });
+
+    // avoid rendering to the display plugin but continue posting Idle events,
+    // so that physics continues to simulate and the deadlock watchdog knows we're alive
     if (!minimized && !getActiveDisplayPlugin()->isActive()) {
+        _minimizedWindowTimer.stop();
         getActiveDisplayPlugin()->activate();
     } else if (minimized && getActiveDisplayPlugin()->isActive()) {
         getActiveDisplayPlugin()->deactivate();
+        _minimizedWindowTimer.start(THROTTLED_SIM_FRAME_PERIOD_MS);
     }
 }
 
