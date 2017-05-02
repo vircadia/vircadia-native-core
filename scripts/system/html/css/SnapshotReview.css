@@ -125,36 +125,21 @@ input[type=button].naked:active {
     font-family: Raleway-SemiBold;
     font-size: 14px;
     color: white;
-    width: 60px;
+    width: 75px;
     height: 100%;
-    margin-right: 10px;
-    margin-bottom: 15px;
+    margin-bottom: 0px;
+}
+.showShareButtonsButtonDiv.active:hover {
+    background-color: rgba(0, 0, 0, 0.45);
+    background-size: 2px;
 }
 .showShareButtonsButtonDiv > label {
     text-shadow: 2px 2px 3px #000000;
-    margin-bottom: -10px;
+    margin-bottom: -14px;
     margin-left: 12px;
 }
-.showShareButton.active {
-    border-color: #00b4ef;
-    border-width: 3px;
-    background-color: white;
-}
-.showShareButton.active:hover {
-    background-color: #afafaf;
-}
-.showShareButton.active:active {
-    background-color: white;
-}
-.showShareButton.inactive {
-    border-width: 0;
-    background-color: white;
-}
-.showShareButton.inactive:hover {
-    background-color: #afafaf;
-}
-.showShareButton.inactive:active {
-    background-color: white;
+.showShareButtonsButtonDiv:hover > label {
+    text-shadow: none;
 }
 .showShareButtonDots {
     display: block;
@@ -164,56 +149,44 @@ input[type=button].naked:active {
     font-size: 60px;
     position: absolute;
     left: 6px;
-    bottom: 42px;
+    bottom: 32px;
     color: white;
     pointer-events: none;
 }
 .shareButtons {
     display: flex;
-    align-items: center;
-    margin-left: 0;
-    margin-bottom: 15px;
-    height: 100%;
+    align-items: flex-end;
+    height: 40px;
     width: calc(100% - 60px);
+    margin-bottom: 25px;
+    margin-left: 0;
+}
+.shareButtons img {
+    width: 40px;
+    height: 40px;
+}
+.shareButton {
+    width: 40px;
+    height: 40px;
+    display: inline-block;
 }
 .blastToConnections {
-    text-align: left;
-    margin-right: 20px;
-    height: 29px;
+    background-image: url(../img/fb_logo.png);
 }
 .shareWithEveryone {
     background: #DDDDDD url(../img/shareToFeed.png) no-repeat scroll center;
-    border-width: 0px;
-    text-align: left;
-    margin-right: 8px;
-    height: 29px;
-    width: 30px;
-    border-radius: 3px;
-}
-.facebookButton {
-    background-image: url(../img/fb_logo.png);
-    width: 29px;
-    height: 29px;
-    display: inline-block;
-    margin-right: 8px;
-}
-.twitterButton {
-    background-image: url(../img/twitter_logo.png);
-    width: 29px;
-    height: 29px;
-    display: inline-block;
-    margin-right: 8px;
-    border-radius: 3px;
 }
 .shareControlsHelp {
     height: 25px;
     line-height: 25px;
     position: absolute;
     bottom: 0;
-    left: 65px;
+    left: 73px;
     right: 0;
     font-family: Raleway-Regular;
-    font-weight: 400;
+    font-weight: 500;
+    padding-left: 8px;
+    color: white;
 }
 /*
 // END styling of share overlay
