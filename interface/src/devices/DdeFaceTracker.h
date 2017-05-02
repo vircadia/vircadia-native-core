@@ -22,7 +22,7 @@
 #include <DependencyManager.h>
 #include <ui/overlays/TextOverlay.h>
 
-#include "FaceTracker.h"
+#include <trackers/FaceTracker.h>
 
 class DdeFaceTracker : public FaceTracker, public Dependency {
     Q_OBJECT
