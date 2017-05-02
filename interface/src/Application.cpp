@@ -5423,9 +5423,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     entityScriptingInterface->setPacketSender(&_entityEditSender);
     entityScriptingInterface->setEntityTree(getEntities()->getTree());
 
-    // AvatarManager has some custom types
-    AvatarManager::registerMetaTypes(scriptEngine);
-
     // give the script engine to the RecordingScriptingInterface for its callbacks
     DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(scriptEngine);
 

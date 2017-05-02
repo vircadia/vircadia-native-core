@@ -21,6 +21,8 @@
 
 #include <QtCore/QEasingCurve>
 
+#include "../Pose.h"
+
 class QJsonValue;
 
 namespace controller {
@@ -34,6 +36,8 @@ namespace controller {
         using Factory = hifi::SimpleFactory<Filter, QString>;
 
         virtual float apply(float value) const = 0;
+        virtual Pose apply(Pose value) const = 0;
+
         // Factory features
         virtual bool parseParameters(const QJsonValue& parameters) { return true; }
 
@@ -42,6 +46,9 @@ namespace controller {
         static Factory& getFactory() { return _factory; }
 
         static bool parseSingleFloatParameter(const QJsonValue& parameters, const QString& name, float& output);
+        static bool parseVec3Parameter(const QJsonValue& parameters, glm::vec3& output);
+        static bool parseQuatParameter(const QJsonValue& parameters, glm::quat& output);
+        static bool parseMat4Parameter(const QJsonValue& parameters, glm::mat4& output);
     protected:
         static Factory _factory;
     };
