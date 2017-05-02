@@ -1,7 +1,4 @@
 //
-//  MotionTracker.cpp
-//  interface/src/devices
-//
 //  Created by Sam Cake on 6/20/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
@@ -10,8 +7,6 @@
 //
 
 #include "MotionTracker.h"
-#include "GLMHelpers.h"
-
 
 // glm::mult(mat43, mat43) just the composition of the 2 matrices assuming they are in fact mat44 with the last raw = { 0, 0, 0, 1 }
 namespace glm {
