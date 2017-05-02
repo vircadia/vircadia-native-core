@@ -61,7 +61,6 @@ private:
         bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         void hapticsHelper(float deltaTime, bool leftHand);
         void calibrate(const controller::InputCalibrationData& inputCalibration);
-        void computePucksOffset(const controller::InputCalibrationData& inputCalibration);
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
         void handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand);
@@ -99,7 +98,7 @@ private:
         FilteredStick _filteredRightStick;
 
         std::vector<std::pair<uint32_t, controller::Pose>> _validTrackedObjects;
-        std::map<uint32_t, const mat4> _pucksOffset;
+        std::map<uint32_t, glm::mat4> _pucksOffset;
         std::map<int, uint32_t> _jointToPuckMap;
         // perform an action when the InputDevice mutex is acquired.
         using Locker = std::unique_lock<std::recursive_mutex>;
