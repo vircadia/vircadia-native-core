@@ -270,23 +270,32 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
     }
     _followTime += dt;
 
-    float stepUpSpeed2 = _stepUpVelocity.length2();
-    if (stepUpSpeed2 > FLT_EPSILON) {
-        // we step up with micro-teleports rather than applying velocity
-        // use a speed that would ballistically reach _stepHeight under gravity
-        _stepUpVelocity /= sqrtf(stepUpSpeed2);
-        btScalar minStepUpSpeed = sqrtf(fabsf(2.0f * _gravity * _stepHeight));
+    if (_steppingUp) {
+        // compute a stepUpSpeed that will reach the top of the step in the time it would take
+        // to move over the _stepPoint at target speed
+        btVector3 horizontalStep = _stepPoint - _stepPoint.dot(_currentUp) * _currentUp;
+        float hDistance = sqrtf(_stepPoint.getX() * _stepPoint.getX() + _stepPoint.getZ() * _stepPoint.getZ());
+        float targetSpeed = _targetVelocity.length();
+        float timeToStep = hDistance / targetSpeed;
+        float stepUpSpeed = _stepHeight / timeToStep + 0.5f * _gravity * timeToStep;
+        const float MAX_STEP_UP_SPEED = 0.65f * targetSpeed;
+        if (stepUpSpeed > MAX_STEP_UP_SPEED) {
+            stepUpSpeed = MAX_STEP_UP_SPEED;
+        }
 
-        btTransform transform = _rigidBody->getWorldTransform();
-        transform.setOrigin(transform.getOrigin() + (dt * minStepUpSpeed) * _stepUpVelocity);
-        _rigidBody->setWorldTransform(transform);
-
-        // make sure the upward velocity is large enough to clear the very top of the step
-        const btScalar MAGIC_STEP_OVERSHOOT_SPEED_COEFFICIENT = 0.5f;
-        minStepUpSpeed = MAGIC_STEP_OVERSHOOT_SPEED_COEFFICIENT * sqrtf(fabsf(2.0f * _gravity * _minStepHeight));
         btScalar vDotUp = velocity.dot(_currentUp);
+        if (stepUpSpeed > vDotUp) {
+            // don't have enough upward velocity to cover the step
+
+            // we step up with micro-teleports rather than applying velocity
+            // use a speed that would ballistically reach _stepHeight under gravity
+            btTransform transform = _rigidBody->getWorldTransform();
+            transform.setOrigin(transform.getOrigin() + (dt * stepUpSpeed) * _currentUp);
+            _rigidBody->setWorldTransform(transform);
+        }
+        float minStepUpSpeed = 0.0f;
         if (vDotUp < minStepUpSpeed) {
-            velocity += (minStepUpSpeed - vDotUp) * _stepUpVelocity;
+            velocity += (minStepUpSpeed - vDotUp) * _currentUp;
         }
     }
     _rigidBody->setLinearVelocity(velocity + _parentVelocity);
@@ -363,10 +372,10 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
     if (glm::abs(radius - _radius) > FLT_EPSILON || glm::abs(halfHeight - _halfHeight) > FLT_EPSILON) {
         _radius = radius;
         _halfHeight = halfHeight;
-        const btScalar DEFAULT_MIN_STEP_HEIGHT = 0.005f;
-        const btScalar MAX_STEP_FRACTION_OF_HALF_HEIGHT = 0.56f;
-        _minStepHeight = DEFAULT_MIN_STEP_HEIGHT;
-        _maxStepHeight = MAX_STEP_FRACTION_OF_HALF_HEIGHT * (_halfHeight + _radius);
+        const btScalar DEFAULT_MIN_STEP_HEIGHT_FACTOR = 0.005f;
+        const btScalar DEFAULT_MAX_STEP_HEIGHT_FACTOR = 0.65f;
+        _minStepHeight = DEFAULT_MIN_STEP_HEIGHT_FACTOR * (_halfHeight + _radius);
+        _maxStepHeight = DEFAULT_MAX_STEP_HEIGHT_FACTOR * (_halfHeight + _radius);
 
         if (_dynamicsWorld) {
             // must REMOVE from world prior to shape update
@@ -518,18 +527,12 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
         btVector3 vTargetVelocity = motorVelocity.dot(up) * up;
         btVector3 hTargetVelocity = motorVelocity - vTargetVelocity;
 
-        if (_stepHeight > _minStepHeight) {
+        if (_stepHeight > _minStepHeight && !_steppingUp) {
             // there is a step --> compute velocity direction to go over step
             btVector3 motorVelocityWF = motorVelocity.rotate(axis, angle);
             if (motorVelocityWF.dot(_stepNormal) < 0.0f) {
                 // the motor pushes against step
-                motorVelocityWF = _stepNormal.cross(_stepPoint.cross(motorVelocityWF));
-                btScalar doubleCrossLength2 = motorVelocityWF.length2();
-                if (doubleCrossLength2 > FLT_EPSILON) {
-                    // scale the motor in the correct direction and rotate back to motor-frame
-                    motorVelocityWF *= (motorVelocity.length() / sqrtf(doubleCrossLength2));
-                    _stepUpVelocity += motorVelocityWF.rotate(axis, -angle);
-                }
+                _steppingUp = true;
             }
         }
 
@@ -581,7 +584,7 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     std::vector<btScalar> weights;
     weights.reserve(_motors.size());
     _targetVelocity = btVector3(0.0f, 0.0f, 0.0f);
-    _stepUpVelocity = btVector3(0.0f, 0.0f, 0.0f);
+    _steppingUp = false;
     for (int i = 0; i < (int)_motors.size(); ++i) {
         applyMotor(i, dt, velocity, velocities, weights);
     }

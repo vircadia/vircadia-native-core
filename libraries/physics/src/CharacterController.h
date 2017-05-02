@@ -170,7 +170,7 @@ protected:
     // data for walking up steps
     btVector3 _stepPoint { 0.0f, 0.0f, 0.0f };
     btVector3 _stepNormal { 0.0f, 0.0f, 0.0f };
-    btVector3 _stepUpVelocity { 0.0f, 0.0f, 0.0f };
+    bool _steppingUp { false };
     btScalar _stepHeight { 0.0f };
     btScalar _minStepHeight { 0.0f };
     btScalar _maxStepHeight { 0.0f };
