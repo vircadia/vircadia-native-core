@@ -140,9 +140,9 @@ function createShareBar(parentID, isGif, blastButtonDisabled, hifiButtonDisabled
         '</div>' +
         '<div class="shareButtons" id="' + shareButtonsDivID + '" style="visibility:hidden">';
     if (canBlast) {
-        shareBarInnerHTML += '<div class="shareButton blastToConnections' + (hifiButtonDisabled ? ' disabled' : 'enabled') + '" id="' + blastToConnectionsButtonID + '" onmouseover="shareButtonHovered(\'blast\', ' + parentID + ')" onclick="blastToConnections(' + parentID + ', ' + isGif + ')"><img src="img/blast_icon.svg"></div>';
+        shareBarInnerHTML += '<div class="shareButton blastToConnections" id="' + blastToConnectionsButtonID + '" onmouseover="shareButtonHovered(\'blast\', ' + parentID + ')" onclick="' + (blastButtonDisabled ? '' : 'blastToConnections(' + parentID + ', ' + isGif + ')') + '"><img src="img/blast_icon.svg"></div>';
     }
-    shareBarInnerHTML += '<div class="shareButton shareWithEveryone' + (hifiButtonDisabled ? ' disabled' : 'enabled') + '" id="' + shareWithEveryoneButtonID + '" onmouseover="shareButtonHovered(\'hifi\', ' + parentID + ')" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')"><img src="img/hifi_icon.svg"></div>' +
+    shareBarInnerHTML += '<div class="shareButton shareWithEveryone" id="' + shareWithEveryoneButtonID + '" onmouseover="shareButtonHovered(\'hifi\', ' + parentID + ')" onclick="' + (hifiButtonDisabled ? '' : 'shareWithEveryone(' + parentID + ', ' + isGif + ')') + '"><img src="img/hifi_icon.svg"></div>' +
             '<a class="shareButton facebookButton" id="' + facebookButtonID + '" onmouseover="shareButtonHovered(\'facebook\', ' + parentID + ')" onclick="shareButtonClicked(\'facebook\', ' + parentID + ')"><img src="img/fb_icon.svg"></a>' +
             '<a class="shareButton twitterButton" id="' + twitterButtonID + '" onmouseover="shareButtonHovered(\'twitter\', ' + parentID + ')" onclick="shareButtonClicked(\'twitter\', ' + parentID + ')"><img src="img/twitter_icon.svg"></a>' +
         '</div>';
@@ -204,6 +204,45 @@ function addImage(image_data, isGifLoading, canShare, isShowingPreviousImages, b
         appendShareBar(id, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast);
         updateShareInfo(id, image_data.story_id);
     }
+}
+function showConfirmationMessage(selectedID, destination) {
+    if (selectedID.id) {
+        selectedID = selectedID.id; // sometimes (?), `containerID` is passed as an HTML object to these functions; we just want the ID
+    }
+
+    var opacity = 2.0,
+        confirmationMessageContainer = document.createElement("div"),
+        confirmationMessage = document.createElement("div");
+    confirmationMessageContainer.className = "confirmationMessageContainer";
+
+    confirmationMessage.className = "confirmationMessage";
+
+    var socialIcon = document.createElement("img");
+    switch (destination) {
+        case 'blast':
+            socialIcon.src = "img/blast_icon.svg";
+            confirmationMessage.appendChild(socialIcon);
+            confirmationMessage.innerHTML += '<span>Blast Sent!</span>';
+            confirmationMessage.style.backgroundColor = "#EA4C5F";
+            break;
+        case 'hifi':
+            socialIcon.src = "img/hifi_icon.svg";
+            confirmationMessage.appendChild(socialIcon);
+            confirmationMessage.innerHTML += '<span>Snap Shared!</span>';
+            confirmationMessage.style.backgroundColor = "#1FC6A6";
+            break;
+    }
+
+    confirmationMessageContainer.appendChild(confirmationMessage);
+    document.getElementById(selectedID).appendChild(confirmationMessageContainer);
+
+    setInterval(function () {
+        if (opacity <= 0.05) {
+            confirmationMessageContainer.remove();
+        }
+        opacity -= 0.05;
+        confirmationMessageContainer.style.opacity = opacity;
+    }, 50);
 }
 function showUploadingMessage(selectedID, destination) {
     if (selectedID.id) {
@@ -278,7 +317,7 @@ function blastToConnections(selectedID, isGif) {
         selectedID = selectedID.id; // sometimes (?), `selectedID` is passed as an HTML object to these functions; we just want the ID
     }
 
-    document.getElementById(selectedID + "blastToConnectionsButton").disabled = true;
+    document.getElementById(selectedID + "blastToConnectionsButton").onclick = function () { };
 
     var storyID = document.getElementById(selectedID).getAttribute("data-story-id");
 
@@ -289,6 +328,7 @@ function blastToConnections(selectedID, isGif) {
             story_id: storyID,
             isGif: isGif
         }));
+        showConfirmationMessage(selectedID, 'blast');
     } else {
         showUploadingMessage(selectedID, 'blast');
     }
@@ -298,7 +338,7 @@ function shareWithEveryone(selectedID, isGif) {
         selectedID = selectedID.id; // sometimes (?), `selectedID` is passed as an HTML object to these functions; we just want the ID
     }
 
-    document.getElementById(selectedID + "shareWithEveryoneButton").disabled = true;
+    document.getElementById(selectedID + "shareWithEveryoneButton").onclick = function () { };
 
     var storyID = document.getElementById(selectedID).getAttribute("data-story-id");
 
@@ -309,6 +349,7 @@ function shareWithEveryone(selectedID, isGif) {
             story_id: storyID,
             isGif: isGif
         }));
+        showConfirmationMessage(selectedID, 'hifi');
     } else {
         showUploadingMessage(selectedID, 'hifi');
     }
@@ -384,7 +425,7 @@ function handleCaptureSetting(setting) {
 window.onload = function () {
     // Uncomment the line below to test functionality in a browser.
     // See definition of "testInBrowser()" to modify tests.
-    testInBrowser(1);
+    //testInBrowser(2);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
@@ -492,7 +533,7 @@ function testInBrowser(test) {
     } else if (test === 2) {
         addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, false, true, true, false, false, true);
         addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, true, false, false, true);
-        showUploadingMessage("p0", 'facebook');
-        showUploadingMessage("p1", 'twitter');
+        showConfirmationMessage("p0", 'blast');
+        showConfirmationMessage("p1", 'hifi');
     }
 }
