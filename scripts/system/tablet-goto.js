@@ -30,40 +30,6 @@
         text: buttonName,
         sortOrder: 8
     });
-    function messagesWaiting(isWaiting) {
-        button.editProperties({
-            icon: isWaiting ? WAITING_ICON : NORMAL_ICON
-            // No need for a different activeIcon, because we issue messagesWaiting(false) when the button goes active anyway.
-        });
-    }
-
-    function onClicked() {
-        if (onGotoScreen) {
-            // for toolbar-mode: go back to home screen, this will close the window.
-            tablet.gotoHomeScreen();
-        } else {
-            shouldActivateButton = true;
-            tablet.loadQMLSource(gotoQmlSource);
-            onGotoScreen = true;
-        }
-    }
-
-    function onScreenChanged(type, url) {
-        ignore(type);
-        if (url === gotoQmlSource) {
-            onGotoScreen = true;
-            shouldActivateButton = true;
-            button.editProperties({isActive: shouldActivateButton});
-            messagesWaiting(false);
-        } else {
-            shouldActivateButton = false;
-            onGotoScreen = false;
-            button.editProperties({isActive: shouldActivateButton});
-        }
-    }
-    button.clicked.connect(onClicked);
-    tablet.screenChanged.connect(onScreenChanged);
-
     function request(options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
         var httpRequest = new XMLHttpRequest(), key;
         // QT bug: apparently doesn't handle onload. Workaround using readyState.
@@ -112,6 +78,70 @@
         httpRequest.open(options.method, options.uri, true);
         httpRequest.send(options.body);
     }
+    function fromQml(message) {
+        var response = {id: message.id, jsonrpc: "2.0"};
+        switch (message.method) {
+        case 'request':
+            request(message.params, function (error, data) {
+                response.error = error;
+                response.result = data;
+                tablet.sendToQml(response);
+            });
+            return;
+        default:
+            response.error = {message: 'Unrecognized message', data: message};
+        }
+        tablet.sendToQml(response);
+    }
+    function messagesWaiting(isWaiting) {
+        button.editProperties({
+            icon: isWaiting ? WAITING_ICON : NORMAL_ICON
+            // No need for a different activeIcon, because we issue messagesWaiting(false) when the button goes active anyway.
+        });
+    }
+    var hasEventBridge = false;
+    function wireEventBridge(on) {
+        if (on) {
+            if (!hasEventBridge) {
+                tablet.fromQml.connect(fromQml);
+                hasEventBridge = true;
+            }
+        } else {
+            if (hasEventBridge) {
+                tablet.fromQml.disconnect(fromQml);
+                hasEventBridge = false;
+            }
+        }
+    }
+
+    function onClicked() {
+        if (onGotoScreen) {
+            // for toolbar-mode: go back to home screen, this will close the window.
+            tablet.gotoHomeScreen();
+        } else {
+            shouldActivateButton = true;
+            tablet.loadQMLSource(gotoQmlSource);
+            onGotoScreen = true;
+        }
+    }
+
+    function onScreenChanged(type, url) {
+        ignore(type);
+        if (url === gotoQmlSource) {
+            onGotoScreen = true;
+            shouldActivateButton = true;
+            button.editProperties({isActive: shouldActivateButton});
+            wireEventBridge(true);
+            messagesWaiting(false);
+        } else {
+            shouldActivateButton = false;
+            onGotoScreen = false;
+            button.editProperties({isActive: shouldActivateButton});
+            wireEventBridge(false);
+        }
+    }
+    button.clicked.connect(onClicked);
+    tablet.screenChanged.connect(onScreenChanged);
 
     var stories = {};
     var DEBUG = false;
