@@ -98,11 +98,11 @@ void GL45ResourceTexture::syncSampler() const {
 }
 
 
-void copyTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcAllocatedMip, uint16_t destAllocatedMip, uint16_t populatedMips) {
+void copyTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {
     for (uint16_t mip = populatedMips; mip < numMips; ++mip) {
         auto mipDimensions = texture.evalMipDimensions(mip);
-        uint16_t targetMip = mip - destAllocatedMip;
-        uint16_t sourceMip = mip - srcAllocatedMip;
+        uint16_t targetMip = mip - destMipOffset;
+        uint16_t sourceMip = mip - srcMipOffset;
         auto faces = GLTexture::getFaceCount(texTarget);
         for (uint8_t face = 0; face < faces; ++face) {
             glCopyImageSubData(
