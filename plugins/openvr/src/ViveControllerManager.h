@@ -14,9 +14,11 @@
 
 #include <QObject>
 #include <unordered_set>
+#include <vector>
+#include <map>
+#include <utility>
 
 #include <GLMHelpers.h>
-
 #include <model/Geometry.h>
 #include <gpu/Texture.h>
 #include <controllers/InputDevice.h>
@@ -58,7 +60,8 @@ private:
 
         bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         void hapticsHelper(float deltaTime, bool leftHand);
-
+        void calibrate(const controller::InputCalibrationData& inputCalibration);
+        void computePucksOffset(const controller::InputCalibrationData& inputCalibration);
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
         void handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand);
@@ -90,10 +93,14 @@ private:
             float _timer { 0.0f };
             glm::vec2 _stick { 0.0f, 0.0f };
         };
-
+        enum class Config { Feet, FeetAndHips, FeetHipsAndChest, NoConfig };
+        Config _config { Config::NoConfig };
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
 
+        std::vector<std::pair<uint32_t, controller::Pose>> _validTrackedObjects;
+        std::map<uint32_t, const mat4> _pucksOffset;
+        std::map<int, uint32_t> _jointToPuckMap;
         // perform an action when the InputDevice mutex is acquired.
         using Locker = std::unique_lock<std::recursive_mutex>;
         template <typename F>
@@ -101,10 +108,13 @@ private:
 
         int _trackedControllers { 0 };
         vr::IVRSystem*& _system;
+        quint64 _calibrateAfterTimelapse { 0.f };
         float _leftHapticStrength { 0.0f };
         float _leftHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
+        bool _calibrate { false };
+        bool _calibrated { false };
         mutable std::recursive_mutex _lock;
 
         friend class ViveControllerManager;

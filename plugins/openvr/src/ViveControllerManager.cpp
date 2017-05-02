@@ -10,6 +10,7 @@
 //
 
 #include "ViveControllerManager.h"
+#include <algorithm>
 
 #include <PerfStat.h>
 #include <PathUtils.h>
@@ -41,8 +42,15 @@ static const char* MENU_PARENT = "Avatar";
 static const char* MENU_NAME = "Vive Controllers";
 static const char* MENU_PATH = "Avatar" ">" "Vive Controllers";
 static const char* RENDER_CONTROLLERS = "Render Hand Controllers";
+const quint64 CALIBRATION_TIMELAPSE = 3000000;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
+
+bool sortPucksYPosition(std::pair<uint32_t, controller::Pose> firstPuck, std::pair<uint32_t, controller::Pose> secondPuck) {
+    controller::Pose firstPose = firstPuck.second;
+    controller::Pose secondPose = secondPuck.second;
+    return (firstPose.translation.y < secondPose.translation.y);
+}
 
 bool ViveControllerManager::isSupported() const {
     return openVrSupported();
@@ -125,6 +133,7 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _poseStateMap.clear();
     _buttonPressedMap.clear();
+    _validTrackedObjects.clear();
 
     // While the keyboard is open, we defer strictly to the keyboard values
     if (isOpenVrKeyboardShown()) {
@@ -164,10 +173,10 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
         numTrackedControllers++;
     }
     _trackedControllers = numTrackedControllers;
+    calibrate(inputCalibrationData);
 }
 
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
-
     uint32_t poseIndex = controller::TRACKED_OBJECT_00 + deviceIndex;
 
     if (_system->IsTrackedDeviceConnected(deviceIndex) &&
@@ -185,12 +194,71 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
         // transform into avatar frame
         glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
         _poseStateMap[poseIndex] = pose.transform(controllerToAvatar);
+        _validTrackedObjects.push_back(std::make_pair(poseIndex, _poseStateMap[poseIndex]));
     } else {
         controller::Pose invalidPose;
         _poseStateMap[poseIndex] = invalidPose;
     }
 }
 
+void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibrationData& inputCalibration) {
+    quint64 currentTime = usecTimestampNow();
+
+    auto leftTrigger = _buttonPressedMap.find(controller::LT);
+    auto rightTrigger = _buttonPressedMap.find(controller::RT);
+    if ((leftTrigger != _buttonPressedMap.end()) && (rightTrigger != _buttonPressedMap.end())) {
+        if (!_calibrated) {
+            auto puckCount = _validTrackedObjects.size();
+            if (puckCount == 2) {
+                qDebug() << "-------------< configure feet <-------------";
+                _config = Config::Feet;
+            } else if (puckCount == 3) {
+                qDebug() << "-------------> configure feet and hips <-------------";
+                _config = Config::FeetAndHips;
+            } else if (puckCount >= 4) {
+                _config = Config::FeetHipsAndChest;
+            } else {
+                qDebug() << "Could not configure # pucks " << puckCount;
+                return;
+            }
+
+            std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
+            auto firstFoot = _validTrackedObjects[0];
+            auto secondFoot = _validTrackedObjects[1];
+            controller::Pose firstFootPose = firstFoot.second;
+            controller::Pose secondFootPose = secondFoot.second;
+            if (firstFootPose.translation.x > secondFootPose.translation.x) {
+                _jointToPuckMap[controller::LEFT_FOOT] = firstFoot.first;
+                _jointToPuckMap[controller::RIGHT_FOOT] = secondFoot.first;
+            } else {
+                _jointToPuckMap[controller::LEFT_FOOT] = secondFoot.first;
+                _jointToPuckMap[controller::RIGHT_FOOT] = firstFoot.first;
+                
+            }
+
+            if (_config == Config::Feet) {
+                // done
+            } else if (_config == Config::FeetAndHips) {
+                _jointToPuckMap[controller::HIPS] = _validTrackedObjects[2].first;
+            } else if (_config == Config::FeetHipsAndChest) {
+                _jointToPuckMap[controller::HIPS] = _validTrackedObjects[2].first;
+                _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[2].first;
+            }
+
+            computePucksOffset(inputCalibration);
+            _calibrated = true;
+            
+        } else {
+            qDebug() << "---- de-calibrated ---";
+            
+        }
+            
+    }
+}
+
+void ViveControllerManager::InputDevice::computePucksOffset(const controller::InputCalibrationData& inputCalibration) {
+    
+}
 void ViveControllerManager::InputDevice::handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand) {
 
     if (_system->IsTrackedDeviceConnected(deviceIndex) &&
@@ -353,7 +421,7 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
         float hapticTime = strength * MAX_HAPTIC_TIME;
         if (hapticTime < duration * 1000.0f) {
             _system->TriggerHapticPulse(deviceIndex, 0, hapticTime);
-        }
+       }
 
         float remainingHapticTime = duration - (hapticTime / 1000.0f + deltaTime * 1000.0f); // in milliseconds
         if (leftHand) {
