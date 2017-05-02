@@ -63,8 +63,6 @@ AvatarData::AvatarData() :
     _keyState(NO_KEY_DOWN),
     _forceFaceTrackerConnected(false),
     _headData(NULL),
-    _displayNameTargetAlpha(1.0f),
-    _displayNameAlpha(1.0f),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
     _targetVelocity(0.0f)

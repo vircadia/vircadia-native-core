@@ -11,6 +11,7 @@
 #ifndef hifi_Avatar_h
 #define hifi_Avatar_h
 
+#include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -47,8 +48,9 @@ enum ScreenTintLayer {
     NUM_SCREEN_TINT_LAYERS
 };
 
-class AvatarMotionState;
 class Texture;
+
+using AvatarPhysicsCallback = std::function<void(uint32_t)>;
 
 class Avatar : public AvatarData {
     Q_OBJECT
@@ -65,6 +67,12 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
+    static void setShowReceiveStats(bool receiveStats);
+    static void setShowMyLookAtVectors(bool showMine);
+    static void setShowOtherLookAtVectors(bool showOthers);
+    static void setShowCollisionShapes(bool render);
+    static void setShowNamesAboveHeads(bool show);
+
     explicit Avatar(QThread* thread, RigPointer rig = nullptr);
     ~Avatar();
 
@@ -147,7 +155,7 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
-    void setShowDisplayName(bool showDisplayName);
+    void updateDisplayNameAlpha(bool showDisplayName);
     virtual void setSessionDisplayName(const QString& sessionDisplayName) override { }; // no-op
 
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
@@ -183,8 +191,6 @@ public:
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
     void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
-
-    AvatarMotionState* getMotionState() { return _motionState; }
 
     using SpatiallyNestable::setPosition;
     virtual void setPosition(const glm::vec3& position) override;
@@ -240,13 +246,10 @@ public slots:
     void setModelURLFinished(bool success);
 
 protected:
-    friend class AvatarManager;
 
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
-
-    void setMotionState(AvatarMotionState* motionState);
 
     SkeletonModelPointer _skeletonModel;
     glm::vec3 _skeletonOffset;
@@ -301,10 +304,6 @@ protected:
     ThreadSafeValueCache<glm::vec3> _rightPalmPositionCache { glm::vec3() };
     ThreadSafeValueCache<glm::quat> _rightPalmRotationCache { glm::quat() };
 
-    void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
-    void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
-    bool isInScene() const { return render::Item::isValidID(_renderItemID); }
-
     // Some rate tracking support
     RateCounter<> _simulationRate;
     RateCounter<> _simulationInViewRate;
@@ -330,13 +329,15 @@ private:
     bool _isLookAtTarget { false };
     bool _isAnimatingScale { false };
 
-    float getBoundingRadius() const;
-
     static int _jointConesID;
 
     int _voiceSphereID;
 
-    AvatarMotionState* _motionState = nullptr;
+    AvatarPhysicsCallback _physicsCallback { nullptr };
+
+    float _displayNameTargetAlpha { 1.0f };
+    float _displayNameAlpha { 1.0f };
+
 };
 
 #endif // hifi_Avatar_h

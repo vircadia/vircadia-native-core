@@ -145,9 +145,6 @@ namespace MenuOption {
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString ReloadContent = "Reload Content (Clears all caches)";
-    const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
-    const QString RenderMyLookAtVectors = "Show My Eye Vectors";
-    const QString RenderOtherLookAtVectors = "Show Other Eye Vectors";
     const QString RenderMaxTextureMemory = "Maximum Texture Memory";
     const QString RenderMaxTextureAutomatic = "Automatic Texture Memory";
     const QString RenderMaxTexture4MB = "4 MB";
@@ -173,8 +170,11 @@ namespace MenuOption {
     const QString SendWrongDSConnectVersion = "Send wrong DS connect version";
     const QString SendWrongProtocolVersion = "Send wrong protocol version";
     const QString SetHomeLocation = "Set Home Location";
-    const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
+    const QString ShowBoundingCollisionShapes = "Show Bounding Collision Shapes";
+    const QString ShowDSConnectTable = "Show Domain Connection Timing";
+    const QString ShowMyLookAtVectors = "Show My Eye Vectors";
+    const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
