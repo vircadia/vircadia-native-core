@@ -111,20 +111,70 @@ input[type=button].naked:active {
     justify-content: space-between;
     flex-direction: row;
     align-items: center;
-    height: 45px;
-    line-height: 60px;
+    height: 65px;
+    line-height: 65px;
     width: calc(100% - 8px);
     position: absolute;
     bottom: 4px;
     left: 4px;
     right: 4px;
 }
+.showShareButtonsButtonDiv {
+    display: inline-flex;
+    align-items: center;
+    font-family: Raleway-SemiBold;
+    font-size: 14px;
+    color: white;
+    width: 60px;
+    height: 100%;
+    margin-right: 10px;
+    margin-bottom: 15px;
+}
+.showShareButtonsButtonDiv > label {
+    text-shadow: 2px 2px 3px #000000;
+    margin-bottom: -10px;
+    margin-left: 12px;
+}
+.showShareButton.active {
+    border-color: #00b4ef;
+    border-width: 3px;
+    background-color: white;
+}
+.showShareButton.active:hover {
+    background-color: #afafaf;
+}
+.showShareButton.active:active {
+    background-color: white;
+}
+.showShareButton.inactive {
+    border-width: 0;
+    background-color: white;
+}
+.showShareButton.inactive:hover {
+    background-color: #afafaf;
+}
+.showShareButton.inactive:active {
+    background-color: white;
+}
+.showShareButtonDots {
+    display: block;
+    width: 40px;
+    height: 40px;
+    font-family: HiFi-Glyphs;
+    font-size: 60px;
+    position: absolute;
+    left: 6px;
+    bottom: 42px;
+    color: white;
+    pointer-events: none;
+}
 .shareButtons {
     display: flex;
     align-items: center;
-    margin-left: 15px;
+    margin-left: 0;
+    margin-bottom: 15px;
     height: 100%;
-    width: 75%;
+    width: calc(100% - 60px);
 }
 .blastToConnections {
     text-align: left;
@@ -155,58 +205,15 @@ input[type=button].naked:active {
     margin-right: 8px;
     border-radius: 3px;
 }
-.showShareButtonsButtonDiv {
-    display: inline-flex;
-    align-items: center;
-    font-family: Raleway-SemiBold;
-    font-size: 14px;
-    color: white;
-    height: 100%;
-    margin-right: 10px;
-}
-.showShareButtonsButtonDiv > label {
-    text-shadow: 2px 2px 3px #000000;
-}
-.showShareButton {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border-width: 0;
-    margin-left: 5px;
-    outline: none;
-}
-.showShareButton.active {
-    border-color: #00b4ef;
-    border-width: 3px;
-    background-color: white;
-}
-.showShareButton.active:hover {
-    background-color: #afafaf;
-}
-.showShareButton.active:active {
-    background-color: white;
-}
-.showShareButton.inactive {
-    border-width: 0;
-    background-color: white;
-}
-.showShareButton.inactive:hover {
-    background-color: #afafaf;
-}
-.showShareButton.inactive:active {
-    background-color: white;
-}
-.showShareButtonDots {
-    display: block;
-    width: 40px;
-    height: 40px;
-    font-family: HiFi-Glyphs;
-    font-size: 60px;
+.shareControlsHelp {
+    height: 25px;
+    line-height: 25px;
     position: absolute;
-    right: 20px;
-    bottom: 12px;
-    color: #00b4ef;
-    pointer-events: none;
+    bottom: 0;
+    left: 65px;
+    right: 0;
+    font-family: Raleway-Regular;
+    font-weight: 400;
 }
 /*
 // END styling of share overlay

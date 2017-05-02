@@ -76,14 +76,15 @@ function selectImageToShare(selectedID, isSelected) {
         image = document.getElementById(selectedID + 'img'),
         shareBar = document.getElementById(selectedID + "shareBar"),
         shareButtonsDiv = document.getElementById(selectedID + "shareButtonsDiv"),
-        showShareButtonsButton = document.getElementById(selectedID + "showShareButtonsButton"),
+        shareBarHelp = document.getElementById(selectedID + "shareBarHelp"),
+        showShareButtonsButtonDiv = document.getElementById(selectedID + "showShareButtonsButtonDiv"),
         itr,
         containers = document.getElementsByClassName("shareControls");
 
     if (isSelected) {
-        showShareButtonsButton.onclick = function () { selectImageToShare(selectedID, false); };
-        showShareButtonsButton.classList.remove("inactive");
-        showShareButtonsButton.classList.add("active");
+        showShareButtonsButtonDiv.onclick = function () { selectImageToShare(selectedID, false); };
+        showShareButtonsButtonDiv.classList.remove("inactive");
+        showShareButtonsButtonDiv.classList.add("active");
 
         image.onclick = function () { selectImageToShare(selectedID, false); };
         imageContainer.style.outline = "4px solid #00b4ef";
@@ -92,6 +93,7 @@ function selectImageToShare(selectedID, isSelected) {
         shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
 
         shareButtonsDiv.style.visibility = "visible";
+        shareBarHelp.style.visibility = "visible";
 
         for (itr = 0; itr < containers.length; itr += 1) {
             var parentID = containers[itr].id.slice(0, 2);
@@ -100,9 +102,9 @@ function selectImageToShare(selectedID, isSelected) {
             }
         }
     } else {
-        showShareButtonsButton.onclick = function () { selectImageToShare(selectedID, true); };
-        showShareButtonsButton.classList.remove("active");
-        showShareButtonsButton.classList.add("inactive");
+        showShareButtonsButtonDiv.onclick = function () { selectImageToShare(selectedID, true); };
+        showShareButtonsButtonDiv.classList.remove("active");
+        showShareButtonsButtonDiv.classList.add("inactive");
 
         image.onclick = function () { selectImageToShare(selectedID, true); };
         imageContainer.style.outline = "none";
@@ -110,13 +112,14 @@ function selectImageToShare(selectedID, isSelected) {
         shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.0)";
 
         shareButtonsDiv.style.visibility = "hidden";
+        shareBarHelp.style.visibility = "hidden";
     }
 }
 function createShareBar(parentID, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast) {
     var shareBar = document.createElement("div"),
+        shareBarHelpID = parentID + "shareBarHelp",
         shareButtonsDivID = parentID + "shareButtonsDiv",
         showShareButtonsButtonDivID = parentID + "showShareButtonsButtonDiv",
-        showShareButtonsButtonID = parentID + "showShareButtonsButton",
         showShareButtonsLabelID = parentID + "showShareButtonsLabel",
         blastToConnectionsButtonID = parentID + "blastToConnectionsButton",
         shareWithEveryoneButtonID = parentID + "shareWithEveryoneButton",
@@ -125,24 +128,24 @@ function createShareBar(parentID, isGif, blastButtonDisabled, hifiButtonDisabled
 
     shareBar.id = parentID + "shareBar";
     shareBar.className = "shareControls";
-    var shareBarInnerHTML = '<div class="shareButtons" id="' + shareButtonsDivID + '" style="visibility:hidden">';
-    if (canBlast) {
-        shareBarInnerHTML += '<input type="button"' + (blastButtonDisabled ? ' disabled' : '') + ' class="blastToConnections blueButton" id="' + blastToConnectionsButtonID + '" value="BLAST TO MY CONNECTIONS" onclick="blastToConnections(' + parentID + ', ' + isGif + ')" />';
-    }
-    shareBarInnerHTML += '<input type="button"' + (hifiButtonDisabled ? ' disabled' : '') + ' class="shareWithEveryone" id="' +
-                shareWithEveryoneButtonID + '" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')" />' +
-            '<a class="facebookButton" id="' + facebookButtonID + '" onclick="shareButtonClicked(\'facebook\', ' + parentID + ')"></a>' +
-            '<a class="twitterButton" id="' + twitterButtonID + '" onclick="shareButtonClicked(\'twitter\', ' + parentID + ')"></a>' +
-        '</div>' +
-        '<div class="showShareButtonsButtonDiv" id="' + showShareButtonsButtonDivID + '">' +
-            '<label id="' + showShareButtonsLabelID + '" for="' + showShareButtonsButtonID + '">SHARE</label>' +
-            '<input type="button" class="showShareButton inactive" id="' + showShareButtonsButtonID + '" onclick="selectImageToShare(' + parentID + ', true)" />' +
-            '<div class="showShareButtonDots">' +
+    var shareBarInnerHTML = '<div class="showShareButtonsButtonDiv inactive" id="' + showShareButtonsButtonDivID + '" onclick="selectImageToShare(' + parentID + ', true)">' +
+            '<label id="' + showShareButtonsLabelID + '">SHARE</label>' +
+            '<span class="showShareButtonDots">' +
                 '&#xe019;' +
             '</div>' +
+        '</div>' +
+        '<div class="shareButtons" id="' + shareButtonsDivID + '" style="visibility:hidden">';
+    if (canBlast) {
+        shareBarInnerHTML += '<input type="button"' + (blastButtonDisabled ? ' disabled' : '') + ' class="blastToConnections blueButton" id="' + blastToConnectionsButtonID + '" value="BLAST TO MY CONNECTIONS" onmouseover="shareButtonHovered(\'blast\', ' + parentID + ')" onclick="blastToConnections(' + parentID + ', ' + isGif + ')" />';
+    }
+    shareBarInnerHTML += '<input type="button"' + (hifiButtonDisabled ? ' disabled' : '') + ' class="shareWithEveryone" id="' + shareWithEveryoneButtonID + '" onmouseover="shareButtonHovered(\'hifi\', ' + parentID + ')" onclick="shareWithEveryone(' + parentID + ', ' + isGif + ')" />' +
+            '<a class="facebookButton" id="' + facebookButtonID + '" onmouseover="shareButtonHovered(\'facebook\', ' + parentID + ')" onclick="shareButtonClicked(\'facebook\', ' + parentID + ')"></a>' +
+            '<a class="twitterButton" id="' + twitterButtonID + '" onmouseover="shareButtonHovered(\'twitter\', ' + parentID + ')" onclick="shareButtonClicked(\'twitter\', ' + parentID + ')"></a>' +
         '</div>';
 
     shareBar.innerHTML = shareBarInnerHTML;
+
+    shareBar.innerHTML += '<div class="shareControlsHelp" id="' + shareBarHelpID + '"></div>';
 
     // Add onclick handler to parent DIV's img to toggle share buttons
     document.getElementById(parentID + 'img').onclick = function () { selectImageToShare(parentID, true); };
@@ -323,6 +326,27 @@ function shareWithEveryone(selectedID, isGif) {
         showUploadingMessage(selectedID, 'hifi');
     }
 }
+function shareButtonHovered(destination, selectedID) {
+    if (selectedID.id) {
+        selectedID = selectedID.id; // sometimes (?), `selectedID` is passed as an HTML object to these functions; we just want the ID
+    }
+    var shareBarHelp = document.getElementById(selectedID + "shareBarHelp");
+
+    switch (destination) {
+        case 'blast':
+            shareBarHelp.style.backgroundColor = "#EA4C5F";
+            break;
+        case 'hifi':
+            shareBarHelp.style.backgroundColor = "#1FC6A6";
+            break;
+        case 'facebook':
+            shareBarHelp.style.backgroundColor = "#3C58A0";
+            break;
+        case 'twitter':
+            shareBarHelp.style.backgroundColor = "#00B4EE";
+            break;
+    }
+}
 function shareButtonClicked(destination, selectedID) {
     if (selectedID.id) {
         selectedID = selectedID.id; // sometimes (?), `selectedID` is passed as an HTML object to these functions; we just want the ID
@@ -359,7 +383,7 @@ function handleCaptureSetting(setting) {
 window.onload = function () {
     // Uncomment the line below to test functionality in a browser.
     // See definition of "testInBrowser()" to modify tests.
-    //testInBrowser(1);
+    testInBrowser(1);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
@@ -462,11 +486,11 @@ function testInBrowser(test) {
     } else if (test === 1) {
         imageCount = 2;
         //addImage({ localPath: 'http://lorempixel.com/553/255' });
-        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, true, false, false, true);
         addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, false, true, true, false, false, true);
+        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, true, false, false, true);
     } else if (test === 2) {
-        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, true, false, false, true);
         addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, false, true, true, false, false, true);
+        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, true, false, false, true);
         showUploadingMessage("p0", 'facebook');
         showUploadingMessage("p1", 'twitter');
     }
