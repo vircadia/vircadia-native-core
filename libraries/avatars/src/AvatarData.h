@@ -99,7 +99,7 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 // Referential Data - R is found in the 7th bit
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
-const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
+const int IS_FACE_TRACKER_CONNECTED = 4; // 5th bit
 const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
@@ -218,7 +218,7 @@ namespace AvatarDataPacket {
     } PACKED_END;
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
 
-    // only present if IS_FACESHIFT_CONNECTED flag is set in AvatarInfo.flags
+    // only present if IS_FACE_TRACKER_CONNECTED flag is set in AvatarInfo.flags
     PACKED_BEGIN struct FaceTrackerInfo {
         float leftEyeBlink;
         float rightEyeBlink;
