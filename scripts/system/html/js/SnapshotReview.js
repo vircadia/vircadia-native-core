@@ -142,7 +142,7 @@ function createShareBar(parentID, isGif, blastButtonDisabled, hifiButtonDisabled
     if (canBlast) {
         shareBarInnerHTML += '<div class="shareButton blastToConnections" id="' + blastToConnectionsButtonID + '" onmouseover="shareButtonHovered(\'blast\', ' + parentID + ')" onclick="' + (blastButtonDisabled ? '' : 'blastToConnections(' + parentID + ', ' + isGif + ')') + '"><img src="img/blast_icon.svg"></div>';
     }
-    shareBarInnerHTML += '<div class="shareButton shareWithEveryone" id="' + shareWithEveryoneButtonID + '" onmouseover="shareButtonHovered(\'hifi\', ' + parentID + ')" onclick="' + (hifiButtonDisabled ? '' : 'shareWithEveryone(' + parentID + ', ' + isGif + ')') + '"><img src="img/hifi_icon.svg"></div>' +
+    shareBarInnerHTML += '<div class="shareButton shareWithEveryone" id="' + shareWithEveryoneButtonID + '" onmouseover="shareButtonHovered(\'hifi\', ' + parentID + ')" onclick="' + (hifiButtonDisabled ? '' : 'shareWithEveryone(' + parentID + ', ' + isGif + ')') + '"><img src="img/hifi_icon.svg" style="width:35px;height:35px;margin:2px 0 0 2px;"></div>' +
             '<a class="shareButton facebookButton" id="' + facebookButtonID + '" onmouseover="shareButtonHovered(\'facebook\', ' + parentID + ')" onclick="shareButtonClicked(\'facebook\', ' + parentID + ')"><img src="img/fb_icon.svg"></a>' +
             '<a class="shareButton twitterButton" id="' + twitterButtonID + '" onmouseover="shareButtonHovered(\'twitter\', ' + parentID + ')" onclick="shareButtonClicked(\'twitter\', ' + parentID + ')"><img src="img/twitter_icon.svg"></a>' +
         '</div>';
@@ -163,6 +163,11 @@ function appendShareBar(divID, isGif, blastButtonDisabled, hifiButtonDisabled, c
     document.getElementById(divID).appendChild(createShareBar(divID, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast));
     if (divID === "p0") {
         selectImageToShare(divID, true);
+        if (canBlast) {
+            shareButtonHovered('blast', divID);
+        } else {
+            shareButtonHovered('hifi', divID);
+        }
     }
 }
 function shareForUrl(selectedID) {
@@ -179,7 +184,7 @@ function addImage(image_data, isGifLoading, canShare, isShowingPreviousImages, b
     var id = "p" + (idCounter++),
         imageContainer = document.createElement("DIV"),
         img = document.createElement("IMG"),
-        isGif = img.src.split('.').pop().toLowerCase() === "gif";
+        isGif;
     imageContainer.id = id;
     imageContainer.style.width = "95%";
     imageContainer.style.height = "240px";
@@ -190,6 +195,7 @@ function addImage(image_data, isGifLoading, canShare, isShowingPreviousImages, b
     imageContainer.style.position = "relative";
     img.id = id + "img";
     img.src = image_data.localPath;
+    isGif = img.src.split('.').pop().toLowerCase() === "gif";
     imageContainer.appendChild(img);
     document.getElementById("snapshot-images").appendChild(imageContainer);
     paths.push(image_data.localPath);
@@ -425,7 +431,7 @@ function handleCaptureSetting(setting) {
 window.onload = function () {
     // Uncomment the line below to test functionality in a browser.
     // See definition of "testInBrowser()" to modify tests.
-    //testInBrowser(2);
+    testInBrowser(1);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
