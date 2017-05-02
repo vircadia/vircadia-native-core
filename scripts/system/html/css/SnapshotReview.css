@@ -104,7 +104,7 @@ input[type=button].naked:active {
 */
 
 /*
-// START styling of share bar
+// START styling of share overlay
 */
 .shareControls {
     display: flex;
@@ -210,6 +210,28 @@ input[type=button].naked:active {
 }
 /*
 // END styling of share overlay
+*/
+
+/*
+// START styling of uploading message
+*/
+.uploadingMessage {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    left: 0;
+    top: 0;
+}
+.uploadingMessage > img {
+    width: 72px;
+    height: 72px;
+    display: block;
+    margin: 60px auto 10px auto;
+}
+/*
+// END styling of uploading message
 */
 
 /*
