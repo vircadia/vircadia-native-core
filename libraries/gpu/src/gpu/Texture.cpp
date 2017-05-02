@@ -408,7 +408,7 @@ void Texture::setStoredMipFormat(const Element& format) {
     _storage->setFormat(format);
 }
 
-const Element Texture::getStoredMipFormat() const {
+Element Texture::getStoredMipFormat() const {
     if (_storage) {
         return _storage->getFormat();
     } else {

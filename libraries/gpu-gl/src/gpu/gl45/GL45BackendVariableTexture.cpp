@@ -134,7 +134,7 @@ void GL45ResourceTexture::promote() {
     
     // copy pre-existing mips
     uint16_t numMips = _gpuObject.getNumMips();
-    copyTexGPUMem(_gpuObject, _target, _id, oldId, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
+    copyTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
 
     // destroy the old texture
     glDeleteTextures(1, &oldId);
@@ -158,7 +158,7 @@ void GL45ResourceTexture::demote() {
 
     // copy pre-existing mips
     uint16_t numMips = _gpuObject.getNumMips();
-    copyTexGPUMem(_gpuObject, _target, _id, oldId, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
+    copyTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
 
     // destroy the old texture
     glDeleteTextures(1, &oldId);

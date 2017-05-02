@@ -307,12 +307,12 @@ void Context::create() {
         qApp->setProperty(hifi::properties::gl::PRIMARY_CONTEXT, QVariant::fromValue((void*)PRIMARY));
     }
 
- //   if (enableDebugLogger) {
+    if (enableDebugLogger) {
         makeCurrent();
         glDebugMessageCallback(debugMessageCallback, NULL);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
         doneCurrent();
- //   }
+    }
 }
 #endif
 

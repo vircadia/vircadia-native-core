@@ -44,6 +44,9 @@ public:
     explicit GL41Backend(bool syncCache) : Parent(syncCache) {}
     GL41Backend() : Parent() {}
 
+    static const std::string GL41_VERSION;
+    const std::string& getVersion() const override { return GL41_VERSION; }
+
     class GL41Texture : public GLTexture {
         using Parent = GLTexture;
         friend class GL41Backend;

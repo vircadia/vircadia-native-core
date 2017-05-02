@@ -310,6 +310,8 @@ void GL41VariableAllocationTexture::syncSampler() const {
 
 
 void copyUncompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcAllocatedMip, uint16_t destAllocatedMip, uint16_t populatedMips) {
+    // DestID must be bound to the GL41Backend::RESOURCE_TRANSFER_TEX_UNIT
+
     GLuint fbo { 0 };
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
@@ -334,22 +336,8 @@ void copyUncompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GL
 }
 
 void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcAllocatedMip, uint16_t destAllocatedMip, uint16_t populatedMips) {
-#ifdef USE_GL45_COPYIMAGE
-    for (uint16_t mip = populatedMips; mip < numMips; ++mip) {
-        auto mipDimensions = texture.evalMipDimensions(mip);
-        uint16_t targetMip = mip - destAllocatedMip;
-        uint16_t sourceMip = mip - srcAllocatedMip;
-        auto faces = GLTexture::getFaceCount(texTarget);
-        for (uint8_t face = 0; face < faces; ++face) {
-            glCopyImageSubData(
-                srcId, texTarget, sourceMip, 0, 0, face,
-                destId, texTarget, targetMip, 0, 0, face,
-                mipDimensions.x, mipDimensions.y, 1
-                );
-            (void)CHECK_GL_ERROR();
-        }
-    }
-#else
+    // DestID must be bound to the GL41Backend::RESOURCE_TRANSFER_TEX_UNIT
+
     struct MipDesc {
         GLint _faceSize;
         GLint _size;
@@ -361,7 +349,7 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
 
     std::vector<GLubyte> bytes;
 
-    glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_TRANSFER_TEX_UNIT);
+    glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_TRANSFER_EXTRA_TEX_UNIT);
     glBindTexture(texTarget, srcId);
     const auto& faceTargets = GLTexture::getFaceTargets(texTarget);
     GLint internalFormat { 0 };
@@ -399,7 +387,7 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
     GLuint pbo { 0 };
     glGenBuffers(1, &pbo);
     glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
-    glBufferData(GL_PIXEL_PACK_BUFFER, bufferOffset, nullptr, GL_STREAM_COPY);
+    glBufferData(GL_PIXEL_PACK_BUFFER, bufferOffset, nullptr, GL_STATIC_COPY);
     (void)CHECK_GL_ERROR();
 
     // Transfer from source texture to pbo
@@ -420,7 +408,6 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 
     glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_TRANSFER_TEX_UNIT);
-    glBindTexture(texTarget, destId);
 
     // Transfer from pbo to new texture
     for (uint16_t mip = populatedMips; mip < numMips; ++mip) {
@@ -443,7 +430,6 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     glDeleteBuffers(1, &pbo);
-#endif
 }
 
 void GL41VariableAllocationTexture::promote() {
