@@ -311,7 +311,8 @@ function onButtonClicked() {
         snapshotOptions = {
             containsGif: previousAnimatedSnapPath !== "",
             processingGif: false,
-            shouldUpload: false
+            shouldUpload: false,
+            canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID")
         }
         imageData = [];
         if (previousStillSnapPath !== "") {
