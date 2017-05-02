@@ -276,8 +276,8 @@ glm::quat MyAvatar::getOrientationOutbound() const {
 
     // Smooth the remote avatar movement.
     float t = _smoothOrientationTimer / _smoothOrientationTime;
-    float l = easeInOutQuad(glm::clamp(t, 0.0f, 1.0f));
-    return (slerp(_smoothOrientationInitial, _smoothOrientationTarget, l));
+    float interp = easeInOutQuad(glm::clamp(t, 0.0f, 1.0f));
+    return (slerp(_smoothOrientationInitial, _smoothOrientationTarget, interp));
 }
 
 // virtual
