@@ -54,8 +54,9 @@ const char* ViveControllerManager::NAME { "OpenVR" };
 
 glm::mat4 computeOffset(glm::mat4 defaultRefrence, glm::mat4 defaultJointMat, controller::Pose puckPose) {
     qDebug() << "-------------> computing offset <-------------";
-    glm::mat4 puckMat = create
-    return mat4();
+    glm::mat4 poseMat = createMatFromQuatAndPos(puckPose.rotation, puckPose.translation);
+    glm::mat4 refrenceJointMat = defaultRefrence * defaultJointMat;
+    return glm::inverse(poseMat) * refrenceJointMat;
 }
 bool sortPucksYPosition(std::pair<uint32_t, controller::Pose> firstPuck, std::pair<uint32_t, controller::Pose> secondPuck) {
     controller::Pose firstPose = firstPuck.second;
@@ -221,10 +222,11 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
         if (!_calibrated) {
             glm::mat4 controllerToAvatar = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
             glm::mat4 currentHead = inputCalibration.hmdSensorMat * controllerToAvatar;
+            glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
             glm::quat canceledRollAndPitch = cancelOutRollAndPitch(glmExtractRotation(currentHead));
             glm::vec3 currentHeadPosition = extractTranslation(currentHead);
             currentHead = createMatFromQuatAndPos(canceledRollAndPitch, currentHeadPosition);
-            glm::mat4 defaultRefrenceXform = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
+            glm::mat4 defaultRefrenceXform = currentHead * defaultHeadOffset;
             auto puckCount = _validTrackedObjects.size();
             if (puckCount == 2) {
                 qDebug() << "-------------< configure feet <-------------";
