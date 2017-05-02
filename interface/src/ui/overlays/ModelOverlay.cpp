@@ -18,7 +18,7 @@
 QString const ModelOverlay::TYPE = "model";
 
 ModelOverlay::ModelOverlay()
-	: _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
+    : _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
       _modelTextures(QVariantMap())
 {
     _model->init();
@@ -40,11 +40,6 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
 }
 
 void ModelOverlay::update(float deltatime) {
-	if (_model && _model->isActive()) {
-		_model->setRotation(getRotation());
-		_model->setTranslation(getPosition());
-	}
-
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
@@ -274,4 +269,13 @@ bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const g
 
 ModelOverlay* ModelOverlay::createClone() const {
     return new ModelOverlay(this);
+}
+
+void ModelOverlay::locationChanged(bool tellPhysics) {
+    Base3DOverlay::locationChanged(tellPhysics);
+
+    if (_model && _model->isActive()) {
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+    }
 }

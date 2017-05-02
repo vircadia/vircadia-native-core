@@ -276,7 +276,7 @@ glm::quat MyAvatar::getOrientationOutbound() const {
 
     // Smooth the remote avatar movement.
     float t = _smoothOrientationTimer / _smoothOrientationTime;
-    float interp = easeInOutQuad(glm::clamp(t, 0.0f, 1.0f));
+    float interp = Interpolate::easeInOutQuad(glm::clamp(t, 0.0f, 1.0f));
     return (slerp(_smoothOrientationInitial, _smoothOrientationTarget, interp));
 }
 
@@ -1863,13 +1863,13 @@ void MyAvatar::updateOrientation(float deltaTime) {
     }
 
     // update body orientation by movement inputs
-	glm::quat initialOrientation = getOrientation();
+    glm::quat initialOrientation = getOrientationOutbound();
     setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
 
 	if (snapTurn) {
 		// Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
 		_smoothOrientationInitial = initialOrientation;
-		_smoothOrientationTarget = getOrientation();
+        _smoothOrientationTarget = getOrientation();
 		_smoothOrientationTimer = 0.0f;
 	}
 

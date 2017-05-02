@@ -39,6 +39,8 @@ public:
     virtual bool addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) override;
     virtual void removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
+    void locationChanged(bool tellPhysics) override;
+
 protected:
     // helper to extract metadata from our Model's rigged joints
     template <typename itemType> using mapFunction = std::function<itemType(int jointIndex)>;

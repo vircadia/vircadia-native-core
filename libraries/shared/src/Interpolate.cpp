@@ -77,3 +77,13 @@ float Interpolate::calculateFadeRatio(quint64 start) {
     const float EASING_SCALE = 1.001f;
     return std::min(EASING_SCALE * fadeRatio, 1.0f);
 }
+
+float Interpolate::easeInOutQuad(float lerpValue) {
+    assert(!((lerpValue < 0.0f) || (lerpValue > 1.0f)));
+
+    if (lerpValue < 0.5f) {
+        return (2.0f * lerpValue * lerpValue);
+    }
+
+    return (lerpValue*(4.0f - 2.0f * lerpValue) - 1.0f);
+}
