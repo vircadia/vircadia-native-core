@@ -15,6 +15,10 @@
 var paths = [];
 var idCounter = 0;
 var imageCount = 0;
+var blastShareText = "Blast to my Connections",
+    hifiShareText = "Share to Snaps Feed",
+    facebookShareText = "Share to Facebook",
+    twitterShareText = "Share to Twitter";
 function showSetupInstructions() {
     var snapshotImagesDiv = document.getElementById("snapshot-images");
     snapshotImagesDiv.className = "snapshotInstructions";
@@ -206,58 +210,41 @@ function showUploadingMessage(selectedID, destination) {
         selectedID = selectedID.id; // sometimes (?), `containerID` is passed as an HTML object to these functions; we just want the ID
     }
 
-    var uploadingMessage = document.createElement("div");
-    uploadingMessage.id = selectedID + "uploadingMessage";
-    uploadingMessage.className = "uploadingMessage";
-    uploadingMessage.setAttribute("data-destination", destination);
+    var shareBarHelp = document.getElementById(selectedID + "shareBarHelp");
 
-    var socialIcon = document.createElement("img");
-    switch (destination) {
-        case 'blast':
-            socialIcon.src = "img/blast_icon.svg";
-            break;
-        case 'hifi':
-            socialIcon.src = "img/hifi_icon.svg";
-            break;
-        case 'facebook':
-            socialIcon.src = "img/fb_icon.svg";
-            break;
-        case 'twitter':
-            socialIcon.src = "img/twitter_icon.svg";
-            break;
-    }
-    uploadingMessage.appendChild(socialIcon);
-
-    uploadingMessage.innerHTML += '<span>Preparing Snapshot for Sharing...</span>';
-
-    document.getElementById(selectedID).appendChild(uploadingMessage);
+    shareBarHelp.innerHTML = "...Preparing to Share";
+    shareBarHelp.setAttribute("data-destination", destination);
 }
-function hideUploadingMessage(selectedID, storyID) {
+function hideUploadingMessageAndShare(selectedID, storyID) {
     if (selectedID.id) {
         selectedID = selectedID.id; // sometimes (?), `containerID` is passed as an HTML object to these functions; we just want the ID
     }
 
-    var uploadingMessage = document.getElementById(selectedID + "uploadingMessage");
-    if (uploadingMessage) {
-        uploadingMessage.remove();
-        var destination = uploadingMessage.getAttribute("data-destination");
-
-        switch (destination) {
+    var shareBarHelp = document.getElementById(selectedID + "shareBarHelp"),
+        shareBarHelpDestination = shareBarHelp.getAttribute("data-destination");
+    if (shareBarHelpDestination) {
+        switch (shareBarHelpDestination) {
             case 'blast':
                 blastToConnections(selectedID, selectedID === "p1");
+                shareBarHelp.innerHTML = blastShareText;
                 break;
             case 'hifi':
                 shareWithEveryone(selectedID, selectedID === "p1");
+                shareBarHelp.innerHTML = hifiShareText;
                 break;
             case 'facebook':
                 var facebookButton = document.getElementById(selectedID + "facebookButton");
                 window.open(facebookButton.getAttribute("href"), "_blank");
+                shareBarHelp.innerHTML = facebookShareText;
                 break;
             case 'twitter':
                 var twitterButton = document.getElementById(selectedID + "twitterButton");
                 window.open(twitterButton.getAttribute("href"), "_blank");
+                shareBarHelp.innerHTML = twitterShareText;
                 break;
         }
+
+        shareBarHelp.setAttribute("data-destination", "");
 
         EventBridge.emitWebEvent(JSON.stringify({
             type: "snapshot",
@@ -284,7 +271,7 @@ function updateShareInfo(containerID, storyID) {
     twitterButton.setAttribute("target", "_blank");
     twitterButton.setAttribute("href", 'https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelity&hashtags=VR,HiFi');
 
-    hideUploadingMessage(containerID, storyID);
+    hideUploadingMessageAndShare(containerID, storyID);
 }
 function blastToConnections(selectedID, isGif) {
     if (selectedID.id) {
@@ -341,22 +328,22 @@ function shareButtonHovered(destination, selectedID) {
     switch (destination) {
         case 'blast':
             shareBarHelp.style.backgroundColor = "#EA4C5F";
-            shareBarHelp.innerHTML = "Blast to my connections";
+            shareBarHelp.innerHTML = blastShareText;
             document.getElementById(selectedID + "blastToConnectionsButton").style.backgroundColor = "#EA4C5F";
             break;
         case 'hifi':
             shareBarHelp.style.backgroundColor = "#1FC6A6";
-            shareBarHelp.innerHTML = "Share in Snapshots Feed";
+            shareBarHelp.innerHTML = hifiShareText;
             document.getElementById(selectedID + "shareWithEveryoneButton").style.backgroundColor = "#1FC6A6";
             break;
         case 'facebook':
             shareBarHelp.style.backgroundColor = "#3C58A0";
-            shareBarHelp.innerHTML = "Share on Facebook";
+            shareBarHelp.innerHTML = facebookShareText;
             document.getElementById(selectedID + "facebookButton").style.backgroundColor = "#3C58A0";
             break;
         case 'twitter':
             shareBarHelp.style.backgroundColor = "#00B4EE";
-            shareBarHelp.innerHTML = "Share on Twitter";
+            shareBarHelp.innerHTML = twitterShareText;
             document.getElementById(selectedID + "twitterButton").style.backgroundColor = "#00B4EE";
             break;
     }
