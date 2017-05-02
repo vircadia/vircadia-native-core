@@ -14,7 +14,7 @@
 
 /* global getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
     Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset,
-   setGrabCommunications, Menu, HMD, isInEditMode, AvatarManager */
+   setGrabCommunications, Menu, HMD, isInEditMode, AvatarList */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -2339,7 +2339,7 @@ function MyController(hand) {
                 this.otherGrabbingLineOff();
             } else if (this.otherGrabbingUUID !== null) {
                 if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled && farSearching) {
-                    var avatar = AvatarManager.getAvatar(this.otherGrabbingUUID);
+                    var avatar = AvatarList.getAvatar(this.otherGrabbingUUID);
                     var IN_FRONT_OF_AVATAR = { x: 0, y: 0.2, z: 0.4 };  // Up from hips and in front of avatar.
                     var startPosition = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.rotation, IN_FRONT_OF_AVATAR));
                     var finishPisition = Vec3.sum(rayPickInfo.properties.position,  // Entity's centroid.
