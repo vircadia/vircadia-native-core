@@ -582,12 +582,21 @@ function onUsernameChanged() {
         shareAfterLogin = false;
     }
 }
+function snapshotLocationSet(location) {
+    if (location !== "") {
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "snapshotLocationChosen"
+        }));
+    }
+}
 
 button.clicked.connect(onButtonClicked);
 buttonConnected = true;
 Window.snapshotShared.connect(snapshotUploaded);
 tablet.screenChanged.connect(onTabletScreenChanged);
 Account.usernameChanged.connect(onUsernameChanged);
+Snapshot.snapshotLocationSet.connect(snapshotLocationSet);
 Script.scriptEnding.connect(function () {
     if (buttonConnected) {
         button.clicked.disconnect(onButtonClicked);
@@ -598,6 +607,7 @@ Script.scriptEnding.connect(function () {
     }
     Window.snapshotShared.disconnect(snapshotUploaded);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
+    Snapshot.snapshotLocationSet.disconnect(snapshotLocationSet);
 });
 
 }()); // END LOCAL_SCOPE
