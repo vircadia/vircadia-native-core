@@ -234,6 +234,18 @@ public:
 
     bool hasNewJointData() const { return _hasNewJointData; }
 
+    float getBoundingRadius() const;
+    
+    void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
+    void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
+    bool isInScene() const { return render::Item::isValidID(_renderItemID); }
+    bool isMoving() const { return _moving; }
+
+    //void setMotionState(AvatarMotionState* motionState);
+    void setPhysicsCallback(AvatarPhysicsCallback cb);
+    void addPhysicsFlags(uint32_t flags);
+    bool isInPhysicsSimulation() const { return _physicsCallback != nullptr; }
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
