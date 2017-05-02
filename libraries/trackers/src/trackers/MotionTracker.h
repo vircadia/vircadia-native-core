@@ -1,7 +1,4 @@
 //
-//  MotionTracker.h
-//  interface/src/devices
-//
 //  Created by Sam Cake on 6/20/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
@@ -14,20 +11,7 @@
 
 #include "DeviceTracker.h"
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
-#include <glm/glm.hpp>
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
-
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <GLMHelpers.h>
 
 /// Base class for device trackers.
 class MotionTracker : public DeviceTracker {
