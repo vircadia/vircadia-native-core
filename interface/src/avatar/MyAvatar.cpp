@@ -404,7 +404,12 @@ void MyAvatar::update(float deltaTime) {
 
 	if (_smoothOrientationTimer < _smoothOrientationTime) {
         _rotationChanged = true;
-		_smoothOrientationTimer = min(_smoothOrientationTimer + deltaTime, _smoothOrientationTime);
+		_smoothOrientationTimer+= deltaTime;
+
+        if (_smoothOrientationTimer >= _smoothOrientationTime) {
+            // Take it back to astronomical value land.
+            _smoothOrientationTimer = std::numeric_limits<float>::max();
+        }
 	}
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
