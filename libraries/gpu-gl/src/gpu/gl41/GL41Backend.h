@@ -37,11 +37,15 @@ class GL41Backend : public GLBackend {
 public:
     static const GLint TRANSFORM_OBJECT_SLOT  { 31 };
     static const GLint RESOURCE_TRANSFER_TEX_UNIT { 32 };
-    static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 33 };
-    static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 34 };
+    static const GLint RESOURCE_TRANSFER_EXTRA_TEX_UNIT { 33 };
+    static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 34 };
+    static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 35 };
 
     explicit GL41Backend(bool syncCache) : Parent(syncCache) {}
     GL41Backend() : Parent() {}
+
+    static const std::string GL41_VERSION;
+    const std::string& getVersion() const override { return GL41_VERSION; }
 
     class GL41Texture : public GLTexture {
         using Parent = GLTexture;
