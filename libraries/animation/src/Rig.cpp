@@ -305,30 +305,35 @@ void Rig::clearJointAnimationPriority(int index) {
     }
 }
 
-void Rig::clearIKJointLimitHistory() {
+std::shared_ptr<AnimInverseKinematics> Rig::getAnimInverseKinematicsNode() const {
+    std::shared_ptr<AnimInverseKinematics> result;
     if (_animNode) {
         _animNode->traverse([&](AnimNode::Pointer node) {
             // only report clip nodes as valid roles.
             auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
             if (ikNode) {
-                ikNode->clearIKJointLimitHistory();
+                result = ikNode;
+                return false;
+            } else {
+                return true;
             }
-            return true;
         });
+    }
+    return result;
+}
+
+void Rig::clearIKJointLimitHistory() {
+    auto ikNode = getAnimInverseKinematicsNode();
+    if (ikNode) {
+        ikNode->clearIKJointLimitHistory();
     }
 }
 
 void Rig::setMaxHipsOffsetLength(float maxLength) {
     _maxHipsOffsetLength = maxLength;
-
-    if (_animNode) {
-        _animNode->traverse([&](AnimNode::Pointer node) {
-            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
-            if (ikNode) {
-                ikNode->setMaxHipsOffsetLength(_maxHipsOffsetLength);
-            }
-            return true;
-        });
+    auto ikNode = getAnimInverseKinematicsNode();
+    if (ikNode) {
+        ikNode->setMaxHipsOffsetLength(_maxHipsOffsetLength);
     }
 }
 

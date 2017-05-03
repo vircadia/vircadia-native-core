@@ -38,6 +38,7 @@
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
 #include <AnimClip.h>
+#include <AnimInverseKinematics.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
@@ -1699,6 +1700,28 @@ void MyAvatar::postUpdate(float deltaTime) {
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
         initAnimGraph();
+    }
+
+    // AJT: REMOVE.
+    {
+        auto ikNode = _rig->getAnimInverseKinematicsNode();
+        if (ikNode) {
+            // the rig is in the skeletonModel frame
+            AnimPose xform(glm::vec3(1), _skeletonModel->getRotation(), _skeletonModel->getTranslation());
+            AnimPoseVec limitCenterPoses = ikNode->getLimitCenterPoses();
+
+            // HACK: convert joints from geom to avatar space
+            int hipsIndex = _rig->indexOfJoint("Hips");
+            for (size_t i = 0; i < limitCenterPoses.size(); i++) {
+                if (i == hipsIndex) {
+                    //limitCenterPoses[i].trans() = glm::vec3(); // zero the hips
+                }
+                // convert from cm to m
+                limitCenterPoses[i].trans() = 0.01f * limitCenterPoses[i].trans();
+            }
+            _rig->getAnimSkeleton()->convertRelativePosesToAbsolute(limitCenterPoses);
+            AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarLimitCenterPoses", _rig->getAnimSkeleton(), limitCenterPoses, xform, glm::vec4(1));
+        }
     }
 
     if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {

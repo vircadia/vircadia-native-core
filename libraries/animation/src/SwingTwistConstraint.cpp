@@ -15,6 +15,7 @@
 #include <GeometryUtil.h>
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
+#include "AnimUtil.h"
 
 
 const float MIN_MINDOT = -0.999f;
@@ -429,4 +430,30 @@ void SwingTwistConstraint::dynamicallyAdjustLimits(const glm::quat& rotation) {
 
 void SwingTwistConstraint::clearHistory() {
     _lastTwistBoundary = LAST_CLAMP_NO_BOUNDARY;
+}
+
+glm::quat SwingTwistConstraint::computeCenterRotation() const {
+    const size_t NUM_MIN_DOTS = getMinDots().size();
+    const size_t NUM_LIMITS = 2 * NUM_MIN_DOTS;
+    std::vector<glm::quat> limits;
+    limits.reserve(NUM_LIMITS);
+    glm::quat minTwistRot;
+    glm::quat maxTwistRot;
+    if (_minTwist != _maxTwist) {
+        minTwistRot = glm::angleAxis(_minTwist, _referenceRotation * Vectors::UNIT_Y);
+        minTwistRot = glm::angleAxis(_maxTwist, _referenceRotation * Vectors::UNIT_Y);
+    }
+    const float D_THETA = TWO_PI / NUM_MIN_DOTS;
+    float theta = 0.0f;
+    for (size_t i = 0; i < NUM_MIN_DOTS; i++, theta += D_THETA) {
+        // compute swing rotation from theta and phi angles.
+        float phi = acos(getMinDots()[i]);
+        float cos_phi = getMinDots()[i];
+        float sin_phi = sinf(phi);
+        glm::vec3 swungAxis(sin_phi * cosf(theta), cos_phi, sin_phi * sinf(theta));
+        glm::quat swing = glm::angleAxis(phi, glm::cross(Vectors::UNIT_Y, swungAxis));
+        limits.push_back(swing * minTwistRot);
+        limits.push_back(swing * maxTwistRot);
+    }
+    return averageQuats(limits.size(), &limits[0]);
 }

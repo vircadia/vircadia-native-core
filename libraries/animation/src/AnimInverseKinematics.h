@@ -43,6 +43,9 @@ public:
 
     float getMaxErrorOnLastSolve() { return _maxErrorOnLastSolve; }
 
+    // AJT: TODO REMOVE? for debugging.
+    const AnimPoseVec& getLimitCenterPoses() const { return _limitCenterPoses; }
+
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
@@ -55,6 +58,7 @@ protected:
     RotationConstraint* getConstraint(int index);
     void clearConstraints();
     void initConstraints();
+    void initLimitCenterPoses();
     void computeHipsOffset(const std::vector<IKTarget>& targets, const AnimPoseVec& underPoses, float dt);
 
     // no copies
@@ -85,6 +89,7 @@ protected:
     std::vector<IKTargetVar> _targetVarVec;
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
+    AnimPoseVec _limitCenterPoses;  // relative
 
     // experimental data for moving hips during IK
     glm::vec3 _hipsOffset { Vectors::ZERO };

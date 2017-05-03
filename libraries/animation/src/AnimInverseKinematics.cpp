@@ -957,6 +957,19 @@ void AnimInverseKinematics::initConstraints() {
     }
 }
 
+void AnimInverseKinematics::initLimitCenterPoses() {
+    assert(_skeleton);
+    _limitCenterPoses.reserve(_skeleton->getNumJoints());
+    for (int i = 0; i < _skeleton->getNumJoints(); i++) {
+        AnimPose pose = _skeleton->getRelativeDefaultPose(i);
+        RotationConstraint* constraint = getConstraint(i);
+        if (constraint) {
+            pose.rot() = constraint->computeCenterRotation();
+        }
+        _limitCenterPoses.push_back(pose);
+    }
+}
+
 void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
     AnimNode::setSkeletonInternal(skeleton);
 
@@ -973,6 +986,7 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
 
     if (skeleton) {
         initConstraints();
+        initLimitCenterPoses();
         _headIndex = _skeleton->nameToJointIndex("Head");
         _hipsIndex = _skeleton->nameToJointIndex("Hips");
 

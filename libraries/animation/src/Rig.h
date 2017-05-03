@@ -26,6 +26,7 @@
 #include "SimpleMovingAverage.h"
 
 class Rig;
+class AnimInverseKinematics;
 typedef std::shared_ptr<Rig> RigPointer;
 
 // Rig instances are reentrant.
@@ -110,6 +111,8 @@ public:
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);
+
+    std::shared_ptr<AnimInverseKinematics> Rig::getAnimInverseKinematicsNode() const;
 
     void clearIKJointLimitHistory();
     void setMaxHipsOffsetLength(float maxLength);

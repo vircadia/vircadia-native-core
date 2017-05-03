@@ -33,6 +33,24 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
     }
 }
 
+glm::quat averageQuats(size_t numQuats, const glm::quat* quats) {
+    if (numQuats == 0) {
+        return glm::quat();
+    }
+    float alpha = 1.0f / (float)numQuats;
+    glm::quat accum(0, 0, 0, 0);
+    glm::quat firstRot = quats[0];
+    for (size_t i = 0; i < numQuats; i++) {
+        glm::quat rot = quats[i];
+        float dot = glm::dot(firstRot, rot);
+        if (dot < 0.0f) {
+            rot = -rot;
+        }
+        accum += alpha * rot;
+    }
+    return glm::normalize(accum);
+}
+
 float accumulateTime(float startFrame, float endFrame, float timeScale, float currentFrame, float dt, bool loopFlag,
                      const QString& id, AnimNode::Triggers& triggersOut) {
 
