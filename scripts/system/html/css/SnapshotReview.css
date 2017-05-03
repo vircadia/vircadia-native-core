@@ -80,6 +80,9 @@ input[type=button].naked:active {
 
 #snapshot-images {
     width: 100%;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
 }
 
 #snapshot-images img {
@@ -108,7 +111,7 @@ input[type=button].naked:active {
     justify-content: space-between;
     flex-direction: row;
     align-items: center;
-    height: 50px;
+    height: 45px;
     line-height: 60px;
     width: calc(100% - 8px);
     position: absolute;
@@ -119,13 +122,13 @@ input[type=button].naked:active {
 .shareButtons {
     display: flex;
     align-items: center;
-    margin-left: 30px;
+    margin-left: 15px;
     height: 100%;
-    width: 80%;
+    width: 75%;
 }
 .blastToConnections {
     text-align: left;
-    margin-right: 25px;
+    margin-right: 20px;
     height: 29px;
 }
 .shareWithEveryone {
@@ -158,10 +161,11 @@ input[type=button].naked:active {
     font-family: Raleway-SemiBold;
     font-size: 14px;
     color: white;
-    text-shadow: 2px 2px 3px #000000;
     height: 100%;
     margin-right: 10px;
-    width: 20%;
+}
+.showShareButtonsButtonDiv > label {
+    text-shadow: 2px 2px 3px #000000;
 }
 .showShareButton {
     width: 40px;
@@ -193,22 +197,16 @@ input[type=button].naked:active {
     background-color: white;
 }
 .showShareButtonDots {
-    display: flex;
-    width: 32px;
+    display: block;
+    width: 40px;
     height: 40px;
+    font-family: HiFi-Glyphs;
+    font-size: 60px;
     position: absolute;
-    top: 5px;
-    right: 14px;
+    right: 20px;
+    bottom: 12px;
+    color: #00b4ef;
     pointer-events: none;
-}
-.showShareButtonDots > span {
-    width: 10px;
-    height: 10px;
-    margin: auto;
-    background-color: #0093C5;
-    border-radius: 50%;
-    border-width: 0;
-    display: inline;
 }
 /*
 // END styling of share overlay

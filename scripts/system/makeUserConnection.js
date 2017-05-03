@@ -519,11 +519,9 @@
 
     function updateTriggers(value, fromKeyboard, hand) {
         if (currentHand && hand !== currentHand) {
-            debug("currentHand", currentHand, "ignoring messages from", hand);
+            debug("currentHand", currentHand, "ignoring messages from", hand); // this can be a lot of spam on Touch. Should guard that someday.
             return;
         }
-        currentHand = hand;
-        currentHandJointIndex = getIdealHandJointIndex(MyAvatar, handToString(currentHand)); // Always, in case of changed skeleton.
         // ok now, we are either initiating or quitting...
         var isGripping = value > GRIP_MIN;
         if (isGripping) {
@@ -531,6 +529,8 @@
             if (state !== STATES.INACTIVE) {
                 return;
             }
+            currentHand = hand;
+            currentHandJointIndex = getIdealHandJointIndex(MyAvatar, handToString(currentHand)); // Always, in case of changed skeleton.
             startHandshake(fromKeyboard);
         } else {
             // TODO: should we end handshake even when inactive?  Ponder
