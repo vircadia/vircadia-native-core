@@ -385,7 +385,7 @@ public:
     float getProgress() const { return (_bytesTotal <= 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
     
     /// Refreshes the resource.
-    void refresh();
+    virtual void refresh();
 
     void setSelf(const QWeakPointer<Resource>& self) { _self = self; }
 

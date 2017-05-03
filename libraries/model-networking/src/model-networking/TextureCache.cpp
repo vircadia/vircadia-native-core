@@ -682,6 +682,27 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, _maxNumPixels));
 }
 
+void NetworkTexture::refresh() {
+    if ((_ktxHeaderRequest || _ktxMipRequest) && !loaded && !_failedToLoad) {
+        return;
+    }
+    if (_ktxHeaderRequest || _ktxMipRequest) {
+        if (_ktxHeaderRequest) {
+            _ktxHeaderRequest->disconnect(this);
+            _ktxHeaderRequest->deleteLater();
+            _ktxHeaderRequest = nullptr;
+        }
+        if (_ktxMipRequest) {
+            _ktxMipRequest->disconnect(this);
+            _ktxMipRequest->deleteLater();
+            _ktxMipRequest = nullptr;
+        }
+        ResourceCache::requestCompleted(_self);
+    }
+
+    Resource::refresh();
+}
+
 ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url, const QByteArray& data, int maxNumPixels) :
     _resource(resource),
     _url(url),
