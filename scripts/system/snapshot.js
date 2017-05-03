@@ -393,7 +393,9 @@ function takeSnapshot() {
     resetOverlays = Menu.isOptionChecked("Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
-    Reticle.allowMouseCapture = false;
+    if (!HMD.active) {
+        Reticle.allowMouseCapture = false;
+    }
     
     var includeAnimated = Settings.getValue("alsoTakeAnimatedSnapshot", true);
     if (includeAnimated) {
