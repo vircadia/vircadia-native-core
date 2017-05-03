@@ -14,8 +14,7 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-    var REQUEST_URL = Script.resolvePath('request.js');
-    var request = Script.require(REQUEST_URL).request;
+    var request = Script.require('request').request;
 
 var populateNearbyUserList, color, textures, removeOverlays,
     controllerComputePickRay, onTabletButtonClicked, onTabletScreenChanged,

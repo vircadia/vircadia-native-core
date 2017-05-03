@@ -15,8 +15,7 @@
 
 (function () { // BEGIN LOCAL_SCOPE
 
-    var REQUEST_URL = Script.resolvePath('request.js');
-    var request = Script.require(REQUEST_URL).request;
+    var request = Script.require('request').request;
 
     var gotoQmlSource = "TabletAddressDialog.qml";
     var buttonName = "GOTO";
