@@ -1,0 +1,20 @@
+{
+    "Entities": [
+        {
+            "description": "Spawns balloons",
+            "dimensions": {
+                "x": 2,
+                "y": 0.1,
+                "z": 2
+            },
+            "name": "Balloon Spawner",
+            "serverScripts": "https://s3.amazonaws.com/hifi-rabelaiis/spawnBalloons.js",
+            "type": "Shape",
+            "shape": "Cube",
+            "visible": "false",
+            "collisionless": "true",
+            "userData": "{\"spawnRate\":1000,\"xRangeMax\":1,\"zRangeMax\":1,\"gravityCoefficient\":0.25,\"balloonLifetime\":10,\"spawnTime\":300}"
+        }
+    ],
+    "Version": 63
+}
