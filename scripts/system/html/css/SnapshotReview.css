@@ -170,6 +170,10 @@ input[type=button].naked:active {
     height: 40px;
     display: inline-block;
 }
+.shareButton.disabled {
+    background-color: #000000;
+    opacity: 0.5;
+}
 .shareControlsHelp {
     height: 25px;
     line-height: 25px;
