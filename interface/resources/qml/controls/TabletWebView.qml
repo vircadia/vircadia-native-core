@@ -297,6 +297,7 @@ Item {
     HiFiControls.Keyboard {
         id: keyboard
         raised: parent.keyboardEnabled && parent.keyboardRaised
+        numeric: parent.punctuationMode
 
         anchors {
             left: parent.left
