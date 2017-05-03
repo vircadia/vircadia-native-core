@@ -138,6 +138,7 @@ public:
     enum Event {
         Present = DisplayPlugin::Present,
         Paint = Present + 1,
+        Idle = Paint + 1,
         Lambda = Paint + 1
     };
 
@@ -536,6 +537,7 @@ private:
     RateCounter<> _avatarSimCounter;
     RateCounter<> _simCounter;
 
+    QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
 
