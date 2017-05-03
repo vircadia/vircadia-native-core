@@ -128,7 +128,7 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
     }
 }
 
-std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() {
+std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() const {
     std::shared_ptr<storage::FileStorage> file = _cacheFile.lock();
     if (file) {
         return file;
@@ -154,7 +154,8 @@ PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
     auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
     if (faceSize != 0 && faceOffset != 0) {
-        result = std::make_shared<storage::FileStorage>(_filename.c_str())->createView(faceSize, faceOffset)->toMemoryStorage();
+        auto file = maybeOpenFile();
+        result = file->createView(faceSize, faceOffset)->toMemoryStorage();
     }
     return result;
 }
