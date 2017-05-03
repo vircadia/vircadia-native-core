@@ -407,9 +407,11 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     //     return QUuid();
     // }
 
+    bool entityFound = false;
     _entityTree->withReadLock([&] {
         EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
         if (entity) {
+            entityFound = true;
             // make sure the properties has a type, so that the encode can know which properties to include
             properties.setType(entity->getType());
             bool hasTerseUpdateChanges = properties.hasTerseUpdateChanges();
@@ -464,7 +466,11 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             });
         }
     });
-    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+    if (entityFound) {
+        queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+    } else {
+        qDebug() << "warning: attempted edit on unknown entity: " << id;
+    }
     return id;
 }
 
