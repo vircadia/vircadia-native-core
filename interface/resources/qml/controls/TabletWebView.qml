@@ -19,7 +19,7 @@ Item {
     property alias address: displayUrl.text //for compatibility
     property string scriptURL
     property alias eventBridge: eventBridgeWrapper.eventBridge
-    property bool keyboardEnabled: HMD.active
+    property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool isDesktop: false
@@ -307,6 +307,7 @@ Item {
     
     Component.onCompleted: {
         web.isDesktop = (typeof desktop !== "undefined");
+        keyboardEnabled = HMD.active;
         address = url;
     }
 
