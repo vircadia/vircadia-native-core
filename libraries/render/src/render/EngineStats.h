@@ -99,7 +99,7 @@ namespace render {
         EngineStats() { _frameTimer.start(); }
 
         void configure(const Config& configuration) {}
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+        void run(const RenderContextPointer& renderContext);
     };
 }
 

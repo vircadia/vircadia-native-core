@@ -18,8 +18,8 @@ using namespace render;
 
 void Transaction::resetItem(ItemID id, const PayloadPointer& payload) {
     if (payload) {
-        _resetItems.push_back(id);
-        _resetPayloads.push_back(payload);
+        _resetItems.emplace_back(id);
+        _resetPayloads.emplace_back(payload);
     } else {
         qCDebug(renderlogging) << "WARNING: Transaction::resetItem with a null payload!";
         removeItem(id);
@@ -27,12 +27,16 @@ void Transaction::resetItem(ItemID id, const PayloadPointer& payload) {
 }
 
 void Transaction::removeItem(ItemID id) {
-    _removedItems.push_back(id);
+    _removedItems.emplace_back(id);
 }
 
 void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
-    _updatedItems.push_back(id);
-    _updateFunctors.push_back(functor);
+    _updatedItems.emplace_back(id);
+    _updateFunctors.emplace_back(functor);
+}
+
+void Transaction::resetSelection(const Selection& selection) {
+    _resetSelections.emplace_back(selection);
 }
 
 void Transaction::merge(const Transaction& transaction) {
@@ -41,7 +45,9 @@ void Transaction::merge(const Transaction& transaction) {
     _removedItems.insert(_removedItems.end(), transaction._removedItems.begin(), transaction._removedItems.end());
     _updatedItems.insert(_updatedItems.end(), transaction._updatedItems.begin(), transaction._updatedItems.end());
     _updateFunctors.insert(_updateFunctors.end(), transaction._updateFunctors.begin(), transaction._updateFunctors.end());
+    _resetSelections.insert(_resetSelections.end(), transaction._resetSelections.begin(), transaction._resetSelections.end());
 }
+
 
 Scene::Scene(glm::vec3 origin, float size) :
     _masterSpatialTree(origin, size)
@@ -111,6 +117,13 @@ void Scene::processTransactionQueue() {
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
+    }
+
+    if (consolidatedTransaction.touchTransactions()) {
+        std::unique_lock<std::mutex> lock(_selectionsMutex);
+
+        // resets and potential NEW items
+        resetSelections(consolidatedTransaction._resetSelections);
     }
 }
 
@@ -200,5 +213,27 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
 
         // next loop
         updateFunctor++;
+    }
+}
+
+// THis fucntion is thread safe
+Selection Scene::getSelection(const Selection::Name& name) const {
+    std::unique_lock<std::mutex> lock(_selectionsMutex);
+    auto found = _selections.find(name);
+    if (found == _selections.end()) {
+        return Selection();
+    } else {
+        return (*found).second;
+    }
+}
+
+void Scene::resetSelections(const Selections& selections) {
+    for (auto selection : selections) {
+        auto found = _selections.find(selection.getName());
+        if (found == _selections.end()) {
+            _selections.insert(SelectionMap::value_type(selection.getName(), selection));
+        } else {
+            (*found).second = selection;
+        }
     }
 }

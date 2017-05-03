@@ -31,6 +31,7 @@
 #include "Menu.h"
 #include "Util.h"
 #include "SequenceNumberStats.h"
+#include "StatTracker.h"
 
 HIFI_QML_DEF(Stats)
 
@@ -250,6 +251,9 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(downloads, loadingRequests.size());
         STAT_UPDATE(downloadLimit, ResourceCache::getRequestLimit())
         STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
+        STAT_UPDATE(processing, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
+        STAT_UPDATE(processingPending, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
+        
 
         // See if the active download urls have changed
         bool shouldUpdateUrls = _downloads != _downloadUrls.size();
@@ -335,6 +339,8 @@ void Stats::updateStats(bool force) {
     // Update Frame timing (in ms)
     STAT_UPDATE(gpuFrameTime, (float)gpuContext->getFrameTimerGPUAverage());
     STAT_UPDATE(batchFrameTime, (float)gpuContext->getFrameTimerBatchAverage());
+    auto config = qApp->getRenderEngine()->getConfiguration().get();
+    STAT_UPDATE(engineFrameTime, (float) config->getCPURunTime());
     STAT_UPDATE(avatarSimulationTime, (float)avatarManager->getAvatarSimulationTime());
     
 

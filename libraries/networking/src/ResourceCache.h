@@ -344,7 +344,7 @@ class Resource : public QObject {
 public:
     
     Resource(const QUrl& url);
-    ~Resource();
+    virtual ~Resource();
 
     virtual QString getType() const { return "Resource"; }
     
@@ -395,6 +395,9 @@ public:
     
     const QUrl& getURL() const { return _url; }
 
+    unsigned int getDownloadAttempts() { return _attempts; }
+    unsigned int getDownloadAttemptsRemaining() { return _attemptsRemaining; }
+
 signals:
     /// Fired when the resource begins downloading.
     void loading();
@@ -424,6 +427,11 @@ protected slots:
 protected:
     virtual void init();
 
+    /// Called by ResourceCache to begin loading this Resource.
+    /// This method can be overriden to provide custom request functionality. If this is done,
+    /// downloadFinished and ResourceCache::requestCompleted must be called.
+    virtual void makeRequest();
+
     /// Checks whether the resource is cacheable.
     virtual bool isCacheable() const { return true; }
 
@@ -440,16 +448,27 @@ protected:
 
     Q_INVOKABLE void allReferencesCleared();
 
+    /// Return true if the resource will be retried
+    bool handleFailedRequest(ResourceRequest::Result result);
+
     QUrl _url;
     QUrl _activeUrl;
+    ByteRange _requestByteRange;
     bool _startedLoading = false;
     bool _failedToLoad = false;
     bool _loaded = false;
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
-    
-private slots:
+
+    qint64 _bytesReceived{ 0 };
+    qint64 _bytesTotal{ 0 };
+    qint64 _bytes{ 0 };
+
+    int _requestID;
+    ResourceRequest* _request{ nullptr };
+
+public slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);
     void handleReplyFinished();
 
@@ -459,21 +478,17 @@ private:
     
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
     
-    void makeRequest();
     void retry();
     void reinsert();
 
     bool isInScript() const { return _isInScript; }
     void setInScript(bool isInScript) { _isInScript = isInScript; }
     
-    int _requestID;
-    ResourceRequest* _request{ nullptr };
     int _lruKey{ 0 };
     QTimer* _replyTimer{ nullptr };
-    qint64 _bytesReceived{ 0 };
-    qint64 _bytesTotal{ 0 };
-    qint64 _bytes{ 0 };
-    int _attempts{ 0 };
+    unsigned int _attempts{ 0 };
+    static const int MAX_ATTEMPTS = 8;
+    unsigned int _attemptsRemaining { MAX_ATTEMPTS };
     bool _isInScript{ false };
 };
 

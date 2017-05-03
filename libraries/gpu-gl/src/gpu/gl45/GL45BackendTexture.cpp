@@ -67,7 +67,7 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
 #else 
                     object = new GL45ResourceTexture(shared_from_this(), texture);
 #endif
-                    GL45VariableAllocationTexture::addMemoryManagedTexture(texturePointer);
+                    GLVariableAllocationSupport::addMemoryManagedTexture(texturePointer);
                 } else {
                     auto fallback = texturePointer->getFallbackTexture();
                     if (fallback) {
@@ -79,6 +79,19 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
 
             default:
                 Q_UNREACHABLE();
+        }
+    } else {
+
+        if (texture.getUsageType() == TextureUsageType::RESOURCE) {
+            auto varTex = static_cast<GL45VariableAllocationTexture*> (object);
+
+            if (varTex->_minAllocatedMip > 0) {
+                auto minAvailableMip = texture.minAvailableMipLevel();
+                if (minAvailableMip < varTex->_minAllocatedMip) {
+                    varTex->_minAllocatedMip = minAvailableMip;
+                    GL45VariableAllocationTexture::_memoryPressureStateStale = true;
+                }
+            }
         }
     }
 
@@ -109,6 +122,10 @@ GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 GLuint GL45Texture::allocate(const Texture& texture) {
     GLuint result;
     glCreateTextures(getGLTextureType(texture), 1, &result);
+#ifdef DEBUG
+    auto source = texture.source();
+    glObjectLabel(GL_TEXTURE, result, source.length(), source.data());
+#endif
     return result;
 }
 
@@ -117,36 +134,52 @@ void GL45Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
+void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     if (GL_TEXTURE_2D == _target) {
-        glTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
+                glCompressedTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                              static_cast<GLsizei>(sourceSize), sourcePointer);
+                break;
+            default:
+                glTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                break;
+        }
     } else if (GL_TEXTURE_CUBE_MAP == _target) {
-        // DSA ARB does not work on AMD, so use EXT
-        // unless EXT is not available on the driver
-        if (glTextureSubImage2DEXT) {
-            auto target = GLTexture::CUBE_FACE_LAYOUT[face];
-            glTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
-        } else {
-            glTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, format, type, sourcePointer);
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
+                if (glCompressedTextureSubImage2DEXT) {
+                    auto target = GLTexture::CUBE_FACE_LAYOUT[face];
+                    glCompressedTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                                     static_cast<GLsizei>(sourceSize), sourcePointer);
+                } else {
+                    glCompressedTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, internalFormat,
+                                                  static_cast<GLsizei>(sourceSize), sourcePointer);
+                }
+                break;
+            default:
+                // DSA ARB does not work on AMD, so use EXT
+                // unless EXT is not available on the driver
+                if (glTextureSubImage2DEXT) {
+                    auto target = GLTexture::CUBE_FACE_LAYOUT[face];
+                    glTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                } else {
+                    glTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, format, type, sourcePointer);
+                }
+                break;
         }
     } else {
         Q_ASSERT(false);
     }
     (void)CHECK_GL_ERROR();
-}
-
-void GL45Texture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const {
-    if (!_gpuObject.isStoredMipFaceAvailable(sourceMip)) {
-        return;
-    }
-    auto size = _gpuObject.evalMipDimensions(sourceMip);
-    auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
-    if (mipData) {
-        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.format, texelFormat.type, mipData->readData());
-    } else {
-         qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
-    }
 }
 
 void GL45Texture::syncSampler() const {

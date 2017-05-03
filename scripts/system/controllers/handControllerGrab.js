@@ -14,7 +14,7 @@
 
 /* global getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
     Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset,
-   setGrabCommunications, Menu, HMD, isInEditMode */
+   setGrabCommunications, Menu, HMD, isInEditMode, AvatarList */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -75,7 +75,6 @@ var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative numbe
 //
 // distant manipulation
 //
-
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_UNITY_MASS = 1200; //  The mass at which the distance holding action timeframe is unmodified
@@ -111,12 +110,12 @@ var EQUIP_RADIUS = 0.2; // radius used for palm vs equip-hotspot for equipping.
 // has reached the required position, and then grow larger once the hand is close enough to equip.
 var EQUIP_HOTSPOT_RENDER_RADIUS = 0.0; // radius used for palm vs equip-hotspot for rendering hot-spots
 var MAX_EQUIP_HOTSPOT_RADIUS = 1.0;
-
+var MAX_FAR_TO_NEAR_EQUIP_HOTSPOT_RADIUS = 0.5; // radius used for far to near equipping object.
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
 var NEAR_GRAB_RADIUS = 0.1; // radius used for palm vs object for near grabbing.
 var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
-
+var FAR_TO_NEAR_GRAB_MAX_DISTANCE = 0.3; // In far to near grabbing conversion,grab the object if distancetoObject from hand is less than this.
 var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 
@@ -298,14 +297,13 @@ function getFingerWorldLocation(hand) {
 // Object assign  polyfill
 if (typeof Object.assign != 'function') {
     Object.assign = function(target, varArgs) {
-        'use strict';
-        if (target == null) {
+        if (target === null) {
             throw new TypeError('Cannot convert undefined or null to object');
         }
         var to = Object(target);
         for (var index = 1; index < arguments.length; index++) {
             var nextSource = arguments[index];
-            if (nextSource != null) {
+            if (nextSource !== null) {
                 for (var nextKey in nextSource) {
                     if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
                         to[nextKey] = nextSource[nextKey];
@@ -799,7 +797,7 @@ function calculateNearestStylusTarget(stylusTargets) {
     }
 
     return nearestStylusTarget;
-};
+}
 
 // EntityPropertiesCache is a helper class that contains a cache of entity properties.
 // the hope is to prevent excess calls to Entity.getEntityProperties()
@@ -1227,8 +1225,9 @@ function MyController(hand) {
              newState !== STATE_OVERLAY_LASER_TOUCHING)) {
             return;
         }
-        setGrabCommunications((newState === STATE_DISTANCE_HOLDING) || (newState === STATE_DISTANCE_ROTATING)
-            || (newState === STATE_NEAR_GRABBING));
+        setGrabCommunications((newState === STATE_DISTANCE_HOLDING) ||
+                              (newState === STATE_DISTANCE_ROTATING) ||
+                              (newState === STATE_NEAR_GRABBING));
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
             var oldStateName = stateToName(this.state);
             var newStateName = stateToName(newState);
@@ -1330,7 +1329,7 @@ function MyController(hand) {
         if (this.stylus) {
             return;
         }
-
+        
         var stylusProperties = {
             name: "stylus",
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
@@ -1417,6 +1416,14 @@ function MyController(hand) {
                                (this.triggerSmoothedGrab() || this.secondarySqueezed()) ?
                                COLORS_GRAB_SEARCHING_FULL_SQUEEZE :
                                COLORS_GRAB_SEARCHING_HALF_SQUEEZE);
+        }
+    };
+
+    // Turns off indicators used for searching. Overlay line and sphere.
+    this.searchIndicatorOff = function() {
+        this.searchSphereOff();
+        if (PICK_WITH_HAND_RAY) {
+            this.overlayLineOff();
         }
     };
 
@@ -1631,11 +1638,6 @@ function MyController(hand) {
 
         var tipPosition = this.stylusTip.position;
 
-        var candidates = {
-            entities: [],
-            overlays: []
-        };
-
         // build list of stylus targets, near the stylusTip
         var stylusTargets = [];
         var candidateEntities = Entities.findEntities(tipPosition, WEB_DISPLAY_STYLUS_DISTANCE);
@@ -1791,6 +1793,15 @@ function MyController(hand) {
         }
 
         this.processStylus();
+        
+        if (isInEditMode() && !this.isNearStylusTarget) {
+            // Always showing lasers while in edit mode and hands/stylus is not active.
+            var rayPickInfo = this.calcRayPickInfo(this.hand);
+            this.intersectionDistance = (rayPickInfo.entityID || rayPickInfo.overlayID) ? rayPickInfo.distance : 0;
+            this.searchIndicatorOn(rayPickInfo.searchRay);
+        } else {
+            this.searchIndicatorOff();
+        }        
     };
 
     this.handleLaserOnHomeButton = function(rayPickInfo) {
@@ -1953,9 +1964,10 @@ function MyController(hand) {
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
 
         var otherHandControllerState = this.getOtherHandController().state;
-        var okToEquipFromOtherHand = ((otherHandControllerState === STATE_NEAR_GRABBING
-            || otherHandControllerState === STATE_DISTANCE_HOLDING || otherHandControllerState === STATE_DISTANCE_ROTATING)
-            && this.getOtherHandController().grabbedThingID === hotspot.entityID);
+        var okToEquipFromOtherHand = ((otherHandControllerState === STATE_NEAR_GRABBING ||
+                                       otherHandControllerState === STATE_DISTANCE_HOLDING ||
+                                       otherHandControllerState === STATE_DISTANCE_ROTATING) &&
+                                      this.getOtherHandController().grabbedThingID === hotspot.entityID);
         var hasParent = true;
         if (props.parentID === NULL_UUID) {
             hasParent = false;
@@ -1980,7 +1992,7 @@ function MyController(hand) {
             return entityProps.cloneable;
         }
         return false;
-    }
+    };
     this.entityIsGrabbable = function(entityID) {
         var grabbableProps = entityPropertiesCache.getGrabbableProps(entityID);
         var props = entityPropertiesCache.getProps(entityID);
@@ -2080,6 +2092,15 @@ function MyController(hand) {
         return true;
     };
 
+    this.entityIsFarToNearGrabbable = function (objectPosition, handPosition, maxDistance) {
+        var distanceToObjectFromHand = Vec3.length(Vec3.subtract(handPosition, objectPosition));
+
+        if (distanceToObjectFromHand > maxDistance) {
+          return false;
+        }
+        return true;
+    };
+
     this.chooseNearEquipHotspots = function(candidateEntities, distance) {
         var equippableHotspots = flatten(candidateEntities.map(function(entityID) {
             return _this.collectEquipHotspots(entityID);
@@ -2094,6 +2115,34 @@ function MyController(hand) {
     this.chooseBestEquipHotspot = function(candidateEntities) {
         var DISTANCE = 0;
         var equippableHotspots = this.chooseNearEquipHotspots(candidateEntities, DISTANCE);
+        var _this = this;
+        if (equippableHotspots.length > 0) {
+            // sort by distance
+            equippableHotspots.sort(function(a, b) {
+                var handControllerLocation = getControllerWorldLocation(_this.handToController(), true);
+                var aDistance = Vec3.distance(a.worldPosition, handControllerLocation.position);
+                var bDistance = Vec3.distance(b.worldPosition, handControllerLocation.position);
+                return aDistance - bDistance;
+            });
+            return equippableHotspots[0];
+        } else {
+            return null;
+        }
+    };
+        
+    this.chooseNearEquipHotspotsForFarToNearEquip = function(candidateEntities, distance) {
+        var equippableHotspots = flatten(candidateEntities.map(function(entityID) {
+                return _this.collectEquipHotspots(entityID);
+            })).filter(function(hotspot) {
+                return (Vec3.distance(hotspot.worldPosition, getControllerWorldLocation(_this.handToController(), true).position) <
+                    hotspot.radius + distance);
+            });
+            return equippableHotspots;
+    };
+
+    this.chooseBestEquipHotspotForFarToNearEquip = function(candidateEntities) {
+        var DISTANCE = 1;
+        var equippableHotspots = this.chooseNearEquipHotspotsForFarToNearEquip(candidateEntities, DISTANCE);
         var _this = this;
         if (equippableHotspots.length > 0) {
             // sort by distance
@@ -2237,15 +2286,22 @@ function MyController(hand) {
                 return;
             }
         }
-
+        
         if (isInEditMode()) {
             this.searchIndicatorOn(rayPickInfo.searchRay);
             if (this.triggerSmoothedGrab()) {
-                if (!this.editTriggered && rayPickInfo.entityID) {
-                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "selectEntity",
-                        entityID: rayPickInfo.entityID
-                    }));
+                if (!this.editTriggered){
+                    if (rayPickInfo.entityID) {
+                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            method: "selectEntity",
+                            entityID: rayPickInfo.entityID
+                        }));
+                    } else if (rayPickInfo.overlayID) {
+                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            method: "selectOverlay",
+                            overlayID: rayPickInfo.overlayID
+                        }));
+                    }
                 }
                 this.editTriggered = true;
             }
@@ -2274,7 +2330,7 @@ function MyController(hand) {
                     if (this.getOtherHandController().state === STATE_DISTANCE_HOLDING) {
                         this.setState(STATE_DISTANCE_ROTATING, "distance rotate '" + name + "'");
                     } else {
-                    this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
+                        this.setState(STATE_DISTANCE_HOLDING, "distance hold '" + name + "'");
                     }
                     return;
                 } else {
@@ -2524,9 +2580,9 @@ function MyController(hand) {
         this.mass = this.getMass(grabbedProperties.dimensions, grabbedProperties.density);
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, grabbedProperties.position));
         var timeScale = this.distanceGrabTimescale(this.mass, distanceToObject);
-
+        this.linearTimeScale = timeScale;
         this.actionID = NULL_UUID;
-        this.actionID = Entities.addAction("spring", this.grabbedThingID, {
+        this.actionID = Entities.addAction("far-grab", this.grabbedThingID, {
             targetPosition: this.currentObjectPosition,
             linearTimeScale: timeScale,
             targetRotation: this.currentObjectRotation,
@@ -2574,7 +2630,6 @@ function MyController(hand) {
         var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
-
         var now = Date.now();
         var deltaObjectTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
         this.currentObjectTime = now;
@@ -2622,11 +2677,9 @@ function MyController(hand) {
         if (this.grabRadius < MINIMUM_GRAB_RADIUS) {
             this.grabRadius = MINIMUM_GRAB_RADIUS;
         }
-
         var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
         newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
         newTargetPosition = Vec3.sum(newTargetPosition, this.offsetPosition);
-
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, MyAvatar.position);
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedThingID, defaultMoveWithHeadData);
         if (handControllerData.disableMoveWithHead !== true) {
@@ -2659,9 +2712,46 @@ function MyController(hand) {
                            this.grabbedThingID);
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
+
+        var candidateHotSpotEntities =
+            Entities.findEntities(controllerLocation.position,MAX_FAR_TO_NEAR_EQUIP_HOTSPOT_RADIUS);
+        entityPropertiesCache.addEntities(candidateHotSpotEntities);
+
+        var potentialEquipHotspot = this.chooseBestEquipHotspotForFarToNearEquip(candidateHotSpotEntities);
+        if (potentialEquipHotspot && (potentialEquipHotspot.entityID == this.grabbedThingID)) {
+            if ((this.triggerSmoothedGrab() || this.secondarySqueezed()) && holdEnabled) {
+                this.grabbedHotspot = potentialEquipHotspot;
+                this.grabbedThingID = potentialEquipHotspot.entityID;
+                this.grabbedIsOverlay = false;
+
+                Entities.deleteAction(this.grabbedThingID, this.actionID);
+                this.actionID = null;
+
+                this.setState(STATE_HOLD, "equipping '" + entityPropertiesCache.getProps(this.grabbedThingID).name + "'");
+                return;
+             }
+        }
+        var rayPositionOnEntity = Vec3.subtract(grabbedProperties.position, this.offsetPosition);
+        //Far to Near Grab: If object is draw by user inside FAR_TO_NEAR_GRAB_MAX_DISTANCE, grab it
+        if (this.entityIsFarToNearGrabbable(rayPositionOnEntity,
+                                            controllerLocation.position,
+                                            FAR_TO_NEAR_GRAB_MAX_DISTANCE)) {
+            this.farToNearGrab = true;
+
+            Entities.deleteAction(this.grabbedThingID, this.actionID);
+            this.actionID = null;
+
+            this.setState(STATE_NEAR_GRABBING , "near grab entity '" + this.grabbedThingID + "'");
+            return;
+        }
+
+        this.linearTimeScale = (this.linearTimeScale / 2);
+        if (this.linearTimeScale <= DISTANCE_HOLDING_ACTION_TIMEFRAME) {
+            this.linearTimeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
+        }
         var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
             targetPosition: newTargetPosition,
-            linearTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
+            linearTimeScale: this.linearTimeScale,
             targetRotation: this.currentObjectRotation,
             angularTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
             ttl: ACTION_TTL
@@ -2731,7 +2821,7 @@ function MyController(hand) {
             COLORS_GRAB_DISTANCE_HOLD, this.grabbedThingID);
 
         this.previousWorldControllerRotation = worldControllerRotation;
-    }
+    };
 
     this.setupHoldAction = function() {
         this.actionID = Entities.addAction("hold", this.grabbedThingID, {
@@ -2740,7 +2830,7 @@ function MyController(hand) {
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
             ttl: ACTION_TTL,
-            kinematic: NEAR_GRABBING_KINEMATIC,
+            kinematic: this.kinematicGrab,
             kinematicSetVelocity: true,
             ignoreIK: this.ignoreIK
         });
@@ -2837,12 +2927,14 @@ function MyController(hand) {
             this.ignoreIK = true;
         } else {
             grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
+            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedThingID, DEFAULT_GRABBABLE_DATA);
             if (FORCE_IGNORE_IK) {
                 this.ignoreIK = true;
             } else {
-                var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedThingID, DEFAULT_GRABBABLE_DATA);
                 this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
             }
+
+            this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
         }
 
         var handRotation;
@@ -2928,15 +3020,14 @@ function MyController(hand) {
                             var worldEntities = Entities.findEntities(MyAvatar.position, 50);
                             var count = 0;
                             worldEntities.forEach(function(item) {
-                                var item = Entities.getEntityProperties(item, ["name"]);
-                                if (item.name.indexOf('-clone-' + grabbedProperties.id) !== -1) {
+                                var itemWE = Entities.getEntityProperties(item, ["name"]);
+                                if (itemWE.name.indexOf('-clone-' + grabbedProperties.id) !== -1) {
                                     count++;
                                 }
-                            })
+                            });
 
                             var limit = grabInfo.cloneLimit ? grabInfo.cloneLimit : 0;
                             if (count >= limit && limit !== 0) {
-                                delete limit;
                                 return;
                             }
 
@@ -2952,7 +3043,7 @@ function MyController(hand) {
                             delete cUserData.grabbableKey.cloneable;
                             delete cUserData.grabbableKey.cloneDynamic;
                             delete cUserData.grabbableKey.cloneLimit;
-                            delete cProperties.id
+                            delete cProperties.id;
 
                             cProperties.dynamic = dynamic;
                             cProperties.locked = false;
@@ -3018,7 +3109,7 @@ function MyController(hand) {
             _this.currentAngularVelocity = ZERO_VEC;
 
             _this.prevDropDetected = false;
-        }
+        };
 
         if (isClone) {
             // 100 ms seems to be sufficient time to force the check even occur after the object has been initialized.
@@ -3030,6 +3121,14 @@ function MyController(hand) {
 
     this.nearGrabbing = function(deltaTime, timestamp) {
         this.grabPointSphereOff();
+
+        var ttl = ACTION_TTL;
+
+        if (this.farToNearGrab) {
+            if(!this.triggerClicked){
+               this.farToNearGrab = false;
+            }
+        }
 
         if (this.state == STATE_NEAR_GRABBING && (!this.triggerClicked && this.secondaryReleased())) {
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -3205,13 +3304,13 @@ function MyController(hand) {
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
-                ttl: ACTION_TTL,
-                kinematic: NEAR_GRABBING_KINEMATIC,
+                ttl: ttl,
+                kinematic: this.kinematicGrab,
                 kinematicSetVelocity: true,
                 ignoreIK: this.ignoreIK
             });
             if (success) {
-                this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
+               this.actionTimeout = now + (ttl * MSECS_PER_SEC);
             } else {
                 print("continueNearGrabbing -- updateAction failed");
                 Entities.deleteAction(this.grabbedThingID, this.actionID);
@@ -3338,7 +3437,14 @@ function MyController(hand) {
     };
 
     this.offEnter = function() {
+        // Reuse the existing search distance if lasers were active since 
+        // they will be shown in OFF state while in edit mode.
+        var existingSearchDistance = this.searchSphereDistance;
         this.release();
+        
+        if (isInEditMode()) {
+            this.searchSphereDistance = existingSearchDistance;
+        }        
     };
 
     this.entityLaserTouchingEnter = function() {
@@ -3630,10 +3736,12 @@ function MyController(hand) {
         var TABLET_MAX_TOUCH_DISTANCE = 0.01;
 
         if (this.stylusTarget) {
-            if (this.stylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE && this.stylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE) {
+            if (this.stylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
+                this.stylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE) {
                 var POINTER_PRESS_TO_MOVE_DELAY = 0.33; // seconds
                 if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
-                    distance2D(this.stylusTarget.position2D, this.touchingEnterStylusTarget.position2D) > this.deadspotRadius) {
+                    distance2D(this.stylusTarget.position2D,
+                               this.touchingEnterStylusTarget.position2D) > this.deadspotRadius) {
                     sendTouchMoveEventToStylusTarget(this.hand, this.stylusTarget);
                     this.deadspotExpired = true;
                 }

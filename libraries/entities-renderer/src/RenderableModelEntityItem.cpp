@@ -91,13 +91,13 @@ bool RenderableModelEntityItem::setProperties(const EntityItemProperties& proper
     return somethingChanged;
 }
 
-int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) {
     QString oldModelURL = getModelURL();
-    int bytesRead = ModelEntityItem::readEntitySubclassDataFromBuffer(data, bytesLeftToRead, 
-                                                                      args, propertyFlags, 
+    int bytesRead = ModelEntityItem::readEntitySubclassDataFromBuffer(data, bytesLeftToRead,
+                                                                      args, propertyFlags,
                                                                       overwriteLocalData, somethingChanged);
     if (oldModelURL != getModelURL()) {
         _needsModelReload = true;
@@ -137,7 +137,7 @@ void RenderableModelEntityItem::remapTextures() {
     if (!_model) {
         return; // nothing to do if we don't have a model
     }
-    
+
     if (!_model->isLoaded()) {
         return; // nothing to do if the model has not yet loaded
     }
@@ -189,16 +189,16 @@ public:
     RenderableModelEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
     typedef render::Payload<RenderableModelEntityItemMeta> Payload;
     typedef Payload::DataPointer Pointer;
-   
+
     EntityItemPointer entity;
 };
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const RenderableModelEntityItemMeta::Pointer& payload) { 
+    template <> const ItemKey payloadGetKey(const RenderableModelEntityItemMeta::Pointer& payload) {
         return ItemKey::Builder::opaqueShape().withTypeMeta();
     }
-    
-    template <> const Item::Bound payloadGetBound(const RenderableModelEntityItemMeta::Pointer& payload) { 
+
+    template <> const Item::Bound payloadGetBound(const RenderableModelEntityItemMeta::Pointer& payload) {
         if (payload && payload->entity) {
             bool success;
             auto result = payload->entity->getAABox(success);
@@ -228,7 +228,7 @@ namespace render {
     }
 }
 
-bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+bool RenderableModelEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
                                             render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
 
@@ -249,7 +249,7 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     return true;
 }
 
-void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
+void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
                                                 render::Transaction& transaction) {
     transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
@@ -437,7 +437,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         _model->renderDebugMeshBoxes(batch);
 #endif
 
-        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
@@ -502,11 +502,11 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
         _myRenderer = renderer;
     }
     assert(_myRenderer == renderer); // you should only ever render on one renderer
-    
+
     if (!_myRenderer || QThread::currentThread() != _myRenderer->thread()) {
         return _model;
     }
-    
+
     _needsModelReload = false; // this is the reload
 
     // If we have a URL, then we will want to end up returning a model...
@@ -526,7 +526,7 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
     // If we have no URL, then we can delete any model we do have...
     } else if (_model) {
         // remove from scene
-        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
         render::Transaction transaction;
         _model->removeFromScene(scene, transaction);
         scene->enqueueTransaction(transaction);
@@ -552,7 +552,7 @@ void RenderableModelEntityItem::update(const quint64& now) {
                 properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
                 auto extents = _model->getMeshExtents();
                 properties.setDimensions(extents.maximum - extents.minimum);
-                qCDebug(entitiesrenderer) << "Autoresizing" << (!getName().isEmpty() ? getName() : getModelURL()) 
+                qCDebug(entitiesrenderer) << "Autoresizing" << (!getName().isEmpty() ? getName() : getModelURL())
                     << "from mesh extents";
                 QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
                                         Qt::QueuedConnection,
@@ -594,8 +594,8 @@ bool RenderableModelEntityItem::supportsDetailedRayIntersection() const {
     return _model && _model->isLoaded();
 }
 
-bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, 
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
+bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
                          glm::vec3& surfaceNormal, void** intersectedObject, bool precisionPicking) const {
     if (!_model) {
         return true;
@@ -1239,11 +1239,10 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
                 return;
             }
 
-            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
             render::Transaction transaction;
 
             transaction.updateItem(myMetaItem);
-            scene->enqueueTransaction(transaction);
+            AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
         });
     }
 }
