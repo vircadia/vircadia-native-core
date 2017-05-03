@@ -134,7 +134,8 @@ function createShareBar(parentID, isGif, blastButtonDisabled, hifiButtonDisabled
 
     shareBar.id = parentID + "shareBar";
     shareBar.className = "shareControls";
-    var shareBarInnerHTML = '<div class="showShareButtonsButtonDiv inactive" id="' + showShareButtonsButtonDivID + '" onclick="selectImageToShare(' + parentID + ', true)">' +
+    var shareBarInnerHTML = '<div class="shareControlsHelp" id="' + shareBarHelpID + '" style="visibility:hidden;' + ((canBlast && blastButtonDisabled || !canBlast && hifiButtonDisabled) ? "background-color:#000;opacity:0.5;" : "") + '"></div>' +
+        '<div class="showShareButtonsButtonDiv inactive" id="' + showShareButtonsButtonDivID + '" onclick="selectImageToShare(' + parentID + ', true)">' +
             '<label id="' + showShareButtonsLabelID + '">SHARE</label>' +
             '<span class="showShareButtonDots">' +
                 '&#xe019;' +
@@ -150,8 +151,6 @@ function createShareBar(parentID, isGif, blastButtonDisabled, hifiButtonDisabled
         '</div>';
 
     shareBar.innerHTML = shareBarInnerHTML;
-
-    shareBar.innerHTML += '<div class="shareControlsHelp" id="' + shareBarHelpID + '" style="visibility:hidden;' + ((canBlast && blastButtonDisabled || !canBlast && hifiButtonDisabled) ? "background-color:#000;opacity:0.5;" : "") + '"></div>';
 
     // Add onclick handler to parent DIV's img to toggle share buttons
     document.getElementById(parentID + 'img').onclick = function () { selectImageToShare(parentID, true); };

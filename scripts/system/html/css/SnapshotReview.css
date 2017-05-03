@@ -158,7 +158,7 @@ input[type=button].naked:active {
     align-items: flex-end;
     height: 40px;
     width: calc(100% - 60px);
-    margin-bottom: 25px;
+    margin-bottom: -24px;
     margin-left: 0;
 }
 .shareButtons img {
@@ -178,7 +178,7 @@ input[type=button].naked:active {
     height: 25px;
     line-height: 25px;
     position: absolute;
-    bottom: 0;
+    bottom: 40px;
     left: 73px;
     right: 0;
     font-family: Raleway-Regular;
