@@ -36,7 +36,7 @@
             for (var i = 0; i < total; i++) {
                 sum += a[i];
             }
-            return Math.round(sum / total)
+            return Math.round(sum / total);
         }
 
         function audioClamp(input) {

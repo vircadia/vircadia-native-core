@@ -19,7 +19,7 @@
         } else {
             barID = childOne.id;
             textID = childZero.id;
-            originalText = childZero.text
+            originalText = childZero.text;
         }
     };
 
