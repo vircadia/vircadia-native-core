@@ -14,7 +14,8 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-    var request = Script.require('../modules/request.js').request;
+    var REQUEST_URL = Script.resolvePath('request.js');
+    var request = Script.require(REQUEST_URL).request;
 
     var LABEL = "makeUserConnection";
     var MAX_AVATAR_DISTANCE = 0.2; // m
