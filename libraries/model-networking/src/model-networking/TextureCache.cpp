@@ -421,7 +421,7 @@ void NetworkTexture::startRequestForNextMipLevel() {
 
         _ktxResourceState = PENDING_MIP_REQUEST;
 
-        init();
+        init(false);
         float priority = -(float)_originalKtxDescriptor->header.numberOfMipmapLevels + (float)_lowestKnownPopulatedMip;
         setLoadPriority(this, priority);
         _url.setFragment(QString::number(_lowestKnownPopulatedMip - 1));

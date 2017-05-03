@@ -425,7 +425,7 @@ protected slots:
     void attemptRequest();
 
 protected:
-    virtual void init();
+    virtual void init(bool resetLoaded = true);
 
     /// Called by ResourceCache to begin loading this Resource.
     /// This method can be overriden to provide custom request functionality. If this is done,
@@ -454,9 +454,14 @@ protected:
     QUrl _url;
     QUrl _activeUrl;
     ByteRange _requestByteRange;
+
+    // _loaded == true means we are in a loaded and usable state. It is possible that there may still be
+    // active requests/loading while in this state. Example: Progressive KTX downloads, where higher resolution
+    // mips are being download.
     bool _startedLoading = false;
     bool _failedToLoad = false;
     bool _loaded = false;
+
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
