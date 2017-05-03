@@ -18,6 +18,8 @@ Q_LOGGING_CATEGORY(gpugl41logging, "hifi.gpu.gl41")
 using namespace gpu;
 using namespace gpu::gl41;
 
+const std::string GL41Backend::GL41_VERSION { "GL41" };
+
 void GL41Backend::do_draw(const Batch& batch, size_t paramOffset) {
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];
