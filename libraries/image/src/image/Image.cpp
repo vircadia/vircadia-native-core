@@ -359,7 +359,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
         compressionOptions.setFormat(nvtt::Format_RGB);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
         compressionOptions.setPixelFormat(8, 0, 0, 0);
-    } else if (mipFormat == gpu::Element::VEC2_XY) {
+    } else if (mipFormat == gpu::Element::VEC2NU8_XY) {
         inputOptions.setNormalMap(true);
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
@@ -552,8 +552,8 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(const QImag
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_XY;
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_XY;
 #else
-        gpu::Element formatMip = gpu::Element::VEC2_XY;
-        gpu::Element formatGPU = gpu::Element::VEC2_XY;
+        gpu::Element formatMip = gpu::Element::VEC2NU8_XY;
+        gpu::Element formatGPU = gpu::Element::VEC2NU8_XY;
 #endif
 
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
