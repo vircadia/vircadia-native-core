@@ -18,11 +18,6 @@
 module.exports = {
 
     // ------------------------------------------------------------------
-    test: function () {
-        debug("Test completed.");
-    },
-
-    // ------------------------------------------------------------------
     request: function (options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
             var httpRequest = new XMLHttpRequest(), key;
         // QT bug: apparently doesn't handle onload. Workaround using readyState.
