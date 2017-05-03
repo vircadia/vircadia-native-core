@@ -101,9 +101,11 @@ input[type=radio] {
   opacity: 0;
 }
 input[type=radio] + label{
-  display: inline-block;
-  margin-left: -2em;
-  line-height: 2em;
+    display: inline-block;
+    margin-left: -2em;
+    line-height: 2em;
+    font-family: Raleway-SemiBold;
+    font-size: 14px;
 }
 input[type=radio] + label > span{
   display: inline-block;
@@ -157,7 +159,6 @@ input[type=radio]:active + label > span > span{
     border-width: 0px;
     background-image: linear-gradient(#00B4EF, #1080B8);
     min-height: 30px;
-
 }
 .blueButton:hover {
     background-image: linear-gradient(#00B4EF, #00B4EF);
