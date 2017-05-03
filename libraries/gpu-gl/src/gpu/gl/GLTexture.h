@@ -155,6 +155,7 @@ public:
     const GLuint& _texture { _id };
     const std::string _source;
     const GLenum _target;
+    GLTexelFormat _texelFormat;
 
     static const std::vector<GLenum>& getFaceTargets(GLenum textureType);
     static uint8_t getFaceCount(GLenum textureType);
