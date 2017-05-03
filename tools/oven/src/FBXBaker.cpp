@@ -375,6 +375,10 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                 // write the new filename into the FBX scene
                                 fileTexture->SetFileName(bakedTextureFilePath.toLocal8Bit());
 
+                                // write the relative filename to be the baked texture file name since it will
+                                // be right beside the FBX
+                                fileTexture->SetRelativeFileName(bakedTextureFileName.toLocal8Bit().constData());
+
                                 // figure out the URL to this texture, embedded or external
                                 auto urlToTexture = getTextureURL(textureFileInfo, fileTexture);
 
