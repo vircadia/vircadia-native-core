@@ -344,7 +344,7 @@ class Resource : public QObject {
 public:
     
     Resource(const QUrl& url);
-    ~Resource();
+    virtual ~Resource();
 
     virtual QString getType() const { return "Resource"; }
     
