@@ -137,9 +137,9 @@ public:
 
     enum Event {
         Present = DisplayPlugin::Present,
-        Paint = Present + 1,
-        Idle = Paint + 1,
-        Lambda = Paint + 1
+        Paint,
+        Idle,
+        Lambda
     };
 
     // FIXME? Empty methods, do we still need them?
