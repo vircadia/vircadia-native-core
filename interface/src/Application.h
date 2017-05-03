@@ -139,7 +139,7 @@ public:
         Present = DisplayPlugin::Present,
         Paint = Present + 1,
         Idle = Paint + 1,
-        Lambda = Paint + 1
+        Lambda = Idle + 1
     };
 
     // FIXME? Empty methods, do we still need them?
