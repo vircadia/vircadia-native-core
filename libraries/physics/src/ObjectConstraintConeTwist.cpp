@@ -1,8 +1,8 @@
 //
-//  ObjectConstraintHinge.cpp
+//  ObjectConstraintConeTwist.cpp
 //  libraries/physics/src
 //
-//  Created by Seth Alves 2017-4-11
+//  Created by Seth Alves 2017-4-29
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -12,30 +12,30 @@
 #include "QVariantGLM.h"
 
 #include "EntityTree.h"
-#include "ObjectConstraintHinge.h"
+#include "ObjectConstraintConeTwist.h"
 #include "PhysicsLogging.h"
 
 
-const uint16_t ObjectConstraintHinge::constraintVersion = 1;
+const uint16_t ObjectConstraintConeTwist::constraintVersion = 1;
 
 
-ObjectConstraintHinge::ObjectConstraintHinge(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectConstraint(DYNAMIC_TYPE_HINGE, id, ownerEntity),
+ObjectConstraintConeTwist::ObjectConstraintConeTwist(const QUuid& id, EntityItemPointer ownerEntity) :
+    ObjectConstraint(DYNAMIC_TYPE_CONE_TWIST, id, ownerEntity),
     _pivotInA(glm::vec3(0.0f)),
     _axisInA(glm::vec3(0.0f))
 {
     #if WANT_DEBUG
-    qCDebug(physics) << "ObjectConstraintHinge::ObjectConstraintHinge";
+    qCDebug(physics) << "ObjectConstraintConeTwist::ObjectConstraintConeTwist";
     #endif
 }
 
-ObjectConstraintHinge::~ObjectConstraintHinge() {
+ObjectConstraintConeTwist::~ObjectConstraintConeTwist() {
     #if WANT_DEBUG
-    qCDebug(physics) << "ObjectConstraintHinge::~ObjectConstraintHinge";
+    qCDebug(physics) << "ObjectConstraintConeTwist::~ObjectConstraintConeTwist";
     #endif
 }
 
-QList<btRigidBody*> ObjectConstraintHinge::getRigidBodies() {
+QList<btRigidBody*> ObjectConstraintConeTwist::getRigidBodies() {
     QList<btRigidBody*> result;
     result += getRigidBody();
     QUuid otherEntityID;
@@ -48,38 +48,43 @@ QList<btRigidBody*> ObjectConstraintHinge::getRigidBodies() {
     return result;
 }
 
-void ObjectConstraintHinge::prepareForPhysicsSimulation() {
+void ObjectConstraintConeTwist::prepareForPhysicsSimulation() {
 }
 
-void ObjectConstraintHinge::updateHinge() {
-    btHingeConstraint* constraint { nullptr };
-    glm::vec3 axisInA;
-    float low;
-    float high;
+void ObjectConstraintConeTwist::updateConeTwist() {
+    btConeTwistConstraint* constraint { nullptr };
+    float swingSpan1;
+    float swingSpan2;
+    float twistSpan;
     float softness;
     float biasFactor;
     float relaxationFactor;
 
     withReadLock([&]{
-        axisInA = _axisInA;
-        constraint = static_cast<btHingeConstraint*>(_constraint);
-        low = _low;
-        high = _high;
+        constraint = static_cast<btConeTwistConstraint*>(_constraint);
+        swingSpan1 = _swingSpan1;
+        swingSpan2 = _swingSpan2;
+        twistSpan = _twistSpan;
+        softness = _softness;
         biasFactor = _biasFactor;
         relaxationFactor = _relaxationFactor;
-        softness = _softness;
     });
 
     if (!constraint) {
         return;
     }
 
-    constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
+    constraint->setLimit(swingSpan1,
+                         swingSpan2,
+                         twistSpan,
+                         softness,
+                         biasFactor,
+                         relaxationFactor);
 }
 
 
-btTypedConstraint* ObjectConstraintHinge::getConstraint() {
-    btHingeConstraint* constraint { nullptr };
+btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
+    btConeTwistConstraint* constraint { nullptr };
     QUuid otherEntityID;
     glm::vec3 pivotInA;
     glm::vec3 axisInA;
@@ -87,7 +92,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
     glm::vec3 axisInB;
 
     withReadLock([&]{
-        constraint = static_cast<btHingeConstraint*>(_constraint);
+        constraint = static_cast<btConeTwistConstraint*>(_constraint);
         pivotInA = _pivotInA;
         axisInA = _axisInA;
         otherEntityID = _otherEntityID;
@@ -100,26 +105,33 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        qCDebug(physics) << "ObjectConstraintHinge::getConstraint -- no rigidBodyA";
+        qCDebug(physics) << "ObjectConstraintConeTwist::getConstraint -- no rigidBodyA";
         return nullptr;
     }
 
     if (!otherEntityID.isNull()) {
-        // This hinge is between two entities... find the other rigid body.
+        // This coneTwist is between two entities... find the other rigid body.
+
+        glm::quat rotA = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInA));
+        glm::quat rotB = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInB));
+
+        btTransform frameInA(glmToBullet(rotA), glmToBullet(pivotInA));
+        btTransform frameInB(glmToBullet(rotB), glmToBullet(pivotInB));
+
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
             return nullptr;
         }
-        constraint = new btHingeConstraint(*rigidBodyA, *rigidBodyB,
-                                           glmToBullet(pivotInA), glmToBullet(pivotInB),
-                                           glmToBullet(axisInA), glmToBullet(axisInB),
-                                           true); // useReferenceFrameA
 
+        constraint = new btConeTwistConstraint(*rigidBodyA, *rigidBodyB, frameInA, frameInB);
     } else {
-        // This hinge is between an entity and the world-frame.
-        constraint = new btHingeConstraint(*rigidBodyA,
-                                           glmToBullet(pivotInA), glmToBullet(axisInA),
-                                           true); // useReferenceFrameA
+        // This coneTwist is between an entity and the world-frame.
+
+        glm::quat rot = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInA));
+
+        btTransform frameInA(glmToBullet(rot), glmToBullet(pivotInA));
+
+        constraint = new btConeTwistConstraint(*rigidBodyA, frameInA);
     }
 
     withWriteLock([&]{
@@ -130,20 +142,21 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
     forceBodyNonStatic();
     activateBody();
 
-    updateHinge();
+    updateConeTwist();
 
     return constraint;
 }
 
 
-bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
+bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
     glm::vec3 pivotInA;
     glm::vec3 axisInA;
     QUuid otherEntityID;
     glm::vec3 pivotInB;
     glm::vec3 axisInB;
-    float low;
-    float high;
+    float swingSpan1;
+    float swingSpan2;
+    float twistSpan;
     float softness;
     float biasFactor;
     float relaxationFactor;
@@ -152,63 +165,69 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
     bool somethingChanged = ObjectDynamic::updateArguments(arguments);
     withReadLock([&]{
         bool ok = true;
-        pivotInA = EntityDynamicInterface::extractVec3Argument("hinge constraint", arguments, "pivot", ok, false);
+        pivotInA = EntityDynamicInterface::extractVec3Argument("coneTwist constraint", arguments, "pivot", ok, false);
         if (!ok) {
             pivotInA = _pivotInA;
         }
 
         ok = true;
-        axisInA = EntityDynamicInterface::extractVec3Argument("hinge constraint", arguments, "axis", ok, false);
+        axisInA = EntityDynamicInterface::extractVec3Argument("coneTwist constraint", arguments, "axis", ok, false);
         if (!ok) {
             axisInA = _axisInA;
         }
 
         ok = true;
-        otherEntityID = QUuid(EntityDynamicInterface::extractStringArgument("hinge constraint",
+        otherEntityID = QUuid(EntityDynamicInterface::extractStringArgument("coneTwist constraint",
                                                                             arguments, "otherEntityID", ok, false));
         if (!ok) {
             otherEntityID = _otherEntityID;
         }
 
         ok = true;
-        pivotInB = EntityDynamicInterface::extractVec3Argument("hinge constraint", arguments, "otherPivot", ok, false);
+        pivotInB = EntityDynamicInterface::extractVec3Argument("coneTwist constraint", arguments, "otherPivot", ok, false);
         if (!ok) {
             pivotInB = _pivotInB;
         }
 
         ok = true;
-        axisInB = EntityDynamicInterface::extractVec3Argument("hinge constraint", arguments, "otherAxis", ok, false);
+        axisInB = EntityDynamicInterface::extractVec3Argument("coneTwist constraint", arguments, "otherAxis", ok, false);
         if (!ok) {
             axisInB = _axisInB;
         }
 
         ok = true;
-        low = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "low", ok, false);
+        swingSpan1 = EntityDynamicInterface::extractFloatArgument("coneTwist constraint", arguments, "swingSpan1", ok, false);
         if (!ok) {
-            low = _low;
+            swingSpan1 = _swingSpan1;
         }
 
         ok = true;
-        high = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "high", ok, false);
+        swingSpan2 = EntityDynamicInterface::extractFloatArgument("coneTwist constraint", arguments, "swingSpan2", ok, false);
         if (!ok) {
-            high = _high;
+            swingSpan2 = _swingSpan2;
         }
 
         ok = true;
-        softness = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "softness", ok, false);
+        twistSpan = EntityDynamicInterface::extractFloatArgument("coneTwist constraint", arguments, "twistSpan", ok, false);
+        if (!ok) {
+            twistSpan = _twistSpan;
+        }
+
+        ok = true;
+        softness = EntityDynamicInterface::extractFloatArgument("coneTwist constraint", arguments, "softness", ok, false);
         if (!ok) {
             softness = _softness;
         }
 
         ok = true;
-        biasFactor = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "biasFactor", ok, false);
+        biasFactor = EntityDynamicInterface::extractFloatArgument("coneTwist constraint", arguments, "biasFactor", ok, false);
         if (!ok) {
             biasFactor = _biasFactor;
         }
 
         ok = true;
-        relaxationFactor = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments,
-                                                                        "relaxationFactor", ok, false);
+        relaxationFactor =
+            EntityDynamicInterface::extractFloatArgument("coneTwist constraint", arguments, "relaxationFactor", ok, false);
         if (!ok) {
             relaxationFactor = _relaxationFactor;
         }
@@ -219,8 +238,9 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             otherEntityID != _otherEntityID ||
             pivotInB != _pivotInB ||
             axisInB != _axisInB ||
-            low != _low ||
-            high != _high ||
+            swingSpan1 != _swingSpan1 ||
+            swingSpan2 != _swingSpan2 ||
+            twistSpan != _twistSpan ||
             softness != _softness ||
             biasFactor != _biasFactor ||
             relaxationFactor != _relaxationFactor) {
@@ -236,8 +256,9 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             _otherEntityID = otherEntityID;
             _pivotInB = pivotInB;
             _axisInB = axisInB;
-            _low = low;
-            _high = high;
+            _swingSpan1 = swingSpan1;
+            _swingSpan2 = swingSpan2;
+            _twistSpan = twistSpan;
             _softness = softness;
             _biasFactor = biasFactor;
             _relaxationFactor = relaxationFactor;
@@ -251,13 +272,13 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             }
         });
 
-        updateHinge();
+        updateConeTwist();
     }
 
     return true;
 }
 
-QVariantMap ObjectConstraintHinge::getArguments() {
+QVariantMap ObjectConstraintConeTwist::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
         if (_constraint) {
@@ -266,45 +287,46 @@ QVariantMap ObjectConstraintHinge::getArguments() {
             arguments["otherEntityID"] = _otherEntityID;
             arguments["otherPivot"] = glmToQMap(_pivotInB);
             arguments["otherAxis"] = glmToQMap(_axisInB);
-            arguments["low"] = _low;
-            arguments["high"] = _high;
+            arguments["swingSpan1"] = _swingSpan1;
+            arguments["swingSpan2"] = _swingSpan2;
+            arguments["twistSpan"] = _twistSpan;
             arguments["softness"] = _softness;
             arguments["biasFactor"] = _biasFactor;
             arguments["relaxationFactor"] = _relaxationFactor;
-            arguments["angle"] = static_cast<btHingeConstraint*>(_constraint)->getHingeAngle(); // [-PI,PI]
         }
     });
     return arguments;
 }
 
-QByteArray ObjectConstraintHinge::serialize() const {
+QByteArray ObjectConstraintConeTwist::serialize() const {
     QByteArray serializedConstraintArguments;
     QDataStream dataStream(&serializedConstraintArguments, QIODevice::WriteOnly);
 
-    dataStream << DYNAMIC_TYPE_HINGE;
+    dataStream << DYNAMIC_TYPE_CONE_TWIST;
     dataStream << getID();
-    dataStream << ObjectConstraintHinge::constraintVersion;
+    dataStream << ObjectConstraintConeTwist::constraintVersion;
 
     withReadLock([&] {
+        dataStream << localTimeToServerTime(_expires);
+        dataStream << _tag;
+
         dataStream << _pivotInA;
         dataStream << _axisInA;
         dataStream << _otherEntityID;
         dataStream << _pivotInB;
         dataStream << _axisInB;
-        dataStream << _low;
-        dataStream << _high;
+        dataStream << _swingSpan1;
+        dataStream << _swingSpan2;
+        dataStream << _twistSpan;
         dataStream << _softness;
         dataStream << _biasFactor;
         dataStream << _relaxationFactor;
-
-        dataStream << localTimeToServerTime(_expires);
-        dataStream << _tag;
     });
 
     return serializedConstraintArguments;
 }
 
-void ObjectConstraintHinge::deserialize(QByteArray serializedArguments) {
+void ObjectConstraintConeTwist::deserialize(QByteArray serializedArguments) {
     QDataStream dataStream(serializedArguments);
 
     EntityDynamicType type;
@@ -317,28 +339,28 @@ void ObjectConstraintHinge::deserialize(QByteArray serializedArguments) {
 
     uint16_t serializationVersion;
     dataStream >> serializationVersion;
-    if (serializationVersion != ObjectConstraintHinge::constraintVersion) {
+    if (serializationVersion != ObjectConstraintConeTwist::constraintVersion) {
         assert(false);
         return;
     }
 
     withWriteLock([&] {
+        quint64 serverExpires;
+        dataStream >> serverExpires;
+        _expires = serverTimeToLocalTime(serverExpires);
+        dataStream >> _tag;
+
         dataStream >> _pivotInA;
         dataStream >> _axisInA;
         dataStream >> _otherEntityID;
         dataStream >> _pivotInB;
         dataStream >> _axisInB;
-        dataStream >> _low;
-        dataStream >> _high;
+        dataStream >> _swingSpan1;
+        dataStream >> _swingSpan2;
+        dataStream >> _twistSpan;
         dataStream >> _softness;
         dataStream >> _biasFactor;
         dataStream >> _relaxationFactor;
-
-        quint64 serverExpires;
-        dataStream >> serverExpires;
-        _expires = serverTimeToLocalTime(serverExpires);
-
-        dataStream >> _tag;
 
         _active = true;
     });
