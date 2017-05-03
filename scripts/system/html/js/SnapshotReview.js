@@ -217,6 +217,8 @@ function showConfirmationMessage(selectedID, destination) {
     }
 
     var opacity = 2.0,
+        fadeRate = 0.05,
+        timeBetweenFadesMS = 50,
         confirmationMessageContainer = document.createElement("div"),
         confirmationMessage = document.createElement("div");
     confirmationMessageContainer.className = "confirmationMessageContainer";
@@ -243,12 +245,12 @@ function showConfirmationMessage(selectedID, destination) {
     document.getElementById(selectedID).appendChild(confirmationMessageContainer);
 
     setInterval(function () {
-        if (opacity <= 0.05) {
+        if (opacity <= fadeRate) {
             confirmationMessageContainer.remove();
         }
-        opacity -= 0.05;
+        opacity -= fadeRate;
         confirmationMessageContainer.style.opacity = opacity;
-    }, 50);
+    }, timeBetweenFadesMS);
 }
 function showUploadingMessage(selectedID, destination) {
     if (selectedID.id) {
