@@ -117,7 +117,6 @@ MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", false),
-    _smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
     _smoothOrientationTimer(std::numeric_limits<float>::max()),
     _smoothOrientationInitial(),
     _smoothOrientationTarget(),
@@ -270,12 +269,12 @@ QVariant MyAvatar::getOrientationVar() const {
 
 glm::quat MyAvatar::getOrientationOutbound() const {
     // Allows MyAvatar to send out smoothed data to remote agents if required.
-    if (_smoothOrientationTimer > _smoothOrientationTime) {
+    if (_smoothOrientationTimer > SMOOTH_TIME_ORIENTATION) {
         return (getLocalOrientation());
     }
 
     // Smooth the remote avatar movement.
-    float t = _smoothOrientationTimer / _smoothOrientationTime;
+    float t = _smoothOrientationTimer / SMOOTH_TIME_ORIENTATION;
     float interp = Interpolate::easeInOutQuad(glm::clamp(t, 0.0f, 1.0f));
     return (slerp(_smoothOrientationInitial, _smoothOrientationTarget, interp));
 }
@@ -402,14 +401,9 @@ void MyAvatar::update(float deltaTime) {
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     _hmdSensorFacingMovingAverage = lerp(_hmdSensorFacingMovingAverage, _hmdSensorFacing, tau);
 
-	if (_smoothOrientationTimer < _smoothOrientationTime) {
+    if (_smoothOrientationTimer < SMOOTH_TIME_ORIENTATION) {
         _rotationChanged = true;
 		_smoothOrientationTimer+= deltaTime;
-
-        if (_smoothOrientationTimer >= _smoothOrientationTime) {
-            // Take it back to astronomical value land.
-            _smoothOrientationTimer = std::numeric_limits<float>::max();
-        }
 	}
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
