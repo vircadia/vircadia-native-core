@@ -429,9 +429,13 @@ void GL41VariableAllocationTexture::populateTransferQueue() {
             // consuming more than X bandwidth
             auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
             const auto lines = mipDimensions.y;
-            auto bytesPerLine = mipSize / lines;
+            const uint32_t CHUNK_NUM_LINES { 4 };
+            const auto numChunks = (lines + (CHUNK_NUM_LINES - 1)) / CHUNK_NUM_LINES;
+            auto bytesPerChunk = mipSize / numChunks;
+            //auto bytesPerLine = mipSize / lines;
             Q_ASSERT(0 == (mipSize % lines));
-            uint32_t linesPerTransfer = (uint32_t)(MAX_TRANSFER_SIZE / bytesPerLine);
+            //   uint32_t linesPerTransfer = (uint32_t)(MAX_TRANSFER_SIZE / bytesPerLine);
+            uint32_t linesPerTransfer = CHUNK_NUM_LINES * (uint32_t)(MAX_TRANSFER_SIZE / bytesPerChunk);
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {
                 uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);
