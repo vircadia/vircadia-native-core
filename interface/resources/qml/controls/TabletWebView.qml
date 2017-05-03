@@ -308,6 +308,7 @@ Item {
     Component.onCompleted: {
         web.isDesktop = (typeof desktop !== "undefined");
         address = url;
+        console.log("FIXME", eventBridge);
     }
 
     Keys.onPressed: {
