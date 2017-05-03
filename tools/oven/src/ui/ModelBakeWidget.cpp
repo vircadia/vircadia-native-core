@@ -119,12 +119,15 @@ void ModelBakeWidget::chooseFileButtonClicked() {
         // set the contents of the model file text box to be the path to the selected file
         _modelLineEdit->setText(selectedFiles.join(','));
 
-        if (_outputDirLineEdit->text().isEmpty()) {
-            auto directoryOfModel = QFileInfo(selectedFiles[0]).absolutePath();
+        auto directoryOfModel = QFileInfo(selectedFiles[0]).absolutePath();
 
+        if (_outputDirLineEdit->text().isEmpty()) {
             // if our output directory is not yet set, set it to the directory of this model
             _outputDirLineEdit->setText(directoryOfModel);
         }
+
+        // save the directory containing the file(s) so we can default to it next time we show the file dialog
+        _modelStartDirectory.set(directoryOfModel);
     }
 }
 
