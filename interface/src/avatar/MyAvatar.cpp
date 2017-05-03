@@ -1868,10 +1868,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
 	if (snapTurn) {
 		// Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-		_smoothOrientationInitial = initialOrientation;
+        _smoothOrientationInitial = initialOrientation;
         _smoothOrientationTarget = getOrientation();
-		_smoothOrientationTimer = 0.0f;
-	}
+        _smoothOrientationTimer = 0.0f;
+    }
 
     getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 

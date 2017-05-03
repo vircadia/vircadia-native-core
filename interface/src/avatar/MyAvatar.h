@@ -629,7 +629,7 @@ private:
     Setting::Handle<bool> _useAdvancedMovementControls;
 
     // Smoothing.
-    const float SMOOTH_TIME_ORIENTATION = 0.15f;
+    const float SMOOTH_TIME_ORIENTATION = 0.5f;
 
     // Smoothing data for blending from one position/orientation to another on remote agents.
     float _smoothOrientationTime;
