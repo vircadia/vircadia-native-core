@@ -16,6 +16,13 @@
 (function () { // BEGIN LOCAL_SCOPE
 
     var request = Script.require('request').request;
+    var DEBUG = false;
+    function debug() {
+        if (!DEBUG) {
+            return;
+        }
+        print([].map.call(arguments, JSON.stringify));
+    }
 
     var gotoQmlSource = "TabletAddressDialog.qml";
     var buttonName = "GOTO";
@@ -101,14 +108,6 @@
     tablet.screenChanged.connect(onScreenChanged);
 
     var stories = {}, pingPong = false;
-    var DEBUG = true; //fixme
-    function debug() {
-        if (!DEBUG) {
-            return;
-        }
-        print([].map.call(arguments, JSON.stringify));
-    }
-
     function expire(id) {
         request({
             uri: location.metaverseServerUrl + '/api/v1/user_stories/' + id,
@@ -123,7 +122,7 @@
     }
     function pollForAnnouncements() {
         // We could bail now if !Account.isLoggedIn(), but what if we someday have system-wide announcments?
-        var actions = DEBUG ? 'snapshot' : 'announcement';
+        var actions = 'announcement';
         var count = DEBUG ? 10 : 100;
         var options = [
             'now=' + new Date().toISOString(),
@@ -134,7 +133,6 @@
             'per_page=' + count
         ];
         var url = location.metaverseServerUrl + '/api/v1/user_stories?' + options.join('&');
-        url = 'https://highfidelity.com/api/v1/user_stories?include_actions=announcement'; //fixme remove
         request({
             uri: url
         }, function (error, data) {
@@ -148,7 +146,7 @@
             data.user_stories.forEach(function (story) {
                 var stored = stories[story.id], storedOrNew = stored || story;
                 debug('story exists:', !!stored, storedOrNew);
-                if ((storedOrNew.username === Account.username) && (storyOrNew.place_name !== location.placename)) {
+                if ((storedOrNew.username === Account.username) && (storedOrNew.place_name !== location.placename)) {
                     expire(story.id);
                     return; // before marking
                 }
