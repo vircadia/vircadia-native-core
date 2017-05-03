@@ -145,15 +145,22 @@
 
     var stories = {}, pingPong = false;
     var DEBUG = true; //fixme
+    function debug() {
+        if (!DEBUG) {
+            return;
+        }
+        print([].map.call(arguments, JSON.stringify));
+    }
+
     function expire(id) {
         request({
             uri: location.metaverseServerUrl + '/api/v1/user_stories/' + id,
             method: 'PUT',
             body: {expired: true}
         }, function (error, response) {
+            debug('expired story', id, 'error:', error, 'response:', response);
             if (error || (response.status !== 'success')) {
                 print("ERROR expiring story: ", error || response.status);
-                return;
             }
         });
     }
@@ -170,9 +177,11 @@
             'per_page=' + count
         ];
         var url = location.metaverseServerUrl + '/api/v1/user_stories?' + options.join('&');
+        url = 'https://highfidelity.com/api/v1/user_stories?include_actions=announcement'; //fixme remove
         request({
             uri: url
         }, function (error, data) {
+            debug(url, error, data);
             if (error || (data.status !== 'success')) {
                 print("Error: unable to get", url,  error || data.status);
                 return;
@@ -181,6 +190,7 @@
             pingPong = !pingPong;
             data.user_stories.forEach(function (story) {
                 var stored = stories[story.id], storedOrNew = stored || story;
+                debug('story exists:', !!stored, storedOrNew);
                 if ((storedOrNew.username === Account.username) && (storyOrNew.place_name !== location.placename)) {
                     expire(story.id);
                     return; // before marking
