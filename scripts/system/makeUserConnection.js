@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() { // BEGIN LOCAL_SCOPE
+(function () { // BEGIN LOCAL_SCOPE
 
     var request = Script.require('request').request;
 
@@ -124,10 +124,6 @@
         var connecting = "[" + connectingId + "/" + connectingHandJointIndex + "]";
         print.apply(null, [].concat.apply([LABEL, stateString, JSON.stringify(waitingList), connecting],
             [].map.call(arguments, JSON.stringify)));
-    }
-
-    function debugPrint() {
-        print( [].slice.call(arguments).join(' ') );
     }
 
     function cleanId(guidWithCurlyBraces) {
