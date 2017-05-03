@@ -472,12 +472,20 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 void NetworkTexture::ktxHeaderRequestFinished() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA);
 
+    if (!_ktxHeaderRequest) {
+        return;
+    }
+
     _ktxHeaderRequestFinished = true;
     maybeHandleFinishedInitialLoad();
 }
 
 void NetworkTexture::ktxMipRequestFinished() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA || _ktxResourceState == REQUESTING_MIP);
+
+    if (!_ktxMipRequest) {
+        return;
+    }
 
     if (_ktxResourceState == LOADING_INITIAL_DATA) {
         _ktxHighMipRequestFinished = true;
@@ -683,7 +691,7 @@ void NetworkTexture::loadContent(const QByteArray& content) {
 }
 
 void NetworkTexture::refresh() {
-    if ((_ktxHeaderRequest || _ktxMipRequest) && !loaded && !_failedToLoad) {
+    if ((_ktxHeaderRequest || _ktxMipRequest) && !_loaded && !_failedToLoad) {
         return;
     }
     if (_ktxHeaderRequest || _ktxMipRequest) {
