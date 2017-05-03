@@ -261,7 +261,7 @@ function showUploadingMessage(selectedID, destination) {
 
     var shareBarHelp = document.getElementById(selectedID + "shareBarHelp");
 
-    shareBarHelp.innerHTML = "...Preparing to Share";
+    shareBarHelp.innerHTML = '<img style="display:inline;width:25px;height:25px;" src="./img/loader.gif"></img><span style="position:relative;margin-left:5px;bottom:7px;">Preparing to Share</span>';
     shareBarHelp.setAttribute("data-destination", destination);
 }
 function hideUploadingMessageAndShare(selectedID, storyID) {
@@ -331,11 +331,6 @@ function blastToConnections(selectedID, isGif) {
         shareBar = document.getElementById(selectedID + "shareBar"),
         shareBarHelp = document.getElementById(selectedID + "shareBarHelp");
     blastToConnectionsButton.onclick = function () { };
-    blastToConnectionsButton.classList.add("disabled");
-    blastToConnectionsButton.style.backgroundColor = "#000000";
-    blastToConnectionsButton.style.opacity = "0.5";
-    shareBarHelp.style.backgroundColor = "#000000";
-    shareBarHelp.style.opacity = "0.5";
 
     var storyID = document.getElementById(selectedID).getAttribute("data-story-id");
 
@@ -347,6 +342,11 @@ function blastToConnections(selectedID, isGif) {
             isGif: isGif
         }));
         showConfirmationMessage(selectedID, 'blast');
+        blastToConnectionsButton.classList.add("disabled");
+        blastToConnectionsButton.style.backgroundColor = "#000000";
+        blastToConnectionsButton.style.opacity = "0.5";
+        shareBarHelp.style.backgroundColor = "#000000";
+        shareBarHelp.style.opacity = "0.5";
     } else {
         showUploadingMessage(selectedID, 'blast');
     }
@@ -360,11 +360,6 @@ function shareWithEveryone(selectedID, isGif) {
         shareBar = document.getElementById(selectedID + "shareBar"),
         shareBarHelp = document.getElementById(selectedID + "shareBarHelp");
     shareWithEveryoneButton.onclick = function () { };
-    shareWithEveryoneButton.classList.add("disabled");
-    shareWithEveryoneButton.style.backgroundColor = "#000000";
-    shareWithEveryoneButton.style.opacity = "0.5";
-    shareBarHelp.style.backgroundColor = "#000000";
-    shareBarHelp.style.opacity = "0.5";
 
     var storyID = document.getElementById(selectedID).getAttribute("data-story-id");
 
@@ -376,6 +371,11 @@ function shareWithEveryone(selectedID, isGif) {
             isGif: isGif
         }));
         showConfirmationMessage(selectedID, 'hifi');
+        shareWithEveryoneButton.classList.add("disabled");
+        shareWithEveryoneButton.style.backgroundColor = "#000000";
+        shareWithEveryoneButton.style.opacity = "0.5";
+        shareBarHelp.style.backgroundColor = "#000000";
+        shareBarHelp.style.opacity = "0.5";
     } else {
         showUploadingMessage(selectedID, 'hifi');
     }
@@ -474,7 +474,7 @@ function handleCaptureSetting(setting) {
 window.onload = function () {
     // Uncomment the line below to test functionality in a browser.
     // See definition of "testInBrowser()" to modify tests.
-    //testInBrowser(1);
+    //testInBrowser(3);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
@@ -584,5 +584,11 @@ function testInBrowser(test) {
         addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, true, false, false, true);
         showConfirmationMessage("p0", 'blast');
         showConfirmationMessage("p1", 'hifi');
+    } else if (test === 3) {
+        imageCount = 2;
+        //addImage({ localPath: 'http://lorempixel.com/553/255' });
+        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, false, true, true, false, false, true);
+        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, true, false, false, true);
+        showUploadingMessage("p0", 'hifi');
     }
 }
