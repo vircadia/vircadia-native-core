@@ -234,6 +234,7 @@ public:
     static const Element COLOR_COMPRESSED_SRGBA_MASK;
     static const Element COLOR_COMPRESSED_SRGBA;
     static const Element COLOR_COMPRESSED_XY;
+    static const Element VEC2_XY;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;
     static const Element VEC2F_XY;

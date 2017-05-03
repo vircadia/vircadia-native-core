@@ -423,6 +423,8 @@ bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RGBA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
     } else if (texelFormat == Format::COLOR_R_8 && mipFormat == Format::COLOR_R_8) {
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RED, ktx::GLInternalFormat_Uncompressed::R8, ktx::GLBaseInternalFormat::RED);
+    } else if (texelFormat == Format::VEC2_XY && mipFormat == Format::VEC2_XY) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RG, ktx::GLInternalFormat_Uncompressed::RG8, ktx::GLBaseInternalFormat::RG);
     } else if (texelFormat == Format::COLOR_COMPRESSED_SRGB && mipFormat == Format::COLOR_COMPRESSED_SRGB) {
         header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT, ktx::GLBaseInternalFormat::RGB);
     } else if (texelFormat == Format::COLOR_COMPRESSED_SRGBA_MASK && mipFormat == Format::COLOR_COMPRESSED_SRGBA_MASK) {

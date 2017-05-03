@@ -290,6 +290,19 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     float inputGamma = 2.2f;
     float outputGamma = 2.2f;
 
+    nvtt::InputOptions inputOptions;
+    inputOptions.setTextureLayout(textureType, width, height);
+    inputOptions.setMipmapData(data, width, height);
+
+    inputOptions.setFormat(inputFormat);
+    inputOptions.setGamma(inputGamma, outputGamma);
+    inputOptions.setAlphaMode(alphaMode);
+    inputOptions.setWrapMode(wrapMode);
+    inputOptions.setRoundMode(roundMode);
+
+    inputOptions.setMipmapGeneration(true);
+    inputOptions.setMipmapFilter(nvtt::MipmapFilter_Box);
+
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setQuality(nvtt::Quality_Production);
 
@@ -346,25 +359,16 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
         compressionOptions.setFormat(nvtt::Format_RGB);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
         compressionOptions.setPixelFormat(8, 0, 0, 0);
+    } else if (mipFormat == gpu::Element::VEC2_XY) {
+        inputOptions.setNormalMap(true);
+        compressionOptions.setFormat(nvtt::Format_RGBA);
+        compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPixelFormat(8, 8, 0, 0);
     } else {
         qCWarning(imagelogging) << "Unknown mip format";
         Q_UNREACHABLE();
         return;
     }
-
-
-    nvtt::InputOptions inputOptions;
-    inputOptions.setTextureLayout(textureType, width, height);
-    inputOptions.setMipmapData(data, width, height);
-
-    inputOptions.setFormat(inputFormat);
-    inputOptions.setGamma(inputGamma, outputGamma);
-    inputOptions.setAlphaMode(alphaMode);
-    inputOptions.setWrapMode(wrapMode);
-    inputOptions.setRoundMode(roundMode);
-
-    inputOptions.setMipmapGeneration(true);
-    inputOptions.setMipmapFilter(nvtt::MipmapFilter_Box);
 
     nvtt::OutputOptions outputOptions;
     outputOptions.setOutputHeader(false);
@@ -548,8 +552,8 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(const QImag
         gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_XY;
         gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_XY;
 #else
-        gpu::Element formatMip = gpu::Element::COLOR_RGBA_32;
-        gpu::Element formatGPU = gpu::Element::COLOR_RGBA_32;
+        gpu::Element formatMip = gpu::Element::VEC2_XY;
+        gpu::Element formatGPU = gpu::Element::VEC2_XY;
 #endif
 
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
