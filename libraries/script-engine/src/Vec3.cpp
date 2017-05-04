@@ -29,7 +29,7 @@ float Vec3::orientedAngle(const glm::vec3& v1, const glm::vec3& v2, const glm::v
 
 void Vec3::print(const QString& label, const glm::vec3& v) {
     QString message = QString("%1 %2").arg(qPrintable(label));
-    message = message.arg(glm::to_string(v).c_str());
+    message = message.arg(glm::to_string(glm::dvec3(v)).c_str());
     qCDebug(scriptengine) << message;
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
         scriptEngine->print(message);

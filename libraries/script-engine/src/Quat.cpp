@@ -119,9 +119,9 @@ float Quat::dot(const glm::quat& q1, const glm::quat& q2) {
 void Quat::print(const QString& label, const glm::quat& q, bool asDegrees) {
     QString message = QString("%1 %2").arg(qPrintable(label));
     if (asDegrees) {
-        message = message.arg(glm::to_string(safeEulerAngles(q)).c_str());
+        message = message.arg(glm::to_string(glm::dvec3(safeEulerAngles(q))).c_str());
     } else {
-        message = message.arg(glm::to_string(q).c_str());
+        message = message.arg(glm::to_string(glm::dquat(q)).c_str());
     }
     qCDebug(scriptengine) << message;
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {

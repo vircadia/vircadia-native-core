@@ -69,7 +69,7 @@ glm::vec3 Mat4::getUp(const glm::mat4& m) const {
 }
 
 void Mat4::print(const QString& label, const glm::mat4& m, bool transpose) const {
-    glm::mat4 out = transpose ? glm::transpose(m) : m;
+    glm::dmat4 out = transpose ? glm::transpose(m) : m;
     QString message = QString("%1 %2").arg(qPrintable(label));
     message = message.arg(glm::to_string(out).c_str());
     qCDebug(scriptengine) << message;
