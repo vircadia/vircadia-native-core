@@ -407,7 +407,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     //     return QUuid();
     // }
 
-    bool entityFound = false;
+    bool entityFound { false };
     _entityTree->withReadLock([&] {
         EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
         if (entity) {
@@ -469,7 +469,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     if (entityFound) {
         queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     } else {
-        qDebug() << "warning: attempted edit on unknown entity: " << id;
+        qCWarning(entities) << "attempted edit on unknown entity: " << id;
     }
     return id;
 }
