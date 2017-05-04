@@ -104,12 +104,12 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         return nullptr;
     }
 
-    if (glm::length(axisInA) == 0.0f) {
+    if (glm::length(axisInA) < FLT_EPSILON) {
         qCWarning(physics) << "hinge axis cannot be a zero vector";
         axisInA = DEFAULT_HINGE_AXIS;
+    } else {
+        axisInA = glm::normalize(axisInA);
     }
-
-    axisInA = glm::normalize(axisInA);
 
     if (!otherEntityID.isNull()) {
         // This hinge is between two entities... find the other rigid body.
@@ -118,12 +118,12 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
             return nullptr;
         }
 
-        if (glm::length(axisInB)) {
+        if (glm::length(axisInB) < FLT_EPSILON) {
             qCWarning(physics) << "hinge axis cannot be a zero vector";
             axisInB = DEFAULT_HINGE_AXIS;
+        } else {
+            axisInB = glm::normalize(axisInB);
         }
-
-        axisInB = glm::normalize(axisInB);
 
         constraint = new btHingeConstraint(*rigidBodyA, *rigidBodyB,
                                            glmToBullet(pivotInA), glmToBullet(pivotInB),
