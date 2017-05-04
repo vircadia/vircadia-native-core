@@ -760,7 +760,10 @@
             break;
         case "done":
             delete waitingList[senderID];
-            if (state === STATES.CONNECTING && connectingId === senderID) {
+            if (connectionId !== senderID) {
+                break;
+            }
+            if (state === STATES.CONNECTING) {
                 // if they are done, and didn't connect us, terminate our
                 // connecting
                 if (message.connectionId !== MyAvatar.sessionUUID) {
@@ -776,7 +779,7 @@
                     stopConnecting();
                 }
             } else {
-                if (state == STATES.MAKING_CONNECTION && connectingId === senderID) {
+                if (state == STATES.MAKING_CONNECTION) {
                     // we are making connection, they just started, so lets reset the
                     // poll count just in case
                     pollCount = 0;
