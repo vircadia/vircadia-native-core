@@ -16,7 +16,6 @@ Item {
     property var parentStackItem: null
     property int headerHeight: 70
     property string url
-    property alias address: displayUrl.text //for compatibility
     property string scriptURL
     property alias eventBridge: eventBridgeWrapper.eventBridge
     property bool keyboardEnabled: false
@@ -82,6 +81,7 @@ Item {
             color: hifi.colors.baseGray
             font.pixelSize: 12
             verticalAlignment: Text.AlignLeft
+            text: webview.url
             anchors {
                 top: nav.bottom
                 horizontalCenter: parent.horizontalCenter;
@@ -159,7 +159,6 @@ Item {
     function loadUrl(url) {
         webview.url = url
         web.url = webview.url;
-        web.address = webview.url;
     }
 
     function onInitialPage(url) {
@@ -253,7 +252,6 @@ Item {
             });
 
             webview.profile.httpUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36";
-            web.address = url;
         }
 
         onFeaturePermissionRequested: {
@@ -279,7 +277,6 @@ Item {
             }
 
             if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
-                web.address = webview.url;
                 if (startingUp) {
                     web.initialPage = webview.url;
                     startingUp = false;
@@ -297,6 +294,7 @@ Item {
     HiFiControls.Keyboard {
         id: keyboard
         raised: parent.keyboardEnabled && parent.keyboardRaised
+        numeric: parent.punctuationMode
 
         anchors {
             left: parent.left
@@ -308,7 +306,6 @@ Item {
     Component.onCompleted: {
         web.isDesktop = (typeof desktop !== "undefined");
         keyboardEnabled = HMD.active;
-        address = url;
     }
 
     Keys.onPressed: {

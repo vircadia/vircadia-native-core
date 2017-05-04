@@ -137,8 +137,9 @@ public:
 
     enum Event {
         Present = DisplayPlugin::Present,
-        Paint = Present + 1,
-        Lambda = Paint + 1
+        Paint,
+        Idle,
+        Lambda
     };
 
     // FIXME? Empty methods, do we still need them?
@@ -536,6 +537,7 @@ private:
     RateCounter<> _avatarSimCounter;
     RateCounter<> _simCounter;
 
+    QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
 
