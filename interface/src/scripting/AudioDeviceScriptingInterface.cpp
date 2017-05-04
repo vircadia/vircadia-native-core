@@ -57,12 +57,10 @@ bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {
 
 bool AudioDeviceScriptingInterface::setOutputDevice(const QString& deviceName) {
     bool result;
-    QTime a; a.start();
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "switchOutputToAudioDevice",
                               Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(bool, result),
                               Q_ARG(const QString&, deviceName));
-    qDebug() << "switching to" << deviceName << "elapsed" << a.elapsed();
     return result;
 }
 
@@ -208,8 +206,6 @@ void AudioDeviceScriptingInterface::currentDeviceUpdate(const QString &name, QAu
     QVector<int> role;
     role.append(SelectedRole);
 
-    qDebug() << "device update" << name << mode;
-
     for (int i = 0; i < _devices.size(); i++) {
         AudioDeviceInfo di = _devices.at(i);
         if (di.mode != mode)
@@ -223,7 +219,6 @@ void AudioDeviceScriptingInterface::currentDeviceUpdate(const QString &name, QAu
             di.selected = true;
             _devices[i] = di;
             emit dataChanged(index(i, 0), index(i, 0), role);
-            qDebug() << "device updated" << di.name << i;
         }
     }
 }
