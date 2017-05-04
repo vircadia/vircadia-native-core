@@ -28,6 +28,8 @@ const int MAX_HISTORY_SIZE = 64;
 const QString COMMAND_STYLE = "color: #266a9b;";
 
 const QString RESULT_SUCCESS_STYLE = "color: #677373;";
+const QString RESULT_INFO_STYLE = "color: #223bd1;";
+const QString RESULT_WARNING_STYLE = "color: #d1b322;";
 const QString RESULT_ERROR_STYLE = "color: #d13b22;";
 
 const QString GUTTER_PREVIOUS_COMMAND = "<span style=\"color: #57b8bb;\">&lt;</span>";
@@ -79,6 +81,8 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
     }
     if (_scriptEngine != NULL) {
         disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
+        disconnect(_scriptEngine, &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
+        disconnect(_scriptEngine, &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
         disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
         if (_ownScriptEngine) {
             _scriptEngine->deleteLater();
@@ -90,6 +94,8 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
     _scriptEngine = _ownScriptEngine ? DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false) : scriptEngine;
 
     connect(_scriptEngine, &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
+    connect(_scriptEngine, &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
+    connect(_scriptEngine, &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
     connect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
 }
 
@@ -143,6 +149,16 @@ void JSConsole::handleError(const QString& message, const QString& scriptName) {
 void JSConsole::handlePrint(const QString& message, const QString& scriptName) {
     Q_UNUSED(scriptName);
     appendMessage("", message);
+}
+
+void JSConsole::handleInfo(const QString& message, const QString& scriptName) {
+    Q_UNUSED(scriptName);
+    appendMessage("", "<span style='" + RESULT_INFO_STYLE + "'>" + message.toHtmlEscaped() + "</span>");
+}
+
+void JSConsole::handleWarning(const QString& message, const QString& scriptName) {
+    Q_UNUSED(scriptName);
+    appendMessage("", "<span style='" + RESULT_WARNING_STYLE + "'>" + message.toHtmlEscaped() + "</span>");
 }
 
 void JSConsole::mouseReleaseEvent(QMouseEvent* event) {
