@@ -53,10 +53,6 @@ function updatePlayersUnused() {
     elPlayersUnused.innerHTML = numberOfPlayers - recordingsBeingPlayed.length;
 }
 
-function orderRecording(a, b) {
-    return a.filename > b.filename ? 1 : -1;
-}
-
 function updateRecordings() {
     var tbody,
         tr,
@@ -67,8 +63,6 @@ function updateRecordings() {
         length,
         i,
         HIFI_GLYPH_CLOSE = "w";
-
-    recordingsBeingPlayed.sort(orderRecording);
 
     tbody = document.createElement("tbody");
     tbody.id = "recordings-list";

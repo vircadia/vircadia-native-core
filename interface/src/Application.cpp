@@ -128,6 +128,7 @@
 #include <QmlWebWindowClass.h>
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
+#include <trackers/EyeTracker.h>
 
 
 #include "AudioClient.h"
@@ -136,8 +137,6 @@
 #include "avatar/ScriptAvatar.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
-#include "devices/EyeTracker.h"
-#include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -480,7 +479,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<ModelCache>();
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<SoundCache>();
-    DependencyManager::set<Faceshift>();
     DependencyManager::set<DdeFaceTracker>();
     DependencyManager::set<EyeTracker>();
     DependencyManager::set<AudioClient>();
@@ -1210,10 +1208,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     this->installEventFilter(this);
 
-    // initialize our face trackers after loading the menu settings
-    auto faceshiftTracker = DependencyManager::get<Faceshift>();
-    faceshiftTracker->init();
-    connect(faceshiftTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #ifdef HAVE_DDE
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->init();
@@ -2533,6 +2527,11 @@ bool Application::event(QEvent* event) {
         isPaintingThrottled = false;
 
         return true;
+    } else if ((int)event->type() == (int)Idle) {
+        float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
+        idle(nsecsElapsed);
+
+        return true;
     }
 
     if ((int)event->type() == (int)Lambda) {
@@ -3626,20 +3625,13 @@ ivec2 Application::getMouse() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    auto faceshift = DependencyManager::get<Faceshift>();
     auto dde = DependencyManager::get<DdeFaceTracker>();
 
-    return (dde->isActive() ? static_cast<FaceTracker*>(dde.data()) :
-            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) : nullptr));
+    return dde->isActive() ? static_cast<FaceTracker*>(dde.data()) : nullptr;
 }
 
 FaceTracker* Application::getSelectedFaceTracker() {
     FaceTracker* faceTracker = nullptr;
-#ifdef HAVE_FACESHIFT
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Faceshift)) {
-        faceTracker = DependencyManager::get<Faceshift>().data();
-    }
-#endif
 #ifdef HAVE_DDE
     if (Menu::getInstance()->isOptionChecked(MenuOption::UseCamera)) {
         faceTracker = DependencyManager::get<DdeFaceTracker>().data();
@@ -3649,15 +3641,8 @@ FaceTracker* Application::getSelectedFaceTracker() {
 }
 
 void Application::setActiveFaceTracker() const {
-#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
-    bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
-#endif
-#ifdef HAVE_FACESHIFT
-    auto faceshiftTracker = DependencyManager::get<Faceshift>();
-    faceshiftTracker->setIsMuted(isMuted);
-    faceshiftTracker->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) && !isMuted);
-#endif
 #ifdef HAVE_DDE
+    bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
     Menu::getInstance()->getActionForOption(MenuOption::BinaryEyelidControl)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::CoupleEyelids)->setVisible(isUsingDDE);
@@ -4375,7 +4360,13 @@ void Application::update(float deltaTime) {
     controller::InputCalibrationData calibrationData = {
         myAvatar->getSensorToWorldMatrix(),
         createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
-        myAvatar->getHMDSensorMatrix()
+        myAvatar->getHMDSensorMatrix(),
+        myAvatar->getCenterEyeCalibrationMat(),
+        myAvatar->getHeadCalibrationMat(),
+        myAvatar->getSpine2CalibrationMat(),
+        myAvatar->getHipsCalibrationMat(),
+        myAvatar->getLeftFootCalibrationMat(),
+        myAvatar->getRightFootCalibrationMat()
     };
 
     InputPluginPointer keyboardMousePlugin;
@@ -4422,6 +4413,13 @@ void Application::update(float deltaTime) {
     controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
     controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
     myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
+
+    controller::Pose hipsPose = userInputMapper->getPoseState(controller::Action::HIPS);
+    controller::Pose spine2Pose = userInputMapper->getPoseState(controller::Action::SPINE2);
+    myAvatar->setSpineControllerPosesInSensorFrame(hipsPose.transform(avatarToSensorMatrix), spine2Pose.transform(avatarToSensorMatrix));
+
+    controller::Pose headPose = userInputMapper->getPoseState(controller::Action::HEAD);
+    myAvatar->setHeadControllerPoseInSensorFrame(headPose.transform(avatarToSensorMatrix));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
@@ -5133,7 +5131,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 }
 
 void Application::resetSensors(bool andReload) {
-    DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
     getActiveDisplayPlugin()->resetSensors();
@@ -5430,9 +5427,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->setPacketSender(&_entityEditSender);
     entityScriptingInterface->setEntityTree(getEntities()->getTree());
-
-    // AvatarManager has some custom types
-    AvatarManager::registerMetaTypes(scriptEngine);
 
     // give the script engine to the RecordingScriptingInterface for its callbacks
     DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(scriptEngine);
@@ -6502,10 +6496,22 @@ void Application::activeChanged(Qt::ApplicationState state) {
 }
 
 void Application::windowMinimizedChanged(bool minimized) {
+    // initialize the _minimizedWindowTimer
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        connect(&_minimizedWindowTimer, &QTimer::timeout, this, [] {
+            QCoreApplication::postEvent(QCoreApplication::instance(), new QEvent(static_cast<QEvent::Type>(Idle)), Qt::HighEventPriority);
+        });
+    });
+
+    // avoid rendering to the display plugin but continue posting Idle events,
+    // so that physics continues to simulate and the deadlock watchdog knows we're alive
     if (!minimized && !getActiveDisplayPlugin()->isActive()) {
+        _minimizedWindowTimer.stop();
         getActiveDisplayPlugin()->activate();
     } else if (minimized && getActiveDisplayPlugin()->isActive()) {
         getActiveDisplayPlugin()->deactivate();
+        _minimizedWindowTimer.start(THROTTLED_SIM_FRAME_PERIOD_MS);
     }
 }
 

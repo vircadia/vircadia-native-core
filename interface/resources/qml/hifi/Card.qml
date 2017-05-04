@@ -31,7 +31,7 @@ Item {
 
     property bool drillDownToPlace: false;
     property bool showPlace: isConcurrency;
-    property string messageColor: hifi.colors.blueAccent;
+    property string messageColor: isAnnouncement ? "white" : hifi.colors.blueAccent;
     property string timePhrase: pastTime(timestamp);
     property int onlineUsers: 0;
     property bool isConcurrency: action === 'concurrency';
@@ -70,6 +70,10 @@ Item {
     }
 
     property bool hasGif: imageUrl.indexOf('.gif') === (imageUrl.length - 4);
+
+    function pluralize(count, singular, optionalPlural) {
+        return (count === 1) ? singular : (optionalPlural || (singular + "s"));
+    }
 
     DropShadow {
         visible: isStacked;
@@ -115,7 +119,7 @@ Item {
         id: lobby;
         visible: !hasGif || (animation.status !== Image.Ready);
         width: parent.width - (isConcurrency ? 0 : (2 * smallMargin));
-        height: parent.height - messageHeight - (isConcurrency ? 0 : smallMargin);
+        height: parent.height -(isAnnouncement ? smallMargin : messageHeight) - (isConcurrency ? 0 : smallMargin);
         source: thumbnail || defaultThumbnail;
         fillMode: Image.PreserveAspectCrop;
         anchors {
@@ -160,7 +164,24 @@ Item {
             margins: textPadding;
         }
     }
+    Rectangle {
+        id: lozenge;
+        visible: isAnnouncement;
+        color: hifi.colors.redHighlight;
+        anchors.fill: infoRow;
+        radius: lozenge.height / 2.0;
+        border.width: lozengeHot.containsMouse ? 4 : 0;
+        border.color: "white";
+    }
     Row {
+        id: infoRow;
+        Image {
+            id: icon;
+            source: isAnnouncement ? "../../images/Announce-Blast.svg" : "../../images/snap-icon.svg";
+            width: 40;
+            height: 40;
+            visible: ((action === 'snapshot') || isAnnouncement) && (messageHeight >= 40);
+        }
         FiraSansRegular {
             id: users;
             visible: isConcurrency || isAnnouncement;
@@ -169,26 +190,33 @@ Item {
             color: messageColor;
             anchors.verticalCenter: message.verticalCenter;
         }
-        Image {
-            id: icon;
-            source: "../../images/snap-icon.svg"
-            width: 40;
-            height: 40;
-            visible: (action === 'snapshot') && (messageHeight >= 40);
-        }
         RalewayRegular {
             id: message;
-            text: isConcurrency ? ((onlineUsers === 1) ? "person" : "people") : (isAnnouncement ? "connections" : (drillDownToPlace ? "snapshots" : ("by " + userName)));
+            visible: !isAnnouncement;
+            text: isConcurrency ? pluralize(onlineUsers, "person", "people") : (drillDownToPlace ? "snapshots" : ("by " + userName));
             size: textSizeSmall;
             color: messageColor;
             elide: Text.ElideRight; // requires a width to be specified`
             width: root.width - textPadding
-                - (users.visible ? users.width + parent.spacing : 0)
                 - (icon.visible ? icon.width + parent.spacing : 0)
+                - (users.visible ? users.width + parent.spacing : 0)
                 - (actionIcon.width + (2 * smallMargin));
             anchors {
                 bottom: parent.bottom;
                 bottomMargin: parent.spacing;
+            }
+        }
+        Column {
+            visible: isAnnouncement;
+            RalewayRegular {
+                text: pluralize(onlineUsers, "connection") + "   "; // hack padding
+                size: textSizeSmall;
+                color: messageColor;
+            }
+            RalewayRegular {
+                text: pluralize(onlineUsers, "is here now", "are here now");
+                size: textSizeSmall * 0.7;
+                color: messageColor;
             }
         }
         spacing: textPadding;
@@ -197,6 +225,7 @@ Item {
             bottom: parent.bottom;
             left: parent.left;
             leftMargin: textPadding;
+            bottomMargin: isAnnouncement ? textPadding : 0;
         }
     }
     // These two can be supplied to provide hover behavior.
@@ -214,6 +243,7 @@ Item {
     }
     StateImage {
         id: actionIcon;
+        visible: !isAnnouncement;
         imageURL: "../../images/info-icon-2-state.svg";
         size: 30;
         buttonState: messageArea.containsMouse ? 1 : 0;
@@ -223,13 +253,25 @@ Item {
             margins: smallMargin;
         }
     }
+    function go() {
+        goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));
+    }
     MouseArea {
         id: messageArea;
+        visible: !isAnnouncement;
         width: parent.width;
         height: messageHeight;
         anchors.top: lobby.bottom;
         acceptedButtons: Qt.LeftButton;
-        onClicked: goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));
+        onClicked: go();
+        hoverEnabled: true;
+    }
+    MouseArea {
+        id: lozengeHot;
+        visible: lozenge.visible;
+        anchors.fill: lozenge;
+        acceptedButtons: Qt.LeftButton;
+        onClicked: go();
         hoverEnabled: true;
     }
 }

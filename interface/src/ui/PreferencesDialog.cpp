@@ -11,7 +11,6 @@
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
 #include <devices/DdeFaceTracker.h>
-#include <devices/Faceshift.h>
 #include <NetworkingConstants.h>
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
@@ -112,7 +111,7 @@ void setupPreferences() {
     static const QString SNAPSHOTS { "Snapshots" };
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
-        auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
+        auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); emit DependencyManager::get<Snapshot>()->snapshotLocationSet(value); };
         auto preference = new BrowsePreference(SNAPSHOTS, "Put my snapshots here", getter, setter);
         preferences->addPreference(preference);
     }
@@ -201,13 +200,6 @@ void setupPreferences() {
         auto getter = []()->float { return FaceTracker::getEyeDeflection(); };
         auto setter = [](float value) { FaceTracker::setEyeDeflection(value); };
         preferences->addPreference(new SliderPreference(AVATAR_TUNING, "Face tracker eye deflection", getter, setter));
-    }
-    {
-        auto getter = []()->QString { return DependencyManager::get<Faceshift>()->getHostname(); };
-        auto setter = [](const QString& value) { DependencyManager::get<Faceshift>()->setHostname(value); };
-        auto preference = new EditPreference(AVATAR_TUNING, "Faceshift hostname", getter, setter);
-        preference->setPlaceholderText("localhost");
-        preferences->addPreference(preference);
     }
     {
         auto getter = [=]()->QString { return myAvatar->getAnimGraphOverrideUrl().toString(); };

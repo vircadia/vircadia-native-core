@@ -38,6 +38,11 @@ const quat Quaternions::X_180{ 0.0f, 1.0f, 0.0f, 0.0f };
 const quat Quaternions::Y_180{ 0.0f, 0.0f, 1.0f, 0.0f };
 const quat Quaternions::Z_180{ 0.0f, 0.0f, 0.0f, 1.0f };
 
+const mat4 Matrices::IDENTITY { glm::mat4() };
+const mat4 Matrices::X_180 { createMatFromQuatAndPos(Quaternions::X_180, Vectors::ZERO) };
+const mat4 Matrices::Y_180 { createMatFromQuatAndPos(Quaternions::Y_180, Vectors::ZERO) };
+const mat4 Matrices::Z_180 { createMatFromQuatAndPos(Quaternions::Z_180, Vectors::ZERO) };
+
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
