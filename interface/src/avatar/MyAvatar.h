@@ -22,14 +22,15 @@
 
 #include <controllers/Pose.h>
 #include <controllers/Actions.h>
+#include <avatars-renderer/Avatar.h>
 
-#include "Avatar.h"
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
 #include <ThreadSafeValueCache.h>
 
 class AvatarActionHold;
 class ModelItemID;
+class MyHead;
 
 enum eyeContactTarget {
     LEFT_EYE,
@@ -149,6 +150,7 @@ public:
     explicit MyAvatar(QThread* thread, RigPointer rig);
     ~MyAvatar();
 
+    void instantiableAvatar() override {};
     void registerMetaTypes(QScriptEngine* engine);
 
     virtual void simulateAttachments(float deltaTime) override;
@@ -353,6 +355,7 @@ public:
 
     eyeContactTarget getEyeContactTarget();
 
+    const MyHead* getMyHead() const;
     Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
     Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
     Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
@@ -589,17 +592,17 @@ private:
     std::array<float, MAX_DRIVE_KEYS> _driveKeys;
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
-    bool _wasPushing;
-    bool _isPushing;
-    bool _isBeingPushed;
-    bool _isBraking;
-    bool _isAway;
+    bool _wasPushing { false };
+    bool _isPushing { false };
+    bool _isBeingPushed { false };
+    bool _isBraking { false };
+    bool _isAway { false };
 
-    float _boomLength;
+    float _boomLength { ZOOM_DEFAULT };
     float _yawSpeed; // degrees/sec
     float _pitchSpeed; // degrees/sec
 
-    glm::vec3 _thrust;  // impulse accumulator for outside sources
+    glm::vec3 _thrust { 0.0f };  // impulse accumulator for outside sources
 
     glm::vec3 _actionMotorVelocity; // target local-frame velocity of avatar (default controller actions)
     glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (analog script)
@@ -615,7 +618,7 @@ private:
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
-    bool _shouldRender;
+    bool _shouldRender { true };
     float _oculusYawOffset;
 
     eyeContactTarget _eyeContactTarget;
