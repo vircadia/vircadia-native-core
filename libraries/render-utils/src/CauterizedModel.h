@@ -1,7 +1,4 @@
 //
-//  CauterizeableModel.h
-//  interface/src/avatar
-//
 //  Created by Andrew Meadows 2016.01.17
 //  Copyright 2017 High Fidelity, Inc.
 //
@@ -13,7 +10,7 @@
 #define hifi_CauterizedModel_h
 
 
-#include <Model.h>
+#include "Model.h"
 
 class CauterizedModel : public Model {
     Q_OBJECT

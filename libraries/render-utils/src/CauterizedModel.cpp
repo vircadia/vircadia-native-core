@@ -1,7 +1,4 @@
 //
-//  CauterizedModel.cpp
-//  interface/src/avatar
-//
 //  Created by Andrew Meadows 2017.01.17
 //  Copyright 2017 High Fidelity, Inc.
 //
@@ -11,10 +8,10 @@
 
 #include "CauterizedModel.h"
 
-#include <AbstractViewStateInterface.h>
-#include <MeshPartPayload.h>
 #include <PerfStat.h>
 
+#include "AbstractViewStateInterface.h"
+#include "MeshPartPayload.h"
 #include "CauterizedMeshPartPayload.h"
 #include "RenderUtilsLogging.h"
 

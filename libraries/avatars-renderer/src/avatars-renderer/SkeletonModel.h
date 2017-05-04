@@ -114,7 +114,7 @@ protected:
 
     void computeBoundingShape();
 
-private:
+protected:
 
     bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 

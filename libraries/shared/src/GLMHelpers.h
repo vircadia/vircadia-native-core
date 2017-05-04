@@ -252,6 +252,9 @@ inline bool isNaN(const glm::quat& value) { return isNaN(value.w) || isNaN(value
 
 glm::mat4 orthoInverse(const glm::mat4& m);
 
+//  Return a random vector of average length 1
+glm::vec3 randVector();
+
 //
 // Safe replacement of glm_mat4_mul() for unaligned arguments instead of __m128
 //
