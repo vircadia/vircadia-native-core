@@ -469,6 +469,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     if (entityFound) {
         queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     } else {
+        // attempt to get a name for the mystery ID
         QString name = "unknown";
         QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
         if (parentFinder) {
