@@ -483,6 +483,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             }
         }
         qCWarning(entities) << "attempted edit on unknown entity: " << id << name;
+        return QUuid(); // null UUID to indicate failure
     }
     return id;
 }
