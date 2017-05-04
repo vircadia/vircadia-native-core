@@ -190,6 +190,11 @@ Column {
             onCheckedChanged: { Render.getConfig("DrawOverlayTransparentBounds")["enabled"] = checked }
         }
         CheckBox {
+            text: "Lights"
+            checked: Render.getConfig("DrawLightBounds")["enabled"]
+            onCheckedChanged: { Render.getConfig("DrawLightBounds")["enabled"] = checked; }
+        }
+        CheckBox {
             text: "Zones"
             checked: Render.getConfig("DrawZones")["enabled"]
             onCheckedChanged: { Render.getConfig("ZoneRenderer")["enabled"] = checked; Render.getConfig("DrawZones")["enabled"] = checked; }

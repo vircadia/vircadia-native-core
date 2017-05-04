@@ -21,6 +21,9 @@
 #include "EntityTreeRenderer.h"
 #include "RenderableEntityItem.h"
 
+#include <LightPayload.h>
+
+
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
@@ -168,6 +171,37 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
         _model->removeFromScene(scene, transaction);
         scene->enqueueTransaction(transaction);
     }
+
+    /*
+    {
+        // Set the keylight
+        sceneKeyLight->setColor(ColorUtils::toVec3(this->getKeyLightProperties().getColor()));
+        sceneKeyLight->setIntensity(this->getKeyLightProperties().getIntensity());
+        sceneKeyLight->setAmbientIntensity(this->getKeyLightProperties().getAmbientIntensity());
+        sceneKeyLight->setDirection(this->getKeyLightProperties().getDirection());
+
+        // Set the stage
+        bool isSunModelEnabled = this->getStageProperties().getSunModelEnabled();
+        sceneStage->setSunModelEnable(isSunModelEnabled);
+        if (isSunModelEnabled) {
+            sceneStage->setLocation(this->getStageProperties().getLongitude(),
+                this->getStageProperties().getLatitude(),
+                this->getStageProperties().getAltitude());
+
+            auto sceneTime = sceneStage->getTime();
+            sceneTime->setHour(this->getStageProperties().calculateHour());
+            sceneTime->setDay(this->getStageProperties().calculateDay());
+        }
+
+        // Set the ambient texture
+        _ambientTextureURL = this->getKeyLightProperties().getAmbientURL();
+        if (_ambientTextureURL.isEmpty()) {
+            _pendingAmbientTexture = false;
+            _ambientTexture.clear();
+        } else {
+            _pendingAmbientTexture = true;
+        }
+    }*/
 }
 
 bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
@@ -229,11 +263,25 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::
     renderPayload->addStatusGetters(statusGetters);
 
     transaction.resetItem(_myMetaItem, renderPayload);
+
+
+    _myKeyLightItem = scene->allocateID();
+
+    auto keyLightPayload = std::make_shared<KeyLightPayload>();
+    updateKeyLightItemFromEntity((*keyLightPayload));
+
+    auto keyLightItem = std::make_shared<KeyLightPayload::Payload>(keyLightPayload);
+
+    transaction.resetItem(_myKeyLightItem, keyLightItem);
+
+
     return true;
 }
 
 void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
                                                 render::Transaction& transaction) {
+    transaction.removeItem(_myKeyLightItem);
+    render::Item::clearID(_myKeyLightItem);
     transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
     if (_model) {
@@ -249,11 +297,43 @@ void RenderableZoneEntityItem::notifyBoundChanged() {
     render::Transaction transaction;
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     if (scene) {
-        transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {
-        });
+        transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {});
+        transaction.updateItem<KeyLightPayload>(_myKeyLightItem, [](KeyLightPayload& data) {});
 
         scene->enqueueTransaction(transaction);
     } else {
         qCWarning(entitiesrenderer) << "RenderableZoneEntityItem::notifyBoundChanged(), Unexpected null scene, possibly during application shutdown";
     }
+}
+
+void RenderableZoneEntityItem::updateKeyLightItemFromEntity(KeyLightPayload& keylightPayload) {
+    auto entity = this;
+
+    keylightPayload.setVisible(entity->getVisible());
+
+    auto light = keylightPayload.editLight();
+    light->setPosition(entity->getPosition());
+    light->setOrientation(entity->getRotation());
+
+    bool success;
+    keylightPayload.editBound() = entity->getAABox(success);
+    if (!success) {
+        keylightPayload.editBound() = render::Item::Bound();
+    }
+
+    // Set the keylight
+    light->setColor(ColorUtils::toVec3(this->getKeyLightProperties().getColor()));
+    light->setIntensity(this->getKeyLightProperties().getIntensity());
+    light->setAmbientIntensity(this->getKeyLightProperties().getAmbientIntensity());
+    light->setDirection(this->getKeyLightProperties().getDirection());
+
+
+ //   light->setColor(toGlm(entity->getXColor()));
+
+  //  float intensity = entity->getIntensity();//* entity->getFadingRatio();
+  //  light->setIntensity(intensity);
+
+
+    light->setType(model::Light::SUN);
+
 }

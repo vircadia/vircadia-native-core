@@ -123,14 +123,17 @@ public:
             switch (type) {
                 case model::Light::POINT: { pushPointLight(index); break; }
                 case model::Light::SPOT: { pushSpotLight(index); break; }
+                case model::Light::SUN: { pushSunLight(index); break; }
                 default: { break; }
             }
         }
         void pushPointLight(LightStage::Index index) { _pointLights.emplace_back(index); }
         void pushSpotLight(LightStage::Index index) { _spotLights.emplace_back(index); }
-        
+        void pushSunLight(LightStage::Index index) { _sunLights.emplace_back(index); }
+
         LightStage::LightIndices _pointLights;
         LightStage::LightIndices _spotLights;
+        LightStage::LightIndices _sunLights;
     };
     
     Frame _currentFrame;

@@ -16,6 +16,7 @@
 #include <ZoneEntityItem.h>
 
 class NetworkGeometry;
+class KeyLightPayload;
 
 class RenderableZoneEntityItem : public ZoneEntityItem  {
 public:
@@ -42,7 +43,7 @@ public:
     virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
     
     render::ItemID getRenderItemID() const { return _myMetaItem; }
-
+    
 private:
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
@@ -54,11 +55,17 @@ private:
     
     template<typename Lambda>
     void changeProperties(Lambda functor);
+
+
+    void updateKeyLightItemFromEntity(KeyLightPayload& keylightPayload);
+
     
     Model* _model;
     bool _needsInitialSimulation;
     
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
+
+    render::ItemID _myKeyLightItem { render::Item::INVALID_ITEM_ID };
 };
 
 #endif // hifi_RenderableZoneEntityItem_h

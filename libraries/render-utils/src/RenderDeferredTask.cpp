@@ -162,6 +162,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
     
+        task.addJob<DrawBounds>("DrawLightBounds", lights);
         task.addJob<ZoneRendererTask>("ZoneRenderer", opaques);
     }
 
