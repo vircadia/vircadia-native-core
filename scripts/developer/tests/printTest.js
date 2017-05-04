@@ -14,15 +14,12 @@ function main() {
 
     // note: these trigger the equivalent of an emit
     Script.printedMessage('[Script.printedMessage] hello world', '{filename}');
+    Script.infoMessage('[Script.infoMessage] hello world', '{filename}');
+    Script.warningMessage('[Script.warningMessage] hello world', '{filename}');
     Script.errorMessage('[Script.errorMessage] hello world', '{filename}');
 
     {
-        // FIXME: while not directly related to Script.print, these currently don't
-        //   show up at all in the "HMD-friendly script log" or "Console..."
-
-        Script.infoMessage('[Script.infoMessage] hello world', '{filename}');
-        Script.warningMessage('[Script.warningMessage] hello world', '{filename}');
-
+        // FIXME: these only show up in the application debug log
         Vec3.print('[Vec3.print]', Vec3.HALF);
 
         var q = Quat.fromPitchYawRollDegrees(45, 45, 45);
