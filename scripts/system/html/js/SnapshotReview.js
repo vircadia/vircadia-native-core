@@ -143,11 +143,11 @@ function createShareBar(parentID, isGif, blastButtonDisabled, hifiButtonDisabled
         '</div>' +
         '<div class="shareButtons" id="' + shareButtonsDivID + '" style="visibility:hidden">';
     if (canBlast) {
-        shareBarInnerHTML += '<div class="shareButton blastToConnections' + (blastButtonDisabled ? ' disabled' : '') + '" id="' + blastToConnectionsButtonID + '" onmouseover="shareButtonHovered(\'blast\', ' + parentID + ')" onclick="' + (blastButtonDisabled ? '' : 'blastToConnections(' + parentID + ', ' + isGif + ')') + '"><img src="img/blast_icon.svg"></div>';
+        shareBarInnerHTML += '<div class="shareButton blastToConnections' + (blastButtonDisabled ? ' disabled' : '') + '" id="' + blastToConnectionsButtonID + '" onmouseover="shareButtonHovered(\'blast\', ' + parentID + ', true)" onclick="' + (blastButtonDisabled ? '' : 'blastToConnections(' + parentID + ', ' + isGif + ')') + '"><img src="img/blast_icon.svg"></div>';
     }
-    shareBarInnerHTML += '<div class="shareButton shareWithEveryone' + (hifiButtonDisabled ? ' disabled' : '') + '" id="' + shareWithEveryoneButtonID + '" onmouseover="shareButtonHovered(\'hifi\', ' + parentID + ')" onclick="' + (hifiButtonDisabled ? '' : 'shareWithEveryone(' + parentID + ', ' + isGif + ')') + '"><img src="img/hifi_icon.svg" style="width:35px;height:35px;margin:2px 0 0 2px;"></div>' +
-            '<a class="shareButton facebookButton" id="' + facebookButtonID + '" onmouseover="shareButtonHovered(\'facebook\', ' + parentID + ')" onclick="shareButtonClicked(\'facebook\', ' + parentID + ')"><img src="img/fb_icon.svg"></a>' +
-            '<a class="shareButton twitterButton" id="' + twitterButtonID + '" onmouseover="shareButtonHovered(\'twitter\', ' + parentID + ')" onclick="shareButtonClicked(\'twitter\', ' + parentID + ')"><img src="img/twitter_icon.svg"></a>' +
+    shareBarInnerHTML += '<div class="shareButton shareWithEveryone' + (hifiButtonDisabled ? ' disabled' : '') + '" id="' + shareWithEveryoneButtonID + '" onmouseover="shareButtonHovered(\'hifi\', ' + parentID + ', true)" onclick="' + (hifiButtonDisabled ? '' : 'shareWithEveryone(' + parentID + ', ' + isGif + ')') + '"><img src="img/hifi_icon.svg" style="width:35px;height:35px;margin:2px 0 0 2px;"></div>' +
+            '<a class="shareButton facebookButton" id="' + facebookButtonID + '" onmouseover="shareButtonHovered(\'facebook\', ' + parentID + ', true)" onclick="shareButtonClicked(\'facebook\', ' + parentID + ')"><img src="img/fb_icon.svg"></a>' +
+            '<a class="shareButton twitterButton" id="' + twitterButtonID + '" onmouseover="shareButtonHovered(\'twitter\', ' + parentID + ', true)" onclick="shareButtonClicked(\'twitter\', ' + parentID + ')"><img src="img/twitter_icon.svg"></a>' +
         '</div>';
 
     shareBar.innerHTML = shareBarInnerHTML;
@@ -164,11 +164,11 @@ function appendShareBar(divID, isGif, blastButtonDisabled, hifiButtonDisabled, c
     document.getElementById(divID).appendChild(createShareBar(divID, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast));
     if (divID === "p0") {
         selectImageToShare(divID, true);
-        if (canBlast) {
-            shareButtonHovered('blast', divID);
-        } else {
-            shareButtonHovered('hifi', divID);
-        }
+    }
+    if (canBlast) {
+        shareButtonHovered('blast', divID, false);
+    } else {
+        shareButtonHovered('hifi', divID, false);
     }
 }
 function shareForUrl(selectedID) {
@@ -382,7 +382,7 @@ function shareWithEveryone(selectedID, isGif) {
         showUploadingMessage(selectedID, 'hifi');
     }
 }
-function shareButtonHovered(destination, selectedID) {
+function shareButtonHovered(destination, selectedID, shouldAlsoModifyOther) {
     if (selectedID.id) {
         selectedID = selectedID.id; // sometimes (?), `selectedID` is passed as an HTML object to these functions; we just want the ID
     }
@@ -391,7 +391,6 @@ function shareButtonHovered(destination, selectedID) {
         itr;
 
     if (!shareBarHelp.classList.contains("uploading")) {
-
         for (itr = 0; itr < shareButtonsDiv.length; itr += 1) {
             shareButtonsDiv[itr].style.backgroundColor = "rgba(0, 0, 0, 0)";
         }
@@ -439,6 +438,14 @@ function shareButtonHovered(destination, selectedID) {
                 shareBarHelp.innerHTML = twitterShareText;
                 document.getElementById(selectedID + "twitterButton").style.backgroundColor = "#00B4EE";
                 break;
+        }
+    }
+
+    if (shouldAlsoModifyOther && imageCount > 1) {
+        if (selectedID === "p0" && !document.getElementById("p1").classList.contains("processingGif")) {
+            shareButtonHovered(destination, "p1", false);
+        } else if (selectedID === "p1") {
+            shareButtonHovered(destination, "p0", false);
         }
     }
 }
@@ -525,6 +532,7 @@ window.onload = function () {
                             message.image_data.forEach(function (element, idx) {
                                 addImage(element, idx === 1, idx === 0 && messageOptions.canShare, false);
                             });
+                            document.getElementById("p1").classList.add("processingGif");
                         } else {
                             var gifPath = message.image_data[0].localPath,
                                 p1img = document.getElementById('p1img');
@@ -534,6 +542,7 @@ window.onload = function () {
                             if (messageOptions.canShare) {
                                 shareForUrl("p1");
                                 appendShareBar("p1", true, false, false, true);
+                                document.getElementById("p1").classList.remove("processingGif");
                             }
                         }
                     } else {
