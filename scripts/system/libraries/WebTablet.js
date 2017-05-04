@@ -120,6 +120,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         modelURL: modelURL,
         url: modelURL, // for overlay
         grabbable: true, // for overlay
+        loadPriority: 10.0, // for overlay
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),

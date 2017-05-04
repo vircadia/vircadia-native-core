@@ -15,8 +15,9 @@
 #include <QSet>
 
 #include <ObjectMotionState.h>
+#include <BulletUtil.h>
 
-class Avatar;
+#include "Avatar.h"
 
 class AvatarMotionState : public ObjectMotionState {
 public:
