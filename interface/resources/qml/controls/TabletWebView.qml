@@ -238,7 +238,7 @@ Item {
             worldId: WebEngineScript.MainWorld
         }
 
-	property string urlTag: "noDownload=false";
+        property string urlTag: "noDownload=false";
         userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
         property string newUrl: ""
@@ -264,7 +264,7 @@ Item {
             keyboard.resetShiftMode(false);
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-		var url = loadRequest.url.toString();
+                var url = loadRequest.url.toString();
                 if (urlHandler.canHandleUrl(url)) {
                     if (urlHandler.handleUrl(url)) {
                         root.stop();
@@ -273,7 +273,7 @@ Item {
             }
 
             if (WebEngineView.LoadFailedStatus == loadRequest.status) {
-                console.log(" Tablet WebEngineView failed to laod url: " + loadRequest.url.toString());
+                console.log(" Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
             }
 
             if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
