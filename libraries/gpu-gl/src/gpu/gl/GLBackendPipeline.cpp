@@ -149,6 +149,10 @@ void GLBackend::resetUniformStage() {
 
 void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 3]._uint;
+    if (slot > GLBackend::MAX_NUM_UNIFORM_BUFFERS) {
+        // "GLBackend::do_setUniformBuffer: Trying to set a uniform Buffer at slot #" + slot + " which doesn't exist. MaxNumUniformBuffers = " + getMaxNumUniformBuffers());
+        return;
+    }
     BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
     GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
