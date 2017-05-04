@@ -34,6 +34,6 @@ function main() {
         Mat4.print('[Mat4.print (col major)]', m);
         Mat4.print('[Mat4.print (row major)]', m, true);
 
-        Uuid.print('[Uuid.print]', Uuid.toString(0));
+        Uuid.print('[Uuid.print]', Uuid.fromString(Uuid.toString(0)));
     }
 }
