@@ -421,6 +421,11 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
             return;
     }
 
+    //do not send non primary button events to tablet
+    if (event.getButton() != PointerEvent::PrimaryButton) {
+        return;
+    }
+
     QTouchEvent::TouchPoint point;
     point.setId(event.getID());
     point.setState(touchPointState);
