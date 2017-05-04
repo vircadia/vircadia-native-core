@@ -17,12 +17,12 @@
 
 
 const uint16_t ObjectConstraintHinge::constraintVersion = 1;
-
+const glm::vec3 DEFAULT_HINGE_AXIS(1.0f, 0.0f, 0.0f);
 
 ObjectConstraintHinge::ObjectConstraintHinge(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectConstraint(DYNAMIC_TYPE_HINGE, id, ownerEntity),
-    _pivotInA(glm::vec3(0.0f)),
-    _axisInA(glm::vec3(0.0f))
+    _axisInA(DEFAULT_HINGE_AXIS),
+    _axisInB(DEFAULT_HINGE_AXIS)
 {
     #if WANT_DEBUG
     qCDebug(physics) << "ObjectConstraintHinge::ObjectConstraintHinge";
@@ -104,12 +104,27 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         return nullptr;
     }
 
+    if (glm::length(axisInA) < FLT_EPSILON) {
+        qCWarning(physics) << "hinge axis cannot be a zero vector";
+        axisInA = DEFAULT_HINGE_AXIS;
+    } else {
+        axisInA = glm::normalize(axisInA);
+    }
+
     if (!otherEntityID.isNull()) {
         // This hinge is between two entities... find the other rigid body.
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
             return nullptr;
         }
+
+        if (glm::length(axisInB) < FLT_EPSILON) {
+            qCWarning(physics) << "hinge axis cannot be a zero vector";
+            axisInB = DEFAULT_HINGE_AXIS;
+        } else {
+            axisInB = glm::normalize(axisInB);
+        }
+
         constraint = new btHingeConstraint(*rigidBodyA, *rigidBodyB,
                                            glmToBullet(pivotInA), glmToBullet(pivotInB),
                                            glmToBullet(axisInA), glmToBullet(axisInB),
