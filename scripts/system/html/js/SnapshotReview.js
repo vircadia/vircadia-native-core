@@ -261,6 +261,7 @@ function showUploadingMessage(selectedID, destination) {
     var shareBarHelp = document.getElementById(selectedID + "shareBarHelp");
 
     shareBarHelp.innerHTML = '<img style="display:inline;width:25px;height:25px;" src="./img/loader.gif"></img><span style="position:relative;margin-left:5px;bottom:7px;">Preparing to Share</span>';
+    shareBarHelp.classList.add("uploading");
     shareBarHelp.setAttribute("data-destination", destination);
 }
 function hideUploadingMessageAndShare(selectedID, storyID) {
@@ -270,6 +271,8 @@ function hideUploadingMessageAndShare(selectedID, storyID) {
 
     var shareBarHelp = document.getElementById(selectedID + "shareBarHelp"),
         shareBarHelpDestination = shareBarHelp.getAttribute("data-destination");
+
+    shareBarHelp.classList.remove("uploading");
     if (shareBarHelpDestination) {
         switch (shareBarHelpDestination) {
             case 'blast':
@@ -387,54 +390,56 @@ function shareButtonHovered(destination, selectedID) {
         shareButtonsDiv = document.getElementById(selectedID + "shareButtonsDiv").childNodes,
         itr;
 
-    for (itr = 0; itr < shareButtonsDiv.length; itr += 1) {
-        shareButtonsDiv[itr].style.backgroundColor = "rgba(0, 0, 0, 0)";
-    }
-    shareBarHelp.style.opacity = "1.0";
+    if (!shareBarHelp.classList.contains("uploading")) {
 
-    switch (destination) {
-        case 'blast':
-            var blastToConnectionsButton = document.getElementById(selectedID + "blastToConnectionsButton");
-            if (!blastToConnectionsButton.classList.contains("disabled")) {
-                shareBarHelp.style.backgroundColor = "#EA4C5F";
-                shareBarHelp.style.opacity = "1.0";
-                blastToConnectionsButton.style.backgroundColor = "#EA4C5F";
-                blastToConnectionsButton.style.opacity = "1.0";
-                shareBarHelp.innerHTML = blastShareText;
-            } else {
-                shareBarHelp.style.backgroundColor = "#000000";
-                shareBarHelp.style.opacity = "0.5";
-                blastToConnectionsButton.style.backgroundColor = "#000000";
-                blastToConnectionsButton.style.opacity = "0.5";
-                shareBarHelp.innerHTML = blastAlreadySharedText;
-            }
-            break;
-        case 'hifi':
-            var shareWithEveryoneButton = document.getElementById(selectedID + "shareWithEveryoneButton");
-            if (!shareWithEveryoneButton.classList.contains("disabled")) {
-                shareBarHelp.style.backgroundColor = "#1FC6A6";
-                shareBarHelp.style.opacity = "1.0";
-                shareWithEveryoneButton.style.backgroundColor = "#1FC6A6";
-                shareWithEveryoneButton.style.opacity = "1.0";
-                shareBarHelp.innerHTML = hifiShareText;
-            } else {
-                shareBarHelp.style.backgroundColor = "#000000";
-                shareBarHelp.style.opacity = "0.5";
-                shareWithEveryoneButton.style.backgroundColor = "#000000";
-                shareWithEveryoneButton.style.opacity = "0.5";
-                shareBarHelp.innerHTML = hifiAlreadySharedText;
-            }
-            break;
-        case 'facebook':
-            shareBarHelp.style.backgroundColor = "#3C58A0";
-            shareBarHelp.innerHTML = facebookShareText;
-            document.getElementById(selectedID + "facebookButton").style.backgroundColor = "#3C58A0";
-            break;
-        case 'twitter':
-            shareBarHelp.style.backgroundColor = "#00B4EE";
-            shareBarHelp.innerHTML = twitterShareText;
-            document.getElementById(selectedID + "twitterButton").style.backgroundColor = "#00B4EE";
-            break;
+        for (itr = 0; itr < shareButtonsDiv.length; itr += 1) {
+            shareButtonsDiv[itr].style.backgroundColor = "rgba(0, 0, 0, 0)";
+        }
+        shareBarHelp.style.opacity = "1.0";
+        switch (destination) {
+            case 'blast':
+                var blastToConnectionsButton = document.getElementById(selectedID + "blastToConnectionsButton");
+                if (!blastToConnectionsButton.classList.contains("disabled")) {
+                    shareBarHelp.style.backgroundColor = "#EA4C5F";
+                    shareBarHelp.style.opacity = "1.0";
+                    blastToConnectionsButton.style.backgroundColor = "#EA4C5F";
+                    blastToConnectionsButton.style.opacity = "1.0";
+                    shareBarHelp.innerHTML = blastShareText;
+                } else {
+                    shareBarHelp.style.backgroundColor = "#000000";
+                    shareBarHelp.style.opacity = "0.5";
+                    blastToConnectionsButton.style.backgroundColor = "#000000";
+                    blastToConnectionsButton.style.opacity = "0.5";
+                    shareBarHelp.innerHTML = blastAlreadySharedText;
+                }
+                break;
+            case 'hifi':
+                var shareWithEveryoneButton = document.getElementById(selectedID + "shareWithEveryoneButton");
+                if (!shareWithEveryoneButton.classList.contains("disabled")) {
+                    shareBarHelp.style.backgroundColor = "#1FC6A6";
+                    shareBarHelp.style.opacity = "1.0";
+                    shareWithEveryoneButton.style.backgroundColor = "#1FC6A6";
+                    shareWithEveryoneButton.style.opacity = "1.0";
+                    shareBarHelp.innerHTML = hifiShareText;
+                } else {
+                    shareBarHelp.style.backgroundColor = "#000000";
+                    shareBarHelp.style.opacity = "0.5";
+                    shareWithEveryoneButton.style.backgroundColor = "#000000";
+                    shareWithEveryoneButton.style.opacity = "0.5";
+                    shareBarHelp.innerHTML = hifiAlreadySharedText;
+                }
+                break;
+            case 'facebook':
+                shareBarHelp.style.backgroundColor = "#3C58A0";
+                shareBarHelp.innerHTML = facebookShareText;
+                document.getElementById(selectedID + "facebookButton").style.backgroundColor = "#3C58A0";
+                break;
+            case 'twitter':
+                shareBarHelp.style.backgroundColor = "#00B4EE";
+                shareBarHelp.innerHTML = twitterShareText;
+                document.getElementById(selectedID + "twitterButton").style.backgroundColor = "#00B4EE";
+                break;
+        }
     }
 }
 function shareButtonClicked(destination, selectedID) {
