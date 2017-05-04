@@ -281,6 +281,7 @@ Item {
                     web.initialPage = webview.url;
                     startingUp = false;
                 }
+                webview.forceActiveFocus();
             }
         }
         
