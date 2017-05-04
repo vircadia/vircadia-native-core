@@ -37,15 +37,17 @@ public:
         qmlObject->setObjectName(uuid.toString());
         // Make sure we can find it again in the future
         updateQmlItemFromAction();
-        auto connection = QObject::connect(action, &QAction::changed, [=] {
+        _changedConnection = QObject::connect(action, &QAction::changed, [=] {
             updateQmlItemFromAction();
         });
-        QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
-            QObject::disconnect(connection);
+        _shutdownConnection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
+            QObject::disconnect(_changedConnection);
         });
     }
 
     ~MenuUserData() {
+        QObject::disconnect(_changedConnection);
+        QObject::disconnect(_shutdownConnection);
         _action->setUserData(USER_DATA_ID, nullptr);
         _qml->setUserData(USER_DATA_ID, nullptr);
     }
@@ -104,6 +106,8 @@ public:
 private:
     MenuUserData(const MenuUserData&);
 
+    QMetaObject::Connection _shutdownConnection;
+    QMetaObject::Connection _changedConnection;
     QAction* _action { nullptr };
     QObject* _qml { nullptr };
 };
