@@ -24,6 +24,7 @@
 
 #include <shared/NsightHelpers.h>
 #include <NetworkAccessManager.h>
+#include <ResourceManager.h>
 
 #include "FBXReader.h"
 #include "ModelFormatLogging.h"
@@ -165,6 +166,7 @@ bool OBJFace::add(const QByteArray& vertexIndex, const QByteArray& textureIndex,
     }
     return true;
 }
+
 QVector<OBJFace> OBJFace::triangulate() {
     QVector<OBJFace> newFaces;
     const int nVerticesInATriangle = 3;
@@ -183,6 +185,7 @@ QVector<OBJFace> OBJFace::triangulate() {
     }
     return newFaces;
 }
+
 void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f at index i
     vertexIndices.append(face->vertexIndices[index]);
     if (face->textureUVIndices.count() > 0) { // Any at all. Runtime error if not consistent.
@@ -193,24 +196,13 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
     }
 }
 
-static bool replyOK(QNetworkReply* netReply, QUrl url) { // This will be reworked when we make things asynchronous
-    return (netReply && netReply->isFinished() &&
-            (url.toString().startsWith("file", Qt::CaseInsensitive) ? // file urls don't have http status codes
-             netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString().isEmpty() :
-             (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)));
-}
-
 bool OBJReader::isValidTexture(const QByteArray &filename) {
     if (_url.isEmpty()) {
         return false;
     }
     QUrl candidateUrl = _url.resolved(QUrl(filename));
-    QNetworkReply *netReply = request(candidateUrl, true);
-    bool isValid = replyOK(netReply, candidateUrl);
-    if (netReply) {
-        netReply->deleteLater();
-    }
-    return isValid;
+
+    return ResourceManager::resourceExists(candidateUrl);
 }
 
 void OBJReader::parseMaterialLibrary(QIODevice* device) {
@@ -274,7 +266,28 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
     }
 }
 
-QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
+std::tuple<bool, QByteArray> requestData(QUrl& url) {
+    auto request = ResourceManager::createResourceRequest(nullptr, url);
+
+    if (!request) {
+        return std::make_tuple(false, QByteArray());
+    }
+
+    request->send();
+
+    QEventLoop loop;
+    QObject::connect(request, &ResourceRequest::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+
+    if (request->getResult() == ResourceRequest::Success) {
+        return std::make_tuple(true, request->getData());
+    } else {
+        return std::make_tuple(false, QByteArray());
+    }
+}
+
+
+QNetworkReply* request(QUrl& url, bool isTest) {
     if (!qApp) {
         return nullptr;
     }
@@ -293,10 +306,7 @@ QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
     QEventLoop loop; // Create an event loop that will quit when we get the finished signal
     QObject::connect(netReply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec();                    // Nothing is going to happen on this whole run thread until we get this
-    static const int WAIT_TIMEOUT_MS = 500;
-    while (!aboutToQuit && qApp && !netReply->isReadable()) {
-        netReply->waitForReadyRead(WAIT_TIMEOUT_MS); // so we might as well block this thread waiting for the response, rather than
-    }
+
     QObject::disconnect(connection);
     return netReply;                // trying to sync later on.
 }
@@ -446,142 +456,142 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         // add a new meshPart to the geometry's single mesh.
         while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess, combineParts)) {}
 
-		FBXMesh& mesh = geometry.meshes[0];
-		mesh.meshIndex = 0;
+        FBXMesh& mesh = geometry.meshes[0];
+        mesh.meshIndex = 0;
 
-		geometry.joints.resize(1);
-		geometry.joints[0].isFree = false;
-		geometry.joints[0].parentIndex = -1;
-		geometry.joints[0].distanceToParent = 0;
-		geometry.joints[0].translation = glm::vec3(0, 0, 0);
-		geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
-		geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
-		geometry.joints[0].name = "OBJ";
-		geometry.joints[0].isSkeletonJoint = true;
+        geometry.joints.resize(1);
+        geometry.joints[0].isFree = false;
+        geometry.joints[0].parentIndex = -1;
+        geometry.joints[0].distanceToParent = 0;
+        geometry.joints[0].translation = glm::vec3(0, 0, 0);
+        geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
+        geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
+        geometry.joints[0].name = "OBJ";
+        geometry.joints[0].isSkeletonJoint = true;
 
-		geometry.jointIndices["x"] = 1;
+        geometry.jointIndices["x"] = 1;
 
-		FBXCluster cluster;
-		cluster.jointIndex = 0;
-		cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			0, 0, 0, 1);
-		mesh.clusters.append(cluster);
+        FBXCluster cluster;
+        cluster.jointIndex = 0;
+        cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1);
+        mesh.clusters.append(cluster);
 
-		QMap<QString, int> materialMeshIdMap;
-		QVector<FBXMeshPart> fbxMeshParts;
-		for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
-			FBXMeshPart& meshPart = mesh.parts[i];
-			FaceGroup faceGroup = faceGroups[meshPartCount];
+        QMap<QString, int> materialMeshIdMap;
+        QVector<FBXMeshPart> fbxMeshParts;
+        for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
+            FBXMeshPart& meshPart = mesh.parts[i];
+            FaceGroup faceGroup = faceGroups[meshPartCount];
             bool specifiesUV = false;
-			foreach(OBJFace face, faceGroup) {
-				// Go through all of the OBJ faces and determine the number of different materials necessary (each different material will be a unique mesh).
-				// NOTE (trent/mittens 3/30/17): this seems hardcore wasteful and is slowed down a bit by iterating through the face group twice, but it's the best way I've thought of to hack multi-material support in an OBJ into this pipeline.
-				if (!materialMeshIdMap.contains(face.materialName)) {
-					// Create a new FBXMesh for this material mapping.
-					materialMeshIdMap.insert(face.materialName, materialMeshIdMap.count());
+            foreach(OBJFace face, faceGroup) {
+                // Go through all of the OBJ faces and determine the number of different materials necessary (each different material will be a unique mesh).
+                // NOTE (trent/mittens 3/30/17): this seems hardcore wasteful and is slowed down a bit by iterating through the face group twice, but it's the best way I've thought of to hack multi-material support in an OBJ into this pipeline.
+                if (!materialMeshIdMap.contains(face.materialName)) {
+                    // Create a new FBXMesh for this material mapping.
+                    materialMeshIdMap.insert(face.materialName, materialMeshIdMap.count());
 
-					fbxMeshParts.append(FBXMeshPart());
-					FBXMeshPart& meshPartNew = fbxMeshParts.last();
-					meshPartNew.quadIndices = QVector<int>(meshPart.quadIndices);					// Copy over quad indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
-					meshPartNew.quadTrianglesIndices = QVector<int>(meshPart.quadTrianglesIndices); // Copy over quad triangulated indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
-					meshPartNew.triangleIndices = QVector<int>(meshPart.triangleIndices);			// Copy over triangle indices.
+                    fbxMeshParts.append(FBXMeshPart());
+                    FBXMeshPart& meshPartNew = fbxMeshParts.last();
+                    meshPartNew.quadIndices = QVector<int>(meshPart.quadIndices);					// Copy over quad indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
+                    meshPartNew.quadTrianglesIndices = QVector<int>(meshPart.quadTrianglesIndices); // Copy over quad triangulated indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
+                    meshPartNew.triangleIndices = QVector<int>(meshPart.triangleIndices);			// Copy over triangle indices.
 
-					// Do some of the material logic (which previously lived below) now.
-					// All the faces in the same group will have the same name and material.
-					QString groupMaterialName = face.materialName;
-					if (groupMaterialName.isEmpty() && specifiesUV) {
+                    // Do some of the material logic (which previously lived below) now.
+                    // All the faces in the same group will have the same name and material.
+                    QString groupMaterialName = face.materialName;
+                    if (groupMaterialName.isEmpty() && specifiesUV) {
 #ifdef WANT_DEBUG
-						qCDebug(modelformat) << "OBJ Reader WARNING: " << url
-							<< " needs a texture that isn't specified. Using default mechanism.";
+                        qCDebug(modelformat) << "OBJ Reader WARNING: " << url
+                            << " needs a texture that isn't specified. Using default mechanism.";
 #endif
-						groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
-					}
-					if (!groupMaterialName.isEmpty()) {
-						OBJMaterial& material = materials[groupMaterialName];
-						if (specifiesUV) {
-							material.userSpecifiesUV = true; // Note might not be true in a later usage.
-						}
-						if (specifiesUV || (groupMaterialName.compare("none", Qt::CaseInsensitive) != 0)) {
-							// Blender has a convention that a material named "None" isn't really used (or defined).
-							material.used = true;
-							needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
-						}
-						materials[groupMaterialName] = material;
-						meshPartNew.materialID = groupMaterialName;
-					}
-				}
-			}
-		}
-
-		// clean up old mesh parts.
-		int unmodifiedMeshPartCount = mesh.parts.count();
-		mesh.parts.clear();
-		mesh.parts = QVector<FBXMeshPart>(fbxMeshParts);
-
-		for (int i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
-			FaceGroup faceGroup = faceGroups[meshPartCount];
-
-			// Now that each mesh has been created with its own unique material mappings, fill them with data (vertex data is duplicated, face data is not).
-			foreach(OBJFace face, faceGroup) {
-				FBXMeshPart& meshPart = mesh.parts[materialMeshIdMap[face.materialName]];
-
-				glm::vec3 v0 = checked_at(vertices, face.vertexIndices[0]);
-				glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
-				glm::vec3 v2 = checked_at(vertices, face.vertexIndices[2]);
-
-				// Scale the vertices if the OBJ file scale is specified as non-one.
-				if (scaleGuess != 1.0f) {
-					v0 *= scaleGuess;
-					v1 *= scaleGuess;
-					v2 *= scaleGuess;
-				}
-
-				// Add the vertices.
-				meshPart.triangleIndices.append(mesh.vertices.count()); // not face.vertexIndices into vertices
-				mesh.vertices << v0;
-				meshPart.triangleIndices.append(mesh.vertices.count());
-				mesh.vertices << v1;
-				meshPart.triangleIndices.append(mesh.vertices.count());
-				mesh.vertices << v2;
-
-				glm::vec3 n0, n1, n2;
-				if (face.normalIndices.count()) {
-					n0 = checked_at(normals, face.normalIndices[0]);
-					n1 = checked_at(normals, face.normalIndices[1]);
-					n2 = checked_at(normals, face.normalIndices[2]);
-				} else { 
-					// generate normals from triangle plane if not provided
-					n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
-				}
-
-				mesh.normals.append(n0);
-				mesh.normals.append(n1);
-				mesh.normals.append(n2);
-
-				if (face.textureUVIndices.count()) {
-					mesh.texCoords <<
-						checked_at(textureUVs, face.textureUVIndices[0]) <<
-						checked_at(textureUVs, face.textureUVIndices[1]) <<
-						checked_at(textureUVs, face.textureUVIndices[2]);
-				} else {
-					glm::vec2 corner(0.0f, 1.0f);
-					mesh.texCoords << corner << corner << corner;
-				}
-			}
+                        groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
+                    }
+                    if (!groupMaterialName.isEmpty()) {
+                        OBJMaterial& material = materials[groupMaterialName];
+                        if (specifiesUV) {
+                            material.userSpecifiesUV = true; // Note might not be true in a later usage.
+                        }
+                        if (specifiesUV || (groupMaterialName.compare("none", Qt::CaseInsensitive) != 0)) {
+                            // Blender has a convention that a material named "None" isn't really used (or defined).
+                            material.used = true;
+                            needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
+                        }
+                        materials[groupMaterialName] = material;
+                        meshPartNew.materialID = groupMaterialName;
+                    }
+                }
+            }
         }
 
-		mesh.meshExtents.reset();
-		foreach(const glm::vec3& vertex, mesh.vertices) {
-			mesh.meshExtents.addPoint(vertex);
-			geometry.meshExtents.addPoint(vertex);
-		}
+        // clean up old mesh parts.
+        int unmodifiedMeshPartCount = mesh.parts.count();
+        mesh.parts.clear();
+        mesh.parts = QVector<FBXMeshPart>(fbxMeshParts);
 
-		// Build the single mesh.
-		FBXReader::buildModelMesh(mesh, url.toString());
+        for (int i = 0, meshPartCount = 0; i < unmodifiedMeshPartCount; i++, meshPartCount++) {
+            FaceGroup faceGroup = faceGroups[meshPartCount];
 
-		// fbxDebugDump(geometry);
+            // Now that each mesh has been created with its own unique material mappings, fill them with data (vertex data is duplicated, face data is not).
+            foreach(OBJFace face, faceGroup) {
+                FBXMeshPart& meshPart = mesh.parts[materialMeshIdMap[face.materialName]];
+
+                glm::vec3 v0 = checked_at(vertices, face.vertexIndices[0]);
+                glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
+                glm::vec3 v2 = checked_at(vertices, face.vertexIndices[2]);
+
+                // Scale the vertices if the OBJ file scale is specified as non-one.
+                if (scaleGuess != 1.0f) {
+                    v0 *= scaleGuess;
+                    v1 *= scaleGuess;
+                    v2 *= scaleGuess;
+                }
+
+                // Add the vertices.
+                meshPart.triangleIndices.append(mesh.vertices.count()); // not face.vertexIndices into vertices
+                mesh.vertices << v0;
+                meshPart.triangleIndices.append(mesh.vertices.count());
+                mesh.vertices << v1;
+                meshPart.triangleIndices.append(mesh.vertices.count());
+                mesh.vertices << v2;
+
+                glm::vec3 n0, n1, n2;
+                if (face.normalIndices.count()) {
+                    n0 = checked_at(normals, face.normalIndices[0]);
+                    n1 = checked_at(normals, face.normalIndices[1]);
+                    n2 = checked_at(normals, face.normalIndices[2]);
+                } else { 
+                    // generate normals from triangle plane if not provided
+                    n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
+                }
+
+                mesh.normals.append(n0);
+                mesh.normals.append(n1);
+                mesh.normals.append(n2);
+
+                if (face.textureUVIndices.count()) {
+                    mesh.texCoords <<
+                        checked_at(textureUVs, face.textureUVIndices[0]) <<
+                        checked_at(textureUVs, face.textureUVIndices[1]) <<
+                        checked_at(textureUVs, face.textureUVIndices[2]);
+                } else {
+                    glm::vec2 corner(0.0f, 1.0f);
+                    mesh.texCoords << corner << corner << corner;
+                }
+            }
+        }
+
+        mesh.meshExtents.reset();
+        foreach(const glm::vec3& vertex, mesh.vertices) {
+            mesh.meshExtents.addPoint(vertex);
+            geometry.meshExtents.addPoint(vertex);
+        }
+
+        // Build the single mesh.
+        FBXReader::buildModelMesh(mesh, url.toString());
+
+        // fbxDebugDump(geometry);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
@@ -624,15 +634,15 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
             // Throw away any path part of libraryName, and merge against original url.
             QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
             qCDebug(modelformat) << "OBJ Reader material library" << libraryName << "used in" << _url;
-            QNetworkReply* netReply = request(libraryUrl, false);
-            if (replyOK(netReply, libraryUrl)) {
-                parseMaterialLibrary(netReply);
+            bool success;
+            QByteArray data;
+            std::tie<bool, QByteArray>(success, data) = requestData(libraryUrl);
+            if (success) {
+                QBuffer buffer { &data };
+                buffer.open(QIODevice::ReadOnly);
+                parseMaterialLibrary(&buffer);
             } else {
-                qCDebug(modelformat) << "OBJ Reader WARNING:" << libraryName << "did not answer. Got"
-                    << (!netReply ? "aborted" : netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString());
-            }
-            if (netReply) {
-                netReply->deleteLater();
+                qCDebug(modelformat) << "OBJ Reader WARNING:" << libraryName << "did not answer";
             }
         }
     }
@@ -655,9 +665,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         if (!objMaterial.diffuseTextureFilename.isEmpty()) {
             fbxMaterial.albedoTexture.filename = objMaterial.diffuseTextureFilename;
         }
-		if (!objMaterial.specularTextureFilename.isEmpty()) {
-			fbxMaterial.specularTexture.filename = objMaterial.specularTextureFilename;
-		}
+        if (!objMaterial.specularTextureFilename.isEmpty()) {
+            fbxMaterial.specularTexture.filename = objMaterial.specularTextureFilename;
+        }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
         modelMaterial->setAlbedo(fbxMaterial.diffuseColor);
