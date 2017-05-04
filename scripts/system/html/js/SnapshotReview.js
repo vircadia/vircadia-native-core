@@ -217,8 +217,8 @@ function createShareBar(parentID, isLoggedIn, canShare, isGif, blastButtonDisabl
                         '&#xe019;' +
                     '</div>' +
                 '</div>' +
-                '<div class="helpTextDiv" id="' + parentID + 'helpTextDiv' + '" style="visibility:hidden">' +
-                    'Snaps taken in this domain can\'t be shared.' +
+                '<div class="helpTextDiv" id="' + parentID + 'helpTextDiv' + '" style="visibility:hidden;text-align:left;font-size: 13px;">' +
+                    'Snaps taken from the pictured domain can\'t be shared.' +
                 '</div>';
             // Add onclick handler to parent DIV's img to toggle share buttons
             document.getElementById(parentID + 'img').onclick = function () { selectImageWithHelpText(parentID, true); };
@@ -230,7 +230,7 @@ function createShareBar(parentID, isLoggedIn, canShare, isGif, blastButtonDisabl
                     '&#xe019;' +
                 '</div>' +
             '</div>' +
-            '<div class="helpTextDiv" id="' + parentID + 'helpTextDiv' + '" style="visibility:hidden">' +
+            '<div class="helpTextDiv" id="' + parentID + 'helpTextDiv' + '" style="visibility:hidden;text-align:right;">' +
                 'Please log in to share snaps' + '<input class="grayButton" style="margin-left:20px;width:95px;height:30px;" type="button" value="LOG IN" onclick="login()" />' +
             '</div>';
         // Add onclick handler to parent DIV's img to toggle share buttons
@@ -249,9 +249,9 @@ function appendShareBar(divID, isLoggedIn, canShare, isGif, blastButtonDisabled,
     if (divID === "p0") {
         if (isLoggedIn) {
             if (canShare) {
-                selectImageWithHelpText(divID, true);
-            } else {
                 selectImageToShare(divID, true);
+            } else {
+                selectImageWithHelpText(divID, true);
             }
         } else {
             selectImageWithHelpText(divID, true);
@@ -625,7 +625,7 @@ window.onload = function () {
                             imageCount = message.image_data.length + 1; // "+1" for the GIF that'll finish processing soon
                             message.image_data.push({ localPath: messageOptions.loadingGifPath });
                             message.image_data.forEach(function (element, idx) {
-                                addImage(element, messageOptions.isLoggedIn, idx === 0 && messageOptions.canShare, idx === 1, false);
+                                addImage(element, messageOptions.isLoggedIn, idx === 0 && messageOptions.canShare, idx === 1, false, false, false, true);
                             });
                             document.getElementById("p1").classList.add("processingGif");
                         } else {
@@ -634,16 +634,14 @@ window.onload = function () {
                             p1img.src = gifPath;
 
                             paths[1] = gifPath;
-                            if (messageOptions.canShare) {
-                                shareForUrl("p1");
-                                appendShareBar("p1", messageOptions.isLoggedIn, true, false, false, true);
-                                document.getElementById("p1").classList.remove("processingGif");
-                            }
+                            shareForUrl("p1");
+                            appendShareBar("p1", messageOptions.isLoggedIn, messageOptions.canShare, true, false, false, messageOptions.canBlast);
+                            document.getElementById("p1").classList.remove("processingGif");
                         }
                     } else {
                         imageCount = message.image_data.length;
                         message.image_data.forEach(function (element) {
-                            addImage(element, messageOptions.isLoggedIn, messageOptions.canShare, false, false);
+                            addImage(element, messageOptions.isLoggedIn, messageOptions.canShare, false, false, false, false, true);
                         });
                     }
                     break;

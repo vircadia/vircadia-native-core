@@ -175,14 +175,18 @@ function onMessage(message) {
             takeSnapshot();
             break;
         case 'shareSnapshotForUrl':
-            isLoggedIn = Account.isLoggedIn();
-            if (isLoggedIn) {
-                print('Sharing snapshot with audience "for_url":', message.data);
-                Window.shareSnapshot(message.data, message.href || href);
-            } else {
-                shareAfterLogin = true;
-                snapshotToShareAfterLogin.push({ path: message.data, href: message.href || href });
-            }
+            isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
+                if (canShare) {
+                    isLoggedIn = Account.isLoggedIn();
+                    if (isLoggedIn) {
+                        print('Sharing snapshot with audience "for_url":', message.data);
+                        Window.shareSnapshot(message.data, message.href || href);
+                    } else {
+                        shareAfterLogin = true;
+                        snapshotToShareAfterLogin.push({ path: message.data, href: message.href || href });
+                    }
+                }
+            });
             break;
         case 'blastToConnections':
             isLoggedIn = Account.isLoggedIn();
@@ -548,7 +552,8 @@ function processingGifCompleted(pathAnimatedSnapshot) {
             containsGif: true,
             processingGif: false,
             canShare: canShare,
-            isLoggedIn: isLoggedIn
+            isLoggedIn: isLoggedIn,
+            canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID"),
         };
         imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
         tablet.emitScriptEvent(JSON.stringify({
@@ -596,10 +601,15 @@ function onUsernameChanged() {
     });
     if (isLoggedIn) {
         if (shareAfterLogin) {
-            snapshotToShareAfterLogin.forEach(function (element) {
-                print('Uploading snapshot after login:', element.path);
-                Window.shareSnapshot(element.path, element.href);
+            isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
+                if (canShare) {
+                    snapshotToShareAfterLogin.forEach(function (element) {
+                        print('Uploading snapshot after login:', element.path);
+                        Window.shareSnapshot(element.path, element.href);
+                    });
+                }
             });
+
             shareAfterLogin = false;
             snapshotToShareAfterLogin = [];
         }
