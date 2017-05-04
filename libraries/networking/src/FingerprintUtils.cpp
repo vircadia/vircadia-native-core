@@ -30,6 +30,9 @@
 #endif //Q_OS_MAC
 
 static const QString FALLBACK_FINGERPRINT_KEY = "fallbackFingerprint";
+
+QUuid FingerprintUtils::_machineFingerprint { QUuid() };
+
 QString FingerprintUtils::getMachineFingerprintString() {
     QString uuidString;
 #ifdef Q_OS_LINUX
@@ -81,30 +84,36 @@ QString FingerprintUtils::getMachineFingerprintString() {
 
 QUuid FingerprintUtils::getMachineFingerprint() {
 
-    QString uuidString = getMachineFingerprintString();
+    if (_machineFingerprint.isNull()) {
+        QString uuidString = getMachineFingerprintString();
 
-    // now, turn into uuid.  A malformed string will
-    // return QUuid() ("{00000...}"), which handles 
-    // any errors in getting the string
-    QUuid uuid(uuidString);
-    
-    if (uuid == QUuid()) {
-        // if you cannot read a fallback key cuz we aren't saving them, just generate one for
-        // this session and move on
-        if (DependencyManager::get<Setting::Manager>().isNull()) {
-            return QUuid::createUuid();
-        }
-        // read fallback key (if any)
-        Settings settings;
-        uuid = QUuid(settings.value(FALLBACK_FINGERPRINT_KEY).toString());
-        qCDebug(networking) << "read fallback maching fingerprint: " << uuid.toString();
+        // now, turn into uuid.  A malformed string will
+        // return QUuid() ("{00000...}"), which handles
+        // any errors in getting the string
+        QUuid uuid(uuidString);
+
         if (uuid == QUuid()) {
-            // no fallback yet, set one
-            uuid = QUuid::createUuid();
-            settings.setValue(FALLBACK_FINGERPRINT_KEY, uuid.toString());
-            qCDebug(networking) << "no fallback machine fingerprint, setting it to: " << uuid.toString();
+            // if you cannot read a fallback key cuz we aren't saving them, just generate one for
+            // this session and move on
+            if (DependencyManager::get<Setting::Manager>().isNull()) {
+                return QUuid::createUuid();
+            }
+            // read fallback key (if any)
+            Settings settings;
+            uuid = QUuid(settings.value(FALLBACK_FINGERPRINT_KEY).toString());
+            qCDebug(networking) << "read fallback maching fingerprint: " << uuid.toString();
+
+            if (uuid == QUuid()) {
+                // no fallback yet, set one
+                uuid = QUuid::createUuid();
+                settings.setValue(FALLBACK_FINGERPRINT_KEY, uuid.toString());
+                qCDebug(networking) << "no fallback machine fingerprint, setting it to: " << uuid.toString();
+            }
         }
+
+        _machineFingerprint = uuid;
     }
-    return uuid;
+
+    return _machineFingerprint;
 }
 
