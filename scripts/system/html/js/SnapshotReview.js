@@ -62,6 +62,12 @@ function chooseSnapshotLocation() {
         action: "chooseSnapshotLocation"
     }));
 }
+function login() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "snapshot",
+        action: "login"
+    }));
+}
 function clearImages() {
     document.getElementById("snap-button").disabled = false;
     var snapshotImagesDiv = document.getElementById("snapshot-images");
@@ -74,6 +80,52 @@ function clearImages() {
     idCounter = 0;
 }
 
+function selectImageWithHelpText(selectedID, isSelected) {
+    if (selectedID.id) {
+        selectedID = selectedID.id; // sometimes (?), `selectedID` is passed as an HTML object to these functions; we just want the ID
+    }
+    var imageContainer = document.getElementById(selectedID),
+        image = document.getElementById(selectedID + 'img'),
+        shareBar = document.getElementById(selectedID + "shareBar"),
+        helpTextDiv = document.getElementById(selectedID + "helpTextDiv"),
+        showShareButtonsButtonDiv = document.getElementById(selectedID + "showShareButtonsButtonDiv"),
+        itr,
+        containers = document.getElementsByClassName("shareControls");
+
+    if (isSelected) {
+        showShareButtonsButtonDiv.onclick = function () { selectImageWithHelpText(selectedID, false); };
+        showShareButtonsButtonDiv.classList.remove("inactive");
+        showShareButtonsButtonDiv.classList.add("active");
+
+        image.onclick = function () { selectImageWithHelpText(selectedID, false); };
+        imageContainer.style.outline = "4px solid #00b4ef";
+        imageContainer.style.outlineOffset = "-4px";
+
+        shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.45)";
+        shareBar.style.pointerEvents = "initial";
+
+        helpTextDiv.style.visibility = "visible";
+
+        for (itr = 0; itr < containers.length; itr += 1) {
+            var parentID = containers[itr].id.slice(0, 2);
+            if (parentID !== selectedID) {
+                selectImageWithHelpText(parentID, false);
+            }
+        }
+    } else {
+        showShareButtonsButtonDiv.onclick = function () { selectImageWithHelpText(selectedID, true); };
+        showShareButtonsButtonDiv.classList.remove("active");
+        showShareButtonsButtonDiv.classList.add("inactive");
+
+        image.onclick = function () { selectImageWithHelpText(selectedID, true); };
+        imageContainer.style.outline = "none";
+
+        shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.0)";
+        shareBar.style.pointerEvents = "none";
+
+        helpTextDiv.style.visibility = "hidden";
+    }
+}
 function selectImageToShare(selectedID, isSelected) {
     if (selectedID.id) {
         selectedID = selectedID.id; // sometimes (?), `selectedID` is passed as an HTML object to these functions; we just want the ID
@@ -97,6 +149,7 @@ function selectImageToShare(selectedID, isSelected) {
         imageContainer.style.outlineOffset = "-4px";
 
         shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.45)";
+        shareBar.style.pointerEvents = "initial";
 
         shareButtonsDiv.style.visibility = "visible";
         shareBarHelp.style.visibility = "visible";
@@ -116,12 +169,13 @@ function selectImageToShare(selectedID, isSelected) {
         imageContainer.style.outline = "none";
 
         shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.0)";
+        shareBar.style.pointerEvents = "none";
 
         shareButtonsDiv.style.visibility = "hidden";
         shareBarHelp.style.visibility = "hidden";
     }
 }
-function createShareBar(parentID, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast) {
+function createShareBar(parentID, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast) {
     var shareBar = document.createElement("div"),
         shareBarHelpID = parentID + "shareBarHelp",
         shareButtonsDivID = parentID + "shareButtonsDiv",
@@ -130,45 +184,85 @@ function createShareBar(parentID, isGif, blastButtonDisabled, hifiButtonDisabled
         blastToConnectionsButtonID = parentID + "blastToConnectionsButton",
         shareWithEveryoneButtonID = parentID + "shareWithEveryoneButton",
         facebookButtonID = parentID + "facebookButton",
-        twitterButtonID = parentID + "twitterButton";
+        twitterButtonID = parentID + "twitterButton",
+        shareBarInnerHTML = '';
 
     shareBar.id = parentID + "shareBar";
     shareBar.className = "shareControls";
-    var shareBarInnerHTML = '<div class="shareControlsHelp" id="' + shareBarHelpID + '" style="visibility:hidden;' + ((canBlast && blastButtonDisabled || !canBlast && hifiButtonDisabled) ? "background-color:#000;opacity:0.5;" : "") + '"></div>' +
-        '<div class="showShareButtonsButtonDiv inactive" id="' + showShareButtonsButtonDivID + '" onclick="selectImageToShare(' + parentID + ', true)">' +
-            '<label id="' + showShareButtonsLabelID + '">SHARE</label>' +
-            '<span class="showShareButtonDots">' +
-                '&#xe019;' +
+
+    if (isLoggedIn) {
+        if (canShare) {
+            shareBarInnerHTML = '<div class="shareControlsHelp" id="' + shareBarHelpID + '" style="visibility:hidden;' + ((canBlast && blastButtonDisabled || !canBlast && hifiButtonDisabled) ? "background-color:#000;opacity:0.5;" : "") + '"></div>' +
+                '<div class="showShareButtonsButtonDiv inactive" id="' + showShareButtonsButtonDivID + '" onclick="selectImageToShare(' + parentID + ', true)">' +
+                    '<label id="' + showShareButtonsLabelID + '">SHARE</label>' +
+                    '<span class="showShareButtonDots">' +
+                        '&#xe019;' +
+                    '</div>' +
+                '</div>' +
+                '<div class="shareButtons" id="' + shareButtonsDivID + '" style="visibility:hidden">';
+            if (canBlast) {
+                shareBarInnerHTML += '<div class="shareButton blastToConnections' + (blastButtonDisabled ? ' disabled' : '') + '" id="' + blastToConnectionsButtonID + '" onmouseover="shareButtonHovered(\'blast\', ' + parentID + ', true)" onclick="' + (blastButtonDisabled ? '' : 'blastToConnections(' + parentID + ', ' + isGif + ')') + '"><img src="img/blast_icon.svg"></div>';
+            }
+            shareBarInnerHTML += '<div class="shareButton shareWithEveryone' + (hifiButtonDisabled ? ' disabled' : '') + '" id="' + shareWithEveryoneButtonID + '" onmouseover="shareButtonHovered(\'hifi\', ' + parentID + ', true)" onclick="' + (hifiButtonDisabled ? '' : 'shareWithEveryone(' + parentID + ', ' + isGif + ')') + '"><img src="img/hifi_icon.svg" style="width:35px;height:35px;margin:2px 0 0 2px;"></div>' +
+                    '<a class="shareButton facebookButton" id="' + facebookButtonID + '" onmouseover="shareButtonHovered(\'facebook\', ' + parentID + ', true)" onclick="shareButtonClicked(\'facebook\', ' + parentID + ')"><img src="img/fb_icon.svg"></a>' +
+                    '<a class="shareButton twitterButton" id="' + twitterButtonID + '" onmouseover="shareButtonHovered(\'twitter\', ' + parentID + ', true)" onclick="shareButtonClicked(\'twitter\', ' + parentID + ')"><img src="img/twitter_icon.svg"></a>' +
+                '</div>';
+
+            // Add onclick handler to parent DIV's img to toggle share buttons
+            document.getElementById(parentID + 'img').onclick = function () { selectImageToShare(parentID, true); };
+        } else {
+            shareBarInnerHTML = '<div class="showShareButtonsButtonDiv inactive" id="' + showShareButtonsButtonDivID + '" onclick="selectImageToShare(' + parentID + ', true)">' +
+                    '<label id="' + showShareButtonsLabelID + '">SHARE</label>' +
+                    '<span class="showShareButtonDots">' +
+                        '&#xe019;' +
+                    '</div>' +
+                '</div>' +
+                '<div class="helpTextDiv" id="' + parentID + 'helpTextDiv' + '" style="visibility:hidden">' +
+                    'Snaps taken in this domain can\'t be shared.' +
+                '</div>';
+            // Add onclick handler to parent DIV's img to toggle share buttons
+            document.getElementById(parentID + 'img').onclick = function () { selectImageWithHelpText(parentID, true); };
+        }
+    } else {
+        shareBarInnerHTML = '<div class="showShareButtonsButtonDiv inactive" id="' + showShareButtonsButtonDivID + '" onclick="selectImageToShare(' + parentID + ', true)">' +
+                '<label id="' + showShareButtonsLabelID + '">SHARE</label>' +
+                '<span class="showShareButtonDots">' +
+                    '&#xe019;' +
+                '</div>' +
             '</div>' +
-        '</div>' +
-        '<div class="shareButtons" id="' + shareButtonsDivID + '" style="visibility:hidden">';
-    if (canBlast) {
-        shareBarInnerHTML += '<div class="shareButton blastToConnections' + (blastButtonDisabled ? ' disabled' : '') + '" id="' + blastToConnectionsButtonID + '" onmouseover="shareButtonHovered(\'blast\', ' + parentID + ', true)" onclick="' + (blastButtonDisabled ? '' : 'blastToConnections(' + parentID + ', ' + isGif + ')') + '"><img src="img/blast_icon.svg"></div>';
+            '<div class="helpTextDiv" id="' + parentID + 'helpTextDiv' + '" style="visibility:hidden">' +
+                'Please log in to share snaps' + '<input class="grayButton" style="margin-left:20px;width:95px;height:30px;" type="button" value="LOG IN" onclick="login()" />' +
+            '</div>';
+        // Add onclick handler to parent DIV's img to toggle share buttons
+        document.getElementById(parentID + 'img').onclick = function () { selectImageWithHelpText(parentID, true); };
     }
-    shareBarInnerHTML += '<div class="shareButton shareWithEveryone' + (hifiButtonDisabled ? ' disabled' : '') + '" id="' + shareWithEveryoneButtonID + '" onmouseover="shareButtonHovered(\'hifi\', ' + parentID + ', true)" onclick="' + (hifiButtonDisabled ? '' : 'shareWithEveryone(' + parentID + ', ' + isGif + ')') + '"><img src="img/hifi_icon.svg" style="width:35px;height:35px;margin:2px 0 0 2px;"></div>' +
-            '<a class="shareButton facebookButton" id="' + facebookButtonID + '" onmouseover="shareButtonHovered(\'facebook\', ' + parentID + ', true)" onclick="shareButtonClicked(\'facebook\', ' + parentID + ')"><img src="img/fb_icon.svg"></a>' +
-            '<a class="shareButton twitterButton" id="' + twitterButtonID + '" onmouseover="shareButtonHovered(\'twitter\', ' + parentID + ', true)" onclick="shareButtonClicked(\'twitter\', ' + parentID + ')"><img src="img/twitter_icon.svg"></a>' +
-        '</div>';
 
     shareBar.innerHTML = shareBarInnerHTML;
 
-    // Add onclick handler to parent DIV's img to toggle share buttons
-    document.getElementById(parentID + 'img').onclick = function () { selectImageToShare(parentID, true); };
-
     return shareBar;
 }
-function appendShareBar(divID, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast) {
+function appendShareBar(divID, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast) {
     if (divID.id) {
         divID = divID.id; // sometimes (?), `containerID` is passed as an HTML object to these functions; we just want the ID
     }
-    document.getElementById(divID).appendChild(createShareBar(divID, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast));
+    document.getElementById(divID).appendChild(createShareBar(divID, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast));
     if (divID === "p0") {
-        selectImageToShare(divID, true);
+        if (isLoggedIn) {
+            if (canShare) {
+                selectImageWithHelpText(divID, true);
+            } else {
+                selectImageToShare(divID, true);
+            }
+        } else {
+            selectImageWithHelpText(divID, true);
+        }
     }
-    if (canBlast) {
-        shareButtonHovered('blast', divID, false);
-    } else {
-        shareButtonHovered('hifi', divID, false);
+    if (isLoggedIn && canShare) {
+        if (canBlast) {
+            shareButtonHovered('blast', divID, false);
+        } else {
+            shareButtonHovered('hifi', divID, false);
+        }
     }
 }
 function shareForUrl(selectedID) {
@@ -178,7 +272,7 @@ function shareForUrl(selectedID) {
         data: paths[parseInt(selectedID.substring(1), 10)]
     }));
 }
-function addImage(image_data, isGifLoading, canShare, isShowingPreviousImages, blastButtonDisabled, hifiButtonDisabled, canBlast) {
+function addImage(image_data, isLoggedIn, canShare, isGifLoading, isShowingPreviousImages, blastButtonDisabled, hifiButtonDisabled, canBlast) {
     if (!image_data.localPath) {
         return;
     }
@@ -203,12 +297,13 @@ function addImage(image_data, isGifLoading, canShare, isShowingPreviousImages, b
     if (isGif) {
         imageContainer.innerHTML += '<span class="gifLabel">GIF</span>';
     }
-    if (!isGifLoading && !isShowingPreviousImages && canShare) {
-        appendShareBar(id, isGif, blastButtonDisabled, hifiButtonDisabled, true);
+    if (!isGifLoading) {
+        appendShareBar(id, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast);
+    }
+    if (!isGifLoading && !isShowingPreviousImages) {
         shareForUrl(id);
     }
-    if (isShowingPreviousImages && image_data.story_id) {
-        appendShareBar(id, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast);
+    if (isShowingPreviousImages && isLoggedIn && image_data.story_id) {
         updateShareInfo(id, image_data.story_id);
     }
 }
@@ -485,7 +580,7 @@ function handleCaptureSetting(setting) {
 window.onload = function () {
     // Uncomment the line below to test functionality in a browser.
     // See definition of "testInBrowser()" to modify tests.
-    //testInBrowser(3);
+    //testInBrowser(4);
     openEventBridge(function () {
         // Set up a handler for receiving the data, and tell the .js we are ready to receive it.
         EventBridge.scriptEventReceived.connect(function (message) {
@@ -514,7 +609,7 @@ window.onload = function () {
                     imageCount = message.image_data.length;
                     if (imageCount > 0) {
                         message.image_data.forEach(function (element, idx) {
-                            addImage(element, true, message.canShare, true, message.image_data[idx].blastButtonDisabled, message.image_data[idx].hifiButtonDisabled, messageOptions.canBlast);
+                            addImage(element, messageOptions.isLoggedIn, message.canShare, false, true, message.image_data[idx].blastButtonDisabled, message.image_data[idx].hifiButtonDisabled, messageOptions.canBlast);
                         });
                     } else {
                         showSnapshotInstructions();
@@ -530,7 +625,7 @@ window.onload = function () {
                             imageCount = message.image_data.length + 1; // "+1" for the GIF that'll finish processing soon
                             message.image_data.push({ localPath: messageOptions.loadingGifPath });
                             message.image_data.forEach(function (element, idx) {
-                                addImage(element, idx === 1, idx === 0 && messageOptions.canShare, false);
+                                addImage(element, messageOptions.isLoggedIn, idx === 0 && messageOptions.canShare, idx === 1, false);
                             });
                             document.getElementById("p1").classList.add("processingGif");
                         } else {
@@ -541,14 +636,14 @@ window.onload = function () {
                             paths[1] = gifPath;
                             if (messageOptions.canShare) {
                                 shareForUrl("p1");
-                                appendShareBar("p1", true, false, false, true);
+                                appendShareBar("p1", messageOptions.isLoggedIn, true, false, false, true);
                                 document.getElementById("p1").classList.remove("processingGif");
                             }
                         }
                     } else {
                         imageCount = message.image_data.length;
                         message.image_data.forEach(function (element) {
-                            addImage(element, false, messageOptions.canShare, false);
+                            addImage(element, messageOptions.isLoggedIn, messageOptions.canShare, false, false);
                         });
                     }
                     break;
@@ -590,18 +685,23 @@ function testInBrowser(test) {
     } else if (test === 1) {
         imageCount = 2;
         //addImage({ localPath: 'http://lorempixel.com/553/255' });
-        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, false, true, true, false, false, true);
-        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, true, false, false, true);
+        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, true, true, false, true, false, false, true);
+        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, true, true, false, true, false, false, true);
     } else if (test === 2) {
-        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, false, true, true, false, false, true);
-        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, true, false, false, true);
+        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, true, true, false, true, false, false, true);
+        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, true, true, false, true, false, false, true);
         showConfirmationMessage("p0", 'blast');
         showConfirmationMessage("p1", 'hifi');
     } else if (test === 3) {
         imageCount = 2;
         //addImage({ localPath: 'http://lorempixel.com/553/255' });
-        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, false, true, true, false, false, true);
-        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, true, false, false, true);
+        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, true, true, false, true, false, false, true);
+        addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, true, true, false, true, false, false, true);
         showUploadingMessage("p0", 'hifi');
-    }
+    } else if (test === 4) {
+    imageCount = 2;
+    //addImage({ localPath: 'http://lorempixel.com/553/255' });
+    addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.jpg', story_id: 1338 }, false, true, false, true, false, false, true);
+    addImage({ localPath: 'D:/Dropbox/Screenshots/High Fidelity Snapshots/hifi-snap-by-zfox-on-2017-05-01_13-28-58.gif', story_id: 1337 }, false, true, false, true, false, false, true);
+}
 }
