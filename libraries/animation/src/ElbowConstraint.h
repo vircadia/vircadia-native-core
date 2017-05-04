@@ -19,6 +19,11 @@ public:
     void setAngleLimits(float minAngle, float maxAngle);
     virtual bool apply(glm::quat& rotation) const override;
     virtual glm::quat computeCenterRotation() const override;
+
+    glm::vec3 getHingeAxis() const { return _axis; }
+    float getMinAngle() const { return _minAngle; }
+    float getMaxAngle() const { return _maxAngle; }
+
 protected:
     glm::vec3 _axis;
     glm::vec3 _perpAxis;

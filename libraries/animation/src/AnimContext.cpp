@@ -10,7 +10,9 @@
 
 #include "AnimContext.h"
 
-AnimContext::AnimContext(bool enableDebugDrawIKTargets, const glm::mat4& geometryToRigMatrix) :
+AnimContext::AnimContext(bool enableDebugDrawIKTargets, const glm::mat4& geometryToRigMatrix, const glm::mat4& rigToWorldMatrix) :
     _enableDebugDrawIKTargets(enableDebugDrawIKTargets),
-    _geometryToRigMatrix(geometryToRigMatrix) {
+    _geometryToRigMatrix(geometryToRigMatrix),
+    _rigToWorldMatrix(rigToWorldMatrix)
+{
 }

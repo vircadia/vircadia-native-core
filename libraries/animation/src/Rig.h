@@ -162,7 +162,7 @@ public:
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState);
 
     // Regardless of who started the animations or how many, update the joints.
-    void updateAnimations(float deltaTime, glm::mat4 rootTransform);
+    void updateAnimations(float deltaTime, glm::mat4 rootTransform, glm::mat4 rigToWorldTransform);
 
     // legacy
     void inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,

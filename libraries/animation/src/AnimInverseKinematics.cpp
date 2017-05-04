@@ -399,6 +399,8 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
 
+    debugDrawConstraints(context);
+
     const float MAX_OVERLAY_DT = 1.0f / 30.0f; // what to clamp delta-time to in AnimInverseKinematics::overlay
     if (dt > MAX_OVERLAY_DT) {
         dt = MAX_OVERLAY_DT;
@@ -604,9 +606,9 @@ void AnimInverseKinematics::clearIKJointLimitHistory() {
     }
 }
 
-RotationConstraint* AnimInverseKinematics::getConstraint(int index) {
+RotationConstraint* AnimInverseKinematics::getConstraint(int index) const {
     RotationConstraint* constraint = nullptr;
-    std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.find(index);
+    std::map<int, RotationConstraint*>::const_iterator constraintItr = _constraints.find(index);
     if (constraintItr != _constraints.end()) {
         constraint = constraintItr->second;
     }
@@ -1001,5 +1003,119 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         _headIndex = -1;
         _hipsIndex = -1;
         _hipsParentIndex = -1;
+    }
+}
+
+void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) const {
+
+    if (_skeleton) {
+        const vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+        const vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
+        const vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+        const vec4 PURPLE(0.5f, 0.0f, 1.0f, 1.0f);
+        const vec4 CYAN(0.0f, 1.0f, 1.0f, 1.0f);
+        const vec4 GRAY(0.2f, 0.2f, 0.2f, 1.0f);
+        const vec4 MAGENTA(1.0f, 0.0f, 1.0f, 1.0f);
+        const float AXIS_LENGTH = 2.0f; // cm
+        const float TWIST_LENGTH = 4.0f; // cm
+        const float HINGE_LENGTH = 6.0f; // cm
+        const float SWING_LENGTH = 5.0f; // cm
+        AnimPoseVec absPoses = /*_limitCenterPoses;*/ _skeleton->getRelativeDefaultPoses();
+        _skeleton->convertRelativePosesToAbsolute(absPoses);
+
+        mat4 geomToWorldMatrix = context.getRigToWorldMatrix() * context.getGeometryToRigMatrix();
+        for (int i = 0; i < absPoses.size(); i++) {
+            // transform local axes into world space.
+            auto pose = absPoses[i];
+            glm::vec3 xAxis = transformVectorFast(geomToWorldMatrix, pose.rot() * Vectors::UNIT_X);
+            glm::vec3 yAxis = transformVectorFast(geomToWorldMatrix, pose.rot() * Vectors::UNIT_Y);
+            glm::vec3 zAxis = transformVectorFast(geomToWorldMatrix, pose.rot() * Vectors::UNIT_Z);
+            glm::vec3 pos = transformPoint(geomToWorldMatrix, pose.trans());
+            DebugDraw::getInstance().drawRay(pos, pos + AXIS_LENGTH * xAxis, RED);
+            DebugDraw::getInstance().drawRay(pos, pos + AXIS_LENGTH * yAxis, GREEN);
+            DebugDraw::getInstance().drawRay(pos, pos + AXIS_LENGTH * zAxis, BLUE);
+
+            // draw line to parent
+            int parentIndex = _skeleton->getParentIndex(i);
+            if (parentIndex != -1) {
+                glm::vec3 parentPos = transformPoint(geomToWorldMatrix, absPoses[parentIndex].trans());
+                DebugDraw::getInstance().drawRay(pos, parentPos, GRAY);
+            }
+
+            glm::quat parentAbsRot;
+            if (parentIndex != -1) {
+                parentAbsRot = absPoses[parentIndex].rot();
+            }
+
+            const RotationConstraint* constraint = getConstraint(i);
+            if (constraint) {
+                glm::quat refRot = constraint->getReferenceRotation();
+                const ElbowConstraint* elbowConstraint = dynamic_cast<const ElbowConstraint*>(constraint);
+                if (elbowConstraint) {
+                    glm::vec3 hingeAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * refRot * elbowConstraint->getHingeAxis());
+                    DebugDraw::getInstance().drawRay(pos, pos + HINGE_LENGTH * hingeAxis, MAGENTA);
+
+                    // draw elbow constraints
+                    glm::quat minRot = glm::angleAxis(elbowConstraint->getMinAngle(), elbowConstraint->getHingeAxis());
+                    glm::quat maxRot = glm::angleAxis(elbowConstraint->getMaxAngle(), elbowConstraint->getHingeAxis());
+
+                    glm::vec3 minYAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * minRot * refRot * Vectors::UNIT_Y);
+                    glm::vec3 maxYAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * maxRot * refRot * Vectors::UNIT_Y);
+
+                    const int NUM_SWING_STEPS = 10;
+                    for (int i = 0; i < NUM_SWING_STEPS + 1; i++) {
+                        glm::quat rot = glm::normalize(glm::lerp(minRot, maxRot, i * (1.0f / NUM_SWING_STEPS)));
+                        glm::vec3 axis = transformVectorFast(geomToWorldMatrix, parentAbsRot * rot * refRot * Vectors::UNIT_Y);
+                        DebugDraw::getInstance().drawRay(pos, pos + TWIST_LENGTH * axis, CYAN);
+                    }
+
+                } else {
+                    const SwingTwistConstraint* swingTwistConstraint = dynamic_cast<const SwingTwistConstraint*>(constraint);
+                    if (swingTwistConstraint) {
+                        // twist constraints
+
+                        glm::vec3 hingeAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * refRot * Vectors::UNIT_Y);
+                        DebugDraw::getInstance().drawRay(pos, pos + HINGE_LENGTH * hingeAxis, MAGENTA);
+
+                        glm::quat minRot = glm::angleAxis(swingTwistConstraint->getMinTwist(), Vectors::UNIT_Y);
+                        glm::quat maxRot = glm::angleAxis(swingTwistConstraint->getMaxTwist(), Vectors::UNIT_Y);
+
+                        glm::vec3 minTwistYAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * minRot * refRot * Vectors::UNIT_X);
+                        glm::vec3 maxTwistYAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * maxRot * refRot * Vectors::UNIT_X);
+
+                        const int NUM_SWING_STEPS = 10;
+                        for (int i = 0; i < NUM_SWING_STEPS + 1; i++) {
+                            glm::quat rot = glm::normalize(glm::lerp(minRot, maxRot, i * (1.0f / NUM_SWING_STEPS)));
+                            glm::vec3 axis = transformVectorFast(geomToWorldMatrix, parentAbsRot * rot * refRot * Vectors::UNIT_X);
+                            DebugDraw::getInstance().drawRay(pos, pos + TWIST_LENGTH * axis, CYAN);
+                        }
+
+                        // draw swing constraints.
+                        glm::vec3 previousSwingTip;
+                        const size_t NUM_MIN_DOTS = swingTwistConstraint->getMinDots().size();
+                        const float D_THETA = TWO_PI / NUM_MIN_DOTS;
+                        float theta = 0.0f;
+                        for (size_t i = 0; i < NUM_MIN_DOTS; i++, theta += D_THETA) {
+                            // compute swing rotation from theta and phi angles.
+                            float phi = acos(swingTwistConstraint->getMinDots()[i]);
+                            float cos_phi = swingTwistConstraint->getMinDots()[i];
+                            float sin_phi = sinf(phi);
+                            glm::vec3 swungAxis(sin_phi * cosf(theta), cos_phi, sin_phi * sinf(theta));
+                            glm::vec3 worldSwungAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * refRot * swungAxis);
+
+                            glm::vec3 swingTip = pos + SWING_LENGTH * worldSwungAxis;
+                            DebugDraw::getInstance().drawRay(pos, swingTip, PURPLE);
+
+                            if (previousSwingTipValid) {
+                                DebugDraw::getInstance().drawRay(previousSwingTip, swingTip, PURPLE);
+                            }
+                            previousSwingTip = swingTip;
+                            previousSwingTipValid = true;
+                        }
+                    }
+                }
+                pose.rot() = constraint->computeCenterRotation();
+            }
+        }
     }
 }

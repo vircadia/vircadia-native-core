@@ -941,7 +941,7 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
     }
 }
 
-void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
+void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform, glm::mat4 rigToWorldTransform) {
 
     PROFILE_RANGE_EX(simulation_animation_detail, __FUNCTION__, 0xffff00ff, 0);
     PerformanceTimer perfTimer("updateAnimations");
@@ -954,7 +954,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
 
-        AnimContext context(_enableDebugDrawIKTargets, getGeometryToRigTransform());
+        AnimContext context(_enableDebugDrawIKTargets, getGeometryToRigTransform(), rigToWorldTransform);
 
         // evaluate the animation
         AnimNode::Triggers triggersOut;
@@ -1445,7 +1445,7 @@ void Rig::computeAvatarBoundingCapsule(
 
     // call overlay twice: once to verify AnimPoseVec joints and again to do the IK
     AnimNode::Triggers triggersOut;
-    AnimContext context(false, glm::mat4());
+    AnimContext context(false, glm::mat4(), glm::mat4());
     float dt = 1.0f; // the value of this does not matter
     ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
     AnimPoseVec finalPoses =  ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());

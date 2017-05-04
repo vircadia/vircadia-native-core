@@ -51,11 +51,12 @@ protected:
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
     int solveTargetWithCCD(const IKTarget& target, AnimPoseVec& absolutePoses);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
+    void debugDrawConstraints(const AnimContext& context) const;
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override { return _relativePoses; }
 
-    RotationConstraint* getConstraint(int index);
+    RotationConstraint* getConstraint(int index) const;
     void clearConstraints();
     void initConstraints();
     void initLimitCenterPoses();

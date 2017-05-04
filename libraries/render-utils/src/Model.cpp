@@ -1046,7 +1046,8 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 //virtual
 void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
-    _rig->updateAnimations(deltaTime, parentTransform);
+    glm::mat4 rigToWorldTransform = createMatFromQuatAndPos(getRotation(), getTranslation());
+    _rig->updateAnimations(deltaTime, parentTransform, rigToWorldTransform);
 }
 
 void Model::computeMeshPartLocalBounds() {

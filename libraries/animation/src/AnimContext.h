@@ -16,15 +16,17 @@
 
 class AnimContext {
 public:
-    AnimContext(bool enableDebugDrawIKTargets, const glm::mat4& geometryToRigMatrix);
+    AnimContext(bool enableDebugDrawIKTargets, const glm::mat4& geometryToRigMatrix, const glm::mat4& rigToWorldMatrix);
 
     bool getEnableDebugDrawIKTargets() const { return _enableDebugDrawIKTargets; }
     const glm::mat4& getGeometryToRigMatrix() const { return _geometryToRigMatrix; }
+    const glm::mat4& getRigToWorldMatrix() const { return _rigToWorldMatrix; }
 
 protected:
 
     bool _enableDebugDrawIKTargets { false };
     glm::mat4 _geometryToRigMatrix;
+    glm::mat4 _rigToWorldMatrix;
 };
 
 #endif  // hifi_AnimContext_h

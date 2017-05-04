@@ -1703,6 +1703,7 @@ void MyAvatar::postUpdate(float deltaTime) {
     }
 
     // AJT: REMOVE.
+    /*
     {
         auto ikNode = _rig->getAnimInverseKinematicsNode();
         if (ikNode) {
@@ -1714,7 +1715,7 @@ void MyAvatar::postUpdate(float deltaTime) {
             int hipsIndex = _rig->indexOfJoint("Hips");
             for (size_t i = 0; i < limitCenterPoses.size(); i++) {
                 if (i == hipsIndex) {
-                    //limitCenterPoses[i].trans() = glm::vec3(); // zero the hips
+                    limitCenterPoses[i].trans() = glm::vec3(); // zero the hips
                 }
                 // convert from cm to m
                 limitCenterPoses[i].trans() = 0.01f * limitCenterPoses[i].trans();
@@ -1723,6 +1724,7 @@ void MyAvatar::postUpdate(float deltaTime) {
             AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarLimitCenterPoses", _rig->getAnimSkeleton(), limitCenterPoses, xform, glm::vec4(1));
         }
     }
+    */
 
     if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {
 
