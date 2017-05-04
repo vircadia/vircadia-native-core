@@ -421,8 +421,10 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
             return;
     }
 
-    //do not send non primary button events to tablet
-    if (event.getButton() != PointerEvent::PrimaryButton) {
+    //do not send secondary button events to tablet
+    if (event.getButton() == PointerEvent::SecondaryButton ||
+            //do not block composed events
+            event.getButtons() == PointerEvent::SecondaryButton) {
         return;
     }
 
