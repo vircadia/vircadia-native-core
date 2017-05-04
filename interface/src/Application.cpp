@@ -5435,7 +5435,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
         scriptEngine->registerGlobalObject("Test", TestScriptingInterface::getInstance());
     }
 
-    scriptEngine->registerGlobalObject("Overlays", &_overlays);
     scriptEngine->registerGlobalObject("Rates", new RatesScriptingInterface(this));
 
     // hook our avatar and avatar hash map object into this script engine
@@ -5534,6 +5533,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
+    scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
+
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
