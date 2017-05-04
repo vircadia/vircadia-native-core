@@ -22,16 +22,19 @@
 #include <Profile.h>
 #include <StatTracker.h>
 #include <GLMHelpers.h>
+#include <SettingHandle.h>
 
 #include "ImageLogging.h"
 
 using namespace gpu;
 
 #define CPU_MIPMAPS 1
-#define COMPRESS_COLOR_TEXTURES 0
-#define COMPRESS_NORMALMAP_TEXTURES 0 // Disable Normalmap compression for now
-#define COMPRESS_GRAYSCALE_TEXTURES 0
-#define COMPRESS_CUBEMAP_TEXTURES 0 // Disable Cubemap compression for now
+
+static std::mutex settingsMutex;
+static Setting::Handle<bool> compressColorTextures("hifi.graphics.compressColorTextures", false);
+static Setting::Handle<bool> compressNormalTextures("hifi.graphics.compressNormalTextures", false);
+static Setting::Handle<bool> compressGrayscaleTextures("hifi.graphics.compressGrayscaleTextures", false);
+static Setting::Handle<bool> compressCubeTextures("hifi.graphics.compressCubeTextures", false);
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
 static const glm::uvec2 MAX_TEXTURE_SIZE(4096);
@@ -143,6 +146,64 @@ gpu::TexturePointer TextureUsage::createCubeTextureFromImage(const QImage& srcIm
 gpu::TexturePointer TextureUsage::createCubeTextureFromImageWithoutIrradiance(const QImage& srcImage, const std::string& srcImageName) {
     return processCubeTextureColorFromImage(srcImage, srcImageName, false);
 }
+
+
+bool isColorTexturesCompressionEnabled() {
+#if CPU_MIPMAPS
+    std::lock_guard<std::mutex> guard(settingsMutex);
+    return compressColorTextures.get();
+#else
+    return false;
+#endif
+}
+
+bool isNormalTexturesCompressionEnabled() {
+#if CPU_MIPMAPS
+    std::lock_guard<std::mutex> guard(settingsMutex);
+    return compressNormalTextures.get();
+#else
+    return false;
+#endif
+}
+
+bool isGrayscaleTexturesCompressionEnabled() {
+#if CPU_MIPMAPS
+    std::lock_guard<std::mutex> guard(settingsMutex);
+    return compressGrayscaleTextures.get();
+#else
+    return false;
+#endif
+}
+
+bool isCubeTexturesCompressionEnabled() {
+#if CPU_MIPMAPS
+    std::lock_guard<std::mutex> guard(settingsMutex);
+    return compressCubeTextures.get();
+#else
+    return false;
+#endif
+}
+
+void setColorTexturesCompressionEnabled(bool enabled) {
+    std::lock_guard<std::mutex> guard(settingsMutex);
+    compressColorTextures.set(enabled);
+}
+
+void setNormalTexturesCompressionEnabled(bool enabled) {
+    std::lock_guard<std::mutex> guard(settingsMutex);
+    compressNormalTextures.set(enabled);
+}
+
+void setGrayscaleTexturesCompressionEnabled(bool enabled) {
+    std::lock_guard<std::mutex> guard(settingsMutex);
+    compressGrayscaleTextures.set(enabled);
+}
+
+void setCubeTexturesCompressionEnabled(bool enabled) {
+    std::lock_guard<std::mutex> guard(settingsMutex);
+    compressCubeTextures.set(enabled);
+}
+
 
 gpu::TexturePointer processImage(const QByteArray& content, const std::string& filename, int maxNumPixels, TextureUsage::Type textureType) {
     // Help the QImage loader by extracting the image file format from the url filename ext.
@@ -428,18 +489,19 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(const QImage& s
     gpu::TexturePointer theTexture = nullptr;
 
     if ((image.width() > 0) && (image.height() > 0)) {
-#if CPU_MIPMAPS && COMPRESS_COLOR_TEXTURES
+        gpu::Element formatMip;
         gpu::Element formatGPU;
-        if (validAlpha) {
-            formatGPU = alphaAsMask ? gpu::Element::COLOR_COMPRESSED_SRGBA_MASK : gpu::Element::COLOR_COMPRESSED_SRGBA;
+        if (isColorTexturesCompressionEnabled()) {
+            if (validAlpha) {
+                formatGPU = alphaAsMask ? gpu::Element::COLOR_COMPRESSED_SRGBA_MASK : gpu::Element::COLOR_COMPRESSED_SRGBA;
+            } else {
+                formatGPU = gpu::Element::COLOR_COMPRESSED_SRGB;
+            }
+            formatMip = formatGPU;
         } else {
-            formatGPU = gpu::Element::COLOR_COMPRESSED_SRGB;
+            formatMip = gpu::Element::COLOR_SBGRA_32;
+            formatGPU = gpu::Element::COLOR_SRGBA_32;
         }
-        gpu::Element formatMip = formatGPU;
-#else		
-        gpu::Element formatMip = gpu::Element::COLOR_SBGRA_32;
-        gpu::Element formatGPU = gpu::Element::COLOR_SRGBA_32;
-#endif
 
         if (isStrict) {
             theTexture = gpu::Texture::createStrict(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
@@ -547,14 +609,12 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(const QImag
 
     gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-
-#if CPU_MIPMAPS && COMPRESS_NORMALMAP_TEXTURES
-        gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_XY;
-        gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_XY;
-#else
         gpu::Element formatMip = gpu::Element::VEC2NU8_XY;
         gpu::Element formatGPU = gpu::Element::VEC2NU8_XY;
-#endif
+        if (isNormalTexturesCompressionEnabled()) {
+            formatMip = gpu::Element::COLOR_COMPRESSED_XY;
+            formatGPU = gpu::Element::COLOR_COMPRESSED_XY;
+        }
 
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
@@ -580,14 +640,15 @@ gpu::TexturePointer TextureUsage::process2DTextureGrayscaleFromImage(const QImag
 
     gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-
-#if CPU_MIPMAPS && COMPRESS_GRAYSCALE_TEXTURES
-        gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_RED;
-        gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_RED;
-#else
-        gpu::Element formatMip = gpu::Element::COLOR_R_8;
-        gpu::Element formatGPU = gpu::Element::COLOR_R_8;
-#endif
+        gpu::Element formatMip;
+        gpu::Element formatGPU;
+        if (isGrayscaleTexturesCompressionEnabled()) {
+            formatMip = gpu::Element::COLOR_COMPRESSED_RED;
+            formatGPU = gpu::Element::COLOR_COMPRESSED_RED;
+        } else {
+            formatMip = gpu::Element::COLOR_R_8;
+            formatGPU = gpu::Element::COLOR_R_8;
+        }
 
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
@@ -864,13 +925,15 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
 
-#if CPU_MIPMAPS && COMPRESS_CUBEMAP_TEXTURES
-        gpu::Element formatMip = gpu::Element::COLOR_COMPRESSED_SRGBA;
-        gpu::Element formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA;
-#else
-        gpu::Element formatMip = gpu::Element::COLOR_SRGBA_32;
-        gpu::Element formatGPU = gpu::Element::COLOR_SRGBA_32;
-#endif
+        gpu::Element formatMip;
+        gpu::Element formatGPU;
+        if (isCubeTexturesCompressionEnabled()) {
+            formatMip = gpu::Element::COLOR_COMPRESSED_SRGBA;
+            formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA;
+        } else {
+            formatMip = gpu::Element::COLOR_SRGBA_32;
+            formatGPU = gpu::Element::COLOR_SRGBA_32;
+        }
 
         // Find the layout of the cubemap in the 2D image
         // Use the original image size since processSourceImage may have altered the size / aspect ratio
