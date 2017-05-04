@@ -129,12 +129,12 @@
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
 #include <trackers/EyeTracker.h>
-
+#include <avatars-renderer/ScriptAvatar.h>
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
-#include "avatar/ScriptAvatar.h"
+#include "avatar/MyHead.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Leapmotion.h"
@@ -1586,6 +1586,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, &DomainHandler::hostnameChanged, this, &Application::addAssetToWorldMessageClose);
 
     updateSystemTabletMode();
+
+    connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -2191,7 +2193,7 @@ void Application::paintGL() {
                 _myCamera.setOrientation(glm::quat_cast(camMat));
             } else {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition());
-                _myCamera.setOrientation(myAvatar->getHead()->getCameraOrientation());
+                _myCamera.setOrientation(myAvatar->getMyHead()->getCameraOrientation());
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             if (isHMDMode()) {
@@ -4086,6 +4088,30 @@ void Application::cycleCamera() {
     }
     cameraMenuChanged(); // handle the menu change
 }
+
+void Application::cameraModeChanged() {
+    switch (_myCamera.getMode()) {
+        case CAMERA_MODE_FIRST_PERSON:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
+            break;
+        case CAMERA_MODE_THIRD_PERSON:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+            break;
+        case CAMERA_MODE_MIRROR:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+            break;
+        case CAMERA_MODE_INDEPENDENT:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::IndependentMode, true);
+            break;
+        case CAMERA_MODE_ENTITY:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::CameraEntityMode, true);
+            break;
+        default:
+            break;
+    }
+    cameraMenuChanged();
+}
+
 
 void Application::cameraMenuChanged() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
