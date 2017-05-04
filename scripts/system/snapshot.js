@@ -182,7 +182,6 @@ function onMessage(message) {
             break;
         case 'blastToConnections':
             isLoggedIn = Account.isLoggedIn();
-            storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
             if (message.isGif) {
                 Settings.setValue("previousAnimatedSnapBlastingDisabled", true);
             } else {
@@ -242,7 +241,6 @@ function onMessage(message) {
             break;
         case 'shareSnapshotWithEveryone':
             isLoggedIn = Account.isLoggedIn();
-            storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
             if (message.isGif) {
                 Settings.setValue("previousAnimatedSnapHifiSharingDisabled", true);
             } else {
@@ -283,8 +281,7 @@ function onMessage(message) {
                 snapshotToShareAfterLogin = { path: message.data, href: message.href || href };
             }
             break;
-        case 'shareButtonClicked':
-            print('Twitter or FB "Share" button clicked! Removing ID', message.story_id, 'from storyIDsToMaybeDelete[].');
+        case 'removeFromStoryIDsToMaybeDelete':
             storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
             print('storyIDsToMaybeDelete[] now:', JSON.stringify(storyIDsToMaybeDelete));
             break;
@@ -314,7 +311,8 @@ function onButtonClicked() {
         snapshotOptions = {
             containsGif: previousAnimatedSnapPath !== "",
             processingGif: false,
-            shouldUpload: false
+            shouldUpload: false,
+            canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID")
         }
         imageData = [];
         if (previousStillSnapPath !== "") {
@@ -395,7 +393,9 @@ function takeSnapshot() {
     resetOverlays = Menu.isOptionChecked("Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
-    Reticle.allowMouseCapture = false;
+    if (!HMD.active) {
+        Reticle.allowMouseCapture = false;
+    }
     
     var includeAnimated = Settings.getValue("alsoTakeAnimatedSnapshot", true);
     if (includeAnimated) {

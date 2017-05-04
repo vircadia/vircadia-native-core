@@ -1,6 +1,6 @@
 //
-//  Task.cpp
-//  render/src/render
+//  Config.cpp
+//  render/src/task
 //
 //  Created by Zach Pomerantz on 1/21/2016.
 //  Copyright 2016 High Fidelity, Inc.
@@ -8,12 +8,21 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-#include <QtCore/QThread>
+#include "Config.h"
 
 #include "Task.h"
+#include <QtCore/QThread>
 
-using namespace render;
+using namespace task;
+
+void JobConfig::setPresetList(const QJsonObject& object) {
+    for (auto it = object.begin(); it != object.end(); it++) {
+        JobConfig* child = findChild<JobConfig*>(it.key(), Qt::FindDirectChildrenOnly);
+        if (child) {
+            child->setPresetList(it.value().toObject());
+        }
+    }
+}
 
 void TaskConfig::connectChildConfig(QConfigPointer childConfig, const std::string& name) {
     childConfig->setParent(this);
