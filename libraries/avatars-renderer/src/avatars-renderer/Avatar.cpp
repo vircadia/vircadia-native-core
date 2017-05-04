@@ -502,7 +502,10 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
 void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
-    _renderItemID = scene->allocateID();
+
+    if (_renderItemID == render::Item::INVALID_ITEM_ID) {
+        _renderItemID = scene->allocateID();
+    }
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel->addToScene(scene, transaction);
     for (auto& attachmentModel : _attachmentModels) {
