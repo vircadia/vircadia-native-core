@@ -705,7 +705,7 @@ void NetworkTexture::refresh() {
             _ktxMipRequest->deleteLater();
             _ktxMipRequest = nullptr;
         }
-        ResourceCache::requestCompleted(_self);
+        TextureCache::requestCompleted(_self);
     }
 
     Resource::refresh();
