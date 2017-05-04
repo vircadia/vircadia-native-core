@@ -21,7 +21,7 @@
         if (!DEBUG) {
             return;
         }
-        print([].map.call(arguments, JSON.stringify));
+        print('tablet-goto.js:', [].map.call(arguments, JSON.stringify));
     }
 
     var gotoQmlSource = "TabletAddressDialog.qml";
@@ -46,6 +46,7 @@
         switch (message.method) {
         case 'request':
             request(message.params, function (error, data) {
+                debug('rpc', request, 'error:', error, 'data:', data);
                 response.error = error;
                 response.result = data;
                 tablet.sendToQml(response);
@@ -109,12 +110,14 @@
 
     var stories = {}, pingPong = false;
     function expire(id) {
-        request({
+        var options = {
             uri: location.metaverseServerUrl + '/api/v1/user_stories/' + id,
             method: 'PUT',
-            body: {expired: true}
-        }, function (error, response) {
-            debug('expired story', id, 'error:', error, 'response:', response);
+            json: true,
+            body: {expire: "true"}
+        };
+        request(options, function (error, response) {
+            debug('expired story', options, 'error:', error, 'response:', response);
             if (error || (response.status !== 'success')) {
                 print("ERROR expiring story: ", error || response.status);
             }
@@ -147,7 +150,9 @@
                 var stored = stories[story.id], storedOrNew = stored || story;
                 debug('story exists:', !!stored, storedOrNew);
                 if ((storedOrNew.username === Account.username) && (storedOrNew.place_name !== location.placename)) {
-                    expire(story.id);
+                    if (storedOrNew.audience == 'for_connections') { // Only expire if we haven't already done so.
+                        expire(story.id);
+                    }
                     return; // before marking
                 }
                 storedOrNew.pingPong = pingPong;
@@ -161,6 +166,7 @@
             });
             for (key in stories) { // Any story we were tracking that was not marked, has expired.
                 if (stories[key].pingPong !== pingPong) {
+                    debug('removing story', key);
                     delete stories[key];
                 }
             }
