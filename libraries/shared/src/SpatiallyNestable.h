@@ -42,6 +42,8 @@ public:
     virtual const QUuid getID() const;
     virtual void setID(const QUuid& id);
 
+    virtual QString getName() const { return "SpatiallyNestable"; }
+
     virtual const QUuid getParentID() const;
     virtual void setParentID(const QUuid& parentID);
 

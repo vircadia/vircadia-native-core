@@ -469,7 +469,19 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     if (entityFound) {
         queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     } else {
-        qCWarning(entities) << "attempted edit on unknown entity: " << id;
+        QString name = "unknown";
+        QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+        if (parentFinder) {
+            bool success;
+            auto nestableWP = parentFinder->find(id, success, static_cast<SpatialParentTree*>(_entityTree.get()));
+            if (success) {
+                auto nestable = nestableWP.lock();
+                if (nestable) {
+                    name = nestable->getName();
+                }
+            }
+        }
+        qCWarning(entities) << "attempted edit on unknown entity: " << id << name;
     }
     return id;
 }
