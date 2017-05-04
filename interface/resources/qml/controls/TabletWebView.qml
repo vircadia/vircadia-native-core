@@ -18,7 +18,7 @@ Item {
     property string url
     property string scriptURL
     property alias eventBridge: eventBridgeWrapper.eventBridge
-    property bool keyboardEnabled: HMD.active
+    property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool isDesktop: false
@@ -238,7 +238,7 @@ Item {
             worldId: WebEngineScript.MainWorld
         }
 
-	property string urlTag: "noDownload=false";
+        property string urlTag: "noDownload=false";
         userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
         property string newUrl: ""
@@ -264,7 +264,7 @@ Item {
             keyboard.resetShiftMode(false);
             // Required to support clicking on "hifi://" links
             if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-		var url = loadRequest.url.toString();
+                var url = loadRequest.url.toString();
                 if (urlHandler.canHandleUrl(url)) {
                     if (urlHandler.handleUrl(url)) {
                         root.stop();
@@ -273,7 +273,7 @@ Item {
             }
 
             if (WebEngineView.LoadFailedStatus == loadRequest.status) {
-                console.log(" Tablet WebEngineView failed to laod url: " + loadRequest.url.toString());
+                console.log(" Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
             }
 
             if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
@@ -281,6 +281,7 @@ Item {
                     web.initialPage = webview.url;
                     startingUp = false;
                 }
+                webview.forceActiveFocus();
             }
         }
         
@@ -305,6 +306,7 @@ Item {
     
     Component.onCompleted: {
         web.isDesktop = (typeof desktop !== "undefined");
+        keyboardEnabled = HMD.active;
     }
 
     Keys.onPressed: {
