@@ -217,8 +217,8 @@ function createShareBar(parentID, isLoggedIn, canShare, isGif, blastButtonDisabl
                         '&#xe019;' +
                     '</div>' +
                 '</div>' +
-                '<div class="helpTextDiv" id="' + parentID + 'helpTextDiv' + '" style="visibility:hidden;text-align:left;font-size: 13px;">' +
-                    'Snaps taken from the pictured domain can\'t be shared.' +
+                '<div class="helpTextDiv" id="' + parentID + 'helpTextDiv' + '" style="visibility:hidden;text-align:left;">' +
+                    'This snap was taken in an unshareable domain.' +
                 '</div>';
             // Add onclick handler to parent DIV's img to toggle share buttons
             document.getElementById(parentID + 'img').onclick = function () { selectImageWithHelpText(parentID, true); };
