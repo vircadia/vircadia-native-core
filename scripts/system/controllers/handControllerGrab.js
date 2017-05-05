@@ -3912,9 +3912,12 @@ function MyController(hand) {
                     }
 
                 } else {
-                    Entities.editEntity(childID, { parentID: NULL_UUID });
-                    if (Overlays.getProperty(childID, "grabbable")) {
-                        Overlays.editOverlay(childID, { parentID: NULL_UUID });
+                    if (childType == "entity") {
+                        Entities.editEntity(childID, { parentID: NULL_UUID });
+                    } else if (childType == "overlay") {
+                        if (Overlays.getProperty(childID, "grabbable")) {
+                            Overlays.editOverlay(childID, { parentID: NULL_UUID });
+                        }
                     }
                 }
             }
