@@ -1168,16 +1168,18 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
     memset(mixBuffer, 0, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO * sizeof(float));
 
     for (AudioInjector* injector : _activeLocalAudioInjectors) {
-        if (injector->getLocalBuffer()) {
+        // the lock guarantees that injectorBuffer, if found, is invariant
+        AudioInjectorLocalBuffer* injectorBuffer;
+        if ((injectorBuffer = injector->getLocalBuffer())) {
 
             static const int HRTF_DATASET_INDEX = 1;
 
             int numChannels = injector->isAmbisonic() ? AudioConstants::AMBISONIC : (injector->isStereo() ? AudioConstants::STEREO : AudioConstants::MONO);
-            qint64 bytesToRead = numChannels * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+            size_t bytesToRead = numChannels * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
 
             // get one frame from the injector
             memset(_localScratchBuffer, 0, bytesToRead);
-            if (0 < injector->getLocalBuffer()->readData((char*)_localScratchBuffer, bytesToRead)) {
+            if (0 < injectorBuffer->readData((char*)_localScratchBuffer, bytesToRead)) {
                 
                 if (injector->isAmbisonic()) {
 
@@ -1317,15 +1319,17 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
 }
 
 bool AudioClient::outputLocalInjector(AudioInjector* injector) {
-    Lock lock(_injectorsMutex);
-    if (injector->getLocalBuffer() && _audioInput ) {
-        // just add it to the vector of active local injectors, if 
-        // not already there.
-        // Since this is invoked with invokeMethod, there _should_ be
-        // no reason to lock access to the vector of injectors.
+    AudioInjectorLocalBuffer* injectorBuffer;
+    if ((injectorBuffer = injector->getLocalBuffer())) {
+        // local injectors are on the AudioInjectorsThread, so we must guard access
+        Lock lock(_injectorsMutex);
         if (!_activeLocalAudioInjectors.contains(injector)) {
             qCDebug(audioclient) << "adding new injector";
             _activeLocalAudioInjectors.append(injector);
+
+            // move local buffer to the LocalAudioThread to avoid dataraces with AudioInjector (like stop())
+            injectorBuffer->setParent(nullptr);
+            injectorBuffer->moveToThread(&_localAudioThread);
         } else {
             qCDebug(audioclient) << "injector exists in active list already";
         }
@@ -1333,7 +1337,7 @@ bool AudioClient::outputLocalInjector(AudioInjector* injector) {
         return true;
 
     } else {
-        // no local buffer or audio
+        // no local buffer
         return false;
     }
 }
