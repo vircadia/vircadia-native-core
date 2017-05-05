@@ -279,3 +279,10 @@ void ModelOverlay::locationChanged(bool tellPhysics) {
         _model->setTranslation(getPosition());
     }
 }
+
+QString ModelOverlay::getName() const {
+    if (_name != "") {
+        return QString("Overlay:") + getType() + ":" + _name;
+    }
+    return QString("Overlay:") + getType() + ":" + _url.toString();
+}
