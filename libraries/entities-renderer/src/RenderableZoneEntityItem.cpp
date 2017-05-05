@@ -13,6 +13,8 @@
 
 #include <gpu/Batch.h>
 
+#include <model/Stage.h>
+
 #include <AbstractViewStateInterface.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
@@ -69,8 +71,8 @@ bool RenderableZoneEntityItem::setProperties(const EntityItemProperties& propert
 void RenderableZoneEntityItem::somethingChangedNotification() {
     DependencyManager::get<EntityTreeRenderer>()->updateZone(_id);
 
-    // A new way:
-    if (_keyLightPropertiesChanged || _backgroundPropertiesChanged) {
+    // If graphics elements are changed, we need to update the render items
+    if (_keyLightPropertiesChanged || _backgroundPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged) {
         notifyChangedRenderItem();
     }
 
@@ -337,15 +339,7 @@ void RenderableZoneEntityItem::updateKeyLightItemFromEntity(KeyLightPayload& key
     light->setAmbientIntensity(this->getKeyLightProperties().getAmbientIntensity());
     light->setDirection(this->getKeyLightProperties().getDirection());
 
-
- //   light->setColor(toGlm(entity->getXColor()));
-
-  //  float intensity = entity->getIntensity();//* entity->getFadingRatio();
-  //  light->setIntensity(intensity);
-
-
     light->setType(model::Light::SUN);
-
 }
 
 void RenderableZoneEntityItem::sceneUpdateRenderItemFromEntity(render::Transaction& transaction) {

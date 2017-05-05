@@ -91,7 +91,7 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
 
     _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
 
-    bool somethingChangedInStage = _stageProperties.setProperties(properties);
+    _stagePropertiesChanged = _stageProperties.setProperties(properties);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
@@ -101,9 +101,9 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
 
-    bool somethingChangedInSkybox = _skyboxProperties.setProperties(properties);
+    _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
 
-    somethingChanged = somethingChanged || _keyLightPropertiesChanged || somethingChangedInStage || somethingChangedInSkybox;
+    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged;
 
 
     return somethingChanged;
@@ -117,14 +117,14 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     const unsigned char* dataAt = data;
 
     int bytesFromKeylight = _keyLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-                                                                                 propertyFlags, overwriteLocalData, somethingChanged);
-    
+                                                                                 propertyFlags, overwriteLocalData, _keyLightPropertiesChanged);
+    somethingChanged = somethingChanged || _keyLightPropertiesChanged;
     bytesRead += bytesFromKeylight;
     dataAt += bytesFromKeylight;
 
     int bytesFromStage = _stageProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                               propertyFlags, overwriteLocalData, somethingChanged);
-    
+                                                                               propertyFlags, overwriteLocalData, _stagePropertiesChanged);
+    somethingChanged = somethingChanged || _stagePropertiesChanged;
     bytesRead += bytesFromStage;
     dataAt += bytesFromStage;
 
@@ -133,7 +133,8 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
 
     int bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                           propertyFlags, overwriteLocalData, somethingChanged);
+                                                                           propertyFlags, overwriteLocalData, _skyboxPropertiesChanged);
+    somethingChanged = somethingChanged || _skyboxPropertiesChanged;
     bytesRead += bytesFromSkybox;
     dataAt += bytesFromSkybox;
 
@@ -198,6 +199,8 @@ void ZoneEntityItem::somethingChangedNotification() {
     withWriteLock([&] {
         _keyLightPropertiesChanged = false;
         _backgroundPropertiesChanged = false;
+        _stagePropertiesChanged = false;
+        _skyboxPropertiesChanged = false;
     });
 }
 

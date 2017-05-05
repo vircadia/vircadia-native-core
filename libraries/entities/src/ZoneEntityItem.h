@@ -70,7 +70,7 @@ public:
 
     const KeyLightPropertyGroup& getKeyLightProperties() const { return _keyLightProperties; }
 
-    void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; }
+    void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
     const SkyboxPropertyGroup& getSkyboxProperties() const { return _skyboxProperties; }
@@ -117,7 +117,8 @@ protected:
     // Which is called after a setProperties() or a readEntitySubClassFromBUfferCall on the entity.
     bool _keyLightPropertiesChanged { false };
     bool _backgroundPropertiesChanged { false };
-
+    bool _skyboxPropertiesChanged { false };
+    bool _stagePropertiesChanged { false };
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;
