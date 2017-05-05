@@ -1013,10 +1013,10 @@ Rectangle {
                     onClicked: {
                         popupComboDialog("Set your availability:",
                         availabilityComboBox.availabilityStrings,
-                        ["Your username will be visible in everyone's 'Nearby' list.\nAnyone will be able to jump to your location from within the 'Nearby' list.",
-                        "Your location will be visible in the 'Connections' list only for those with whom you are connected or friends.\nThey will be able to jump to your location if the domain allows.",
-                        "Your location will be visible in the 'Connections' list only for those with whom you are friends.\nThey will be able to jump to your location if the domain allows.",
-                        "Your location will not be visible in the 'Connections' list of any other users. Only domain admins will be able to see your username in the 'Nearby' list."],
+                        ["Your username will be visible in everyone's 'Nearby' list. Anyone will be able to jump to your location from within the 'Nearby' list.",
+                        "Your location will be visible in the 'Connections' list only for those with whom you are connected or friends. They'll be able to jump to your location if the domain allows.",
+                        "Your location will be visible in the 'Connections' list only for those with whom you are friends. They'll be able to jump to your location if the domain allows. You will not receive 'Go To' notifications from Connections.",
+                        "You will appear offline in the 'Connections' list, and you will not receive 'Go To' notifications from Connections."],
                         ["all", "connections", "friends", "none"]);
                     }
                     onEntered: availabilityComboBox.color = hifi.colors.lightGrayText;
