@@ -1015,8 +1015,8 @@ Rectangle {
                         availabilityComboBox.availabilityStrings,
                         ["Your username will be visible in everyone's 'Nearby' list. Anyone will be able to jump to your location from within the 'Nearby' list.",
                         "Your location will be visible in the 'Connections' list only for those with whom you are connected or friends. They'll be able to jump to your location if the domain allows.",
-                        "Your location will be visible in the 'Connections' list only for those with whom you are friends. They'll be able to jump to your location if the domain allows. You will not receive 'Go To' notifications from Connections.",
-                        "You will appear offline in the 'Connections' list, and you will not receive 'Go To' notifications from Connections."],
+                        "Your location will be visible in the 'Connections' list only for those with whom you are friends. They'll be able to jump to your location if the domain allows. You will not receive 'Happening Now' notifications in 'Go To'.",
+                        "You will appear offline in the 'Connections' list, and you will not receive 'Happening Now' notifications in 'Go To'."],
                         ["all", "connections", "friends", "none"]);
                     }
                     onEntered: availabilityComboBox.color = hifi.colors.lightGrayText;
