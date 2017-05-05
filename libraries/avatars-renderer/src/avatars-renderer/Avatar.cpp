@@ -27,16 +27,13 @@
 #include <TextRenderer3D.h>
 #include <VariantMapToScriptValue.h>
 #include <DebugDraw.h>
+#include <shared/Camera.h>
+#include <SoftAttachmentModel.h>
 
-#include "AvatarMotionState.h"
-#include "Camera.h"
-#include "InterfaceLogging.h"
-#include "SceneScriptingInterface.h"
-#include "SoftAttachmentModel.h"
+#include "Logging.h"
 
 using namespace std;
 
-const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
@@ -71,6 +68,11 @@ namespace render {
     }
 }
 
+bool showAvatars { true };
+void Avatar::setShowAvatars(bool render) {
+    showAvatars = render;
+}
+
 static bool showReceiveStats = false;
 void Avatar::setShowReceiveStats(bool receiveStats) {
     showReceiveStats = receiveStats;
@@ -97,37 +99,12 @@ void Avatar::setShowNamesAboveHeads(bool show) {
 }
 
 Avatar::Avatar(QThread* thread, RigPointer rig) :
-    AvatarData(),
-    _skeletonOffset(0.0f),
-    _bodyYawDelta(0.0f),
-    _positionDeltaAccumulator(0.0f),
-    _lastVelocity(0.0f),
-    _acceleration(0.0f),
-    _lastAngularVelocity(0.0f),
-    _lastOrientation(),
-    _worldUpDirection(DEFAULT_UP_DIRECTION),
-    _moving(false),
-    _smoothPositionTime(SMOOTH_TIME_POSITION),
-    _smoothPositionTimer(std::numeric_limits<float>::max()),
-    _smoothOrientationTime(SMOOTH_TIME_ORIENTATION),
-    _smoothOrientationTimer(std::numeric_limits<float>::max()),
-    _smoothPositionInitial(),
-    _smoothPositionTarget(),
-    _smoothOrientationInitial(),
-    _smoothOrientationTarget(),
-    _initialized(false),
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(thread);
 
     setScale(glm::vec3(1.0f)); // avatar scale is uniform
-
-    // give the pointer to our head to inherited _headData variable from AvatarData
-    _headData = static_cast<HeadData*>(new Head(this));
-
-    _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr, rig);
-    connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     _nameRectGeometryID = geometryCache->allocateID();
@@ -283,7 +260,7 @@ void Avatar::updateAvatarEntities() {
             // and either add or update the entity.
             QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(data);
             if (!jsonProperties.isObject()) {
-                qCDebug(interfaceapp) << "got bad avatarEntity json" << QString(data.toHex());
+                qCDebug(avatars_renderer) << "got bad avatarEntity json" << QString(data.toHex());
                 continue;
             }
 
@@ -306,7 +283,7 @@ void Avatar::updateAvatarEntities() {
             // NOTE: if this avatar entity is not attached to us, strip its entity script completely...
             auto attachedScript = properties.getScript();
             if (!isMyAvatar() && !attachedScript.isEmpty()) {
-                qCDebug(interfaceapp) << "removing entity script from avatar attached entity:" << entityID << "old script:" << attachedScript;
+                qCDebug(avatars_renderer) << "removing entity script from avatar attached entity:" << entityID << "old script:" << attachedScript;
                 QString noScript;
                 properties.setScript(noScript);
             }
@@ -410,7 +387,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             Head* head = getHead();
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
-            head->simulate(deltaTime, false);
+            head->simulate(deltaTime);
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
@@ -525,13 +502,14 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
 void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
-    if (_skeletonModel->addToScene(scene, transaction)) {
-        _renderItemID = scene->allocateID();
-        transaction.resetItem(_renderItemID, avatarPayloadPointer);
 
-        for (auto& attachmentModel : _attachmentModels) {
-            attachmentModel->addToScene(scene, transaction);
-        }
+    if (_renderItemID == render::Item::INVALID_ITEM_ID) {
+        _renderItemID = scene->allocateID();
+    }
+    transaction.resetItem(_renderItemID, avatarPayloadPointer);
+    _skeletonModel->addToScene(scene, transaction);
+    for (auto& attachmentModel : _attachmentModels) {
+        attachmentModel->addToScene(scene, transaction);
     }
 }
 
@@ -748,12 +726,12 @@ float Avatar::getBoundingRadius() const {
 #ifdef DEBUG
 void debugValue(const QString& str, const glm::vec3& value) {
     if (glm::any(glm::isnan(value)) || glm::any(glm::isinf(value))) {
-        qCWarning(interfaceapp) << "debugValue() " << str << value;
+        qCWarning(avatars_renderer) << "debugValue() " << str << value;
     }
 };
 void debugValue(const QString& str, const float& value) {
     if (glm::isnan(value) || glm::isinf(value)) {
-        qCWarning(interfaceapp) << "debugValue() " << str << value;
+        qCWarning(avatars_renderer) << "debugValue() " << str << value;
    }
 };
 #define DEBUG_VALUE(str, value) debugValue(str, value)
@@ -783,7 +761,7 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
     }
 
     if (glm::any(glm::isnan(namePosition)) || glm::any(glm::isinf(namePosition))) {
-        qCWarning(interfaceapp) << "Invalid display name position" << namePosition
+        qCWarning(avatars_renderer) << "Invalid display name position" << namePosition
                                 << ", setting is to (0.0f, 0.5f, 0.0f)";
         namePosition = glm::vec3(0.0f, 0.5f, 0.0f);
     }
@@ -1115,14 +1093,14 @@ void Avatar::setModelURLFinished(bool success) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
             _skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
-            qCWarning(interfaceapp) << "Using default after failing to load Avatar model: " << _skeletonModelURL 
+            qCWarning(avatars_renderer) << "Using default after failing to load Avatar model: " << _skeletonModelURL 
                                     << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
             // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
             // we don't redo this every time we receive an identity packet from the avatar with the bad url.
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
                 Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
         } else {
-            qCWarning(interfaceapp) << "Avatar model: " << _skeletonModelURL 
+            qCWarning(avatars_renderer) << "Avatar model: " << _skeletonModelURL 
                     << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts() 
                     << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
@@ -1438,7 +1416,7 @@ void Avatar::setParentID(const QUuid& parentID) {
     if (success) {
         setTransform(beforeChangeTransform, success);
         if (!success) {
-            qCDebug(interfaceapp) << "Avatar::setParentID failed to reset avatar's location.";
+            qCDebug(avatars_renderer) << "Avatar::setParentID failed to reset avatar's location.";
         }
         if (initialParentID != parentID) {
             _parentChanged = usecTimestampNow();
@@ -1456,7 +1434,7 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
     if (success) {
         setTransform(beforeChangeTransform, success);
         if (!success) {
-            qCDebug(interfaceapp) << "Avatar::setParentJointIndex failed to reset avatar's location.";
+            qCDebug(avatars_renderer) << "Avatar::setParentJointIndex failed to reset avatar's location.";
         }
     }
 }
@@ -1488,7 +1466,7 @@ QList<QVariant> Avatar::getSkeleton() {
 void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer& scene) {
     if (scene) {
         auto nodelist = DependencyManager::get<NodeList>();
-        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()
+        if (showAvatars
             && !nodelist->isIgnoringNode(getSessionUUID())
             && !nodelist->isRadiusIgnoringNode(getSessionUUID())) {
             render::Transaction transaction;
@@ -1496,7 +1474,7 @@ void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer
             scene->enqueueTransaction(transaction);
         }
     } else {
-        qCWarning(interfaceapp) << "Avatar::addAvatar() : Unexpected null scene, possibly during application shutdown";
+        qCWarning(avatars_renderer) << "Avatar::addAvatar() : Unexpected null scene, possibly during application shutdown";
     }
 }
 

@@ -12,6 +12,8 @@
 #ifndef hifi_DdeFaceTracker_h
 #define hifi_DdeFaceTracker_h
 
+#include <QtCore/QtGlobal>
+
 #if defined(Q_OS_WIN) || defined(Q_OS_OSX)
     #define HAVE_DDE
 #endif

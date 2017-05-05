@@ -11,15 +11,9 @@
 #ifndef hifi_Head_h
 #define hifi_Head_h
 
-#include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
-
+#include <GLMHelpers.h>
 #include <SharedUtil.h>
-
 #include <HeadData.h>
-
-#include "world.h"
-
 
 const float EYE_EAR_GAP = 0.08f;
 
@@ -31,9 +25,9 @@ public:
 
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine);
+    virtual void simulate(float deltaTime);
     void setScale(float scale);
-    void setPosition(glm::vec3 position) { _position = position; }
+    void setPosition(const glm::vec3& position) { _position = position; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
 
@@ -43,17 +37,14 @@ public:
     /// \return orientationBody * (orientationBase+Delta)
     glm::quat getFinalOrientationInWorldFrame() const;
 
-    /// \return orientationBody * orientationBasePitch
-    glm::quat getCameraOrientation () const;
-
-    void setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition);
+    void setCorrectedLookAtPosition(const glm::vec3& correctedLookAtPosition);
     glm::vec3 getCorrectedLookAtPosition();
     void clearCorrectedLookAtPosition() { _isLookingAtMe = false; }
     bool isLookingAtMe();
     quint64 getLookingAtMeStarted() { return _lookingAtMeStarted; }
 
     float getScale() const { return _scale; }
-    glm::vec3 getPosition() const { return _position; }
+    const glm::vec3& getPosition() const { return _position; }
     const glm::vec3& getEyePosition() const { return _eyePosition; }
     const glm::vec3& getSaccade() const { return _saccade; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
@@ -91,46 +82,46 @@ public:
 
     float getTimeWithoutTalking() const { return _timeWithoutTalking; }
 
-private:
+protected:
     glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * 0.5f; }
 
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
     Head& operator= (const Head&);
 
-    bool _returnHeadToCenter;
+    bool _returnHeadToCenter { false };
     glm::vec3 _position;
     glm::vec3 _rotation;
     glm::vec3 _leftEyePosition;
     glm::vec3 _rightEyePosition;
     glm::vec3 _eyePosition;
 
-    float _scale;
-    float _lastLoudness;
-    float _longTermAverageLoudness;
-    float _audioAttack;
-    float _audioJawOpen;
-    float _trailingAudioJawOpen;
-    float _mouth2;
-    float _mouth3;
-    float _mouth4;
-    float _mouthTime;
+    float _scale { 1.0f };
+    float _lastLoudness { 0.0f };
+    float _longTermAverageLoudness { -1.0f };
+    float _audioAttack { 0.0f };
+    float _audioJawOpen { 0.0f };
+    float _trailingAudioJawOpen { 0.0f };
+    float _mouth2 { 0.0f };
+    float _mouth3 { 0.0f };
+    float _mouth4 { 0.0f };
+    float _mouthTime { 0.0f };
 
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
-    float _leftEyeBlinkVelocity;
-    float _rightEyeBlinkVelocity;
-    float _timeWithoutTalking;
+    float _leftEyeBlinkVelocity { 0.0f };
+    float _rightEyeBlinkVelocity { 0.0f };
+    float _timeWithoutTalking { 0.0f };
 
     // delta angles for local head rotation (driven by hardware input)
-    float _deltaPitch;
-    float _deltaYaw;
-    float _deltaRoll;
+    float _deltaPitch { 0.0f };
+    float _deltaYaw { 0.0f };
+    float _deltaRoll { 0.0f };
 
-    bool _isCameraMoving;
-    bool _isLookingAtMe;
-    quint64 _lookingAtMeStarted;
-    quint64 _wasLastLookingAtMe;
+    bool _isCameraMoving { false };
+    bool _isLookingAtMe { false };
+    quint64 _lookingAtMeStarted { 0 };
+    quint64 _wasLastLookingAtMe { 0 };
 
     glm::vec3 _correctedLookAtPosition;
 

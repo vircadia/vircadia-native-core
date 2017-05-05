@@ -31,6 +31,8 @@ var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
+var UPDATE_SLEEP_MS = 16; // how many milliseconds to wait between "update" calls
+
 var FORCE_IGNORE_IK = false;
 var SHOW_GRAB_POINT_SPHERE = false;
 
@@ -1333,6 +1335,7 @@ function MyController(hand) {
         var stylusProperties = {
             name: "stylus",
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
+            loadPriority: 10.0,
             localPosition: Vec3.sum({ x: 0.0,
                                       y: WEB_TOUCH_Y_OFFSET,
                                       z: 0.0 },
@@ -4100,7 +4103,7 @@ var updateTotalWork = 0;
 
 var UPDATE_PERFORMANCE_DEBUGGING = false;
 
-function updateWrapper(){
+var updateWrapper = function () {
 
     intervalCount++;
     var thisInterval = Date.now();
@@ -4148,12 +4151,12 @@ function updateWrapper(){
         updateTotalWork = 0;
     }
 
+    Script.setTimeout(updateWrapper, UPDATE_SLEEP_MS);
 }
 
-Script.update.connect(updateWrapper);
+Script.setTimeout(updateWrapper, UPDATE_SLEEP_MS);
 function cleanup() {
     Menu.removeMenuItem("Developer", "Show Grab Sphere");
-    Script.update.disconnect(updateWrapper);
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);

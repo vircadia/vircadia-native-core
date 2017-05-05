@@ -231,8 +231,10 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
         });
     } else {
+        _state = State::Home;
         removeButtonsFromToolbar();
         addButtonsToHomeScreen();
+        emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
 
         // destroy desktop window
         if (_desktopWindow) {
@@ -642,8 +644,8 @@ void TabletProxy::addButtonsToHomeScreen() {
     for (auto& buttonProxy : _tabletButtonProxies) {
         addButtonProxyToQmlTablet(tablet, buttonProxy.data());
     }
-     auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-     QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
+    auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
+    QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
 }
 
 QObject* TabletProxy::getTabletSurface() {
