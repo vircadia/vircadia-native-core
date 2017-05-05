@@ -1,6 +1,4 @@
-//
-//  ViveControllerManager.cpp
-//  input-plugins/src/input-plugins
+
 //
 //  Created by Sam Gondelman on 6/29/15.
 //  Copyright 2013 High Fidelity, Inc.
@@ -23,6 +21,9 @@
 #include <UserActivityLogger.h>
 #include <OffscreenUi.h>
 #include <GLMHelpers.h>
+#include <glm/ext.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 
 #include <controllers/UserInputMapper.h>
@@ -52,16 +53,22 @@ const char* ViveControllerManager::NAME { "OpenVR" };
     return glm::
     }*/
 
-glm::mat4 computeOffset(glm::mat4 defaultRefrence, glm::mat4 defaultJointMat, controller::Pose puckPose) {
+glm::mat4 computeOffset(glm::mat4 defaultToRefrenceMat, glm::mat4 defaultJointMat, controller::Pose puckPose) {
     ///qDebug() << "-------------> computing offset <-------------";
     glm::mat4 poseMat = createMatFromQuatAndPos(puckPose.rotation, puckPose.translation);
-    glm::mat4 refrenceJointMat = defaultRefrence * defaultJointMat;
-    return glm::inverse(poseMat) * refrenceJointMat;
+    glm::mat4 refrenceJointMat = defaultToRefrenceMat * defaultJointMat;
+    return ( glm::inverse(poseMat) * refrenceJointMat);
 }
 bool sortPucksYPosition(std::pair<uint32_t, controller::Pose> firstPuck, std::pair<uint32_t, controller::Pose> secondPuck) {
     controller::Pose firstPose = firstPuck.second;
     controller::Pose secondPose = secondPuck.second;
     return (firstPose.translation.y < secondPose.translation.y);
+}
+
+void printPose(controller::Pose pose) {
+    qDebug() << "-------------> printing out controller::Pose <--------------";
+    qDebug() << QString::fromStdString(glm::to_string(pose.translation));
+    qDebug() << QString::fromStdString(glm::to_string(pose.rotation));
 }
 
 bool ViveControllerManager::isSupported() const {
@@ -223,18 +230,40 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
     if ((leftTrigger != _buttonPressedMap.end()) && (rightTrigger != _buttonPressedMap.end())) {
         if (!_calibrated) {
             // conver the hmd head from sensor space to avatar space
-            glm::mat4 controllerToAvatar = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
-            glm::mat4 hmdHeadInAvatarSpace = inputCalibration.hmdSensorMat * controllerToAvatar;
+            qDebug() << " -------------------> begin:::InputDevice::calibrate <--------------------";
+            glm::mat4 worldToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
+            glm::mat4 hmdHeadInAvatarSpace = worldToAvatarMat * inputCalibration.hmdSensorMat;
 
             // cancel the roll and pitch for the hmd head
             glm::quat canceledRollAndPitch = cancelOutRollAndPitch(glmExtractRotation(hmdHeadInAvatarSpace));
             glm::vec3 hmdHeadPosition = extractTranslation(hmdHeadInAvatarSpace);
             glm::mat4 hmdHeadMat = createMatFromQuatAndPos(canceledRollAndPitch, hmdHeadPosition);
+            glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
+            glm::mat4 defaultRefrenceXform = hmdHeadMat * defaultHeadOffset;
+            
+            glm::quat tmpHmdHeadRotation = glmExtractRotation(hmdHeadMat);
+            /*qDebug() << "----------- hmd head position < ------";
+            qDebug() << QString::fromStdString(glm::to_string(hmdHeadPosition));
+            qDebug() << "<--------------- hmd head roatation <---------";
+            qDebug() << QString::fromStdString(glm::to_string(canceledRollAndPitch));*/
 
             //calculate the offset from the centerEye to the head hoint
-            glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
+            //glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
+            glm::vec3 tmpHeadOffsetPosition = extractTranslation(defaultHeadOffset);
+            glm::quat tmpHeadOffsetRotation = glmExtractRotation(defaultHeadOffset);
+
+            /*qDebug() << "----------------> head offset position <------------------";
+            qDebug() << QString::fromStdString(glm::to_string(tmpHeadOffsetPosition));
+            qDebug() << "---------------> head offset rotation <-----------------";
+            qDebug() << QString::fromStdString(glm::to_string(tmpHeadOffsetRotation));*/
             
-            glm::mat4 defaultRefrenceXform = hmdHeadMat * defaultHeadOffset;
+            glm::vec3 defaultRefrencePosition = extractTranslation(defaultRefrenceXform);
+            glm::quat defaultRefrenceRotation = glmExtractRotation(defaultRefrenceXform);
+            qDebug() << "----------------> defaultToReference position <------------------";
+            qDebug() << QString::fromStdString(glm::to_string(defaultRefrencePosition));
+            qDebug() << "---------------> defaultToReference rotation <-----------------";
+            qDebug() << QString::fromStdString(glm::to_string(defaultRefrenceRotation));
+            
             auto puckCount = _validTrackedObjects.size();
             if (puckCount == 2) {
                 //qDebug() << "-------------< configure feet <-------------";
@@ -246,7 +275,7 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
                 //qDebug() << "-------------> configure feet, hips and chest <---------------";
                 _config = Config::FeetHipsAndChest;
             } else {
-                qDebug() << "Could not configure # pucks " << puckCount;
+                //qDebug() << "Could not configure # pucks " << puckCount;
                 return;
             }
 
@@ -258,18 +287,33 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
             controller::Pose secondFootPose = secondFoot.second;
             if (firstFootPose.translation.x < secondFootPose.translation.x) {
                 _jointToPuckMap[controller::LEFT_FOOT] = firstFoot.first;
+
+                qDebug() << " --------> Printing out the offset pose <------------";
+                glm::mat4 offset = computeOffset(defaultRefrenceXform, inputCalibration.defaultLeftFoot, firstFootPose);
+                qDebug() << "----------------> offset Position <------------------";
+                qDebug() << QString::fromStdString(glm::to_string(extractTranslation(offset)));
+                qDebug() << "---------------> offset rotation <-----------------";
+                qDebug() << QString::fromStdString(glm::to_string(glmExtractRotation(offset)));
                 _pucksOffset[firstFoot.first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultLeftFoot, firstFootPose);
                 _jointToPuckMap[controller::RIGHT_FOOT] = secondFoot.first;
                 _pucksOffset[secondFoot.first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultRightFoot, secondFootPose);
             } else {
                 _jointToPuckMap[controller::LEFT_FOOT] = secondFoot.first;
                 qDebug() << " --------> Printing out the offset pose <------------";
+                glm::mat4 offset = computeOffset(defaultRefrenceXform, inputCalibration.defaultLeftFoot, secondFootPose);
+                qDebug() << "----------------> offset Position <------------------";
+                qDebug() << QString::fromStdString(glm::to_string(extractTranslation(offset)));
+                qDebug() << "---------------> offset rotation <-----------------";
+                qDebug() << QString::fromStdString(glm::to_string(glmExtractRotation(offset)));
                 _pucksOffset[secondFoot.first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultLeftFoot, secondFootPose);
                 _jointToPuckMap[controller::RIGHT_FOOT] = firstFoot.first;
                 _pucksOffset[firstFoot.first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultRightFoot, firstFootPose);
             }
 
             if (_config == Config::Feet) {
+                controller::Pose leftPose = addOffsetToPuckPose(controller::LEFT_FOOT);
+                qDebug() << "------------> InputDevice::updateCalibratedLimbs <---------";
+                printPose(leftPose);
                 // done
             } else if (_config == Config::FeetAndHips) {
                 _jointToPuckMap[controller::HIPS] = _validTrackedObjects[2].first;
@@ -279,7 +323,8 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
                 _pucksOffset[_validTrackedObjects[2].first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultHips, _validTrackedObjects[2].second);
                 _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[3].first;
                 _pucksOffset[_validTrackedObjects[3].first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultSpine2, _validTrackedObjects[3].second);
-            }            
+            }
+            qDebug() << "-------------------> end:::InputDevice::calibrate <--------------------";
             _calibrated = true;
             
         } else {
@@ -292,6 +337,9 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 
 void ViveControllerManager::InputDevice::updateCalibratedLimbs() {
     _poseStateMap[controller::LEFT_FOOT] = addOffsetToPuckPose(controller::LEFT_FOOT);
+    controller::Pose leftPose = addOffsetToPuckPose(controller::LEFT_FOOT);
+    //qDebug() << "------------> InputDevice::updateCalibratedLimbs <---------";
+    //printPose(leftPose);
     _poseStateMap[controller::RIGHT_FOOT] = addOffsetToPuckPose(controller::RIGHT_FOOT);
     _poseStateMap[controller::HIPS] = addOffsetToPuckPose(controller::HIPS);
     _poseStateMap[controller::SPINE2] = addOffsetToPuckPose(controller::SPINE2);
