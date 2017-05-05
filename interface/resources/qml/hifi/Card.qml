@@ -167,11 +167,9 @@ Item {
     Rectangle {
         id: lozenge;
         visible: isAnnouncement;
-        color: hifi.colors.redHighlight;
+        color: lozengeHot.containsMouse ? hifi.colors.redAccent : hifi.colors.redHighlight;
         anchors.fill: infoRow;
         radius: lozenge.height / 2.0;
-        border.width: lozengeHot.containsMouse ? 4 : 0;
-        border.color: "white";
     }
     Row {
         id: infoRow;
