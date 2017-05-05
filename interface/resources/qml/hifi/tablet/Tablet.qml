@@ -65,7 +65,11 @@ Item {
         });
 
         // pass a reference to the tabletRoot object to the button.
-        button.tabletRoot = parent.parent;
+        if (tabletRoot) {
+            button.tabletRoot = tabletRoot;
+        } else {
+            button.tabletRoot = parent.parent;
+        }
 
         sortButtons();
 

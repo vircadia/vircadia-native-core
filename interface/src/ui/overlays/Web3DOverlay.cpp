@@ -421,6 +421,13 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
             return;
     }
 
+    //do not send secondary button events to tablet
+    if (event.getButton() == PointerEvent::SecondaryButton ||
+            //do not block composed events
+            event.getButtons() == PointerEvent::SecondaryButton) {
+        return;
+    }
+
     QTouchEvent::TouchPoint point;
     point.setId(event.getID());
     point.setState(touchPointState);

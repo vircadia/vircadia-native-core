@@ -44,6 +44,7 @@ Rectangle {
     property var activeTab: "nearbyTab";
     property bool currentlyEditingDisplayName: false
     property bool punctuationMode: false;
+    property var eventBridge;
 
     HifiConstants { id: hifi; }
 
@@ -1012,10 +1013,10 @@ Rectangle {
                     onClicked: {
                         popupComboDialog("Set your availability:",
                         availabilityComboBox.availabilityStrings,
-                        ["Your username will be visible in everyone's 'Nearby' list.\nAnyone will be able to jump to your location from within the 'Nearby' list.",
-                        "Your location will be visible in the 'Connections' list only for those with whom you are connected or friends.\nThey will be able to jump to your location if the domain allows.",
-                        "Your location will be visible in the 'Connections' list only for those with whom you are friends.\nThey will be able to jump to your location if the domain allows.",
-                        "Your location will not be visible in the 'Connections' list of any other users. Only domain admins will be able to see your username in the 'Nearby' list."],
+                        ["Your username will be visible in everyone's 'Nearby' list. Anyone will be able to jump to your location from within the 'Nearby' list.",
+                        "Your location will be visible in the 'Connections' list only for those with whom you are connected or friends. They'll be able to jump to your location if the domain allows.",
+                        "Your location will be visible in the 'Connections' list only for those with whom you are friends. They'll be able to jump to your location if the domain allows. You will only receive 'Happening Now' notifications in 'Go To' from friends.",
+                        "You will appear offline in the 'Connections' list, and you will not receive 'Happening Now' notifications in 'Go To'."],
                         ["all", "connections", "friends", "none"]);
                     }
                     onEntered: availabilityComboBox.color = hifi.colors.lightGrayText;
@@ -1036,139 +1037,16 @@ Rectangle {
             }
         } // Keyboard
 
-        Item {
-            id: webViewContainer;
-            anchors.fill: parent;
-
-            Rectangle {
-                id: navigationContainer;
-                visible: userInfoViewer.visible;
-                height: 60;
-                anchors {
-                    top: parent.top;
-                    left: parent.left;
-                    right: parent.right;
-                }
-                color: hifi.colors.faintGray;
-
-                Item {
-                    id: backButton
-                    anchors {
-                        top: parent.top;
-                        left: parent.left;
-                    }
-                    height: parent.height - addressBar.height;
-                    width: parent.width/2;
-
-                    FiraSansSemiBold {
-                        // Properties
-                        text: "BACK";
-                        elide: Text.ElideRight;
-                        // Anchors
-                        anchors.fill: parent;
-                        // Text Size
-                        size: 16;
-                        // Text Positioning
-                        verticalAlignment: Text.AlignVCenter
-                        horizontalAlignment: Text.AlignHCenter;
-                        // Style
-                        color: backButtonMouseArea.containsMouse || !userInfoViewer.canGoBack ? hifi.colors.lightGray : hifi.colors.darkGray;
-                        MouseArea {
-                            id: backButtonMouseArea;
-                            anchors.fill: parent
-                            hoverEnabled: enabled
-                            onClicked: {
-                                if (userInfoViewer.canGoBack) {
-                                    userInfoViewer.goBack();
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Item {
-                    id: closeButtonContainer
-                    anchors {
-                        top: parent.top;
-                        right: parent.right;
-                    }
-                    height: parent.height - addressBar.height;
-                    width: parent.width/2;
-
-                    FiraSansSemiBold {
-                        id: closeButton;
-                        // Properties
-                        text: "CLOSE";
-                        elide: Text.ElideRight;
-                        // Anchors
-                        anchors.fill: parent;
-                        // Text Size
-                        size: 16;
-                        // Text Positioning
-                        verticalAlignment: Text.AlignVCenter
-                        horizontalAlignment: Text.AlignHCenter;
-                        // Style
-                        color: hifi.colors.redHighlight;
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: enabled
-                            onClicked: userInfoViewer.visible = false;
-                            onEntered: closeButton.color = hifi.colors.redAccent;
-                            onExited: closeButton.color = hifi.colors.redHighlight;
-                        }
-                    }
-                }
-
-                Item {
-                    id: addressBar
-                    anchors {
-                        top: closeButtonContainer.bottom;
-                        left: parent.left;
-                        right: parent.right;
-                    }
-                    height: 30;
-                    width: parent.width;
-
-                    FiraSansRegular {
-                        // Properties
-                        text: userInfoViewer.url;
-                        elide: Text.ElideRight;
-                        // Anchors
-                        anchors.fill: parent;
-                        anchors.leftMargin: 5;
-                        // Text Size
-                        size: 14;
-                        // Text Positioning
-                        verticalAlignment: Text.AlignVCenter
-                        horizontalAlignment: Text.AlignLeft;
-                        // Style
-                        color: hifi.colors.lightGray;
-                    }
-                }
+        HifiControls.TabletWebView {
+            eventBridge: pal.eventBridge;
+            id: userInfoViewer;
+            anchors {
+                top: parent.top;
+                bottom: parent.bottom;
+                left: parent.left;
+                right: parent.right;
             }
-
-            Rectangle {
-                id: webViewBackground;
-                color: "white";
-                visible: userInfoViewer.visible;
-                anchors {
-                    top: navigationContainer.bottom;
-                    bottom: parent.bottom;
-                    left: parent.left;
-                    right: parent.right;
-                }
-            }
-
-            HifiControls.WebView {
-                id: userInfoViewer;
-                anchors {
-                    top: navigationContainer.bottom;
-                    bottom: parent.bottom;
-                    left: parent.left;
-                    right: parent.right;
-                }
-                visible: false;
-            }
+            visible: false;
         }
 
     // Timer used when selecting nearbyTable rows that aren't yet present in the model

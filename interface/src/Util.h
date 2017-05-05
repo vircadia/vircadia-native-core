@@ -17,9 +17,6 @@
 
 #include <gpu/Batch.h>
 
-float randFloat();
-const glm::vec3 randVector();
-
 void renderWorldBox(gpu::Batch& batch);
 
 void runTimingTests();

@@ -14,9 +14,66 @@
 
 #include <SettingHandle.h>
 
-#include "Context.h"
-#include "Task.h"
+#include "Scene.h"
+#include "../task/Task.h"
+#include "gpu/Batch.h"
+
 namespace render {
+
+
+
+    class RenderContext : public task::JobContext {
+    public:
+        virtual ~RenderContext() {}
+
+        RenderArgs* args;
+        ScenePointer _scene;
+    };
+    using RenderContextPointer = std::shared_ptr<RenderContext>;
+
+    Task_DeclareTypeAliases(RenderContext)
+
+    // Versions of the COnfig integrating a gpu & batch timer
+    class GPUJobConfig : public JobConfig {
+        Q_OBJECT
+            Q_PROPERTY(double gpuRunTime READ getGPURunTime)
+            Q_PROPERTY(double batchRunTime READ getBatchRunTime)
+
+            double _msGPURunTime { 0.0 };
+        double _msBatchRunTime { 0.0 };
+    public:
+        using Persistent = PersistentConfig<GPUJobConfig>;
+
+        GPUJobConfig() = default;
+        GPUJobConfig(bool enabled) : JobConfig(enabled) {}
+
+        // Running Time measurement on GPU and for Batch execution
+        void setGPUBatchRunTime(double msGpuTime, double msBatchTime) { _msGPURunTime = msGpuTime; _msBatchRunTime = msBatchTime; }
+        double getGPURunTime() const { return _msGPURunTime; }
+        double getBatchRunTime() const { return _msBatchRunTime; }
+    };
+
+    class GPUTaskConfig : public TaskConfig {
+        Q_OBJECT
+            Q_PROPERTY(double gpuRunTime READ getGPURunTime)
+            Q_PROPERTY(double batchRunTime READ getBatchRunTime)
+
+            double _msGPURunTime { 0.0 };
+        double _msBatchRunTime { 0.0 };
+    public:
+
+        using Persistent = PersistentConfig<GPUTaskConfig>;
+
+
+        GPUTaskConfig() = default;
+        GPUTaskConfig(bool enabled) : TaskConfig(enabled) {}
+
+        // Running Time measurement on GPU and for Batch execution
+        void setGPUBatchRunTime(double msGpuTime, double msBatchTime) { _msGPURunTime = msGpuTime; _msBatchRunTime = msBatchTime; }
+        double getGPURunTime() const { return _msGPURunTime; }
+        double getBatchRunTime() const { return _msBatchRunTime; }
+    };
+
 
     // The render engine holds all render tasks, and is itself a render task.
     // State flows through tasks to jobs via the render and scene contexts -
@@ -43,6 +100,8 @@ namespace render {
 
     protected:
         RenderContextPointer _renderContext;
+    
+        void run(const RenderContextPointer& context) override { assert(_renderContext);  Task::run(_renderContext); }
     };
     using EnginePointer = std::shared_ptr<Engine>;
 

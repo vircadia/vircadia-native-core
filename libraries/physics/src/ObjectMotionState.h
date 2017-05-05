@@ -170,7 +170,7 @@ protected:
     bool _hasInternalKinematicChanges { false };
 };
 
-typedef QSet<ObjectMotionState*> SetOfMotionStates;
-typedef QVector<ObjectMotionState*> VectorOfMotionStates;
+using SetOfMotionStates = QSet<ObjectMotionState*>;
+using VectorOfMotionStates = QVector<ObjectMotionState*>;
 
 #endif // hifi_ObjectMotionState_h

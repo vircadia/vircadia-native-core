@@ -24,15 +24,9 @@ ObjectConstraintSlider::ObjectConstraintSlider(const QUuid& id, EntityItemPointe
     _pointInA(glm::vec3(0.0f)),
     _axisInA(glm::vec3(0.0f))
 {
-    #if WANT_DEBUG
-    qCDebug(physics) << "ObjectConstraintSlider::ObjectConstraintSlider";
-    #endif
 }
 
 ObjectConstraintSlider::~ObjectConstraintSlider() {
-    #if WANT_DEBUG
-    qCDebug(physics) << "ObjectConstraintSlider::~ObjectConstraintSlider";
-    #endif
 }
 
 QList<btRigidBody*> ObjectConstraintSlider::getRigidBodies() {

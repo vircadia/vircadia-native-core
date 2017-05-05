@@ -280,7 +280,7 @@
 
     function ragdollTest(params) {
         var scale = 1.6;
-        var lifetime = 120;
+        var lifetime = params.lifetime;
         var pos = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 1.0, z: -2}));
 
         var neckLength = scale * 0.05;
