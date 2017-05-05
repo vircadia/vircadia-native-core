@@ -525,11 +525,14 @@ void GL41VariableAllocationTexture::populateTransferQueue() {
 
             // break down the transfers into chunks so that no single transfer is 
             // consuming more than X bandwidth
+            // For compressed format, regions must be a multiple of the 4x4 tiles, so enforce 4 lines as the minimum block
             auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
             const auto lines = mipDimensions.y;
-            auto bytesPerLine = mipSize / lines;
+            const uint32_t BLOCK_NUM_LINES { 4 };
+            const auto numBlocks = (lines + (BLOCK_NUM_LINES - 1)) / BLOCK_NUM_LINES;
+            auto bytesPerBlock = mipSize / numBlocks;
             Q_ASSERT(0 == (mipSize % lines));
-            uint32_t linesPerTransfer = (uint32_t)(MAX_TRANSFER_SIZE / bytesPerLine);
+            uint32_t linesPerTransfer = BLOCK_NUM_LINES * (uint32_t)(MAX_TRANSFER_SIZE / bytesPerBlock);
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {
                 uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);

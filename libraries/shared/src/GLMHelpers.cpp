@@ -582,3 +582,9 @@ glm::mat4 orthoInverse(const glm::mat4& m) {
     r[3][3] = 1.0f;
     return r;
 }
+
+//  Return a random vector of average length 1
+glm::vec3 randVector() {
+    return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.0f;
+}
+

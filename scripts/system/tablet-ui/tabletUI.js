@@ -13,7 +13,7 @@
 //
 
 /* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
-   MyAvatar, Menu, AvatarInputs */
+   MyAvatar, Menu, AvatarInputs, Vec3 */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletRezzed = false;
@@ -25,9 +25,6 @@
     var debugTablet = false;
     var tabletScalePercentage = 100.0;
     UIWebTablet = null;
-    var MSECS_PER_SEC = 1000.0;
-    var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
-    var gTablet = null;
 
     Script.include("../libraries/WebTablet.js");
 

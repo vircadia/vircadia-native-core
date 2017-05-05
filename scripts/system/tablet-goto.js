@@ -16,6 +16,13 @@
 (function () { // BEGIN LOCAL_SCOPE
 
     var request = Script.require('request').request;
+    var DEBUG = false;
+    function debug() {
+        if (!DEBUG) {
+            return;
+        }
+        print('tablet-goto.js:', [].map.call(arguments, JSON.stringify));
+    }
 
     var gotoQmlSource = "TabletAddressDialog.qml";
     var buttonName = "GOTO";
@@ -39,6 +46,7 @@
         switch (message.method) {
         case 'request':
             request(message.params, function (error, data) {
+                debug('rpc', request, 'error:', error, 'data:', data);
                 response.error = error;
                 response.result = data;
                 tablet.sendToQml(response);
@@ -100,10 +108,24 @@
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
 
-    var stories = {};
-    var DEBUG = false;
+    var stories = {}, pingPong = false;
+    function expire(id) {
+        var options = {
+            uri: location.metaverseServerUrl + '/api/v1/user_stories/' + id,
+            method: 'PUT',
+            json: true,
+            body: {expire: "true"}
+        };
+        request(options, function (error, response) {
+            debug('expired story', options, 'error:', error, 'response:', response);
+            if (error || (response.status !== 'success')) {
+                print("ERROR expiring story: ", error || response.status);
+            }
+        });
+    }
     function pollForAnnouncements() {
-        var actions = DEBUG ? 'snapshot' : 'announcement';
+        // We could bail now if !Account.isLoggedIn(), but what if we someday have system-wide announcments?
+        var actions = 'announcement';
         var count = DEBUG ? 10 : 100;
         var options = [
             'now=' + new Date().toISOString(),
@@ -117,13 +139,24 @@
         request({
             uri: url
         }, function (error, data) {
+            debug(url, error, data);
             if (error || (data.status !== 'success')) {
                 print("Error: unable to get", url,  error || data.status);
                 return;
             }
-            var didNotify = false;
+            var didNotify = false, key;
+            pingPong = !pingPong;
             data.user_stories.forEach(function (story) {
-                if (stories[story.id]) { // already seen
+                var stored = stories[story.id], storedOrNew = stored || story;
+                debug('story exists:', !!stored, storedOrNew);
+                if ((storedOrNew.username === Account.username) && (storedOrNew.place_name !== location.placename)) {
+                    if (storedOrNew.audience == 'for_connections') { // Only expire if we haven't already done so.
+                        expire(story.id);
+                    }
+                    return; // before marking
+                }
+                storedOrNew.pingPong = pingPong;
+                if (stored) { // already seen
                     return;
                 }
                 stories[story.id] = story;
@@ -131,12 +164,20 @@
                 Window.displayAnnouncement(message);
                 didNotify = true;
             });
+            for (key in stories) { // Any story we were tracking that was not marked, has expired.
+                if (stories[key].pingPong !== pingPong) {
+                    debug('removing story', key);
+                    delete stories[key];
+                }
+            }
             if (didNotify) {
                 messagesWaiting(true);
                 if (HMD.isHandControllerAvailable()) {
                     var STRENGTH = 1.0, DURATION_MS = 60, HAND = 2; // both hands
                     Controller.triggerHapticPulse(STRENGTH, DURATION_MS, HAND);
                 }
+            } else if (!Object.keys(stories).length) { // If there's nothing being tracked, then any messageWaiting has expired.
+                messagesWaiting(false);
             }
         });
     }

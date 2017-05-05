@@ -8,55 +8,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Head.h"
+
 #include <glm/gtx/quaternion.hpp>
 #include <gpu/Batch.h>
 
 #include <NodeList.h>
 #include <recording/Deck.h>
+#include <DependencyManager.h>
+#include <GeometryUtil.h>
+#include <trackers/FaceTracker.h>
 #include <trackers/EyeTracker.h>
-
-#include "Application.h"
-#include "Avatar.h"
-#include "DependencyManager.h"
-#include "GeometryUtil.h"
-#include "Head.h"
-#include "Menu.h"
-#include "Util.h"
-#include "devices/DdeFaceTracker.h"
 #include <Rig.h>
+
+#include "Avatar.h"
 
 using namespace std;
 
+static bool fixGaze { false };
+static bool disableEyelidAdjustment { false };
+
 Head::Head(Avatar* owningAvatar) :
-    HeadData((AvatarData*)owningAvatar),
-    _returnHeadToCenter(false),
-    _position(0.0f, 0.0f, 0.0f),
-    _rotation(0.0f, 0.0f, 0.0f),
-    _leftEyePosition(0.0f, 0.0f, 0.0f),
-    _rightEyePosition(0.0f, 0.0f, 0.0f),
-    _eyePosition(0.0f, 0.0f, 0.0f),
-    _scale(1.0f),
-    _lastLoudness(0.0f),
-    _longTermAverageLoudness(-1.0f),
-    _audioAttack(0.0f),
-    _audioJawOpen(0.0f),
-    _trailingAudioJawOpen(0.0f),
-    _mouth2(0.0f),
-    _mouth3(0.0f),
-    _mouth4(0.0f),
-    _mouthTime(0.0f),
-    _saccade(0.0f, 0.0f, 0.0f),
-    _saccadeTarget(0.0f, 0.0f, 0.0f),
-    _leftEyeBlinkVelocity(0.0f),
-    _rightEyeBlinkVelocity(0.0f),
-    _timeWithoutTalking(0.0f),
-    _deltaPitch(0.0f),
-    _deltaYaw(0.0f),
-    _deltaRoll(0.0f),
-    _isCameraMoving(false),
-    _isLookingAtMe(false),
-    _lookingAtMeStarted(0),
-    _wasLastLookingAtMe(0),
+    HeadData(owningAvatar),
     _leftEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID()),
     _rightEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID())
 {
@@ -69,7 +42,7 @@ void Head::reset() {
     _baseYaw = _basePitch = _baseRoll = 0.0f;
 }
 
-void Head::simulate(float deltaTime, bool isMine) {
+void Head::simulate(float deltaTime) {
     const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
 
     // grab the audio loudness from the owning avatar, if we have one
@@ -90,43 +63,7 @@ void Head::simulate(float deltaTime, bool isMine) {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
 
-    if (isMine) {
-        auto player = DependencyManager::get<recording::Deck>();
-        // Only use face trackers when not playing back a recording.
-        if (!player->isPlaying()) {
-            FaceTracker* faceTracker = qApp->getActiveFaceTracker();
-            _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
-            if (_isFaceTrackerConnected) {
-                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-
-                if (typeid(*faceTracker) == typeid(DdeFaceTracker)) {
-
-                    if (Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
-                        calculateMouthShapes(deltaTime);
-
-                        const int JAW_OPEN_BLENDSHAPE = 21;
-                        const int MMMM_BLENDSHAPE = 34;
-                        const int FUNNEL_BLENDSHAPE = 40;
-                        const int SMILE_LEFT_BLENDSHAPE = 28;
-                        const int SMILE_RIGHT_BLENDSHAPE = 29;
-                        _blendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
-                        _blendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
-                        _blendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
-                        _blendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
-                        _blendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
-                    }
-
-                    applyEyelidOffset(getFinalOrientationInWorldFrame());
-                }
-            }
-
-            auto eyeTracker = DependencyManager::get<EyeTracker>();
-            _isEyeTrackerConnected = eyeTracker->isTracking();
-        }
-    }
-
     if (!_isFaceTrackerConnected) {
-
         if (!_isEyeTrackerConnected) {
             // Update eye saccades
             const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
@@ -222,7 +159,7 @@ void Head::simulate(float deltaTime, bool isMine) {
     } else {
         _saccade = glm::vec3();
     }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::FixGaze)) { // if debug menu turns off, use no saccade
+    if (fixGaze) { // if debug menu turns off, use no saccade
         _saccade = glm::vec3();
     }
 
@@ -277,7 +214,7 @@ void Head::calculateMouthShapes(float deltaTime) {
 void Head::applyEyelidOffset(glm::quat headOrientation) {
     // Adjusts the eyelid blendshape coefficients so that the eyelid follows the iris as the head pitches.
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisableEyelidAdjustment)) {
+    if (disableEyelidAdjustment) {
         return;
     }
 
@@ -350,7 +287,7 @@ glm::vec3 Head::getCorrectedLookAtPosition() {
     }
 }
 
-void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
+void Head::setCorrectedLookAtPosition(const glm::vec3& correctedLookAtPosition) {
     if (!isLookingAtMe()) {
         _lookingAtMeStarted = usecTimestampNow();
     }
@@ -364,25 +301,6 @@ bool Head::isLookingAtMe() {
     quint64 now = usecTimestampNow();
     const quint64 LOOKING_AT_ME_GAP_ALLOWED = (5 * 1000 * 1000) / 60; // n frames, in microseconds
     return _isLookingAtMe || (now - _wasLastLookingAtMe) < LOOKING_AT_ME_GAP_ALLOWED;
-}
-
-glm::quat Head::getCameraOrientation() const {
-    // NOTE: Head::getCameraOrientation() is not used for orienting the camera "view" while in Oculus mode, so
-    // you may wonder why this code is here. This method will be called while in Oculus mode to determine how
-    // to change the driving direction while in Oculus mode. It is used to support driving toward where you're
-    // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
-    // always the same.
-    if (qApp->isHMDMode()) {
-        MyAvatar* myAvatar = dynamic_cast<MyAvatar*>(_owningAvatar);
-        if (myAvatar) {
-            return glm::quat_cast(myAvatar->getSensorToWorldMatrix()) * myAvatar->getHMDSensorOrientation();
-        } else {
-            return getOrientation();
-        }
-    } else {
-        Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-        return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
-    }
 }
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {

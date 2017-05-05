@@ -447,6 +447,10 @@ Grabber.prototype.moveEvent = function(event) {
 
     // see if something added/restored gravity
     var entityProperties = Entities.getEntityProperties(this.entityID);
+    if (!entityProperties || !entityProperties.gravity) {
+        return;
+    }
+
     if (Vec3.length(entityProperties.gravity) !== 0.0) {
         this.originalGravity = entityProperties.gravity;
     }
