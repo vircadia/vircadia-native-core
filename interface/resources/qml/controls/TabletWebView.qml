@@ -8,6 +8,7 @@ import "../styles" as HifiStyles
 import "../styles-uit"
 import "../"
 import "."
+
 Item {
     id: web
     HifiConstants { id: hifi }
@@ -29,7 +30,6 @@ Item {
     property bool remove: false
     property var urlList: []
     property var forwardList: []
-
     
     property int currentPage: -1 // used as a model for repeater
     property alias pagesModel: pagesModel
@@ -51,21 +51,22 @@ Item {
             
             TabletWebButton {
                 id: back
-                enabledColor: hifi.colors.baseGray
-                enabled: false
+                enabledColor: hifi.colors.darkGray
+                disabledColor: hifi.colors.lightGrayText
+                enabled: webview.canGoBack || web.urlList.length > 0 || web.forwardList.length > 0
                 text: "BACK"
 
                 MouseArea {
                     anchors.fill: parent
                     onClicked: goBack()
-                    hoverEnabled: true
-                    
                 }
             }
 
             TabletWebButton {
                 id: close
                 enabledColor: hifi.colors.darkGray
+                disabledColor: hifi.colors.lightGrayText
+                enabled: true
                 text: "CLOSE"
 
                 MouseArea {
@@ -102,11 +103,6 @@ Item {
         id: pagesModel
         onCountChanged: {
             currentPage = count - 1;
-            if (currentPage > 0) {
-                back.enabledColor = hifi.colors.darkGray;
-            } else {
-                back.enabledColor = hifi.colors.baseGray;
-            }
         }
     }
         
@@ -165,24 +161,12 @@ Item {
         return (url === webview.url);
     }
         
-    
     function urlAppend(url) {
         var lurl = decodeURIComponent(url)
         if (lurl[lurl.length - 1] !== "/") {
             lurl = lurl + "/"
         }
         web.urlList.push(url);
-        setBackButtonStatus();
-    }
-
-    function setBackButtonStatus() {
-        if (web.urlList.length > 0 || webview.canGoBack) {
-            back.enabledColor = hifi.colors.darkGray;
-            back.enabled = true;
-        } else {
-            back.enabledColor = hifi.colors.baseGray;
-            back.enabled = false;
-        }
     }
 
     onUrlChanged: {
