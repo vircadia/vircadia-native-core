@@ -48,27 +48,16 @@ const quint64 CALIBRATION_TIMELAPSE = 3000000;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
-/*glm::mat4 computeDefualtHead(glm::mat4 centerOfEye, glm::mat4 jointHead) {
-    headOffset = glm::muliply(glm::inverse(centerOfEye), jointHead);
-    return glm::
-    }*/
-
 glm::mat4 computeOffset(glm::mat4 defaultToRefrenceMat, glm::mat4 defaultJointMat, controller::Pose puckPose) {
-    ///qDebug() << "-------------> computing offset <-------------";
     glm::mat4 poseMat = createMatFromQuatAndPos(puckPose.rotation, puckPose.translation);
     glm::mat4 refrenceJointMat = defaultToRefrenceMat * defaultJointMat;
     return ( glm::inverse(poseMat) * refrenceJointMat);
 }
+
 bool sortPucksYPosition(std::pair<uint32_t, controller::Pose> firstPuck, std::pair<uint32_t, controller::Pose> secondPuck) {
     controller::Pose firstPose = firstPuck.second;
     controller::Pose secondPose = secondPuck.second;
     return (firstPose.translation.y < secondPose.translation.y);
-}
-
-void printPose(controller::Pose pose) {
-    qDebug() << "-------------> printing out controller::Pose <--------------";
-    qDebug() << QString::fromStdString(glm::to_string(pose.translation));
-    qDebug() << QString::fromStdString(glm::to_string(pose.rotation));
 }
 
 bool ViveControllerManager::isSupported() const {
@@ -276,8 +265,6 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
             }
 
             if (_config == Config::Feet) {
-                controller::Pose leftPose = addOffsetToPuckPose(controller::LEFT_FOOT);
-                printPose(leftPose);
                 // done
             } else if (_config == Config::FeetAndHips) {
                 _jointToPuckMap[controller::HIPS] = _validTrackedObjects[2].first;
