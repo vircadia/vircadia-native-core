@@ -1497,7 +1497,7 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
 
 void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
 
-    if (identity.updatedAt < _identityUpdatedAt) {
+    if (identity.updatedAt < _identityUpdatedAt && !(DependencyManager::get<NodeList>()->getRequestsDomainListData())) {
         qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
                 << "identity.updatedAt:" << identity.updatedAt << "_identityUpdatedAt:" << _identityUpdatedAt;
         return;
