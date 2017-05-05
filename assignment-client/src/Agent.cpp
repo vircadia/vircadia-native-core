@@ -31,6 +31,7 @@
 #include <ScriptCache.h>
 #include <ScriptEngines.h>
 #include <SoundCache.h>
+#include <UsersScriptingInterface.h>
 #include <UUID.h>
 
 #include <recording/ClipCache.h>
@@ -75,6 +76,8 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT);
 
     DependencyManager::set<RecordingScriptingInterface>();
+    DependencyManager::set<UsersScriptingInterface>();
+
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 
@@ -351,6 +354,10 @@ void Agent::executeScript() {
     // give this AvatarData object to the script engine
     _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
 
+    // give scripts access to the Users object
+    _scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
+
+
     auto player = DependencyManager::get<recording::Deck>();
     connect(player.data(), &recording::Deck::playbackStateChanged, [=] {
         if (player->isPlaying()) {
@@ -537,7 +544,7 @@ void Agent::setIsAvatar(bool isAvatar) {
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
 
         // start the timers
-        _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
+        _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
 
         // tell the avatarAudioTimer to start ticking
         emit startAvatarAudioTimer();

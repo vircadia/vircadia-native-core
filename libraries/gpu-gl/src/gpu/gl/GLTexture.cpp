@@ -102,7 +102,8 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
 GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id) :
     GLObject(backend, texture, id),
     _source(texture.source()),
-    _target(getGLTextureType(texture))
+    _target(getGLTextureType(texture)),
+    _texelFormat(GLTexelFormat::evalGLTexelFormatInternal(texture.getTexelFormat()))
 {
     Backend::setGPUObject(texture, this);
 }
@@ -120,11 +121,12 @@ void GLTexture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, u
     }
     auto size = _gpuObject.evalMipDimensions(sourceMip);
     auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
+    auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
     if (mipData) {
         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.format, texelFormat.type, mipData->readData());
+        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.internalFormat, texelFormat.format, texelFormat.type, mipSize, mipData->readData());
     } else {
-         qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
+        qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
     }
 }
 
@@ -139,7 +141,7 @@ GLExternalTexture::~GLExternalTexture() {
         if (recycler) {
             backend->releaseExternalTexture(_id, recycler);
         } else {
-            qWarning() << "No recycler available for texture " << _id << " possible leak";
+            qCWarning(gpugllogging) << "No recycler available for texture " << _id << " possible leak";
         }
         const_cast<GLuint&>(_id) = 0;
     }
@@ -149,6 +151,7 @@ GLExternalTexture::~GLExternalTexture() {
 // Variable sized textures
 using MemoryPressureState = GLVariableAllocationSupport::MemoryPressureState;
 using WorkQueue = GLVariableAllocationSupport::WorkQueue;
+using TransferJobPointer = GLVariableAllocationSupport::TransferJobPointer;
 
 std::list<TextureWeakPointer> GLVariableAllocationSupport::_memoryManagedTextures;
 MemoryPressureState GLVariableAllocationSupport::_memoryPressureState { MemoryPressureState::Idle };
@@ -158,6 +161,7 @@ WorkQueue GLVariableAllocationSupport::_transferQueue;
 WorkQueue GLVariableAllocationSupport::_promoteQueue;
 WorkQueue GLVariableAllocationSupport::_demoteQueue;
 TexturePointer GLVariableAllocationSupport::_currentTransferTexture;
+TransferJobPointer GLVariableAllocationSupport::_currentTransferJob;
 size_t GLVariableAllocationSupport::_frameTexturesCreated { 0 };
 
 #define OVERSUBSCRIBED_PRESSURE_VALUE 0.95f
@@ -203,42 +207,38 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
 
     auto transferDimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
     GLenum format;
+    GLenum internalFormat;
     GLenum type;
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_parent._gpuObject.getTexelFormat(), _parent._gpuObject.getStoredMipFormat());
     format = texelFormat.format;
+    internalFormat = texelFormat.internalFormat;
     type = texelFormat.type;
-    auto mipSize = _parent._gpuObject.getStoredMipFaceSize(sourceMip, face);
+    _transferSize = _parent._gpuObject.getStoredMipFaceSize(sourceMip, face);
 
-
-    if (0 == lines) {
-        _transferSize = mipSize;
-        _bufferingLambda = [=] {
-            auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
-            _buffer.resize(_transferSize);
-            memcpy(&_buffer[0], mipData->readData(), _transferSize);
-            _bufferingCompleted = true;
-        };
-
-    } else {
+    // If we're copying a subsection of the mip, do additional calculations to find the size and offset of the segment
+    if (0 != lines) {
         transferDimensions.y = lines;
         auto dimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
-        auto bytesPerLine = (uint32_t)mipSize / dimensions.y;
-        auto sourceOffset = bytesPerLine * lineOffset;
+        auto bytesPerLine = (uint32_t)_transferSize / dimensions.y;
+        _transferOffset = bytesPerLine * lineOffset;
         _transferSize = bytesPerLine * lines;
-        _bufferingLambda = [=] {
-            auto mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
-            _buffer.resize(_transferSize);
-            memcpy(&_buffer[0], mipData->readData() + sourceOffset, _transferSize);
-            _bufferingCompleted = true;
-        };
     }
 
     Backend::updateTextureTransferPendingSize(0, _transferSize);
 
+    if (_transferSize > GLVariableAllocationSupport::MAX_TRANSFER_SIZE) {
+        qCWarning(gpugllogging) << "Transfer size of " << _transferSize << " exceeds theoretical maximum transfer size";
+    }
+
+    // Buffering can invoke disk IO, so it should be off of the main and render threads
+    _bufferingLambda = [=] {
+        _mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face)->createView(_transferSize, _transferOffset);
+        _bufferingCompleted = true;
+    };
+
     _transferLambda = [=] {
-        _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, format, type, _buffer.data());
-        std::vector<uint8_t> emptyVector;
-        _buffer.swap(emptyVector);
+        _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, internalFormat, format, type, _mipData->size(), _mipData->readData());
+        _mipData.reset();
     };
 }
 
@@ -451,10 +451,10 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
     float pressure = (float)totalVariableMemoryAllocation / (float)allowedMemoryAllocation;
 
     auto newState = MemoryPressureState::Idle;
-    if (pressure > OVERSUBSCRIBED_PRESSURE_VALUE && canDemote) {
-        newState = MemoryPressureState::Oversubscribed;
-    } else if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && unallocated != 0 && canPromote) {
+    if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && (unallocated != 0 && canPromote)) {
         newState = MemoryPressureState::Undersubscribed;
+    } else if (pressure > OVERSUBSCRIBED_PRESSURE_VALUE && canDemote) {
+        newState = MemoryPressureState::Oversubscribed;
     } else if (hasTransfers) {
         newState = MemoryPressureState::Transfer;
     }
@@ -532,6 +532,7 @@ void GLVariableAllocationSupport::processWorkQueues() {
     }
 
     if (workQueue.empty()) {
+        _memoryPressureState = MemoryPressureState::Idle;
         _memoryPressureStateStale = true;
     }
 }
@@ -555,9 +556,15 @@ void GLVariableAllocationSupport::executeNextTransfer(const TexturePointer& curr
     if (!_pendingTransfers.empty()) {
         // Keeping hold of a strong pointer during the transfer ensures that the transfer thread cannot try to access a destroyed texture
         _currentTransferTexture = currentTexture;
-        if (_pendingTransfers.front()->tryTransfer()) {
+        // Keeping hold of a strong pointer to the transfer job ensures that if the pending transfer queue is rebuilt, the transfer job
+        // doesn't leave scope, causing a crash in the buffering thread
+        _currentTransferJob = _pendingTransfers.front();
+        // transfer jobs use asynchronous buffering of the texture data because it may involve disk IO, so we execute a try here to determine if the buffering 
+        // is complete
+        if (_currentTransferJob->tryTransfer()) {
             _pendingTransfers.pop();
             _currentTransferTexture.reset();
+            _currentTransferJob.reset();
         }
     }
 }

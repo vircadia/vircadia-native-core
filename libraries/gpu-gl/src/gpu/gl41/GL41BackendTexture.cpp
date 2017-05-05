@@ -55,6 +55,18 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
             default:
                 Q_UNREACHABLE();
         }
+    } else {
+        if (texture.getUsageType() == TextureUsageType::RESOURCE) {
+            auto varTex = static_cast<GL41VariableAllocationTexture*> (object);
+
+            if (varTex->_minAllocatedMip > 0) {
+                auto minAvailableMip = texture.minAvailableMipLevel();
+                if (minAvailableMip < varTex->_minAllocatedMip) {
+                    varTex->_minAllocatedMip = minAvailableMip;
+                    GL41VariableAllocationTexture::_memoryPressureStateStale = true;
+                }
+            }
+        }
     }
 
     return object;
@@ -69,9 +81,7 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
 
 GLuint GL41Texture::allocate(const Texture& texture) {
     GLuint result;
-    // FIXME technically GL 4.2, but OSX includes the ARB_texture_storage extension
-    glCreateTextures(getGLTextureType(texture), 1, &result);
-    //glGenTextures(1, &result);
+    glGenTextures(1, &result);
     return result;
 }
 
@@ -94,12 +104,37 @@ void GL41Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
+void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     if (GL_TEXTURE_2D == _target) {
-        glTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
+                glCompressedTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                          static_cast<GLsizei>(sourceSize), sourcePointer);
+                break;
+            default:
+                glTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                break;
+        }
     } else if (GL_TEXTURE_CUBE_MAP == _target) {
         auto target = GLTexture::CUBE_FACE_LAYOUT[face];
-        glTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+
+        switch (internalFormat) {
+            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GL_COMPRESSED_RED_RGTC1:
+            case GL_COMPRESSED_RG_RGTC2:
+                glCompressedTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                          static_cast<GLsizei>(sourceSize), sourcePointer);
+                break;
+            default:
+                glTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
+                break;
+        }
     } else {
         assert(false);
     }
@@ -205,18 +240,25 @@ GL41StrictResourceTexture::GL41StrictResourceTexture(const std::weak_ptr<GLBacke
 
 using GL41VariableAllocationTexture = GL41Backend::GL41VariableAllocationTexture;
 
-GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41Texture(backend, texture) {
+GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) :
+     GL41Texture(backend, texture)
+{
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
+    _maxAllocatedMip = _populatedMip = mipLevels;
+    _minAllocatedMip = texture.minAvailableMipLevel();
+
     uvec3 mipDimensions;
-    for (uint16_t mip = 0; mip < mipLevels; ++mip) {
+    for (uint16_t mip = _minAllocatedMip; mip < mipLevels; ++mip) {
         if (glm::all(glm::lessThanEqual(texture.evalMipDimensions(mip), INITIAL_MIP_TRANSFER_DIMENSIONS))) {
             _maxAllocatedMip = _populatedMip = mip;
             break;
         }
     }
 
-    uint16_t allocatedMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
+    auto targetMip = _populatedMip - std::min<uint16_t>(_populatedMip, 2);
+    uint16_t allocatedMip = std::max<uint16_t>(_minAllocatedMip, targetMip);
+
     allocateStorage(allocatedMip);
     _memoryPressureStateStale = true;
     size_t maxFace = GLTexture::getFaceCount(_target);
@@ -253,9 +295,9 @@ void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
 }
 
 
-void GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const {
+void GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     withPreservedTexture([&] {
-        Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, format, type, sourcePointer);
+        Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
     });
 }
 
@@ -266,41 +308,154 @@ void GL41VariableAllocationTexture::syncSampler() const {
     });
 }
 
+
+void copyUncompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {
+    // DestID must be bound to the GL41Backend::RESOURCE_TRANSFER_TEX_UNIT
+
+    GLuint fbo { 0 };
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+
+    uint16_t mips = numMips;
+    // copy pre-existing mips
+    for (uint16_t mip = populatedMips; mip < mips; ++mip) {
+        auto mipDimensions = texture.evalMipDimensions(mip);
+        uint16_t targetMip = mip - destMipOffset;
+        uint16_t sourceMip = mip - srcMipOffset;
+        for (GLenum target : GLTexture::getFaceTargets(texTarget)) {
+            glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, srcId, sourceMip);
+            (void)CHECK_GL_ERROR();
+            glCopyTexSubImage2D(target, targetMip, 0, 0, 0, 0, mipDimensions.x, mipDimensions.y);
+            (void)CHECK_GL_ERROR();
+        }
+    }
+
+    // destroy the transfer framebuffer
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glDeleteFramebuffers(1, &fbo);
+}
+
+void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {
+    // DestID must be bound to the GL41Backend::RESOURCE_TRANSFER_TEX_UNIT
+
+    struct MipDesc {
+        GLint _faceSize;
+        GLint _size;
+        GLint _offset;
+        GLint _width;
+        GLint _height;
+    };
+    std::vector<MipDesc> sourceMips(numMips);
+
+    std::vector<GLubyte> bytes;
+
+    glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_TRANSFER_EXTRA_TEX_UNIT);
+    glBindTexture(texTarget, srcId);
+    const auto& faceTargets = GLTexture::getFaceTargets(texTarget);
+    GLint internalFormat { 0 };
+
+    // Collect the mip description from the source texture
+    GLint bufferOffset { 0 };
+    for (uint16_t mip = populatedMips; mip < numMips; ++mip) {
+        auto& sourceMip = sourceMips[mip];
+
+        uint16_t sourceLevel = mip - srcMipOffset;
+
+        // Grab internal format once
+        if (internalFormat == 0) {
+            glGetTexLevelParameteriv(faceTargets[0], sourceLevel, GL_TEXTURE_INTERNAL_FORMAT, &internalFormat);
+        }
+
+        // Collect the size of the first face, and then compute the total size offset needed for this mip level
+        auto mipDimensions = texture.evalMipDimensions(mip);
+        sourceMip._width = mipDimensions.x;
+        sourceMip._height = mipDimensions.y;
+#ifdef DEBUG_COPY
+        glGetTexLevelParameteriv(faceTargets.front(), sourceLevel, GL_TEXTURE_WIDTH, &sourceMip._width);
+        glGetTexLevelParameteriv(faceTargets.front(), sourceLevel, GL_TEXTURE_HEIGHT, &sourceMip._height);
+#endif
+        glGetTexLevelParameteriv(faceTargets.front(), sourceLevel, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &sourceMip._faceSize);
+        sourceMip._size = (GLint)faceTargets.size() * sourceMip._faceSize;
+        sourceMip._offset = bufferOffset;
+        bufferOffset += sourceMip._size;
+        gpu::gl::checkGLError();
+    }
+    (void)CHECK_GL_ERROR();
+
+    // Allocate the PBO to accomodate for all the mips to copy
+    GLuint pbo { 0 };
+    glGenBuffers(1, &pbo);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+    glBufferData(GL_PIXEL_PACK_BUFFER, bufferOffset, nullptr, GL_STATIC_COPY);
+    (void)CHECK_GL_ERROR();
+
+    // Transfer from source texture to pbo
+    for (uint16_t mip = populatedMips; mip < numMips; ++mip) {
+        auto& sourceMip = sourceMips[mip];
+
+        uint16_t sourceLevel = mip - srcMipOffset;
+
+        for (GLint f = 0; f < (GLint)faceTargets.size(); f++) {
+             glGetCompressedTexImage(faceTargets[f], sourceLevel, BUFFER_OFFSET(sourceMip._offset + f * sourceMip._faceSize));
+        }
+        (void)CHECK_GL_ERROR();
+    }
+
+    // Now populate the new texture from the pbo
+    glBindTexture(texTarget, 0);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+
+    glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_TRANSFER_TEX_UNIT);
+
+    // Transfer from pbo to new texture
+    for (uint16_t mip = populatedMips; mip < numMips; ++mip) {
+        auto& sourceMip = sourceMips[mip];
+
+        uint16_t destLevel = mip - destMipOffset;
+
+        for (GLint f = 0; f < (GLint)faceTargets.size(); f++) {
+#ifdef DEBUG_COPY
+            GLint destWidth, destHeight, destSize;
+            glGetTexLevelParameteriv(faceTargets.front(), destLevel, GL_TEXTURE_WIDTH, &destWidth);
+            glGetTexLevelParameteriv(faceTargets.front(), destLevel, GL_TEXTURE_HEIGHT, &destHeight);
+            glGetTexLevelParameteriv(faceTargets.front(), destLevel, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &destSize);
+#endif
+            glCompressedTexSubImage2D(faceTargets[f], destLevel, 0, 0, sourceMip._width, sourceMip._height, internalFormat,
+                sourceMip._faceSize, BUFFER_OFFSET(sourceMip._offset + f * sourceMip._faceSize));
+            gpu::gl::checkGLError();
+        }
+    }
+
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+    glDeleteBuffers(1, &pbo);
+}
+
 void GL41VariableAllocationTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
+
+    uint16_t targetAllocatedMip = _allocatedMip - std::min<uint16_t>(_allocatedMip, 2);
+    targetAllocatedMip = std::max<uint16_t>(_minAllocatedMip, targetAllocatedMip);
+
     GLuint oldId = _id;
     auto oldSize = _size;
-    // create new texture
-    const_cast<GLuint&>(_id) = allocate(_gpuObject);
     uint16_t oldAllocatedMip = _allocatedMip;
 
+    // create new texture
+    const_cast<GLuint&>(_id) = allocate(_gpuObject);
+
     // allocate storage for new level
-    allocateStorage(_allocatedMip - std::min<uint16_t>(_allocatedMip, 2));
+    allocateStorage(targetAllocatedMip);
 
+    // copy pre-existing mips
+    uint16_t numMips = _gpuObject.getNumMips();
     withPreservedTexture([&] {
-        GLuint fbo { 0 };
-        glCreateFramebuffers(1, &fbo);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-
-        uint16_t mips = _gpuObject.getNumMips();
-        // copy pre-existing mips
-        for (uint16_t mip = _populatedMip; mip < mips; ++mip) {
-            auto mipDimensions = _gpuObject.evalMipDimensions(mip);
-            uint16_t targetMip = mip - _allocatedMip;
-            uint16_t sourceMip = mip - oldAllocatedMip;
-            for (GLenum target : getFaceTargets(_target)) {
-                glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, oldId, sourceMip);
-                (void)CHECK_GL_ERROR();
-                glCopyTexSubImage2D(target, targetMip, 0, 0, 0, 0, mipDimensions.x, mipDimensions.y);
-                (void)CHECK_GL_ERROR();
-            }
+        if (_texelFormat.isCompressed()) {
+            copyCompressedTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
+        } else {
+            copyUncompressedTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
         }
-
-        // destroy the transfer framebuffer
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &fbo);
-
         syncSampler();
     });
 
@@ -316,34 +471,21 @@ void GL41VariableAllocationTexture::demote() {
     Q_ASSERT(_allocatedMip < _maxAllocatedMip);
     auto oldId = _id;
     auto oldSize = _size;
+
+    // allocate new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
     uint16_t oldAllocatedMip = _allocatedMip;
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
 
+    // copy pre-existing mips
+    uint16_t numMips = _gpuObject.getNumMips();
     withPreservedTexture([&] {
-        GLuint fbo { 0 };
-        glCreateFramebuffers(1, &fbo);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-
-        uint16_t mips = _gpuObject.getNumMips();
-        // copy pre-existing mips
-        for (uint16_t mip = _populatedMip; mip < mips; ++mip) {
-            auto mipDimensions = _gpuObject.evalMipDimensions(mip);
-            uint16_t targetMip = mip - _allocatedMip;
-            uint16_t sourceMip = mip - oldAllocatedMip;
-            for (GLenum target : getFaceTargets(_target)) {
-                glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, oldId, sourceMip);
-                (void)CHECK_GL_ERROR();
-                glCopyTexSubImage2D(target, targetMip, 0, 0, 0, 0, mipDimensions.x, mipDimensions.y);
-                (void)CHECK_GL_ERROR();
-            }
+        if (_texelFormat.isCompressed()) {
+            copyCompressedTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
+        } else {
+            copyUncompressedTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
         }
-
-        // destroy the transfer framebuffer
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &fbo);
-
         syncSampler();
     });
 
@@ -383,11 +525,14 @@ void GL41VariableAllocationTexture::populateTransferQueue() {
 
             // break down the transfers into chunks so that no single transfer is 
             // consuming more than X bandwidth
+            // For compressed format, regions must be a multiple of the 4x4 tiles, so enforce 4 lines as the minimum block
             auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
             const auto lines = mipDimensions.y;
-            auto bytesPerLine = mipSize / lines;
+            const uint32_t BLOCK_NUM_LINES { 4 };
+            const auto numBlocks = (lines + (BLOCK_NUM_LINES - 1)) / BLOCK_NUM_LINES;
+            auto bytesPerBlock = mipSize / numBlocks;
             Q_ASSERT(0 == (mipSize % lines));
-            uint32_t linesPerTransfer = (uint32_t)(MAX_TRANSFER_SIZE / bytesPerLine);
+            uint32_t linesPerTransfer = BLOCK_NUM_LINES * (uint32_t)(MAX_TRANSFER_SIZE / bytesPerBlock);
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {
                 uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);
@@ -415,5 +560,4 @@ GL41ResourceTexture::GL41ResourceTexture(const std::weak_ptr<GLBackend>& backend
 
 GL41ResourceTexture::~GL41ResourceTexture() {
 }
-
 

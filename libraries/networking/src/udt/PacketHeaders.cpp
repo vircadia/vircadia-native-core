@@ -39,7 +39,7 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::ICEServerPeerInformation << PacketType::ICEServerQuery << PacketType::ICEServerHeartbeat
     << PacketType::ICEServerHeartbeatACK << PacketType::ICEPing << PacketType::ICEPingReply
     << PacketType::ICEServerHeartbeatDenied << PacketType::AssignmentClientStatus << PacketType::StopNode
-    << PacketType::DomainServerRemovedNode << PacketType::UsernameFromIDReply;
+    << PacketType::DomainServerRemovedNode << PacketType::UsernameFromIDReply << PacketType::OctreeFileReplacement;
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
@@ -49,14 +49,14 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return VERSION_ENTITIES_ZONE_FILTERS;
+            return VERSION_ENTITIES_BULLET_DYNAMICS;
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::JSONFilterWithFamilyTree);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::StickAndBallDefaultAvatar);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::IdentityPacketsIncludeUpdateTime);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         case PacketType::ICEServerHeartbeat:
@@ -64,7 +64,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
-            return static_cast<PacketVersion>(AssetServerPacketVersion::VegasCongestionControl);
+            return static_cast<PacketVersion>(AssetServerPacketVersion::RangeRequestSupport);
         case PacketType::NodeIgnoreRequest:
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 

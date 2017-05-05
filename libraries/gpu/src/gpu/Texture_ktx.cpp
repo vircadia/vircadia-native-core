@@ -12,42 +12,168 @@
 
 #include "Texture.h"
 
+#include <QtCore/QByteArray>
+
 #include <ktx/KTX.h>
+
+#include "GPULogging.h"
+
 using namespace gpu;
 
 using PixelsPointer = Texture::PixelsPointer;
 using KtxStorage = Texture::KtxStorage;
 
 struct GPUKTXPayload {
+    using Version = uint8;
+
+    static const std::string KEY;
+    static const Version CURRENT_VERSION { 1 };
+    static const size_t PADDING { 2 };
+    static const size_t SIZE { sizeof(Version) + sizeof(Sampler::Desc) + sizeof(uint32) + sizeof(TextureUsageType) + PADDING };
+    static_assert(GPUKTXPayload::SIZE == 36, "Packing size may differ between platforms");
+    static_assert(GPUKTXPayload::SIZE % 4 == 0, "GPUKTXPayload is not 4 bytes aligned");
+
     Sampler::Desc _samplerDesc;
     Texture::Usage _usage;
     TextureUsageType _usageType;
 
-    static std::string KEY;
+    Byte* serialize(Byte* data) const {
+        *(Version*)data = CURRENT_VERSION;
+        data += sizeof(Version);
+
+        memcpy(data, &_samplerDesc, sizeof(Sampler::Desc));
+        data += sizeof(Sampler::Desc);
+        
+        // We can't copy the bitset in Texture::Usage in a crossplateform manner
+        // So serialize it manually
+        *(uint32*)data = _usage._flags.to_ulong();
+        data += sizeof(uint32);
+
+        *(TextureUsageType*)data = _usageType;
+        data += sizeof(TextureUsageType);
+
+        return data + PADDING;
+    }
+
+    bool unserialize(const Byte* data, size_t size) {
+        if (size != SIZE) {
+            return false;
+        }
+
+        Version version = *(const Version*)data;
+        if (version != CURRENT_VERSION) {
+            glm::vec4 borderColor(1.0f);
+            if (memcmp(&borderColor, data, sizeof(glm::vec4)) == 0) {
+                memcpy(this, data, sizeof(GPUKTXPayload));
+                return true;
+            } else {
+                return false;
+            }
+        }
+        data += sizeof(Version);
+
+        memcpy(&_samplerDesc, data, sizeof(Sampler::Desc));
+        data += sizeof(Sampler::Desc);
+        
+        // We can't copy the bitset in Texture::Usage in a crossplateform manner
+        // So unserialize it manually
+        _usage = Texture::Usage(*(const uint32*)data);
+        data += sizeof(uint32);
+
+        _usageType = *(const TextureUsageType*)data;
+        return true;
+    }
+
     static bool isGPUKTX(const ktx::KeyValue& val) {
         return (val._key.compare(KEY) == 0);
     }
 
     static bool findInKeyValues(const ktx::KeyValues& keyValues, GPUKTXPayload& payload) {
-        auto found = std::find_if(keyValues.begin(), keyValues.end(), isGPUKTX); 
+        auto found = std::find_if(keyValues.begin(), keyValues.end(), isGPUKTX);
         if (found != keyValues.end()) {
-            if ((*found)._value.size() == sizeof(GPUKTXPayload)) {
-                memcpy(&payload, (*found)._value.data(), sizeof(GPUKTXPayload));
-                return true;
-            }
+            auto value = found->_value;
+            return payload.unserialize(value.data(), value.size());
         }
         return false;
     }
 };
+const std::string GPUKTXPayload::KEY { "hifi.gpu" };
 
-std::string GPUKTXPayload::KEY { "hifi.gpu" };
+
+struct IrradianceKTXPayload {
+    using Version = uint8;
+
+    static const std::string KEY;
+    static const Version CURRENT_VERSION{ 0 };
+    static const size_t PADDING{ 3 };
+    static const size_t SIZE{ sizeof(Version) +  sizeof(SphericalHarmonics) + PADDING };
+    static_assert(IrradianceKTXPayload::SIZE == 148, "Packing size may differ between platforms");
+    static_assert(IrradianceKTXPayload::SIZE % 4 == 0, "IrradianceKTXPayload is not 4 bytes aligned");
+
+    SphericalHarmonics _irradianceSH;
+
+    Byte* serialize(Byte* data) const {
+        *(Version*)data = CURRENT_VERSION;
+        data += sizeof(Version);
+
+        memcpy(data, &_irradianceSH, sizeof(SphericalHarmonics));
+        data += sizeof(SphericalHarmonics);
+
+        return data + PADDING;
+    }
+
+    bool unserialize(const Byte* data, size_t size) {
+        if (size != SIZE) {
+            return false;
+        }
+
+        Version version = *(const Version*)data;
+        if (version != CURRENT_VERSION) {
+            return false;
+        }
+        data += sizeof(Version);
+
+        memcpy(&_irradianceSH, data, sizeof(SphericalHarmonics));
+        data += sizeof(SphericalHarmonics);
+
+        return true;
+    }
+
+    static bool isIrradianceKTX(const ktx::KeyValue& val) {
+        return (val._key.compare(KEY) == 0);
+    }
+
+    static bool findInKeyValues(const ktx::KeyValues& keyValues, IrradianceKTXPayload& payload) {
+        auto found = std::find_if(keyValues.begin(), keyValues.end(), isIrradianceKTX);
+        if (found != keyValues.end()) {
+            auto value = found->_value;
+            return payload.unserialize(value.data(), value.size());
+        }
+        return false;
+    }
+};
+const std::string IrradianceKTXPayload::KEY{ "hifi.irradianceSH" };
 
 KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
     {
-        ktx::StoragePointer storage { new storage::FileStorage(_filename.c_str()) };
+        // We are doing a lot of work here just to get descriptor data
+        ktx::StoragePointer storage{ new storage::FileStorage(_filename.c_str()) };
         auto ktxPointer = ktx::KTX::create(storage);
         _ktxDescriptor.reset(new ktx::KTXDescriptor(ktxPointer->toDescriptor()));
+        if (_ktxDescriptor->images.size() < _ktxDescriptor->header.numberOfMipmapLevels) {
+            qWarning() << "Bad images found in ktx";
+        }
+
+        _offsetToMinMipKV = _ktxDescriptor->getValueOffsetForKey(ktx::HIFI_MIN_POPULATED_MIP_KEY);
+        if (_offsetToMinMipKV) {
+            auto data = storage->data() + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
+            _minMipLevelAvailable = *data;
+        } else {
+            // Assume all mip levels are available
+            _minMipLevelAvailable = 0;
+        }
     }
+
 
     // now that we know the ktx, let's get the header info to configure this Texture::Storage:
     Format mipFormat = Format::COLOR_BGRA_32;
@@ -57,18 +183,92 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
     }
 }
 
+std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() const {
+    std::shared_ptr<storage::FileStorage> file = _cacheFile.lock();
+    if (file) {
+        return file;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock{ _cacheFileCreateMutex };
+
+        file = _cacheFile.lock();
+        if (file) {
+            return file;
+        }
+
+        file = std::make_shared<storage::FileStorage>(_filename.c_str());
+        _cacheFile = file;
+    }
+
+    return file;
+}
+
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
     storage::StoragePointer result;
     auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
     if (faceSize != 0 && faceOffset != 0) {
-        result = std::make_shared<storage::FileStorage>(_filename.c_str())->createView(faceSize, faceOffset)->toMemoryStorage();
+        auto file = maybeOpenFile();
+        result = file->createView(faceSize, faceOffset)->toMemoryStorage();
     }
     return result;
 }
 
 Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
     return _ktxDescriptor->getMipFaceTexelsSize(level, face);
+}
+
+
+bool KtxStorage::isMipAvailable(uint16 level, uint8 face) const {
+    return level >= _minMipLevelAvailable;
+}
+
+uint16 KtxStorage::minAvailableMipLevel() const {
+    return _minMipLevelAvailable;
+}
+
+void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& storage) {
+    if (level != _minMipLevelAvailable - 1) {
+        qWarning() << "Invalid level to be stored, expected: " << (_minMipLevelAvailable - 1) << ", got: " << level << " " << _filename.c_str();
+        return;
+    }
+
+    if (level >= _ktxDescriptor->images.size()) {
+        throw std::runtime_error("Invalid level");
+    }
+
+    if (storage->size() != _ktxDescriptor->images[level]._imageSize) {
+        qWarning() << "Invalid image size: " << storage->size() << ", expected: " << _ktxDescriptor->images[level]._imageSize
+            << ", level: " << level << ", filename: " << QString::fromStdString(_filename);
+        return;
+    }
+
+    auto file = maybeOpenFile();
+
+    auto imageData = file->mutableData();
+    imageData += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
+    imageData += ktx::IMAGE_SIZE_WIDTH;
+
+    {
+        std::lock_guard<std::mutex> lock { _cacheFileWriteMutex };
+
+        if (level != _minMipLevelAvailable - 1) {
+            qWarning() << "Invalid level to be stored";
+            return;
+        }
+
+        memcpy(imageData, storage->data(), _ktxDescriptor->images[level]._imageSize);
+        _minMipLevelAvailable = level;
+        if (_offsetToMinMipKV > 0) {
+            auto minMipKeyData = file->mutableData() + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
+            memcpy(minMipKeyData, (void*)&_minMipLevelAvailable, 1);
+        }
+    }
+}
+
+void KtxStorage::assignMipFaceData(uint16 level, uint8 face, const storage::StoragePointer& storage) {
+    throw std::runtime_error("Invalid call");
 }
 
 void Texture::setKtxBacking(const std::string& filename) {
@@ -84,6 +284,7 @@ void Texture::setKtxBacking(const std::string& filename) {
     auto newBacking = std::unique_ptr<Storage>(new KtxStorage(filename));
     setStorage(newBacking);
 }
+
 
 ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     ktx::Header header;
@@ -140,28 +341,52 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     header.numberOfMipmapLevels = texture.getNumMips();
 
     ktx::Images images;
+    uint32_t imageOffset = 0;
     for (uint32_t level = 0; level < header.numberOfMipmapLevels; level++) {
         auto mip = texture.accessStoredMipFace(level);
         if (mip) {
             if (numFaces == 1) {
-                images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, mip->readData()));
+                images.emplace_back(ktx::Image(imageOffset, (uint32_t)mip->getSize(), 0, mip->readData()));
             } else {
                 ktx::Image::FaceBytes cubeFaces(Texture::CUBE_FACE_COUNT);
                 cubeFaces[0] = mip->readData();
                 for (uint32_t face = 1; face < Texture::CUBE_FACE_COUNT; face++) {
                     cubeFaces[face] = texture.accessStoredMipFace(level, face)->readData();
                 }
-                images.emplace_back(ktx::Image((uint32_t)mip->getSize(), 0, cubeFaces));
+                images.emplace_back(ktx::Image(imageOffset, (uint32_t)mip->getSize(), 0, cubeFaces));
             }
+            imageOffset += static_cast<uint32_t>(mip->getSize()) + ktx::IMAGE_SIZE_WIDTH;
         }
     }
 
-    GPUKTXPayload keyval;
-    keyval._samplerDesc = texture.getSampler().getDesc();
-    keyval._usage = texture.getUsage();
-    keyval._usageType = texture.getUsageType();
+    GPUKTXPayload gpuKeyval;
+    gpuKeyval._samplerDesc = texture.getSampler().getDesc();
+    gpuKeyval._usage = texture.getUsage();
+    gpuKeyval._usageType = texture.getUsageType();
+
+    Byte keyvalPayload[GPUKTXPayload::SIZE];
+    gpuKeyval.serialize(keyvalPayload);
+
     ktx::KeyValues keyValues;
-    keyValues.emplace_back(ktx::KeyValue(GPUKTXPayload::KEY, sizeof(GPUKTXPayload), (ktx::Byte*) &keyval)); 
+    keyValues.emplace_back(GPUKTXPayload::KEY, (uint32)GPUKTXPayload::SIZE, (ktx::Byte*) &keyvalPayload);
+
+    if (texture.getIrradiance()) {
+        IrradianceKTXPayload irradianceKeyval;
+        irradianceKeyval._irradianceSH = *texture.getIrradiance();
+
+        Byte irradianceKeyvalPayload[IrradianceKTXPayload::SIZE];
+        irradianceKeyval.serialize(irradianceKeyvalPayload);
+
+        keyValues.emplace_back(IrradianceKTXPayload::KEY, (uint32)IrradianceKTXPayload::SIZE, (ktx::Byte*) &irradianceKeyvalPayload);
+    }
+
+    auto hash = texture.sourceHash();
+    if (!hash.empty()) {
+        // the sourceHash is an std::string in hex
+        // we use QByteArray to take the hex and turn it into the smaller binary representation (16 bytes)
+        auto binaryHash = QByteArray::fromHex(QByteArray::fromStdString(hash));
+        keyValues.emplace_back(SOURCE_HASH_KEY, static_cast<uint32>(binaryHash.size()), (ktx::Byte*) binaryHash.data());
+    }
 
     auto ktxBuffer = ktx::KTX::create(header, images, keyValues);
 #if 0
@@ -193,13 +418,17 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     return ktxBuffer;
 }
 
-Texture* Texture::unserialize(const std::string& ktxfile, TextureUsageType usageType, Usage usage, const Sampler::Desc& sampler) {
-    std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(ktx::StoragePointer { new storage::FileStorage(ktxfile.c_str()) });
+TexturePointer Texture::unserialize(const std::string& ktxfile) {
+    std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(std::make_shared<storage::FileStorage>(ktxfile.c_str()));
     if (!ktxPointer) {
         return nullptr;
     }
 
     ktx::KTXDescriptor descriptor { ktxPointer->toDescriptor() };
+    return unserialize(ktxfile, ktxPointer->toDescriptor());
+}
+
+TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDescriptor& descriptor) {
     const auto& header = descriptor.header;
 
     Format mipFormat = Format::COLOR_BGRA_32;
@@ -225,28 +454,34 @@ Texture* Texture::unserialize(const std::string& ktxfile, TextureUsageType usage
         type = TEX_3D;
     }
 
-    
-    // If found, use the 
     GPUKTXPayload gpuktxKeyValue;
-    bool isGPUKTXPayload = GPUKTXPayload::findInKeyValues(descriptor.keyValues, gpuktxKeyValue);
+    if (!GPUKTXPayload::findInKeyValues(descriptor.keyValues, gpuktxKeyValue)) {
+        qCWarning(gpulogging) << "Could not find GPUKTX key values.";
+        return TexturePointer();
+    }
 
-    auto tex = Texture::create( (isGPUKTXPayload ? gpuktxKeyValue._usageType : usageType),
-                                type,
-                                texelFormat,
-                                header.getPixelWidth(),
-                                header.getPixelHeight(),
-                                header.getPixelDepth(),
-                                1, // num Samples
-                                header.getNumberOfSlices(),
-                                header.getNumberOfLevels(),
-                                (isGPUKTXPayload ? gpuktxKeyValue._samplerDesc : sampler));
-
-    tex->setUsage((isGPUKTXPayload ? gpuktxKeyValue._usage : usage));
+    auto texture = create(gpuktxKeyValue._usageType,
+                          type,
+                          texelFormat,
+                          header.getPixelWidth(),
+                          header.getPixelHeight(),
+                          header.getPixelDepth(),
+                          1, // num Samples
+                          header.getNumberOfSlices(),
+                          header.getNumberOfLevels(),
+                          gpuktxKeyValue._samplerDesc);
+    texture->setUsage(gpuktxKeyValue._usage);
 
     // Assing the mips availables
-    tex->setStoredMipFormat(mipFormat);
-    tex->setKtxBacking(ktxfile);
-    return tex;
+    texture->setStoredMipFormat(mipFormat);
+    texture->setKtxBacking(ktxfile);
+
+    IrradianceKTXPayload irradianceKtxKeyValue;
+    if (IrradianceKTXPayload::findInKeyValues(descriptor.keyValues, irradianceKtxKeyValue)) {
+        texture->overrideIrradiance(std::make_shared<SphericalHarmonics>(irradianceKtxKeyValue._irradianceSH));
+    }
+
+    return texture;
 }
 
 bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header) {
@@ -260,6 +495,18 @@ bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RGBA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
     } else if (texelFormat == Format::COLOR_R_8 && mipFormat == Format::COLOR_R_8) {
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RED, ktx::GLInternalFormat_Uncompressed::R8, ktx::GLBaseInternalFormat::RED);
+    } else if (texelFormat == Format::VEC2NU8_XY && mipFormat == Format::VEC2NU8_XY) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RG, ktx::GLInternalFormat_Uncompressed::RG8, ktx::GLBaseInternalFormat::RG);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_SRGB && mipFormat == Format::COLOR_COMPRESSED_SRGB) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT, ktx::GLBaseInternalFormat::RGB);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_SRGBA_MASK && mipFormat == Format::COLOR_COMPRESSED_SRGBA_MASK) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_SRGBA && mipFormat == Format::COLOR_COMPRESSED_SRGBA) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, ktx::GLBaseInternalFormat::RGBA);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_RED && mipFormat == Format::COLOR_COMPRESSED_RED) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1, ktx::GLBaseInternalFormat::RED);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_XY && mipFormat == Format::COLOR_COMPRESSED_XY) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2, ktx::GLBaseInternalFormat::RG);
     } else {
         return false;
     }
@@ -292,6 +539,25 @@ bool Texture::evalTextureFormat(const ktx::Header& header, Element& mipFormat, E
         mipFormat = Format::COLOR_R_8;
         if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::R8) {
             texelFormat = Format::COLOR_R_8;
+        } else {
+            return false;
+        }
+    } else if (header.getGLFormat() == ktx::GLFormat::COMPRESSED_FORMAT && header.getGLType() == ktx::GLType::COMPRESSED_TYPE) {
+        if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT) {
+            mipFormat = Format::COLOR_COMPRESSED_SRGB;
+            texelFormat = Format::COLOR_COMPRESSED_SRGB;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT) {
+            mipFormat = Format::COLOR_COMPRESSED_SRGBA_MASK;
+            texelFormat = Format::COLOR_COMPRESSED_SRGBA_MASK;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT) {
+            mipFormat = Format::COLOR_COMPRESSED_SRGBA;
+            texelFormat = Format::COLOR_COMPRESSED_SRGBA;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1) {
+            mipFormat = Format::COLOR_COMPRESSED_RED;
+            texelFormat = Format::COLOR_COMPRESSED_RED;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2) {
+            mipFormat = Format::COLOR_COMPRESSED_XY;
+            texelFormat = Format::COLOR_COMPRESSED_XY;
         } else {
             return false;
         }

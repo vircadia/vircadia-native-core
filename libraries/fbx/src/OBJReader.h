@@ -72,7 +72,6 @@ public:
     QString currentMaterialName;
     QHash<QString, OBJMaterial> materials;
 
-    QNetworkReply* request(QUrl& url, bool isTest);
     FBXGeometry* readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url = QUrl());
 
 private:

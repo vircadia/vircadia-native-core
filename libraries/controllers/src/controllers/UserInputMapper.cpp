@@ -20,9 +20,11 @@
 #include <PathUtils.h>
 #include <NumericalConstants.h>
 
+#include <StreamUtils.h>
+
 #include "StandardController.h"
 #include "StateController.h"
-
+#include "InputRecorder.h"
 #include "Logging.h"
 
 #include "impl/conditionals/AndConditional.h"
@@ -243,10 +245,11 @@ void fixBisectedAxis(float& full, float& negative, float& positive) {
 
 void UserInputMapper::update(float deltaTime) {
     Locker locker(_lock);
-
+    InputRecorder* inputRecorder = InputRecorder::getInstance();
     static uint64_t updateCount = 0;
     ++updateCount;
 
+    inputRecorder->resetFrame();
     // Reset the axis state for next loop
     for (auto& channel : _actionStates) {
         channel = 0.0f;
@@ -298,6 +301,7 @@ void UserInputMapper::update(float deltaTime) {
             emit inputEvent(input.id, value);
         }
     }
+    inputRecorder->frameTick();
 }
 
 Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {
@@ -561,7 +565,18 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
     if (source->isPose()) {
         Pose value = getPose(source, route->peek);
         static const Pose IDENTITY_POSE { vec3(), quat() };
+
         if (debugRoutes && route->debug) {
+            qCDebug(controllers) << "Value was t:" << value.translation << "r:" << value.rotation;
+        }
+        // Apply each of the filters.
+        for (const auto& filter : route->filters) {
+            value = filter->apply(value);
+        }
+
+        if (debugRoutes && route->debug) {
+            qCDebug(controllers) << "Filtered value was t:" << value.translation << "r:" << value.rotation;
+
             if (!value.valid) {
                 qCDebug(controllers) << "Applying invalid pose";
             } else if (value == IDENTITY_POSE) {

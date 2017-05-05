@@ -41,6 +41,9 @@ public:
     explicit GL45Backend(bool syncCache) : Parent(syncCache) {}
     GL45Backend() : Parent() {}
 
+    static const std::string GL45_VERSION;
+    const std::string& getVersion() const override { return GL45_VERSION; }
+
     class GL45Texture : public GLTexture {
         using Parent = GLTexture;
         friend class GL45Backend;
@@ -48,7 +51,7 @@ public:
     protected:
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         void generateMips() const override;
-        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum format, GLenum type, const void* sourcePointer) const override;
+        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         virtual void syncSampler() const;
     };
 

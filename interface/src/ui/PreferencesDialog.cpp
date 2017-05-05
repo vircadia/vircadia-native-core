@@ -11,7 +11,6 @@
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
 #include <devices/DdeFaceTracker.h>
-#include <devices/Faceshift.h>
 #include <NetworkingConstants.h>
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
@@ -112,14 +111,9 @@ void setupPreferences() {
     static const QString SNAPSHOTS { "Snapshots" };
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
-        auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
+        auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); emit DependencyManager::get<Snapshot>()->snapshotLocationSet(value); };
         auto preference = new BrowsePreference(SNAPSHOTS, "Put my snapshots here", getter, setter);
         preferences->addPreference(preference);
-    }
-    {
-        auto getter = []()->bool { return SnapshotAnimated::alsoTakeAnimatedSnapshot.get(); };
-        auto setter = [](bool value) { SnapshotAnimated::alsoTakeAnimatedSnapshot.set(value); };
-        preferences->addPreference(new CheckPreference(SNAPSHOTS, "Take Animated GIF Snapshot", getter, setter));
     }
     {
         auto getter = []()->float { return SnapshotAnimated::snapshotAnimatedDuration.get(); };
@@ -206,13 +200,6 @@ void setupPreferences() {
         auto getter = []()->float { return FaceTracker::getEyeDeflection(); };
         auto setter = [](float value) { FaceTracker::setEyeDeflection(value); };
         preferences->addPreference(new SliderPreference(AVATAR_TUNING, "Face tracker eye deflection", getter, setter));
-    }
-    {
-        auto getter = []()->QString { return DependencyManager::get<Faceshift>()->getHostname(); };
-        auto setter = [](const QString& value) { DependencyManager::get<Faceshift>()->setHostname(value); };
-        auto preference = new EditPreference(AVATAR_TUNING, "Faceshift hostname", getter, setter);
-        preference->setPlaceholderText("localhost");
-        preferences->addPreference(preference);
     }
     {
         auto getter = [=]()->QString { return myAvatar->getAnimGraphOverrideUrl().toString(); };
@@ -342,6 +329,30 @@ void setupPreferences() {
                 preference->setItems(shadowConfig->getPresetList());
                 preferences->addPreference(preference);
             }
+        }
+        {
+            auto getter = []()->bool { return image::isColorTexturesCompressionEnabled(); };
+            auto setter = [](bool value) { return image::setColorTexturesCompressionEnabled(value); };
+            auto preference = new CheckPreference(RENDER, "Compress Color Textures", getter, setter);
+            preferences->addPreference(preference);
+        }
+        {
+            auto getter = []()->bool { return image::isNormalTexturesCompressionEnabled(); };
+            auto setter = [](bool value) { return image::setNormalTexturesCompressionEnabled(value); };
+            auto preference = new CheckPreference(RENDER, "Compress Normal Textures", getter, setter);
+            preferences->addPreference(preference);
+        }
+        {
+            auto getter = []()->bool { return image::isGrayscaleTexturesCompressionEnabled(); };
+            auto setter = [](bool value) { return image::setGrayscaleTexturesCompressionEnabled(value); };
+            auto preference = new CheckPreference(RENDER, "Compress Grayscale Textures", getter, setter);
+            preferences->addPreference(preference);
+        }
+        {
+            auto getter = []()->bool { return image::isCubeTexturesCompressionEnabled(); };
+            auto setter = [](bool value) { return image::setCubeTexturesCompressionEnabled(value); };
+            auto preference = new CheckPreference(RENDER, "Compress Cube Textures", getter, setter);
+            preferences->addPreference(preference);
         }
     }
     {

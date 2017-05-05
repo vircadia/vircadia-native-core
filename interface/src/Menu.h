@@ -36,7 +36,7 @@ namespace MenuOption {
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
     const QString Attachments = "Attachments...";
-    const QString AudioNoiseReduction = "Audio Noise Reduction";
+    const QString AudioNoiseReduction = "Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";
@@ -96,7 +96,7 @@ namespace MenuOption {
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
-    const QString EnableCharacterController = "Enable avatar collisions";
+    const QString EnableCharacterController = "Collide with world";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString EntityScriptServerLog = "Entity Script Server Log";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
@@ -105,7 +105,6 @@ namespace MenuOption {
     const QString ExpandPaintGLTiming = "Expand /paintGL";
     const QString ExpandPhysicsSimulationTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
-    const QString Faceshift = "Faceshift";
     const QString FirstPerson = "First Person";
     const QString FivePointCalibration = "5 Point Calibration";
     const QString FixGaze = "Fix Gaze (no saccade)";
@@ -146,9 +145,6 @@ namespace MenuOption {
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString ReloadContent = "Reload Content (Clears all caches)";
-    const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
-    const QString RenderMyLookAtVectors = "Show My Eye Vectors";
-    const QString RenderOtherLookAtVectors = "Show Other Eye Vectors";
     const QString RenderMaxTextureMemory = "Maximum Texture Memory";
     const QString RenderMaxTextureAutomatic = "Automatic Texture Memory";
     const QString RenderMaxTexture4MB = "4 MB";
@@ -174,8 +170,11 @@ namespace MenuOption {
     const QString SendWrongDSConnectVersion = "Send wrong DS connect version";
     const QString SendWrongProtocolVersion = "Send wrong protocol version";
     const QString SetHomeLocation = "Set Home Location";
-    const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
+    const QString ShowBoundingCollisionShapes = "Show Bounding Collision Shapes";
+    const QString ShowDSConnectTable = "Show Domain Connection Timing";
+    const QString ShowMyLookAtVectors = "Show My Eye Vectors";
+    const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";

@@ -12,6 +12,9 @@
 
 #include "Application.h"
 
+PickRay FancyCamera::computePickRay(float x, float y) const {
+    return qApp->computePickRay(x, y);
+}
 
 QUuid FancyCamera::getCameraEntity() const {
     if (_cameraEntity != nullptr) {

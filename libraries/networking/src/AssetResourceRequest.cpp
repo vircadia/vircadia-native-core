@@ -40,16 +40,16 @@ AssetResourceRequest::~AssetResourceRequest() {
     }
 }
 
-bool AssetResourceRequest::urlIsAssetHash() const {
+bool AssetResourceRequest::urlIsAssetHash(const QUrl& url) {
     static const QString ATP_HASH_REGEX_STRING { "^atp:([A-Fa-f0-9]{64})(\\.[\\w]+)?$" };
 
     QRegExp hashRegex { ATP_HASH_REGEX_STRING };
-    return hashRegex.exactMatch(_url.toString());
+    return hashRegex.exactMatch(url.toString());
 }
 
 void AssetResourceRequest::doSend() {
     // We'll either have a hash or an ATP path to a file (that maps to a hash)
-    if (urlIsAssetHash()) {
+    if (urlIsAssetHash(_url)) {
         // We've detected that this is a hash - simply use AssetClient to request that asset
         auto parts = _url.path().split(".", QString::SkipEmptyParts);
         auto hash = parts.length() > 0 ? parts[0] : "";
@@ -114,7 +114,7 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
 void AssetResourceRequest::requestHash(const AssetHash& hash) {
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
-    _assetRequest = assetClient->createRequest(hash);
+    _assetRequest = assetClient->createRequest(hash, _byteRange);
 
     connect(_assetRequest, &AssetRequest::progress, this, &AssetResourceRequest::onDownloadProgress);
     connect(_assetRequest, &AssetRequest::finished, this, [this](AssetRequest* req) {

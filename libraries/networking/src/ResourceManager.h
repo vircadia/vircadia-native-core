@@ -26,6 +26,7 @@ const QString URL_SCHEME_ATP = "atp";
 
 class ResourceManager {
 public:
+
     static void setUrlPrefixOverride(const QString& prefix, const QString& replacement);
     static QString normalizeURL(const QString& urlString);
     static QUrl normalizeURL(const QUrl& url);
@@ -34,6 +35,10 @@ public:
 
     static void init();
     static void cleanup();
+
+    // Blocking call to check if a resource exists. This function uses a QEventLoop internally
+    // to return to the calling thread so that events can still be processed.
+    static bool resourceExists(const QUrl& url);
 
 private:
     static QThread _thread;

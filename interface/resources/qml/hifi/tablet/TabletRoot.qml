@@ -1,7 +1,9 @@
 import QtQuick 2.0
 import Hifi 1.0
 import QtQuick.Controls 1.4
+import HFTabletWebEngineProfile 1.0
 import "../../dialogs"
+import "../../controls"
 
 Item {
     id: tabletRoot
@@ -11,6 +13,7 @@ Item {
     property var rootMenu;
     property var openModal: null;
     property var openMessage: null;
+    property var openBrowser: null;
     property string subMenu: ""
     signal showDesktop();
     property bool shown: true
@@ -42,6 +45,12 @@ Item {
     function fileDialog(properties) {
         openModal = fileDialogBuilder.createObject(tabletRoot, properties);
         return openModal; 
+    }
+
+    Component { id: assetDialogBuilder; TabletAssetDialog { } }
+    function assetDialog(properties) {
+        openModal = assetDialogBuilder.createObject(tabletRoot, properties);
+        return openModal;
     }
 
     function setMenuProperties(rootMenu, subMenu) {
@@ -81,18 +90,33 @@ Item {
             loader.item.gotoPreviousApp = true;
         }
     }
+
+    function loadWebBase() {
+        loader.source = "";
+        loader.source = "TabletWebView.qml";
+    }
         
     function returnToPreviousApp() {
         tabletApps.remove(currentApp);
         var isWebPage = tabletApps.get(currentApp).isWebUrl;
         if (isWebPage) {
-	    var webUrl = tabletApps.get(currentApp).appWebUrl;
-	    var scriptUrl = tabletApps.get(currentApp).scriptUrl;
+            var webUrl = tabletApps.get(currentApp).appWebUrl;
+            var scriptUrl = tabletApps.get(currentApp).scriptUrl;
             loadSource("TabletWebView.qml");
             loadWebUrl(webUrl, scriptUrl);
         } else {
             loader.source = tabletApps.get(currentApp).appUrl;
         }
+    }
+
+    function openBrowserWindow(request, profile) {
+        var component = Qt.createComponent("../../controls/TabletWebView.qml");
+        var newWindow = component.createObject(tabletRoot);
+        newWindow.eventBridge = tabletRoot.eventBridge;
+        newWindow.remove = true;
+        newWindow.profile = profile;
+        request.openIn(newWindow.webView);
+        tabletRoot.openBrowser = newWindow;
     }
 
     function loadWebUrl(url, injectedJavaScriptUrl) {
@@ -173,6 +197,11 @@ Item {
                 openModal.canceled();
                 openModal.destroy();
                 openModal = null;
+            }
+
+            if (openBrowser) {
+                openBrowser.destroy();
+                openBrowser = null;
             }
         }
     }

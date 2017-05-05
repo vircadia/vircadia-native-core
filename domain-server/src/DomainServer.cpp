@@ -1633,6 +1633,15 @@ QString pathForAssignmentScript(const QUuid& assignmentUUID) {
     return directory.absoluteFilePath(uuidStringWithoutCurlyBraces(assignmentUUID));
 }
 
+QString DomainServer::pathForRedirect(QString path) const {
+    // make sure the passed path has a leading slash
+    if (!path.startsWith('/')) {
+        path.insert(0, '/');
+    }
+
+    return "http://" + _hostname + ":" + QString::number(_httpManager.serverPort()) + path;
+}
+
 const QString URI_OAUTH = "/oauth";
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString JSON_MIME_TYPE = "application/json";
@@ -1640,6 +1649,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_ASSIGNMENT = "/assignment";
     const QString URI_NODES = "/nodes";
     const QString URI_SETTINGS = "/settings";
+    const QString URI_ENTITY_FILE_UPLOAD = "/content/upload";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
@@ -1868,6 +1878,25 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             // respond with a 200 code for successful upload
             connection->respond(HTTPConnection::StatusCode200);
+
+            return true;
+        } else if (url.path() == URI_ENTITY_FILE_UPLOAD) {
+            // this is an entity file upload, ask the HTTPConnection to parse the data
+            QList<FormData> formData = connection->parseFormData();
+
+            Headers redirectHeaders;
+
+            if (formData.size() > 0 && formData[0].second.size() > 0) {
+                // invoke our method to hand the new octree file off to the octree server
+                QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
+                                          Qt::QueuedConnection, Q_ARG(QByteArray, formData[0].second));
+
+                // respond with a 200 for success
+                connection->respond(HTTPConnection::StatusCode200);
+            } else {
+                // respond with a 400 for failure
+                connection->respond(HTTPConnection::StatusCode400);
+            }
 
             return true;
         }
@@ -2159,8 +2188,7 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     cookieHeaders.insert("Set-Cookie", cookieString.toUtf8());
 
     // redirect the user back to the homepage so they can present their cookie and be authenticated
-    QString redirectString = "http://" + _hostname + ":" + QString::number(_httpManager.serverPort());
-    cookieHeaders.insert("Location", redirectString.toUtf8());
+    cookieHeaders.insert("Location", pathForRedirect().toUtf8());
 
     return cookieHeaders;
 }
@@ -2559,4 +2587,21 @@ void DomainServer::setupGroupCacheRefresh() {
         connect(_metaverseGroupCacheTimer, &QTimer::timeout, &_gatekeeper, &DomainGatekeeper::refreshGroupsCache);
         _metaverseGroupCacheTimer->start(REFRESH_GROUPS_INTERVAL_MSECS);
     }
+}
+
+void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
+    // enumerate the nodes and find any octree type servers with active sockets
+
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
+        return node->getType() == NodeType::EntityServer && node->getActiveSocket();
+    }, [&octreeFile, limitedNodeList](const SharedNodePointer& octreeNode) {
+        // setup a packet to send to this octree server with the new octree file data
+        auto octreeFilePacketList = NLPacketList::create(PacketType::OctreeFileReplacement, QByteArray(), true, true);
+        octreeFilePacketList->write(octreeFile);
+
+        qDebug() << "Sending an octree file replacement of" << octreeFile.size() << "bytes to" << octreeNode;
+
+        limitedNodeList->sendPacketList(std::move(octreeFilePacketList), *octreeNode);
+    });
 }

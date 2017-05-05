@@ -41,6 +41,14 @@ public:
 
     void locationChanged(bool tellPhysics) override;
 
+    float getLoadPriority() const { return _loadPriority; }
+
+protected:
+    // helper to extract metadata from our Model's rigged joints
+    template <typename itemType> using mapFunction = std::function<itemType(int jointIndex)>;
+    template <typename vectorType, typename itemType>
+        vectorType mapJoints(mapFunction<itemType> function) const;
+
 private:
 
     ModelPointer _model;
@@ -49,6 +57,7 @@ private:
     QUrl _url;
     bool _updateModel = { false };
     bool _scaleToFit = { false };
+    float _loadPriority { 0.0f };
 };
 
 #endif // hifi_ModelOverlay_h

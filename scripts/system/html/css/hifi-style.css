@@ -1,0 +1,175 @@
+/*
+//  hifi-style.css
+//
+//  Created by Zach Fox on 2017-04-18
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+*/
+
+@font-face {
+    font-family: Raleway-Regular;
+    src: url(../../../../resources/fonts/Raleway-Regular.ttf),  /* Windows production */
+         url(../../../../fonts/Raleway-Regular.ttf),  /* OSX production */
+         url(../../../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development, running script in /HiFi/examples */
+}
+
+@font-face {
+    font-family: Raleway-Light;
+    src: url(../../../../resources/fonts/Raleway-Light.ttf),
+         url(../../../../fonts/Raleway-Light.ttf),
+         url(../../../../interface/resources/fonts/Raleway-Light.ttf);
+}
+
+@font-face {
+    font-family: Raleway-Bold;
+    src: url(../../../../resources/fonts/Raleway-Bold.ttf),
+         url(../../../../fonts/Raleway-Bold.ttf),
+         url(../../../../interface/resources/fonts/Raleway-Bold.ttf);
+}
+
+@font-face {
+    font-family: Raleway-SemiBold;
+    src: url(../../../../resources/fonts/Raleway-SemiBold.ttf),
+         url(../../../../fonts/Raleway-SemiBold.ttf),
+         url(../../../../interface/resources/fonts/Raleway-SemiBold.ttf);
+}
+
+@font-face {
+    font-family: FiraSans-SemiBold;
+    src: url(../../../../resources/fonts/FiraSans-SemiBold.ttf),
+         url(../../../../fonts/FiraSans-SemiBold.ttf),
+         url(../../../../interface/resources/fonts/FiraSans-SemiBold.ttf);
+}
+
+@font-face {
+    font-family: AnonymousPro-Regular;
+    src: url(../../../../resources/fonts/AnonymousPro-Regular.ttf),
+         url(../../../../fonts/AnonymousPro-Regular.ttf),
+         url(../../../../interface/resources/fonts/AnonymousPro-Regular.ttf);
+}
+
+@font-face {
+    font-family: HiFi-Glyphs;
+    src: url(../../../../resources/fonts/hifi-glyphs.ttf),
+         url(../../../../fonts/hifi-glyphs.ttf),
+         url(../../../../interface/resources/fonts/hifi-glyphs.ttf);
+}
+
+body {
+    color: #afafaf;
+    background-color: #404040;
+    font-family: Raleway-Regular;
+    font-size: 15px;
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+hr {
+    border: none;
+    background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAjSURBVBhXY1RVVf3PgARYjIyMoEwIYHRwcEBRwQSloYCBAQCwjgPMiI7W2QAAAABJRU5ErkJggg==) repeat-x top left;
+    padding: 1px;
+    -webkit-margin-before: 0;
+    -webkit-margin-after: 0;
+    -webkit-margin-start: 0;
+    -webkit-margin-end: 0;
+    width: 100%;
+    position: absolute;
+}
+
+.hifi-glyph {
+    font-family: HiFi-Glyphs;
+    border: none;
+    //margin: -10px;
+    padding: 0;
+}
+
+input[type=radio] {
+  width: 2em;
+  margin: 0;
+  padding: 0;
+  font-size: 1em;
+  opacity: 0;
+}
+input[type=radio] + label{
+    display: inline-block;
+    margin-left: -2em;
+    line-height: 2em;
+    font-family: Raleway-SemiBold;
+    font-size: 14px;
+}
+input[type=radio] + label > span{
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin: 5px;
+  border-radius: 50%;
+  background: #6B6A6B;
+  background-image: linear-gradient(#7D7D7D, #6B6A6B);
+  vertical-align: bottom;
+}
+input[type=radio]:checked + label > span{
+  background-image: linear-gradient(#7D7D7D, #6B6A6B);
+}
+input[type=radio]:active + label > span,
+input[type=radio]:hover + label > span{
+  background-image: linear-gradient(#FFFFFF, #AFAFAF);
+}
+input[type=radio]:checked + label > span > span,
+input[type=radio]:active + label > span > span{
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: 3px;
+  border: 2px solid #36CDFF;
+  border-radius: 50%;
+  background: #00B4EF;
+}
+
+.grayButton {
+    font-family: Raleway-Bold;
+    font-size: 13px;
+    color: black;
+    padding: 0px 10px;
+    border-radius: 3px;
+    border-width: 0px;
+    background-image: linear-gradient(#FFFFFF, #AFAFAF);
+    min-height: 30px;
+}
+.grayButton:hover {
+    background-image: linear-gradient(#FFFFFF, #FFFFFF);
+}
+.grayButton:active {
+    background-image: linear-gradient(#AFAFAF, #AFAFAF);
+}
+.grayButton:disabled {
+    background-image: linear-gradient(#FFFFFF, ##AFAFAF);
+}
+.blueButton {
+    font-family: Raleway-Bold;
+    font-size: 13px;
+    color: white;
+    padding: 0px 10px;
+    border-radius: 3px;
+    border-width: 0px;
+    background-image: linear-gradient(#00B4EF, #1080B8);
+    min-height: 30px;
+}
+.blueButton:hover {
+    background-image: linear-gradient(#00B4EF, #00B4EF);
+}
+.blueButton:active {
+    background-image: linear-gradient(#1080B8, #1080B8);
+}
+.blueButton:disabled {
+    background-image: linear-gradient(#FFFFFF, #AFAFAF);
+}

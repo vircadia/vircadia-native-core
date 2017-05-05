@@ -28,7 +28,8 @@ public:
     virtual void deserialize(QByteArray serializedArguments) override;
 
     virtual bool getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
-                           glm::vec3& linearVelocity, glm::vec3& angularVelocity);
+                           glm::vec3& linearVelocity, glm::vec3& angularVelocity,
+                           float& linearTimeScale, float& angularTimeScale);
 
 protected:
     static const uint16_t springVersion;
@@ -46,7 +47,14 @@ protected:
     glm::vec3 _linearVelocityTarget;
     glm::vec3 _angularVelocityTarget;
 
+    EntityItemID _otherID;
+    SpatiallyNestableWeakPointer _other;
+    SpatiallyNestablePointer getOther();
+
     virtual bool prepareForSpringUpdate(btScalar deltaTimeStep);
+
+    void serializeParameters(QDataStream& dataStream) const;
+    void deserializeParameters(QByteArray serializedArguments, QDataStream& dataStream);
 };
 
 #endif // hifi_ObjectActionSpring_h

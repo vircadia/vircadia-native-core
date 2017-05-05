@@ -3,7 +3,7 @@ import QtWebEngine 1.2
 
 import "../../controls" as Controls
 
-Controls.WebView {
+Controls.TabletWebScreen {
 
 }
 
