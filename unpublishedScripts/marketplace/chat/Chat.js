@@ -47,11 +47,9 @@
     // Load the persistent variables from the Settings, with defaults.
     function loadSettings() {
         chatName = Settings.getValue('Chat_chatName', MyAvatar.displayName);
-        print("loadSettings: chatName", chatName);
         if (!chatName) {
             chatName = randomAvatarName();
         }
-        print("loadSettings: now chatName", chatName);
         chatLogMaxSize = Settings.getValue('Chat_chatLogMaxSize', 100);
         sendTyping = Settings.getValue('Chat_sendTyping', true);
         identifyAvatarDuration = Settings.getValue('Chat_identifyAvatarDuration', 10);
@@ -71,7 +69,6 @@
     // Save the persistent variables to the Settings.
     function saveSettings() {
         Settings.setValue('Chat_chatName', chatName);
-        print("saveSettings: chatName", chatName, "or", Settings.getValue('Chat_chatName', 'xxx'));
         Settings.setValue('Chat_chatLogMaxSize', chatLogMaxSize);
         Settings.setValue('Chat_sendTyping', sendTyping);
         Settings.setValue('Chat_identifyAvatarDuration', identifyAvatarDuration);
@@ -195,7 +192,7 @@
 
     // Notification that somebody started typing.
     function handleAvatarBeginTyping(avatarID, displayName) {
-        print("handleAvatarBeginTyping:", "avatarID", avatarID, displayName);
+        //print("handleAvatarBeginTyping:", "avatarID", avatarID, displayName);
     }
 
     // Notification that we stopped typing.
@@ -217,7 +214,7 @@
 
     // Notification that somebody stopped typing.
     function handleAvatarEndTyping(avatarID, displayName) {
-        print("handleAvatarEndTyping:", "avatarID", avatarID, displayName);
+        //print("handleAvatarEndTyping:", "avatarID", avatarID, displayName);
     }
 
     // Identify an avatar by drawing a line from our head to their head.
@@ -280,7 +277,7 @@
         var identifierParams = {
             parentID: myAvatarID,
             parentJointIndex: myJointIndex,
-            lifetime: identityAvatarDuration,
+            lifetime: identifyAvatarDuration,
             start: myJointPosition,
             endParentID: yourAvatarID,
             endParentJointIndex: yourJointIndex,
@@ -438,7 +435,7 @@
             return;
         }
 
-        receiveChatMessageTablet(avatarID, displayName, message, data);
+        handleTransmitChatMessage(avatarID, displayName, message, data);
     }
 
     // Handle input form the user, possibly multiple lines separated by newlines.
@@ -646,7 +643,7 @@
             Overlays.deleteOverlay(speechBubbleTextOverlayID);
         } catch (e) {}
 
-        print("updateSpeechBubble:", "speechBubbleMessage", speechBubbleMessage, "textSize", textSize.width, textSize.height);
+        //print("updateSpeechBubble:", "speechBubbleMessage", speechBubbleMessage, "textSize", textSize.width, textSize.height);
 
         var fudge = 0.02;
         var width = textSize.width + fudge;
@@ -685,7 +682,7 @@
             Entities.editEntity(speechBubbleTextID, speechBubbleParams);
         }
 
-        print("speechBubbleTextID:", speechBubbleTextID, "speechBubbleParams", JSON.stringify(speechBubbleParams));
+        //print("speechBubbleTextID:", speechBubbleTextID, "speechBubbleParams", JSON.stringify(speechBubbleParams));
     }
 
     // Hide the speech bubble.
@@ -694,7 +691,7 @@
 
         speechBubbleShowing = false;
 
-        print("popDownSpeechBubble speechBubbleTextID", speechBubbleTextID);
+        //print("popDownSpeechBubble speechBubbleTextID", speechBubbleTextID);
 
         if (speechBubbleTextID) {
             try {
