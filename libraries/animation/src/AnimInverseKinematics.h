@@ -43,9 +43,6 @@ public:
 
     float getMaxErrorOnLastSolve() { return _maxErrorOnLastSolve; }
 
-    // AJT: TODO REMOVE? for debugging.
-    const AnimPoseVec& getLimitCenterPoses() const { return _limitCenterPoses; }
-
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
