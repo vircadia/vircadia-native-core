@@ -158,7 +158,7 @@ input[type=button].naked:active {
     align-items: flex-end;
     height: 40px;
     width: calc(100% - 60px);
-    margin-bottom: 25px;
+    margin-bottom: -24px;
     margin-left: 0;
 }
 .shareButtons img {
@@ -178,13 +178,26 @@ input[type=button].naked:active {
     height: 25px;
     line-height: 25px;
     position: absolute;
-    bottom: 0;
+    bottom: 40px;
     left: 73px;
     right: 0;
     font-family: Raleway-Regular;
     font-weight: 500;
     font-size: 16px;
     padding-left: 8px;
+    color: white;
+}
+.helpTextDiv {
+    width: 350px;
+    height: 65px;
+    margin-right: 15px;
+    line-height: 65px;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    font-family: Raleway-Regular;
+    font-weight: 500;
+    font-size: 16px;
     color: white;
 }
 /*

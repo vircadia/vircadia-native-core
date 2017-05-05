@@ -29,12 +29,13 @@ var button = tablet.addButton({
     sortOrder: 5
 });
 
-var snapshotOptions;
+var snapshotOptions = {};
 var imageData = [];
 var storyIDsToMaybeDelete = [];
 var shareAfterLogin = false;
-var snapshotToShareAfterLogin;
+var snapshotToShareAfterLogin = [];
 var METAVERSE_BASE = location.metaverseServerUrl;
+var isLoggedIn;
 
 // It's totally unnecessary to return to C++ to perform many of these requests, such as DELETEing an old story,
 // POSTING a new one, PUTTING a new audience, or GETTING story data. It's far more efficient to do all of that within JS
@@ -61,7 +62,6 @@ function onMessage(message) {
         return;
     }
 
-    var isLoggedIn;
     switch (message.action) {
         case 'ready': // DOM is ready and page has loaded
             tablet.emitScriptEvent(JSON.stringify({
@@ -94,6 +94,9 @@ function onMessage(message) {
                 Settings.setValue("previousAnimatedSnapHifiSharingDisabled", false);
             }
             break;
+        case 'login':
+            openLoginWindow();
+            break;
         case 'chooseSnapshotLocation':
             var snapshotPath = Window.browseDir("Choose Snapshots Directory", "", "");
 
@@ -125,23 +128,28 @@ function onMessage(message) {
             takeSnapshot();
             break;
         case 'shareSnapshotForUrl':
-            isLoggedIn = Account.isLoggedIn();
-            if (isLoggedIn) {
-                print('Sharing snapshot with audience "for_url":', message.data);
-                Window.shareSnapshot(message.data, message.href || href);
-            } else {
-                // TODO
-            }
+            isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
+                if (canShare) {
+                    isLoggedIn = Account.isLoggedIn();
+                    if (isLoggedIn) {
+                        print('Sharing snapshot with audience "for_url":', message.data);
+                        Window.shareSnapshot(message.data, message.href || href);
+                    } else {
+                        shareAfterLogin = true;
+                        snapshotToShareAfterLogin.push({ path: message.data, href: message.href || href });
+                    }
+                }
+            });
             break;
         case 'blastToConnections':
             isLoggedIn = Account.isLoggedIn();
-            if (message.isGif) {
-                Settings.setValue("previousAnimatedSnapBlastingDisabled", true);
-            } else {
-                Settings.setValue("previousStillSnapBlastingDisabled", true);
-            }
-
             if (isLoggedIn) {
+                if (message.isGif) {
+                    Settings.setValue("previousAnimatedSnapBlastingDisabled", true);
+                } else {
+                    Settings.setValue("previousStillSnapBlastingDisabled", true);
+                }
+
                 print('Uploading new story for announcement!');
 
                 request({
@@ -187,20 +195,16 @@ function onMessage(message) {
                         });
                     }
                 });
-
-            } else {
-                openLoginWindow();
             }
             break;
         case 'shareSnapshotWithEveryone':
             isLoggedIn = Account.isLoggedIn();
-            if (message.isGif) {
-                Settings.setValue("previousAnimatedSnapHifiSharingDisabled", true);
-            } else {
-                Settings.setValue("previousStillSnapHifiSharingDisabled", true);
-            }
-
             if (isLoggedIn) {
+                if (message.isGif) {
+                    Settings.setValue("previousAnimatedSnapHifiSharingDisabled", true);
+                } else {
+                    Settings.setValue("previousStillSnapHifiSharingDisabled", true);
+                }
                 print('Modifying audience of story ID', message.story_id, "to 'for_feed'");
                 var requestBody = {
                     audience: "for_feed"
@@ -228,10 +232,6 @@ function onMessage(message) {
                         print("SUCCESS changing audience" + (message.isAnnouncement ? " and posting announcement!" : "!"));
                     }
                 });
-            } else {
-                openLoginWindow();
-                shareAfterLogin = true;
-                snapshotToShareAfterLogin = { path: message.data, href: message.href || href };
             }
             break;
         case 'removeFromStoryIDsToMaybeDelete':
@@ -244,6 +244,42 @@ function onMessage(message) {
     }
 }
 
+function fillImageDataFromPrevious() {
+    isLoggedIn = Account.isLoggedIn();
+    var previousStillSnapPath = Settings.getValue("previousStillSnapPath");
+    var previousStillSnapStoryID = Settings.getValue("previousStillSnapStoryID");
+    var previousStillSnapBlastingDisabled = Settings.getValue("previousStillSnapBlastingDisabled");
+    var previousStillSnapHifiSharingDisabled = Settings.getValue("previousStillSnapHifiSharingDisabled");
+    var previousAnimatedSnapPath = Settings.getValue("previousAnimatedSnapPath");
+    var previousAnimatedSnapStoryID = Settings.getValue("previousAnimatedSnapStoryID");
+    var previousAnimatedSnapBlastingDisabled = Settings.getValue("previousAnimatedSnapBlastingDisabled");
+    var previousAnimatedSnapHifiSharingDisabled = Settings.getValue("previousAnimatedSnapHifiSharingDisabled");
+    snapshotOptions = {
+        containsGif: previousAnimatedSnapPath !== "",
+        processingGif: false,
+        shouldUpload: false,
+        canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID"),
+        isLoggedIn: isLoggedIn
+    };
+    imageData = [];
+    if (previousStillSnapPath !== "") {
+        imageData.push({
+            localPath: previousStillSnapPath,
+            story_id: previousStillSnapStoryID,
+            blastButtonDisabled: previousStillSnapBlastingDisabled,
+            hifiButtonDisabled: previousStillSnapHifiSharingDisabled
+        });
+    }
+    if (previousAnimatedSnapPath !== "") {
+        imageData.push({
+            localPath: previousAnimatedSnapPath,
+            story_id: previousAnimatedSnapStoryID,
+            blastButtonDisabled: previousAnimatedSnapBlastingDisabled,
+            hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled
+        });
+    }
+}
+
 var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
 var isInSnapshotReview = false;
 var shouldActivateButton = false;
@@ -253,37 +289,7 @@ function onButtonClicked() {
         tablet.gotoHomeScreen();
     } else {
         shouldActivateButton = true;
-        var previousStillSnapPath = Settings.getValue("previousStillSnapPath");
-        var previousStillSnapStoryID = Settings.getValue("previousStillSnapStoryID");
-        var previousStillSnapBlastingDisabled = Settings.getValue("previousStillSnapBlastingDisabled");
-        var previousStillSnapHifiSharingDisabled = Settings.getValue("previousStillSnapHifiSharingDisabled");
-        var previousAnimatedSnapPath = Settings.getValue("previousAnimatedSnapPath");
-        var previousAnimatedSnapStoryID = Settings.getValue("previousAnimatedSnapStoryID");
-        var previousAnimatedSnapBlastingDisabled = Settings.getValue("previousAnimatedSnapBlastingDisabled");
-        var previousAnimatedSnapHifiSharingDisabled = Settings.getValue("previousAnimatedSnapHifiSharingDisabled");
-        snapshotOptions = {
-            containsGif: previousAnimatedSnapPath !== "",
-            processingGif: false,
-            shouldUpload: false,
-            canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID")
-        }
-        imageData = [];
-        if (previousStillSnapPath !== "") {
-            imageData.push({
-                localPath: previousStillSnapPath,
-                story_id: previousStillSnapStoryID,
-                blastButtonDisabled: previousStillSnapBlastingDisabled,
-                hifiButtonDisabled: previousStillSnapHifiSharingDisabled
-            });
-        }
-        if (previousAnimatedSnapPath !== "") {
-            imageData.push({
-                localPath: previousAnimatedSnapPath,
-                story_id: previousAnimatedSnapStoryID,
-                blastButtonDisabled: previousAnimatedSnapBlastingDisabled,
-                hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled
-            });
-        }
+        fillImageDataFromPrevious();
         tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
         tablet.webEventReceived.connect(onMessage);
         HMD.openTablet();
@@ -406,6 +412,7 @@ function isDomainOpen(id, callback) {
 }
 
 function stillSnapshotTaken(pathStillSnapshot, notify) {
+    isLoggedIn = Account.isLoggedIn();
     // show hud
     Reticle.visible = reticleVisible;
     Reticle.allowMouseCapture = true;
@@ -434,7 +441,8 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
         snapshotOptions = {
             containsGif: false,
             processingGif: false,
-            canShare: canShare
+            canShare: canShare,
+            isLoggedIn: isLoggedIn
         };
         imageData = [{ localPath: pathStillSnapshot, href: href }];
         tablet.emitScriptEvent(JSON.stringify({
@@ -449,6 +457,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
 function processingGifStarted(pathStillSnapshot) {
     Window.processingGifStarted.disconnect(processingGifStarted);
     Window.processingGifCompleted.connect(processingGifCompleted);
+    isLoggedIn = Account.isLoggedIn();
     // show hud
     Reticle.visible = reticleVisible;
     Reticle.allowMouseCapture = true;
@@ -468,7 +477,8 @@ function processingGifStarted(pathStillSnapshot) {
             containsGif: true,
             processingGif: true,
             loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
-            canShare: canShare
+            canShare: canShare,
+            isLoggedIn: isLoggedIn
         };
         imageData = [{ localPath: pathStillSnapshot, href: href }];
         tablet.emitScriptEvent(JSON.stringify({
@@ -481,6 +491,7 @@ function processingGifStarted(pathStillSnapshot) {
 }
 
 function processingGifCompleted(pathAnimatedSnapshot) {
+    isLoggedIn = Account.isLoggedIn();
     Window.processingGifCompleted.disconnect(processingGifCompleted);
     if (!buttonConnected) {
         button.clicked.connect(onButtonClicked);
@@ -493,7 +504,9 @@ function processingGifCompleted(pathAnimatedSnapshot) {
         snapshotOptions = {
             containsGif: true,
             processingGif: false,
-            canShare: canShare
+            canShare: canShare,
+            isLoggedIn: isLoggedIn,
+            canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID"),
         };
         imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
         tablet.emitScriptEvent(JSON.stringify({
@@ -529,10 +542,30 @@ function onTabletScreenChanged(type, url) {
     }
 }
 function onUsernameChanged() {
-    if (shareAfterLogin && Account.isLoggedIn()) {
-        print('Sharing snapshot after login:', snapshotToShareAfterLogin.path);
-        Window.shareSnapshot(snapshotToShareAfterLogin.path, snapshotToShareAfterLogin.href);
-        shareAfterLogin = false;
+    fillImageDataFromPrevious();
+    isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "showPreviousImages",
+            options: snapshotOptions,
+            image_data: imageData,
+            canShare: canShare
+        }));
+    });
+    if (isLoggedIn) {
+        if (shareAfterLogin) {
+            isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
+                if (canShare) {
+                    snapshotToShareAfterLogin.forEach(function (element) {
+                        print('Uploading snapshot after login:', element.path);
+                        Window.shareSnapshot(element.path, element.href);
+                    });
+                }
+            });
+
+            shareAfterLogin = false;
+            snapshotToShareAfterLogin = [];
+        }
     }
 }
 function snapshotLocationSet(location) {
@@ -548,7 +581,7 @@ button.clicked.connect(onButtonClicked);
 buttonConnected = true;
 Window.snapshotShared.connect(snapshotUploaded);
 tablet.screenChanged.connect(onTabletScreenChanged);
-Account.usernameChanged.connect(onUsernameChanged);
+GlobalServices.myUsernameChanged.connect(onUsernameChanged);
 Snapshot.snapshotLocationSet.connect(snapshotLocationSet);
 Script.scriptEnding.connect(function () {
     if (buttonConnected) {
