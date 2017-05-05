@@ -467,8 +467,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
     });
     if (!entityFound) {
-        // attempt to get a name for the mystery ID
-        QString name = "unknown";
+        // we've made an edit to an entity we don't know about, or to a non-entity.  If it's a known non-entity,
+        // print a warning and don't send an edit packet to the entity-server.
         QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
         if (parentFinder) {
             bool success;
@@ -478,7 +478,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 if (nestable) {
                     NestableType nestableType = nestable->getNestableType();
                     if (nestableType == NestableType::Overlay || nestableType == NestableType::Avatar) {
-                        qCWarning(entities) << "attempted edit on non-entity: " << id << name;
+                        qCWarning(entities) << "attempted edit on non-entity: " << id << nestable->getName();
                         return QUuid(); // null UUID to indicate failure
                     }
                 }
