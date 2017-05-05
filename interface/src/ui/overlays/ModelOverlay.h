@@ -22,6 +22,8 @@ public:
     static QString const TYPE;
     virtual QString getType() const override { return TYPE; }
 
+    virtual QString getName() const override;
+
     ModelOverlay();
     ModelOverlay(const ModelOverlay* modelOverlay);
 
