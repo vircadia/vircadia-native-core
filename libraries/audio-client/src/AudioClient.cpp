@@ -1169,8 +1169,8 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
 
     for (AudioInjector* injector : _activeLocalAudioInjectors) {
         // the lock guarantees that injectorBuffer, if found, is invariant
-        AudioInjectorLocalBuffer* injectorBuffer;
-        if ((injectorBuffer = injector->getLocalBuffer())) {
+        AudioInjectorLocalBuffer* injectorBuffer = injector->getLocalBuffer();
+        if (injectorBuffer) {
 
             static const int HRTF_DATASET_INDEX = 1;
 
@@ -1319,8 +1319,8 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
 }
 
 bool AudioClient::outputLocalInjector(AudioInjector* injector) {
-    AudioInjectorLocalBuffer* injectorBuffer;
-    if ((injectorBuffer = injector->getLocalBuffer())) {
+    AudioInjectorLocalBuffer* injectorBuffer = injector->getLocalBuffer();
+    if (injectorBuffer) {
         // local injectors are on the AudioInjectorsThread, so we must guard access
         Lock lock(_injectorsMutex);
         if (!_activeLocalAudioInjectors.contains(injector)) {
