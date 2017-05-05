@@ -231,6 +231,7 @@ public:
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
     void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
+    void setEnableDebugDrawIKConstraints(bool enableDebugDrawIKConstraints) { _enableDebugDrawIKConstraints = enableDebugDrawIKConstraints; }
 
     // input assumed to be in rig space
     void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
@@ -341,6 +342,7 @@ protected:
     float _maxHipsOffsetLength { 1.0f };
 
     bool _enableDebugDrawIKTargets { false };
+    bool _enableDebugDrawIKConstraints { false };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

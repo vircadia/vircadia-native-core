@@ -443,19 +443,20 @@ glm::quat SwingTwistConstraint::computeCenterRotation() const {
         twistLimits[0] = glm::angleAxis(_minTwist, _referenceRotation * Vectors::UNIT_Y);
         twistLimits[1] = glm::angleAxis(_maxTwist, _referenceRotation * Vectors::UNIT_Y);
     }
-    const float D_THETA = TWO_PI / NUM_MIN_DOTS;
+    const float D_THETA = TWO_PI / (NUM_MIN_DOTS - 1);
     float theta = 0.0f;
-    for (size_t i = 0; i < NUM_MIN_DOTS; i++, theta += D_THETA) {
+    for (size_t i = 0; i < NUM_MIN_DOTS - 1; i++, theta += D_THETA) {
         // compute swing rotation from theta and phi angles.
         float phi = acos(getMinDots()[i]);
         float cos_phi = getMinDots()[i];
         float sin_phi = sinf(phi);
         glm::vec3 swungAxis(sin_phi * cosf(theta), cos_phi, sin_phi * sinf(theta));
-        glm::quat swing = glm::angleAxis(phi, glm::normalize(glm::cross(Vectors::UNIT_Y, swungAxis)));
+
+        // to ensure that swings > 90 degrees do not flip the center rotation, we devide phi / 2
+        glm::quat swing = glm::angleAxis(phi / 2, glm::normalize(glm::cross(Vectors::UNIT_Y, swungAxis)));
         swingLimits.push_back(swing);
     }
-    glm::quat limits[2];
-    limits[0] = averageQuats(swingLimits.size(), &swingLimits[0]);
-    limits[1] = averageQuats(2, twistLimits);
-    return averageQuats(2, limits);
+    glm::quat averageSwing = averageQuats(swingLimits.size(), &swingLimits[0]);
+    glm::quat averageTwist = averageQuats(2, twistLimits);
+    return averageSwing * averageTwist * _referenceRotation;
 }

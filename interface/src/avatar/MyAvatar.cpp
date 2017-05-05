@@ -505,6 +505,7 @@ void MyAvatar::simulate(float deltaTime) {
 
         if (_rig) {
             _rig->setEnableDebugDrawIKTargets(_enableDebugDrawIKTargets);
+            _rig->setEnableDebugDrawIKConstraints(_enableDebugDrawIKConstraints);
         }
 
         _skeletonModel->simulate(deltaTime);
@@ -928,6 +929,10 @@ void MyAvatar::setEnableDebugDrawSensorToWorldMatrix(bool isEnabled) {
 
 void MyAvatar::setEnableDebugDrawIKTargets(bool isEnabled) {
     _enableDebugDrawIKTargets = isEnabled;
+}
+
+void MyAvatar::setEnableDebugDrawIKConstraints(bool isEnabled) {
+    _enableDebugDrawIKConstraints = isEnabled;
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
