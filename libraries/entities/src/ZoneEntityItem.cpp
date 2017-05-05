@@ -71,8 +71,26 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
-    bool somethingChangedInKeyLight = _keyLightProperties.setProperties(properties);
-    
+    if (somethingChanged) {
+        bool wantDebug = false;
+        if (wantDebug) {
+            uint64_t now = usecTimestampNow();
+            int elapsed = now - getLastEdited();
+            qCDebug(entities) << "ZoneEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+                    "now=" << now << " getLastEdited()=" << getLastEdited();
+        }
+        setLastEdited(properties._lastEdited);
+    }
+
+    return somethingChanged;
+}
+
+bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = EntityItem::setSubClassProperties(properties); // set the properties in our base class
+
+
+    _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
+
     bool somethingChangedInStage = _stageProperties.setProperties(properties);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
@@ -85,18 +103,8 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
 
     bool somethingChangedInSkybox = _skyboxProperties.setProperties(properties);
 
-    somethingChanged = somethingChanged  || somethingChangedInKeyLight || somethingChangedInStage || somethingChangedInSkybox;
+    somethingChanged = somethingChanged || _keyLightPropertiesChanged || somethingChangedInStage || somethingChangedInSkybox;
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "ZoneEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties._lastEdited);
-    }
 
     return somethingChanged;
 }
@@ -183,6 +191,14 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, getFlyingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, getGhostingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_FILTER_URL, getFilterURL());
+}
+
+void ZoneEntityItem::somethingChangedNotification() {
+    EntityItem::somethingChangedNotification();
+    withWriteLock([&] {
+        _keyLightPropertiesChanged = false;
+        _backgroundPropertiesChanged = false;
+    });
 }
 
 void ZoneEntityItem::debugDump() const {

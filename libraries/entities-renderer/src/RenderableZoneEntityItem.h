@@ -56,7 +56,8 @@ private:
     template<typename Lambda>
     void changeProperties(Lambda functor);
 
-
+    void notifyChangedRenderItem();
+    void sceneUpdateRenderItemFromEntity(render::Transaction& transaction);
     void updateKeyLightItemFromEntity(KeyLightPayload& keylightPayload);
 
     

@@ -162,13 +162,9 @@ Column {
         }
     }
 
+    Row {
     Column {
-        id: metas
-        CheckBox {
-            text: "Metas"
-            checked: Render.getConfig("DrawMetaBounds")["enabled"]
-            onCheckedChanged: { Render.getConfig("DrawMetaBounds")["enabled"] = checked }
-        }
+
         CheckBox {
             text: "Opaques"
             checked: Render.getConfig("DrawOpaqueBounds")["enabled"]
@@ -189,6 +185,13 @@ Column {
             checked: Render.getConfig("DrawOverlayTransparentBounds")["enabled"]
             onCheckedChanged: { Render.getConfig("DrawOverlayTransparentBounds")["enabled"] = checked }
         }
+    }
+    Column {
+        CheckBox {
+            text: "Metas"
+            checked: Render.getConfig("DrawMetaBounds")["enabled"]
+            onCheckedChanged: { Render.getConfig("DrawMetaBounds")["enabled"] = checked }
+        }   
         CheckBox {
             text: "Lights"
             checked: Render.getConfig("DrawLightBounds")["enabled"]
@@ -199,6 +202,7 @@ Column {
             checked: Render.getConfig("DrawZones")["enabled"]
             onCheckedChanged: { Render.getConfig("ZoneRenderer")["enabled"] = checked; Render.getConfig("DrawZones")["enabled"] = checked; }
         }
+    }
     }
 }
 

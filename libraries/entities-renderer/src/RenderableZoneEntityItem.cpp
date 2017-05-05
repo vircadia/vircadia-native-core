@@ -68,7 +68,16 @@ bool RenderableZoneEntityItem::setProperties(const EntityItemProperties& propert
 
 void RenderableZoneEntityItem::somethingChangedNotification() {
     DependencyManager::get<EntityTreeRenderer>()->updateZone(_id);
+
+    // A new way:
+    if (_keyLightPropertiesChanged || _backgroundPropertiesChanged) {
+        notifyChangedRenderItem();
+    }
+
+    // Poopagate back to parent
+    ZoneEntityItem::somethingChangedNotification();
 }
+
 
 int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                                 ReadBitstreamToTreeParams& args,
@@ -290,6 +299,7 @@ void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, const ren
 }
 
 
+
 void RenderableZoneEntityItem::notifyBoundChanged() {
     if (!render::Item::isValidID(_myMetaItem)) {
         return;
@@ -336,4 +346,25 @@ void RenderableZoneEntityItem::updateKeyLightItemFromEntity(KeyLightPayload& key
 
     light->setType(model::Light::SUN);
 
+}
+
+void RenderableZoneEntityItem::sceneUpdateRenderItemFromEntity(render::Transaction& transaction) {
+    if (!render::Item::isValidID(_myKeyLightItem)) {
+        return;
+    }
+
+    transaction.updateItem<KeyLightPayload>(_myKeyLightItem, [&](KeyLightPayload& data) {
+        updateKeyLightItemFromEntity(data);
+    });
+}
+
+void RenderableZoneEntityItem::notifyChangedRenderItem() {
+    if (!render::Item::isValidID(_myKeyLightItem)) {
+        return;
+    }
+
+    render::Transaction transaction;
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+    sceneUpdateRenderItemFromEntity(transaction);
+    scene->enqueueTransaction(transaction);
 }
