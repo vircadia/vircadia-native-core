@@ -1108,17 +1108,16 @@ void AudioClient::prepareLocalAudioInjectors() {
         }
 
         int bufferCapacity = _localInjectorsStream.getSampleCapacity();
+        int maxOutputSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * AudioConstants::STEREO;
         if (_localToOutputResampler) {
-            // avoid overwriting the buffer,
-            // instead of failing on writes because the buffer is used as a lock-free pipe
-            bufferCapacity -=
+            maxOutputSamples =
                 _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) *
                 AudioConstants::STEREO;
-            bufferCapacity += 1;
         }
 
         samplesNeeded = bufferCapacity - _localSamplesAvailable.load(std::memory_order_relaxed);
-        if (samplesNeeded <= 0) {
+        if (samplesNeeded < maxOutputSamples) {
+            // avoid overwriting the buffer to prevent losing frames
             break;
         }
 
