@@ -29,7 +29,7 @@ const QString COMMAND_STYLE = "color: #266a9b;";
 
 const QString RESULT_SUCCESS_STYLE = "color: #677373;";
 const QString RESULT_INFO_STYLE = "color: #223bd1;";
-const QString RESULT_WARNING_STYLE = "color: #d1b322;";
+const QString RESULT_WARNING_STYLE = "color: #d13b22;";
 const QString RESULT_ERROR_STYLE = "color: #d13b22;";
 
 const QString GUTTER_PREVIOUS_COMMAND = "<span style=\"color: #57b8bb;\">&lt;</span>";
