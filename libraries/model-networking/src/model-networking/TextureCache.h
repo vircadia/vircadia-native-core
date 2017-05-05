@@ -58,6 +58,8 @@ public:
 
     gpu::TexturePointer getFallbackTexture() const;
 
+    void refresh() override;
+
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
