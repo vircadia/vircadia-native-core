@@ -1097,25 +1097,25 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
 }
 
 void AudioClient::prepareLocalAudioInjectors() {
-    if (_outputPeriod == 0) {
-        return;
-    }
-
-    int bufferCapacity = _localInjectorsStream.getSampleCapacity();
-    if (_localToOutputResampler) {
-        // avoid overwriting the buffer,
-        // instead of failing on writes because the buffer is used as a lock-free pipe
-        bufferCapacity -=
-            _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) *
-            AudioConstants::STEREO;
-        bufferCapacity += 1;
-    }
-
     int samplesNeeded = std::numeric_limits<int>::max();
     while (samplesNeeded > 0) {
-        // lock for every write to avoid locking out the device callback
-        // this lock is intentional - the buffer is only lock-free in its use in the device callback
+        // unlock between every write to allow device switching
         Lock lock(_localAudioMutex);
+
+        // in case of a device switch, consider bufferCapacity volatile across iterations
+        if (_outputPeriod == 0) {
+            return;
+        }
+
+        int bufferCapacity = _localInjectorsStream.getSampleCapacity();
+        if (_localToOutputResampler) {
+            // avoid overwriting the buffer,
+            // instead of failing on writes because the buffer is used as a lock-free pipe
+            bufferCapacity -=
+                _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) *
+                AudioConstants::STEREO;
+            bufferCapacity += 1;
+        }
 
         samplesNeeded = bufferCapacity - _localSamplesAvailable.load(std::memory_order_relaxed);
         if (samplesNeeded <= 0) {
