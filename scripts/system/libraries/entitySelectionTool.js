@@ -340,6 +340,11 @@ SelectionDisplay = (function() {
         green: 120,
         blue: 120
     };
+    var grabberColorCloner = {
+        red: 0,
+        green: 155,
+        blue: 0
+    };
     var grabberLineWidth = 0.5;
     var grabberSolid = true;
     var grabberMoveUpPosition = {
@@ -396,6 +401,23 @@ SelectionDisplay = (function() {
         },
         size: grabberSizeFace,
         color: grabberColorFace,
+        alpha: 1,
+        solid: grabberSolid,
+        visible: false,
+        dashed: false,
+        lineWidth: grabberLineWidth,
+        drawInFront: true,
+        borderSize: 1.4,
+    };
+
+    var grabberPropertiesCloner = {
+        position: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        size: grabberSizeCorner + 0.025,
+        color: grabberColorCloner,
         alpha: 1,
         solid: grabberSolid,
         visible: false,
@@ -581,6 +603,8 @@ SelectionDisplay = (function() {
     var grabberPointLightR = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberPointLightF = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberPointLightN = Overlays.addOverlay("cube", grabberPropertiesEdge);
+
+    var grabberCloner = Overlays.addOverlay("cube", grabberPropertiesCloner);
 
     var stretchHandles = [
         grabberLBN,
@@ -969,6 +993,9 @@ SelectionDisplay = (function() {
         grabberPointLightCircleX,
         grabberPointLightCircleY,
         grabberPointLightCircleZ,
+
+        grabberCloner
+
     ].concat(stretchHandles);
 
     overlayNames[highlightBox] = "highlightBox";
@@ -1015,7 +1042,7 @@ SelectionDisplay = (function() {
 
     overlayNames[rotateZeroOverlay] = "rotateZeroOverlay";
     overlayNames[rotateCurrentOverlay] = "rotateCurrentOverlay";
-
+    overlayNames[grabberCloner] = "grabberCloner";
     var activeTool = null;
     var grabberTools = {};
 
@@ -1107,7 +1134,7 @@ SelectionDisplay = (function() {
         if (event !== false) {
             pickRay = generalComputePickRay(event.x, event.y);
 
-            var wantDebug = false;
+            var wantDebug = true;
             if (wantDebug) {
                 print("select() with EVENT...... ");
                 print("                event.y:" + event.y);
@@ -2291,7 +2318,11 @@ SelectionDisplay = (function() {
             },
             rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         });
-
+        Overlays.editOverlay(grabberCloner, {
+            visible: stretchHandlesVisible,
+            rotation: rotation,
+            position: RIGHT
+        });
 
     };
 
@@ -2371,7 +2402,7 @@ SelectionDisplay = (function() {
             return (origin.y - intersection.y) / Vec3.distance(origin, intersection);
         },
         onMove: function(event) {
-            var wantDebug = false;
+            var wantDebug = true;
             pickRay = generalComputePickRay(event.x, event.y);
 
             var pick = rayPlaneIntersection2(pickRay, translateXZTool.pickPlanePosition, {
@@ -2556,7 +2587,7 @@ SelectionDisplay = (function() {
             vector.x = 0;
             vector.z = 0;
 
-            var wantDebug = false;
+            var wantDebug = true;
             if (wantDebug) {
                 print("translateUpDown... ");
                 print("                event.y:" + event.y);
@@ -2579,6 +2610,52 @@ SelectionDisplay = (function() {
             SelectionManager._update();
         },
     });
+
+    addGrabberTool(grabberCloner, {
+        mode: "CLONE",
+        pickPlanePosition: { x: 0, y: 0, z: 0 },
+        greatestDimension: 0.0,
+        startingDistance: 0.0,
+        startingElevation: 0.0,
+        onBegin: function(event) {
+            SelectionManager.saveProperties();
+            startPosition = SelectionManager.worldPosition;
+            var dimensions = SelectionManager.worldDimensions;
+
+            var pickRay = generalComputePickRay(event.x, event.y);
+            initialXZPick = rayPlaneIntersection(pickRay, translateXZTool.pickPlanePosition, {
+                x: 0,
+                y: 1,
+                z: 0
+            });
+
+            // Duplicate entities if alt is pressed.  This will make a
+            // copy of the selected entities and move the _original_ entities, not
+            // the new ones.
+
+                duplicatedEntityIDs = [];
+                for (var otherEntityID in SelectionManager.savedProperties) {
+                    var properties = SelectionManager.savedProperties[otherEntityID];
+                    if (!properties.locked) {
+                        var entityID = Entities.addEntity(properties);
+                        duplicatedEntityIDs.push({
+                            entityID: entityID,
+                            properties: properties,
+                        });
+                    }
+                }
+
+            isConstrained = false;
+        },
+        elevation: translateXZTool.elevation,
+
+        onEnd: translateXZTool.onEnd,
+
+        onMove: translateXZTool.onMove
+    });
+
+
+
 
     var vec3Mult = function(v1, v2) {
             return {
@@ -2844,7 +2921,7 @@ SelectionDisplay = (function() {
                     });
                 }
 
-                var wantDebug = false;
+                var wantDebug = true;
                 if (wantDebug) {
                     print(stretchMode);
                     //Vec3.print("        newIntersection:", newIntersection);
@@ -3861,7 +3938,7 @@ SelectionDisplay = (function() {
     };
 
     that.mousePressEvent = function(event) {
-        var wantDebug = false;
+        var wantDebug = true;
         if (!event.isLeftButton && !that.triggered) {
             // if another mouse button than left is pressed ignore it
             return false;
@@ -3958,6 +4035,10 @@ SelectionDisplay = (function() {
                         mode = "STRETCH_LEFT";
                         somethingClicked = mode;
                         break;
+                    // case grabberCloner:
+                    //     mode = "CLONE";
+                    //     somethingClicked = mode;
+                    //     break;
 
                     default:
                         mode = "UNKNOWN";
@@ -4344,6 +4425,12 @@ SelectionDisplay = (function() {
                     highlightNeeded = true;
                     break;
 
+                case grabberCloner:
+                    pickedColor = grabberColorCloner;
+                    pickedAlpha = grabberAlpha;
+                    highlightNeeded = true;
+                    break;
+                    
                 default:
                     if (previousHandle) {
                         Overlays.editOverlay(previousHandle, {
