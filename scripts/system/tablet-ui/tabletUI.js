@@ -25,8 +25,17 @@
     var debugTablet = false;
     var tabletScalePercentage = 100.0;
     UIWebTablet = null;
+    var MSECS_PER_SEC = 1000.0;
+    var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
+    var gTablet = null;
 
     Script.include("../libraries/WebTablet.js");
+
+    function checkTablet() {
+        if (gTablet === null) {
+            gTablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        }
+    }
 
     function tabletIsValid() {
         if (!UIWebTablet) {
@@ -49,6 +58,7 @@
     }
 
     function getTabletScalePercentageFromSettings() {
+        checkTablet()
         var toolbarMode = gTablet.toolbarMode;
         var tabletScalePercentage = DEFAULT_TABLET_SCALE;
         if (!toolbarMode) {
@@ -77,9 +87,7 @@
         if (debugTablet) {
             print("TABLET rezzing");
         }
-        if (gTablet === null) {
-            gTablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        }
+        checkTablet()
 
         tabletScalePercentage = getTabletScalePercentageFromSettings();
         UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml",
@@ -95,6 +103,7 @@
     }
 
     function showTabletUI() {
+        checkTablet()
         gTablet.tabletShown = true;
 
         if (!tabletRezzed || !tabletIsValid()) {
@@ -117,6 +126,7 @@
     }
 
     function hideTabletUI() {
+        checkTablet()
         gTablet.tabletShown = false;
         if (!UIWebTablet) {
             return;
@@ -133,6 +143,7 @@
     }
 
     function closeTabletUI() {
+        checkTablet()
         gTablet.tabletShown = false;
         if (UIWebTablet) {
             if (UIWebTablet.onClose) {
@@ -159,9 +170,7 @@
     function updateShowTablet() {
         var now = Date.now();
 
-        if (gTablet === null) {
-            gTablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        }
+        checkTablet()
 
         // close the WebTablet if it we go into toolbar mode.
         var tabletShown = gTablet.tabletShown;
@@ -223,6 +232,23 @@
                     closeTabletUI();
                     rezTablet();
                     tabletShown = false;
+
+                    // also cause the stylus model to be loaded
+                    var tmpStylusID = Overlays.addOverlay("model", {
+                                               name: "stylus",
+                                               url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
+                                               loadPriority: 10.0,
+                                               position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.1, z: -2})),
+                                               dimensions: { x: 0.01, y: 0.01, z: 0.2 },
+                                               solid: true,
+                                               visible: true,
+                                               ignoreRayIntersection: true,
+                                               drawInFront: false,
+                                               lifetime: 3
+                                       });
+                    Script.setTimeout(function() {
+                        Overlays.deleteOverlay(tmpStylusID);
+                    }, 300);
                 } else if (!tabletShown) {
                     hideTabletUI();
                 }
@@ -237,6 +263,7 @@
         }
         if (channel === "home") {
             if (UIWebTablet) {
+                checkTablet()
                 gTablet.landscape = false;
             }
         }
