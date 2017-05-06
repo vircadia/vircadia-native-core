@@ -118,7 +118,7 @@ public:
     public:
         Frame() {}
         
-        void clear() { _pointLights.clear(); _spotLights.clear(); }
+        void clear() { _pointLights.clear(); _spotLights.clear(); _sunLights.clear(); }
         void pushLight(LightStage::Index index, model::Light::Type type) {
             switch (type) {
                 case model::Light::POINT: { pushPointLight(index); break; }

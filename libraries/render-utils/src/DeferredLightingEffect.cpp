@@ -143,53 +143,12 @@ void DeferredLightingEffect::init() {
 
 }
 
-void DeferredLightingEffect::addLight(const model::LightPointer& light) {
-    assert(light);
-    auto lightID = _lightStage->addLight(light);
-    if (light->getType() == model::Light::POINT) {
-        _pointLights.push_back(lightID);
-    } else {
-        _spotLights.push_back(lightID);
-    }
-}
-
-
-void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
-        float intensity, float falloffRadius) {
-    addSpotLight(position, radius, color, intensity, falloffRadius);
-}
-
-void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
-    float intensity, float falloffRadius, const glm::quat& orientation, float exponent, float cutoff) {
-    
-    unsigned int lightID = (unsigned int)(_pointLights.size() + _spotLights.size() + _globalLights.size());
-    if (lightID >= _allocatedLights.size()) {
-        _allocatedLights.push_back(std::make_shared<model::Light>());
-    }
-    model::LightPointer lp = _allocatedLights[lightID];
-
-    lp->setPosition(position);
-    lp->setMaximumRadius(radius);
-    lp->setColor(color);
-    lp->setIntensity(intensity);
-    lp->setFalloffRadius(falloffRadius);
-
-    if (exponent == 0.0f && cutoff == PI) {
-        lp->setType(model::Light::POINT);
-        _pointLights.push_back(lightID);
-        
-    } else {
-        lp->setOrientation(orientation);
-        lp->setSpotAngle(cutoff);
-        lp->setSpotExponent(exponent);
-        lp->setType(model::Light::SPOT);
-        _spotLights.push_back(lightID);
-    }
-}
-
 void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
     auto keyLight = _allocatedLights[_globalLights.front()];
+    if (_lightStage && _lightStage->_currentFrame._sunLights.size()) {
+        keyLight = _lightStage->getLight(_lightStage->_currentFrame._sunLights.front());
+    }
 
     if (lightBufferUnit >= 0) {
         batch.setUniformBuffer(lightBufferUnit, keyLight->getLightSchemaBuffer());
@@ -771,16 +730,6 @@ void RenderDeferredCleanup::run(const render::RenderContextPointer& renderContex
         batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, nullptr);
         batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, nullptr);
 
-    }
-
-    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-
-    // End of the Lighting pass
-    if (!deferredLightingEffect->_pointLights.empty()) {
-        deferredLightingEffect->_pointLights.clear();
-    }
-    if (!deferredLightingEffect->_spotLights.empty()) {
-        deferredLightingEffect->_spotLights.clear();
     }
 }
 

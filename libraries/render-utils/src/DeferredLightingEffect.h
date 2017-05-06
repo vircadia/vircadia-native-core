@@ -43,18 +43,7 @@ class DeferredLightingEffect : public Dependency {
     
 public:
     void init();
-    
-    void addLight(const model::LightPointer& light);
-
-    /// Adds a point light to render for the current frame.
-    void addPointLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(0.0f, 0.0f, 0.0f),
-        float intensity = 0.5f, float falloffRadius = 0.01f);
-        
-    /// Adds a spot light to render for the current frame.
-    void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f),
-        float intensity = 0.5f, float falloffRadius = 0.01f,
-        const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
-
+ 
     void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
     void unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
 
@@ -113,8 +102,6 @@ private:
 
     Lights _allocatedLights;
     std::vector<int> _globalLights;
-    std::vector<int> _pointLights;
-    std::vector<int> _spotLights;
 
     friend class LightClusteringPass;
     friend class RenderDeferredSetup;

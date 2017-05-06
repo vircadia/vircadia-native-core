@@ -24,6 +24,8 @@
 #include "RenderableEntityItem.h"
 
 #include <LightPayload.h>
+#include "DeferredLightingEffect.h"
+
 
 
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
@@ -73,6 +75,7 @@ void RenderableZoneEntityItem::somethingChangedNotification() {
 
     // If graphics elements are changed, we need to update the render items
     if (_keyLightPropertiesChanged || _backgroundPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged) {
+
         notifyChangedRenderItem();
     }
 
@@ -118,6 +121,52 @@ void RenderableZoneEntityItem::updateGeometry() {
     if (_model && _model->isActive() && _needsInitialSimulation) {
         initialSimulation();
     }
+}
+
+void RenderableZoneEntityItem::updateTextures() {
+    auto textureCache = DependencyManager::get<TextureCache>();
+    bool isAmbientSet = false;
+    if (_pendingAmbientTexture && !_ambientTexture) {
+        _ambientTexture = textureCache->getTexture(_ambientTextureURL, image::TextureUsage::CUBE_TEXTURE);
+    }
+    if (_ambientTexture && _ambientTexture->isLoaded()) {
+        _pendingAmbientTexture = false;
+
+        auto texture = _ambientTexture->getGPUTexture();
+        if (texture) {
+            isAmbientSet = true;
+        } else {
+            qCDebug(entitiesrenderer) << "Failed to load ambient texture:" << _ambientTexture->getURL();
+        }
+    }
+
+    if (_pendingSkyboxTexture &&
+        (!_skyboxTexture || (_skyboxTexture->getURL() != _skyboxTextureURL))) {
+        _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, image::TextureUsage::CUBE_TEXTURE);
+    }
+    if (_skyboxTexture && _skyboxTexture->isLoaded()) {
+        _pendingSkyboxTexture = false;
+
+        auto texture = _skyboxTexture->getGPUTexture();
+        if (texture) {
+           // skybox->setCubemap(texture);
+            if (!isAmbientSet) {
+            //    sceneKeyLight->setAmbientSphere(texture->getIrradiance());
+            //    sceneKeyLight->setAmbientMap(texture);
+                isAmbientSet = true;
+            }
+        } else {
+            qCDebug(entitiesrenderer) << "Failed to load skybox texture:" << _skyboxTexture->getURL();
+        }
+    } else {
+     //   skybox->setCubemap(nullptr);
+    }
+
+    if (!isAmbientSet) {
+    //    sceneKeyLight->resetAmbientSphere();
+   //     sceneKeyLight->setAmbientMap(nullptr);
+    }
+
 }
 
 void RenderableZoneEntityItem::render(RenderArgs* args) {
@@ -235,6 +284,23 @@ public:
     typedef Payload::DataPointer Pointer;
     
     EntityItemPointer entity;
+
+    void render(RenderArgs* args);
+
+    model::LightPointer editLight() { _needUpdate = true; return _light; }
+    render::Item::Bound& editBound() { _needUpdate = true; return _bound; }
+
+    void setVisible(bool visible) { _isVisible = visible; }
+    bool isVisible() const { return _isVisible; }
+
+
+    model::LightPointer _light;
+    render::Item::Bound _bound;
+    LightStagePointer _stage;
+    LightStage::Index _index { LightStage::INVALID_INDEX };
+    bool _needUpdate { true };
+    bool _isVisible { true };
+
 };
 
 namespace render {
@@ -254,11 +320,7 @@ namespace render {
         return render::Item::Bound();
     }
     template <> void payloadRender(const RenderableZoneEntityItemMeta::Pointer& payload, RenderArgs* args) {
-        if (args) {
-            if (payload && payload->entity) {
-                payload->entity->render(args);
-            }
-        }
+        payload->render(args);
     }
 }
 
@@ -318,19 +380,20 @@ void RenderableZoneEntityItem::notifyBoundChanged() {
     }
 }
 
-void RenderableZoneEntityItem::updateKeyLightItemFromEntity(KeyLightPayload& keylightPayload) {
+
+void RenderableZoneEntityItem::updateKeyZoneItemFromEntity(RenderableZoneEntityItemMeta& keyZonePayload) {
     auto entity = this;
 
-    keylightPayload.setVisible(entity->getVisible());
+    keyZonePayload.setVisible(entity->getVisible());
 
-    auto light = keylightPayload.editLight();
+    auto light = keyZonePayload.editLight();
     light->setPosition(entity->getPosition());
     light->setOrientation(entity->getRotation());
 
     bool success;
-    keylightPayload.editBound() = entity->getAABox(success);
+    keyZonePayload.editBound() = entity->getAABox(success);
     if (!success) {
-        keylightPayload.editBound() = render::Item::Bound();
+        keyZonePayload.editBound() = render::Item::Bound();
     }
 
     // Set the keylight
@@ -340,7 +403,13 @@ void RenderableZoneEntityItem::updateKeyLightItemFromEntity(KeyLightPayload& key
     light->setDirection(this->getKeyLightProperties().getDirection());
 
     light->setType(model::Light::SUN);
+
+
 }
+
+void RenderableZoneEntityItem::updateKeyLightItemFromEntity(KeyLightPayload& keylightPayload) {
+}
+
 
 void RenderableZoneEntityItem::sceneUpdateRenderItemFromEntity(render::Transaction& transaction) {
     if (!render::Item::isValidID(_myKeyLightItem)) {
@@ -361,4 +430,35 @@ void RenderableZoneEntityItem::notifyChangedRenderItem() {
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     sceneUpdateRenderItemFromEntity(transaction);
     scene->enqueueTransaction(transaction);
+}
+
+void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
+    entity->render(args);
+
+    if (!_stage) {
+        _stage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
+    }
+    // Do we need to allocate the light in the stage ?
+    if (LightStage::isIndexInvalid(_index)) {
+        _index = _stage->addLight(_light);
+        _needUpdate = false;
+    }
+    // Need an update ?
+    if (_needUpdate) {
+        _stage->updateLightArrayBuffer(_index);
+        _needUpdate = false;
+    }
+
+    if (isVisible()) {
+        // FInally, push the light visible in the frame
+        _stage->_currentFrame.pushLight(_index, _light->getType());
+
+#ifdef WANT_DEBUG
+        Q_ASSERT(args->_batch);
+        gpu::Batch& batch = *args->_batch;
+        batch.setModelTransform(getTransformToCenter());
+        DependencyManager::get<GeometryCache>()->renderWireSphere(batch, 0.5f, 15, 15, glm::vec4(color, 1.0f));
+#endif
+    }
+
 }

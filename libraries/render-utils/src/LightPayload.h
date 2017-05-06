@@ -15,6 +15,7 @@
 #include <model/Light.h>
 #include <render/Item.h>
 #include "LightStage.h"
+#include "TextureCache.h"
 
 class LightPayload {
 public:
@@ -60,6 +61,13 @@ public:
 
     void setVisible(bool visible) { _isVisible = visible; }
     bool isVisible() const { return _isVisible; }
+
+
+    // More attributes used for rendering:
+    NetworkTexturePointer _ambientTexture;
+    QString _ambientTextureURL;
+    bool _pendingAmbientTexture { false };
+    bool _validAmbientTextureURL { false };
 
 protected:
     model::LightPointer _light;
