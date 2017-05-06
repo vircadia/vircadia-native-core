@@ -28,10 +28,10 @@ public:
     const std::unordered_set<int>& getCauterizeBoneSet() const { return _cauterizeBoneSet; }
     void setCauterizeBoneSet(const std::unordered_set<int>& boneSet) { _cauterizeBoneSet = boneSet; }
 
-	void deleteGeometry() override;
-	bool updateGeometry() override;
+    void deleteGeometry() override;
+    bool updateGeometry() override;
 
-	void createVisibleRenderItemSet() override;
+    void createVisibleRenderItemSet() override;
     void createCollisionRenderItemSet() override;
 
     virtual void updateClusterMatrices() override;
@@ -41,7 +41,7 @@ public:
 
 protected:
     std::unordered_set<int> _cauterizeBoneSet;
-	QVector<Model::MeshState> _cauterizeMeshStates;
+    QVector<Model::MeshState> _cauterizeMeshStates;
     bool _isCauterized { false };
     bool _enableCauterization { false };
 };
