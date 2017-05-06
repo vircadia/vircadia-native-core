@@ -3881,6 +3881,7 @@ function MyController(hand) {
                 // we appear to be holding something and this script isn't in a state that would be holding something.
                 // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
                 // works around some problems that happen when more than one hand or avatar is passing something around.
+                var childType = Entities.getNestableType(childID);
                 if (_this.previousParentID[childID]) {
                     var previousParentID = _this.previousParentID[childID];
                     var previousParentJointIndex = _this.previousParentJointIndex[childID];
@@ -3898,7 +3899,7 @@ function MyController(hand) {
                     }
                     _this.previouslyUnhooked[childID] = now;
 
-                    if (Overlays.getProperty(childID, "grabbable")) {
+                    if (childType == "overlay" && Overlays.getProperty(childID, "grabbable")) {
                         // only auto-unhook overlays that were flagged as grabbable.  this avoids unhooking overlays
                         // used in tutorial.
                         Overlays.editOverlay(childID, {
@@ -3906,12 +3907,20 @@ function MyController(hand) {
                             parentJointIndex: previousParentJointIndex
                         });
                     }
-                    Entities.editEntity(childID, { parentID: previousParentID, parentJointIndex: previousParentJointIndex });
+                    if (childType == "entity") {
+                        Entities.editEntity(childID, {
+                            parentID: previousParentID,
+                            parentJointIndex: previousParentJointIndex
+                        });
+                    }
 
                 } else {
-                    Entities.editEntity(childID, { parentID: NULL_UUID });
-                    if (Overlays.getProperty(childID, "grabbable")) {
-                        Overlays.editOverlay(childID, { parentID: NULL_UUID });
+                    if (childType == "entity") {
+                        Entities.editEntity(childID, { parentID: NULL_UUID });
+                    } else if (childType == "overlay") {
+                        if (Overlays.getProperty(childID, "grabbable")) {
+                            Overlays.editOverlay(childID, { parentID: NULL_UUID });
+                        }
                     }
                 }
             }
