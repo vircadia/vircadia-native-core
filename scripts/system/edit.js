@@ -488,7 +488,7 @@ var toolBar = (function () {
                     green: 200,
                     blue: 200
                 },
-              colorSpread: {
+                colorSpread: {
                     red: 0,
                     green: 0,
                     blue: 0
@@ -527,7 +527,7 @@ var toolBar = (function () {
                 alphaFinish: 0,
                 polarStart: 0,
                 polarFinish: 0,
-                textures: "https://raw.githubusercontent.com/Triplelexx/hifi/40908fb1a31bd884f87e21c4e524275f8334471b/interface/resources/images/Smoke.png"
+                textures: "https://hifi-content.s3.amazonaws.com/DomainContent/production/Particles/Smoke.png"
             });
         });
 
