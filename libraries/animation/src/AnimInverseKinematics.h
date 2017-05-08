@@ -43,12 +43,24 @@ public:
 
     float getMaxErrorOnLastSolve() { return _maxErrorOnLastSolve; }
 
+    enum class SolutionSource {
+        RelaxToUnderPoses = 0,
+        RelaxToLimitCenterPoses,
+        PreviousSolution,
+        UnderPoses,
+        LimitCenterPoses
+    };
+
+    void setSolutionSource(SolutionSource solutionSource) { _solutionSource = solutionSource; }
+
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
     int solveTargetWithCCD(const IKTarget& target, AnimPoseVec& absolutePoses);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
     void debugDrawConstraints(const AnimContext& context) const;
+    void initRelativePosesFromSolutionSource(const AnimPoseVec& underPose);
+    void relaxToPoses(const AnimPoseVec& poses);
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override { return _relativePoses; }
@@ -103,6 +115,7 @@ protected:
 
     float _maxErrorOnLastSolve { FLT_MAX };
     bool _previousEnableDebugIKTargets { false };
+    SolutionSource _solutionSource { SolutionSource::RelaxToUnderPoses };
 };
 
 #endif // hifi_AnimInverseKinematics_h

@@ -414,25 +414,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
         PROFILE_RANGE_EX(simulation_animation, "ik/relax", 0xffff00ff, 0);
 
-        // relax toward underPoses
-        // HACK: this relaxation needs to be constant per-frame rather than per-realtime
-        // in order to prevent IK "flutter" for bad FPS.  The bad news is that the good parts
-        // of this relaxation will be FPS dependent (low FPS will make the limbs align slower
-        // in real-time), however most people will not notice this and this problem is less
-        // annoying than the flutter.
-        const float blend = (1.0f / 60.0f) / (0.25f); // effectively: dt / RELAXATION_TIMESCALE
-        int numJoints = (int)_relativePoses.size();
-        for (int i = 0; i < numJoints; ++i) {
-            float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot(), underPoses[i].rot()));
-            if (_accumulators[i].isDirty()) {
-                // this joint is affected by IK --> blend toward underPose rotation
-                _relativePoses[i].rot() = glm::normalize(glm::lerp(_relativePoses[i].rot(), dotSign * underPoses[i].rot(), blend));
-            } else {
-                // this joint is NOT affected by IK --> slam to underPose rotation
-                _relativePoses[i].rot() = underPoses[i].rot();
-            }
-            _relativePoses[i].trans() = underPoses[i].trans();
-        }
+        initRelativePosesFromSolutionSource(underPoses);
 
         if (!underPoses.empty()) {
             // Sometimes the underpose itself can violate the constraints.  Rather than
@@ -1133,5 +1115,43 @@ void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) con
                 pose.rot() = constraint->computeCenterRotation();
             }
         }
+    }
+}
+
+void AnimInverseKinematics::relaxToPoses(const AnimPoseVec& poses) {
+    // relax toward poses
+    const float blend = (1.0f / 60.0f) / (0.25f);
+    int numJoints = (int)_relativePoses.size();
+    for (int i = 0; i < numJoints; ++i) {
+        float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot(), poses[i].rot()));
+        if (_accumulators[i].isDirty()) {
+            // this joint is affected by IK --> blend toward each pose rotation
+            _relativePoses[i].rot() = glm::normalize(glm::lerp(_relativePoses[i].rot(), dotSign * poses[i].rot(), blend));
+        } else {
+            // this joint is NOT affected by IK --> slam to underPose rotation
+            _relativePoses[i].rot() = poses[i].rot();
+        }
+        _relativePoses[i].trans() = poses[i].trans();
+    }
+}
+
+void AnimInverseKinematics::initRelativePosesFromSolutionSource(const AnimPoseVec& underPoses) {
+    switch (_solutionSource) {
+    default:
+    case SolutionSource::RelaxToUnderPoses:
+        relaxToPoses(underPoses);
+        break;
+    case SolutionSource::RelaxToLimitCenterPoses:
+        relaxToPoses(_limitCenterPoses);
+        break;
+    case SolutionSource::PreviousSolution:
+        // do nothing... _relativePoses is already the previous solution
+        break;
+    case SolutionSource::UnderPoses:
+        _relativePoses = underPoses;
+        break;
+    case SolutionSource::LimitCenterPoses:
+        _relativePoses = _limitCenterPoses;
+        break;
     }
 }
