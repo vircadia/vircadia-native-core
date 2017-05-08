@@ -16,12 +16,12 @@
 
 #include <EntityItem.h>
 #include <AnimPose.h>
-#include <ObjectActionSpring.h>
+#include <ObjectActionTractor.h>
 
 #include "avatar/MyAvatar.h"
 
 
-class AvatarActionHold : public ObjectActionSpring {
+class AvatarActionHold : public ObjectActionTractor {
 public:
     AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();

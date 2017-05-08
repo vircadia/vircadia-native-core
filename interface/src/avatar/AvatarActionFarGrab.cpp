@@ -12,7 +12,7 @@
 #include "AvatarActionFarGrab.h"
 
 AvatarActionFarGrab::AvatarActionFarGrab(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectActionSpring(id, ownerEntity) {
+    ObjectActionTractor(id, ownerEntity) {
     _type = DYNAMIC_TYPE_FAR_GRAB;
 #if WANT_DEBUG
     qDebug() << "AvatarActionFarGrab::AvatarActionFarGrab";
@@ -32,7 +32,7 @@ QByteArray AvatarActionFarGrab::serialize() const {
 
     dataStream << DYNAMIC_TYPE_FAR_GRAB;
     dataStream << getID();
-    dataStream << ObjectActionSpring::springVersion;
+    dataStream << ObjectActionTractor::tractorVersion;
 
     serializeParameters(dataStream);
 
@@ -55,7 +55,7 @@ void AvatarActionFarGrab::deserialize(QByteArray serializedArguments) {
 
     uint16_t serializationVersion;
     dataStream >> serializationVersion;
-    if (serializationVersion != ObjectActionSpring::springVersion) {
+    if (serializationVersion != ObjectActionTractor::tractorVersion) {
         assert(false);
         return;
     }

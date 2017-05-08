@@ -13,9 +13,9 @@
 #define hifi_AvatarActionFarGrab_h
 
 #include <EntityItem.h>
-#include <ObjectActionSpring.h>
+#include <ObjectActionTractor.h>
 
-class AvatarActionFarGrab : public ObjectActionSpring {
+class AvatarActionFarGrab : public ObjectActionTractor {
 public:
     AvatarActionFarGrab(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionFarGrab();
