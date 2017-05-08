@@ -212,8 +212,6 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
 }
 
 void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibrationData& inputCalibration) {
-    quint64 currentTime = usecTimestampNow();
-
     auto leftTrigger = _buttonPressedMap.find(controller::LT);
     auto rightTrigger = _buttonPressedMap.find(controller::RT);
     if ((leftTrigger != _buttonPressedMap.end()) && (rightTrigger != _buttonPressedMap.end())) {
