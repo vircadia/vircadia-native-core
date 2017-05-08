@@ -273,28 +273,37 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
     if (_steppingUp) {
         // compute a stepUpSpeed that will reach the top of the step in the time it would take
         // to move over the _stepPoint at target speed
-        float hDistance = sqrtf(_stepPoint.getX() * _stepPoint.getX() + _stepPoint.getZ() * _stepPoint.getZ());
-        float targetSpeed = _targetVelocity.length();
-        float timeToStep = hDistance / targetSpeed;
-        float stepUpSpeed = _stepHeight / timeToStep + 0.5f * _gravity * timeToStep;
-        const float MAX_STEP_UP_SPEED = 0.65f * targetSpeed;
+        float horizontalDistance = (_stepPoint - _stepPoint.dot(_currentUp) * _currentUp).length();
+        float horizontalTargetSpeed = (_targetVelocity - _targetVelocity.dot(_currentUp) * _currentUp).length();
+        float timeToStep = horizontalDistance / horizontalTargetSpeed;
+        float stepUpSpeed = _stepHeight / timeToStep;
+
+        // magically clamp stepUpSpeed to a fraction of horizontalTargetSpeed
+        // to prevent the avatar from moving unreasonably fast according to human eye
+        const float MAX_STEP_UP_SPEED = 0.65f * horizontalTargetSpeed;
         if (stepUpSpeed > MAX_STEP_UP_SPEED) {
             stepUpSpeed = MAX_STEP_UP_SPEED;
         }
 
-        btScalar vDotUp = velocity.dot(_currentUp);
-        if (stepUpSpeed > vDotUp) {
-            // don't have enough upward velocity to cover the step
+        // add minimum velocity to counteract gravity's displacement during one step
+        // Note: the 0.5 factor comes from the fact that we really want the
+        // average velocity contribution from gravity during the step
+        stepUpSpeed -= 0.5f * _gravity * timeToStep; // remember: _gravity is negative scalar
 
-            // we step up with micro-teleports rather than applying velocity
-            // use a speed that would ballistically reach _stepHeight under gravity
+        btScalar vDotUp = velocity.dot(_currentUp);
+        if (vDotUp < stepUpSpeed) {
+            // character doesn't have enough upward velocity to cover the step so we help using a "sky hook"
+            // which uses micro-teleports rather than applying real velocity
+            // to prevent the avatar from popping up after the step is done
             btTransform transform = _rigidBody->getWorldTransform();
             transform.setOrigin(transform.getOrigin() + (dt * stepUpSpeed) * _currentUp);
             _rigidBody->setWorldTransform(transform);
         }
-        float minStepUpSpeed = 0.0f;
-        if (vDotUp < minStepUpSpeed) {
-            velocity += (minStepUpSpeed - vDotUp) * _currentUp;
+
+        // don't allow the avatar to fall downward when stepping up
+        // since otherwise this would tend to defeat the step-up behavior
+        if (vDotUp < 0.0f) {
+            velocity -= vDotUp * _currentUp;
         }
     }
     _rigidBody->setLinearVelocity(velocity + _parentVelocity);
