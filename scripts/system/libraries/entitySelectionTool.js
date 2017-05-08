@@ -416,7 +416,7 @@ SelectionDisplay = (function() {
             y: 0,
             z: 0
         },
-        size: grabberSizeCorner + 0.025,
+        size: grabberSizeCorner,
         color: grabberColorCloner,
         alpha: 1,
         solid: grabberSolid,
@@ -652,6 +652,8 @@ SelectionDisplay = (function() {
         grabberPointLightR,
         grabberPointLightF,
         grabberPointLightN,
+
+        grabberCloner
     ];
 
 
@@ -994,8 +996,6 @@ SelectionDisplay = (function() {
         grabberPointLightCircleY,
         grabberPointLightCircleZ,
 
-        grabberCloner
-
     ].concat(stretchHandles);
 
     overlayNames[highlightBox] = "highlightBox";
@@ -1134,7 +1134,7 @@ SelectionDisplay = (function() {
         if (event !== false) {
             pickRay = generalComputePickRay(event.x, event.y);
 
-            var wantDebug = true;
+            var wantDebug = false;
             if (wantDebug) {
                 print("select() with EVENT...... ");
                 print("                event.y:" + event.y);
@@ -2355,7 +2355,7 @@ SelectionDisplay = (function() {
         greatestDimension: 0.0,
         startingDistance: 0.0,
         startingElevation: 0.0,
-        onBegin: function(event) {
+        onBegin: function(event,isAltFromGrab) {
             SelectionManager.saveProperties();
             startPosition = SelectionManager.worldPosition;
             var dimensions = SelectionManager.worldDimensions;
@@ -2370,7 +2370,7 @@ SelectionDisplay = (function() {
             // Duplicate entities if alt is pressed.  This will make a
             // copy of the selected entities and move the _original_ entities, not
             // the new ones.
-            if (event.isAlt) {
+            if (event.isAlt || isAltFromGrab) {
                 duplicatedEntityIDs = [];
                 for (var otherEntityID in SelectionManager.savedProperties) {
                     var properties = SelectionManager.savedProperties[otherEntityID];
@@ -2402,7 +2402,7 @@ SelectionDisplay = (function() {
             return (origin.y - intersection.y) / Vec3.distance(origin, intersection);
         },
         onMove: function(event) {
-            var wantDebug = true;
+            var wantDebug = false;
             pickRay = generalComputePickRay(event.x, event.y);
 
             var pick = rayPlaneIntersection2(pickRay, translateXZTool.pickPlanePosition, {
@@ -2587,7 +2587,7 @@ SelectionDisplay = (function() {
             vector.x = 0;
             vector.z = 0;
 
-            var wantDebug = true;
+            var wantDebug = false;
             if (wantDebug) {
                 print("translateUpDown... ");
                 print("                event.y:" + event.y);
@@ -2613,45 +2613,27 @@ SelectionDisplay = (function() {
 
     addGrabberTool(grabberCloner, {
         mode: "CLONE",
-        pickPlanePosition: { x: 0, y: 0, z: 0 },
-        greatestDimension: 0.0,
-        startingDistance: 0.0,
-        startingElevation: 0.0,
         onBegin: function(event) {
-            SelectionManager.saveProperties();
-            startPosition = SelectionManager.worldPosition;
-            var dimensions = SelectionManager.worldDimensions;
 
             var pickRay = generalComputePickRay(event.x, event.y);
-            initialXZPick = rayPlaneIntersection(pickRay, translateXZTool.pickPlanePosition, {
-                x: 0,
-                y: 1,
-                z: 0
-            });
+            var result = Overlays.findRayIntersection(pickRay);
+            translateXZTool.pickPlanePosition = result.intersection;
+            translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y),
+                SelectionManager.worldDimensions.z);
 
-            // Duplicate entities if alt is pressed.  This will make a
-            // copy of the selected entities and move the _original_ entities, not
-            // the new ones.
-
-                duplicatedEntityIDs = [];
-                for (var otherEntityID in SelectionManager.savedProperties) {
-                    var properties = SelectionManager.savedProperties[otherEntityID];
-                    if (!properties.locked) {
-                        var entityID = Entities.addEntity(properties);
-                        duplicatedEntityIDs.push({
-                            entityID: entityID,
-                            properties: properties,
-                        });
-                    }
-                }
-
-            isConstrained = false;
+            translateXZTool.onBegin(event,true);
         },
-        elevation: translateXZTool.elevation,
+        elevation: function (event) {
+            translateXZTool.elevation(event);
+        },
 
-        onEnd: translateXZTool.onEnd,
+        onEnd: function (event) {
+            translateXZTool.onEnd(event);
+        },
 
-        onMove: translateXZTool.onMove
+        onMove: function (event) {
+            translateXZTool.onMove(event);
+        }
     });
 
 
@@ -2921,7 +2903,7 @@ SelectionDisplay = (function() {
                     });
                 }
 
-                var wantDebug = true;
+                var wantDebug = false;
                 if (wantDebug) {
                     print(stretchMode);
                     //Vec3.print("        newIntersection:", newIntersection);
@@ -3938,7 +3920,7 @@ SelectionDisplay = (function() {
     };
 
     that.mousePressEvent = function(event) {
-        var wantDebug = true;
+        var wantDebug = false;
         if (!event.isLeftButton && !that.triggered) {
             // if another mouse button than left is pressed ignore it
             return false;
@@ -4035,10 +4017,6 @@ SelectionDisplay = (function() {
                         mode = "STRETCH_LEFT";
                         somethingClicked = mode;
                         break;
-                    // case grabberCloner:
-                    //     mode = "CLONE";
-                    //     somethingClicked = mode;
-                    //     break;
 
                     default:
                         mode = "UNKNOWN";
