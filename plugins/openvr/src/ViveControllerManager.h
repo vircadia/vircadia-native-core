@@ -109,7 +109,6 @@ private:
 
         int _trackedControllers { 0 };
         vr::IVRSystem*& _system;
-        quint64 _calibrateAfterTimelapse { 0.f };
         float _leftHapticStrength { 0.0f };
         float _leftHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
