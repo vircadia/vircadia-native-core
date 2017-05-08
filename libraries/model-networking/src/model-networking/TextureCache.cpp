@@ -334,6 +334,22 @@ private:
     int _maxNumPixels;
 };
 
+NetworkTexture::~NetworkTexture() {
+    if (_ktxHeaderRequest || _ktxMipRequest) {
+        if (_ktxHeaderRequest) {
+            _ktxHeaderRequest->disconnect(this);
+            _ktxHeaderRequest->deleteLater();
+            _ktxHeaderRequest = nullptr;
+        }
+        if (_ktxMipRequest) {
+            _ktxMipRequest->disconnect(this);
+            _ktxMipRequest->deleteLater();
+            _ktxMipRequest = nullptr;
+        }
+        TextureCache::requestCompleted(_self);
+    }
+}
+
 const uint16_t NetworkTexture::NULL_MIP_LEVEL = std::numeric_limits<uint16_t>::max();
 void NetworkTexture::makeRequest() {
     if (!_sourceIsKTX) {
@@ -398,13 +414,18 @@ void NetworkTexture::startRequestForNextMipLevel() {
     }
 
     if (_ktxResourceState == WAITING_FOR_MIP_REQUEST) {
+        auto self = _self.lock();
+        if (!self) {
+            return;
+        }
+
         _ktxResourceState = PENDING_MIP_REQUEST;
 
-        init();
+        init(false);
         float priority = -(float)_originalKtxDescriptor->header.numberOfMipmapLevels + (float)_lowestKnownPopulatedMip;
         setLoadPriority(this, priority);
         _url.setFragment(QString::number(_lowestKnownPopulatedMip - 1));
-        TextureCache::attemptRequest(_self);
+        TextureCache::attemptRequest(self);
     }
 }
 
@@ -451,12 +472,20 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 void NetworkTexture::ktxHeaderRequestFinished() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA);
 
+    if (!_ktxHeaderRequest) {
+        return;
+    }
+
     _ktxHeaderRequestFinished = true;
     maybeHandleFinishedInitialLoad();
 }
 
 void NetworkTexture::ktxMipRequestFinished() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA || _ktxResourceState == REQUESTING_MIP);
+
+    if (!_ktxMipRequest) {
+        return;
+    }
 
     if (_ktxResourceState == LOADING_INITIAL_DATA) {
         _ktxHighMipRequestFinished = true;
@@ -473,19 +502,16 @@ void NetworkTexture::ktxMipRequestFinished() {
                 texture->assignStoredMip(_ktxMipLevelRangeInFlight.first,
                     _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
                 _lowestKnownPopulatedMip = _textureSource->getGPUTexture()->minAvailableMipLevel();
-            }
-            else {
+            } else {
                 qWarning(networking) << "Trying to update mips but texture is null";
             }
             finishedLoading(true);
             _ktxResourceState = WAITING_FOR_MIP_REQUEST;
-        }
-        else {
+        } else {
             finishedLoading(false);
             if (handleFailedRequest(_ktxMipRequest->getResult())) {
                 _ktxResourceState = PENDING_MIP_REQUEST;
-            }
-            else {
+            } else {
                 qWarning(networking) << "Failed to load mip: " << _url;
                 _ktxResourceState = FAILED_TO_LOAD;
             }
@@ -497,8 +523,7 @@ void NetworkTexture::ktxMipRequestFinished() {
         if (_ktxResourceState == WAITING_FOR_MIP_REQUEST && _lowestRequestedMipLevel < _lowestKnownPopulatedMip) {
             startRequestForNextMipLevel();
         }
-    }
-    else {
+    } else {
         qWarning() << "Mip request finished in an unexpected state: " << _ktxResourceState;
     }
 }
@@ -663,6 +688,27 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     }
 
     QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, _maxNumPixels));
+}
+
+void NetworkTexture::refresh() {
+    if ((_ktxHeaderRequest || _ktxMipRequest) && !_loaded && !_failedToLoad) {
+        return;
+    }
+    if (_ktxHeaderRequest || _ktxMipRequest) {
+        if (_ktxHeaderRequest) {
+            _ktxHeaderRequest->disconnect(this);
+            _ktxHeaderRequest->deleteLater();
+            _ktxHeaderRequest = nullptr;
+        }
+        if (_ktxMipRequest) {
+            _ktxMipRequest->disconnect(this);
+            _ktxMipRequest->deleteLater();
+            _ktxMipRequest = nullptr;
+        }
+        TextureCache::requestCompleted(_self);
+    }
+
+    Resource::refresh();
 }
 
 ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url, const QByteArray& data, int maxNumPixels) :

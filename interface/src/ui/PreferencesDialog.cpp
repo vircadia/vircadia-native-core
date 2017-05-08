@@ -111,7 +111,7 @@ void setupPreferences() {
     static const QString SNAPSHOTS { "Snapshots" };
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
-        auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
+        auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); emit DependencyManager::get<Snapshot>()->snapshotLocationSet(value); };
         auto preference = new BrowsePreference(SNAPSHOTS, "Put my snapshots here", getter, setter);
         preferences->addPreference(preference);
     }
@@ -329,6 +329,30 @@ void setupPreferences() {
                 preference->setItems(shadowConfig->getPresetList());
                 preferences->addPreference(preference);
             }
+        }
+        {
+            auto getter = []()->bool { return image::isColorTexturesCompressionEnabled(); };
+            auto setter = [](bool value) { return image::setColorTexturesCompressionEnabled(value); };
+            auto preference = new CheckPreference(RENDER, "Compress Color Textures", getter, setter);
+            preferences->addPreference(preference);
+        }
+        {
+            auto getter = []()->bool { return image::isNormalTexturesCompressionEnabled(); };
+            auto setter = [](bool value) { return image::setNormalTexturesCompressionEnabled(value); };
+            auto preference = new CheckPreference(RENDER, "Compress Normal Textures", getter, setter);
+            preferences->addPreference(preference);
+        }
+        {
+            auto getter = []()->bool { return image::isGrayscaleTexturesCompressionEnabled(); };
+            auto setter = [](bool value) { return image::setGrayscaleTexturesCompressionEnabled(value); };
+            auto preference = new CheckPreference(RENDER, "Compress Grayscale Textures", getter, setter);
+            preferences->addPreference(preference);
+        }
+        {
+            auto getter = []()->bool { return image::isCubeTexturesCompressionEnabled(); };
+            auto setter = [](bool value) { return image::setCubeTexturesCompressionEnabled(value); };
+            auto preference = new CheckPreference(RENDER, "Compress Cube Textures", getter, setter);
+            preferences->addPreference(preference);
         }
     }
     {

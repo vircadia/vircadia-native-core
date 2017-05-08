@@ -174,7 +174,7 @@ namespace ktx {
     }
 
     std::unique_ptr<KTX> KTX::create(const StoragePointer& src) {
-        if (!src) {
+        if (!src || !(*src)) {
             return nullptr;
         }
 

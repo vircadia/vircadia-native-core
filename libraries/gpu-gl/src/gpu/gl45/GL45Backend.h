@@ -41,6 +41,9 @@ public:
     explicit GL45Backend(bool syncCache) : Parent(syncCache) {}
     GL45Backend() : Parent() {}
 
+    static const std::string GL45_VERSION;
+    const std::string& getVersion() const override { return GL45_VERSION; }
+
     class GL45Texture : public GLTexture {
         using Parent = GLTexture;
         friend class GL45Backend;
