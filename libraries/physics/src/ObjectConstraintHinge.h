@@ -40,7 +40,6 @@ protected:
     glm::vec3 _pivotInA;
     glm::vec3 _axisInA;
 
-    EntityItemID _otherEntityID;
     glm::vec3 _pivotInB;
     glm::vec3 _axisInB;
 

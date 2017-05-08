@@ -40,7 +40,6 @@ protected:
     glm::vec3 _pointInA;
     glm::vec3 _axisInA;
 
-    EntityItemID _otherEntityID;
     glm::vec3 _pointInB;
     glm::vec3 _axisInB;
 

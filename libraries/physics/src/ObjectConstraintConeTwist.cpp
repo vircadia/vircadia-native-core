@@ -40,7 +40,7 @@ QList<btRigidBody*> ObjectConstraintConeTwist::getRigidBodies() {
     result += getRigidBody();
     QUuid otherEntityID;
     withReadLock([&]{
-        otherEntityID = _otherEntityID;
+        otherEntityID = _otherID;
     });
     if (!otherEntityID.isNull()) {
         result += getOtherRigidBody(otherEntityID);
@@ -95,7 +95,7 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
         constraint = static_cast<btConeTwistConstraint*>(_constraint);
         pivotInA = _pivotInA;
         axisInA = _axisInA;
-        otherEntityID = _otherEntityID;
+        otherEntityID = _otherID;
         pivotInB = _pivotInB;
         axisInB = _axisInB;
     });
@@ -180,7 +180,7 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
         otherEntityID = QUuid(EntityDynamicInterface::extractStringArgument("coneTwist constraint",
                                                                             arguments, "otherEntityID", ok, false));
         if (!ok) {
-            otherEntityID = _otherEntityID;
+            otherEntityID = _otherID;
         }
 
         ok = true;
@@ -235,7 +235,7 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
         if (somethingChanged ||
             pivotInA != _pivotInA ||
             axisInA != _axisInA ||
-            otherEntityID != _otherEntityID ||
+            otherEntityID != _otherID ||
             pivotInB != _pivotInB ||
             axisInB != _axisInB ||
             swingSpan1 != _swingSpan1 ||
@@ -253,7 +253,7 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
         withWriteLock([&] {
             _pivotInA = pivotInA;
             _axisInA = axisInA;
-            _otherEntityID = otherEntityID;
+            _otherID = otherEntityID;
             _pivotInB = pivotInB;
             _axisInB = axisInB;
             _swingSpan1 = swingSpan1;
@@ -284,7 +284,7 @@ QVariantMap ObjectConstraintConeTwist::getArguments() {
         if (_constraint) {
             arguments["pivot"] = glmToQMap(_pivotInA);
             arguments["axis"] = glmToQMap(_axisInA);
-            arguments["otherEntityID"] = _otherEntityID;
+            arguments["otherEntityID"] = _otherID;
             arguments["otherPivot"] = glmToQMap(_pivotInB);
             arguments["otherAxis"] = glmToQMap(_axisInB);
             arguments["swingSpan1"] = _swingSpan1;
@@ -312,7 +312,7 @@ QByteArray ObjectConstraintConeTwist::serialize() const {
 
         dataStream << _pivotInA;
         dataStream << _axisInA;
-        dataStream << _otherEntityID;
+        dataStream << _otherID;
         dataStream << _pivotInB;
         dataStream << _axisInB;
         dataStream << _swingSpan1;
@@ -352,7 +352,7 @@ void ObjectConstraintConeTwist::deserialize(QByteArray serializedArguments) {
 
         dataStream >> _pivotInA;
         dataStream >> _axisInA;
-        dataStream >> _otherEntityID;
+        dataStream >> _otherID;
         dataStream >> _pivotInB;
         dataStream >> _axisInB;
         dataStream >> _swingSpan1;

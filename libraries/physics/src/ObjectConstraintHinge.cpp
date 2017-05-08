@@ -40,7 +40,7 @@ QList<btRigidBody*> ObjectConstraintHinge::getRigidBodies() {
     result += getRigidBody();
     QUuid otherEntityID;
     withReadLock([&]{
-        otherEntityID = _otherEntityID;
+        otherEntityID = _otherID;
     });
     if (!otherEntityID.isNull()) {
         result += getOtherRigidBody(otherEntityID);
@@ -90,7 +90,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         constraint = static_cast<btHingeConstraint*>(_constraint);
         pivotInA = _pivotInA;
         axisInA = _axisInA;
-        otherEntityID = _otherEntityID;
+        otherEntityID = _otherID;
         pivotInB = _pivotInB;
         axisInB = _axisInB;
     });
@@ -182,7 +182,7 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
         otherEntityID = QUuid(EntityDynamicInterface::extractStringArgument("hinge constraint",
                                                                             arguments, "otherEntityID", ok, false));
         if (!ok) {
-            otherEntityID = _otherEntityID;
+            otherEntityID = _otherID;
         }
 
         ok = true;
@@ -231,7 +231,7 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
         if (somethingChanged ||
             pivotInA != _pivotInA ||
             axisInA != _axisInA ||
-            otherEntityID != _otherEntityID ||
+            otherEntityID != _otherID ||
             pivotInB != _pivotInB ||
             axisInB != _axisInB ||
             low != _low ||
@@ -248,7 +248,7 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
         withWriteLock([&] {
             _pivotInA = pivotInA;
             _axisInA = axisInA;
-            _otherEntityID = otherEntityID;
+            _otherID = otherEntityID;
             _pivotInB = pivotInB;
             _axisInB = axisInB;
             _low = low;
@@ -277,7 +277,7 @@ QVariantMap ObjectConstraintHinge::getArguments() {
     withReadLock([&] {
         arguments["pivot"] = glmToQMap(_pivotInA);
         arguments["axis"] = glmToQMap(_axisInA);
-        arguments["otherEntityID"] = _otherEntityID;
+        arguments["otherEntityID"] = _otherID;
         arguments["otherPivot"] = glmToQMap(_pivotInB);
         arguments["otherAxis"] = glmToQMap(_axisInB);
         arguments["low"] = _low;
@@ -305,7 +305,7 @@ QByteArray ObjectConstraintHinge::serialize() const {
     withReadLock([&] {
         dataStream << _pivotInA;
         dataStream << _axisInA;
-        dataStream << _otherEntityID;
+        dataStream << _otherID;
         dataStream << _pivotInB;
         dataStream << _axisInB;
         dataStream << _low;
@@ -342,7 +342,7 @@ void ObjectConstraintHinge::deserialize(QByteArray serializedArguments) {
     withWriteLock([&] {
         dataStream >> _pivotInA;
         dataStream >> _axisInA;
-        dataStream >> _otherEntityID;
+        dataStream >> _otherID;
         dataStream >> _pivotInB;
         dataStream >> _axisInB;
         dataStream >> _low;

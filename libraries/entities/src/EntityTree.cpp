@@ -1529,6 +1529,44 @@ void EntityTree::pruneTree() {
     recurseTreeWithOperator(&theOperator);
 }
 
+
+QByteArray EntityTree::remapActionDataIDs(QByteArray actionData, QHash<EntityItemID, EntityItemID>& map) {
+    QDataStream serializedActionsStream(actionData);
+    QVector<QByteArray> serializedActions;
+    serializedActionsStream >> serializedActions;
+
+    auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
+
+    QHash<QUuid, EntityDynamicPointer> remappedActions;
+    foreach(QByteArray serializedAction, serializedActions) {
+        QDataStream serializedActionStream(serializedAction);
+        EntityDynamicType actionType;
+        QUuid oldActionID;
+        serializedActionStream >> actionType;
+        serializedActionStream >> oldActionID;
+        EntityDynamicPointer action = actionFactory->factoryBA(nullptr, serializedAction);
+        if (action) {
+            action->remapIDs(map);
+            remappedActions[action->getID()] = action;
+        }
+    }
+
+    QVector<QByteArray> remappedSerializedActions;
+
+    QHash<QUuid, EntityDynamicPointer>::const_iterator i = remappedActions.begin();
+    while (i != remappedActions.end()) {
+        EntityDynamicPointer action = i.value();
+        QByteArray bytesForAction = action->serialize();
+        remappedSerializedActions << bytesForAction;
+        i++;
+    }
+
+    QByteArray result;
+    QDataStream remappedSerializedActionsStream(&result, QIODevice::WriteOnly);
+    remappedSerializedActionsStream << remappedSerializedActions;
+    return result;
+}
+
 QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
                                                float x, float y, float z) {
     SendEntitiesOperationArgs args;
@@ -1552,7 +1590,7 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
 
-    auto getMapped = [&](EntityItemID oldID) {
+    auto getMapped = [&args](EntityItemID oldID) {
         if (oldID.isNull()) {
             return EntityItemID();
         }
@@ -1565,7 +1603,8 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
         }
     };
 
-    entityTreeElement->forEachEntity([&](EntityItemPointer item) {
+    entityTreeElement->forEachEntity([&args, &getMapped, &element](EntityItemPointer item) {
+
         EntityItemID oldID = item->getEntityItemID();
         EntityItemID newID = getMapped(oldID);
 
@@ -1604,43 +1643,7 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
 
         QByteArray actionData = properties.getActionData();
         if (!actionData.isEmpty()) {
-            QDataStream serializedActionsStream(actionData);
-            QVector<QByteArray> serializedActions;
-            serializedActionsStream >> serializedActions;
-
-            auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
-
-            QHash<QUuid, EntityDynamicPointer> remappedActions;
-            foreach(QByteArray serializedAction, serializedActions) {
-                QDataStream serializedActionStream(serializedAction);
-                EntityDynamicType actionType;
-                QUuid oldActionID;
-                serializedActionStream >> actionType;
-                serializedActionStream >> oldActionID;
-                QUuid actionID = QUuid::createUuid(); // give the action a new ID
-                (*args->map)[oldActionID] = actionID;
-                EntityDynamicPointer action = actionFactory->factoryBA(nullptr, serializedAction);
-                if (action) {
-                    action->remapIDs(*args->map);
-                    remappedActions[actionID] = action;
-                }
-            }
-
-            QVector<QByteArray> remappedSerializedActions;
-
-            QHash<QUuid, EntityDynamicPointer>::const_iterator i = remappedActions.begin();
-            while (i != remappedActions.end()) {
-                const QUuid id = i.key();
-                EntityDynamicPointer action = remappedActions[id];
-                QByteArray bytesForAction = action->serialize();
-                remappedSerializedActions << bytesForAction;
-                i++;
-            }
-
-            QByteArray result;
-            QDataStream remappedSerializedActionsStream(&result, QIODevice::WriteOnly);
-            remappedSerializedActionsStream << remappedSerializedActions;
-            properties.setActionData(result);
+            properties.setActionData(remapActionDataIDs(actionData, *args->map));
         }
 
         // set creation time to "now" for imported entities
@@ -1663,19 +1666,6 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
         }
         return newID;
     });
-
-
-
-    QHash<EntityItemID, EntityItemID>::iterator i = (*args->map).begin();
-    while (i != (*args->map).end()) {
-        EntityItemID newID = i.value();
-        if (args->otherTree->findEntityByEntityItemID(newID)) {
-            i++;
-        } else {
-            EntityItemID oldID = i.key();
-            i = (*args->map).erase(i);
-        }
-    }
 
     return true;
 }

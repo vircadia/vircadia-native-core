@@ -38,8 +38,6 @@ protected:
     void updateBallSocket();
 
     glm::vec3 _pivotInA;
-
-    EntityItemID _otherEntityID;
     glm::vec3 _pivotInB;
 };
 

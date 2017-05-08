@@ -26,15 +26,17 @@ ObjectDynamic::~ObjectDynamic() {
 
 void ObjectDynamic::remapIDs(QHash<EntityItemID, EntityItemID>& map) {
     withWriteLock([&]{
-        if (!map.contains(_id)) {
-            map[_id] = QUuid::createUuid();
+        if (!_id.isNull()) {
+            // just force our ID to something new -- action IDs don't go into the map
+            _id = QUuid::createUuid();
         }
-        _id = map[_id];
 
-        if (!map.contains(_otherID)) {
-            map[_otherID] = QUuid::createUuid();
+        if (!_otherID.isNull()) {
+            if (!map.contains(_otherID)) {
+                map.insert(_otherID, QUuid::createUuid());
+            }
+            _otherID = map.value(_otherID);
         }
-        _otherID = map[_otherID];
     });
 }
 

@@ -34,7 +34,7 @@ QList<btRigidBody*> ObjectConstraintSlider::getRigidBodies() {
     result += getRigidBody();
     QUuid otherEntityID;
     withReadLock([&]{
-        otherEntityID = _otherEntityID;
+        otherEntityID = _otherID;
     });
     if (!otherEntityID.isNull()) {
         result += getOtherRigidBody(otherEntityID);
@@ -77,7 +77,7 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
         constraint = static_cast<btSliderConstraint*>(_constraint);
         pointInA = _pointInA;
         axisInA = _axisInA;
-        otherEntityID = _otherEntityID;
+        otherEntityID = _otherID;
         pointInB = _pointInB;
         axisInB = _axisInB;
     });
@@ -160,7 +160,7 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
         otherEntityID = QUuid(EntityDynamicInterface::extractStringArgument("slider constraint",
                                                                             arguments, "otherEntityID", ok, false));
         if (!ok) {
-            otherEntityID = _otherEntityID;
+            otherEntityID = _otherID;
         }
 
         ok = true;
@@ -202,7 +202,7 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
         if (somethingChanged ||
             pointInA != _pointInA ||
             axisInA != _axisInA ||
-            otherEntityID != _otherEntityID ||
+            otherEntityID != _otherID ||
             pointInB != _pointInB ||
             axisInB != _axisInB ||
             linearLow != _linearLow ||
@@ -218,7 +218,7 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
         withWriteLock([&] {
             _pointInA = pointInA;
             _axisInA = axisInA;
-            _otherEntityID = otherEntityID;
+            _otherID = otherEntityID;
             _pointInB = pointInB;
             _axisInB = axisInB;
             _linearLow = linearLow;
@@ -247,7 +247,7 @@ QVariantMap ObjectConstraintSlider::getArguments() {
         if (_constraint) {
             arguments["point"] = glmToQMap(_pointInA);
             arguments["axis"] = glmToQMap(_axisInA);
-            arguments["otherEntityID"] = _otherEntityID;
+            arguments["otherEntityID"] = _otherID;
             arguments["otherPoint"] = glmToQMap(_pointInB);
             arguments["otherAxis"] = glmToQMap(_axisInB);
             arguments["linearLow"] = _linearLow;
@@ -275,7 +275,7 @@ QByteArray ObjectConstraintSlider::serialize() const {
 
         dataStream << _pointInA;
         dataStream << _axisInA;
-        dataStream << _otherEntityID;
+        dataStream << _otherID;
         dataStream << _pointInB;
         dataStream << _axisInB;
         dataStream << _linearLow;
@@ -313,7 +313,7 @@ void ObjectConstraintSlider::deserialize(QByteArray serializedArguments) {
 
         dataStream >> _pointInA;
         dataStream >> _axisInA;
-        dataStream >> _otherEntityID;
+        dataStream >> _otherID;
         dataStream >> _pointInB;
         dataStream >> _axisInB;
         dataStream >> _linearLow;
