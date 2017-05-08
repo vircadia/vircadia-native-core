@@ -63,6 +63,16 @@ gpu::TexturePointer processCubeTextureColorFromImage(const QImage& srcImage, con
 
 } // namespace TextureUsage
 
+bool isColorTexturesCompressionEnabled();
+bool isNormalTexturesCompressionEnabled();
+bool isGrayscaleTexturesCompressionEnabled();
+bool isCubeTexturesCompressionEnabled();
+
+void setColorTexturesCompressionEnabled(bool enabled);
+void setNormalTexturesCompressionEnabled(bool enabled);
+void setGrayscaleTexturesCompressionEnabled(bool enabled);
+void setCubeTexturesCompressionEnabled(bool enabled);
+
 gpu::TexturePointer processImage(const QByteArray& content, const std::string& url, int maxNumPixels, TextureUsage::Type textureType);
 
 } // namespace image

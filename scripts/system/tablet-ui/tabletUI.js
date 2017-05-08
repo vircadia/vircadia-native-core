@@ -13,7 +13,7 @@
 //
 
 /* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
-   MyAvatar, Menu */
+   MyAvatar, Menu, AvatarInputs, Vec3 */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletRezzed = false;
@@ -25,8 +25,17 @@
     var debugTablet = false;
     var tabletScalePercentage = 100.0;
     UIWebTablet = null;
+    var MSECS_PER_SEC = 1000.0;
+    var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
+    var gTablet = null;
 
     Script.include("../libraries/WebTablet.js");
+
+    function checkTablet() {
+        if (gTablet === null) {
+            gTablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        }
+    }
 
     function tabletIsValid() {
         if (!UIWebTablet) {
@@ -49,7 +58,8 @@
     }
 
     function getTabletScalePercentageFromSettings() {
-        var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
+        checkTablet()
+        var toolbarMode = gTablet.toolbarMode;
         var tabletScalePercentage = DEFAULT_TABLET_SCALE;
         if (!toolbarMode) {
             if (HMD.active) {
@@ -77,6 +87,7 @@
         if (debugTablet) {
             print("TABLET rezzing");
         }
+        checkTablet()
 
         tabletScalePercentage = getTabletScalePercentageFromSettings();
         UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml",
@@ -92,7 +103,8 @@
     }
 
     function showTabletUI() {
-        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = true;
+        checkTablet()
+        gTablet.tabletShown = true;
 
         if (!tabletRezzed || !tabletIsValid()) {
             closeTabletUI();
@@ -114,7 +126,8 @@
     }
 
     function hideTabletUI() {
-        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = false;
+        checkTablet()
+        gTablet.tabletShown = false;
         if (!UIWebTablet) {
             return;
         }
@@ -130,7 +143,8 @@
     }
 
     function closeTabletUI() {
-        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = false;
+        checkTablet()
+        gTablet.tabletShown = false;
         if (UIWebTablet) {
             if (UIWebTablet.onClose) {
                 UIWebTablet.onClose();
@@ -149,17 +163,19 @@
             print("TABLET closeTabletUI, UIWebTablet is null");
         }
         tabletRezzed = false;
+        gTablet = null
     }
 
 
     function updateShowTablet() {
-        var MSECS_PER_SEC = 1000.0;
         var now = Date.now();
 
+        checkTablet()
+
         // close the WebTablet if it we go into toolbar mode.
-        var tabletShown = Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown;
-        var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
-        var landscape = Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape;
+        var tabletShown = gTablet.tabletShown;
+        var toolbarMode = gTablet.toolbarMode;
+        var landscape = gTablet.landscape;
 
         if (tabletShown && toolbarMode) {
             closeTabletUI();
@@ -167,18 +183,20 @@
             return;
         }
 
+        //TODO: move to tablet qml?
         if (tabletShown) {
-            var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
             var currentMicEnabled = !Menu.isOptionChecked(MUTE_MICROPHONE_MENU_ITEM);
             var currentMicLevel = getMicLevel();
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.updateMicEnabled(currentMicEnabled);
-            tablet.updateAudioBar(currentMicLevel);
+            gTablet.updateMicEnabled(currentMicEnabled);
+            gTablet.updateAudioBar(currentMicLevel);
         }
 
-        updateTabletWidthFromSettings();
-        if (UIWebTablet) {
-            UIWebTablet.setLandscape(landscape);
+        if (validCheckTime - now > MSECS_PER_SEC/4) {
+            //each 250ms should be just fine
+            updateTabletWidthFromSettings();
+            if (UIWebTablet) {
+                UIWebTablet.setLandscape(landscape);
+            }
         }
 
         if (validCheckTime - now > MSECS_PER_SEC) {
@@ -214,6 +232,23 @@
                     closeTabletUI();
                     rezTablet();
                     tabletShown = false;
+
+                    // also cause the stylus model to be loaded
+                    var tmpStylusID = Overlays.addOverlay("model", {
+                                               name: "stylus",
+                                               url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
+                                               loadPriority: 10.0,
+                                               position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.1, z: -2})),
+                                               dimensions: { x: 0.01, y: 0.01, z: 0.2 },
+                                               solid: true,
+                                               visible: true,
+                                               ignoreRayIntersection: true,
+                                               drawInFront: false,
+                                               lifetime: 3
+                                       });
+                    Script.setTimeout(function() {
+                        Overlays.deleteOverlay(tmpStylusID);
+                    }, 300);
                 } else if (!tabletShown) {
                     hideTabletUI();
                 }
@@ -228,7 +263,8 @@
         }
         if (channel === "home") {
             if (UIWebTablet) {
-                Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape = false;
+                checkTablet()
+                gTablet.landscape = false;
             }
         }
     }
@@ -239,30 +275,10 @@
 
     Script.setInterval(updateShowTablet, 100);
 
-    // Initialise variables used to calculate audio level
-    var accumulatedLevel = 0.0;
-    // Note: Might have to tweak the following two based on the rate we're getting the data
-    var AVERAGING_RATIO = 0.05;
-
     // Calculate microphone level with the same scaling equation (log scale, exponentially averaged) in AvatarInputs and pal.js
     function getMicLevel() {
-        var LOUDNESS_FLOOR = 11.0;
-        var LOUDNESS_SCALE = 2.8 / 5.0;
-        var LOG2 = Math.log(2.0);
-        var micLevel = 0.0;
-        accumulatedLevel = AVERAGING_RATIO * accumulatedLevel + (1 - AVERAGING_RATIO) * (MyAvatar.audioLoudness);
-        // Convert to log base 2
-        var logLevel = Math.log(accumulatedLevel + 1) / LOG2;
-
-        if (logLevel <= LOUDNESS_FLOOR) {
-            micLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
-        } else {
-            micLevel = (logLevel - (LOUDNESS_FLOOR - 1.0)) * LOUDNESS_SCALE;
-        }
-        if (micLevel > 1.0) {
-            micLevel = 1.0;
-        }
-        return micLevel;
+        //reuse already existing C++ code
+        return AvatarInputs.loudnessToAudioLevel(MyAvatar.audioLoudness)
     }
 
     Script.scriptEnding.connect(function () {

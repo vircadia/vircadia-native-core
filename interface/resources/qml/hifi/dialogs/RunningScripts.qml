@@ -34,9 +34,6 @@ ScrollingWindow {
     property var runningScriptsModel: ListModel { }
     property bool isHMD: false
 
-    onVisibleChanged: console.log("Running scripts visible changed to " + visible)
-    onShownChanged: console.log("Running scripts visible changed to " + visible)
-
     Settings {
         category: "Overlay.RunningScripts"
         property alias x: root.x

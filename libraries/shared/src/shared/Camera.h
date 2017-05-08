@@ -11,11 +11,9 @@
 #ifndef hifi_Camera_h
 #define hifi_Camera_h
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <RegisteredMetaTypes.h>
-#include <ViewFrustum.h>
+#include "../GLMHelpers.h"
+#include "../RegisteredMetaTypes.h"
+#include "../ViewFrustum.h"
 
 enum CameraMode
 {
@@ -87,7 +85,7 @@ public slots:
      * @param {float} y Y-coordinate on screen.
      * @return {PickRay} The computed {PickRay}.
      */
-    PickRay computePickRay(float x, float y);
+    virtual PickRay computePickRay(float x, float y) const = 0;
 
     /**jsdoc
      * Set the camera to look at position <code>position</code>. Only works while in <code>independent</code>.

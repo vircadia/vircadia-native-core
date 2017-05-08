@@ -23,7 +23,8 @@ Item {
     property var callbackFunction;
     property int dialogWidth;
     property int dialogHeight;
-    property int comboOptionTextSize: 18;
+    property int comboOptionTextSize: 16;
+    property int comboBodyTextSize: 16;
     FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
     FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
     visible: false;
@@ -63,7 +64,7 @@ Item {
             anchors.left: parent.left;
             anchors.leftMargin: 20;
             size: 24;
-            color: 'black';
+            color: hifi.colors.darkGray;
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignTop;
         }
@@ -141,6 +142,7 @@ Item {
                         height: 30;
                         size: comboOptionTextSize;
                         wrapMode: Text.WordWrap;
+                        color: hifi.colors.darkGray;
                     }
 
                     RalewayRegular {
@@ -148,11 +150,12 @@ Item {
                         text: bodyText;
                         anchors.top: optionTitle.bottom;
                         anchors.left: comboOptionSelected.right;
-                        anchors.leftMargin: 25;
+                        anchors.leftMargin: 10;
                         anchors.right: parent.right;
                         anchors.rightMargin: 10;
-                        size: comboOptionTextSize;
+                        size: comboBodyTextSize;
                         wrapMode: Text.WordWrap;
+                        color: hifi.colors.darkGray;
                     }
 
                     MouseArea {
