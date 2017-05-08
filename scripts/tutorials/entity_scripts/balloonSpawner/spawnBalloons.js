@@ -18,6 +18,8 @@
     var ORANGE_BALLOON_URL = "https://s3.amazonaws.com/hifi-rabelaiis/orangeBalloon.fbx";
     var CYAN_BALLOON_URL = "https://s3.amazonaws.com/hifi-rabelaiis/cyanBalloon.fbx";
     var PURPLE_BALLOON_URL = "https://s3.amazonaws.com/hifi-rabelaiis/purpleBalloon.fbx";
+    //'Blue Skies' by Silent Partner from youtube audio library. Listed as attribution not required
+    var SPAWN_MUSIC_URL = "https://s3.amazonaws.com/hifi-rabelaiis/Blue_Skies.wav"
 
     var BALLOON_COLORS = ["red", "blue", "green", "yellow", "orange", "cyan", "purple"];
     var BALLOON_URLS = [RED_BALLOON_URL, BLUE_BALLOON_URL, GREEN_BALLOON_URL,
@@ -32,11 +34,23 @@
     var gravityCoefficient = 0.25;
     var balloonLifetime = 10;
     var spawnTime = 300;
+    var musicInjector;
     var spawnIntervalID;
+    var spawnMusic;
     var countdownIntervalID;
     var countdownEntityID;
+    
 
     this.preload = function(pEntityID) {
+        var parentProperties = Entities.getEntityProperties(pEntityID, ["userData"]),
+            spawnMusicURL,
+            spawnerSettings;
+        if (parentProperties.userData){
+            spawnerSettings = JSON.parse(parentProperties.userData);
+        }
+        spawnMusicURL = spawnerSettings.spawnMusicURL ? spawnerSettings.spawnMusicURL : SPAWN_MUSIC_URL;
+        spawnMusic = SoundCache.getSound(spawnMusicURL);
+
         startCountdown(pEntityID);
     };
 
@@ -86,11 +100,12 @@
     function spawnBalloons(pEntityID) {
         var parentProperties = Entities.getEntityProperties(pEntityID, ["position", "userData"]),
             spawnerSettings,
+            spawnMusicVolume,
             spawnCount = 0;
 
         if (parentProperties.userData){
-                spawnerSettings = JSON.parse(parentProperties.userData);
-            }
+            spawnerSettings = JSON.parse(parentProperties.userData);
+        }
 
         xRangeMax = !isNaN(spawnerSettings.xRangeMax) ? spawnerSettings.xRangeMax : xRangeMax;
         zRangeMax = !isNaN(spawnerSettings.zRangeMax) ? spawnerSettings.zRangeMax : zRangeMax;
@@ -98,6 +113,15 @@
         spawnTime = !isNaN(spawnerSettings.spawnTime) ? spawnerSettings.spawnTime : spawnTime;
         balloonLifetime = !isNaN(spawnerSettings.balloonLifetime) ? spawnerSettings.balloonLifetime : balloonLifetime;
         spawnRate =  !isNaN(spawnerSettings.spawnRate) ? spawnerSettings.spawnRate : spawnRate;
+        spawnMusicVolume = !isNaN(spawnerSettings.spawnMusicVolume) ? spawnerSettings.spawnMusicVolume : 0.1;
+        
+        if (spawnMusic.downloaded){
+            musicInjector = Audio.playSound(spawnMusic, {
+                position: parentProperties.position,
+                volume: spawnMusicVolume,
+                loop: true
+            });
+        }
 
         spawnIntervalID = Script.setInterval(function() {
             var colorID = Math.floor(Math.random() * NUM_COLORS),
@@ -162,6 +186,10 @@
             //Stop spawning after spawnTime
             if (spawnCount * spawnRate / 1000 > spawnTime){
                 Script.clearInterval(spawnIntervalID);
+                 if (musicInjector !== undefined && musicInjector.isPlaying) {
+                    musicInjector.stop();
+                    musicInjector = undefined;
+                }	
             }
          }, spawnRate);
     }	
@@ -176,6 +204,10 @@
         if (countdownEntityID){
             Entities.deleteEntity(countdownEntityID);
         }
+        if (musicInjector !== undefined && musicInjector.isPlaying) {
+            musicInjector.stop();
+            musicInjector = undefined;
+        }		
     };
     
 });

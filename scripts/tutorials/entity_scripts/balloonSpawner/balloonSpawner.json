@@ -13,7 +13,7 @@
             "shape": "Cube",
             "visible": "false",
             "collisionless": "true",
-            "userData": "{\"spawnRate\":1000,\"xRangeMax\":1,\"zRangeMax\":1,\"gravityCoefficient\":0.25,\"balloonLifetime\":10,\"spawnTime\":300}"
+            "userData": "{\"spawnRate\":1000,\"xRangeMax\":1,\"zRangeMax\":1,\"gravityCoefficient\":0.25,\"balloonLifetime\":10,\"spawnTime\":300,\"spawnMusicURL\":\"https://s3.amazonaws.com/hifi-rabelaiis/Blue_Skies.wav\",\"spawnMusicVolume\":0.1}"
         }
     ],
     "Version": 63
