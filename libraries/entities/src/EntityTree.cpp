@@ -1583,6 +1583,19 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
     });
     packetSender->releaseQueuedMessages();
 
+    // the values from map are used as the list of successfully "sent" entities.  If some didn't actually make it,
+    // pull them out.  Bogus entries could happen if part of the imported data makes some reference to an entity
+    // that isn't in the data being imported.
+    QHash<EntityItemID, EntityItemID>::iterator i = map.begin();
+    while (i != map.end()) {
+        EntityItemID newID = i.value();
+        if (localTree->findEntityByEntityItemID(newID)) {
+            i++;
+        } else {
+            i = map.erase(i);
+        }
+    }
+
     return map.values().toVector();
 }
 
