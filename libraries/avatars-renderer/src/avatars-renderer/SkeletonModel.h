@@ -23,6 +23,7 @@ using SkeletonModelWeakPointer = std::weak_ptr<SkeletonModel>;
 
 /// A skeleton loaded from a model.
 class SkeletonModel : public CauterizedModel {
+    using Parent = CauterizedModel;
     Q_OBJECT
 
 public:

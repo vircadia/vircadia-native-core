@@ -14,20 +14,26 @@
 #include <QDebug>
 
 #include <GLMHelpers.h>
+#include <glm/gtx/string_cast.hpp>
 
 #include "ScriptEngineLogging.h"
 #include "NumericalConstants.h"
 #include "Vec3.h"
 
+#include "ScriptEngine.h"
 
 float Vec3::orientedAngle(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3) {
     float radians = glm::orientedAngle(glm::normalize(v1), glm::normalize(v2), glm::normalize(v3));
     return glm::degrees(radians);
 }
 
-
-void Vec3::print(const QString& lable, const glm::vec3& v) {
-    qCDebug(scriptengine) << qPrintable(lable) << v.x << "," << v.y << "," << v.z;
+void Vec3::print(const QString& label, const glm::vec3& v) {
+    QString message = QString("%1 %2").arg(qPrintable(label));
+    message = message.arg(glm::to_string(glm::dvec3(v)).c_str());
+    qCDebug(scriptengine) << message;
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
+        scriptEngine->print(message);
+    }
 }
 
 bool Vec3::withinEpsilon(const glm::vec3& v1, const glm::vec3& v2, float epsilon) {

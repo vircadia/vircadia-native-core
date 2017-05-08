@@ -83,8 +83,6 @@ public:
     using AudioPositionGetter = std::function<glm::vec3()>;
     using AudioOrientationGetter = std::function<glm::quat()>;
 
-    using RecursiveMutex = std::recursive_mutex;
-    using RecursiveLock = std::unique_lock<RecursiveMutex>;
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
 
@@ -332,7 +330,7 @@ private:
     float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
     float* _localOutputMixBuffer { NULL };
-    RecursiveMutex _localAudioMutex;
+    Mutex _localAudioMutex;
 
     AudioLimiter _audioLimiter;
 

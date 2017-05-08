@@ -275,7 +275,8 @@ WebTablet.prototype.getLocation = function() {
 };
 
 WebTablet.prototype.setHomeButtonTexture = function() {
-    Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
+    // TODO - is this still needed?
+    // Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
 };
 
 WebTablet.prototype.setURL = function (url) {
@@ -338,7 +339,8 @@ WebTablet.prototype.geometryChanged = function (geometry) {
 
         // compute position, rotation & parentJointIndex of the tablet
         this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-        Entities.editEntity(this.tabletEntityID, tabletProperties);
+        // TODO -- is this still needed?
+        // Entities.editEntity(this.tabletEntityID, tabletProperties);
     }
 };
 
@@ -439,7 +441,8 @@ WebTablet.prototype.onHmdChanged = function () {
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-    Entities.editEntity(this.tabletEntityID, tabletProperties);
+    // TODO -- is this still needed?
+    // Entities.editEntity(this.tabletEntityID, tabletProperties);
 
     // Full scene FXAA should be disabled on the overlay when the tablet in desktop mode.
     // This should make the text more readable.
@@ -530,7 +533,8 @@ WebTablet.prototype.cameraModeChanged = function (newMode) {
         var tabletProperties = {};
         // compute position, rotation & parentJointIndex of the tablet
         self.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-        Entities.editEntity(self.tabletEntityID, tabletProperties);
+        // TODO -- is this still needed?
+        // Entities.editEntity(self.tabletEntityID, tabletProperties);
     }
 };
 

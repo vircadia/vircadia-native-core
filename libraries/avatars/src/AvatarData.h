@@ -357,6 +357,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
 
 public:
 
+    virtual QString getName() const override { return QString("Avatar:") + _displayName; }
+
     static const QString FRAME_NAME;
 
     static void fromFrame(const QByteArray& frameData, AvatarData& avatar, bool useFrameSkeleton = true);

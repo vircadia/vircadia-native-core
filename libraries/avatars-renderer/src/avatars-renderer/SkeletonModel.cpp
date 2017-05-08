@@ -120,7 +120,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
      }
 
     // evaluate AnimGraph animation and update jointStates.
-    Model::updateRig(deltaTime, parentTransform);
+    Parent::updateRig(deltaTime, parentTransform);
 }
 
 void SkeletonModel::updateAttitude() {
@@ -136,7 +136,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     if (fullUpdate) {
         setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
-        Model::simulate(deltaTime, fullUpdate);
+        Parent::simulate(deltaTime, fullUpdate);
 
         // let rig compute the model offset
         glm::vec3 registrationPoint;
@@ -144,7 +144,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
             setOffset(registrationPoint);
         }
     } else {
-        Model::simulate(deltaTime, fullUpdate);
+        Parent::simulate(deltaTime, fullUpdate);
     }
 
     if (!isActive() || !_owningAvatar->isMyAvatar()) {
