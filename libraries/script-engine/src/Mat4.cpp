@@ -11,7 +11,9 @@
 
 #include <QDebug>
 #include <GLMHelpers.h>
+#include <glm/gtx/string_cast.hpp>
 #include "ScriptEngineLogging.h"
+#include "ScriptEngine.h"
 #include "Mat4.h"
 
 glm::mat4 Mat4::multiply(const glm::mat4& m1, const glm::mat4& m2) const {
@@ -66,10 +68,12 @@ glm::vec3 Mat4::getUp(const glm::mat4& m) const {
     return glm::vec3(m[0][1], m[1][1], m[2][1]);
 }
 
-void Mat4::print(const QString& label, const glm::mat4& m) const {
-    qCDebug(scriptengine) << qPrintable(label) <<
-        "row0 =" << m[0][0] << "," << m[1][0] << "," << m[2][0] << "," << m[3][0] <<
-        "row1 =" << m[0][1] << "," << m[1][1] << "," << m[2][1] << "," << m[3][1] <<
-        "row2 =" << m[0][2] << "," << m[1][2] << "," << m[2][2] << "," << m[3][2] <<
-        "row3 =" << m[0][3] << "," << m[1][3] << "," << m[2][3] << "," << m[3][3];
+void Mat4::print(const QString& label, const glm::mat4& m, bool transpose) const {
+    glm::dmat4 out = transpose ? glm::transpose(m) : m;
+    QString message = QString("%1 %2").arg(qPrintable(label));
+    message = message.arg(glm::to_string(out).c_str());
+    qCDebug(scriptengine) << message;
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
+        scriptEngine->print(message);
+    }
 }

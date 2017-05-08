@@ -140,6 +140,7 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
             switch (dstFormat.getSemantic()) {
                 case gpu::RGB:
                 case gpu::RGBA:
+                case gpu::XY:
                     result = GL_RG8;
                     break;
                 default:
@@ -289,6 +290,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
             case gpu::RGBA:
+            case gpu::XY:
                 texel.internalFormat = GL_RG8;
                 break;
             default:
@@ -516,6 +518,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
             case gpu::RGBA:
+            case gpu::XY:
                 texel.internalFormat = GL_RG8;
                 break;
             default:

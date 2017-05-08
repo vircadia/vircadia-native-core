@@ -21,6 +21,7 @@ public:
 
 private:
     static QString getMachineFingerprintString();
+    static QUuid _machineFingerprint;
 };
 
 #endif // hifi_FingerprintUtils_h

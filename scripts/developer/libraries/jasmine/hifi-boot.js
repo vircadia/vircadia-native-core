@@ -20,9 +20,10 @@
                 print('<span style="color:red">Tests completed with ' +
                     errorCount + ' ' + ERROR + '.<span>');
             }
-            if (pending.length)
+            if (pending.length) {
                 print ('<span style="color:darkorange">disabled: <br />&nbsp;&nbsp;&nbsp;'+
                        pending.join('<br />&nbsp;&nbsp;&nbsp;')+'</span>');
+            }
             print('Tests completed in ' + (endTime - startTime) + 'ms.');
         };
         this.suiteStarted = function(obj) {
