@@ -204,6 +204,7 @@ Item {
         onUrlChanged: {
             // Record history, skipping null and duplicate items.
             var urlString = url + "";
+            urlString = urlString.replace(/\//g, "%2F");  // Consistent representation of "/"s to avoid false differences.
             if (urlString.length > 0 && (historyIndex === -1 || urlString !== history[historyIndex])) {
                 historyIndex++;
                 history = history.slice(0, historyIndex);
