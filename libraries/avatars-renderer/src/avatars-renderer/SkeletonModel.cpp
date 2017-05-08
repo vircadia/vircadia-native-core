@@ -73,20 +73,20 @@ void SkeletonModel::initJointStates() {
 
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-    const FBXGeometry& geometry = getFBXGeometry();
-
-    Head* head = _owningAvatar->getHead();
-
-    // make sure lookAt is not too close to face (avoid crosseyes)
-    glm::vec3 lookAt = _owningAvatar->isMyAvatar() ?  head->getLookAtPosition() : head->getCorrectedLookAtPosition();
-    glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
-    float focusDistance = glm::length(focusOffset);
-    const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
-    if (focusDistance < MIN_LOOK_AT_FOCUS_DISTANCE && focusDistance > EPSILON) {
-        lookAt = _owningAvatar->getHead()->getEyePosition() + (MIN_LOOK_AT_FOCUS_DISTANCE / focusDistance) * focusOffset;
-    }
-
     if (!_owningAvatar->isMyAvatar()) {
+        const FBXGeometry& geometry = getFBXGeometry();
+
+        Head* head = _owningAvatar->getHead();
+
+        // make sure lookAt is not too close to face (avoid crosseyes)
+        glm::vec3 lookAt = _owningAvatar->isMyAvatar() ?  head->getLookAtPosition() : head->getCorrectedLookAtPosition();
+        glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
+        float focusDistance = glm::length(focusOffset);
+        const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
+        if (focusDistance < MIN_LOOK_AT_FOCUS_DISTANCE && focusDistance > EPSILON) {
+            lookAt = _owningAvatar->getHead()->getEyePosition() + (MIN_LOOK_AT_FOCUS_DISTANCE / focusDistance) * focusOffset;
+        }
+
         // no need to call Model::updateRig() because otherAvatars get their joint state
         // copied directly from AvtarData::_jointData (there are no Rig animations to blend)
         _needsUpdateClusterMatrices = true;
@@ -118,9 +118,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromEyeParameters(eyeParams);
      }
-
-    // evaluate AnimGraph animation and update jointStates.
-    Parent::updateRig(deltaTime, parentTransform);
 }
 
 void SkeletonModel::updateAttitude() {
