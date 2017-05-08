@@ -33,7 +33,11 @@ public:
                                 PacketType packetType, QString codecName = QString(""));
 
 public slots:
+    // threadsafe
+    // moves injector->getLocalBuffer() to another thread (so removes its parent)
+    // take care to delete it when ~AudioInjector, as parenting Qt semantics will not work
     virtual bool outputLocalInjector(AudioInjector* injector) = 0;
+
     virtual bool shouldLoopbackInjectors() { return false; }
     
     virtual void setIsStereoInput(bool stereo) = 0;
