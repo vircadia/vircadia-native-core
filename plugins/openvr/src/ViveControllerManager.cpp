@@ -1,4 +1,7 @@
 //
+//  ViveControllerManager.cpp
+//  input-plugins/src/input-plugins
+//
 //  Created by Sam Gondelman on 6/29/15.
 //  Copyright 2013 High Fidelity, Inc.
 //
