@@ -24,6 +24,17 @@ ObjectDynamic::ObjectDynamic(EntityDynamicType type, const QUuid& id, EntityItem
 ObjectDynamic::~ObjectDynamic() {
 }
 
+void ObjectDynamic::remapIDs(QHash<EntityItemID, EntityItemID>* map) {
+    withWriteLock([&]{
+        if (map->contains(_id)) {
+            _id = (*map)[_id];
+        }
+        if (map->contains(_otherID)) {
+            _otherID = (*map)[_otherID];
+        }
+    });
+}
+
 qint64 ObjectDynamic::getEntityServerClockSkew() const {
     auto nodeList = DependencyManager::get<NodeList>();
 
