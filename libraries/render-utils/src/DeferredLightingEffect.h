@@ -50,7 +50,7 @@ public:
     // update global lighting
     void setGlobalLight(const model::LightPointer& light);
 
-    const LightStagePointer getLightStage() { return _lightStage; }
+    const LightStagePointer& getLightStage() { return _lightStage; }
 
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }

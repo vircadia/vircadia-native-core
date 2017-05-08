@@ -145,9 +145,11 @@ void DeferredLightingEffect::init() {
 
 void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
-    auto keyLight = _allocatedLights[_globalLights.front()];
+    model::LightPointer keyLight;
     if (_lightStage && _lightStage->_currentFrame._sunLights.size()) {
         keyLight = _lightStage->getLight(_lightStage->_currentFrame._sunLights.front());
+    } else {
+        keyLight = _allocatedLights[_globalLights.front()];
     }
 
     if (lightBufferUnit >= 0) {
@@ -168,11 +170,11 @@ void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBuff
     if (lightBufferUnit >= 0) {
         batch.setUniformBuffer(lightBufferUnit, nullptr);
     }
-    if (keyLight->hasAmbient() && (ambientBufferUnit >= 0)) {
+    if ((ambientBufferUnit >= 0)) {
         batch.setUniformBuffer(ambientBufferUnit, nullptr);
     }
 
-    if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
+    if ((skyboxCubemapUnit >= 0)) {
         batch.setResourceTexture(skyboxCubemapUnit, nullptr);
     }
 }

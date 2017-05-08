@@ -5126,8 +5126,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // Setup the current Zone Entity lighting
     {
-        auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
+   //     auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+  //      DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
     }
 
     {

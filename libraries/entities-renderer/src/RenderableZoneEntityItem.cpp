@@ -279,7 +279,9 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
 
 class RenderableZoneEntityItemMeta {
 public:
-    RenderableZoneEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
+    RenderableZoneEntityItemMeta(EntityItemPointer entity) : entity(entity), _light(std::make_shared<model::Light>()) { }
+    ~RenderableZoneEntityItemMeta();
+
     typedef render::Payload<RenderableZoneEntityItemMeta> Payload;
     typedef Payload::DataPointer Pointer;
     
@@ -305,7 +307,7 @@ public:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const RenderableZoneEntityItemMeta::Pointer& payload) {
-        return ItemKey::Builder::opaqueShape();
+        return ItemKey::Builder().withTypeMeta().build();
     }
     
     template <> const Item::Bound payloadGetBound(const RenderableZoneEntityItemMeta::Pointer& payload) {
@@ -330,6 +332,7 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::
     
     auto renderData = std::make_shared<RenderableZoneEntityItemMeta>(self);
     auto renderPayload = std::make_shared<RenderableZoneEntityItemMeta::Payload>(renderData);
+    updateKeyZoneItemFromEntity((*renderData));
 
     render::Item::Status::Getters statusGetters;
     makeEntityItemStatusGetters(getThisPointer(), statusGetters);
@@ -338,7 +341,7 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::
     transaction.resetItem(_myMetaItem, renderPayload);
 
 
-    _myKeyLightItem = scene->allocateID();
+ /*   _myKeyLightItem = scene->allocateID();
 
     auto keyLightPayload = std::make_shared<KeyLightPayload>();
     updateKeyLightItemFromEntity((*keyLightPayload));
@@ -347,14 +350,14 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::
 
     transaction.resetItem(_myKeyLightItem, keyLightItem);
 
-
+*/
     return true;
 }
 
 void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
                                                 render::Transaction& transaction) {
-    transaction.removeItem(_myKeyLightItem);
-    render::Item::clearID(_myKeyLightItem);
+  //  transaction.removeItem(_myKeyLightItem);
+  //  render::Item::clearID(_myKeyLightItem);
     transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
     if (_model) {
@@ -372,7 +375,7 @@ void RenderableZoneEntityItem::notifyBoundChanged() {
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     if (scene) {
         transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {});
-        transaction.updateItem<KeyLightPayload>(_myKeyLightItem, [](KeyLightPayload& data) {});
+    //    transaction.updateItem<KeyLightPayload>(_myKeyLightItem, [](KeyLightPayload& data) {});
 
         scene->enqueueTransaction(transaction);
     } else {
@@ -412,17 +415,17 @@ void RenderableZoneEntityItem::updateKeyLightItemFromEntity(KeyLightPayload& key
 
 
 void RenderableZoneEntityItem::sceneUpdateRenderItemFromEntity(render::Transaction& transaction) {
-    if (!render::Item::isValidID(_myKeyLightItem)) {
+    if (!render::Item::isValidID(_myMetaItem)) {
         return;
     }
 
-    transaction.updateItem<KeyLightPayload>(_myKeyLightItem, [&](KeyLightPayload& data) {
+    transaction.updateItem<KeyLightPayload>(_myMetaItem, [&](KeyLightPayload& data) {
         updateKeyLightItemFromEntity(data);
     });
 }
 
 void RenderableZoneEntityItem::notifyChangedRenderItem() {
-    if (!render::Item::isValidID(_myKeyLightItem)) {
+    if (!render::Item::isValidID(_myMetaItem)) {
         return;
     }
 
@@ -430,6 +433,14 @@ void RenderableZoneEntityItem::notifyChangedRenderItem() {
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     sceneUpdateRenderItemFromEntity(transaction);
     scene->enqueueTransaction(transaction);
+}
+
+RenderableZoneEntityItemMeta::~RenderableZoneEntityItemMeta() {
+    if (!LightStage::isIndexInvalid(_index)) {
+        if (_stage) {
+            _stage->removeLight(_index);
+        }
+    }
 }
 
 void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
@@ -452,13 +463,5 @@ void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
     if (isVisible()) {
         // FInally, push the light visible in the frame
         _stage->_currentFrame.pushLight(_index, _light->getType());
-
-#ifdef WANT_DEBUG
-        Q_ASSERT(args->_batch);
-        gpu::Batch& batch = *args->_batch;
-        batch.setModelTransform(getTransformToCenter());
-        DependencyManager::get<GeometryCache>()->renderWireSphere(batch, 0.5f, 15, 15, glm::vec4(color, 1.0f));
-#endif
     }
-
 }

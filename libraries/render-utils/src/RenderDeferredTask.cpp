@@ -75,7 +75,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
 
-
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
     const auto primaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
@@ -124,6 +123,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     task.addJob<DrawLight>("DrawLight", lights);
 
+    // Filter zones
+    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
+
     // Light Clustering
     // Create the cluster grid of lights, cpu job for now
     const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, linearDepthTarget).hasVarying();
@@ -163,7 +165,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
     
         task.addJob<DrawBounds>("DrawLightBounds", lights);
-        task.addJob<ZoneRendererTask>("ZoneRenderer", opaques);
+        task.addJob<DrawBounds>("DrawZones", zones);
     }
 
     // Overlays

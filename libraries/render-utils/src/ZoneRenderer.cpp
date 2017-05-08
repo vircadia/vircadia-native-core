@@ -15,13 +15,33 @@
 
 using namespace render;
 
+class SetupZones {
+public:
+    using Inputs = render::ItemBounds;
+    using JobModel = render::Job::ModelI<SetupZones, Inputs>;
+
+    SetupZones() {}
+
+    void run(const RenderContextPointer& context, const Inputs& inputs);
+
+protected:
+};
+
 const Selection::Name ZoneRendererTask::ZONES_SELECTION { "RankedZones" };
 
 void ZoneRendererTask::build(JobModel& task, const Varying& input, Varying& ouput) {
-
+    // Filter out the sorted list of zones
     const auto zoneItems = task.addJob<render::SelectSortItems>("FilterZones", input, ZONES_SELECTION.c_str());
 
-    // just draw them...
-    task.addJob<DrawBounds>("DrawZones", zoneItems);
+    // just setup the current zone env
+    task.addJob<SetupZones>("SetupZones", zoneItems);
+
+    ouput = zoneItems;
 }
 
+void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) {
+    
+    // call render in the correct order first...
+    render::renderItems(context, inputs);
+
+}

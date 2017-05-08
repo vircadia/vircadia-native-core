@@ -19,7 +19,8 @@ class ZoneRendererConfig : public render::Task::Config {
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
 public:
 
-    ZoneRendererConfig() : render::Task::Config(false) {}
+    ZoneRendererConfig() : render::Task::Config(
+    ) {}
 
     int maxDrawn { -1 };
 

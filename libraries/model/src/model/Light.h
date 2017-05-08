@@ -143,7 +143,7 @@ public:
     const gpu::SphericalHarmonics& getAmbientSphere() const { return _ambientSchemaBuffer->ambientSphere; }
     void setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset);
 
-    void setAmbientMap(gpu::TexturePointer ambientMap);
+    void setAmbientMap(const gpu::TexturePointer& ambientMap);
     gpu::TexturePointer getAmbientMap() const { return _ambientMap; }
 
     void setAmbientMapNumMips(uint16_t numMips);
