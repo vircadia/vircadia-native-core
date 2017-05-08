@@ -1,4 +1,5 @@
 "use strict";
+
 /*jslint nomen: true, plusplus: true, vars: true*/
 /*global AvatarList, Entities, EntityViewer, Script, SoundCache, Audio, print, randFloat*/
 //
@@ -41,7 +42,6 @@ var DEFAULT_SOUND_DATA = {
 //var isACScript = this.EntityViewer !== undefined;
 var isACScript = true;
 
-Script.include("http://hifi-content.s3.amazonaws.com/ryan/development/utils_ryan.js");
 if (isACScript) {
     Agent.isAvatar = true; // This puts a robot at 0,0,0, but is currently necessary in order to use AvatarList.
     Avatar.skeletonModelURL = "http://hifi-content.s3.amazonaws.com/ozan/dev/avatars/invisible_avatar/invisible_avatar.fst";
@@ -49,6 +49,10 @@ if (isACScript) {
 function ignore() {}
 function debug() { // Display the arguments not just [Object object].
     //print.apply(null, [].map.call(arguments, JSON.stringify));
+}
+
+function randFloat(low, high) {
+    return low + Math.random() * (high - low);
 }
 
 if (isACScript) {
