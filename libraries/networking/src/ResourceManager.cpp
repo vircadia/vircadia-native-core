@@ -14,9 +14,9 @@
 #include <QNetworkDiskCache>
 #include <QStandardPaths>
 #include <QThread>
+#include <QFileInfo>
 
 #include <SharedUtil.h>
-
 
 #include "AssetResourceRequest.h"
 #include "FileResourceRequest.h"
@@ -116,3 +116,51 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
     request->moveToThread(&_thread);
     return request;
 }
+
+
+bool ResourceManager::resourceExists(const QUrl& url) {
+    auto scheme = url.scheme();
+    if (scheme == URL_SCHEME_FILE) {
+        QFileInfo file { url.toString() };
+        return file.exists();
+    } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
+        auto& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkRequest request { url };
+
+        request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+
+        auto reply = networkAccessManager.head(request);
+
+        QEventLoop loop;
+        QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        loop.exec();
+
+        reply->deleteLater();
+
+        return reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200;
+    } else if (scheme == URL_SCHEME_ATP) {
+        auto request = new AssetResourceRequest(url);
+        ByteRange range;
+        range.fromInclusive = 1;
+        range.toExclusive = 1;
+        request->setByteRange(range);
+        request->setCacheEnabled(false);
+
+        QEventLoop loop;
+
+        QObject::connect(request, &AssetResourceRequest::finished, &loop, &QEventLoop::quit);
+
+        request->send();
+
+        loop.exec();
+
+        request->deleteLater();
+
+        return request->getResult() == ResourceRequest::Success;
+    }
+
+    qCDebug(networking) << "Unknown scheme (" << scheme << ") for URL: " << url.url();
+    return false;
+}
+

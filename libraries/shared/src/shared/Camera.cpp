@@ -8,16 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/gtx/quaternion.hpp>
-
-#include <SharedUtil.h>
-#include <EventTypes.h>
-
-#include "Application.h"
 #include "Camera.h"
-#include "Menu.h"
-#include "Util.h"
-
 
 CameraMode stringToMode(const QString& mode) {
     if (mode == "third person") {
@@ -102,35 +93,9 @@ void Camera::setProjection(const glm::mat4& projection) {
     _projection = projection;
 }
 
-PickRay Camera::computePickRay(float x, float y) {
-    return qApp->computePickRay(x, y);
-}
-
 void Camera::setModeString(const QString& mode) {
     CameraMode targetMode = stringToMode(mode);
 
-    switch (targetMode) {
-        case CAMERA_MODE_FIRST_PERSON:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
-            break;
-        case CAMERA_MODE_THIRD_PERSON:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
-            break;
-        case CAMERA_MODE_MIRROR:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
-            break;
-        case CAMERA_MODE_INDEPENDENT:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::IndependentMode, true);
-            break;
-        case CAMERA_MODE_ENTITY:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::CameraEntityMode, true);
-            break;
-        default:
-            break;
-    }
-
-    qApp->cameraMenuChanged();
-    
     if (_mode != targetMode) {
         setMode(targetMode);
     }
