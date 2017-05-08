@@ -24,14 +24,17 @@ ObjectDynamic::ObjectDynamic(EntityDynamicType type, const QUuid& id, EntityItem
 ObjectDynamic::~ObjectDynamic() {
 }
 
-void ObjectDynamic::remapIDs(QHash<EntityItemID, EntityItemID>* map) {
+void ObjectDynamic::remapIDs(QHash<EntityItemID, EntityItemID>& map) {
     withWriteLock([&]{
-        if (map->contains(_id)) {
-            _id = (*map)[_id];
+        if (!map.contains(_id)) {
+            map[_id] = QUuid::createUuid();
         }
-        if (map->contains(_otherID)) {
-            _otherID = (*map)[_otherID];
+        _id = map[_id];
+
+        if (!map.contains(_otherID)) {
+            map[_otherID] = QUuid::createUuid();
         }
+        _otherID = map[_otherID];
     });
 }
 

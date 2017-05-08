@@ -275,18 +275,20 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintHinge::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
+        arguments["pivot"] = glmToQMap(_pivotInA);
+        arguments["axis"] = glmToQMap(_axisInA);
+        arguments["otherEntityID"] = _otherEntityID;
+        arguments["otherPivot"] = glmToQMap(_pivotInB);
+        arguments["otherAxis"] = glmToQMap(_axisInB);
+        arguments["low"] = _low;
+        arguments["high"] = _high;
+        arguments["softness"] = _softness;
+        arguments["biasFactor"] = _biasFactor;
+        arguments["relaxationFactor"] = _relaxationFactor;
         if (_constraint) {
-            arguments["pivot"] = glmToQMap(_pivotInA);
-            arguments["axis"] = glmToQMap(_axisInA);
-            arguments["otherEntityID"] = _otherEntityID;
-            arguments["otherPivot"] = glmToQMap(_pivotInB);
-            arguments["otherAxis"] = glmToQMap(_axisInB);
-            arguments["low"] = _low;
-            arguments["high"] = _high;
-            arguments["softness"] = _softness;
-            arguments["biasFactor"] = _biasFactor;
-            arguments["relaxationFactor"] = _relaxationFactor;
             arguments["angle"] = static_cast<btHingeConstraint*>(_constraint)->getHingeAngle(); // [-PI,PI]
+        } else {
+            arguments["angle"] = 0.0f;
         }
     });
     return arguments;
