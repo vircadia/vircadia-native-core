@@ -32,8 +32,6 @@ const uint32_t PENDING_FLAG_JUMP = 1U << 3;
 const uint32_t PENDING_FLAG_UPDATE_COLLISION_GROUP = 1U << 4;
 const float DEFAULT_MIN_FLOOR_NORMAL_DOT_UP = cosf(PI / 3.0f);
 
-const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
-
 class btRigidBody;
 class btCollisionWorld;
 class btDynamicsWorld;
@@ -183,7 +181,7 @@ protected:
     bool _stepUpEnabled { true };
     bool _hasSupport;
 
-    btScalar _gravity { DEFAULT_CHARACTER_GRAVITY };
+    btScalar _gravity { 0.0f };
 
     btScalar _jumpSpeed;
     btScalar _followTime;

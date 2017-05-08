@@ -361,6 +361,7 @@ void CharacterController::updateGravity() {
     if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         _gravity = 0.0f;
     } else {
+        const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
         _gravity = DEFAULT_CHARACTER_GRAVITY;
     }
     if (_rigidBody) {
