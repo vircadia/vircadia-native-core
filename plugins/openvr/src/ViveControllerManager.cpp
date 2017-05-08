@@ -1,4 +1,3 @@
-
 //
 //  Created by Sam Gondelman on 6/29/15.
 //  Copyright 2013 High Fidelity, Inc.
@@ -22,7 +21,6 @@
 #include <OffscreenUi.h>
 #include <GLMHelpers.h>
 #include <glm/ext.hpp>
-#include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 
@@ -48,10 +46,10 @@ const quint64 CALIBRATION_TIMELAPSE = 3000000;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
-glm::mat4 computeOffset(glm::mat4 defaultToRefrenceMat, glm::mat4 defaultJointMat, controller::Pose puckPose) {
+glm::mat4 computeOffset(glm::mat4 defaultToReferenceMat, glm::mat4 defaultJointMat, controller::Pose puckPose) {
     glm::mat4 poseMat = createMatFromQuatAndPos(puckPose.rotation, puckPose.translation);
-    glm::mat4 refrenceJointMat = defaultToRefrenceMat * defaultJointMat;
-    return ( glm::inverse(poseMat) * refrenceJointMat);
+    glm::mat4 referenceJointMat = defaultToReferenceMat * defaultJointMat;
+    return glm::inverse(poseMat) * referenceJointMat;
 }
 
 bool sortPucksYPosition(std::pair<uint32_t, controller::Pose> firstPuck, std::pair<uint32_t, controller::Pose> secondPuck) {
@@ -130,7 +128,6 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
         userInputMapper->removeDevice(_inputDevice->_deviceID);
         _registeredWithInputMapper = false;
         _inputDevice->_poseStateMap.clear();
-        //qDebug() << " ----------->>!!!!!!! clear pose state map !!!!!!!<<----------------";
     }
 
     if (!_registeredWithInputMapper && _inputDevice->_trackedControllers > 0) {
@@ -213,78 +210,88 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
 
 void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibrationData& inputCalibration) {
     quint64 currentTime = usecTimestampNow();
-    
+
     auto leftTrigger = _buttonPressedMap.find(controller::LT);
     auto rightTrigger = _buttonPressedMap.find(controller::RT);
     if ((leftTrigger != _buttonPressedMap.end()) && (rightTrigger != _buttonPressedMap.end())) {
-        if (!_calibrated) {
-            // conver the hmd head from sensor space to avatar space
-            glm::mat4 worldToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
-            glm::mat4 hmdAvatarMat = worldToAvatarMat * inputCalibration.hmdSensorMat;
+        if (!_triggersPressedHandled) {
+            _triggersPressedHandled = true;
+            if (!_calibrated) {
+                // conver the hmd head from sensor space to avatar space
+                glm::mat4 hmdSensorFlippedMat = inputCalibration.hmdSensorMat * Matrices::Y_180;
+                glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
+                glm::mat4 hmdAvatarMat = sensorToAvatarMat * hmdSensorFlippedMat;
 
-            // cancel the roll and pitch for the hmd head
-            glm::quat hmdRotation = cancelOutRollAndPitch(glmExtractRotation(hmdAvatarMat));
-            glm::vec3 hmdTranslation = extractTranslation(hmdAvatarMat);
-            glm::mat4 currentHead = createMatFromQuatAndPos(hmdRotation, hmdTranslation);
-            
-            // calculate the offset from the centerOfEye to defaultHeadMat
-            glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
+                // cancel the roll and pitch for the hmd head
+                glm::quat hmdRotation = cancelOutRollAndPitch(glmExtractRotation(hmdAvatarMat));
+                glm::vec3 hmdTranslation = extractTranslation(hmdAvatarMat);
+                glm::mat4 currentHead = createMatFromQuatAndPos(hmdRotation, hmdTranslation);
 
-            currentHead *= defaultHeadOffset;
-            
-            // calculate the defaultToRefrenceXform
-            glm::mat4 defaultRefrenceXform = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
-            
-            auto puckCount = _validTrackedObjects.size();
-            if (puckCount == 2) {
-                _config = Config::Feet;
-            } else if (puckCount == 3) {
-                _config = Config::FeetAndHips;
-            } else if (puckCount >= 4) {
-                _config = Config::FeetHipsAndChest;
+                // calculate the offset from the centerOfEye to defaultHeadMat
+                glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
+
+                currentHead = currentHead * defaultHeadOffset;
+
+                // calculate the defaultToRefrenceXform
+                glm::mat4 defaultReferenceXform = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
+
+                auto puckCount = _validTrackedObjects.size();
+                if (puckCount == 2) {
+                    _config = Config::Feet;
+                } else if (puckCount == 3) {
+                    _config = Config::FeetAndHips;
+                } else if (puckCount >= 4) {
+                    _config = Config::FeetHipsAndChest;
+                } else {
+                    return;
+                }
+
+                std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
+
+                auto firstFoot = _validTrackedObjects[0];
+                auto secondFoot = _validTrackedObjects[1];
+                controller::Pose firstFootPose = firstFoot.second;
+                controller::Pose secondFootPose = secondFoot.second;
+
+                if (firstFootPose.translation.x < secondFootPose.translation.x) {
+                    _jointToPuckMap[controller::LEFT_FOOT] = firstFoot.first;
+                    _pucksOffset[firstFoot.first] = computeOffset(defaultReferenceXform, inputCalibration.defaultLeftFoot, firstFootPose);
+                    _jointToPuckMap[controller::RIGHT_FOOT] = secondFoot.first;
+                    _pucksOffset[secondFoot.first] = computeOffset(defaultReferenceXform, inputCalibration.defaultRightFoot, secondFootPose);
+
+                } else {
+                    _jointToPuckMap[controller::LEFT_FOOT] = secondFoot.first;
+                    _pucksOffset[secondFoot.first] = computeOffset(defaultReferenceXform, inputCalibration.defaultLeftFoot, secondFootPose);
+                    _jointToPuckMap[controller::RIGHT_FOOT] = firstFoot.first;
+                    _pucksOffset[firstFoot.first] = computeOffset(defaultReferenceXform, inputCalibration.defaultRightFoot, firstFootPose);
+                }
+
+                if (_config == Config::Feet) {
+                    // done
+                } else if (_config == Config::FeetAndHips) {
+                    _jointToPuckMap[controller::HIPS] = _validTrackedObjects[2].first;
+                    _pucksOffset[_validTrackedObjects[2].first] = computeOffset(defaultReferenceXform, inputCalibration.defaultHips, _validTrackedObjects[2].second);
+                } else if (_config == Config::FeetHipsAndChest) {
+                    _jointToPuckMap[controller::HIPS] = _validTrackedObjects[2].first;
+                    _pucksOffset[_validTrackedObjects[2].first] = computeOffset(defaultReferenceXform, inputCalibration.defaultHips, _validTrackedObjects[2].second);
+                    _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[3].first;
+                    _pucksOffset[_validTrackedObjects[3].first] = computeOffset(defaultReferenceXform, inputCalibration.defaultSpine2, _validTrackedObjects[3].second);
+                }
+                _calibrated = true;
+
             } else {
-                return;
+                _pucksOffset.clear();
+                _jointToPuckMap.clear();
+                _calibrated = false;
             }
-
-            std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
-            
-            auto firstFoot = _validTrackedObjects[0];
-            auto secondFoot = _validTrackedObjects[1];
-            controller::Pose firstFootPose = firstFoot.second;
-            controller::Pose secondFootPose = secondFoot.second;
-            if (firstFootPose.translation.x < secondFootPose.translation.x) {
-                _jointToPuckMap[controller::LEFT_FOOT] = firstFoot.first;
-                _pucksOffset[firstFoot.first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultLeftFoot, firstFootPose);
-                _jointToPuckMap[controller::RIGHT_FOOT] = secondFoot.first;
-                _pucksOffset[secondFoot.first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultRightFoot, secondFootPose);
-            } else {
-                _jointToPuckMap[controller::LEFT_FOOT] = secondFoot.first;
-                _pucksOffset[secondFoot.first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultLeftFoot, secondFootPose);
-                _jointToPuckMap[controller::RIGHT_FOOT] = firstFoot.first;
-                _pucksOffset[firstFoot.first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultRightFoot, firstFootPose);
-            }
-
-            if (_config == Config::Feet) {
-                // done
-            } else if (_config == Config::FeetAndHips) {
-                _jointToPuckMap[controller::HIPS] = _validTrackedObjects[2].first;
-                _pucksOffset[_validTrackedObjects[2].first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultHips, _validTrackedObjects[2].second);
-            } else if (_config == Config::FeetHipsAndChest) {
-                _jointToPuckMap[controller::HIPS] = _validTrackedObjects[2].first;
-                _pucksOffset[_validTrackedObjects[2].first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultHips, _validTrackedObjects[2].second);
-                _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[3].first;
-                _pucksOffset[_validTrackedObjects[3].first] = computeOffset(defaultRefrenceXform, inputCalibration.defaultSpine2, _validTrackedObjects[3].second);
-            }
-            _calibrated = true;
-            
-        } else {
         }
-            
+    } else {
+        _triggersPressedHandled = false;
     }
 }
 
 void ViveControllerManager::InputDevice::updateCalibratedLimbs() {
-    _poseStateMap[controller::LEFT_FOOT] = addOffsetToPuckPose(controller::LEFT_FOOT);
+     _poseStateMap[controller::LEFT_FOOT] = addOffsetToPuckPose(controller::LEFT_FOOT);
     _poseStateMap[controller::RIGHT_FOOT] = addOffsetToPuckPose(controller::RIGHT_FOOT);
     _poseStateMap[controller::HIPS] = addOffsetToPuckPose(controller::HIPS);
     _poseStateMap[controller::SPINE2] = addOffsetToPuckPose(controller::SPINE2);
@@ -296,9 +303,9 @@ controller::Pose ViveControllerManager::InputDevice::addOffsetToPuckPose(int joi
         uint32_t puckIndex = puck->second;
         controller::Pose puckPose = _poseStateMap[puckIndex];
         glm::mat4 puckOffset = _pucksOffset[puckIndex];
-        puckPose.postTransform(puckOffset);
-        return puckPose;
-    
+        controller::Pose newPose = puckPose.postTransform(puckOffset);
+        return newPose;
+
     }
     return controller::Pose();
 }
@@ -374,7 +381,7 @@ void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32
         _axisStateMap[isLeftHand ? LY : RY] = stick.y;
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
         _axisStateMap[isLeftHand ? LT : RT] = x;
-        // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0, 
+        // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0,
         // so we can expose that as an additional button
         if (x >= 1.0f) {
             _buttonPressedMap.insert(isLeftHand ? LT_CLICK : RT_CLICK);
@@ -519,7 +526,7 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(LEFT_FOOT, "LeftFoot"),
         makePair(RIGHT_FOOT, "RightFoot"),
         makePair(HIPS, "Hips"),
-        makePair(SPINE2, "Spine2"), 
+        makePair(SPINE2, "Spine2"),
 
         // 16 tracked poses
         makePair(TRACKED_OBJECT_00, "TrackedObject00"),
