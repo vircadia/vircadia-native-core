@@ -433,15 +433,16 @@ void SwingTwistConstraint::clearHistory() {
 }
 
 glm::quat SwingTwistConstraint::computeCenterRotation() const {
+    const size_t NUM_TWIST_LIMITS = 2;
     const size_t NUM_MIN_DOTS = getMinDots().size();
-    const size_t NUM_LIMITS = 2 * NUM_MIN_DOTS;
     std::vector<glm::quat> swingLimits;
-    swingLimits.reserve(NUM_LIMITS);
+    swingLimits.reserve(NUM_MIN_DOTS);
 
-    glm::quat twistLimits[2];
+    glm::quat twistLimits[NUM_TWIST_LIMITS];
     if (_minTwist != _maxTwist) {
-        twistLimits[0] = glm::angleAxis(_minTwist, _referenceRotation * Vectors::UNIT_Y);
-        twistLimits[1] = glm::angleAxis(_maxTwist, _referenceRotation * Vectors::UNIT_Y);
+        // to ensure that twists do not flip the center rotation, we devide twist angle by 2.
+        twistLimits[0] = glm::angleAxis(_minTwist / 2.0f, _referenceRotation * Vectors::UNIT_Y);
+        twistLimits[1] = glm::angleAxis(_maxTwist / 2.0f, _referenceRotation * Vectors::UNIT_Y);
     }
     const float D_THETA = TWO_PI / (NUM_MIN_DOTS - 1);
     float theta = 0.0f;
@@ -450,7 +451,7 @@ glm::quat SwingTwistConstraint::computeCenterRotation() const {
         float phi = acos(getMinDots()[i]);
         float cos_phi = getMinDots()[i];
         float sin_phi = sinf(phi);
-        glm::vec3 swungAxis(sin_phi * cosf(theta), cos_phi, sin_phi * sinf(theta));
+        glm::vec3 swungAxis(sin_phi * cosf(theta), cos_phi, -sin_phi * sinf(theta));
 
         // to ensure that swings > 90 degrees do not flip the center rotation, we devide phi / 2
         glm::quat swing = glm::angleAxis(phi / 2, glm::normalize(glm::cross(Vectors::UNIT_Y, swungAxis)));

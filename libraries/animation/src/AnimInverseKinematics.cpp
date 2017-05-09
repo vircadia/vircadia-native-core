@@ -955,6 +955,19 @@ void AnimInverseKinematics::initLimitCenterPoses() {
         }
         _limitCenterPoses.push_back(pose);
     }
+
+    // The limit center rotations for the LeftArm and RightArm form a t-pose.
+    // In order for the elbows to look more natural, we rotate them down by the avatar's sides
+    const float UPPER_ARM_THETA = 3.0f * PI / 8.0f;  // 67.5 deg
+    int leftArmIndex = _skeleton->nameToJointIndex("LeftArm");
+    const glm::quat armRot = glm::angleAxis(UPPER_ARM_THETA, Vectors::UNIT_X);
+    if (leftArmIndex >= 0 && leftArmIndex < _limitCenterPoses.size()) {
+        _limitCenterPoses[leftArmIndex].rot() = _limitCenterPoses[leftArmIndex].rot() * armRot;
+    }
+    int rightArmIndex = _skeleton->nameToJointIndex("RightArm");
+    if (rightArmIndex >= 0 && rightArmIndex < _limitCenterPoses.size()) {
+        _limitCenterPoses[rightArmIndex].rot() = _limitCenterPoses[rightArmIndex].rot() * armRot;
+    }
 }
 
 void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {

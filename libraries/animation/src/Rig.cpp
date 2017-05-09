@@ -1031,7 +1031,7 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     _animVars.set("notIsTalking", !params.isTalking);
 
     if (params.hipsEnabled) {
-        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToCenterJointLimits);
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
         _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
         _animVars.set("hipsPosition", extractTranslation(params.hipsMatrix));
         _animVars.set("hipsRotation", glmExtractRotation(params.hipsMatrix));
