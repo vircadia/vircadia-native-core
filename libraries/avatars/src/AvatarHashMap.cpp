@@ -148,7 +148,7 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
         auto avatar = newOrExistingAvatar(identity.uuid, sendingNode);
         bool identityChanged = false;
         bool displayNameChanged = false;
-        avatar->processAvatarIdentity(identity, identityChanged, displayNameChanged);
+        avatar->processAvatarIdentity(identity, identityChanged, displayNameChanged, sendingNode->getClockSkewUsec());
     }
 }
 
