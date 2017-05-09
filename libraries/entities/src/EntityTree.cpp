@@ -1531,6 +1531,10 @@ void EntityTree::pruneTree() {
 
 
 QByteArray EntityTree::remapActionDataIDs(QByteArray actionData, QHash<EntityItemID, EntityItemID>& map) {
+    if (actionData.isEmpty()) {
+        return actionData;
+    }
+
     QDataStream serializedActionsStream(actionData);
     QVector<QByteArray> serializedActions;
     serializedActionsStream >> serializedActions;
@@ -1617,11 +1621,9 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
     };
 
     entityTreeElement->forEachEntity([&args, &getMapped, &element](EntityItemPointer item) {
-
-        EntityItemID oldID = item->getEntityItemID();
-        EntityItemID newID = getMapped(oldID);
-
+        EntityItemID newID = getMapped(item->getEntityItemID());
         EntityItemProperties properties = item->getProperties();
+
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
             properties.setPosition(properties.getPosition() + args->root);
@@ -1635,29 +1637,15 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
             }
         }
 
-        if (!properties.getXNNeighborID().isInvalidID()) {
-            properties.setXNNeighborID(getMapped(properties.getXNNeighborID()));
-        }
-        if (!properties.getXPNeighborID().isInvalidID()) {
-            properties.setXPNeighborID(getMapped(properties.getXPNeighborID()));
-        }
-        if (!properties.getYNNeighborID().isInvalidID()) {
-            properties.setYNNeighborID(getMapped(properties.getYNNeighborID()));
-        }
-        if (!properties.getYPNeighborID().isInvalidID()) {
-            properties.setYPNeighborID(getMapped(properties.getYPNeighborID()));
-        }
-        if (!properties.getZNNeighborID().isInvalidID()) {
-            properties.setZNNeighborID(getMapped(properties.getZNNeighborID()));
-        }
-        if (!properties.getZPNeighborID().isInvalidID()) {
-            properties.setZPNeighborID(getMapped(properties.getZPNeighborID()));
-        }
+        properties.setXNNeighborID(getMapped(properties.getXNNeighborID()));
+        properties.setXPNeighborID(getMapped(properties.getXPNeighborID()));
+        properties.setYNNeighborID(getMapped(properties.getYNNeighborID()));
+        properties.setYPNeighborID(getMapped(properties.getYPNeighborID()));
+        properties.setZNNeighborID(getMapped(properties.getZNNeighborID()));
+        properties.setZPNeighborID(getMapped(properties.getZPNeighborID()));
 
         QByteArray actionData = properties.getActionData();
-        if (!actionData.isEmpty()) {
-            properties.setActionData(remapActionDataIDs(actionData, *args->map));
-        }
+        properties.setActionData(remapActionDataIDs(actionData, *args->map));
 
         // set creation time to "now" for imported entities
         properties.setCreated(usecTimestampNow());
