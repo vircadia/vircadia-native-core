@@ -17,12 +17,12 @@
 
 
 const uint16_t ObjectConstraintSlider::constraintVersion = 1;
-
+const glm::vec3 DEFAULT_SLIDER_AXIS(1.0f, 0.0f, 0.0f);
 
 ObjectConstraintSlider::ObjectConstraintSlider(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectConstraint(DYNAMIC_TYPE_SLIDER, id, ownerEntity),
-    _pointInA(glm::vec3(0.0f)),
-    _axisInA(glm::vec3(0.0f))
+    _axisInA(DEFAULT_SLIDER_AXIS),
+    _axisInB(DEFAULT_SLIDER_AXIS)
 {
 }
 
@@ -91,11 +91,25 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
         return nullptr;
     }
 
+    if (glm::length(axisInA) < FLT_EPSILON) {
+        qCWarning(physics) << "slider axis cannot be a zero vector";
+        axisInA = DEFAULT_SLIDER_AXIS;
+    } else {
+        axisInA = glm::normalize(axisInA);
+    }
+
     if (!otherEntityID.isNull()) {
         // This slider is between two entities... find the other rigid body.
 
-        glm::quat rotA = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInA));
-        glm::quat rotB = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInB));
+        if (glm::length(axisInB) < FLT_EPSILON) {
+            qCWarning(physics) << "slider axis cannot be a zero vector";
+            axisInB = DEFAULT_SLIDER_AXIS;
+        } else {
+            axisInB = glm::normalize(axisInB);
+        }
+
+        glm::quat rotA = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInA);
+        glm::quat rotB = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInB);
 
         btTransform frameInA(glmToBullet(rotA), glmToBullet(pointInA));
         btTransform frameInB(glmToBullet(rotB), glmToBullet(pointInB));
@@ -109,7 +123,7 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
     } else {
         // This slider is between an entity and the world-frame.
 
-        glm::quat rot = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInA));
+        glm::quat rot = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInA);
 
         btTransform frameInA(glmToBullet(rot), glmToBullet(pointInA));
 

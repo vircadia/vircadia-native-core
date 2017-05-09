@@ -17,12 +17,12 @@
 
 
 const uint16_t ObjectConstraintConeTwist::constraintVersion = 1;
-
+const glm::vec3 DEFAULT_CONE_TWIST_AXIS(1.0f, 0.0f, 0.0f);
 
 ObjectConstraintConeTwist::ObjectConstraintConeTwist(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectConstraint(DYNAMIC_TYPE_CONE_TWIST, id, ownerEntity),
-    _pivotInA(glm::vec3(0.0f)),
-    _axisInA(glm::vec3(0.0f))
+    _axisInA(DEFAULT_CONE_TWIST_AXIS),
+    _axisInB(DEFAULT_CONE_TWIST_AXIS)
 {
     #if WANT_DEBUG
     qCDebug(physics) << "ObjectConstraintConeTwist::ObjectConstraintConeTwist";
@@ -109,11 +109,25 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
         return nullptr;
     }
 
+    if (glm::length(axisInA) < FLT_EPSILON) {
+        qCWarning(physics) << "cone-twist axis cannot be a zero vector";
+        axisInA = DEFAULT_CONE_TWIST_AXIS;
+    } else {
+        axisInA = glm::normalize(axisInA);
+    }
+
     if (!otherEntityID.isNull()) {
         // This coneTwist is between two entities... find the other rigid body.
 
-        glm::quat rotA = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInA));
-        glm::quat rotB = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInB));
+        if (glm::length(axisInB) < FLT_EPSILON) {
+            qCWarning(physics) << "cone-twist axis cannot be a zero vector";
+            axisInB = DEFAULT_CONE_TWIST_AXIS;
+        } else {
+            axisInB = glm::normalize(axisInB);
+        }
+
+        glm::quat rotA = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInA);
+        glm::quat rotB = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInB);
 
         btTransform frameInA(glmToBullet(rotA), glmToBullet(pivotInA));
         btTransform frameInB(glmToBullet(rotB), glmToBullet(pivotInB));
@@ -127,7 +141,7 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
     } else {
         // This coneTwist is between an entity and the world-frame.
 
-        glm::quat rot = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInA));
+        glm::quat rot = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInA);
 
         btTransform frameInA(glmToBullet(rot), glmToBullet(pivotInA));
 
