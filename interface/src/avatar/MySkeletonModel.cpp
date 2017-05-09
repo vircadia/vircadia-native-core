@@ -147,6 +147,9 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     auto orientation = myAvatar->getLocalOrientation();
     _rig->computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
 
+    // evaluate AnimGraph animation and update jointStates.
+    Model::updateRig(deltaTime, parentTransform);
+
     Rig::EyeParameters eyeParams;
     eyeParams.eyeLookAt = lookAt;
     eyeParams.eyeSaccade = head->getSaccade();
@@ -156,8 +159,5 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
     _rig->updateFromEyeParameters(eyeParams);
-
-    // evaluate AnimGraph animation and update jointStates.
-    Parent::updateRig(deltaTime, parentTransform);
 }
 
