@@ -350,7 +350,7 @@
             // Cancel check that recording started playing.
             index = playerIDs.indexOf(playerID);
             if (index !== -1 && playerStartupTimeouts[index] !== null) {
-                // Cannot clearTimeout() without program log error, so just set null.
+                Script.clearTimeout(playerStartupTimeouts[index]);
                 playerStartupTimeouts[index] = null;
             }
 
@@ -374,6 +374,7 @@
             if (index === -1) {
                 index = playerIDs.length;
                 playerIDs[index] = sender;
+                playerStartupTimeouts[index] = null;
             }
             playerIsPlayings[index] = message.playing;
             playerRecordings[index] = message.recording;
