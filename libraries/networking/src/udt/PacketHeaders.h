@@ -113,7 +113,8 @@ public:
         EntityPhysics,
         EntityServerScriptLog,
         AdjustAvatarSorting,
-        LAST_PACKET_TYPE = AdjustAvatarSorting
+        OctreeFileReplacement,
+        LAST_PACKET_TYPE = OctreeFileReplacement
     };
 };
 
@@ -207,6 +208,7 @@ const PacketVersion VERSION_ENTITIES_SERVER_SCRIPTS = 66;
 const PacketVersion VERSION_ENTITIES_PHYSICS_PACKET = 67;
 const PacketVersion VERSION_ENTITIES_ZONE_FILTERS = 68;
 const PacketVersion VERSION_ENTITIES_HINGE_CONSTRAINT = 69;
+const PacketVersion VERSION_ENTITIES_BULLET_DYNAMICS = 70;
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
