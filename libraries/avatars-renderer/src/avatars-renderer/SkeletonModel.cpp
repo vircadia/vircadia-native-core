@@ -73,12 +73,13 @@ void SkeletonModel::initJointStates() {
 
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
+    assert(!_owningAvatar->isMyAvatar());
     const FBXGeometry& geometry = getFBXGeometry();
 
     Head* head = _owningAvatar->getHead();
 
     // make sure lookAt is not too close to face (avoid crosseyes)
-    glm::vec3 lookAt = _owningAvatar->isMyAvatar() ?  head->getLookAtPosition() : head->getCorrectedLookAtPosition();
+    glm::vec3 lookAt = head->getCorrectedLookAtPosition();
     glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
     float focusDistance = glm::length(focusOffset);
     const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
@@ -86,41 +87,36 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         lookAt = _owningAvatar->getHead()->getEyePosition() + (MIN_LOOK_AT_FOCUS_DISTANCE / focusDistance) * focusOffset;
     }
 
-    if (!_owningAvatar->isMyAvatar()) {
-        // no need to call Model::updateRig() because otherAvatars get their joint state
-        // copied directly from AvtarData::_jointData (there are no Rig animations to blend)
-        _needsUpdateClusterMatrices = true;
+    // no need to call Model::updateRig() because otherAvatars get their joint state
+    // copied directly from AvtarData::_jointData (there are no Rig animations to blend)
+    _needsUpdateClusterMatrices = true;
 
-        // This is a little more work than we really want.
-        //
-        // Other avatars joint, including their eyes, should already be set just like any other joints
-        // from the wire data. But when looking at me, we want the eyes to use the corrected lookAt.
-        //
-        // Thus this should really only be ... else if (_owningAvatar->getHead()->isLookingAtMe()) {...
-        // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
-        // We will revisit that as priorities allow, and particularly after the new rig/animation/joints.
+    // This is a little more work than we really want.
+    //
+    // Other avatars joint, including their eyes, should already be set just like any other joints
+    // from the wire data. But when looking at me, we want the eyes to use the corrected lookAt.
+    //
+    // Thus this should really only be ... else if (_owningAvatar->getHead()->isLookingAtMe()) {...
+    // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
+    // We will revisit that as priorities allow, and particularly after the new rig/animation/joints.
 
-        // If the head is not positioned, updateEyeJoints won't get the math right
-        glm::quat headOrientation;
-        _rig->getJointRotation(geometry.headJointIndex, headOrientation);
-        glm::vec3 eulers = safeEulerAngles(headOrientation);
-        head->setBasePitch(glm::degrees(-eulers.x));
-        head->setBaseYaw(glm::degrees(eulers.y));
-        head->setBaseRoll(glm::degrees(-eulers.z));
+    // If the head is not positioned, updateEyeJoints won't get the math right
+    glm::quat headOrientation;
+    _rig->getJointRotation(geometry.headJointIndex, headOrientation);
+    glm::vec3 eulers = safeEulerAngles(headOrientation);
+    head->setBasePitch(glm::degrees(-eulers.x));
+    head->setBaseYaw(glm::degrees(eulers.y));
+    head->setBaseRoll(glm::degrees(-eulers.z));
 
-        Rig::EyeParameters eyeParams;
-        eyeParams.eyeLookAt = lookAt;
-        eyeParams.eyeSaccade = glm::vec3(0.0f);
-        eyeParams.modelRotation = getRotation();
-        eyeParams.modelTranslation = getTranslation();
-        eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
-        eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
+    Rig::EyeParameters eyeParams;
+    eyeParams.eyeLookAt = lookAt;
+    eyeParams.eyeSaccade = glm::vec3(0.0f);
+    eyeParams.modelRotation = getRotation();
+    eyeParams.modelTranslation = getTranslation();
+    eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
+    eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
-        _rig->updateFromEyeParameters(eyeParams);
-     }
-
-    // evaluate AnimGraph animation and update jointStates.
-    Parent::updateRig(deltaTime, parentTransform);
+    _rig->updateFromEyeParameters(eyeParams);
 }
 
 void SkeletonModel::updateAttitude() {

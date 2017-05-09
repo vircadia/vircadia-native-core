@@ -1,6 +1,6 @@
 //
 //  CharacterControllerInterface.h
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2015.10.21
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_CharacterControllerInterface_h
-#define hifi_CharacterControllerInterface_h
+#ifndef hifi_CharacterController_h
+#define hifi_CharacterController_h
 
 #include <assert.h>
 #include <stdint.h>
@@ -19,14 +19,18 @@
 #include <BulletDynamics/Character/btCharacterControllerInterface.h>
 
 #include <GLMHelpers.h>
+#include <NumericalConstants.h>
+#include <PhysicsCollisionGroups.h>
+
 #include "BulletUtil.h"
+#include "CharacterGhostObject.h"
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
 const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
 const uint32_t PENDING_FLAG_JUMP = 1U << 3;
-
-const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
+const uint32_t PENDING_FLAG_UPDATE_COLLISION_GROUP = 1U << 4;
+const float DEFAULT_MIN_FLOOR_NORMAL_DOT_UP = cosf(PI / 3.0f);
 
 class btRigidBody;
 class btCollisionWorld;
@@ -44,7 +48,7 @@ public:
 
     bool needsRemoval() const;
     bool needsAddition() const;
-    void setDynamicsWorld(btDynamicsWorld* world);
+    virtual void setDynamicsWorld(btDynamicsWorld* world);
     btCollisionObject* getCollisionObject() { return _rigidBody; }
 
     virtual void updateShapeIfNecessary() = 0;
@@ -56,10 +60,7 @@ public:
     virtual void warp(const btVector3& origin) override { }
     virtual void debugDraw(btIDebugDraw* debugDrawer) override { }
     virtual void setUpInterpolate(bool value) override { }
-    virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTime) override {
-        preStep(collisionWorld);
-        playerStep(collisionWorld, deltaTime);
-    }
+    virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTime) override;
     virtual void preStep(btCollisionWorld *collisionWorld) override;
     virtual void playerStep(btCollisionWorld *collisionWorld, btScalar dt) override;
     virtual bool canJump() const override { assert(false); return false; } // never call this
@@ -69,6 +70,7 @@ public:
     void clearMotors();
     void addMotor(const glm::vec3& velocity, const glm::quat& rotation, float horizTimescale, float vertTimescale = -1.0f);
     void applyMotor(int index, btScalar dt, btVector3& worldVelocity, std::vector<btVector3>& velocities, std::vector<btScalar>& weights);
+    void setStepUpEnabled(bool enabled) { _stepUpEnabled = enabled; }
     void computeNewVelocity(btScalar dt, btVector3& velocity);
     void computeNewVelocity(btScalar dt, glm::vec3& velocity);
 
@@ -103,16 +105,20 @@ public:
     };
 
     State getState() const { return _state; }
+    void updateState();
 
-    void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
+    void setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale);
 
-    bool isEnabled() const { return _enabled; }  // thread-safe
-    void setEnabled(bool enabled);
-    bool isEnabledAndReady() const { return _enabled && _dynamicsWorld; }
+    bool isEnabledAndReady() const { return _dynamicsWorld; }
+
+    void setCollisionless(bool collisionless);
+    int16_t computeCollisionGroup() const;
+    void handleChangedCollisionGroup();
 
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
     void setFlyingAllowed(bool value);
+    void setCollisionlessAllowed(bool value);
 
 
 protected:
@@ -122,8 +128,9 @@ protected:
     void setState(State state);
 #endif
 
+    void updateGravity();
     void updateUpAxis(const glm::quat& rotation);
-    bool checkForSupport(btCollisionWorld* collisionWorld) const;
+    bool checkForSupport(btCollisionWorld* collisionWorld);
 
 protected:
     struct CharacterMotor {
@@ -136,6 +143,7 @@ protected:
     };
 
     std::vector<CharacterMotor> _motors;
+    CharacterGhostObject _ghost;
     btVector3 _currentUp;
     btVector3 _targetVelocity;
     btVector3 _parentVelocity;
@@ -144,6 +152,8 @@ protected:
     btTransform _followDesiredBodyTransform;
     btScalar _followTimeRemaining;
     btTransform _characterBodyTransform;
+    btVector3 _position;
+    btQuaternion _rotation;
 
     glm::vec3 _shapeLocalOffset;
 
@@ -155,13 +165,23 @@ protected:
     quint32 _jumpButtonDownCount;
     quint32 _takeoffJumpButtonID;
 
-    btScalar _halfHeight;
-    btScalar _radius;
+    // data for walking up steps
+    btVector3 _stepPoint { 0.0f, 0.0f, 0.0f };
+    btVector3 _stepNormal { 0.0f, 0.0f, 0.0f };
+    bool _steppingUp { false };
+    btScalar _stepHeight { 0.0f };
+    btScalar _minStepHeight { 0.0f };
+    btScalar _maxStepHeight { 0.0f };
+    btScalar _minFloorNormalDotUp { DEFAULT_MIN_FLOOR_NORMAL_DOT_UP };
+
+    btScalar _halfHeight { 0.0f };
+    btScalar _radius { 0.0f };
 
     btScalar _floorDistance;
+    bool _stepUpEnabled { true };
     bool _hasSupport;
 
-    btScalar _gravity;
+    btScalar _gravity { 0.0f };
 
     btScalar _jumpSpeed;
     btScalar _followTime;
@@ -169,7 +189,6 @@ protected:
     btQuaternion _followAngularDisplacement;
     btVector3 _linearAcceleration;
 
-    std::atomic_bool _enabled;
     State _state;
     bool _isPushingUp;
 
@@ -179,6 +198,8 @@ protected:
     uint32_t _previousFlags { 0 };
 
     bool _flyingAllowed { true };
+    bool _collisionlessAllowed { true };
+    bool _collisionless { false };
 };
 
-#endif // hifi_CharacterControllerInterface_h
+#endif // hifi_CharacterController_h
