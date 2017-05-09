@@ -3,22 +3,10 @@
 //
 
 (function () {
-    var pivotID, needleID;
+    var thisEntityID;
 
     this.preload = function (entityID) {
-
-        var children = Entities.getChildrenIDs(entityID);
-        var childZero = Entities.getEntityProperties(children[0]);
-        var childOne = Entities.getEntityProperties(children[1]);
-        var childZeroUserData = JSON.parse(Entities.getEntityProperties(children[0]).userData);
-
-        if (childZeroUserData.name === "pivot") {
-            pivotID = childZero.id;
-            needleID = childOne.id;
-        } else {
-            pivotID = childOne.id;
-            needleID = childZero.id;
-        }
+        thisEntityID = entityID;
     };
 
     var SCAN_RATE = 100; //ms
@@ -70,10 +58,8 @@
         // we have a range of 55 to -53 degrees for the needle
 
         var scaledDegrees = (norm / -.94) + 54.5; // shifting scale from 100 to 55 to -53 ish its more like -51 ;
-        Entities.editEntity(pivotID, {
-            localRotation: Quat.fromPitchYawRollDegrees(0, 0, scaledDegrees)
-        });
 
+        Entities.setAbsoluteJointRotationInObjectFrame(thisEntityID, 0, Quat.fromPitchYawRollDegrees(0, 0, scaledDegrees));
 
     }
 
