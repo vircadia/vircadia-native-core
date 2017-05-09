@@ -158,7 +158,7 @@ public:
 
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
 
-    void checkDevices();
+    bool outputLocalInjector(AudioInjector* injector) override;
 
     static const float CALLBACK_ACCELERATOR_RATIO;
 
@@ -198,8 +198,6 @@ public slots:
 
     int setOutputBufferSize(int numFrames, bool persist = true);
 
-    void prepareLocalAudioInjectors();
-    bool outputLocalInjector(AudioInjector* injector) override;
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
 
     bool switchInputToAudioDevice(const QString& inputDeviceName);
@@ -247,8 +245,13 @@ protected:
     }
 
 private:
+    friend class CheckDevicesThread;
+    friend class AudioInjectorsThread;
+
     void outputFormatChanged();
     void handleAudioInput(QByteArray& audioBuffer);
+    void checkDevices();
+    void prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock = nullptr);
     bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
@@ -295,8 +298,9 @@ private:
     AudioRingBuffer _inputRingBuffer;
     LocalInjectorsStream _localInjectorsStream;
     // In order to use _localInjectorsStream as a lock-free pipe,
-    // use it with a single producer/consumer, and track available samples
+    // use it with a single producer/consumer, and track available samples and injectors
     std::atomic<int> _localSamplesAvailable { 0 };
+    std::atomic<bool> _localInjectorsAvailable { false };
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
 
