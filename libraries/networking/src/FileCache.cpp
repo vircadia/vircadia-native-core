@@ -112,9 +112,8 @@ FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata) {
     }
 
     QSaveFile saveFile(QString::fromStdString(filepath));
-    saveFile.open(QIODevice::WriteOnly);
-    saveFile.write(data, metadata.length);
-    if (saveFile.commit()) {
+    if (saveFile.open(QIODevice::WriteOnly) && saveFile.write(data, metadata.length) == metadata.length
+        && saveFile.commit()) {
         file = addFile(std::move(metadata), filepath);
     } else {
         qCWarning(file_cache, "[%s] Failed to write %s", _dirname.c_str(), metadata.key.c_str());
