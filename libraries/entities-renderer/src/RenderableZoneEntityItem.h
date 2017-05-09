@@ -54,8 +54,6 @@ private:
     Model* getModel();
     void initialSimulation();
     void updateGeometry();
-
-    void updateTextures();
     
     template<typename Lambda>
     void changeProperties(Lambda functor);
@@ -63,25 +61,15 @@ private:
     void notifyChangedRenderItem();
     void sceneUpdateRenderItemFromEntity(render::Transaction& transaction);
     void updateKeyZoneItemFromEntity(RenderableZoneEntityItemMeta& keyZonePayload);
-    void updateKeyLightItemFromEntity(KeyLightPayload& keyLightPayload);
+
+    void updateKeySunFromEntity(RenderableZoneEntityItemMeta& keyZonePayload);
+    void updateKeyAmbientFromEntity(RenderableZoneEntityItemMeta& keyZonePayload);
+    void updateKeyBackgroundFromEntity(RenderableZoneEntityItemMeta& keyZonePayload);
 
     Model* _model;
     bool _needsInitialSimulation;
 
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
-
-    render::ItemID _myKeyLightItem { render::Item::INVALID_ITEM_ID };
-
-
-    // More attributes used for rendering:
-    NetworkTexturePointer _ambientTexture;
-    NetworkTexturePointer _skyboxTexture;
-    QString _ambientTextureURL;
-    QString _skyboxTextureURL;
-    bool _pendingAmbientTexture { false };
-    bool _pendingSkyboxTexture { false };
-    bool _validAmbientTextureURL { false };
-    bool _validSkyboxTextureURL { false };
 };
 
 #endif // hifi_RenderableZoneEntityItem_h

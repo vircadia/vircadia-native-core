@@ -26,7 +26,64 @@
 #include <LightPayload.h>
 #include "DeferredLightingEffect.h"
 
+class RenderableZoneEntityItemMeta {
+public:
+    RenderableZoneEntityItemMeta(EntityItemPointer entity);
+    ~RenderableZoneEntityItemMeta();
 
+    typedef render::Payload<RenderableZoneEntityItemMeta> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    EntityItemPointer entity;
+
+    void render(RenderArgs* args);
+
+    void setVisible(bool visible) { _isVisible = visible; }
+    bool isVisible() const { return _isVisible; }
+
+    render::Item::Bound& editBound() { _needUpdate = true; return _bound; }
+
+    model::LightPointer editSunLight() { _needSunUpdate = true; return _sunLight; }
+    model::LightPointer editAmbientLight() { _needAmbientUpdate = true; return _ambientLight; }
+    model::SkyboxPointer editSkybox() { _needSkyboxUpdate = true; return _skybox; }
+
+    void setAmbientURL(const QString& ambientUrl);
+
+    void setSkyboxURL(const QString& skyboxUrl);
+
+protected:
+    render::Item::Bound _bound;
+
+    model::LightPointer _sunLight;
+    model::LightPointer _ambientLight;
+    model::SkyboxPointer _skybox;
+
+    LightStagePointer _stage;
+    LightStage::Index _sunIndex { LightStage::INVALID_INDEX };
+    LightStage::Index _ambientIndex { LightStage::INVALID_INDEX };
+
+    bool _needUpdate { true };
+    bool _needSunUpdate { true };
+    bool _needAmbientUpdate { true };
+    bool _needSkyboxUpdate { true };
+    bool _isVisible { true };
+
+
+    void updateAmbientMap();
+    void updateSkyboxMap();
+
+    // More attributes used for rendering:
+    QString _ambientTextureURL;
+    NetworkTexturePointer _ambientTexture;
+    bool _pendingAmbientTexture { false };
+    bool _validAmbientTexture { false };
+
+    QString _skyboxTextureURL;
+    NetworkTexturePointer _skyboxTexture;
+    bool _pendingSkyboxTexture { false };
+    bool _validSkyboxTexture { false };
+
+};
 
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
@@ -123,52 +180,6 @@ void RenderableZoneEntityItem::updateGeometry() {
     }
 }
 
-void RenderableZoneEntityItem::updateTextures() {
-    auto textureCache = DependencyManager::get<TextureCache>();
-    bool isAmbientSet = false;
-    if (_pendingAmbientTexture && !_ambientTexture) {
-        _ambientTexture = textureCache->getTexture(_ambientTextureURL, image::TextureUsage::CUBE_TEXTURE);
-    }
-    if (_ambientTexture && _ambientTexture->isLoaded()) {
-        _pendingAmbientTexture = false;
-
-        auto texture = _ambientTexture->getGPUTexture();
-        if (texture) {
-            isAmbientSet = true;
-        } else {
-            qCDebug(entitiesrenderer) << "Failed to load ambient texture:" << _ambientTexture->getURL();
-        }
-    }
-
-    if (_pendingSkyboxTexture &&
-        (!_skyboxTexture || (_skyboxTexture->getURL() != _skyboxTextureURL))) {
-        _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, image::TextureUsage::CUBE_TEXTURE);
-    }
-    if (_skyboxTexture && _skyboxTexture->isLoaded()) {
-        _pendingSkyboxTexture = false;
-
-        auto texture = _skyboxTexture->getGPUTexture();
-        if (texture) {
-           // skybox->setCubemap(texture);
-            if (!isAmbientSet) {
-            //    sceneKeyLight->setAmbientSphere(texture->getIrradiance());
-            //    sceneKeyLight->setAmbientMap(texture);
-                isAmbientSet = true;
-            }
-        } else {
-            qCDebug(entitiesrenderer) << "Failed to load skybox texture:" << _skyboxTexture->getURL();
-        }
-    } else {
-     //   skybox->setCubemap(nullptr);
-    }
-
-    if (!isAmbientSet) {
-    //    sceneKeyLight->resetAmbientSphere();
-   //     sceneKeyLight->setAmbientMap(nullptr);
-    }
-
-}
-
 void RenderableZoneEntityItem::render(RenderArgs* args) {
     Q_ASSERT(getType() == EntityTypes::Zone);
     
@@ -252,15 +263,6 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
             sceneTime->setHour(this->getStageProperties().calculateHour());
             sceneTime->setDay(this->getStageProperties().calculateDay());
         }
-
-        // Set the ambient texture
-        _ambientTextureURL = this->getKeyLightProperties().getAmbientURL();
-        if (_ambientTextureURL.isEmpty()) {
-            _pendingAmbientTexture = false;
-            _ambientTexture.clear();
-        } else {
-            _pendingAmbientTexture = true;
-        }
     }*/
 }
 
@@ -277,39 +279,143 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
     return false;
 }
 
-class RenderableZoneEntityItemMeta {
-public:
-    RenderableZoneEntityItemMeta(EntityItemPointer entity) : entity(entity), _light(std::make_shared<model::Light>()) { }
-    ~RenderableZoneEntityItemMeta();
 
-    typedef render::Payload<RenderableZoneEntityItemMeta> Payload;
-    typedef Payload::DataPointer Pointer;
-    
-    EntityItemPointer entity;
+bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
+    render::Transaction& transaction) {
+    _myMetaItem = scene->allocateID();
 
-    void render(RenderArgs* args);
+    auto renderData = std::make_shared<RenderableZoneEntityItemMeta>(self);
+    auto renderPayload = std::make_shared<RenderableZoneEntityItemMeta::Payload>(renderData);
+    updateKeyZoneItemFromEntity((*renderData));
 
-    model::LightPointer editLight() { _needUpdate = true; return _light; }
-    render::Item::Bound& editBound() { _needUpdate = true; return _bound; }
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
 
-    void setVisible(bool visible) { _isVisible = visible; }
-    bool isVisible() const { return _isVisible; }
+    transaction.resetItem(_myMetaItem, renderPayload);
+
+    return true;
+}
+
+void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
+    render::Transaction& transaction) {
+    transaction.removeItem(_myMetaItem);
+    render::Item::clearID(_myMetaItem);
+    if (_model) {
+        _model->removeFromScene(scene, transaction);
+    }
+}
+
+void RenderableZoneEntityItem::notifyBoundChanged() {
+    if (!render::Item::isValidID(_myMetaItem)) {
+        return;
+    }
+    render::Transaction transaction;
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+    if (scene) {
+        transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {});
+        scene->enqueueTransaction(transaction);
+    } else {
+        qCWarning(entitiesrenderer) << "RenderableZoneEntityItem::notifyBoundChanged(), Unexpected null scene, possibly during application shutdown";
+    }
+}
+
+void RenderableZoneEntityItem::updateKeySunFromEntity(RenderableZoneEntityItemMeta& keyZonePayload) {
+    auto sunLight = keyZonePayload.editSunLight();
+    sunLight->setType(model::Light::SUN);
+
+    sunLight->setPosition(this->getPosition());
+    sunLight->setOrientation(this->getRotation());
+
+    // Set the keylight
+    sunLight->setColor(ColorUtils::toVec3(this->getKeyLightProperties().getColor()));
+    sunLight->setIntensity(this->getKeyLightProperties().getIntensity());
+    sunLight->setDirection(this->getKeyLightProperties().getDirection());
+}
+
+void RenderableZoneEntityItem::updateKeyAmbientFromEntity(RenderableZoneEntityItemMeta& keyZonePayload) {
+    auto ambientLight = keyZonePayload.editAmbientLight();
+    ambientLight->setType(model::Light::AMBIENT);
+
+    ambientLight->setPosition(this->getPosition());
+    ambientLight->setOrientation(this->getRotation());
 
 
-    model::LightPointer _light;
-    render::Item::Bound _bound;
-    LightStagePointer _stage;
-    LightStage::Index _index { LightStage::INVALID_INDEX };
-    bool _needUpdate { true };
-    bool _isVisible { true };
+    // Set the keylight
+    ambientLight->setColor(ColorUtils::toVec3(this->getKeyLightProperties().getColor()));
+    ambientLight->setAmbientIntensity(this->getKeyLightProperties().getAmbientIntensity());
+    // ambientLight->setIntensity(this->getKeyLightProperties().getIntensity());
+    ambientLight->setDirection(this->getKeyLightProperties().getDirection());
 
-};
+    if (this->getKeyLightProperties().getAmbientURL().isEmpty()) {
+        keyZonePayload.setAmbientURL(this->getSkyboxProperties().getURL());
+    } else {
+        keyZonePayload.setAmbientURL(this->getKeyLightProperties().getAmbientURL());
+    }
+
+}
+
+void RenderableZoneEntityItem::updateKeyBackgroundFromEntity(RenderableZoneEntityItemMeta& keyZonePayload) {
+    auto skybox = keyZonePayload.editSkybox();
+
+    this->getBackgroundMode();
+
+    keyZonePayload.setSkyboxURL(this->getSkyboxProperties().getURL());
+}
+
+
+void RenderableZoneEntityItem::updateKeyZoneItemFromEntity(RenderableZoneEntityItemMeta& keyZonePayload) {
+
+    keyZonePayload.setVisible(this->getVisible());
+
+    bool success;
+    keyZonePayload.editBound() = this->getAABox(success);
+    if (!success) {
+        keyZonePayload.editBound() = render::Item::Bound();
+    }
+
+    updateKeySunFromEntity(keyZonePayload);
+
+    updateKeyAmbientFromEntity(keyZonePayload);
+
+    updateKeyBackgroundFromEntity(keyZonePayload);
+}
+
+
+void RenderableZoneEntityItem::sceneUpdateRenderItemFromEntity(render::Transaction& transaction) {
+    if (!render::Item::isValidID(_myMetaItem)) {
+        return;
+    }
+
+    transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [&](RenderableZoneEntityItemMeta& data) {
+        updateKeyZoneItemFromEntity(data);
+    });
+}
+
+void RenderableZoneEntityItem::notifyChangedRenderItem() {
+    if (!render::Item::isValidID(_myMetaItem)) {
+        return;
+    }
+
+    render::Transaction transaction;
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+    sceneUpdateRenderItemFromEntity(transaction);
+    scene->enqueueTransaction(transaction);
+}
+
+
+
+
+
+
+
+
 
 namespace render {
     template <> const ItemKey payloadGetKey(const RenderableZoneEntityItemMeta::Pointer& payload) {
         return ItemKey::Builder().withTypeMeta().build();
     }
-    
+
     template <> const Item::Bound payloadGetBound(const RenderableZoneEntityItemMeta::Pointer& payload) {
         if (payload && payload->entity) {
             bool success;
@@ -326,142 +432,151 @@ namespace render {
     }
 }
 
-bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
-                                           render::Transaction& transaction) {
-    _myMetaItem = scene->allocateID();
-    
-    auto renderData = std::make_shared<RenderableZoneEntityItemMeta>(self);
-    auto renderPayload = std::make_shared<RenderableZoneEntityItemMeta::Payload>(renderData);
-    updateKeyZoneItemFromEntity((*renderData));
+RenderableZoneEntityItemMeta::RenderableZoneEntityItemMeta(EntityItemPointer entity) :
+    entity(entity),
+    _sunLight(std::make_shared<model::Light>()),
+    _ambientLight(std::make_shared<model::Light>()),
+    _skybox(std::make_shared<model::Skybox>())
+{}
 
-    render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
-    renderPayload->addStatusGetters(statusGetters);
-
-    transaction.resetItem(_myMetaItem, renderPayload);
-
-
- /*   _myKeyLightItem = scene->allocateID();
-
-    auto keyLightPayload = std::make_shared<KeyLightPayload>();
-    updateKeyLightItemFromEntity((*keyLightPayload));
-
-    auto keyLightItem = std::make_shared<KeyLightPayload::Payload>(keyLightPayload);
-
-    transaction.resetItem(_myKeyLightItem, keyLightItem);
-
-*/
-    return true;
-}
-
-void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
-                                                render::Transaction& transaction) {
-  //  transaction.removeItem(_myKeyLightItem);
-  //  render::Item::clearID(_myKeyLightItem);
-    transaction.removeItem(_myMetaItem);
-    render::Item::clearID(_myMetaItem);
-    if (_model) {
-        _model->removeFromScene(scene, transaction);
-    }
-}
-
-
-
-void RenderableZoneEntityItem::notifyBoundChanged() {
-    if (!render::Item::isValidID(_myMetaItem)) {
-        return;
-    }
-    render::Transaction transaction;
-    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-    if (scene) {
-        transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {});
-    //    transaction.updateItem<KeyLightPayload>(_myKeyLightItem, [](KeyLightPayload& data) {});
-
-        scene->enqueueTransaction(transaction);
-    } else {
-        qCWarning(entitiesrenderer) << "RenderableZoneEntityItem::notifyBoundChanged(), Unexpected null scene, possibly during application shutdown";
-    }
-}
-
-
-void RenderableZoneEntityItem::updateKeyZoneItemFromEntity(RenderableZoneEntityItemMeta& keyZonePayload) {
-    auto entity = this;
-
-    keyZonePayload.setVisible(entity->getVisible());
-
-    auto light = keyZonePayload.editLight();
-    light->setPosition(entity->getPosition());
-    light->setOrientation(entity->getRotation());
-
-    bool success;
-    keyZonePayload.editBound() = entity->getAABox(success);
-    if (!success) {
-        keyZonePayload.editBound() = render::Item::Bound();
-    }
-
-    // Set the keylight
-    light->setColor(ColorUtils::toVec3(this->getKeyLightProperties().getColor()));
-    light->setIntensity(this->getKeyLightProperties().getIntensity());
-    light->setAmbientIntensity(this->getKeyLightProperties().getAmbientIntensity());
-    light->setDirection(this->getKeyLightProperties().getDirection());
-
-    light->setType(model::Light::SUN);
-
-
-}
-
-void RenderableZoneEntityItem::updateKeyLightItemFromEntity(KeyLightPayload& keylightPayload) {
-}
-
-
-void RenderableZoneEntityItem::sceneUpdateRenderItemFromEntity(render::Transaction& transaction) {
-    if (!render::Item::isValidID(_myMetaItem)) {
-        return;
-    }
-
-    transaction.updateItem<KeyLightPayload>(_myMetaItem, [&](KeyLightPayload& data) {
-        updateKeyLightItemFromEntity(data);
-    });
-}
-
-void RenderableZoneEntityItem::notifyChangedRenderItem() {
-    if (!render::Item::isValidID(_myMetaItem)) {
-        return;
-    }
-
-    render::Transaction transaction;
-    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-    sceneUpdateRenderItemFromEntity(transaction);
-    scene->enqueueTransaction(transaction);
-}
 
 RenderableZoneEntityItemMeta::~RenderableZoneEntityItemMeta() {
-    if (!LightStage::isIndexInvalid(_index)) {
-        if (_stage) {
-            _stage->removeLight(_index);
+    if (_stage) {
+        if (!LightStage::isIndexInvalid(_sunIndex)) {
+            _stage->removeLight(_sunIndex);
+        }
+        if (!LightStage::isIndexInvalid(_ambientIndex)) {
+            _stage->removeLight(_ambientIndex); 
+             
         }
     }
 }
 
-void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
-    entity->render(args);
+void RenderableZoneEntityItemMeta::setAmbientURL(const QString& ambientUrl) {
+    // nothing change if nothing change
+    if (_ambientTextureURL == ambientUrl) {
+        return;
+    }
+    _ambientTextureURL = ambientUrl;
 
+    if (_ambientTextureURL.isEmpty()) {
+        _validAmbientTexture = false;
+        _pendingAmbientTexture = false;
+        _ambientTexture.clear();
+
+        _ambientLight->setAmbientMap(nullptr);
+        _ambientLight->setAmbientSpherePreset(gpu::SphericalHarmonics::BREEZEWAY);
+    } else {
+        _pendingAmbientTexture = true;
+        auto textureCache = DependencyManager::get<TextureCache>();
+        _ambientTexture = textureCache->getTexture(_ambientTextureURL, image::TextureUsage::CUBE_TEXTURE);
+    
+        // keep whatever is assigned on the ambient map/sphere until texture is loaded
+    }
+}
+
+void RenderableZoneEntityItemMeta::updateAmbientMap() {
+    if (_pendingAmbientTexture) {
+        if (_ambientTexture && _ambientTexture->isLoaded()) {
+            _pendingAmbientTexture = false;
+
+            auto texture = _ambientTexture->getGPUTexture();
+            if (texture) {
+                if (texture->getIrradiance()) {
+                    _ambientLight->setAmbientSphere(*texture->getIrradiance());
+                } else {
+                    _ambientLight->setAmbientSpherePreset(gpu::SphericalHarmonics::BREEZEWAY);
+                }
+                editAmbientLight()->setAmbientMap(texture);
+                _validAmbientTexture = true;
+            } else {
+                qCDebug(entitiesrenderer) << "Failed to load ambient texture:" << _ambientTexture->getURL();
+            }
+        }
+    }
+}
+
+
+void RenderableZoneEntityItemMeta::setSkyboxURL(const QString& skyboxUrl) {
+    // nothing change if nothing change
+    if (_skyboxTextureURL == skyboxUrl) {
+        return;
+    }
+    _skyboxTextureURL = skyboxUrl;
+
+    if (_skyboxTextureURL.isEmpty()) {
+        _validSkyboxTexture = false;
+        _pendingSkyboxTexture = false;
+        _skyboxTexture.clear();
+
+        editSkybox()->setCubemap(nullptr);
+    } else {
+        _pendingSkyboxTexture = true;
+        auto textureCache = DependencyManager::get<TextureCache>();
+        _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, image::TextureUsage::CUBE_TEXTURE);
+    }
+}
+
+void RenderableZoneEntityItemMeta::updateSkyboxMap() {
+    if (_pendingSkyboxTexture) {
+        if (_skyboxTexture && _skyboxTexture->isLoaded()) {
+            _pendingSkyboxTexture = false;
+
+            auto texture = _skyboxTexture->getGPUTexture();
+            if (texture) {
+                editSkybox()->setCubemap(texture);
+                _validSkyboxTexture = true;
+            } else {
+                qCDebug(entitiesrenderer) << "Failed to load Skybox texture:" << _skyboxTexture->getURL();
+            }
+        }
+    }
+}
+
+
+void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
+  //  entity->render(args);
+ 
     if (!_stage) {
         _stage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     }
-    // Do we need to allocate the light in the stage ?
-    if (LightStage::isIndexInvalid(_index)) {
-        _index = _stage->addLight(_light);
-        _needUpdate = false;
+
+    { // Sun 
+        // Need an update ?
+        if (_needSunUpdate) {
+            // Do we need to allocate the light in the stage ?
+            if (LightStage::isIndexInvalid(_sunIndex)) {
+                _sunIndex = _stage->addLight(_sunLight);
+            } else {
+                _stage->updateLightArrayBuffer(_sunIndex);
+            }
+            _needSunUpdate = false;
+        }
     }
-    // Need an update ?
-    if (_needUpdate) {
-        _stage->updateLightArrayBuffer(_index);
-        _needUpdate = false;
+
+    { // Ambient
+        updateAmbientMap();
+
+        // Need an update ?
+        if (_needAmbientUpdate) {
+            // Do we need to allocate the light in the stage ?
+            if (LightStage::isIndexInvalid(_ambientIndex)) {
+                _ambientIndex = _stage->addLight(_ambientLight);
+            } else {
+                _stage->updateLightArrayBuffer(_ambientIndex);
+            }
+            _needAmbientUpdate = false;
+        }
+    }
+
+    { // Skybox
+        updateSkyboxMap();
+
     }
 
     if (isVisible()) {
         // FInally, push the light visible in the frame
-        _stage->_currentFrame.pushLight(_index, _light->getType());
+        _stage->_currentFrame.pushSunLight(_sunIndex);
+        _stage->_currentFrame.pushAmbientLight(_ambientIndex);
     }
 }

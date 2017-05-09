@@ -145,28 +145,33 @@ void DeferredLightingEffect::init() {
 
 void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
-    model::LightPointer keyLight;
+    model::LightPointer keySunLight;
     if (_lightStage && _lightStage->_currentFrame._sunLights.size()) {
-        keyLight = _lightStage->getLight(_lightStage->_currentFrame._sunLights.front());
+        keySunLight = _lightStage->getLight(_lightStage->_currentFrame._sunLights.front());
     } else {
-        keyLight = _allocatedLights[_globalLights.front()];
+        keySunLight = _allocatedLights[_globalLights.front()];
+    }
+
+    model::LightPointer keyAmbiLight;
+    if (_lightStage && _lightStage->_currentFrame._ambientLights.size()) {
+        keyAmbiLight = _lightStage->getLight(_lightStage->_currentFrame._ambientLights.front());
+    } else {
+        keyAmbiLight = _allocatedLights[_globalLights.front()];
     }
 
     if (lightBufferUnit >= 0) {
-        batch.setUniformBuffer(lightBufferUnit, keyLight->getLightSchemaBuffer());
+        batch.setUniformBuffer(lightBufferUnit, keySunLight->getLightSchemaBuffer());
     }
-    if (keyLight->hasAmbient() && (ambientBufferUnit >= 0)) {
-        batch.setUniformBuffer(ambientBufferUnit, keyLight->getAmbientSchemaBuffer());
+    if (keyAmbiLight->hasAmbient() && (ambientBufferUnit >= 0)) {
+        batch.setUniformBuffer(ambientBufferUnit, keyAmbiLight->getAmbientSchemaBuffer());
     }
 
-    if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
-        batch.setResourceTexture(skyboxCubemapUnit, keyLight->getAmbientMap());
+    if (keyAmbiLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
+        batch.setResourceTexture(skyboxCubemapUnit, keyAmbiLight->getAmbientMap());
     }
 }
 
 void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
-    auto keyLight = _allocatedLights[_globalLights.front()];
-
     if (lightBufferUnit >= 0) {
         batch.setUniformBuffer(lightBufferUnit, nullptr);
     }
