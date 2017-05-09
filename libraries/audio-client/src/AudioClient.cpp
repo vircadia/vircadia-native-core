@@ -1504,6 +1504,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
     // cleanup any previously initialized device
     if (_audioOutput) {
+        _audioOutputIODevice.close();
         _audioOutput->stop();
 
         delete _audioOutput;
