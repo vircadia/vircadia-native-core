@@ -21,6 +21,9 @@ public:
     virtual float apply(float value) const override {
         return glm::clamp(value, _min, _max);
     }
+
+    virtual Pose apply(Pose value) const override { return value; }
+
     virtual bool parseParameters(const QJsonValue& parameters) override;
 protected:
     float _min = 0.0f;

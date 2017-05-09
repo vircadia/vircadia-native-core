@@ -28,10 +28,14 @@ const int MAX_HISTORY_SIZE = 64;
 const QString COMMAND_STYLE = "color: #266a9b;";
 
 const QString RESULT_SUCCESS_STYLE = "color: #677373;";
+const QString RESULT_INFO_STYLE = "color: #223bd1;";
+const QString RESULT_WARNING_STYLE = "color: #d13b22;";
 const QString RESULT_ERROR_STYLE = "color: #d13b22;";
 
 const QString GUTTER_PREVIOUS_COMMAND = "<span style=\"color: #57b8bb;\">&lt;</span>";
 const QString GUTTER_ERROR = "<span style=\"color: #d13b22;\">X</span>";
+
+const QString JSConsole::_consoleFileName { "about:console" };
 
 JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     QWidget(parent),
@@ -77,6 +81,8 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
     }
     if (_scriptEngine != NULL) {
         disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
+        disconnect(_scriptEngine, &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
+        disconnect(_scriptEngine, &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
         disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
         if (_ownScriptEngine) {
             _scriptEngine->deleteLater();
@@ -84,10 +90,12 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
     }
 
     // if scriptEngine is NULL then create one and keep track of it using _ownScriptEngine
-    _ownScriptEngine = scriptEngine == NULL;
-    _scriptEngine = _ownScriptEngine ? DependencyManager::get<ScriptEngines>()->loadScript(QString(), false) : scriptEngine;
+    _ownScriptEngine = (scriptEngine == NULL);
+    _scriptEngine = _ownScriptEngine ? DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false) : scriptEngine;
 
     connect(_scriptEngine, &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
+    connect(_scriptEngine, &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
+    connect(_scriptEngine, &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
     connect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
 }
 
@@ -107,11 +115,10 @@ void JSConsole::executeCommand(const QString& command) {
 
 QScriptValue JSConsole::executeCommandInWatcher(const QString& command) {
     QScriptValue result;
-    static const QString filename = "JSConcole";
     QMetaObject::invokeMethod(_scriptEngine, "evaluate", Qt::ConnectionType::BlockingQueuedConnection,
                               Q_RETURN_ARG(QScriptValue, result),
                               Q_ARG(const QString&, command),
-                              Q_ARG(const QString&, filename));
+                              Q_ARG(const QString&, _consoleFileName));
     return result;
 }
 
@@ -134,14 +141,24 @@ void JSConsole::commandFinished() {
     resetCurrentCommandHistory();
 }
 
-void JSConsole::handleError(const QString& scriptName, const QString& message) {
+void JSConsole::handleError(const QString& message, const QString& scriptName) {
     Q_UNUSED(scriptName);
     appendMessage(GUTTER_ERROR, "<span style='" + RESULT_ERROR_STYLE + "'>" + message.toHtmlEscaped() + "</span>");
 }
 
-void JSConsole::handlePrint(const QString& scriptName, const QString& message) {
+void JSConsole::handlePrint(const QString& message, const QString& scriptName) {
     Q_UNUSED(scriptName);
     appendMessage("", message);
+}
+
+void JSConsole::handleInfo(const QString& message, const QString& scriptName) {
+    Q_UNUSED(scriptName);
+    appendMessage("", "<span style='" + RESULT_INFO_STYLE + "'>" + message.toHtmlEscaped() + "</span>");
+}
+
+void JSConsole::handleWarning(const QString& message, const QString& scriptName) {
+    Q_UNUSED(scriptName);
+    appendMessage("", "<span style='" + RESULT_WARNING_STYLE + "'>" + message.toHtmlEscaped() + "</span>");
 }
 
 void JSConsole::mouseReleaseEvent(QMouseEvent* event) {

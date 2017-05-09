@@ -47,8 +47,10 @@ protected:
 protected slots:
     void scrollToBottom();
     void resizeTextInput();
-    void handlePrint(const QString& scriptName, const QString& message);
-    void handleError(const QString& scriptName, const QString& message);
+    void handlePrint(const QString& message, const QString& scriptName);
+    void handleInfo(const QString& message, const QString& scriptName);
+    void handleWarning(const QString& message, const QString& scriptName);
+    void handleError(const QString& message, const QString& scriptName);
     void commandFinished();
 
 private:
@@ -66,6 +68,7 @@ private:
     bool _ownScriptEngine;
     QString _rootCommand;
     ScriptEngine* _scriptEngine;
+    static const QString _consoleFileName;
 };
 
 

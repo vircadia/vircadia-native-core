@@ -1,6 +1,6 @@
 //
 //  PhysicsEngine.h
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2014.10.29
 //  Copyright 2014 High Fidelity, Inc.
@@ -41,8 +41,8 @@ public:
     void* _b; // ObjectMotionState pointer
 };
 
-typedef std::map<ContactKey, ContactInfo> ContactMap;
-typedef std::vector<Collision> CollisionEvents;
+using ContactMap = std::map<ContactKey, ContactInfo>;
+using CollisionEvents = std::vector<Collision>;
 
 class PhysicsEngine {
 public:
