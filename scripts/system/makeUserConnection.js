@@ -760,7 +760,7 @@
             break;
         case "done":
             delete waitingList[senderID];
-            if (connectionId !== senderID) {
+            if (connectingId !== senderID) {
                 break;
             }
             if (state === STATES.CONNECTING) {
