@@ -21,6 +21,7 @@
 #include <NumericalConstants.h>
 #include <ui-plugins/PluginContainer.h>
 #include <UserActivityLogger.h>
+#include <NumericalConstants.h>
 #include <OffscreenUi.h>
 #include <GLMHelpers.h>
 #include <glm/ext.hpp>
@@ -40,6 +41,7 @@ void releaseOpenVrSystem();
 
 
 static const char* CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
+const quint64 CALIBRATION_TIMELAPSE = 3 * USECS_PER_SECOND;
 
 static const char* MENU_PARENT = "Avatar";
 static const char* MENU_NAME = "Vive Controllers";
@@ -188,12 +190,19 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     _trackedControllers = numTrackedControllers;
 
     if (checkForCalibrationEvent()) {
-        if (!_triggersPressedHandled) {
+        quint64 currentTime = usecTimestampNow();
+        if (!_timeTilCalibrationSet) {
+            _timeTilCalibrationSet = true;
+            _timeTilCalibration = currentTime + CALIBRATION_TIMELAPSE;
+        }
+
+        if (currentTime > _timeTilCalibration && !_triggersPressedHandled) {
             _triggersPressedHandled = true;
             calibrateOrUncalibrate(inputCalibrationData);
         }
     } else {
         _triggersPressedHandled = false;
+        _timeTilCalibrationSet = false;
     }
 
     updateCalibratedLimbs();
@@ -230,12 +239,6 @@ void ViveControllerManager::InputDevice::calibrateOrUncalibrate(const controller
     } else {
         uncalibrate();
     }
-}
-
-bool ViveControllerManager::InputDevice::checkForCalibrationEvent() {
-    auto& leftTrigger = _buttonPressedMap.find(controller::LT);
-    auto& rightTrigger = _buttonPressedMap.find(controller::RT);
-    return ((leftTrigger != _buttonPressedMap.end()) && (rightTrigger != _buttonPressedMap.end()));
 }
 
 void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibrationData& inputCalibration) {
@@ -416,6 +419,14 @@ enum ViveButtonChannel {
     RIGHT_APP_MENU
 };
 
+bool ViveControllerManager::InputDevice::checkForCalibrationEvent() {
+    auto& endOfMap = _buttonPressedMap.end();
+    auto& leftTrigger = _buttonPressedMap.find(controller::LT);
+    auto& rightTrigger = _buttonPressedMap.find(controller::RT);
+    auto& leftAppButton = _buttonPressedMap.find(LEFT_APP_MENU);
+    auto& rightAppButton = _buttonPressedMap.find(RIGHT_APP_MENU);
+    return ((leftTrigger != endOfMap && leftAppButton != endOfMap) && (rightTrigger != endOfMap && rightAppButton != endOfMap));
+}
 
 // These functions do translation from the Steam IDs to the standard controller IDs
 void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand) {

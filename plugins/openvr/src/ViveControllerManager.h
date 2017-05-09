@@ -112,12 +112,14 @@ private:
 
         int _trackedControllers { 0 };
         vr::IVRSystem*& _system;
+        quint64 _timeTilCalibration { 0.0f };
         float _leftHapticStrength { 0.0f };
         float _leftHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
+        bool _timeTilCalibrationSet { false };
         mutable std::recursive_mutex _lock;
 
         friend class ViveControllerManager;
