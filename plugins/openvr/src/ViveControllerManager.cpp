@@ -45,9 +45,13 @@ static const char* MENU_PARENT = "Avatar";
 static const char* MENU_NAME = "Vive Controllers";
 static const char* MENU_PATH = "Avatar" ">" "Vive Controllers";
 static const char* RENDER_CONTROLLERS = "Render Hand Controllers";
-static const int  MIN_PUCK_COUNT = 2;
-static const int  MIN_FEET_AND_HIPS = 3;
-static const int  MIN_FEET_HIPS_CHEST = 4;
+static const int MIN_PUCK_COUNT = 2;
+static const int MIN_FEET_AND_HIPS = 3;
+static const int MIN_FEET_HIPS_CHEST = 4;
+static const int FIRST_FOOT = 0;
+static const int SECOND_FOOT = 1;
+static const int HIP = 2;
+static const int CHEST = 3;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
@@ -266,11 +270,10 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 
     std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
 
-    int firstFootIndex = 0;
-    int secondFootIndex = 1;
 
-    auto& firstFoot = _validTrackedObjects[firstFootIndex];
-    auto& secondFoot = _validTrackedObjects[secondFootIndex];
+
+    auto& firstFoot = _validTrackedObjects[FIRST_FOOT];
+    auto& secondFoot = _validTrackedObjects[SECOND_FOOT];
     controller::Pose& firstFootPose = firstFoot.second;
     controller::Pose& secondFootPose = secondFoot.second;
 
@@ -290,12 +293,12 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
     if (_config == Config::Feet) {
         // done
     } else if (_config == Config::FeetAndHips) {
-        _jointToPuckMap[controller::HIPS] = _validTrackedObjects[2].first;
+        _jointToPuckMap[controller::HIPS] = _validTrackedObjects[HIP].first;
         _pucksOffset[_validTrackedObjects[2].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[2].second);
     } else if (_config == Config::FeetHipsAndChest) {
-        _jointToPuckMap[controller::HIPS] = _validTrackedObjects[2].first;
+        _jointToPuckMap[controller::HIPS] = _validTrackedObjects[HIP].first;
         _pucksOffset[_validTrackedObjects[2].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[2].second);
-        _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[3].first;
+        _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[CHEST].first;
         _pucksOffset[_validTrackedObjects[3].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultSpine2, _validTrackedObjects[3].second);
     }
     _calibrated = true;
