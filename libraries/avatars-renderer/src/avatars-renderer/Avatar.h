@@ -20,6 +20,7 @@
 #include <AvatarData.h>
 #include <ShapeInfo.h>
 #include <render/Scene.h>
+#include <GLMHelpers.h>
 
 
 #include "Head.h"
@@ -67,6 +68,7 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
+    static void setShowAvatars(bool render);
     static void setShowReceiveStats(bool receiveStats);
     static void setShowMyLookAtVectors(bool showMine);
     static void setShowOtherLookAtVectors(bool showOthers);
@@ -75,6 +77,8 @@ public:
 
     explicit Avatar(QThread* thread, RigPointer rig = nullptr);
     ~Avatar();
+
+    virtual void instantiableAvatar() = 0;
 
     typedef render::Payload<AvatarData> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
@@ -241,7 +245,6 @@ public:
     bool isInScene() const { return render::Item::isValidID(_renderItemID); }
     bool isMoving() const { return _moving; }
 
-    //void setMotionState(AvatarMotionState* motionState);
     void setPhysicsCallback(AvatarPhysicsCallback cb);
     void addPhysicsFlags(uint32_t flags);
     bool isInPhysicsSimulation() const { return _physicsCallback != nullptr; }
@@ -258,7 +261,6 @@ public slots:
     void setModelURLFinished(bool success);
 
 protected:
-
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
@@ -269,7 +271,7 @@ protected:
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
     std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
-    float _bodyYawDelta;  // degrees/sec
+    float _bodyYawDelta { 0.0f };  // degrees/sec
 
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
@@ -285,9 +287,8 @@ protected:
     glm::vec3 _angularAcceleration;
     glm::quat _lastOrientation;
 
-    glm::vec3 _worldUpDirection;
-    float _stringLength;
-    bool _moving; ///< set when position is changing
+    glm::vec3 _worldUpDirection { Vectors::UP };
+    bool _moving { false }; ///< set when position is changing
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
@@ -337,7 +338,7 @@ private:
     int _leftPointerGeometryID { 0 };
     int _rightPointerGeometryID { 0 };
     int _nameRectGeometryID { 0 };
-    bool _initialized;
+    bool _initialized { false };
     bool _isLookAtTarget { false };
     bool _isAnimatingScale { false };
 

@@ -149,6 +149,10 @@ void GLBackend::resetUniformStage() {
 
 void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 3]._uint;
+    if (slot >(GLuint)MAX_NUM_UNIFORM_BUFFERS) {
+        qCDebug(gpugllogging) << "GLBackend::do_setUniformBuffer: Trying to set a uniform Buffer at slot #" << slot << " which doesn't exist. MaxNumUniformBuffers = " << getMaxNumUniformBuffers();
+        return;
+    }
     BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
     GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
@@ -203,7 +207,7 @@ void GLBackend::resetResourceStage() {
 void GLBackend::do_setResourceBuffer(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     if (slot >= (GLuint)MAX_NUM_RESOURCE_BUFFERS) {
-        // "GLBackend::do_setResourceBuffer: Trying to set a resource Buffer at slot #" + slot + " which doesn't exist. MaxNumResourceBuffers = " + getMaxNumResourceBuffers());
+        qCDebug(gpugllogging) << "GLBackend::do_setResourceBuffer: Trying to set a resource Buffer at slot #" << slot << " which doesn't exist. MaxNumResourceBuffers = " << getMaxNumResourceBuffers();
         return;
     }
 
@@ -233,7 +237,7 @@ void GLBackend::do_setResourceBuffer(const Batch& batch, size_t paramOffset) {
 void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     if (slot >= (GLuint) MAX_NUM_RESOURCE_TEXTURES) {
-        // "GLBackend::do_setResourceTexture: Trying to set a resource Texture at slot #" + slot + " which doesn't exist. MaxNumResourceTextures = " + getMaxNumResourceTextures());
+        qCDebug(gpugllogging) << "GLBackend::do_setResourceTexture: Trying to set a resource Texture at slot #" << slot << " which doesn't exist. MaxNumResourceTextures = " << getMaxNumResourceTextures();
         return;
     }
 

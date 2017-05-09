@@ -1138,3 +1138,17 @@ SpatiallyNestablePointer SpatiallyNestable::findByID(QUuid id, bool& success) {
     }
     return parentWP.lock();
 }
+
+
+QString SpatiallyNestable::nestableTypeToString(NestableType nestableType) {
+    switch(nestableType) {
+        case NestableType::Entity:
+            return "entity";
+        case NestableType::Avatar:
+            return "avatar";
+        case NestableType::Overlay:
+            return "overlay";
+        default:
+            return "unknown";
+    }
+}

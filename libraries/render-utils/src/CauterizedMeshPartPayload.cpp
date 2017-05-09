@@ -13,7 +13,7 @@
 
 #include <PerfStat.h>
 
-#include "SkeletonModel.h"
+#include "CauterizedModel.h"
 
 using namespace render;
 
@@ -29,7 +29,7 @@ void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(
 
 void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
     // Still relying on the raw data from the model
-    SkeletonModel* skeleton = static_cast<SkeletonModel*>(_model);
+    CauterizedModel* skeleton = static_cast<CauterizedModel*>(_model);
     bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE) && skeleton->getEnableCauterization();
 
     if (useCauterizedMesh) {

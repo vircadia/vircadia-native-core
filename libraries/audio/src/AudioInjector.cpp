@@ -51,6 +51,10 @@ AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOpt
 {
 }
 
+AudioInjector::~AudioInjector() {
+    deleteLocalBuffer();
+}
+
 bool AudioInjector::stateHas(AudioInjectorState state) const {
     return (_state & state) == state;
 }
@@ -87,11 +91,7 @@ void AudioInjector::finish() {
 
     emit finished();
 
-    if (_localBuffer) {
-        _localBuffer->stop();
-        _localBuffer->deleteLater();
-        _localBuffer = NULL;
-    }
+    deleteLocalBuffer();
 
     if (stateHas(AudioInjectorState::PendingDelete)) {
         // we've been asked to delete after finishing, trigger a deleteLater here
@@ -163,7 +163,7 @@ bool AudioInjector::injectLocally() {
     if (_localAudioInterface) {
         if (_audioData.size() > 0) {
 
-            _localBuffer = new AudioInjectorLocalBuffer(_audioData, this);
+            _localBuffer = new AudioInjectorLocalBuffer(_audioData);
 
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
@@ -172,7 +172,8 @@ bool AudioInjector::injectLocally() {
             _localBuffer->setCurrentOffset(_currentSendOffset);
 
             // call this function on the AudioClient's thread
-            success = QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector", Q_ARG(AudioInjector*, this));
+            // this will move the local buffer's thread to the LocalInjectorThread
+            success = _localAudioInterface->outputLocalInjector(this);
 
             if (!success) {
                 qCDebug(audio) << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
@@ -183,6 +184,14 @@ bool AudioInjector::injectLocally() {
     }
 
     return success;
+}
+
+void AudioInjector::deleteLocalBuffer() {
+    if (_localBuffer) {
+        _localBuffer->stop();
+        _localBuffer->deleteLater();
+        _localBuffer = nullptr;
+    }
 }
 
 const uchar MAX_INJECTOR_VOLUME = packFloatGainToByte(1.0f);

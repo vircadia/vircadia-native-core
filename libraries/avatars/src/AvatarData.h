@@ -94,7 +94,7 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 //     +-----+-----+-+-+-+--+
 // Key state - K0,K1 is found in the 1st and 2nd bits
 // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
-// Faceshift - F is found in the 5th bit
+// Face tracker - F is found in the 5th bit
 // Eye tracker - E is found in the 6th bit
 // Referential Data - R is found in the 7th bit
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
@@ -123,7 +123,7 @@ namespace AvatarDataPacket {
     // it might be nice to use a dictionary to compress that
 
     // Packet State Flags - we store the details about the existence of other records in this bitset:
-    // AvatarGlobalPosition, Avatar Faceshift, eye tracking, and existence of
+    // AvatarGlobalPosition, Avatar face tracker, eye tracking, and existence of
     using HasFlags = uint16_t;
     const HasFlags PACKET_HAS_AVATAR_GLOBAL_POSITION = 1U << 0;
     const HasFlags PACKET_HAS_AVATAR_BOUNDING_BOX    = 1U << 1;
@@ -356,6 +356,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(glm::mat4 controllerRightHandMatrix READ getControllerRightHandMatrix)
 
 public:
+
+    virtual QString getName() const override { return QString("Avatar:") + _displayName; }
 
     static const QString FRAME_NAME;
 

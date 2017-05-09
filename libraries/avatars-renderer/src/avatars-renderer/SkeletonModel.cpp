@@ -9,19 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SkeletonModel.h"
+
 #include <glm/gtx/transform.hpp>
 #include <QMultiMap>
 
 #include <recording/Deck.h>
 #include <DebugDraw.h>
+#include <AnimDebugDraw.h>
+#include <CharacterController.h>
 
-#include "Application.h"
 #include "Avatar.h"
-#include "Menu.h"
-#include "SkeletonModel.h"
-#include "Util.h"
-#include "InterfaceLogging.h"
-#include "AnimDebugDraw.h"
+#include "Logging.h"
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
     CauterizedModel(rig, parent),
@@ -47,7 +46,7 @@ void SkeletonModel::initJointStates() {
     // Determine the default eye position for avatar scale = 1.0
     int headJointIndex = geometry.headJointIndex;
     if (0 > headJointIndex || headJointIndex >= _rig->getJointStateCount()) {
-        qCWarning(interfaceapp) << "Bad head joint! Got:" << headJointIndex << "jointCount:" << _rig->getJointStateCount();
+        qCWarning(avatars_renderer) << "Bad head joint! Got:" << headJointIndex << "jointCount:" << _rig->getJointStateCount();
     }
     glm::vec3 leftEyePosition, rightEyePosition;
     getEyeModelPositions(leftEyePosition, rightEyePosition);
@@ -72,29 +71,15 @@ void SkeletonModel::initJointStates() {
     emit skeletonLoaded();
 }
 
-Rig::CharacterControllerState convertCharacterControllerState(CharacterController::State state) {
-    switch (state) {
-    default:
-    case CharacterController::State::Ground:
-        return Rig::CharacterControllerState::Ground;
-    case CharacterController::State::Takeoff:
-        return Rig::CharacterControllerState::Takeoff;
-    case CharacterController::State::InAir:
-        return Rig::CharacterControllerState::InAir;
-    case CharacterController::State::Hover:
-        return Rig::CharacterControllerState::Hover;
-    };
-}
-
-
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
+    assert(!_owningAvatar->isMyAvatar());
     const FBXGeometry& geometry = getFBXGeometry();
 
     Head* head = _owningAvatar->getHead();
 
     // make sure lookAt is not too close to face (avoid crosseyes)
-    glm::vec3 lookAt = _owningAvatar->isMyAvatar() ?  head->getLookAtPosition() : head->getCorrectedLookAtPosition();
+    glm::vec3 lookAt = head->getCorrectedLookAtPosition();
     glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
     float focusDistance = glm::length(focusOffset);
     const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
@@ -102,153 +87,36 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         lookAt = _owningAvatar->getHead()->getEyePosition() + (MIN_LOOK_AT_FOCUS_DISTANCE / focusDistance) * focusOffset;
     }
 
-    if (_owningAvatar->isMyAvatar()) {
-        MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+    // no need to call Model::updateRig() because otherAvatars get their joint state
+    // copied directly from AvtarData::_jointData (there are no Rig animations to blend)
+    _needsUpdateClusterMatrices = true;
 
-        Rig::HeadParameters headParams;
+    // This is a little more work than we really want.
+    //
+    // Other avatars joint, including their eyes, should already be set just like any other joints
+    // from the wire data. But when looking at me, we want the eyes to use the corrected lookAt.
+    //
+    // Thus this should really only be ... else if (_owningAvatar->getHead()->isLookingAtMe()) {...
+    // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
+    // We will revisit that as priorities allow, and particularly after the new rig/animation/joints.
 
-        // input action is the highest priority source for head orientation.
-        auto avatarHeadPose = myAvatar->getHeadControllerPoseInAvatarFrame();
-        if (avatarHeadPose.isValid()) {
-            glm::mat4 rigHeadMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
-            headParams.rigHeadPosition = extractTranslation(rigHeadMat);
-            headParams.rigHeadOrientation = glmExtractRotation(rigHeadMat);
-            headParams.headEnabled = true;
-        } else {
-            if (qApp->isHMDMode()) {
-                // get HMD position from sensor space into world space, and back into rig space
-                glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                glm::mat4 rigToWorld = createMatFromQuatAndPos(getRotation(), getTranslation());
-                glm::mat4 worldToRig = glm::inverse(rigToWorld);
-                glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
-                _rig->computeHeadFromHMD(AnimPose(rigHMDMat), headParams.rigHeadPosition, headParams.rigHeadOrientation);
-                headParams.headEnabled = true;
-            } else {
-                // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and down in desktop mode.
-                // preMult 180 is necessary to convert from avatar to rig coordinates.
-                // postMult 180 is necessary to convert head from -z forward to z forward.
-                headParams.rigHeadOrientation = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame() * Quaternions::Y_180;
-                headParams.headEnabled = false;
-            }
-        }
+    // If the head is not positioned, updateEyeJoints won't get the math right
+    glm::quat headOrientation;
+    _rig->getJointRotation(geometry.headJointIndex, headOrientation);
+    glm::vec3 eulers = safeEulerAngles(headOrientation);
+    head->setBasePitch(glm::degrees(-eulers.x));
+    head->setBaseYaw(glm::degrees(eulers.y));
+    head->setBaseRoll(glm::degrees(-eulers.z));
 
-        auto avatarHipsPose = myAvatar->getHipsControllerPoseInAvatarFrame();
-        if (avatarHipsPose.isValid()) {
-            glm::mat4 rigHipsMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarHipsPose.getRotation(), avatarHipsPose.getTranslation());
-            headParams.hipsMatrix = rigHipsMat;
-            headParams.hipsEnabled = true;
-        } else {
-            headParams.hipsEnabled = false;
-        }
+    Rig::EyeParameters eyeParams;
+    eyeParams.eyeLookAt = lookAt;
+    eyeParams.eyeSaccade = glm::vec3(0.0f);
+    eyeParams.modelRotation = getRotation();
+    eyeParams.modelTranslation = getTranslation();
+    eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
+    eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
-        auto avatarSpine2Pose = myAvatar->getSpine2ControllerPoseInAvatarFrame();
-        if (avatarSpine2Pose.isValid()) {
-            glm::mat4 rigSpine2Mat = Matrices::Y_180 * createMatFromQuatAndPos(avatarSpine2Pose.getRotation(), avatarSpine2Pose.getTranslation());
-            headParams.spine2Matrix = rigSpine2Mat;
-            headParams.spine2Enabled = true;
-        } else {
-            headParams.spine2Enabled = false;
-        }
-
-        headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
-
-        _rig->updateFromHeadParameters(headParams, deltaTime);
-
-        Rig::HandAndFeetParameters handAndFeetParams;
-
-        auto leftPose = myAvatar->getLeftHandControllerPoseInAvatarFrame();
-        if (leftPose.isValid()) {
-            handAndFeetParams.isLeftEnabled = true;
-            handAndFeetParams.leftPosition = Quaternions::Y_180 * leftPose.getTranslation();
-            handAndFeetParams.leftOrientation = Quaternions::Y_180 * leftPose.getRotation();
-        } else {
-            handAndFeetParams.isLeftEnabled = false;
-        }
-
-        auto rightPose = myAvatar->getRightHandControllerPoseInAvatarFrame();
-        if (rightPose.isValid()) {
-            handAndFeetParams.isRightEnabled = true;
-            handAndFeetParams.rightPosition = Quaternions::Y_180 * rightPose.getTranslation();
-            handAndFeetParams.rightOrientation = Quaternions::Y_180 * rightPose.getRotation();
-        } else {
-            handAndFeetParams.isRightEnabled = false;
-        }
-
-        auto leftFootPose = myAvatar->getLeftFootControllerPoseInAvatarFrame();
-        if (leftFootPose.isValid()) {
-            handAndFeetParams.isLeftFootEnabled = true;
-            handAndFeetParams.leftFootPosition = Quaternions::Y_180 * leftFootPose.getTranslation();
-            handAndFeetParams.leftFootOrientation = Quaternions::Y_180 * leftFootPose.getRotation();
-        } else {
-            handAndFeetParams.isLeftFootEnabled = false;
-        }
-
-        auto rightFootPose = myAvatar->getRightFootControllerPoseInAvatarFrame();
-        if (rightFootPose.isValid()) {
-            handAndFeetParams.isRightFootEnabled = true;
-            handAndFeetParams.rightFootPosition = Quaternions::Y_180 * rightFootPose.getTranslation();
-            handAndFeetParams.rightFootOrientation = Quaternions::Y_180 * rightFootPose.getRotation();
-        } else {
-            handAndFeetParams.isRightFootEnabled = false;
-        }
-
-        handAndFeetParams.bodyCapsuleRadius = myAvatar->getCharacterController()->getCapsuleRadius();
-        handAndFeetParams.bodyCapsuleHalfHeight = myAvatar->getCharacterController()->getCapsuleHalfHeight();
-        handAndFeetParams.bodyCapsuleLocalOffset = myAvatar->getCharacterController()->getCapsuleLocalOffset();
-
-        _rig->updateFromHandAndFeetParameters(handAndFeetParams, deltaTime);
-
-        Rig::CharacterControllerState ccState = convertCharacterControllerState(myAvatar->getCharacterController()->getState());
-
-        auto velocity = myAvatar->getLocalVelocity();
-        auto position = myAvatar->getLocalPosition();
-        auto orientation = myAvatar->getLocalOrientation();
-        _rig->computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
-
-        // evaluate AnimGraph animation and update jointStates.
-        Model::updateRig(deltaTime, parentTransform);
-
-        Rig::EyeParameters eyeParams;
-        eyeParams.eyeLookAt = lookAt;
-        eyeParams.eyeSaccade = head->getSaccade();
-        eyeParams.modelRotation = getRotation();
-        eyeParams.modelTranslation = getTranslation();
-        eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
-        eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
-
-        _rig->updateFromEyeParameters(eyeParams);
-    } else {
-        // no need to call Model::updateRig() because otherAvatars get their joint state
-        // copied directly from AvtarData::_jointData (there are no Rig animations to blend)
-        _needsUpdateClusterMatrices = true;
-
-        // This is a little more work than we really want.
-        //
-        // Other avatars joint, including their eyes, should already be set just like any other joints
-        // from the wire data. But when looking at me, we want the eyes to use the corrected lookAt.
-        //
-        // Thus this should really only be ... else if (_owningAvatar->getHead()->isLookingAtMe()) {...
-        // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
-        // We will revisit that as priorities allow, and particularly after the new rig/animation/joints.
-
-        // If the head is not positioned, updateEyeJoints won't get the math right
-        glm::quat headOrientation;
-        _rig->getJointRotation(geometry.headJointIndex, headOrientation);
-        glm::vec3 eulers = safeEulerAngles(headOrientation);
-        head->setBasePitch(glm::degrees(-eulers.x));
-        head->setBaseYaw(glm::degrees(eulers.y));
-        head->setBaseRoll(glm::degrees(-eulers.z));
-
-        Rig::EyeParameters eyeParams;
-        eyeParams.eyeLookAt = lookAt;
-        eyeParams.eyeSaccade = glm::vec3(0.0f);
-        eyeParams.modelRotation = getRotation();
-        eyeParams.modelTranslation = getTranslation();
-        eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
-        eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
-
-        _rig->updateFromEyeParameters(eyeParams);
-     }
+    _rig->updateFromEyeParameters(eyeParams);
 }
 
 void SkeletonModel::updateAttitude() {
@@ -264,7 +132,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     if (fullUpdate) {
         setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
-        Model::simulate(deltaTime, fullUpdate);
+        Parent::simulate(deltaTime, fullUpdate);
 
         // let rig compute the model offset
         glm::vec3 registrationPoint;
@@ -272,7 +140,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
             setOffset(registrationPoint);
         }
     } else {
-        Model::simulate(deltaTime, fullUpdate);
+        Parent::simulate(deltaTime, fullUpdate);
     }
 
     if (!isActive() || !_owningAvatar->isMyAvatar()) {

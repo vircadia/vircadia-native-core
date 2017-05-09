@@ -1,7 +1,4 @@
 //
-//  SoftAttachmentModel.cpp
-//  interface/src/avatar
-//
 //  Created by Anthony J. Thibault on 12/17/15.
 //  Copyright 2013 High Fidelity, Inc.
 //
@@ -10,7 +7,6 @@
 //
 
 #include "SoftAttachmentModel.h"
-#include "InterfaceLogging.h"
 
 SoftAttachmentModel::SoftAttachmentModel(RigPointer rig, QObject* parent, RigPointer rigOverride) :
     CauterizedModel(rig, parent),

@@ -23,6 +23,7 @@ using SkeletonModelWeakPointer = std::weak_ptr<SkeletonModel>;
 
 /// A skeleton loaded from a model.
 class SkeletonModel : public CauterizedModel {
+    using Parent = CauterizedModel;
     Q_OBJECT
 
 public:
@@ -114,7 +115,7 @@ protected:
 
     void computeBoundingShape();
 
-private:
+protected:
 
     bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
