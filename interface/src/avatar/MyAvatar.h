@@ -96,7 +96,7 @@ class MyAvatar : public Avatar {
      * @property rightHandTipPose {Pose} READ-ONLY. Returns a pose offset 30 cm from MyAvatar.rightHandPose
      * @property hmdLeanRecenterEnabled {bool} This can be used disable the hmd lean recenter behavior.  This behavior is what causes your avatar
      *   to follow your HMD as you walk around the room, in room scale VR.  Disabling this is useful if you desire to pin the avatar to a fixed location.
-     * @property characterControllerEnabled {bool} This can be used to disable collisions between the avatar and the world.
+     * @property collisionsEnabled {bool} This can be used to disable collisions between the avatar and the world.
      * @property useAdvancedMovementControls {bool} Stores the user preference only, does not change user mappings, this is done in the defaultScript
      *   "scripts/system/controllers/toggleAdvancedMovementForHandControllers.js".
      */
@@ -128,6 +128,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float isAway READ getIsAway WRITE setAway)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
+    Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
 
@@ -470,8 +471,10 @@ public:
 
     bool hasDriveInput() const;
 
-    Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
-    Q_INVOKABLE bool getCharacterControllerEnabled();
+    Q_INVOKABLE void setCollisionsEnabled(bool enabled);
+    Q_INVOKABLE bool getCollisionsEnabled();
+    Q_INVOKABLE void setCharacterControllerEnabled(bool enabled); // deprecated
+    Q_INVOKABLE bool getCharacterControllerEnabled(); // deprecated
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
@@ -614,7 +617,7 @@ private:
     SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
-    bool _wasCharacterControllerEnabled { true };
+    int16_t _previousCollisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;

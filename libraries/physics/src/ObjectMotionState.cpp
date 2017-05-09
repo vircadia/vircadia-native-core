@@ -1,6 +1,6 @@
 //
 //  ObjectMotionState.cpp
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2014.11.05
 //  Copyright 2014 High Fidelity, Inc.
