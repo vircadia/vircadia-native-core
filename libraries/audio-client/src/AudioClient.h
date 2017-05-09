@@ -71,19 +71,6 @@ class QIODevice;
 class Transform;
 class NLPacket;
 
-class AudioInjectorsThread : public QThread {
-    Q_OBJECT
-
-public:
-    AudioInjectorsThread(AudioClient* audio) : _audio(audio) {}
-
-public slots :
-    void prepare();
-
-private:
-    AudioClient* _audio;
-};
-
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -169,6 +156,7 @@ public:
 public slots:
     void start();
     void stop();
+    void cleanupBeforeQuit();
 
     void handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message);
     void handleAudioDataPacket(QSharedPointer<ReceivedMessage> message);
@@ -183,8 +171,6 @@ public slots:
     void reset();
     void audioMixerKilled();
     void toggleMute();
-
-    void beforeAboutToQuit();
 
     virtual void setIsStereoInput(bool stereo) override;
 
@@ -242,9 +228,7 @@ protected:
     AudioClient();
     ~AudioClient();
 
-    virtual void customDeleter() override {
-        deleteLater();
-    }
+    virtual void customDeleter() override;
 
 private:
     void outputFormatChanged();
@@ -337,18 +321,16 @@ private:
     // for network audio (used by network audio thread)
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
 
-    // for local audio (used by audio injectors thread)
-    int _networkPeriod { 0 };
-    float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-    int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
-    float* _localOutputMixBuffer { NULL };
-    AudioInjectorsThread _localAudioThread;
-    Mutex _localAudioMutex;
-
     // for output audio (used by this thread)
     int _outputPeriod { 0 };
     float* _outputMixBuffer { NULL };
     int16_t* _outputScratchBuffer { NULL };
+
+    // for local audio (used by audio injectors thread)
+    float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
+    float* _localOutputMixBuffer { NULL };
+    Mutex _localAudioMutex;
 
     AudioLimiter _audioLimiter;
 
@@ -392,12 +374,13 @@ private:
     QString _selectedCodecName;
     Encoder* _encoder { nullptr }; // for outbound mic stream
 
-    QThread* _checkDevicesThread { nullptr };
-
     RateCounter<> _silentOutbound;
     RateCounter<> _audioOutbound;
     RateCounter<> _silentInbound;
     RateCounter<> _audioInbound;
+
+    QThread* _checkDevicesThread { nullptr };
+    QThread* _localInjectorsThread { nullptr };
 };
 
 

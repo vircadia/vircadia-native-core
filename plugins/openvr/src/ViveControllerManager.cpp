@@ -41,7 +41,7 @@ void releaseOpenVrSystem();
 
 
 static const char* CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
-const quint64 CALIBRATION_TIMELAPSE = 3 * USECS_PER_SECOND;
+const quint64 CALIBRATION_TIMELAPSE = 2 * USECS_PER_SECOND;
 
 static const char* MENU_PARENT = "Avatar";
 static const char* MENU_NAME = "Vive Controllers";
@@ -297,12 +297,12 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
         // done
     } else if (_config == Config::FeetAndHips) {
         _jointToPuckMap[controller::HIPS] = _validTrackedObjects[HIP].first;
-        _pucksOffset[_validTrackedObjects[2].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[2].second);
+        _pucksOffset[_validTrackedObjects[HIP].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[HIP].second);
     } else if (_config == Config::FeetHipsAndChest) {
         _jointToPuckMap[controller::HIPS] = _validTrackedObjects[HIP].first;
-        _pucksOffset[_validTrackedObjects[2].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[2].second);
+        _pucksOffset[_validTrackedObjects[HIP].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[HIP].second);
         _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[CHEST].first;
-        _pucksOffset[_validTrackedObjects[3].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultSpine2, _validTrackedObjects[3].second);
+        _pucksOffset[_validTrackedObjects[CHEST].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultSpine2, _validTrackedObjects[CHEST].second);
     }
     _calibrated = true;
 }
