@@ -167,6 +167,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     // collect poses for all generic trackers
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
         handleTrackedObject(i, inputCalibrationData);
+        handleHmd(i, inputCalibrationData);
     }
 
     // handle haptics
@@ -334,6 +335,22 @@ controller::Pose ViveControllerManager::InputDevice::addOffsetToPuckPose(int joi
     return controller::Pose();
 }
 
+void ViveControllerManager::InputDevice::handleHmd(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
+     uint32_t poseIndex = controller::TRACKED_OBJECT_00 + deviceIndex;
+
+     if (_system->IsTrackedDeviceConnected(deviceIndex) &&
+         _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_HMD &&
+         _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid &&
+         poseIndex <= controller::TRACKED_OBJECT_15) {
+
+         const mat4& mat = _nextSimPoseData.poses[deviceIndex];
+         const vec3 linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
+         const vec3 angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
+
+         handleHeadPoseEvent(inputCalibrationData, mat, linearVelocity, angularVelocity);
+     }
+}
+
 void ViveControllerManager::InputDevice::handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand) {
 
     if (_system->IsTrackedDeviceConnected(deviceIndex) &&
@@ -456,6 +473,18 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
     }
 }
 
+void ViveControllerManager::InputDevice::handleHeadPoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
+                                                             const vec3& linearVelocity, const vec3& angularVelocity) {
+
+    glm::mat4 matYFlip = mat * Matrices::Y_180;
+    controller::Pose pose(extractTranslation(matYFlip), glmExtractRotation(matYFlip), linearVelocity, angularVelocity);
+
+    glm::mat4 sensorToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) * inputCalibrationData.defaultHeadMat;
+    controller::Pose hmdHeadPose = pose.transform(sensorToAvatar);
+    _poseStateMap[controller::HEAD] = hmdHeadPose.postTransform(defaultHeadOffset);
+}
+
 void ViveControllerManager::InputDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
                                                          const mat4& mat, const vec3& linearVelocity,
                                                          const vec3& angularVelocity, bool isLeftHand) {
@@ -559,6 +588,7 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(RIGHT_FOOT, "RightFoot"),
         makePair(HIPS, "Hips"),
         makePair(SPINE2, "Spine2"),
+        makePair(HEAD, "Head"),
 
         // 16 tracked poses
         makePair(TRACKED_OBJECT_00, "TrackedObject00"),
