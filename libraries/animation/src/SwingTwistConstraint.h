@@ -101,8 +101,8 @@ public:
 
     virtual glm::quat computeCenterRotation() const override;
 
-    const float getMinTwist() const { return _minTwist; }
-    const float getMaxTwist() const { return _maxTwist; }
+    float getMinTwist() const { return _minTwist; }
+    float getMaxTwist() const { return _maxTwist; }
 
 private:
     float handleTwistBoundaryConditions(float twistAngle) const;

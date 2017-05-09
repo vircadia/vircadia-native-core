@@ -112,7 +112,7 @@ public:
     void clearJointStates();
     void clearJointAnimationPriority(int index);
 
-    std::shared_ptr<AnimInverseKinematics> Rig::getAnimInverseKinematicsNode() const;
+    std::shared_ptr<AnimInverseKinematics> getAnimInverseKinematicsNode() const;
 
     void clearIKJointLimitHistory();
     void setMaxHipsOffsetLength(float maxLength);

@@ -751,7 +751,7 @@ void AnimInverseKinematics::initConstraints() {
             swungDirections.push_back(glm::vec3(cosf(theta), -0.5f, sinf(theta)));
 
             std::vector<float> minDots;
-            for (int i = 0; i < swungDirections.size(); i++) {
+            for (size_t i = 0; i < swungDirections.size(); i++) {
                 minDots.push_back(glm::dot(glm::normalize(swungDirections[i]), Vectors::UNIT_Y));
             }
             stConstraint->setSwingLimits(minDots);
@@ -961,11 +961,11 @@ void AnimInverseKinematics::initLimitCenterPoses() {
     const float UPPER_ARM_THETA = PI / 3.0f;  // 60 deg
     int leftArmIndex = _skeleton->nameToJointIndex("LeftArm");
     const glm::quat armRot = glm::angleAxis(UPPER_ARM_THETA, Vectors::UNIT_X);
-    if (leftArmIndex >= 0 && leftArmIndex < _limitCenterPoses.size()) {
+    if (leftArmIndex >= 0 && leftArmIndex < (int)_limitCenterPoses.size()) {
         _limitCenterPoses[leftArmIndex].rot() = _limitCenterPoses[leftArmIndex].rot() * armRot;
     }
     int rightArmIndex = _skeleton->nameToJointIndex("RightArm");
-    if (rightArmIndex >= 0 && rightArmIndex < _limitCenterPoses.size()) {
+    if (rightArmIndex >= 0 && rightArmIndex < (int)_limitCenterPoses.size()) {
         _limitCenterPoses[rightArmIndex].rot() = _limitCenterPoses[rightArmIndex].rot() * armRot;
     }
 }
@@ -1027,7 +1027,7 @@ void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) con
         AnimPoseVec poses = _skeleton->getRelativeDefaultPoses();
 
         // copy reference rotations into the relative poses
-        for (int i = 0; i < poses.size(); i++) {
+        for (int i = 0; i < (int)poses.size(); i++) {
             const RotationConstraint* constraint = getConstraint(i);
             if (constraint) {
                 poses[i].rot() = constraint->getReferenceRotation();
@@ -1040,7 +1040,7 @@ void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) con
         mat4 geomToWorldMatrix = context.getRigToWorldMatrix() * context.getGeometryToRigMatrix();
 
         // draw each pose and constraint
-        for (int i = 0; i < poses.size(); i++) {
+        for (int i = 0; i < (int)poses.size(); i++) {
             // transform local axes into world space.
             auto pose = poses[i];
             glm::vec3 xAxis = transformVectorFast(geomToWorldMatrix, pose.rot() * Vectors::UNIT_X);
