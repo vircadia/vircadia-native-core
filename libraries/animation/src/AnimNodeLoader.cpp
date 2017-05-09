@@ -477,8 +477,6 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
     READ_OPTIONAL_STRING(solutionSource, jsonObj);
 
     if (!solutionSource.isEmpty()) {
-        qCDebug(animation) << "AJT: REMOVE solutionSource = " << solutionSource;
-
         AnimInverseKinematics::SolutionSource solutionSourceType = stringToSolutionSourceEnum(solutionSource);
         if (solutionSourceType != AnimInverseKinematics::SolutionSource::NumSolutionSources) {
             node->setSolutionSource(solutionSourceType);
@@ -490,7 +488,6 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
     READ_OPTIONAL_STRING(solutionSourceVar, jsonObj);
 
     if (!solutionSourceVar.isEmpty()) {
-        qCDebug(animation) << "AJT: REMOVE solutionSourceVar = " << solutionSourceVar;
         node->setSolutionSourceVar(solutionSourceVar);
     }
 
