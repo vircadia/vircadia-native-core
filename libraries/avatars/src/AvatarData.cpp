@@ -1495,11 +1495,11 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
+void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew) {
 
-    if (identity.updatedAt < _identityUpdatedAt && !(DependencyManager::get<NodeList>()->getRequestsDomainListData())) {
+    if (identity.updatedAt < _identityUpdatedAt + clockSkew) {
         qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
-                << "identity.updatedAt:" << identity.updatedAt << "_identityUpdatedAt:" << _identityUpdatedAt;
+                << "identity.updatedAt:" << identity.updatedAt << "_identityUpdatedAt:" << _identityUpdatedAt << "clockSkew:" << clockSkew;
         return;
     }
 
