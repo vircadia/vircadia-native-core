@@ -632,7 +632,6 @@ private:
     const float SMOOTH_TIME_ORIENTATION = 0.5f;
 
     // Smoothing data for blending from one position/orientation to another on remote agents.
-    float _smoothOrientationTime;
     float _smoothOrientationTimer;
     glm::quat _smoothOrientationInitial;
     glm::quat _smoothOrientationTarget;
