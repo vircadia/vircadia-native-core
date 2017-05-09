@@ -1525,14 +1525,23 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             connect(_audioOutput, &QAudioOutput::stateChanged, [&, frameSize, requestedSize](QAudio::State state) {
                 if (state == QAudio::ActiveState) {
                     // restrict device callback to _outputPeriod samples
-                    _outputPeriod = (_audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE) * 2;
+                    _outputPeriod = _audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE;
+                    // device callback may exceed reported period, so double it to avoid stutter
+                    _outputPeriod *= 2;
+
                     _outputMixBuffer = new float[_outputPeriod];
                     _outputScratchBuffer = new int16_t[_outputPeriod];
 
                     // size local output mix buffer based on resampled network frame size
                     _networkPeriod = _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
                     _localOutputMixBuffer = new float[_networkPeriod];
+
+                    // local period should be at least twice the output period,
+                    // in case two device reads happen before more data can be read (worst case)
                     int localPeriod = _outputPeriod * 2;
+                    // round up to an exact multiple of _networkPeriod
+                    localPeriod = ((localPeriod + _networkPeriod - 1) / _networkPeriod) * _networkPeriod;
+                    // this ensures lowest latency without stutter from underrun
                     _localInjectorsStream.resizeForFrameSize(localPeriod);
 
                     int bufferSize = _audioOutput->bufferSize();
