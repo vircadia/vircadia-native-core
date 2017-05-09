@@ -8,6 +8,9 @@
 #ifndef hifi_gpu_gl_GLTexture_h
 #define hifi_gpu_gl_GLTexture_h
 
+#include <QtCore/QThreadPool>
+#include <QtConcurrent>
+
 #include "GLShared.h"
 #include "GLBackend.h"
 #include "GLTexelFormat.h"
@@ -47,24 +50,19 @@ public:
     class TransferJob {
         using VoidLambda = std::function<void()>;
         using VoidLambdaQueue = std::queue<VoidLambda>;
-        using ThreadPointer = std::shared_ptr<std::thread>;
         const GLTexture& _parent;
         Texture::PixelsPointer _mipData;
         size_t _transferOffset { 0 };
         size_t _transferSize { 0 };
 
-        // Indicates if a transfer from backing storage to interal storage has started
-        bool _bufferingStarted { false };
-        bool _bufferingCompleted { false };
+        bool _bufferingRequired { true };
         VoidLambda _transferLambda;
         VoidLambda _bufferingLambda;
 
 #if THREADED_TEXTURE_BUFFERING
-        static Mutex _mutex;
-        static VoidLambdaQueue _bufferLambdaQueue;
-        static ThreadPointer _bufferThread;
-        static std::atomic<bool> _shutdownBufferingThread;
-        static void bufferLoop();
+        // Indicates if a transfer from backing storage to interal storage has started
+        QFuture<void> _bufferingStatus;
+        static QThreadPool* _bufferThreadPool;
 #endif
 
     public:
@@ -75,14 +73,13 @@ public:
         bool tryTransfer();
 
 #if THREADED_TEXTURE_BUFFERING
-        static void startTransferLoop();
-        static void stopTransferLoop();
+        void startBuffering();
+        bool bufferingRequired() const;
+        bool bufferingCompleted() const;
+        static void startBufferingThread();
 #endif
 
     private:
-#if THREADED_TEXTURE_BUFFERING
-        void startBuffering();
-#endif
         void transfer();
     };
 
@@ -100,8 +97,10 @@ protected:
     static WorkQueue _transferQueue;
     static WorkQueue _promoteQueue;
     static WorkQueue _demoteQueue;
+#if THREADED_TEXTURE_BUFFERING
     static TexturePointer _currentTransferTexture;
     static TransferJobPointer _currentTransferJob;
+#endif
     static const uvec3 INITIAL_MIP_TRANSFER_DIMENSIONS;
     static const uvec3 MAX_TRANSFER_DIMENSIONS;
     static const size_t MAX_TRANSFER_SIZE;
@@ -109,6 +108,8 @@ protected:
 
     static void updateMemoryPressure();
     static void processWorkQueues();
+    static void processWorkQueue(WorkQueue& workQueue);
+    static TexturePointer getNextWorkQueueItem(WorkQueue& workQueue);
     static void addToWorkQueue(const TexturePointer& texture);
     static WorkQueue& getActiveWorkQueue();
 
@@ -118,7 +119,10 @@ protected:
     bool canPromote() const { return _allocatedMip > _minAllocatedMip; }
     bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
     bool hasPendingTransfers() const { return _populatedMip > _allocatedMip; }
-    void executeNextTransfer(const TexturePointer& currentTexture);
+#if THREADED_TEXTURE_BUFFERING
+    void executeNextBuffer(const TexturePointer& currentTexture);
+#endif
+    bool executeNextTransfer(const TexturePointer& currentTexture);
     virtual void populateTransferQueue() = 0;
     virtual void promote() = 0;
     virtual void demote() = 0;
