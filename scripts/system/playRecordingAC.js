@@ -368,13 +368,16 @@
         };
     }());
 
-    function sendHeartbeat() {
+    function sendHeartbeat(isOneShot) {
         Messages.sendMessage(HIFI_RECORDER_CHANNEL, JSON.stringify({
             playing: Player.isPlaying(),
             recording: Player.recording(),
             entity: Entity.id()
         }));
-        heartbeatTimer = Script.setTimeout(sendHeartbeat, HEARTBEAT_INTERVAL);
+
+        if (!isOneShot) {
+            heartbeatTimer = Script.setTimeout(sendHeartbeat, HEARTBEAT_INTERVAL);
+        }
     }
 
     function stopHeartbeat() {
@@ -398,12 +401,12 @@
                 } else {
                     log("Didn't start playing " + message.recording + " because already playing " + Player.recording());
                 }
-                sendHeartbeat();
+                sendHeartbeat(true);
                 break;
             case PLAYER_COMMAND_STOP:
                 Player.stop();
                 Player.autoPlay();  // There may be another recording to play.
-                sendHeartbeat();
+                sendHeartbeat(true);
                 break;
             }
         }
