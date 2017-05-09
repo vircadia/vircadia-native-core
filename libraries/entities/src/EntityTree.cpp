@@ -1608,7 +1608,7 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
             return EntityItemID();
         }
         if (args->map->contains(oldID)) {
-            return args->map->value(oldID);
+            return EntityItemID(args->map->value(oldID));
         } else {
             EntityItemID newID = QUuid::createUuid();
             args->map->insert(oldID, newID);
