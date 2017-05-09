@@ -1,6 +1,6 @@
 //
 //  ShapeFactory.cpp
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2014.12.01
 //  Copyright 2014 High Fidelity, Inc.
