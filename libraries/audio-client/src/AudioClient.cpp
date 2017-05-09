@@ -1358,7 +1358,7 @@ bool AudioClient::outputLocalInjector(AudioInjector* injector) {
 
             // move local buffer to the LocalAudioThread to avoid dataraces with AudioInjector (like stop())
             injectorBuffer->setParent(nullptr);
-            injectorBuffer->moveToThread(&_localAudioThread);
+            injectorBuffer->moveToThread(_localInjectorsThread);
         } else {
             qCDebug(audioclient) << "injector exists in active list already";
         }
