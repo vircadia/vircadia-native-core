@@ -188,7 +188,7 @@ public:
     Q_INVOKABLE QVariant getOrientationVar() const;
 
     // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
-    virtual glm::quat getOrientationOutbound() const override;
+    glm::quat getOrientationOutbound() const override;
 
     // Pass a recent sample of the HMD to the avatar.
     // This can also update the avatar's position to follow the HMD

@@ -1490,7 +1490,7 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
 }
 
 glm::quat AvatarData::getOrientationOutbound() const {
-	return (getLocalOrientation());
+    return (getLocalOrientation());
 }
 
 static const QUrl emptyURL("");
