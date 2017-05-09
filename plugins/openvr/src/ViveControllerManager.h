@@ -60,9 +60,12 @@ private:
 
         bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         void hapticsHelper(float deltaTime, bool leftHand);
+        void calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration);
         void calibrate(const controller::InputCalibrationData& inputCalibration);
-        controller::Pose addOffsetToPuckPose(int joint);
+        void uncalibrate();
+        controller::Pose addOffsetToPuckPose(int joint) const;
         void updateCalibratedLimbs();
+        bool checkForCalibrationEvent();
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
         void handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand);
