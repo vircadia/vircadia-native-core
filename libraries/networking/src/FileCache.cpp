@@ -110,10 +110,16 @@ FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata) {
         return file;
     }
 
-    // write the new file
-    FILE* saveFile = fopen(filepath.c_str(), "wb");
+    // write the data to a temporary file
+    std::string tmpFilepath = filepath + "_tmp";
+    FILE* saveFile = fopen(tmpFilepath.c_str(), "wb");
     if (saveFile != nullptr && fwrite(data, metadata.length, 1, saveFile) && fclose(saveFile) == 0) {
-        file = addFile(std::move(metadata), filepath);
+        int result = rename(tmpFilepath.c_str(), filepath.c_str());
+        if (result == 0) {
+            file = addFile(std::move(metadata), filepath);
+        } else {
+            qCWarning(file_cache, "[%s] Failed to rename %s to %s (%s)", tmpFilepath.c_str(), filepath.c_str(), strerror(errno));
+        }
     } else {
         qCWarning(file_cache, "[%s] Failed to write %s (%s)", _dirname.c_str(), metadata.key.c_str(), strerror(errno));
         errno = 0;
