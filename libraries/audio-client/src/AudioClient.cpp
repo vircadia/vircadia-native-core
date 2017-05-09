@@ -1126,11 +1126,19 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     handleAudioInput(audioBuffer);
 }
 
-void AudioClient::prepareLocalAudioInjectors() {
+void AudioClient::prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock) {
+    bool doSynchronously = localAudioLock.operator bool();
+    if (!localAudioLock) {
+        localAudioLock.reset(new Lock(_localAudioMutex));
+    }
+
     int samplesNeeded = std::numeric_limits<int>::max();
     while (samplesNeeded > 0) {
-        // unlock between every write to allow device switching
-        Lock lock(_localAudioMutex);
+        if (!doSynchronously) {
+            // unlock between every write to allow device switching
+            localAudioLock->unlock();
+            localAudioLock->lock();
+        }
 
         // in case of a device switch, consider bufferCapacity volatile across iterations
         if (_outputPeriod == 0) {
@@ -1184,15 +1192,15 @@ void AudioClient::prepareLocalAudioInjectors() {
 }
 
 bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
-
-    QVector<AudioInjector*> injectorsToRemove;
-    
-    // lock the injector vector
-    Lock lock(_injectorsMutex);
-
-    if (_activeLocalAudioInjectors.size() == 0) {
+    // check the flag for injectors before attempting to lock
+    if (!_localInjectorsAvailable.load(std::memory_order_acquire)) {
         return false;
     }
+
+    // lock the injectors
+    Lock lock(_injectorsMutex);
+
+    QVector<AudioInjector*> injectorsToRemove;
 
     memset(mixBuffer, 0, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO * sizeof(float));
 
@@ -1271,6 +1279,9 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
         qCDebug(audioclient) << "removing injector";
         _activeLocalAudioInjectors.removeOne(injector);
     }
+
+    // update the flag
+    _localInjectorsAvailable.exchange(!_activeLocalAudioInjectors.empty(), std::memory_order_release);
 
     return true;
 }
@@ -1359,10 +1370,13 @@ bool AudioClient::outputLocalInjector(AudioInjector* injector) {
             // move local buffer to the LocalAudioThread to avoid dataraces with AudioInjector (like stop())
             injectorBuffer->setParent(nullptr);
             injectorBuffer->moveToThread(_localInjectorsThread);
+
+            // update the flag
+            _localInjectorsAvailable.exchange(true, std::memory_order_release);
         } else {
             qCDebug(audioclient) << "injector exists in active list already";
         }
-        
+
         return true;
 
     } else {
@@ -1485,7 +1499,7 @@ void AudioClient::outputNotify() {
 bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
     bool supportedFormat = false;
 
-    Lock lock(_localAudioMutex);
+    Lock localAudioLock(_localAudioMutex);
     _localSamplesAvailable.exchange(0, std::memory_order_release);
 
     // cleanup any previously initialized device
@@ -1555,14 +1569,23 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             connect(_audioOutput, &QAudioOutput::stateChanged, [&, frameSize, requestedSize](QAudio::State state) {
                 if (state == QAudio::ActiveState) {
                     // restrict device callback to _outputPeriod samples
-                    _outputPeriod = (_audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE) * 2;
+                    _outputPeriod = _audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE;
+                    // device callback may exceed reported period, so double it to avoid stutter
+                    _outputPeriod *= 2;
+
                     _outputMixBuffer = new float[_outputPeriod];
                     _outputScratchBuffer = new int16_t[_outputPeriod];
 
                     // size local output mix buffer based on resampled network frame size
                     int networkPeriod = _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
                     _localOutputMixBuffer = new float[networkPeriod];
+
+                    // local period should be at least twice the output period,
+                    // in case two device reads happen before more data can be read (worst case)
                     int localPeriod = _outputPeriod * 2;
+                    // round up to an exact multiple of networkPeriod
+                    localPeriod = ((localPeriod + networkPeriod - 1) / networkPeriod) * networkPeriod;
+                    // this ensures lowest latency without stutter from underrun
                     _localInjectorsStream.resizeForFrameSize(localPeriod);
 
                     int bufferSize = _audioOutput->bufferSize();
@@ -1577,6 +1600,9 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
                     qCDebug(audioclient) << "local buffer (samples):" << localPeriod;
 
                     disconnect(_audioOutput, &QAudioOutput::stateChanged, 0, 0);
+
+                    // unlock to avoid a deadlock with the device callback (which always succeeds this initialization)
+                    localAudioLock.unlock();
                 }
             });
             connect(_audioOutput, &QAudioOutput::notify, this, &AudioClient::outputNotify);
@@ -1715,12 +1741,24 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     int injectorSamplesPopped = 0;
     {
         bool append = networkSamplesPopped > 0;
-        // this does not require a lock as of the only two functions adding to _localSamplesAvailable (samples count):
+        // check the samples we have available locklessly; this is possible because only two functions add to the count:
         // - prepareLocalAudioInjectors will only increase samples count
-        // - switchOutputToAudioDevice will zero samples count
-        //   stop the device, so that readData will exhaust the existing buffer or see a zeroed samples count
-        //   and start the device, which can only see a zeroed samples count
-        samplesRequested = std::min(samplesRequested, _audio->_localSamplesAvailable.load(std::memory_order_acquire));
+        // - switchOutputToAudioDevice will zero samples count,
+        //   stop the device - so that readData will exhaust the existing buffer or see a zeroed samples count,
+        //   and start the device - which can then only see a zeroed samples count
+        int samplesAvailable = _audio->_localSamplesAvailable.load(std::memory_order_acquire);
+
+        // if we do not have enough samples buffered despite having injectors, buffer them synchronously
+        if (samplesAvailable < samplesRequested && _audio->_localInjectorsAvailable.load(std::memory_order_acquire)) {
+            // try_to_lock, in case the device is being shut down already
+            std::unique_ptr<Lock> localAudioLock(new Lock(_audio->_localAudioMutex, std::try_to_lock));
+            if (localAudioLock->owns_lock()) {
+                _audio->prepareLocalAudioInjectors(std::move(localAudioLock));
+                samplesAvailable = _audio->_localSamplesAvailable.load(std::memory_order_acquire);
+            }
+        }
+
+        samplesRequested = std::min(samplesRequested, samplesAvailable);
         if ((injectorSamplesPopped = _localInjectorsStream.appendSamples(mixBuffer, samplesRequested, append)) > 0) {
             _audio->_localSamplesAvailable.fetch_sub(injectorSamplesPopped, std::memory_order_release);
             qCDebug(audiostream, "Read %d samples from injectors (%d available, %d requested)", injectorSamplesPopped, _localInjectorsStream.samplesAvailable(), samplesRequested);
