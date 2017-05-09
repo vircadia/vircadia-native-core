@@ -62,7 +62,7 @@ protected:
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
     void debugDrawConstraints(const AnimContext& context) const;
     void initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPose);
-    void relaxToPoses(const AnimPoseVec& poses);
+    void blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPose, float blendFactor);
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override { return _relativePoses; }

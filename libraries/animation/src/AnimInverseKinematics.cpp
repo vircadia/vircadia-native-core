@@ -958,7 +958,7 @@ void AnimInverseKinematics::initLimitCenterPoses() {
 
     // The limit center rotations for the LeftArm and RightArm form a t-pose.
     // In order for the elbows to look more natural, we rotate them down by the avatar's sides
-    const float UPPER_ARM_THETA = 3.0f * PI / 8.0f;  // 67.5 deg
+    const float UPPER_ARM_THETA = PI / 3.0f;  // 60 deg
     int leftArmIndex = _skeleton->nameToJointIndex("LeftArm");
     const glm::quat armRot = glm::angleAxis(UPPER_ARM_THETA, Vectors::UNIT_X);
     if (leftArmIndex >= 0 && leftArmIndex < _limitCenterPoses.size()) {
@@ -1134,31 +1134,35 @@ void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) con
     }
 }
 
-void AnimInverseKinematics::relaxToPoses(const AnimPoseVec& poses) {
+// for bones under IK, blend between previous solution (_relativePoses) to targetPoses
+// for bones NOT under IK, copy directly from underPoses.
+// mutates _relativePoses.
+void AnimInverseKinematics::blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPoses, float blendFactor) {
     // relax toward poses
-    const float blend = (1.0f / 60.0f) / (0.25f);
     int numJoints = (int)_relativePoses.size();
     for (int i = 0; i < numJoints; ++i) {
-        float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot(), poses[i].rot()));
+        float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot(), targetPoses[i].rot()));
         if (_accumulators[i].isDirty()) {
-            // this joint is affected by IK --> blend toward each pose rotation
-            _relativePoses[i].rot() = glm::normalize(glm::lerp(_relativePoses[i].rot(), dotSign * poses[i].rot(), blend));
+            // this joint is affected by IK --> blend toward the targetPoses rotation
+            _relativePoses[i].rot() = glm::normalize(glm::lerp(_relativePoses[i].rot(), dotSign * targetPoses[i].rot(), blendFactor));
         } else {
-            // this joint is NOT affected by IK --> slam to underPose rotation
-            _relativePoses[i].rot() = poses[i].rot();
+            // this joint is NOT affected by IK --> slam to underPoses rotation
+            _relativePoses[i].rot() = underPoses[i].rot();
         }
-        _relativePoses[i].trans() = poses[i].trans();
+        _relativePoses[i].trans() = underPoses[i].trans();
     }
 }
 
 void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPoses) {
+    const float RELAX_BLEND_FACTOR = (1.0f / 16.0f);
+    const float COPY_BLEND_FACTOR = 1.0f;
     switch (solutionSource) {
     default:
     case SolutionSource::RelaxToUnderPoses:
-        relaxToPoses(underPoses);
+        blendToPoses(underPoses, underPoses, RELAX_BLEND_FACTOR);
         break;
     case SolutionSource::RelaxToLimitCenterPoses:
-        relaxToPoses(_limitCenterPoses);
+        blendToPoses(_limitCenterPoses, underPoses, RELAX_BLEND_FACTOR);
         break;
     case SolutionSource::PreviousSolution:
         // do nothing... _relativePoses is already the previous solution
@@ -1167,7 +1171,8 @@ void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource s
         _relativePoses = underPoses;
         break;
     case SolutionSource::LimitCenterPoses:
-        _relativePoses = _limitCenterPoses;
+        // essentially copy limitCenterPoses over to _relativePoses.
+        blendToPoses(_limitCenterPoses, underPoses, COPY_BLEND_FACTOR);
         break;
     }
 }
