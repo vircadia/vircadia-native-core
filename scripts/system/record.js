@@ -524,6 +524,7 @@
                     break;
                 case STOP_PLAYING_RECORDING_ACTION:
                     // Stop the specified player.
+                    log("Unload recording " + message.value);
                     Player.stopPlayingRecording(message.value);
                     break;
                 case LOAD_RECORDING_ACTION:
