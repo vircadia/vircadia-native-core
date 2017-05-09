@@ -17,6 +17,7 @@
 #include <unordered_set>
 
 #include <QDir>
+#include <QSaveFile>
 
 #include <PathUtils.h>
 
@@ -110,19 +111,13 @@ FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata) {
         return file;
     }
 
-    // write the data to a temporary file
-    std::string tmpFilepath = filepath + "_tmp";
-    FILE* saveFile = fopen(tmpFilepath.c_str(), "wb");
-    if (saveFile != nullptr && fwrite(data, metadata.length, 1, saveFile) && fclose(saveFile) == 0) {
-        int result = rename(tmpFilepath.c_str(), filepath.c_str());
-        if (result == 0) {
-            file = addFile(std::move(metadata), filepath);
-        } else {
-            qCWarning(file_cache, "[%s] Failed to rename %s to %s (%s)", tmpFilepath.c_str(), filepath.c_str(), strerror(errno));
-        }
+    QSaveFile saveFile(QString::fromStdString(filepath));
+    saveFile.open(QIODevice::WriteOnly);
+    saveFile.write(data, metadata.length);
+    if (saveFile.commit()) {
+        file = addFile(std::move(metadata), filepath);
     } else {
-        qCWarning(file_cache, "[%s] Failed to write %s (%s)", _dirname.c_str(), metadata.key.c_str(), strerror(errno));
-        errno = 0;
+        qCWarning(file_cache, "[%s] Failed to write %s", _dirname.c_str(), metadata.key.c_str());
     }
 
     return file;
