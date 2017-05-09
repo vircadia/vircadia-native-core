@@ -1075,9 +1075,6 @@ void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) con
                     glm::quat minRot = glm::angleAxis(elbowConstraint->getMinAngle(), elbowConstraint->getHingeAxis());
                     glm::quat maxRot = glm::angleAxis(elbowConstraint->getMaxAngle(), elbowConstraint->getHingeAxis());
 
-                    glm::vec3 minYAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * minRot * refRot * Vectors::UNIT_Y);
-                    glm::vec3 maxYAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * maxRot * refRot * Vectors::UNIT_Y);
-
                     const int NUM_SWING_STEPS = 10;
                     for (int i = 0; i < NUM_SWING_STEPS + 1; i++) {
                         glm::quat rot = glm::normalize(glm::lerp(minRot, maxRot, i * (1.0f / NUM_SWING_STEPS)));
@@ -1095,9 +1092,6 @@ void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) con
 
                         glm::quat minRot = glm::angleAxis(swingTwistConstraint->getMinTwist(), Vectors::UNIT_Y);
                         glm::quat maxRot = glm::angleAxis(swingTwistConstraint->getMaxTwist(), Vectors::UNIT_Y);
-
-                        glm::vec3 minTwistYAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * minRot * refRot * Vectors::UNIT_X);
-                        glm::vec3 maxTwistYAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * maxRot * refRot * Vectors::UNIT_X);
 
                         const int NUM_SWING_STEPS = 10;
                         for (int i = 0; i < NUM_SWING_STEPS + 1; i++) {
