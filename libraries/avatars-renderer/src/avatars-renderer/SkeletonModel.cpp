@@ -79,7 +79,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     Head* head = _owningAvatar->getHead();
 
     // make sure lookAt is not too close to face (avoid crosseyes)
-    glm::vec3 lookAt = _owningAvatar->isMyAvatar() ?  head->getLookAtPosition() : head->getCorrectedLookAtPosition();
+    glm::vec3 lookAt = head->getCorrectedLookAtPosition();
     glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
     float focusDistance = glm::length(focusOffset);
     const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
