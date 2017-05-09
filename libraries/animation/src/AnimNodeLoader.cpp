@@ -352,7 +352,7 @@ static AnimOverlay::BoneSet stringToBoneSetEnum(const QString& str) {
     return AnimOverlay::NumBoneSets;
 }
 
-static const char* solutionSourceStrings[AnimInverseKinematics::SolutionSource::NumSolutionSources] = {
+static const char* solutionSourceStrings[(int)AnimInverseKinematics::SolutionSource::NumSolutionSources] = {
     "relaxToUnderPoses",
     "relaxToLimitCenterPoses",
     "previousSolution",
