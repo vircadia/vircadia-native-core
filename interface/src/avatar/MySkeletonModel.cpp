@@ -37,7 +37,14 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     Head* head = _owningAvatar->getHead();
 
     // make sure lookAt is not too close to face (avoid crosseyes)
-    glm::vec3 lookAt = _owningAvatar->isMyAvatar() ?  head->getLookAtPosition() : head->getCorrectedLookAtPosition();
+    glm::vec3 lookAt = head->getLookAtPosition();
+    glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
+    float focusDistance = glm::length(focusOffset);
+    const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
+    if (focusDistance < MIN_LOOK_AT_FOCUS_DISTANCE && focusDistance > EPSILON) {
+        lookAt = _owningAvatar->getHead()->getEyePosition() + (MIN_LOOK_AT_FOCUS_DISTANCE / focusDistance) * focusOffset;
+    }
+
     MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
 
     Rig::HeadParameters headParams;
@@ -140,6 +147,9 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     auto orientation = myAvatar->getLocalOrientation();
     _rig->computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
 
+    // evaluate AnimGraph animation and update jointStates.
+    Model::updateRig(deltaTime, parentTransform);
+
     Rig::EyeParameters eyeParams;
     eyeParams.eyeLookAt = lookAt;
     eyeParams.eyeSaccade = head->getSaccade();
@@ -149,8 +159,5 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
     _rig->updateFromEyeParameters(eyeParams);
-
-    // evaluate AnimGraph animation and update jointStates.
-    Parent::updateRig(deltaTime, parentTransform);
 }
 

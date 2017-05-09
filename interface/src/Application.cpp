@@ -1688,7 +1688,6 @@ void Application::updateHeartbeat() const {
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
-    DependencyManager::get<AudioClient>()->beforeAboutToQuit();
 
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
@@ -1789,14 +1788,13 @@ void Application::cleanupBeforeQuit() {
         _snapshotSoundInjector->stop();
     }
 
-    // stop audio after QML, as there are unexplained audio crashes originating in qtwebengine
-
-    // stop the AudioClient, synchronously
+    // FIXME: something else is holding a reference to AudioClient,
+    // so it must be explicitly synchronously stopped here
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
-                              "stop", Qt::BlockingQueuedConnection);
-
+        "cleanupBeforeQuit", Qt::BlockingQueuedConnection);
 
     // destroy Audio so it and its threads have a chance to go down safely
+    // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
 
@@ -4331,13 +4329,6 @@ void Application::update(float deltaTime) {
             if (nearbyEntitiesAreReadyForPhysics()) {
                 _physicsEnabled = true;
                 getMyAvatar()->updateMotionBehaviorFromMenu();
-            } else {
-                auto characterController = getMyAvatar()->getCharacterController();
-                if (characterController) {
-                    // if we have a character controller, disable it here so the avatar doesn't get stuck due to
-                    // a non-loading collision hull.
-                    characterController->setEnabled(false);
-                }
             }
         }
     } else if (domainLoadingInProgress) {

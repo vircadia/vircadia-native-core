@@ -369,21 +369,7 @@ function getAvailableConnections(domain, callback) { // callback([{usename, loca
         url += 'filter=connections'; // regardless of whether online
     }
     requestJSON(url, function (connectionsData) {
-        // The back end doesn't include the profile picture data, but we can add that here.
-        // For our current purposes, there's no need to be fancy and try to reduce latency by doing some number of requests in parallel,
-        // so these requests are all sequential.
-        var users = connectionsData.users;
-        function addPicture(index) {
-            if (index >= users.length) {
-                return callback(users);
-            }
-            var user = users[index];
-            getProfilePicture(user.username, function (url) {
-                user.profileUrl = url;
-                addPicture(index + 1);
-            });
-        }
-        addPicture(0);
+        callback(connectionsData.users);
     });
 }
 
@@ -397,7 +383,7 @@ function getConnectionData(domain) { // Update all the usernames that I am entit
             sessionId: formattedSessionId,
             userName: user.username,
             connection: user.connection,
-            profileUrl: user.profileUrl,
+            profileUrl: user.images.thumbnail,
             placeName: (user.location.root || user.location.domain || {}).name || ''
         };
     }
