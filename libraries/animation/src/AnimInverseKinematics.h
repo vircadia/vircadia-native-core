@@ -48,10 +48,12 @@ public:
         RelaxToLimitCenterPoses,
         PreviousSolution,
         UnderPoses,
-        LimitCenterPoses
+        LimitCenterPoses,
+        NumSolutionSources,
     };
 
     void setSolutionSource(SolutionSource solutionSource) { _solutionSource = solutionSource; }
+    void setSolutionSourceVar(const QString& solutionSourceVar) { _solutionSourceVar = solutionSourceVar; }
 
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
@@ -59,7 +61,7 @@ protected:
     int solveTargetWithCCD(const IKTarget& target, AnimPoseVec& absolutePoses);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
     void debugDrawConstraints(const AnimContext& context) const;
-    void initRelativePosesFromSolutionSource(const AnimPoseVec& underPose);
+    void initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPose);
     void relaxToPoses(const AnimPoseVec& poses);
 
     // for AnimDebugDraw rendering
@@ -116,6 +118,7 @@ protected:
     float _maxErrorOnLastSolve { FLT_MAX };
     bool _previousEnableDebugIKTargets { false };
     SolutionSource _solutionSource { SolutionSource::RelaxToUnderPoses };
+    QString _solutionSourceVar;
 };
 
 #endif // hifi_AnimInverseKinematics_h

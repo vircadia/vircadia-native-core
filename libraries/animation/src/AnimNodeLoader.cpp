@@ -352,6 +352,23 @@ static AnimOverlay::BoneSet stringToBoneSetEnum(const QString& str) {
     return AnimOverlay::NumBoneSets;
 }
 
+static const char* solutionSourceStrings[AnimInverseKinematics::SolutionSource::NumSolutionSources] = {
+    "relaxToUnderPoses",
+    "relaxToLimitCenterPoses",
+    "previousSolution",
+    "underPoses",
+    "limitCenterPoses"
+};
+
+static AnimInverseKinematics::SolutionSource stringToSolutionSourceEnum(const QString& str) {
+    for (int i = 0; i < (int)AnimInverseKinematics::SolutionSource::NumSolutionSources; i++) {
+        if (str == solutionSourceStrings[i]) {
+            return (AnimInverseKinematics::SolutionSource)i;
+        }
+    }
+    return AnimInverseKinematics::SolutionSource::NumSolutionSources;
+}
+
 static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_STRING(boneSet, jsonObj, id, jsonUrl, nullptr);
@@ -456,6 +473,26 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
 
         node->setTargetVars(jointName, positionVar, rotationVar, typeVar);
     };
+
+    READ_OPTIONAL_STRING(solutionSource, jsonObj);
+
+    if (!solutionSource.isEmpty()) {
+        qCDebug(animation) << "AJT: REMOVE solutionSource = " << solutionSource;
+
+        AnimInverseKinematics::SolutionSource solutionSourceType = stringToSolutionSourceEnum(solutionSource);
+        if (solutionSourceType != AnimInverseKinematics::SolutionSource::NumSolutionSources) {
+            node->setSolutionSource(solutionSourceType);
+        } else {
+            qCWarning(animation) << "AnimNodeLoader, bad solutionSourceType in \"solutionSource\", id = " << id << ", url = " << jsonUrl.toDisplayString();
+        }
+    }
+
+    READ_OPTIONAL_STRING(solutionSourceVar, jsonObj);
+
+    if (!solutionSourceVar.isEmpty()) {
+        qCDebug(animation) << "AJT: REMOVE solutionSourceVar = " << solutionSourceVar;
+        node->setSolutionSourceVar(solutionSourceVar);
+    }
 
     return node;
 }

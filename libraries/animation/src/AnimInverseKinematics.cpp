@@ -399,6 +399,9 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
 
+    // allows solutionSource to be overridden by an animVar
+    auto solutionSource = animVars.lookup(_solutionSourceVar, (int)_solutionSource);
+
     if (context.getEnableDebugDrawIKConstraints()) {
         debugDrawConstraints(context);
     }
@@ -414,7 +417,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
         PROFILE_RANGE_EX(simulation_animation, "ik/relax", 0xffff00ff, 0);
 
-        initRelativePosesFromSolutionSource(underPoses);
+        initRelativePosesFromSolutionSource((SolutionSource)solutionSource, underPoses);
 
         if (!underPoses.empty()) {
             // Sometimes the underpose itself can violate the constraints.  Rather than
@@ -1135,8 +1138,8 @@ void AnimInverseKinematics::relaxToPoses(const AnimPoseVec& poses) {
     }
 }
 
-void AnimInverseKinematics::initRelativePosesFromSolutionSource(const AnimPoseVec& underPoses) {
-    switch (_solutionSource) {
+void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPoses) {
+    switch (solutionSource) {
     default:
     case SolutionSource::RelaxToUnderPoses:
         relaxToPoses(underPoses);
