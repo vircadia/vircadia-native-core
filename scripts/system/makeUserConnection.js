@@ -613,7 +613,7 @@
         // 3. We also don't want to connect to someone who is anonymous _now_, but was not earlier and still has
         //    the same node id.  Since the messaging doesn't say _who_ isn't logged in, fail the same as if we are
         //    not logged in.
-        if (!Account.isLoggedIn() || !isLoggedIn) {
+        if (!Account.isLoggedIn() || isLoggedIn === false) {
             handleConnectionResponseAndMaybeRepeat("401:Unauthorized", {statusCode: 401});
             return;
         }
