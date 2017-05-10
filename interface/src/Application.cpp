@@ -1688,7 +1688,6 @@ void Application::updateHeartbeat() const {
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
-    DependencyManager::get<AudioClient>()->beforeAboutToQuit();
 
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
@@ -1789,14 +1788,13 @@ void Application::cleanupBeforeQuit() {
         _snapshotSoundInjector->stop();
     }
 
-    // stop audio after QML, as there are unexplained audio crashes originating in qtwebengine
-
-    // stop the AudioClient, synchronously
+    // FIXME: something else is holding a reference to AudioClient,
+    // so it must be explicitly synchronously stopped here
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
-                              "stop", Qt::BlockingQueuedConnection);
-
+        "cleanupBeforeQuit", Qt::BlockingQueuedConnection);
 
     // destroy Audio so it and its threads have a chance to go down safely
+    // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
 

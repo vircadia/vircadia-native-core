@@ -89,8 +89,7 @@ void Head::simulate(float deltaTime) {
         _timeWithoutTalking += deltaTime;
         if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
             _timeWithoutTalking = 0.0f;
-
-        } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
+        } else if (_timeWithoutTalking - deltaTime < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
             forceBlink = true;
         }
 

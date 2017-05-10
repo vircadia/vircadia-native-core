@@ -369,23 +369,25 @@ void Avatar::simulate(float deltaTime, bool inView) {
     PerformanceTimer perfTimer("simulate");
     {
         PROFILE_RANGE(simulation, "updateJoints");
-        if (inView && _hasNewJointData) {
-            _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
-            glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
-            _skeletonModel->getRig()->computeExternalPoses(rootTransform);
-            _jointDataSimulationRate.increment();
-
-            _skeletonModel->simulate(deltaTime, true);
-
-            locationChanged(); // joints changed, so if there are any children, update them.
-            _hasNewJointData = false;
-
-            glm::vec3 headPosition = getPosition();
-            if (!_skeletonModel->getHeadPosition(headPosition)) {
-                headPosition = getPosition();
-            }
+        if (inView) {
             Head* head = getHead();
-            head->setPosition(headPosition);
+            if (_hasNewJointData) {
+                _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
+                glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
+                _skeletonModel->getRig()->computeExternalPoses(rootTransform);
+                _jointDataSimulationRate.increment();
+
+                _skeletonModel->simulate(deltaTime, true);
+
+                locationChanged(); // joints changed, so if there are any children, update them.
+                _hasNewJointData = false;
+
+                glm::vec3 headPosition = getPosition();
+                if (!_skeletonModel->getHeadPosition(headPosition)) {
+                    headPosition = getPosition();
+                }
+                head->setPosition(headPosition);
+            }
             head->setScale(getUniformScale());
             head->simulate(deltaTime);
         } else {
