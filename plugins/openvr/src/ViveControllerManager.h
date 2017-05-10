@@ -50,14 +50,14 @@ public:
 private:
     class InputDevice : public controller::InputDevice {
     public:
-        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) {}
+        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) { createPreferences(); }
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;
         QString getDefaultMappingConfig() const override;
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
-
+        void createPreferences();
         bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         void hapticsHelper(float deltaTime, bool leftHand);
         void calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration);
@@ -100,8 +100,9 @@ private:
             float _timer { 0.0f };
             glm::vec2 _stick { 0.0f, 0.0f };
         };
-        enum class Config { Feet, FeetAndHips, FeetHipsAndChest, NoConfig };
-        Config _config { Config::NoConfig };
+        enum class Config { Feet, FeetAndHips, FeetHipsAndChest, Auto };
+        Config _config { Config::Auto };
+        Config _preferedConfig { Config::Auto };
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
 
@@ -125,6 +126,10 @@ private:
         bool _timeTilCalibrationSet { false };
         mutable std::recursive_mutex _lock;
 
+        QString configToString();
+        void setConfigFromString(const QString& value);
+        void loadSettings();
+        void saveSettings() const;
         friend class ViveControllerManager;
     };
 
