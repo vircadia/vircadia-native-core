@@ -20,6 +20,7 @@
 #include <QDebug>
 
 #include "BoxBase.h"
+#include "GeometryUtil.h"
 #include "StreamUtils.h"
 
 class AACube;
@@ -58,6 +59,7 @@ public:
     const glm::vec3& getMinimumPoint() const { return _corner; }
     glm::vec3 getMaximumPoint() const { return calcTopFarLeft(); }
 
+    bool contains(const Triangle& triangle) const;
     bool contains(const glm::vec3& point) const;
     bool contains(const AABox& otherBox) const;
     bool touches(const AABox& otherBox) const;
@@ -111,6 +113,19 @@ public:
     bool isInvalid() const { return _corner == INFINITY_VECTOR; }
 
     void clear() { _corner = INFINITY_VECTOR; _scale = glm::vec3(0.0f); }
+
+    typedef enum {
+        topLeftNear,
+        topLeftFar,
+        topRightNear,
+        topRightFar,
+        bottomLeftNear,
+        bottomLeftFar,
+        bottomRightNear,
+        bottomRightFar
+    } OctreeChild;
+
+    AABox getOctreeChild(OctreeChild child) const; // returns the AABox of the would be octree child of this AABox
 
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;

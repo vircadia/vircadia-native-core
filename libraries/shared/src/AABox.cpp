@@ -114,6 +114,10 @@ static bool isWithin(float value, float corner, float size) {
     return value >= corner && value <= corner + size;
 }
 
+bool AABox::contains(const Triangle& triangle) const {
+    return contains(triangle.v0) && contains(triangle.v1) && contains(triangle.v2);
+}
+
 bool AABox::contains(const glm::vec3& point) const {
     return isWithin(point.x, _corner.x, _scale.x) &&
         isWithin(point.y, _corner.y, _scale.y) &&
@@ -621,4 +625,41 @@ void AABox::transform(const glm::mat4& matrix) {
     auto newCenter = transformPoint(matrix, center);
     _corner = newCenter - newDir;
     _scale = newDir * 2.0f;
+}
+
+AABox AABox::getOctreeChild(OctreeChild child) const {
+    AABox result(*this); // self
+    switch (child) {
+        case topLeftNear:
+            result._corner.y += _scale.y / 2.0f;
+            break;
+        case topLeftFar:
+            result._corner.y += _scale.y / 2.0f;
+            result._corner.z += _scale.z / 2.0f;
+            break;
+        case topRightNear:
+            result._corner.y += _scale.y / 2.0f;
+            result._corner.x += _scale.x / 2.0f;
+            break;
+        case topRightFar:
+            result._corner.y += _scale.y / 2.0f;
+            result._corner.x += _scale.x / 2.0f;
+            result._corner.z += _scale.z / 2.0f;
+            break;
+        case bottomLeftNear:
+            // _corner = same as parent
+            break;
+        case bottomLeftFar:
+            result._corner.z += _scale.z / 2.0f;
+            break;
+        case bottomRightNear:
+            result._corner.x += _scale.x / 2.0f;
+            break;
+        case bottomRightFar:
+            result._corner.x += _scale.x / 2.0f;
+            result._corner.z += _scale.z / 2.0f;
+            break;
+    }
+    result._scale /= 2.0f; // everything is half the scale
+    return result;
 }
