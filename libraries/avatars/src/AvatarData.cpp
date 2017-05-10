@@ -1497,9 +1497,9 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
 
 void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew) {
 
-    if (identity.updatedAt < _identityUpdatedAt + clockSkew) {
+    if ((_identityUpdatedAt > identity.updatedAt - clockSkew) && (_identityUpdatedAt != 0)) {
         qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
-                << "identity.updatedAt:" << identity.updatedAt << "_identityUpdatedAt:" << _identityUpdatedAt << "clockSkew:" << clockSkew;
+            << "_identityUpdatedAt (" << _identityUpdatedAt << ") is greater than identity.updatedAt - clockSkew (" << identity.updatedAt << "-" << clockSkew << ")";
         return;
     }
 
@@ -1535,7 +1535,7 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
 
     // use the timestamp from this identity, since we want to honor the updated times in "server clock"
     // this will overwrite any changes we made locally to this AvatarData's _identityUpdatedAt
-    _identityUpdatedAt = identity.updatedAt;
+    _identityUpdatedAt = identity.updatedAt - clockSkew;
 }
 
 QByteArray AvatarData::identityByteArray() const {
