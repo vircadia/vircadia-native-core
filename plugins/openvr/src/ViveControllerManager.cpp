@@ -576,7 +576,7 @@ void ViveControllerManager::InputDevice::saveSettings() const {
 }
 
 QString ViveControllerManager::InputDevice::configToString() {
-    QString currentConfig = "";
+    QString currentConfig;
     switch (_preferedConfig) {
         case Config::Auto:
             currentConfig = "Auto";
@@ -601,7 +601,7 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
     if (value ==  "Auto") {
         _preferedConfig = Config::Auto;
     } else if (value == "Feet") {
-            _preferedConfig = Config::Feet;
+        _preferedConfig = Config::Feet;
     } else if (value == "FeetAndHips") {
         _preferedConfig = Config::FeetAndHips;
     } else if (value == "FeetHipsAndChest") {
@@ -612,7 +612,7 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
 void ViveControllerManager::InputDevice::createPreferences() {
     loadSettings();
     auto preferences = DependencyManager::get<Preferences>();
-    static const QString VIVE_PUCKS_CONFIG { "Vive Pucks Configuration" };
+    static const QString VIVE_PUCKS_CONFIG = "Vive Pucks Configuration";
 
     {
         auto getter = [this]()->QString { return configToString(); };
