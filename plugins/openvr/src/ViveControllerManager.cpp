@@ -475,7 +475,7 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
 void ViveControllerManager::InputDevice::handleHeadPoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
                                                              const vec3& linearVelocity, const vec3& angularVelocity) {
 
-    // perform a 180 flip to make tha HMD face the +z, which is the same direction of the head faces.
+    //perform a 180 flip to make the HMD face the +z instead of -z, beacuse the head faces +z
     glm::mat4 matYFlip = mat * Matrices::Y_180;
     controller::Pose pose(extractTranslation(matYFlip), glmExtractRotation(matYFlip), linearVelocity, angularVelocity);
 
