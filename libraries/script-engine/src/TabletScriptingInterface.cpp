@@ -250,6 +250,10 @@ static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* 
     if (QThread::currentThread() != qmlTablet->thread()) {
         connectionType = Qt::BlockingQueuedConnection;
     }
+	if (buttonProxy == NULL){
+		qCCritical(scriptengine) << "TabletScriptingInterface addButtonProxyToQmlTablet buttonProxy is NULL";
+		return;
+	}
     bool hasResult = QMetaObject::invokeMethod(qmlTablet, "addButtonProxy", connectionType,
                                                Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, buttonProxy->getProperties()));
     if (!hasResult) {
