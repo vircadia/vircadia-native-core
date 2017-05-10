@@ -340,8 +340,7 @@ void ViveControllerManager::InputDevice::handleHmd(uint32_t deviceIndex, const c
 
      if (_system->IsTrackedDeviceConnected(deviceIndex) &&
          _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_HMD &&
-         _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid &&
-         poseIndex <= controller::TRACKED_OBJECT_15) {
+         _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid) {
 
          const mat4& mat = _nextSimPoseData.poses[deviceIndex];
          const vec3 linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
@@ -476,6 +475,7 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
 void ViveControllerManager::InputDevice::handleHeadPoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
                                                              const vec3& linearVelocity, const vec3& angularVelocity) {
 
+    // perform a 180 flip to make tha HMD face the +z, which is the same direction of the head faces.
     glm::mat4 matYFlip = mat * Matrices::Y_180;
     controller::Pose pose(extractTranslation(matYFlip), glmExtractRotation(matYFlip), linearVelocity, angularVelocity);
 
