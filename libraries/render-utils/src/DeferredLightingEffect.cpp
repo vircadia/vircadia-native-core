@@ -141,6 +141,19 @@ void DeferredLightingEffect::init() {
     _globalLights.push_back(_lightStage->addLight(lp));
     _lightStage->addShadow(_globalLights[0]);
 
+
+    _backgroundStage = std::make_shared<BackgroundStage>();
+
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.jpg" };
+    QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
+
+    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, image::TextureUsage::CUBE_TEXTURE, { { "generateIrradiance", false } });
+    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, image::TextureUsage::CUBE_TEXTURE, { { "generateIrradiance", true } });
+
+    _defaultSkybox->setCubemap(_defaultSkyboxTexture);
+
 }
 
 void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {

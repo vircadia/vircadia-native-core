@@ -26,6 +26,8 @@
 #include <LightPayload.h>
 #include "DeferredLightingEffect.h"
 
+#include <procedural\ProceduralSkybox.h>
+
 class RenderableZoneEntityItemMeta {
 public:
     RenderableZoneEntityItemMeta(EntityItemPointer entity);
@@ -45,7 +47,8 @@ public:
 
     model::LightPointer editSunLight() { _needSunUpdate = true; return _sunLight; }
     model::LightPointer editAmbientLight() { _needAmbientUpdate = true; return _ambientLight; }
-    model::SkyboxPointer editSkybox() { _needSkyboxUpdate = true; return _skybox; }
+    model::SunSkyStagePointer editBackground() { _needBackgroundUpdate = true; return _background; }
+    model::SkyboxPointer editSkybox() { return editBackground()->getSkybox(); }
 
     void setAmbientURL(const QString& ambientUrl);
 
@@ -56,16 +59,19 @@ protected:
 
     model::LightPointer _sunLight;
     model::LightPointer _ambientLight;
-    model::SkyboxPointer _skybox;
+    model::SunSkyStagePointer _background;
 
     LightStagePointer _stage;
     LightStage::Index _sunIndex { LightStage::INVALID_INDEX };
     LightStage::Index _ambientIndex { LightStage::INVALID_INDEX };
 
+    BackgroundStagePointer _backgroundStage;
+    BackgroundStage::Index _backgroundIndex { BackgroundStage::INVALID_INDEX };
+
     bool _needUpdate { true };
     bool _needSunUpdate { true };
     bool _needAmbientUpdate { true };
-    bool _needSkyboxUpdate { true };
+    bool _needBackgroundUpdate { true };
     bool _isVisible { true };
 
 
@@ -356,7 +362,7 @@ void RenderableZoneEntityItem::updateKeyAmbientFromEntity(RenderableZoneEntityIt
 }
 
 void RenderableZoneEntityItem::updateKeyBackgroundFromEntity(RenderableZoneEntityItemMeta& keyZonePayload) {
-    auto skybox = keyZonePayload.editSkybox();
+    auto background = keyZonePayload.editBackground();
 
     this->getBackgroundMode();
 
@@ -436,8 +442,10 @@ RenderableZoneEntityItemMeta::RenderableZoneEntityItemMeta(EntityItemPointer ent
     entity(entity),
     _sunLight(std::make_shared<model::Light>()),
     _ambientLight(std::make_shared<model::Light>()),
-    _skybox(std::make_shared<model::Skybox>())
-{}
+    _background(std::make_shared<model::SunSkyStage>())
+{
+    _background->setSkybox(std::make_shared<ProceduralSkybox>());
+}
 
 
 RenderableZoneEntityItemMeta::~RenderableZoneEntityItemMeta() {
@@ -448,6 +456,12 @@ RenderableZoneEntityItemMeta::~RenderableZoneEntityItemMeta() {
         if (!LightStage::isIndexInvalid(_ambientIndex)) {
             _stage->removeLight(_ambientIndex); 
              
+        }
+    }
+
+    if (_backgroundStage) {
+        if (!BackgroundStage::isIndexInvalid(_backgroundIndex)) {
+            _backgroundStage->removeBackground(_backgroundIndex);
         }
     }
 }
@@ -541,6 +555,10 @@ void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
         _stage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     }
 
+    if (!_backgroundStage) {
+        _backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
+    }
+
     { // Sun 
         // Need an update ?
         if (_needSunUpdate) {
@@ -572,11 +590,20 @@ void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
     { // Skybox
         updateSkyboxMap();
 
+        if (_needBackgroundUpdate) {
+            if (BackgroundStage::isIndexInvalid(_backgroundIndex)) {
+                _backgroundIndex = _backgroundStage->addBackground(_background);
+            } else {
+
+            }
+            _needBackgroundUpdate = false;
+        }
     }
 
     if (isVisible()) {
         // FInally, push the light visible in the frame
         _stage->_currentFrame.pushSunLight(_sunIndex);
         _stage->_currentFrame.pushAmbientLight(_ambientIndex);
+        _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
     }
 }

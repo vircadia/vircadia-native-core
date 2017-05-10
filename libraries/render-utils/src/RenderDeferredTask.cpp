@@ -139,9 +139,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
     // Use Stencil and draw background in Lighting buffer to complete filling in the opaque
-    const auto backgroundInputs = DrawBackgroundDeferred::Inputs(background, lightingModel).hasVarying();
-    task.addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", backgroundInputs);
-   
+    //const auto backgroundInputs = DrawBackgroundDeferred::Inputs(background, lightingModel).hasVarying();
+    //task.addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", backgroundInputs);
+
+    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
     
     // Render transparent objects forward in LightingBuffer
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();

@@ -20,6 +20,8 @@
 #include "model/Light.h"
 #include "model/Geometry.h"
 
+#include <procedural/ProceduralSkybox.h>
+
 #include <render/CullTask.h>
 
 #include "DeferredFrameTransform.h"
@@ -28,10 +30,12 @@
 
 #include "LightStage.h"
 #include "LightClusters.h"
+#include "BackgroundEffect.h"
 
 #include "SurfaceGeometryPass.h"
 #include "SubsurfaceScattering.h"
 #include "AmbientOcclusionEffect.h"
+
 
 class RenderArgs;
 struct LightLocations;
@@ -51,15 +55,21 @@ public:
     void setGlobalLight(const model::LightPointer& light);
 
     const LightStagePointer& getLightStage() { return _lightStage; }
+    const BackgroundStagePointer& getBackgroundStage() { return _backgroundStage; }
 
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
     bool isAmbientOcclusionEnabled() const { return _ambientOcclusionEnabled; }
 
+    model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
+    gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture; }
+    gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
+
 private:
     DeferredLightingEffect() = default;
 
     LightStagePointer _lightStage;
+    BackgroundStagePointer _backgroundStage;
 
     bool _shadowMapEnabled{ false };
     bool _ambientOcclusionEnabled{ false };
@@ -102,6 +112,10 @@ private:
 
     Lights _allocatedLights;
     std::vector<int> _globalLights;
+
+    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
+    gpu::TexturePointer _defaultSkyboxTexture;
+    gpu::TexturePointer _defaultSkyboxAmbientTexture;
 
     friend class LightClusteringPass;
     friend class RenderDeferredSetup;
