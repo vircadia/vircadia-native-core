@@ -122,7 +122,8 @@
     function debug() {
         var stateString = "<" + STATE_STRINGS[state] + ">";
         var connecting = "[" + connectingId + "/" + connectingHandJointIndex + "]";
-        print.apply(null, [].concat.apply([LABEL, stateString, JSON.stringify(waitingList), connecting],
+        var current = "[" + currentHand + "/" + currentHandJointIndex + "]"
+        print.apply(null, [].concat.apply([LABEL, stateString, current, JSON.stringify(waitingList), connecting],
             [].map.call(arguments, JSON.stringify)));
     }
 
@@ -759,7 +760,10 @@
             break;
         case "done":
             delete waitingList[senderID];
-            if (state === STATES.CONNECTING && connectingId === senderID) {
+            if (connectingId !== senderID) {
+                break;
+            }
+            if (state === STATES.CONNECTING) {
                 // if they are done, and didn't connect us, terminate our
                 // connecting
                 if (message.connectionId !== MyAvatar.sessionUUID) {
@@ -768,11 +772,20 @@
                     // value for isKeyboard, as we should not change the animation
                     // state anyways (if any)
                     startHandshake();
+                } else {
+                    // they just created a connection request to us, and we are connecting to
+                    // them, so lets just stop connecting and make connection..
+                    makeConnection(connectingId);
+                    stopConnecting();
                 }
             } else {
-                // if waiting or inactive, lets clear the connecting id. If in makingConnection,
-                // do nothing
-                if (state !== STATES.MAKING_CONNECTION && connectingId === senderID) {
+                if (state == STATES.MAKING_CONNECTION) {
+                    // we are making connection, they just started, so lets reset the
+                    // poll count just in case
+                    pollCount = 0;
+                } else {
+                    // if waiting or inactive, lets clear the connecting id. If in makingConnection,
+                    // do nothing
                     clearConnecting();
                     if (state !== STATES.INACTIVE) {
                         startHandshake();
