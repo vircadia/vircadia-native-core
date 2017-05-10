@@ -30,7 +30,7 @@
 
 #include "LightStage.h"
 #include "LightClusters.h"
-#include "BackgroundEffect.h"
+#include "BackgroundStage.h"
 
 #include "SurfaceGeometryPass.h"
 #include "SubsurfaceScattering.h"
