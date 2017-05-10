@@ -11,15 +11,15 @@
 //
 
 (function() {
-    var RED_BALLOON_URL = "https://s3.amazonaws.com/hifi-rabelaiis/redBalloon.fbx";
-    var BLUE_BALLOON_URL = "https://s3.amazonaws.com/hifi-rabelaiis/blueBalloon.fbx";
-    var GREEN_BALLOON_URL = "https://s3.amazonaws.com/hifi-rabelaiis/greenBalloon.fbx";
-    var YELLOW_BALLOON_URL = "https://s3.amazonaws.com/hifi-rabelaiis/yellowBalloon.fbx";
-    var ORANGE_BALLOON_URL = "https://s3.amazonaws.com/hifi-rabelaiis/orangeBalloon.fbx";
-    var CYAN_BALLOON_URL = "https://s3.amazonaws.com/hifi-rabelaiis/cyanBalloon.fbx";
-    var PURPLE_BALLOON_URL = "https://s3.amazonaws.com/hifi-rabelaiis/purpleBalloon.fbx";
+    var RED_BALLOON_URL = "http://mpassets.highfidelity.com/8410ef73-9506-4dc7-b364-0174998a859e-v1/Models/redBalloon.fbx";
+    var BLUE_BALLOON_URL = "http://mpassets.highfidelity.com/8410ef73-9506-4dc7-b364-0174998a859e-v1/Models/blueBalloon.fbx";
+    var GREEN_BALLOON_URL = "http://mpassets.highfidelity.com/8410ef73-9506-4dc7-b364-0174998a859e-v1/Models/greenBalloon.fbx";
+    var YELLOW_BALLOON_URL = "http://mpassets.highfidelity.com/8410ef73-9506-4dc7-b364-0174998a859e-v1/Models/yellowBalloon.fbx";
+    var ORANGE_BALLOON_URL = "http://mpassets.highfidelity.com/8410ef73-9506-4dc7-b364-0174998a859e-v1/Models/orangeBalloon.fbx";
+    var CYAN_BALLOON_URL = "http://mpassets.highfidelity.com/8410ef73-9506-4dc7-b364-0174998a859e-v1/Models/cyanBalloon.fbx";
+    var PURPLE_BALLOON_URL = "http://mpassets.highfidelity.com/8410ef73-9506-4dc7-b364-0174998a859e-v1/Models/purpleBalloon.fbx";
     //'Blue Skies' by Silent Partner from youtube audio library. Listed as attribution not required
-    var SPAWN_MUSIC_URL = "https://s3.amazonaws.com/hifi-rabelaiis/Blue_Skies.wav"
+    var SPAWN_MUSIC_URL = "http://mpassets.highfidelity.com/8410ef73-9506-4dc7-b364-0174998a859e-v1/Audio/Blue_Skies.wav"
 
     var BALLOON_COLORS = ["red", "blue", "green", "yellow", "orange", "cyan", "purple"];
     var BALLOON_URLS = [RED_BALLOON_URL, BLUE_BALLOON_URL, GREEN_BALLOON_URL,
