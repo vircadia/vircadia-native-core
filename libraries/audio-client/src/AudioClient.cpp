@@ -1375,7 +1375,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
     if (!inputDeviceInfo.isNull()) {
         qCDebug(audioclient) << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
         _inputAudioDeviceName = inputDeviceInfo.deviceName().trimmed();
-        emit currentInputDeviceChanged();
+        emit currentInputDeviceChanged(_inputAudioDeviceName);
 
         if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
             qCDebug(audioclient) << "The format to be used for audio input is" << _inputFormat;
@@ -1493,7 +1493,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
     if (!outputDeviceInfo.isNull()) {
         qCDebug(audioclient) << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
         _outputAudioDeviceName = outputDeviceInfo.deviceName().trimmed();
-        emit currentOutputDeviceChanged();
+        emit currentOutputDeviceChanged(_outputAudioDeviceName);
 
         if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
             qCDebug(audioclient) << "The format to be used for audio output is" << _outputFormat;

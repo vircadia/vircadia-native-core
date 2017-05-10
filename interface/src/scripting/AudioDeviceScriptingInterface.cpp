@@ -11,21 +11,19 @@
 
 #include "AudioClient.h"
 #include "AudioDeviceScriptingInterface.h"
-
+#include "SettingsScriptingInterface.h"
 
 AudioDeviceScriptingInterface* AudioDeviceScriptingInterface::getInstance() {
     static AudioDeviceScriptingInterface sharedInstance;
     return &sharedInstance;
 }
 
-QStringList AudioDeviceScriptingInterface::inputAudioDevices() const
-{
-    return DependencyManager::get<AudioClient>()->getDeviceNames(QAudio::AudioInput).toList();;
+QStringList AudioDeviceScriptingInterface::inputAudioDevices() const {
+    return _inputAudioDevices;
 }
 
-QStringList AudioDeviceScriptingInterface::outputAudioDevices() const
-{
-    return DependencyManager::get<AudioClient>()->getDeviceNames(QAudio::AudioOutput).toList();;
+QStringList AudioDeviceScriptingInterface::outputAudioDevices() const {
+    return _outputAudioDevices;
 }
 
 bool AudioDeviceScriptingInterface::muted()
@@ -44,6 +42,16 @@ AudioDeviceScriptingInterface::AudioDeviceScriptingInterface(): QAbstractListMod
         this, &AudioDeviceScriptingInterface::onCurrentOutputDeviceChanged, Qt::QueuedConnection);
     //fill up model
     onDeviceChanged();
+    //set up previously saved device
+    SettingsScriptingInterface *settings = SettingsScriptingInterface::getInstance();
+    const QString inDevice = settings->getValue("audio_input_device").toString();
+    if (inDevice != _currentInputDevice) {
+        setInputDeviceAsync(inDevice);
+    }
+    const QString outDevice = settings->getValue("audio_output_device").toString();
+    if (outDevice != _currentOutputDevice) {
+        setOutputDeviceAsync(outDevice);
+    }
 }
 
 bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {
@@ -62,6 +70,31 @@ bool AudioDeviceScriptingInterface::setOutputDevice(const QString& deviceName) {
                               Q_RETURN_ARG(bool, result),
                               Q_ARG(const QString&, deviceName));
     return result;
+}
+
+bool AudioDeviceScriptingInterface::setDeviceFromMenu(const QString &deviceMenuName) {
+    QAudio::Mode mode;
+
+    if (deviceMenuName.indexOf("for Output") != -1) {
+        mode = QAudio::AudioOutput;
+    } else if (deviceMenuName.indexOf("for Input") != -1) {
+        mode = QAudio::AudioInput;
+    } else {
+        return false;
+    }
+
+    for (ScriptingAudioDeviceInfo di: _devices) {
+        if (mode == di.mode && deviceMenuName.contains(di.name)) {
+            if (mode == QAudio::AudioOutput) {
+                setOutputDeviceAsync(di.name);
+            } else {
+                setInputDeviceAsync(di.name);
+            }
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void AudioDeviceScriptingInterface::setInputDeviceAsync(const QString& deviceName) {
@@ -167,38 +200,51 @@ QHash<int, QByteArray> AudioDeviceScriptingInterface::roleNames() const {
 void AudioDeviceScriptingInterface::onDeviceChanged()
 {
     beginResetModel();
+    _outputAudioDevices.clear();
     _devices.clear();
-    const QString &outDevice = getOutputDevice();
+    _currentOutputDevice = getOutputDevice();
     for (QString name: getOutputDevices()) {
-        AudioDeviceInfo di;
+        ScriptingAudioDeviceInfo di;
         di.name = name;
-        di.selected = (name == outDevice);
+        di.selected = (name == _currentOutputDevice);
         di.mode = QAudio::AudioOutput;
         _devices.append(di);
+        _outputAudioDevices.append(name);
     }
-    const QString &inDevice = getInputDevice();
+    emit outputAudioDevicesChanged(_outputAudioDevices);
+
+    _inputAudioDevices.clear();
+    _currentInputDevice = getInputDevice();
     for (QString name: getInputDevices()) {
-        AudioDeviceInfo di;
+        ScriptingAudioDeviceInfo di;
         di.name = name;
-        di.selected = (name == inDevice);
+        di.selected = (name == _currentInputDevice);
         di.mode = QAudio::AudioInput;
         _devices.append(di);
+        _inputAudioDevices.append(name);
     }
+    emit inputAudioDevicesChanged(_inputAudioDevices);
 
     endResetModel();
     emit deviceChanged();
 }
 
-void AudioDeviceScriptingInterface::onCurrentInputDeviceChanged()
+void AudioDeviceScriptingInterface::onCurrentInputDeviceChanged(const QString &name)
 {
-    currentDeviceUpdate(getInputDevice(), QAudio::AudioInput);
-    emit currentInputDeviceChanged();
+    currentDeviceUpdate(name, QAudio::AudioInput);
+    //we got a signal that device changed. Save it now
+    SettingsScriptingInterface *settings = SettingsScriptingInterface::getInstance();
+    settings->setValue("audio_input_device", name);
+    emit currentInputDeviceChanged(name);
 }
 
-void AudioDeviceScriptingInterface::onCurrentOutputDeviceChanged()
+void AudioDeviceScriptingInterface::onCurrentOutputDeviceChanged(const QString &name)
 {
-    currentDeviceUpdate(getOutputDevice(), QAudio::AudioOutput);
-    emit currentOutputDeviceChanged();
+    currentDeviceUpdate(name, QAudio::AudioOutput);
+    //we got a signal that device changed. Save it now
+    SettingsScriptingInterface *settings = SettingsScriptingInterface::getInstance();
+    settings->setValue("audio_output_device", name);
+    emit currentOutputDeviceChanged(name);
 }
 
 void AudioDeviceScriptingInterface::currentDeviceUpdate(const QString &name, QAudio::Mode mode)
@@ -207,7 +253,7 @@ void AudioDeviceScriptingInterface::currentDeviceUpdate(const QString &name, QAu
     role.append(SelectedRole);
 
     for (int i = 0; i < _devices.size(); i++) {
-        AudioDeviceInfo di = _devices.at(i);
+        ScriptingAudioDeviceInfo di = _devices.at(i);
         if (di.mode != mode)
             continue;
         if (di.selected && di.name != name ) {

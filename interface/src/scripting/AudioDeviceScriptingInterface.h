@@ -20,7 +20,7 @@
 
 class AudioEffectOptions;
 
-struct AudioDeviceInfo {
+struct ScriptingAudioDeviceInfo {
     QString name;
     bool selected;
     QAudio::Mode mode;
@@ -52,13 +52,14 @@ public:
 
 private slots:
     void onDeviceChanged();
-    void onCurrentInputDeviceChanged();
-    void onCurrentOutputDeviceChanged();
+    void onCurrentInputDeviceChanged(const QString &name);
+    void onCurrentOutputDeviceChanged(const QString &name);
     void currentDeviceUpdate(const QString &name, QAudio::Mode mode);
 
 public slots:
     bool setInputDevice(const QString& deviceName);
     bool setOutputDevice(const QString& deviceName);
+    bool setDeviceFromMenu(const QString& deviceMenuName);
 
     QString getInputDevice();
     QString getOutputDevice();
@@ -87,14 +88,20 @@ private:
 signals:
     void muteToggled();
     void deviceChanged();
-    void currentInputDeviceChanged();
-    void currentOutputDeviceChanged();
+    void currentInputDeviceChanged(const QString &name);
+    void currentOutputDeviceChanged(const QString &name);
     void mutedChanged(bool muted);
     void inputAudioDevicesChanged(QStringList inputAudioDevices);
     void outputAudioDevicesChanged(QStringList outputAudioDevices);
 
 private:
-    QVector<AudioDeviceInfo> _devices;
+    QVector<ScriptingAudioDeviceInfo> _devices;
+
+    QStringList _inputAudioDevices;
+    QStringList _outputAudioDevices;
+
+    QString _currentInputDevice;
+    QString _currentOutputDevice;
 };
 
 #endif // hifi_AudioDeviceScriptingInterface_h

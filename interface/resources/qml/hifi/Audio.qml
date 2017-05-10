@@ -162,7 +162,6 @@ Rectangle {
                     onCheckBoxClicked: {
                         if (checked) {
                             AudioDevice.setInputDeviceAsync(devicename)
-                            Settings.setValue("audio_input_device", devicename);
                         }
                     }
                 }
@@ -219,7 +218,6 @@ Rectangle {
                     onCheckBoxClicked: {
                         if (checked) {
                             AudioDevice.setOutputDeviceAsync(devicename)
-                            Settings.setValue("audio_output_device", devicename);
                         }
                     }
                 }
