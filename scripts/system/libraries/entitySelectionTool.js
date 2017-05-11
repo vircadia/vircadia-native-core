@@ -2162,6 +2162,12 @@ SelectionDisplay = (function() {
             position: FAR
         });
 
+        Overlays.editOverlay(grabberCloner, {
+            visible: true,
+            rotation: rotation,
+            position: EdgeTR
+        });
+
         var boxPosition = Vec3.multiplyQbyV(rotation, center);
         boxPosition = Vec3.sum(position, boxPosition);
         Overlays.editOverlay(selectionBox, {
@@ -2317,11 +2323,6 @@ SelectionDisplay = (function() {
                 y: selectionManager.worldDimensions.z
             },
             rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
-        });
-        Overlays.editOverlay(grabberCloner, {
-            visible: stretchHandlesVisible,
-            rotation: rotation,
-            position: RIGHT
         });
 
     };
