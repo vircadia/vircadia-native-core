@@ -445,17 +445,17 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasFaceTrackerInfo) {
         auto startSection = destinationBuffer;
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
+        auto blendshapeCoefficients = _headData->getSummedBlendshapeCoefficients();
 
         faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
         faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
         faceTrackerInfo->averageLoudness = _headData->_averageLoudness;
         faceTrackerInfo->browAudioLift = _headData->_browAudioLift;
-        faceTrackerInfo->numBlendshapeCoefficients = _headData->_blendshapeCoefficients.size();
+        faceTrackerInfo->numBlendshapeCoefficients = blendshapeCoefficients.size();
         destinationBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
 
-        // followed by a variable number of float coefficients
-        memcpy(destinationBuffer, _headData->_blendshapeCoefficients.data(), _headData->_blendshapeCoefficients.size() * sizeof(float));
-        destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
+        memcpy(destinationBuffer, blendshapeCoefficients.data(), blendshapeCoefficients.size() * sizeof(float));
+        destinationBuffer += blendshapeCoefficients.size() * sizeof(float);
 
         int numBytes = destinationBuffer - startSection;
         if (outboundDataRateOut) {
@@ -965,7 +965,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         const int coefficientsSize = sizeof(float) * numCoefficients;
         PACKET_READ_CHECK(FaceTrackerCoefficients, coefficientsSize);
         _headData->_blendshapeCoefficients.resize(numCoefficients);  // make sure there's room for the copy!
-        _headData->_baseBlendshapeCoefficients.resize(numCoefficients);
+        _headData->_transientBlendshapeCoefficients.resize(numCoefficients);
         memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
         sourceBuffer += coefficientsSize;
         int numBytesRead = sourceBuffer - startSection;
