@@ -202,6 +202,13 @@ void Head::calculateMouthShapes(float deltaTime) {
     float trailingAudioJawOpenRatio = (100.0f - deltaTime * NORMAL_HZ) / 100.0f; // --> 0.99 at 60 Hz
     _trailingAudioJawOpen = glm::mix(_trailingAudioJawOpen, _audioJawOpen, trailingAudioJawOpenRatio);
 
+    // truncate _mouthTime when mouth goes quiet to prevent floating point error on increment
+    const float SILENT_TRAILING_JAW_OPEN = 0.0002f;
+    const float MAX_SILENT_MOUTH_TIME = 10.0f;
+    if (_trailingAudioJawOpen < SILENT_TRAILING_JAW_OPEN && _mouthTime > MAX_SILENT_MOUTH_TIME) {
+        _mouthTime = 0.0f;
+    }
+
     // Advance time at a rate proportional to loudness, and move the mouth shapes through
     // a cycle at differing speeds to create a continuous random blend of shapes.
     _mouthTime += sqrtf(_averageLoudness) * TIMESTEP_CONSTANT * deltaTimeRatio;
