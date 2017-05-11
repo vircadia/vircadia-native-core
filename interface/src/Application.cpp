@@ -110,6 +110,7 @@
 #include <render/RenderFetchCullSortTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
+#include <PrototypeSelfie.h>
 #include <ResourceCache.h>
 #include <SandboxUtils.h>
 #include <SceneScriptingInterface.h>
@@ -1898,8 +1899,18 @@ void Application::initializeGL() {
     qCDebug(interfaceapp, "Initialized Display.");
 
     // Set up the render engine
-    render::CullFunctor cullFunctor = LODManager::shouldRender;
-    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
+   render::CullFunctor cullFunctor = LODManager::shouldRender;
+       static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
+    bool isDeferred = true;
+    if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
+        isDeferred = false;
+    }
+
+    _renderEngine->addJob<MainRenderTask>("MainFrame", cullFunctor, isDeferred);
+    _renderEngine->addJob<SelfieRenderTask>("SelfieFrame", cullFunctor);
+
+    
+/*    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
     const auto items = _renderEngine->addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
@@ -1908,6 +1919,7 @@ void Application::initializeGL() {
     } else {
         _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items);
     }
+    */
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
