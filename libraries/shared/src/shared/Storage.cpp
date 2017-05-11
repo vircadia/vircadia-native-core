@@ -38,8 +38,9 @@ StoragePointer Storage::toFileStorage(const QString& filename) const {
     return FileStorage::create(filename, size(), data());
 }
 
-MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) {
-    _data.resize(size);
+MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) : _size(size) {
+    _data.resize((size + 3) / 4); // alloc smallest number of 4-byte chunks that will cover size bytes
+
     if (data) {
         memcpy(_data.data(), data, size);
     }
