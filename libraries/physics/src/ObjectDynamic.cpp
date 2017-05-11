@@ -32,10 +32,14 @@ void ObjectDynamic::remapIDs(QHash<EntityItemID, EntityItemID>& map) {
         }
 
         if (!_otherID.isNull()) {
-            if (!map.contains(_otherID)) {
-                map.insert(_otherID, QUuid::createUuid());
+            QHash<EntityItemID, EntityItemID>::iterator iter = map.find(_otherID);
+            if (iter == map.end()) {
+                // not found, add it
+                _otherID = QUuid::createUuid();
+                map.insert(_otherID, _otherID);
+            } else {
+                _otherID = iter.value();
             }
-            _otherID = map.value(_otherID);
         }
     });
 }

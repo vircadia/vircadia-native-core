@@ -27,6 +27,8 @@ ObjectActionMotor::ObjectActionMotor(const QUuid& id, EntityItemPointer ownerEnt
     #if WANT_DEBUG
     qCDebug(physics) << "ObjectActionMotor::ObjectActionMotor";
     #endif
+
+    qCWarning(physics) << "action type \"motor\" doesn't yet work.";
 }
 
 ObjectActionMotor::~ObjectActionMotor() {

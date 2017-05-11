@@ -1611,13 +1611,14 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
         if (oldID.isNull()) {
             return EntityItemID();
         }
-        if (args->map->contains(oldID)) {
-            return EntityItemID(args->map->value(oldID));
-        } else {
+
+        QHash<EntityItemID, EntityItemID>::iterator iter = args->map->find(oldID);
+        if (iter == args->map->end()) {
             EntityItemID newID = QUuid::createUuid();
             args->map->insert(oldID, newID);
             return newID;
         }
+        return iter.value();
     };
 
     entityTreeElement->forEachEntity([&args, &getMapped, &element](EntityItemPointer item) {

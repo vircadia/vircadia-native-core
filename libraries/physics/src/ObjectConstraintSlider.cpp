@@ -108,8 +108,8 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
             axisInB = glm::normalize(axisInB);
         }
 
-        glm::quat rotA = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInA);
-        glm::quat rotB = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInB);
+        glm::quat rotA = glm::rotation(DEFAULT_SLIDER_AXIS, axisInA);
+        glm::quat rotB = glm::rotation(DEFAULT_SLIDER_AXIS, axisInB);
 
         btTransform frameInA(glmToBullet(rotA), glmToBullet(pointInA));
         btTransform frameInB(glmToBullet(rotB), glmToBullet(pointInB));
@@ -123,7 +123,7 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
     } else {
         // This slider is between an entity and the world-frame.
 
-        glm::quat rot = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInA);
+        glm::quat rot = glm::rotation(DEFAULT_SLIDER_AXIS, axisInA);
 
         btTransform frameInA(glmToBullet(rot), glmToBullet(pointInA));
 
