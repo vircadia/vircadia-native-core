@@ -151,7 +151,7 @@ void Head::simulate(float deltaTime) {
                                             _mouth2,
                                             _mouth3,
                                             _mouth4,
-                                            _blendshapeCoefficients);
+                                            _transientBlendshapeCoefficients);
 
         applyEyelidOffset(getOrientation());
 
@@ -234,15 +234,15 @@ void Head::applyEyelidOffset(glm::quat headOrientation) {
 
     for (int i = 0; i < 2; i++) {
         const int LEFT_EYE = 8;
-        float eyeCoefficient = _blendshapeCoefficients[i] - _blendshapeCoefficients[LEFT_EYE + i];  // Raw value
+        float eyeCoefficient = _transientBlendshapeCoefficients[i] - _transientBlendshapeCoefficients[LEFT_EYE + i];
         eyeCoefficient = glm::clamp(eyelidOffset + eyeCoefficient * (1.0f - eyelidOffset), -1.0f, 1.0f);
         if (eyeCoefficient > 0.0f) {
-            _blendshapeCoefficients[i] = eyeCoefficient;
-            _blendshapeCoefficients[LEFT_EYE + i] = 0.0f;
+            _transientBlendshapeCoefficients[i] = eyeCoefficient;
+            _transientBlendshapeCoefficients[LEFT_EYE + i] = 0.0f;
 
         } else {
-            _blendshapeCoefficients[i] = 0.0f;
-            _blendshapeCoefficients[LEFT_EYE + i] = -eyeCoefficient;
+            _transientBlendshapeCoefficients[i] = 0.0f;
+            _transientBlendshapeCoefficients[LEFT_EYE + i] = -eyeCoefficient;
         }
     }
 }

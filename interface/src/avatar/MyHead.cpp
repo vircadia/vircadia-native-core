@@ -48,7 +48,7 @@ void MyHead::simulate(float deltaTime) {
         FaceTracker* faceTracker = qApp->getActiveFaceTracker();
         _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
         if (_isFaceTrackerConnected) {
-            _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+            _transientBlendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
 
             if (typeid(*faceTracker) == typeid(DdeFaceTracker)) {
 
@@ -60,11 +60,11 @@ void MyHead::simulate(float deltaTime) {
                     const int FUNNEL_BLENDSHAPE = 40;
                     const int SMILE_LEFT_BLENDSHAPE = 28;
                     const int SMILE_RIGHT_BLENDSHAPE = 29;
-                    _blendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
-                    _blendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
-                    _blendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
-                    _blendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
-                    _blendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
+                    _transientBlendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
+                    _transientBlendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
+                    _transientBlendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
+                    _transientBlendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
+                    _transientBlendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
                 }
                 applyEyelidOffset(getFinalOrientationInWorldFrame());
             }
