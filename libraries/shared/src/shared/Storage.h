@@ -41,16 +41,15 @@ namespace storage {
     class MemoryStorage : public Storage {
     public:
         MemoryStorage(size_t size, const uint8_t* data = nullptr);
-        const uint8_t* data() const override { return reinterpret_cast<const uint8_t*>(_data.data()); }
-        uint8_t* data() { return reinterpret_cast<uint8_t*>(_data.data()); }
-        uint8_t* mutableData() override { return reinterpret_cast<uint8_t*>(_data.data()); }
+        const uint8_t* data() const override { return _data.data(); }
+        uint8_t* data() { return _data.data(); }
+        uint8_t* mutableData() override { return _data.data(); }
 
         size_t _size { 0 };
         size_t size() const override { return _size; }
         operator bool() const override { return true; }
     private:
-        // the vector is of uint32_t rather than uint8_t to force alignment
-        std::vector<uint32_t> _data;
+        std::vector<uint8_t> _data;
     };
 
     class FileStorage : public Storage {
