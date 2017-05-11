@@ -21,9 +21,9 @@
 #include <PIDController.h>
 #include <SimpleMovingAverage.h>
 #include <shared/RateCounter.h>
-#include <avatars-renderer/AvatarMotionState.h>
 #include <avatars-renderer/ScriptAvatar.h>
 
+#include "AvatarMotionState.h"
 #include "MyAvatar.h"
 
 class AudioInjector;
