@@ -105,6 +105,7 @@ void FileStorage::ensureWriteAccess() {
         _file.close();
     }
     _valid = false;
+    _mapped = nullptr;
 
     if (_file.open(QFile::ReadWrite)) {
         _mapped = _file.map(0, _file.size());
@@ -113,8 +114,10 @@ void FileStorage::ensureWriteAccess() {
             _hasWriteAccess = true;
         } else {
             qCWarning(storagelogging) << "Failed to map file " << _file.fileName();
+            throw std::runtime_error("Failed to map file");
         }
     } else {
         qCWarning(storagelogging) << "Failed to open file " << _file.fileName();
+        throw std::runtime_error("Failed to open file");
     }
 }
