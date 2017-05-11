@@ -25,6 +25,7 @@
 #include <plugins/InputPlugin.h>
 #include <RenderArgs.h>
 #include <render/Scene.h>
+#include "OpenVrHelpers.h"
 
 namespace vr {
     class IVRSystem;
@@ -108,6 +109,7 @@ private:
         std::vector<std::pair<uint32_t, controller::Pose>> _validTrackedObjects;
         std::map<uint32_t, glm::mat4> _pucksOffset;
         std::map<int, uint32_t> _jointToPuckMap;
+        PoseData _lastSimPoseData;
         // perform an action when the InputDevice mutex is acquired.
         using Locker = std::unique_lock<std::recursive_mutex>;
         template <typename F>

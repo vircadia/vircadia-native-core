@@ -32,8 +32,6 @@
 
 #include <controllers/StandardControls.h>
 
-#include "OpenVrHelpers.h"
-
 extern PoseData _nextSimPoseData;
 
 vr::IVRSystem* acquireOpenVrSystem();
@@ -207,6 +205,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     }
 
     updateCalibratedLimbs();
+    _lastSimPoseData = _nextSimPoseData;
 }
 
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
@@ -217,11 +216,30 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
         _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid &&
         poseIndex <= controller::TRACKED_OBJECT_15) {
 
-        // process pose
-        const mat4& mat = _nextSimPoseData.poses[deviceIndex];
-        const vec3 linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
-        const vec3 angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
+        mat4& mat = mat4();
+        vec3 linearVelocity = vec3();
+        vec3 angularVelocity = vec3();
+        // check if the device is tracking out of range, then process the correct pose depending on the result.
+        if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult != vr::TrackingResult_Running_OutOfRange) { 
+            mat = _nextSimPoseData.poses[deviceIndex];
+            linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
+            angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
+        } else {
+            mat = _lastSimPoseData.poses[deviceIndex];
+            linearVelocity = _lastSimPoseData.linearVelocities[deviceIndex];
+            angularVelocity = _lastSimPoseData.angularVelocities[deviceIndex];
 
+            // make sure that we do not overwrite the pose in the _lastSimPose with incorrect data.
+            _nextSimPoseData.poses[deviceIndex] = _lastSimPoseData.poses[deviceIndex];
+            _nextSimPoseData.linearVelocities[deviceIndex] = _lastSimPoseData.linearVelocities[deviceIndex];
+            _nextSimPoseData.angularVelocities[deviceIndex] = _lastSimPoseData.angularVelocities[deviceIndex];
+            
+        }
+
+/*        const mat4& mat;
+        const vec3 linearVelocity;
+        const vec3 angularVelocity;*/
+            
         controller::Pose pose(extractTranslation(mat), glmExtractRotation(mat), linearVelocity, angularVelocity);
 
         // transform into avatar frame
