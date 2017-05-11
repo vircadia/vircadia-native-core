@@ -1497,6 +1497,9 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
 
 void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew) {
 
+    // Consider the case where this packet is being processed on Client A, and Client A is connected to Sandbox B.
+    // If Client A's system clock is *ahead of* Sandbox B's system clock, "clockSkew" will be *negative*.
+    // If Client A's system clock is *behind* Sandbox B's system clock, "clockSkew" will be *positive*.
     if ((_identityUpdatedAt > identity.updatedAt - clockSkew) && (_identityUpdatedAt != 0)) {
         qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
             << "_identityUpdatedAt (" << _identityUpdatedAt << ") is greater than identity.updatedAt - clockSkew (" << identity.updatedAt << "-" << clockSkew << ")";
