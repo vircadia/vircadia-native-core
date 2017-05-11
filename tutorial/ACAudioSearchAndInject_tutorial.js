@@ -1,4 +1,5 @@
 "use strict";
+
 /*jslint nomen: true, plusplus: true, vars: true*/
 /*global AvatarList, Entities, EntityViewer, Script, SoundCache, Audio, print, randFloat*/
 //
@@ -38,17 +39,25 @@ var DEFAULT_SOUND_DATA = {
     playbackGapRange: 0 // in ms
 };
 
+//var AGENT_AVATAR_POSITION = { x: -1.5327, y: 0.672515, z: 5.91573 };
+var AGENT_AVATAR_POSITION = { x: -2.83785, y: 1.45243, z: -13.6042 };
+
 //var isACScript = this.EntityViewer !== undefined;
 var isACScript = true;
 
-Script.include("http://hifi-content.s3.amazonaws.com/ryan/development/utils_ryan.js");
 if (isACScript) {
     Agent.isAvatar = true; // This puts a robot at 0,0,0, but is currently necessary in order to use AvatarList.
     Avatar.skeletonModelURL = "http://hifi-content.s3.amazonaws.com/ozan/dev/avatars/invisible_avatar/invisible_avatar.fst";
+    Avatar.position = AGENT_AVATAR_POSITION;
+    Agent.isListeningToAudioStream = true;
 }
 function ignore() {}
 function debug() { // Display the arguments not just [Object object].
     //print.apply(null, [].map.call(arguments, JSON.stringify));
+}
+
+function randFloat(low, high) {
+    return low + Math.random() * (high - low);
 }
 
 if (isACScript) {
@@ -93,6 +102,7 @@ function EntityDatum(entityIdentifier) { // Just the data of an entity that we n
             return;
         }
         var properties, soundData; // Latest data, pulled from local octree.
+
         // getEntityProperties locks the tree, which competes with the asynchronous processing of queryOctree results.
         // Most entity updates are fast and only a very few do getEntityProperties.
         function ensureSoundData() { // We only getEntityProperities when we need to.
@@ -115,43 +125,54 @@ function EntityDatum(entityIdentifier) { // Just the data of an entity that we n
                 }
             }
         }
+
         // Stumbling on big new pile of entities will do a lot of getEntityProperties. Once.
         if (that.lastUserDataUpdate < userDataCutoff) {                      // NO DATA => SOUND DATA
             ensureSoundData();
         }
+
         if (!that.url) {                                                     // NO DATA => NO DATA
             return that.stop();
         }
+
         if (!that.sound) {                                                   // SOUND DATA => DOWNLOADING
             that.sound = SoundCache.getSound(soundData.url); // SoundCache can manage duplicates better than we can.
         }
+
         if (!that.sound.downloaded) {                                        // DOWNLOADING => DOWNLOADING
             return;
         }
+
         if (that.playAfter > now) {                                          // DOWNLOADING | WAITING => WAITING
             return;
         }
+
         ensureSoundData(); // We'll try to play/setOptions and will need position, so we might as well get soundData, too.
         if (soundData.url !== that.url) {                                    // WAITING => NO DATA (update next time around)
             return that.stop();
         }
+
         var options = {
             position: properties.position,
             loop: soundData.loop || DEFAULT_SOUND_DATA.loop,
             volume: soundData.volume || DEFAULT_SOUND_DATA.volume
         };
+
         function repeat() {
             return !options.loop && (soundData.playbackGap >= 0);
         }
+
         function randomizedNextPlay() { // time of next play or recheck, randomized to distribute the work
             var range = soundData.playbackGapRange || DEFAULT_SOUND_DATA.playbackGapRange,
                 base = repeat() ? ((that.sound.duration * MSEC_PER_SEC) + (soundData.playbackGap || DEFAULT_SOUND_DATA.playbackGap)) : RECHECK_TIME;
             return now + base + randFloat(-Math.min(base, range), range);
         }
+
         if (that.injector && soundData.playing === false) {
             that.injector.stop();
             that.injector = null;
         }
+
         if (!that.injector) {
             if (soundData.playing === false) {                                                // WAITING => PLAYING | WAITING
                 return;
@@ -165,6 +186,7 @@ function EntityDatum(entityIdentifier) { // Just the data of an entity that we n
             }
             return;
         }
+
         that.injector.setOptions(options);                                   // PLAYING => UPDATE POSITION ETC
         if (!that.injector.playing) { // Subtle: a looping sound will not check playbackGap.
             if (repeat()) {                                                  // WAITING => PLAYING
@@ -178,6 +200,7 @@ function EntityDatum(entityIdentifier) { // Just the data of an entity that we n
         }
     };
 }
+
 function internEntityDatum(entityIdentifier, timestamp, avatarPosition, avatar) {
     ignore(avatarPosition, avatar); // We could use avatars and/or avatarPositions to prioritize which ones to play.
     var entitySound = entityCache[entityIdentifier];
@@ -186,7 +209,9 @@ function internEntityDatum(entityIdentifier, timestamp, avatarPosition, avatar) 
     }
     entitySound.timestamp = timestamp; // Might be updated for multiple avatars. That's fine.
 }
+
 var nUpdates = UPDATES_PER_STATS_LOG, lastStats = Date.now();
+
 function updateAllEntityData() { // A fast update of all entities we know about. A few make sounds.
     var now = Date.now(),
         expirationCutoff = now - EXPIRATION_TIME,
