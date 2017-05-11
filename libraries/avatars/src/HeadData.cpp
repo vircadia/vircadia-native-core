@@ -36,7 +36,7 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _browAudioLift(0.0f),
     _blendshapeCoefficients(QVector<float>(0, 0.0f)),
     _transientBlendshapeCoefficients(QVector<float>(0, 0.0f)),
-    _currentBlendshapeCoefficients(QVector<float>(0, 0.0f)),
+    _summedBlendshapeCoefficients(QVector<float>(0, 0.0f)),
     _owningAvatar(owningAvatar)
 {
 
@@ -87,21 +87,21 @@ static const QMap<QString, int>& getBlendshapesLookupMap() {
 
 const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
     int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
-    if (_currentBlendshapeCoefficients.size() != maxSize) {
-        _currentBlendshapeCoefficients.resize(maxSize);
+    if (_summedBlendshapeCoefficients.size() != maxSize) {
+        _summedBlendshapeCoefficients.resize(maxSize);
     }
 
     for (int i = 0; i < maxSize; i++) {
         if (i >= _blendshapeCoefficients.size()) {
-            _currentBlendshapeCoefficients[i] = _transientBlendshapeCoefficients[i];
+            _summedBlendshapeCoefficients[i] = _transientBlendshapeCoefficients[i];
         } else if (i >= _transientBlendshapeCoefficients.size()) {
-            _currentBlendshapeCoefficients[i] = _blendshapeCoefficients[i];
+            _summedBlendshapeCoefficients[i] = _blendshapeCoefficients[i];
         } else {
-            _currentBlendshapeCoefficients[i] = _blendshapeCoefficients[i] + _transientBlendshapeCoefficients[i];
+            _summedBlendshapeCoefficients[i] = _blendshapeCoefficients[i] + _transientBlendshapeCoefficients[i];
         }
     }
 
-    return _currentBlendshapeCoefficients;
+    return _summedBlendshapeCoefficients;
 }
 
 void HeadData::setBlendshape(QString name, float val) {

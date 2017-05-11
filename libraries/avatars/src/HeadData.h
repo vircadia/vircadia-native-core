@@ -94,7 +94,7 @@ protected:
 
     QVector<float> _blendshapeCoefficients;
     QVector<float> _transientBlendshapeCoefficients;
-    QVector<float> _currentBlendshapeCoefficients;
+    QVector<float> _summedBlendshapeCoefficients;
     AvatarData* _owningAvatar;
 
 private:
