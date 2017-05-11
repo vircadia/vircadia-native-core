@@ -204,7 +204,7 @@ Rectangle {
             delegate: Item {
                 width: parent.width
                 visible: devicemode === 1
-                height:  visible ? 36 : 0
+                height: visible ? 36 : 0
                 AudioCheckbox {
                     id: cbout
                     width: parent.width

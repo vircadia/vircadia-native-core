@@ -17,7 +17,7 @@
 
 const INPUT = "Input";
 const OUTPUT = "Output";
-
+const SELECT_AUDIO_SCRIPT_STARTUP_TIMEOUT = 300;
 //
 // VAR DEFINITIONS
 //
@@ -195,7 +195,7 @@ Script.setTimeout(function () {
     setupAudioMenus();
     debug("Checking HMD audio status...")
     checkHMDAudio();
-}, 300);
+}, SELECT_AUDIO_SCRIPT_STARTUP_TIMEOUT);
 
 debug("Connecting scriptEnding()");
 Script.scriptEnding.connect(function () {

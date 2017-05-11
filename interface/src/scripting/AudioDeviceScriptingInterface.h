@@ -52,9 +52,9 @@ public:
 
 private slots:
     void onDeviceChanged();
-    void onCurrentInputDeviceChanged(const QString &name);
-    void onCurrentOutputDeviceChanged(const QString &name);
-    void currentDeviceUpdate(const QString &name, QAudio::Mode mode);
+    void onCurrentInputDeviceChanged(const QString& name);
+    void onCurrentOutputDeviceChanged(const QString& name);
+    void currentDeviceUpdate(const QString& name, QAudio::Mode mode);
 
 public slots:
     bool setInputDevice(const QString& deviceName);
@@ -80,16 +80,16 @@ public slots:
     
     void setMuted(bool muted);
 
-    void setInputDeviceAsync(const QString &deviceName);
-    void setOutputDeviceAsync(const QString &deviceName);
+    void setInputDeviceAsync(const QString& deviceName);
+    void setOutputDeviceAsync(const QString& deviceName);
 private:
     AudioDeviceScriptingInterface();
 
 signals:
     void muteToggled();
     void deviceChanged();
-    void currentInputDeviceChanged(const QString &name);
-    void currentOutputDeviceChanged(const QString &name);
+    void currentInputDeviceChanged(const QString& name);
+    void currentOutputDeviceChanged(const QString& name);
     void mutedChanged(bool muted);
     void inputAudioDevicesChanged(QStringList inputAudioDevices);
     void outputAudioDevicesChanged(QStringList outputAudioDevices);
