@@ -111,7 +111,7 @@ function onMessage(message) {
         case 'openSettings':
             if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
                 || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
-                Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "General Preferences");
+                Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
             } else {
                 tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
             }
