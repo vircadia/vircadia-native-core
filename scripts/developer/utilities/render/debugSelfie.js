@@ -19,13 +19,13 @@ function addTwo() {
 	var root = Vec3.sum(MyAvatar.position, Vec3.multiply(5, Quat.getForward(orientation)));
 
 
-    var newOverlay = Overlays.addOverlay("image3d", {
+    return Overlays.addOverlay("image3d", {
    	                //url: kickOverlayURL(),
                     	url: "http://selfieFrame",
 					//url: "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg",
      				position: root,
                     size: 1,
-                    scale: 5.0,
+                    scale: -5.0,
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1,
                     solid: true,
@@ -36,4 +36,6 @@ function addTwo() {
 }
 
 
-addTwo();
+var newOverlay = addTwo();
+
+Script.scriptEnding.connect(function () { Overlays.deleteOverlay(newOverlay); })
