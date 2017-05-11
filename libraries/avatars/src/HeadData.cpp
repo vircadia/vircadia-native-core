@@ -132,14 +132,16 @@ QJsonObject HeadData::toJson() const {
     QJsonObject blendshapesJson;
     for (auto name : blendshapeLookupMap.keys()) {
         auto index = blendshapeLookupMap[name];
-        if (index >= _blendshapeCoefficients.size()) {
-            continue;
+        float value = 0.0f;
+        if (index < _blendshapeCoefficients.size()) {
+            value += _blendshapeCoefficients[index];
         }
-        auto value = _blendshapeCoefficients[index];
-        if (value == 0.0f) {
-            continue;
+        if (index < _transientBlendshapeCoefficients.size()) {
+            value += _transientBlendshapeCoefficients[index];
         }
-        blendshapesJson[name] = value;
+        if (value != 0.0f) {
+            blendshapesJson[name] = value;
+        }
     }
     if (!blendshapesJson.isEmpty()) {
         headJson[JSON_AVATAR_HEAD_BLENDSHAPE_COEFFICIENTS] = blendshapesJson;
@@ -164,8 +166,8 @@ void HeadData::fromJson(const QJsonObject& json) {
             QJsonArray blendshapeCoefficientsJson = jsonValue.toArray();
             for (const auto& blendshapeCoefficient : blendshapeCoefficientsJson) {
                 blendshapeCoefficients.push_back((float)blendshapeCoefficient.toDouble());
-                setBlendshapeCoefficients(blendshapeCoefficients);
             }
+            setBlendshapeCoefficients(blendshapeCoefficients);
         } else if (jsonValue.isObject()) {
             QJsonObject blendshapeCoefficientsJson = jsonValue.toObject();
             for (const QString& name : blendshapeCoefficientsJson.keys()) {
