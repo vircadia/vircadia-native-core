@@ -1508,11 +1508,13 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
     if (_audioOutput) {
         _audioOutput->stop();
 
-        delete _audioOutput;
+        //must be deleted in next eventloop cycle when its called from notify()
+        _audioOutput->deleteLater();
         _audioOutput = NULL;
 
         _loopbackOutputDevice = NULL;
-        delete _loopbackAudioOutput;
+        //must be deleted in next eventloop cycle when its called from notify()
+        _loopbackAudioOutput->deleteLater();
         _loopbackAudioOutput = NULL;
 
         delete[] _outputMixBuffer;
