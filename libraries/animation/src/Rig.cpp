@@ -1400,22 +1400,24 @@ void Rig::computeAvatarBoundingCapsule(
 
     AnimInverseKinematics ikNode("boundingShape");
     ikNode.setSkeleton(_animSkeleton);
+
+    // AJT: FIX ME!!!!! ensure that empty weights vector does something reasonable....
     ikNode.setTargetVars("LeftHand",
                          "leftHandPosition",
                          "leftHandRotation",
-                         "leftHandType");
+                         "leftHandType", {});
     ikNode.setTargetVars("RightHand",
                          "rightHandPosition",
                          "rightHandRotation",
-                         "rightHandType");
+                         "rightHandType", {});
     ikNode.setTargetVars("LeftFoot",
                          "leftFootPosition",
                          "leftFootRotation",
-                         "leftFootType");
+                         "leftFootType", {});
     ikNode.setTargetVars("RightFoot",
                          "rightFootPosition",
                          "rightFootRotation",
-                         "rightFootType");
+                         "rightFootType", {});
 
     AnimPose geometryToRig = _modelOffset * _geometryOffset;
 

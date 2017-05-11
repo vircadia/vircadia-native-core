@@ -471,7 +471,18 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
         READ_STRING(rotationVar, targetObj, id, jsonUrl, nullptr);
         READ_OPTIONAL_STRING(typeVar, targetObj);
 
-        node->setTargetVars(jointName, positionVar, rotationVar, typeVar);
+        auto flexCoefficientsValue = targetObj.value("flexCoefficients");
+        if (!flexCoefficientsValue.isArray()) {
+            qCCritical(animation) << "AnimNodeLoader, bad or missing flexCoefficients array in \"targets\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            return nullptr;
+        }
+        auto flexCoefficientsArray = flexCoefficientsValue.toArray();
+        std::vector<float> flexCoefficients;
+        for (const auto& value : flexCoefficientsArray) {
+            flexCoefficients.push_back((float)value.toDouble());
+        }
+
+        node->setTargetVars(jointName, positionVar, rotationVar, typeVar, flexCoefficients);
     };
 
     READ_OPTIONAL_STRING(solutionSource, jsonObj);
