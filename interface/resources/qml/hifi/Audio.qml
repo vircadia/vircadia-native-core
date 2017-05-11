@@ -35,11 +35,6 @@ Rectangle {
     property string title: "Audio Options"
     signal sendToScript(var message);
 
-    //set models after Components is shown
-    Component.onCompleted: {
-        refreshTimer.start()
-        refreshTimerOutput.start()
-    }
 
     Component {
         id: separator
@@ -84,7 +79,7 @@ Rectangle {
         }
 
         Connections {
-            target: AvatarInputs
+            target: AvatarInputs !== undefined ? AvatarInputs : null
             onShowAudioToolsChanged: {
                 audioTools.checkbox.checked = showAudioTools
             }
@@ -105,10 +100,12 @@ Rectangle {
             id: audioTools
             width: parent.width
             anchors { left: parent.left; right: parent.right; leftMargin: 30 }
-            checkbox.checked: AvatarInputs.showAudioTools
+            checkbox.checked: AvatarInputs !== undefined ? AvatarInputs.showAudioTools : false
             text.text: qsTr("Show audio level meter")
             onCheckBoxClicked: {
-                AvatarInputs.showAudioTools = checked
+                if (AvatarInputs !== undefined) {
+                    AvatarInputs.showAudioTools = checked
+                }
             }
         }
 
@@ -138,30 +135,34 @@ Rectangle {
         }
 
         ListView {
-            Timer {
-                id: refreshTimer
-                interval: 1
-                repeat: false
-                onTriggered: {
-                    //refresh model
-                    inputAudioListView.model = undefined
-                    inputAudioListView.model = AudioDevice.inputAudioDevices
-                }
-            }
             id: inputAudioListView
             anchors { left: parent.left; right: parent.right; leftMargin: 70 }
             height: 125
-            spacing: 16
+            spacing: 0
             clip: true
             snapMode: ListView.SnapToItem
-            delegate: AudioCheckbox {
+            model: AudioDevice
+            delegate: Item {
                 width: parent.width
-                checkbox.checked: (modelData === AudioDevice.getInputDevice())
-                text.text: modelData
-                onCheckBoxClicked: {
-                    if (checked) {
-                        AudioDevice.setInputDevice(modelData)
-                        refreshTimer.start()
+                visible: devicemode === 0
+                height:  visible ? 36 : 0
+
+                AudioCheckbox {
+                    id: cbin
+                    anchors.verticalCenter: parent.verticalCenter
+                    Binding {
+                        target: cbin.checkbox
+                        property: 'checked'
+                        value: devicechecked
+                    }
+
+                    width: parent.width
+                    cbchecked: devicechecked
+                    text.text: devicename
+                    onCheckBoxClicked: {
+                        if (checked) {
+                            AudioDevice.setInputDeviceAsync(devicename)
+                        }
                     }
                 }
             }
@@ -191,31 +192,33 @@ Rectangle {
                 text: qsTr("CHOOSE OUTPUT DEVICE")
             }
         }
+
         ListView {
             id: outputAudioListView
-            Timer {
-                id: refreshTimerOutput
-                interval: 1
-                repeat: false
-                onTriggered: {
-                    //refresh model
-                    outputAudioListView.model = undefined
-                    outputAudioListView.model = AudioDevice.outputAudioDevices
-                }
-            }
             anchors { left: parent.left; right: parent.right; leftMargin: 70 }
             height: 250
-            spacing: 16
+            spacing: 0
             clip: true
             snapMode: ListView.SnapToItem
-            delegate: AudioCheckbox {
+            model: AudioDevice
+            delegate: Item {
                 width: parent.width
-                checkbox.checked: (modelData === AudioDevice.getOutputDevice())
-                text.text: modelData
-                onCheckBoxClicked: {
-                    if (checked) {
-                        AudioDevice.setOutputDevice(modelData)
-                        refreshTimerOutput.start()
+                visible: devicemode === 1
+                height: visible ? 36 : 0
+                AudioCheckbox {
+                    id: cbout
+                    width: parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    Binding {
+                        target: cbout.checkbox
+                        property: 'checked'
+                        value: devicechecked
+                    }
+                    text.text: devicename
+                    onCheckBoxClicked: {
+                        if (checked) {
+                            AudioDevice.setOutputDeviceAsync(devicename)
+                        }
                     }
                 }
             }

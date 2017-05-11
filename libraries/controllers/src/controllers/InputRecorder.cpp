@@ -22,20 +22,20 @@
 
 #include <BuildInfo.h>
 #include <GLMHelpers.h>
- 
+
 QString SAVE_DIRECTORY = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/" + BuildInfo::MODIFIED_ORGANIZATION + "/" + BuildInfo::INTERFACE_NAME + "/hifi-input-recordings/";
 QString FILE_PREFIX_NAME = "input-recording-";
 QString COMPRESS_EXTENSION = ".tar.gz";
 namespace controller {
-    
+
     QJsonObject poseToJsonObject(const Pose pose) {
         QJsonObject newPose;
-        
+
         QJsonArray translation;
         translation.append(pose.translation.x);
         translation.append(pose.translation.y);
         translation.append(pose.translation.z);
-        
+
         QJsonArray rotation;
         rotation.append(pose.rotation.x);
         rotation.append(pose.rotation.y);
@@ -69,7 +69,7 @@ namespace controller {
         QJsonArray angularVelocity = object["angularVelocity"].toArray();
 
         pose.valid = object["valid"].toBool();
-        
+
         pose.translation.x = translation[0].toDouble();
         pose.translation.y = translation[1].toDouble();
         pose.translation.z = translation[2].toDouble();
@@ -89,13 +89,13 @@ namespace controller {
 
         return pose;
     }
-        
+
 
     void exportToFile(QJsonObject& object) {
         if (!QDir(SAVE_DIRECTORY).exists()) {
             QDir().mkdir(SAVE_DIRECTORY);
         }
-        
+
         QString timeStamp = QDateTime::currentDateTime().toString(Qt::ISODate);
         timeStamp.replace(":", "-");
         QString fileName = SAVE_DIRECTORY + FILE_PREFIX_NAME + timeStamp + COMPRESS_EXTENSION;
@@ -124,7 +124,7 @@ namespace controller {
         status = true;
         return object;
     }
- 
+
     InputRecorder::InputRecorder() {}
 
     InputRecorder::~InputRecorder() {}
@@ -195,16 +195,16 @@ namespace controller {
              _framesRecorded = data["frameCount"].toInt();
              QJsonArray actionArrayList = data["actionList"].toArray();
              QJsonArray poseArrayList = data["poseList"].toArray();
-             
+
              for (int actionIndex = 0; actionIndex < actionArrayList.size(); actionIndex++) {
                  QJsonArray actionState = actionArrayList[actionIndex].toArray();
                  for (int index = 0; index < actionState.size(); index++) {
-                     _currentFrameActions[index] = actionState[index].toInt();
+                     _currentFrameActions[index] = actionState[index].toDouble();
                  }
                  _actionStateList.push_back(_currentFrameActions);
                  _currentFrameActions = ActionStates(toInt(Action::NUM_ACTIONS));
              }
-             
+
              for (int poseIndex = 0; poseIndex < poseArrayList.size(); poseIndex++) {
                  QJsonArray poseState = poseArrayList[poseIndex].toArray();
                  for (int index = 0; index < poseState.size(); index++) {
@@ -250,13 +250,13 @@ namespace controller {
             for(auto& channel : _currentFramePoses) {
                 channel = Pose();
             }
-            
+
             for(auto& channel : _currentFrameActions) {
                 channel = 0.0f;
             }
         }
     }
-    
+
     float InputRecorder::getActionState(controller::Action action) {
         if (_actionStateList.size() > 0 ) {
             return _actionStateList[_playCount][toInt(action)];

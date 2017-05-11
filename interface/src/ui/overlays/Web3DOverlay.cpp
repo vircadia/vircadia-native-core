@@ -225,10 +225,6 @@ void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
-    if (!_visible || !getParentVisible()) {
-        return;
-    }
-
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
@@ -280,6 +276,10 @@ void Web3DOverlay::render(RenderArgs* args) {
     if (_mayNeedResize) {
         _mayNeedResize = false;
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
+    }
+
+    if (!_visible || !getParentVisible()) {
+        return;
     }
 
     vec2 halfSize = getSize() / 2.0f;

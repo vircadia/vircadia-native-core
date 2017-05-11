@@ -941,10 +941,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
     // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
+    static const QString TESTER = "HIFI_TESTER";
     auto gpuIdent = GPUIdent::getInstance();
     auto glContextData = getGLContextData();
     QJsonObject properties = {
         { "version", applicationVersion() },
+        { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
         { "previousSessionCrashed", _previousSessionCrashed },
         { "previousSessionRuntime", sessionRunTime.get() },
         { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
@@ -1688,7 +1690,6 @@ void Application::updateHeartbeat() const {
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
-    DependencyManager::get<AudioClient>()->beforeAboutToQuit();
 
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
@@ -1789,14 +1790,13 @@ void Application::cleanupBeforeQuit() {
         _snapshotSoundInjector->stop();
     }
 
-    // stop audio after QML, as there are unexplained audio crashes originating in qtwebengine
-
-    // stop the AudioClient, synchronously
+    // FIXME: something else is holding a reference to AudioClient,
+    // so it must be explicitly synchronously stopped here
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
-                              "stop", Qt::BlockingQueuedConnection);
-
+        "cleanupBeforeQuit", Qt::BlockingQueuedConnection);
 
     // destroy Audio so it and its threads have a chance to go down safely
+    // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
 
@@ -2052,6 +2052,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
+
+    rootContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));

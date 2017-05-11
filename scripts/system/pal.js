@@ -268,7 +268,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'refreshConnections':
         print('Refreshing Connections...');
-        getConnectionData();
+        getConnectionData(false);
         UserActivityLogger.palAction("refresh_connections", "");
         break;
     case 'removeConnection':
@@ -281,25 +281,27 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
                 print("Error: unable to remove connection", connectionUserName, error || response.status);
                 return;
             }
-            getConnectionData();
+            getConnectionData(false);
         });
         break
 
     case 'removeFriend':
         friendUserName = message.params;
+        print("Removing " + friendUserName + " from friends.");
         request({
             uri: METAVERSE_BASE + '/api/v1/user/friends/' + friendUserName,
             method: 'DELETE'
         }, function (error, response) {
             if (error || (response.status !== 'success')) {
-                print("Error: unable to unfriend", friendUserName, error || response.status);
+                print("Error: unable to unfriend " + friendUserName, error || response.status);
                 return;
             }
-            getConnectionData();
+            getConnectionData(friendUserName);
         });
         break
     case 'addFriend':
         friendUserName = message.params;
+        print("Adding " + friendUserName + " to friends.");
         request({
             uri: METAVERSE_BASE + '/api/v1/user/friends',
             method: 'POST',
@@ -312,7 +314,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
                     print("Error: unable to friend " + friendUserName, error || response.status);
                     return;
                 }
-                getConnectionData(); // For now, just refresh all connection data. Later, just refresh the one friended row.
+                getConnectionData(friendUserName);
             }
         );
         break;
@@ -360,8 +362,6 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
     });
 }
 function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
-    // The back end doesn't do user connections yet. Fake it by getting all users that have made themselves accessible to us,
-    // and pretending that they are all connections.
     url = METAVERSE_BASE + '/api/v1/users?'
     if (domain) {
         url += 'status=' + domain.slice(1, -1); // without curly braces
@@ -372,8 +372,19 @@ function getAvailableConnections(domain, callback) { // callback([{usename, loca
         callback(connectionsData.users);
     });
 }
-
-function getConnectionData(domain) { // Update all the usernames that I am entitled to see, using my login but not dependent on canKick.
+function getInfoAboutUser(specificUsername, callback) {
+    url = METAVERSE_BASE + '/api/v1/users?filter=connections'
+    requestJSON(url, function (connectionsData) {
+        for (user in connectionsData.users) {
+            if (connectionsData.users[user].username === specificUsername) {
+                callback(connectionsData.users[user]);
+                return;
+            }
+        }
+        callback(false);
+    });
+}
+function getConnectionData(specificUsername, domain) { // Update all the usernames that I am entitled to see, using my login but not dependent on canKick.
     function frob(user) { // get into the right format
         var formattedSessionId = user.location.node_id || '';
         if (formattedSessionId !== '' && formattedSessionId.indexOf("{") != 0) {
@@ -387,15 +398,25 @@ function getConnectionData(domain) { // Update all the usernames that I am entit
             placeName: (user.location.root || user.location.domain || {}).name || ''
         };
     }
-    getAvailableConnections(domain, function (users) {
-        if (domain) {
-            users.forEach(function (user) {
+    if (specificUsername) {
+        getInfoAboutUser(specificUsername, function (user) {
+            if (user) {
                 updateUser(frob(user));
-            });
-        } else {
-            sendToQml({ method: 'connections', params: users.map(frob) });
-        }
-    });
+            } else {
+                print('Error: Unable to find information about ' + specificUsername + ' in connectionsData!');
+            }
+        });
+    } else {
+        getAvailableConnections(domain, function (users) {
+            if (domain) {
+                users.forEach(function (user) {
+                    updateUser(frob(user));
+                });
+            } else {
+                sendToQml({ method: 'connections', params: users.map(frob) });
+            }
+        });
+    }
 }
 
 //
@@ -472,7 +493,7 @@ function populateNearbyUserList(selectData, oldAudioData) {
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
-    getConnectionData(location.domainId); // Even admins don't get relationship data in requestUsernameFromID (which is still needed for admin status, which comes from domain).
+    getConnectionData(false, location.domainId); // Even admins don't get relationship data in requestUsernameFromID (which is still needed for admin status, which comes from domain).
     conserveResources = Object.keys(avatarsOfInterest).length > 20;
     sendToQml({ method: 'nearbyUsers', params: data });
     if (selectData) {
