@@ -96,7 +96,7 @@ function calcSpawnInfo(hand, height) {
  * @param hand [number] -1 indicates no hand, Controller.Standard.RightHand or Controller.Standard.LeftHand
  * @param clientOnly [bool] true indicates tablet model is only visible to client.
  */
-WebTablet = function (url, width, dpi, hand, clientOnly, location) {
+WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     var _this = this;
 
@@ -106,6 +106,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
     this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
     this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
     this.landscape = false;
+
+    visible = visible === true;
 
     if (dpi) {
         this.dpi = dpi;
@@ -125,7 +127,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
             "grabbableKey": {"grabbable": true}
         }),
         dimensions: this.getDimensions(),
-        parentID: AVATAR_SELF_ID
+        parentID: AVATAR_SELF_ID,
+        visible: visible
     };
 
     // compute position, rotation & parentJointIndex of the tablet
@@ -158,7 +161,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         parentID: this.tabletEntityID,
         parentJointIndex: -1,
         showKeyboardFocusHighlight: false,
-        isAA: HMD.active
+        isAA: HMD.active,
+        visible: visible
     });
 
     var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
@@ -168,7 +172,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         localRotation: {x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor},
         alpha: 0.0,
-        visible: true,
+        visible: visible,
         drawInFront: false,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
