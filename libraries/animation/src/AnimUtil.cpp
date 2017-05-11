@@ -37,16 +37,15 @@ glm::quat averageQuats(size_t numQuats, const glm::quat* quats) {
     if (numQuats == 0) {
         return glm::quat();
     }
-    float alpha = 1.0f / (float)numQuats;
-    glm::quat accum(0, 0, 0, 0);
+    glm::quat accum = quats[0];
     glm::quat firstRot = quats[0];
-    for (size_t i = 0; i < numQuats; i++) {
+    for (size_t i = 1; i < numQuats; i++) {
         glm::quat rot = quats[i];
         float dot = glm::dot(firstRot, rot);
         if (dot < 0.0f) {
             rot = -rot;
         }
-        accum += alpha * rot;
+        accum += rot;
     }
     return glm::normalize(accum);
 }

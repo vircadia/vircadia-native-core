@@ -941,7 +941,7 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
     }
 }
 
-void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform, glm::mat4 rigToWorldTransform) {
+void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform) {
 
     PROFILE_RANGE_EX(simulation_animation_detail, __FUNCTION__, 0xffff00ff, 0);
     PerformanceTimer perfTimer("updateAnimations");

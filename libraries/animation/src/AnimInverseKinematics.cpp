@@ -734,21 +734,21 @@ void AnimInverseKinematics::initConstraints() {
             std::vector<glm::vec3> swungDirections;
             float deltaTheta = PI / 4.0f;
             float theta = 0.0f;
-            swungDirections.push_back(glm::vec3(cosf(theta), -0.25f, sinf(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.25f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(cosf(theta), 0.0f, sinf(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.0f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(cosf(theta), 0.25f, sinf(theta))); // posterior
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.25f, sinf(theta))); // posterior
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(cosf(theta), 0.0f, sinf(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.0f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(cosf(theta), -0.25f, sinf(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.25f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(cosf(theta), -0.5f, sinf(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.5f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(cosf(theta), -0.5f, sinf(theta))); // anterior
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.5f, sinf(theta))); // anterior
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(cosf(theta), -0.5f, sinf(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.5f, sinf(theta)));
 
             std::vector<float> minDots;
             for (size_t i = 0; i < swungDirections.size(); i++) {
