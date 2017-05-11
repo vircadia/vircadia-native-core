@@ -222,8 +222,8 @@ signals:
 
     void muteEnvironmentRequested(glm::vec3 position, float radius);
 
-    void currentOutputDeviceChanged(const QString &name);
-    void currentInputDeviceChanged(const QString &name);
+    void currentOutputDeviceChanged(const QString& name);
+    void currentInputDeviceChanged(const QString& name);
 
 protected:
     AudioClient();
