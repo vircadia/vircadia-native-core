@@ -34,8 +34,9 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _rightEyeBlink(0.0f),
     _averageLoudness(0.0f),
     _browAudioLift(0.0f),
-    _baseBlendshapeCoefficients(QVector<float>(0, 0.0f)),
-    _currBlendShapeCoefficients(QVector<float>(0, 0.0f)),
+    _blendshapeCoefficients(QVector<float>(0, 0.0f)),
+    _transientBlendshapeCoefficients(QVector<float>(0, 0.0f)),
+    _currentBlendshapeCoefficients(QVector<float>(0, 0.0f)),
     _owningAvatar(owningAvatar)
 {
 
@@ -85,22 +86,22 @@ static const QMap<QString, int>& getBlendshapesLookupMap() {
 }
 
 const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
-    int maxSize = std::max(_baseBlendshapeCoefficients.size(), _blendshapeCoefficients.size());
-    if (_currBlendShapeCoefficients.size() != maxSize) {
-        _currBlendShapeCoefficients.resize(maxSize);
+    int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
+    if (_currentBlendshapeCoefficients.size() != maxSize) {
+        _currentBlendshapeCoefficients.resize(maxSize);
     }
 
     for (int i = 0; i < maxSize; i++) {
-        if (i >= _baseBlendshapeCoefficients.size()) {
-            _currBlendShapeCoefficients[i] = _blendshapeCoefficients[i];
-        } else if (i >= _blendshapeCoefficients.size()) {
-            _currBlendShapeCoefficients[i] = _baseBlendshapeCoefficients[i];
+        if (i >= _blendshapeCoefficients.size()) {
+            _currentBlendshapeCoefficients[i] = _transientBlendshapeCoefficients[i];
+        } else if (i >= _transientBlendshapeCoefficients.size()) {
+            _currentBlendshapeCoefficients[i] = _blendshapeCoefficients[i];
         } else {
-            _currBlendShapeCoefficients[i] = _baseBlendshapeCoefficients[i] + _blendshapeCoefficients[i];
+            _currentBlendshapeCoefficients[i] = _blendshapeCoefficients[i] + _transientBlendshapeCoefficients[i];
         }
     }
 
-    return _currBlendShapeCoefficients;
+    return _currentBlendshapeCoefficients;
 }
 
 void HeadData::setBlendshape(QString name, float val) {
@@ -112,10 +113,10 @@ void HeadData::setBlendshape(QString name, float val) {
         if (_blendshapeCoefficients.size() <= it.value()) {
             _blendshapeCoefficients.resize(it.value() + 1);
         }
-        if (_baseBlendshapeCoefficients.size() <= it.value()) {
-            _baseBlendshapeCoefficients.resize(it.value() + 1);
+        if (_transientBlendshapeCoefficients.size() <= it.value()) {
+            _transientBlendshapeCoefficients.resize(it.value() + 1);
         }
-        _baseBlendshapeCoefficients[it.value()] = val;
+        _blendshapeCoefficients[it.value()] = val;
     }
 }
 
