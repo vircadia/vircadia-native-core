@@ -504,30 +504,30 @@ var toolBar = (function () {
                     blue: 0
                 },
                 emitAcceleration: {
-                    x: 0.5,
-                    y: 1.5,
-                    z: 0.5
+                    x: 0,
+                    y: 5,
+                    z: 0
                 },
                 accelerationSpread: {
-                    x: 1.0,
-                    y: 0.0,
-                    z: 1.0
+                    x: 1,
+                    y: 0,
+                    z: 1
                 },
-                emitRate: 10,
-                emitSpeed: 2,
+                emitRate: 3,
+                emitSpeed: 0,
                 speedSpread: 0,
                 lifespan: 1,
-                maxParticles: 100,
+                maxParticles: 10,
                 particleRadius: 0.25,
-                radiusStart: 0.05,
-                radiusFinish: 0.25,
-                radiusSpread: 0.5,
+                radiusStart: 0,
+                radiusFinish: 0.1,
+                radiusSpread: 0,
                 alpha: 0,
-                alphaStart: 0.5,
+                alphaStart: 0.1,
                 alphaFinish: 0,
                 polarStart: 0,
                 polarFinish: 0,
-                textures: "https://hifi-content.s3.amazonaws.com/DomainContent/production/Particles/Smoke.png"
+                textures: "https://raw.githubusercontent.com/Triplelexx/hifi/f98c3556fd0011150e35dc20275434b6321ac014/interface/resources/images/wispy-smoke.png"
             });
         });
 
