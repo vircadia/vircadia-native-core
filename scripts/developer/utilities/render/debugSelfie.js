@@ -30,7 +30,8 @@ function addTwo() {
                     alpha: 1,
                     solid: true,
                     isFacingAvatar: true,
-                    drawInFront: false
+                    drawInFront: false,
+                    parentID: MyAvatar.sessionUUID
                 });
 }
 
