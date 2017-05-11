@@ -8,6 +8,7 @@ Row {
     id: row
     spacing: 16
     property alias checkbox: cb
+    property alias cbchecked: cb.checked
     property alias text: txt
     signal checkBoxClicked(bool checked)
 

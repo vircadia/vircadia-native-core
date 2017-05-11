@@ -24,6 +24,7 @@ class AudioScriptingInterface : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
+    virtual ~AudioScriptingInterface() {}
     void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
 
 protected:
