@@ -39,8 +39,9 @@ StoragePointer Storage::toFileStorage(const QString& filename) const {
 }
 
 MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) : _size(size) {
-    _data.resize((size + 3) / 4); // alloc smallest number of 4-byte chunks that will cover size bytes
-
+    // alloc smallest number of 4-byte chunks that will cover size bytes.  The buffer is padded out to a multiple
+    // of 4 to force an alignment that glTextureSubImage2D can later use.
+    _data.resize((size + 3) & ~0x3);
     if (data) {
         memcpy(_data.data(), data, size);
     }
