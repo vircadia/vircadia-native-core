@@ -83,7 +83,7 @@
             // Create a new persistence entity (even if already have one but that should never occur).
             var properties;
 
-            log("Create recording " + filename);
+            log("Create recording entity for " + filename);
 
             if (updateTimestampTimer !== null) {
                 Script.clearInterval(updateTimestampTimer);  // Just in case.
@@ -114,6 +114,7 @@
                 return true;
             }
 
+            log("Could not create recording entity for " + filename);
             return false;
         }
 
@@ -269,12 +270,12 @@
 
         function play(recording, position, orientation) {
             if (Entity.create(recording, position, orientation)) {
-                log("Play new recording " + recordingFilename);
+                log("Play recording " + recordingFilename);
                 isPlayingRecording = true;
                 recordingFilename = recording;
                 playRecording(recordingFilename, position, orientation);
             } else {
-                log("Could not create entity to play new recording " + recordingFilename);
+                log("Could not play recording " + recordingFilename);
             }
         }
 
