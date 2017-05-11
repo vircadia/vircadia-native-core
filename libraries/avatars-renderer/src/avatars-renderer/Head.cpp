@@ -151,7 +151,7 @@ void Head::simulate(float deltaTime) {
                                             _mouth2,
                                             _mouth3,
                                             _mouth4,
-                                            _blendshapeCoefficients);
+                                            _transientBlendshapeCoefficients);
 
         applyEyelidOffset(getOrientation());
 
@@ -202,6 +202,13 @@ void Head::calculateMouthShapes(float deltaTime) {
     float trailingAudioJawOpenRatio = (100.0f - deltaTime * NORMAL_HZ) / 100.0f; // --> 0.99 at 60 Hz
     _trailingAudioJawOpen = glm::mix(_trailingAudioJawOpen, _audioJawOpen, trailingAudioJawOpenRatio);
 
+    // truncate _mouthTime when mouth goes quiet to prevent floating point error on increment
+    const float SILENT_TRAILING_JAW_OPEN = 0.0002f;
+    const float MAX_SILENT_MOUTH_TIME = 10.0f;
+    if (_trailingAudioJawOpen < SILENT_TRAILING_JAW_OPEN && _mouthTime > MAX_SILENT_MOUTH_TIME) {
+        _mouthTime = 0.0f;
+    }
+
     // Advance time at a rate proportional to loudness, and move the mouth shapes through
     // a cycle at differing speeds to create a continuous random blend of shapes.
     _mouthTime += sqrtf(_averageLoudness) * TIMESTEP_CONSTANT * deltaTimeRatio;
@@ -227,15 +234,15 @@ void Head::applyEyelidOffset(glm::quat headOrientation) {
 
     for (int i = 0; i < 2; i++) {
         const int LEFT_EYE = 8;
-        float eyeCoefficient = _blendshapeCoefficients[i] - _blendshapeCoefficients[LEFT_EYE + i];  // Raw value
+        float eyeCoefficient = _transientBlendshapeCoefficients[i] - _transientBlendshapeCoefficients[LEFT_EYE + i];
         eyeCoefficient = glm::clamp(eyelidOffset + eyeCoefficient * (1.0f - eyelidOffset), -1.0f, 1.0f);
         if (eyeCoefficient > 0.0f) {
-            _blendshapeCoefficients[i] = eyeCoefficient;
-            _blendshapeCoefficients[LEFT_EYE + i] = 0.0f;
+            _transientBlendshapeCoefficients[i] = eyeCoefficient;
+            _transientBlendshapeCoefficients[LEFT_EYE + i] = 0.0f;
 
         } else {
-            _blendshapeCoefficients[i] = 0.0f;
-            _blendshapeCoefficients[LEFT_EYE + i] = -eyeCoefficient;
+            _transientBlendshapeCoefficients[i] = 0.0f;
+            _transientBlendshapeCoefficients[LEFT_EYE + i] = -eyeCoefficient;
         }
     }
 }

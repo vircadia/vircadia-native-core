@@ -2053,6 +2053,8 @@ void Application::initializeUi() {
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
+    rootContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
     }

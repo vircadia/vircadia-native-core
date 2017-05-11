@@ -93,8 +93,8 @@ protected:
     float _browAudioLift;
 
     QVector<float> _blendshapeCoefficients;
-    QVector<float> _baseBlendshapeCoefficients;
-    QVector<float> _currBlendShapeCoefficients;
+    QVector<float> _transientBlendshapeCoefficients;
+    QVector<float> _summedBlendshapeCoefficients;
     AvatarData* _owningAvatar;
 
 private:
