@@ -77,6 +77,7 @@ private:
         void handleHeadPoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat, const vec3& linearVelocity,
                                  const vec3& angularVelocity);
         void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
+        void printDeviceTrackingResultChange(uint32_t deviceIndex);
 
         class FilteredStick {
         public:

@@ -29,7 +29,6 @@
 #include <glm/ext.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-
 #include <controllers/UserInputMapper.h>
 
 #include <controllers/StandardControls.h>
@@ -65,6 +64,28 @@ static glm::mat4 computeOffset(glm::mat4 defaultToReferenceMat, glm::mat4 defaul
 
 static bool sortPucksYPosition(std::pair<uint32_t, controller::Pose> firstPuck, std::pair<uint32_t, controller::Pose> secondPuck) {
     return (firstPuck.second.translation.y < firstPuck.second.translation.y);
+}
+
+static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) {
+    QString result;
+    switch (trackingResult) {
+        case vr::TrackingResult_Uninitialized:
+            result = "vr::TrackingResult_Uninitialized";
+            break;
+        case vr::TrackingResult_Calibrating_InProgress:
+            result = "vr::TrackingResult_Calibrating_InProgess";
+            break;
+        case vr::TrackingResult_Calibrating_OutOfRange:
+            result = "vr::TrackingResult_Calibrating_OutOfRange";
+            break;
+        case vr::TrackingResult_Running_OK:
+            result = "vr::TrackingResult_Running_OK";
+            break;
+        case vr::TrackingResult_Running_OutOfRange:
+            result = "vr::TrackingResult_Running_OutOfRange";
+            break;
+    }
+    return result;
 }
 
 bool ViveControllerManager::isSupported() const {
@@ -212,7 +233,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
 
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
     uint32_t poseIndex = controller::TRACKED_OBJECT_00 + deviceIndex;
-
+    printDeviceTrackingResultChange(deviceIndex);
     if (_system->IsTrackedDeviceConnected(deviceIndex) &&
         _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_GenericTracker &&
         _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid &&
@@ -222,7 +243,7 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
         vec3 linearVelocity = vec3();
         vec3 angularVelocity = vec3();
         // check if the device is tracking out of range, then process the correct pose depending on the result.
-        if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult != vr::TrackingResult_Running_OutOfRange) { 
+        if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult != vr::TrackingResult_Running_OutOfRange) {
             mat = _nextSimPoseData.poses[deviceIndex];
             linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
             angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
@@ -235,13 +256,9 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
             _nextSimPoseData.poses[deviceIndex] = _lastSimPoseData.poses[deviceIndex];
             _nextSimPoseData.linearVelocities[deviceIndex] = _lastSimPoseData.linearVelocities[deviceIndex];
             _nextSimPoseData.angularVelocities[deviceIndex] = _lastSimPoseData.angularVelocities[deviceIndex];
-            
+
         }
 
-/*        const mat4& mat;
-        const vec3 linearVelocity;
-        const vec3 angularVelocity;*/
-            
         controller::Pose pose(extractTranslation(mat), glmExtractRotation(mat), linearVelocity, angularVelocity);
 
         // transform into avatar frame
@@ -465,6 +482,14 @@ enum ViveButtonChannel {
     LEFT_APP_MENU = controller::StandardButtonChannel::NUM_STANDARD_BUTTONS,
     RIGHT_APP_MENU
 };
+
+void ViveControllerManager::InputDevice::printDeviceTrackingResultChange(uint32_t deviceIndex) {
+    if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult != _lastSimPoseData.vrPoses[deviceIndex].eTrackingResult) {
+        qDebug() << "OpenVR: Device" << deviceIndex << "Tracking Result changed from" <<
+            deviceTrackingResultToString(_lastSimPoseData.vrPoses[deviceIndex].eTrackingResult)
+                 << "to" << deviceTrackingResultToString(_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult);
+    }
+}
 
 bool ViveControllerManager::InputDevice::checkForCalibrationEvent() {
     auto& endOfMap = _buttonPressedMap.end();
