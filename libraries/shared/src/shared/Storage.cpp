@@ -38,12 +38,8 @@ StoragePointer Storage::toFileStorage(const QString& filename) const {
     return FileStorage::create(filename, size(), data());
 }
 
-MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) : _size(size) {
-    // we end up calling glCompressedTextureSubImage2D with this, and the rows of the image are expected
-    // to be word aligned.  This is fine in all cases except for 1x1 images and 2x2 images.  For 1x1,
-    // there is only one row, so the problem is avoided.  For 2x2, we add 2 extra bytes so there's
-    // room for the second row.
-    _data.resize(size == 4 ? 6 : size);
+MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) {
+    _data.resize(size);
     if (data) {
         memcpy(_data.data(), data, size);
     }

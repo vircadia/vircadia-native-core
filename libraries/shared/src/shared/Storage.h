@@ -44,9 +44,7 @@ namespace storage {
         const uint8_t* data() const override { return _data.data(); }
         uint8_t* data() { return _data.data(); }
         uint8_t* mutableData() override { return _data.data(); }
-
-        const size_t _size;
-        size_t size() const override { return _size; }
+        size_t size() const override { return _data.size(); }
         operator bool() const override { return true; }
     private:
         std::vector<uint8_t> _data;
