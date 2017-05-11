@@ -1403,7 +1403,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
         _audioInput->stop();
         _inputDevice = NULL;
 
-        delete _audioInput;
+        _audioInput->deleteLater();
         _audioInput = NULL;
         _numInputCallbackBytes = 0;
 
