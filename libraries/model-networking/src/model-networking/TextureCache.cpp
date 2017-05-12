@@ -50,6 +50,8 @@ Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.k
 const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
 const std::string TextureCache::KTX_EXT { "ktx" };
 
+const std::string TextureCache::SELFIE_FRAME_URL { "http://selfieFrame" };
+
 static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
 
@@ -180,6 +182,10 @@ ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNum
 }
 
 NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) {
+    if (url == QUrl(SELFIE_FRAME_URL.c_str())) {
+         
+        return getSelfieNetworkTexture();
+    }
     TextureExtra extra = { type, content, maxNumPixels };
     return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
 }
@@ -264,6 +270,18 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSh
     NetworkTexture* texture = new NetworkTexture(url, type, content, maxNumPixels);
     return QSharedPointer<Resource>(texture, &Resource::deleter);
 }
+
+NetworkTexture::NetworkTexture(const QUrl& url) :
+Resource(url),
+_type(),
+_sourceIsKTX(false),
+_maxNumPixels(100)
+{
+    _textureSource = std::make_shared<gpu::TextureSource>();
+    _lowestRequestedMipLevel = 0;
+    _loaded = true;
+}
+
 
 NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) :
     Resource(url),
@@ -855,4 +873,28 @@ void ImageReader::read() {
                                 Q_ARG(gpu::TexturePointer, texture),
                                 Q_ARG(int, texture->getWidth()),
                                 Q_ARG(int, texture->getHeight()));
+}
+
+
+NetworkTexturePointer TextureCache::getSelfieNetworkTexture() {
+    if (!_selfieNetworkTexture) {
+        _selfieNetworkTexture.reset(new NetworkTexture(QUrl(SELFIE_FRAME_URL.c_str())));
+        _selfieNetworkTexture->setImage(getSelfieTexture(), 2048, 1024);
+    }
+    return _selfieNetworkTexture;
+ }
+
+const gpu::TexturePointer& TextureCache::getSelfieTexture() {
+    if (!_selfieTexture) {
+        getSelfieFramebuffer();
+    }
+    return _selfieTexture;
+}
+const gpu::FramebufferPointer& TextureCache::getSelfieFramebuffer() {
+    if (!_selfieFramebuffer) {
+           _selfieFramebuffer.reset(gpu::Framebuffer::create("selfie", gpu::Element::COLOR_SRGBA_32, 2048, 1024));
+           _selfieTexture = _selfieFramebuffer->getRenderBuffer(0);
+    }
+
+    return _selfieFramebuffer;
 }
