@@ -105,6 +105,9 @@ EntityDynamicType EntityDynamicInterface::dynamicTypeFromString(QString dynamicT
     if (normalizedDynamicTypeString == "spring") {
         return DYNAMIC_TYPE_SPRING;
     }
+    if (normalizedDynamicTypeString == "tractor") {
+        return DYNAMIC_TYPE_TRACTOR;
+    }
     if (normalizedDynamicTypeString == "hold") {
         return DYNAMIC_TYPE_HOLD;
     }
@@ -140,6 +143,8 @@ QString EntityDynamicInterface::dynamicTypeToString(EntityDynamicType dynamicTyp
             return "offset";
         case DYNAMIC_TYPE_SPRING:
             return "spring";
+        case DYNAMIC_TYPE_TRACTOR:
+            return "tractor";
         case DYNAMIC_TYPE_HOLD:
             return "hold";
         case DYNAMIC_TYPE_TRAVEL_ORIENTED:

@@ -1,23 +1,23 @@
 //
-//  ObjectActionSpring.h
+//  ObjectActionTractor.h
 //  libraries/physics/src
 //
-//  Created by Seth Alves 2015-6-5
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Seth Alves 2017-5-8
+//  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ObjectActionSpring_h
-#define hifi_ObjectActionSpring_h
+#ifndef hifi_ObjectActionTractor_h
+#define hifi_ObjectActionTractor_h
 
 #include "ObjectAction.h"
 
-class ObjectActionSpring : public ObjectAction {
+class ObjectActionTractor : public ObjectAction {
 public:
-    ObjectActionSpring(const QUuid& id, EntityItemPointer ownerEntity);
-    virtual ~ObjectActionSpring();
+    ObjectActionTractor(const QUuid& id, EntityItemPointer ownerEntity);
+    virtual ~ObjectActionTractor();
 
     virtual bool updateArguments(QVariantMap arguments) override;
     virtual QVariantMap getArguments() override;
@@ -32,7 +32,7 @@ public:
                            float& linearTimeScale, float& angularTimeScale);
 
 protected:
-    static const uint16_t springVersion;
+    static const uint16_t tractorVersion;
 
     glm::vec3 _positionalTarget;
     glm::vec3 _desiredPositionalTarget;
@@ -47,10 +47,10 @@ protected:
     glm::vec3 _linearVelocityTarget;
     glm::vec3 _angularVelocityTarget;
 
-    virtual bool prepareForSpringUpdate(btScalar deltaTimeStep);
+    virtual bool prepareForTractorUpdate(btScalar deltaTimeStep);
 
     void serializeParameters(QDataStream& dataStream) const;
     void deserializeParameters(QByteArray serializedArguments, QDataStream& dataStream);
 };
 
-#endif // hifi_ObjectActionSpring_h
+#endif // hifi_ObjectActionTractor_h

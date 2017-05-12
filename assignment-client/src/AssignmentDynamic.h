@@ -24,6 +24,8 @@ public:
     AssignmentDynamic(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AssignmentDynamic();
 
+    virtual void remapIDs(QHash<EntityItemID, EntityItemID>& map) override {};
+
     virtual void removeFromSimulation(EntitySimulationPointer simulation) const override;
     virtual EntityItemWeakPointer getOwnerEntity() const override { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) override { _ownerEntity = ownerEntity; }

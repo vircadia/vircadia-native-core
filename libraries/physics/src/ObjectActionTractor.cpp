@@ -1,9 +1,9 @@
 //
-//  ObjectActionSpring.cpp
+//  ObjectActionTractor.cpp
 //  libraries/physics/src
 //
-//  Created by Seth Alves 2015-6-5
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Seth Alves 2015-5-8
+//  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -11,18 +11,18 @@
 
 #include "QVariantGLM.h"
 
-#include "ObjectActionSpring.h"
+#include "ObjectActionTractor.h"
 
 #include "PhysicsLogging.h"
 
-const float SPRING_MAX_SPEED = 10.0f;
-const float MAX_SPRING_TIMESCALE = 600.0f; // 10 min is a long time
+const float TRACTOR_MAX_SPEED = 10.0f;
+const float MAX_TRACTOR_TIMESCALE = 600.0f; // 10 min is a long time
 
-const uint16_t ObjectActionSpring::springVersion = 1;
+const uint16_t ObjectActionTractor::tractorVersion = 1;
 
 
-ObjectActionSpring::ObjectActionSpring(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectAction(DYNAMIC_TYPE_SPRING, id, ownerEntity),
+ObjectActionTractor::ObjectActionTractor(const QUuid& id, EntityItemPointer ownerEntity) :
+    ObjectAction(DYNAMIC_TYPE_TRACTOR, id, ownerEntity),
     _positionalTarget(glm::vec3(0.0f)),
     _desiredPositionalTarget(glm::vec3(0.0f)),
     _linearTimeScale(FLT_MAX),
@@ -32,17 +32,17 @@ ObjectActionSpring::ObjectActionSpring(const QUuid& id, EntityItemPointer ownerE
     _angularTimeScale(FLT_MAX),
     _rotationalTargetSet(true) {
     #if WANT_DEBUG
-    qCDebug(physics) << "ObjectActionSpring::ObjectActionSpring";
+    qCDebug(physics) << "ObjectActionTractor::ObjectActionTractor";
     #endif
 }
 
-ObjectActionSpring::~ObjectActionSpring() {
+ObjectActionTractor::~ObjectActionTractor() {
     #if WANT_DEBUG
-    qCDebug(physics) << "ObjectActionSpring::~ObjectActionSpring";
+    qCDebug(physics) << "ObjectActionTractor::~ObjectActionTractor";
     #endif
 }
 
-bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
+bool ObjectActionTractor::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
                                    glm::vec3& linearVelocity, glm::vec3& angularVelocity,
                                    float& linearTimeScale, float& angularTimeScale) {
     SpatiallyNestablePointer other = getOther();
@@ -55,7 +55,7 @@ bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm
                 rotation = _desiredRotationalTarget * other->getRotation();
                 position = other->getRotation() * _desiredPositionalTarget + other->getPosition();
             } else {
-                // we should have an "other" but can't find it, so disable the spring.
+                // we should have an "other" but can't find it, so disable the tractor.
                 linearTimeScale = FLT_MAX;
                 angularTimeScale = FLT_MAX;
             }
@@ -69,7 +69,7 @@ bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm
     return true;
 }
 
-bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
+bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
     auto ownerEntity = _ownerEntity.lock();
     if (!ownerEntity) {
         return false;
@@ -81,59 +81,59 @@ bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
     glm::vec3 angularVelocity;
 
     bool linearValid = false;
-    int linearSpringCount = 0;
+    int linearTractorCount = 0;
     bool angularValid = false;
-    int angularSpringCount = 0;
+    int angularTractorCount = 0;
 
-    QList<EntityDynamicPointer> springDerivedActions;
-    springDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_SPRING));
-    springDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_FAR_GRAB));
-    springDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_HOLD));
+    QList<EntityDynamicPointer> tractorDerivedActions;
+    tractorDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_TRACTOR));
+    tractorDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_FAR_GRAB));
+    tractorDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_HOLD));
 
-    foreach (EntityDynamicPointer action, springDerivedActions) {
-        std::shared_ptr<ObjectActionSpring> springAction = std::static_pointer_cast<ObjectActionSpring>(action);
+    foreach (EntityDynamicPointer action, tractorDerivedActions) {
+        std::shared_ptr<ObjectActionTractor> tractorAction = std::static_pointer_cast<ObjectActionTractor>(action);
         glm::quat rotationForAction;
         glm::vec3 positionForAction;
         glm::vec3 linearVelocityForAction;
         glm::vec3 angularVelocityForAction;
         float linearTimeScale;
         float angularTimeScale;
-        bool success = springAction->getTarget(deltaTimeStep,
+        bool success = tractorAction->getTarget(deltaTimeStep,
                                                rotationForAction, positionForAction,
                                                linearVelocityForAction, angularVelocityForAction,
                                                linearTimeScale, angularTimeScale);
         if (success) {
-            if (angularTimeScale < MAX_SPRING_TIMESCALE) {
+            if (angularTimeScale < MAX_TRACTOR_TIMESCALE) {
                 angularValid = true;
-                angularSpringCount++;
+                angularTractorCount++;
                 angularVelocity += angularVelocityForAction;
-                if (springAction.get() == this) {
+                if (tractorAction.get() == this) {
                     // only use the rotation for this action
                     rotation = rotationForAction;
                 }
             }
 
-            if (linearTimeScale < MAX_SPRING_TIMESCALE) {
+            if (linearTimeScale < MAX_TRACTOR_TIMESCALE) {
                 linearValid = true;
-                linearSpringCount++;
+                linearTractorCount++;
                 position += positionForAction;
                 linearVelocity += linearVelocityForAction;
             }
         }
     }
 
-    if ((angularValid && angularSpringCount > 0) || (linearValid && linearSpringCount > 0)) {
+    if ((angularValid && angularTractorCount > 0) || (linearValid && linearTractorCount > 0)) {
         withWriteLock([&]{
-            if (linearValid && linearSpringCount > 0) {
-                position /= linearSpringCount;
-                linearVelocity /= linearSpringCount;
+            if (linearValid && linearTractorCount > 0) {
+                position /= linearTractorCount;
+                linearVelocity /= linearTractorCount;
                 _positionalTarget = position;
                 _linearVelocityTarget = linearVelocity;
                 _positionalTargetSet = true;
                 _active = true;
             }
-            if (angularValid && angularSpringCount > 0) {
-                angularVelocity /= angularSpringCount;
+            if (angularValid && angularTractorCount > 0) {
+                angularVelocity /= angularTractorCount;
                 _rotationalTarget = rotation;
                 _angularVelocityTarget = angularVelocity;
                 _rotationalTargetSet = true;
@@ -146,8 +146,8 @@ bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
 }
 
 
-void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
-    if (!prepareForSpringUpdate(deltaTimeStep)) {
+void ObjectActionTractor::updateActionWorker(btScalar deltaTimeStep) {
+    if (!prepareForTractorUpdate(deltaTimeStep)) {
         return;
     }
 
@@ -164,16 +164,16 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
         btRigidBody* rigidBody = motionState->getRigidBody();
         if (!rigidBody) {
-            qCDebug(physics) << "ObjectActionSpring::updateActionWorker no rigidBody";
+            qCDebug(physics) << "ObjectActionTractor::updateActionWorker no rigidBody";
             return;
         }
 
-        if (_linearTimeScale < MAX_SPRING_TIMESCALE) {
+        if (_linearTimeScale < MAX_TRACTOR_TIMESCALE) {
             btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
             btVector3 offset = rigidBody->getCenterOfMassPosition() - glmToBullet(_positionalTarget);
             float offsetLength = offset.length();
             if (offsetLength > FLT_EPSILON) {
-                float speed = glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED);
+                float speed = glm::min(offsetLength / _linearTimeScale, TRACTOR_MAX_SPEED);
                 targetVelocity = (-speed / offsetLength) * offset;
                 if (speed > rigidBody->getLinearSleepingThreshold()) {
                     forceBodyNonStatic();
@@ -184,7 +184,7 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
             rigidBody->setLinearVelocity(targetVelocity);
         }
 
-        if (_angularTimeScale < MAX_SPRING_TIMESCALE) {
+        if (_angularTimeScale < MAX_TRACTOR_TIMESCALE) {
             btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
 
             btQuaternion bodyRotation = rigidBody->getOrientation();
@@ -218,7 +218,7 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
 const float MIN_TIMESCALE = 0.1f;
 
 
-bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
+bool ObjectActionTractor::updateArguments(QVariantMap arguments) {
     glm::vec3 positionalTarget;
     float linearTimeScale;
     glm::quat rotationalTarget;
@@ -229,33 +229,33 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     bool needUpdate = false;
     bool somethingChanged = ObjectDynamic::updateArguments(arguments);
     withReadLock([&]{
-        // targets are required, spring-constants are optional
+        // targets are required, tractor-constants are optional
         bool ok = true;
-        positionalTarget = EntityDynamicInterface::extractVec3Argument("spring action", arguments, "targetPosition", ok, false);
+        positionalTarget = EntityDynamicInterface::extractVec3Argument("tractor action", arguments, "targetPosition", ok, false);
         if (!ok) {
             positionalTarget = _desiredPositionalTarget;
         }
         ok = true;
-        linearTimeScale = EntityDynamicInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", ok, false);
+        linearTimeScale = EntityDynamicInterface::extractFloatArgument("tractor action", arguments, "linearTimeScale", ok, false);
         if (!ok || linearTimeScale <= 0.0f) {
             linearTimeScale = _linearTimeScale;
         }
 
         ok = true;
-        rotationalTarget = EntityDynamicInterface::extractQuatArgument("spring action", arguments, "targetRotation", ok, false);
+        rotationalTarget = EntityDynamicInterface::extractQuatArgument("tractor action", arguments, "targetRotation", ok, false);
         if (!ok) {
             rotationalTarget = _desiredRotationalTarget;
         }
 
         ok = true;
         angularTimeScale =
-            EntityDynamicInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", ok, false);
+            EntityDynamicInterface::extractFloatArgument("tractor action", arguments, "angularTimeScale", ok, false);
         if (!ok) {
             angularTimeScale = _angularTimeScale;
         }
 
         ok = true;
-        otherID = QUuid(EntityDynamicInterface::extractStringArgument("spring action",
+        otherID = QUuid(EntityDynamicInterface::extractStringArgument("tractor action",
                                                                             arguments, "otherID", ok, false));
         if (!ok) {
             otherID = _otherID;
@@ -293,7 +293,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     return true;
 }
 
-QVariantMap ObjectActionSpring::getArguments() {
+QVariantMap ObjectActionTractor::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
         arguments["linearTimeScale"] = _linearTimeScale;
@@ -307,7 +307,7 @@ QVariantMap ObjectActionSpring::getArguments() {
     return arguments;
 }
 
-void ObjectActionSpring::serializeParameters(QDataStream& dataStream) const {
+void ObjectActionTractor::serializeParameters(QDataStream& dataStream) const {
     withReadLock([&] {
         dataStream << _desiredPositionalTarget;
         dataStream << _linearTimeScale;
@@ -321,20 +321,20 @@ void ObjectActionSpring::serializeParameters(QDataStream& dataStream) const {
     });
 }
 
-QByteArray ObjectActionSpring::serialize() const {
+QByteArray ObjectActionTractor::serialize() const {
     QByteArray serializedActionArguments;
     QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
 
-    dataStream << DYNAMIC_TYPE_SPRING;
+    dataStream << DYNAMIC_TYPE_TRACTOR;
     dataStream << getID();
-    dataStream << ObjectActionSpring::springVersion;
+    dataStream << ObjectActionTractor::tractorVersion;
 
     serializeParameters(dataStream);
 
     return serializedActionArguments;
 }
 
-void ObjectActionSpring::deserializeParameters(QByteArray serializedArguments, QDataStream& dataStream) {
+void ObjectActionTractor::deserializeParameters(QByteArray serializedArguments, QDataStream& dataStream) {
     withWriteLock([&] {
         dataStream >> _desiredPositionalTarget;
         dataStream >> _linearTimeScale;
@@ -356,7 +356,7 @@ void ObjectActionSpring::deserializeParameters(QByteArray serializedArguments, Q
     });
 }
 
-void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
+void ObjectActionTractor::deserialize(QByteArray serializedArguments) {
     QDataStream dataStream(serializedArguments);
 
     EntityDynamicType type;
@@ -369,7 +369,7 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
 
     uint16_t serializationVersion;
     dataStream >> serializationVersion;
-    if (serializationVersion != ObjectActionSpring::springVersion) {
+    if (serializationVersion != ObjectActionTractor::tractorVersion) {
         assert(false);
         return;
     }
