@@ -22,21 +22,21 @@ var LIFETIME = 3600;
 var SCALE_FACTOR = 1;
 
 var lanternBox = {
-  type: "Model",
-  name: "Floating Lantern Box",
-  description: "Spawns Lanterns that float away when grabbed and released!",
-  script: SCRIPT_URL,
-  modelURL: MODEL_URL,
-  shapeType: "Compound",
-  compoundShapeURL: COMPOUND_SHAPE_URL,
-  position: START_POSITION,
-  lifetime: LIFETIME,
-  dimensions: {
-    x: 0.8696 * SCALE_FACTOR,
-    y: 0.58531 * SCALE_FACTOR,
-    z: 0.9264 * SCALE_FACTOR
-  },
-  owningAvatarID: MyAvatar.sessionUUID
+    type: "Model",
+    name: "Floating Lantern Box",
+    description: "Spawns Lanterns that float away when grabbed and released!",
+    script: SCRIPT_URL,
+    modelURL: MODEL_URL,
+    shapeType: "Compound",
+    compoundShapeURL: COMPOUND_SHAPE_URL,
+    position: START_POSITION,
+    lifetime: LIFETIME,
+    dimensions: {
+        x: 0.8696 * SCALE_FACTOR,
+        y: 0.58531 * SCALE_FACTOR,
+        z: 0.9264 * SCALE_FACTOR
+    },
+    owningAvatarID: MyAvatar.sessionUUID
 };
 
 Entities.addEntity(lanternBox);
