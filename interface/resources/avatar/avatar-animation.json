@@ -57,6 +57,8 @@
                                     "positionVar": "hipsPosition",
                                     "rotationVar": "hipsRotation",
                                     "typeVar": "hipsType",
+                                    "weightVar": "hipsWeight",
+                                    "weight": 1.0,
                                     "flexCoefficients": [1]
                                 },
                                 {
@@ -64,20 +66,26 @@
                                     "positionVar": "rightHandPosition",
                                     "rotationVar": "rightHandRotation",
                                     "typeVar": "rightHandType",
-                                    "flexCoefficients": [1, 0.5, 0.5, 0.5, 0.25, 0.1, 0.1, 0.1, 0.1]
+                                    "weightVar": "rightHandWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1, 0.5, 0.5, 0.25, 0.1, 0.05, 0.01, 0.0, 0.0]
                                 },
                                 {
                                     "jointName": "LeftHand",
                                     "positionVar": "leftHandPosition",
                                     "rotationVar": "leftHandRotation",
                                     "typeVar": "leftHandType",
-                                    "flexCoefficients": [1, 0.5, 0.5, 0.5, 0.25, 0.1, 0.1, 0.1, 0.1]
+                                    "weightVar": "leftHandWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1, 0.5, 0.5, 0.25, 0.1, 0.05, 0.01, 0.0, 0.0]
                                 },
                                 {
                                     "jointName": "RightFoot",
                                     "positionVar": "rightFootPosition",
                                     "rotationVar": "rightFootRotation",
                                     "typeVar": "rightFootType",
+                                    "weightVar": "rightFootWeight",
+                                    "weight": 1.0,
                                     "flexCoefficients": [1, 0.45, 0.45]
                                 },
                                 {
@@ -85,6 +93,8 @@
                                     "positionVar": "leftFootPosition",
                                     "rotationVar": "leftFootRotation",
                                     "typeVar": "leftFootType",
+                                    "weightVar": "leftFootWeight",
+                                    "weight": 1.0,
                                     "flexCoefficients": [1, 0.45, 0.45]
                                 },
                                 {
@@ -92,6 +102,8 @@
                                     "positionVar": "spine2Position",
                                     "rotationVar": "spine2Rotation",
                                     "typeVar": "spine2Type",
+                                    "weightVar": "spine2Weight",
+                                    "weight": 1.0,
                                     "flexCoefficients": [0.45, 0.45]
                                 },
                                 {
@@ -99,7 +111,9 @@
                                     "positionVar": "headPosition",
                                     "rotationVar": "headRotation",
                                     "typeVar": "headType",
-                                    "flexCoefficients": [1, 0.5, 0.25, 0.25, 0.25]
+                                    "weightVar": "headWeight",
+                                    "weight": 4.0,
+                                    "flexCoefficients": [1, 0.5, 0.5, 0.5, 0.5]
                                 }
                             ]
                         },

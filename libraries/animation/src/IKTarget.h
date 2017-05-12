@@ -38,14 +38,15 @@ public:
     void setFlexCoefficients(size_t numFlexCoefficientsIn, const float* flexCoefficientsIn);
     float getFlexCoefficient(int chainDepth) const;
 
-    // HACK: give HmdHead targets more "weight" during IK algorithm
-    float getWeight() const { return _type == Type::HmdHead ? HACK_HMD_TARGET_WEIGHT : 1.0f; }
+    void setWeight(float weight) { _weight = weight; }
+    float getWeight() const { return _weight; }
 
     static const size_t MAX_FLEX_COEFFICIENTS = 10;
 private:
     AnimPose _pose;
     int _index{-1};
     Type _type{Type::RotationAndPosition};
+    float _weight;
     float _flexCoefficients[MAX_FLEX_COEFFICIENTS];
     size_t _numFlexCoefficients;
 };

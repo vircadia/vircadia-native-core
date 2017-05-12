@@ -22,10 +22,12 @@
 #include "AnimationLogging.h"
 
 AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
-                                                const QString& typeVarIn, const std::vector<float>& flexCoefficientsIn) :
+                                                const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn) :
     positionVar(positionVarIn),
     rotationVar(rotationVarIn),
     typeVar(typeVarIn),
+    weightVar(weightVarIn),
+    weight(weightIn),
     jointName(jointNameIn),
     numFlexCoefficients(flexCoefficientsIn.size()),
     jointIndex(-1)
@@ -40,6 +42,8 @@ AnimInverseKinematics::IKTargetVar::IKTargetVar(const IKTargetVar& orig) :
     positionVar(orig.positionVar),
     rotationVar(orig.rotationVar),
     typeVar(orig.typeVar),
+    weightVar(orig.weightVar),
+    weight(orig.weight),
     jointName(orig.jointName),
     numFlexCoefficients(orig.numFlexCoefficients),
     jointIndex(orig.jointIndex)
@@ -90,8 +94,8 @@ void AnimInverseKinematics::computeAbsolutePoses(AnimPoseVec& absolutePoses) con
 }
 
 void AnimInverseKinematics::setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar,
-                                          const QString& typeVar, const std::vector<float>& flexCoefficients) {
-    IKTargetVar targetVar(jointName, positionVar, rotationVar, typeVar, flexCoefficients);
+                                          const QString& typeVar, const QString& weightVar, float weight, const std::vector<float>& flexCoefficients) {
+    IKTargetVar targetVar(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients);
 
     // if there are dups, last one wins.
     bool found = false;
@@ -132,9 +136,11 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
                 glm::quat rotation = animVars.lookupRigToGeometry(targetVar.rotationVar, defaultPose.rot());
                 glm::vec3 translation = animVars.lookupRigToGeometry(targetVar.positionVar, defaultPose.trans());
+                float weight = animVars.lookup(targetVar.weightVar, targetVar.weight);
 
                 target.setPose(rotation, translation);
                 target.setIndex(targetVar.jointIndex);
+                target.setWeight(weight);
                 target.setFlexCoefficients(targetVar.numFlexCoefficients, targetVar.flexCoefficients);
 
                 targets.push_back(target);
@@ -837,7 +843,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setTwistLimits(-MAX_SHOULDER_TWIST, MAX_SHOULDER_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_SHOULDER_SWING = PI / 20.0f;
+            const float MAX_SHOULDER_SWING = PI / 16.0f;
             minDots.push_back(cosf(MAX_SHOULDER_SWING));
             stConstraint->setSwingLimits(minDots);
 
