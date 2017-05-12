@@ -193,7 +193,6 @@ namespace controller {
         QJsonObject data = openFile(info.absoluteFilePath(), success);
         if (success) {
             _framesRecorded = data["frameCount"].toInt();
-            qDebug() << "frame count" << _framesRecorded;
             QJsonArray actionArrayList = data["actionList"].toArray();
             QJsonArray poseArrayList = data["poseList"].toArray();
 
