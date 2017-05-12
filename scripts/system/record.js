@@ -277,7 +277,6 @@
             playerIsPlayings = [],      // True if AC player script is playing a recording.
             playerRecordings = [],      // Assignment client mappings of recordings being played.
             playerTimestamps = [],      // Timestamps of last heartbeat update from player script.
-            playerStartupTimeouts = [], // Timers that check that recording has started playing.
 
             updateTimer,
             UPDATE_INTERVAL = 5000;  // Must be > player's HEARTBEAT_INTERVAL.
@@ -298,7 +297,6 @@
                     playerIsPlayings.splice(i, 1);
                     playerRecordings.splice(i, 1);
                     playerTimestamps.splice(i, 1);
-                    playerStartupTimeouts.splice(i, 1);
                 }
             }
 
@@ -309,8 +307,7 @@
         }
 
         function playRecording(recording, position, orientation) {
-            var index,
-                CHECK_PLAYING_TIMEOUT = 10000;
+            var index;
 
             // Optional function parameters.
             if (position === undefined) {
@@ -334,26 +331,9 @@
                 position: position,
                 orientation: orientation
             }));
-
-            playerStartupTimeouts[index] = Script.setTimeout(function () {
-                if ((!playerIsPlayings[index] || playerRecordings[index] !== recording) && playerStartupTimeouts[index]) {
-                    error("Didn't start playing recording "
-                        + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
-                }
-                playerStartupTimeouts[index] = null;
-            }, CHECK_PLAYING_TIMEOUT);
         }
 
         function stopPlayingRecording(playerID) {
-            var index;
-
-            // Cancel check that recording started playing.
-            index = playerIDs.indexOf(playerID);
-            if (index !== -1 && playerStartupTimeouts[index] !== null) {
-                Script.clearTimeout(playerStartupTimeouts[index]);
-                playerStartupTimeouts[index] = null;
-            }
-
             Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
                 player: playerID,
                 command: PLAYER_COMMAND_STOP
@@ -374,7 +354,6 @@
             if (index === -1) {
                 index = playerIDs.length;
                 playerIDs[index] = sender;
-                playerStartupTimeouts[index] = null;
             }
             playerIsPlayings[index] = message.playing;
             playerRecordings[index] = message.recording;
@@ -387,7 +366,6 @@
             playerIsPlayings = [];
             playerRecordings = [];
             playerTimestamps = [];
-            playerStartupTimeouts = [];
             Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
         }
 
