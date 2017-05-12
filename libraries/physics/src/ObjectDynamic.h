@@ -29,6 +29,8 @@ public:
     ObjectDynamic(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectDynamic();
 
+    virtual void remapIDs(QHash<EntityItemID, EntityItemID>& map) override;
+
     virtual void removeFromSimulation(EntitySimulationPointer simulation) const override;
     virtual EntityItemWeakPointer getOwnerEntity() const override { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) override { _ownerEntity = ownerEntity; }
@@ -66,6 +68,10 @@ protected:
     EntityItemWeakPointer _ownerEntity;
     QString _tag;
     quint64 _expires { 0 }; // in seconds since epoch
+
+    EntityItemID _otherID;
+    SpatiallyNestableWeakPointer _other;
+    SpatiallyNestablePointer getOther();
 
 private:
     qint64 getEntityServerClockSkew() const;

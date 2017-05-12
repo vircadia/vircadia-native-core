@@ -383,6 +383,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     } else if (mipFormat == gpu::Element::COLOR_RGBA_32) {
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(32,
                                           0x000000FF,
                                           0x0000FF00,
@@ -393,6 +394,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     } else if (mipFormat == gpu::Element::COLOR_BGRA_32) {
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(32,
                                           0x00FF0000,
                                           0x0000FF00,
@@ -403,6 +405,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     } else if (mipFormat == gpu::Element::COLOR_SRGBA_32) {
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(32,
                                           0x000000FF,
                                           0x0000FF00,
@@ -411,6 +414,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     } else if (mipFormat == gpu::Element::COLOR_SBGRA_32) {
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(32,
                                           0x00FF0000,
                                           0x0000FF00,
@@ -419,11 +423,13 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     } else if (mipFormat == gpu::Element::COLOR_R_8) {
         compressionOptions.setFormat(nvtt::Format_RGB);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(8, 0, 0, 0);
     } else if (mipFormat == gpu::Element::VEC2NU8_XY) {
         inputOptions.setNormalMap(true);
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(8, 8, 0, 0);
     } else {
         qCWarning(imagelogging) << "Unknown mip format";

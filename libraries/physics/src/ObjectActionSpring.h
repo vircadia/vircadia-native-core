@@ -47,10 +47,6 @@ protected:
     glm::vec3 _linearVelocityTarget;
     glm::vec3 _angularVelocityTarget;
 
-    EntityItemID _otherID;
-    SpatiallyNestableWeakPointer _other;
-    SpatiallyNestablePointer getOther();
-
     virtual bool prepareForSpringUpdate(btScalar deltaTimeStep);
 
     void serializeParameters(QDataStream& dataStream) const;

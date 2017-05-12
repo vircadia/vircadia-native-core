@@ -40,7 +40,7 @@ QList<btRigidBody*> ObjectConstraintBallSocket::getRigidBodies() {
     result += getRigidBody();
     QUuid otherEntityID;
     withReadLock([&]{
-        otherEntityID = _otherEntityID;
+        otherEntityID = _otherID;
     });
     if (!otherEntityID.isNull()) {
         result += getOtherRigidBody(otherEntityID);
@@ -76,7 +76,7 @@ btTypedConstraint* ObjectConstraintBallSocket::getConstraint() {
     withReadLock([&]{
         constraint = static_cast<btPoint2PointConstraint*>(_constraint);
         pivotInA = _pivotInA;
-        otherEntityID = _otherEntityID;
+        otherEntityID = _otherID;
         pivotInB = _pivotInB;
     });
     if (constraint) {
@@ -136,7 +136,7 @@ bool ObjectConstraintBallSocket::updateArguments(QVariantMap arguments) {
         otherEntityID = QUuid(EntityDynamicInterface::extractStringArgument("ball-socket constraint",
                                                                             arguments, "otherEntityID", ok, false));
         if (!ok) {
-            otherEntityID = _otherEntityID;
+            otherEntityID = _otherID;
         }
 
         ok = true;
@@ -147,7 +147,7 @@ bool ObjectConstraintBallSocket::updateArguments(QVariantMap arguments) {
 
         if (somethingChanged ||
             pivotInA != _pivotInA ||
-            otherEntityID != _otherEntityID ||
+            otherEntityID != _otherID ||
             pivotInB != _pivotInB) {
             // something changed
             needUpdate = true;
@@ -157,7 +157,7 @@ bool ObjectConstraintBallSocket::updateArguments(QVariantMap arguments) {
     if (needUpdate) {
         withWriteLock([&] {
             _pivotInA = pivotInA;
-            _otherEntityID = otherEntityID;
+            _otherID = otherEntityID;
             _pivotInB = pivotInB;
 
             _active = true;
@@ -178,11 +178,9 @@ bool ObjectConstraintBallSocket::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintBallSocket::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        if (_constraint) {
-            arguments["pivot"] = glmToQMap(_pivotInA);
-            arguments["otherEntityID"] = _otherEntityID;
-            arguments["otherPivot"] = glmToQMap(_pivotInB);
-        }
+        arguments["pivot"] = glmToQMap(_pivotInA);
+        arguments["otherEntityID"] = _otherID;
+        arguments["otherPivot"] = glmToQMap(_pivotInB);
     });
     return arguments;
 }
@@ -200,7 +198,7 @@ QByteArray ObjectConstraintBallSocket::serialize() const {
         dataStream << _tag;
 
         dataStream << _pivotInA;
-        dataStream << _otherEntityID;
+        dataStream << _otherID;
         dataStream << _pivotInB;
     });
 
@@ -232,7 +230,7 @@ void ObjectConstraintBallSocket::deserialize(QByteArray serializedArguments) {
         dataStream >> _tag;
 
         dataStream >> _pivotInA;
-        dataStream >> _otherEntityID;
+        dataStream >> _otherID;
         dataStream >> _pivotInB;
 
         _active = true;
