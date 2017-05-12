@@ -25,7 +25,7 @@
 
 QString SAVE_DIRECTORY = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/" + BuildInfo::MODIFIED_ORGANIZATION + "/" + BuildInfo::INTERFACE_NAME + "/hifi-input-recordings/";
 QString FILE_PREFIX_NAME = "input-recording-";
-QString COMPRESS_EXTENSION = ".tar.gz";
+QString COMPRESS_EXTENSION = ".gz";
 namespace controller {
 
     QJsonObject poseToJsonObject(const Pose pose) {
@@ -220,6 +220,7 @@ namespace controller {
 
     void InputRecorder::stopRecording() {
         _recording = false;
+        _framesRecorded = (int)_actionStateList.size();
     }
 
     void InputRecorder::startPlayback() {
@@ -282,7 +283,7 @@ namespace controller {
 
         if (_playback) {
             _playCount++;
-            if (_playCount == _framesRecorded) {
+            if (_playCount == (_framesRecorded - 1)) {
                 _playCount = 0;
             }
         }
