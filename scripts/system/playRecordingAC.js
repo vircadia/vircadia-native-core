@@ -267,7 +267,8 @@
 
     Player = (function () {
         // Recording playback functions.
-        var isPlayingRecording = false,
+        var userID = null,
+            isPlayingRecording = false,
             recordingFilename = "",
             autoPlayTimer = null,
 
@@ -277,12 +278,15 @@
             // Send error message to user.
             Messages.sendMessage(HIFI_RECORDER_CHANNEL, JSON.stringify({
                 command: RECORDER_COMMAND_ERROR,
+                user: userID,
                 message: message
             }));
         }
 
-        function play(recording, position, orientation) {
+        function play(user, recording, position, orientation) {
             var errorMessage;
+
+            userID = user;
 
             if (Entity.create(recording, position, orientation)) {
                 log("Play recording " + recording);
@@ -305,6 +309,7 @@
                 recording = Entity.find();
                 if (recording) {
                     log("Play persisted recording " + recordingFilename);
+                    userID = null;
                     playRecording(recording.recording, recording.position, recording.orientation);
                 } else {
                     autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL);  // Try again soon.
@@ -424,7 +429,7 @@
             switch (message.command) {
             case PLAYER_COMMAND_PLAY:
                 if (!Player.isPlaying()) {
-                    Player.play(message.recording, message.position, message.orientation);
+                    Player.play(sender, message.recording, message.position, message.orientation);
                 } else {
                     log("Didn't start playing " + message.recording + " because already playing " + Player.recording());
                 }

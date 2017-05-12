@@ -352,7 +352,9 @@
             message = JSON.parse(message);
 
             if (message.command === RECORDER_COMMAND_ERROR) {
-                error(message.message);
+                if (message.user === MyAvatar.sessionUUID) {
+                    error(message.message);
+                }
             } else {
                 index = playerIDs.indexOf(sender);
                 if (index === -1) {
