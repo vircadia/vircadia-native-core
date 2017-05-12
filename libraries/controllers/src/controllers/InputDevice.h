@@ -105,6 +105,8 @@ protected:
     PoseStateMap _poseStateMap;
 
     static bool _lowVelocityFilter;
+    static float _translationFilterConstant;
+    static float _rotationFilterConstant;
 
 private:
     static float _reticleMoveSpeed;

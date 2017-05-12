@@ -50,7 +50,7 @@ public:
 private:
     class InputDevice : public controller::InputDevice {
     public:
-        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) { createPreferences(); }
+        InputDevice(vr::IVRSystem*& system);
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;
@@ -121,6 +121,7 @@ private:
         float _leftHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
+        bool _enableFiltering { false };
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };

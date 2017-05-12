@@ -147,6 +147,11 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     }
 }
 
+ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) :
+    controller::InputDevice("Vive"), _system(system) {
+    createPreferences();
+    _lowVelocityFilter = false;
+}
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _poseStateMap.clear();
     _buttonPressedMap.clear();
@@ -630,6 +635,12 @@ void ViveControllerManager::InputDevice::createPreferences() {
         preferences->addPreference(preference);
 
     }
+
+    {
+        auto getter = [this]()->float { return _translationFilterConstant; };
+        auto setter = [this](const float& value) { _translationFilterConstant; };
+    }
+        
 }
 
 controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {
