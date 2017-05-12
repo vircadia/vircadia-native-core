@@ -14,6 +14,7 @@
 
     var APP_NAME = "PLAYBACK",
         HIFI_RECORDER_CHANNEL = "HiFi-Recorder-Channel",
+        RECORDER_COMMAND_ERROR = "error",
         HIFI_PLAYER_CHANNEL = "HiFi-Player-Channel",
         PLAYER_COMMAND_PLAY = "play",
         PLAYER_COMMAND_STOP = "stop",
@@ -69,12 +70,14 @@
 
             if (sender !== scriptUUID) {
                 message = JSON.parse(message);
-                index = otherPlayersPlaying.indexOf(message.entity);
-                if (index !== -1) {
-                    otherPlayersPlayingCounts[index] += 1;
-                } else {
-                    otherPlayersPlaying.push(message.entity);
-                    otherPlayersPlayingCounts.push(1);
+                if (message.playing !== undefined) {
+                    index = otherPlayersPlaying.indexOf(message.entity);
+                    if (index !== -1) {
+                        otherPlayersPlayingCounts[index] += 1;
+                    } else {
+                        otherPlayersPlaying.push(message.entity);
+                        otherPlayersPlayingCounts.push(1);
+                    }
                 }
             }
         }
@@ -270,14 +273,26 @@
 
             playRecording;
 
+        function error(message) {
+            // Send error message to user.
+            Messages.sendMessage(HIFI_RECORDER_CHANNEL, JSON.stringify({
+                command: RECORDER_COMMAND_ERROR,
+                message: message
+            }));
+        }
+
         function play(recording, position, orientation) {
+            var errorMessage;
+
             if (Entity.create(recording, position, orientation)) {
-                log("Play recording " + recordingFilename);
+                log("Play recording " + recording);
                 isPlayingRecording = true;
                 recordingFilename = recording;
                 playRecording(recordingFilename, position, orientation);
             } else {
-                log("Could not play recording " + recordingFilename);
+                errorMessage = "Could not play recording " + recording.slice(4);  // Remove leading "atp:".
+                log(errorMessage);
+                error(errorMessage);
             }
         }
 
@@ -299,6 +314,8 @@
 
         playRecording = function (recording, position, orientation) {
             Recording.loadRecording(recording, function (success) {
+                var errorMessage;
+
                 if (success) {
                     Users.disableIgnoreRadius();
 
@@ -321,7 +338,9 @@
 
                     UserActivityLogger.logAction("playRecordingAC_play_recording");
                 } else {
-                    log("Failed to load recording " + recording);
+                    errorMessage = "Could not load recording " + recording.slice(4);  // Remove leading "atp:".
+                    log(errorMessage);
+                    error(errorMessage);
                     autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Try again later.
                 }
             });

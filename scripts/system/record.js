@@ -269,6 +269,7 @@
 
     Player = (function () {
         var HIFI_RECORDER_CHANNEL = "HiFi-Recorder-Channel",
+            RECORDER_COMMAND_ERROR = "error",
             HIFI_PLAYER_CHANNEL = "HiFi-Player-Channel",
             PLAYER_COMMAND_PLAY = "play",
             PLAYER_COMMAND_STOP = "stop",
@@ -350,15 +351,19 @@
 
             message = JSON.parse(message);
 
-            index = playerIDs.indexOf(sender);
-            if (index === -1) {
-                index = playerIDs.length;
-                playerIDs[index] = sender;
+            if (message.command === RECORDER_COMMAND_ERROR) {
+                error(message.message);
+            } else {
+                index = playerIDs.indexOf(sender);
+                if (index === -1) {
+                    index = playerIDs.length;
+                    playerIDs[index] = sender;
+                }
+                playerIsPlayings[index] = message.playing;
+                playerRecordings[index] = message.recording;
+                playerTimestamps[index] = Date.now();
+                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
             }
-            playerIsPlayings[index] = message.playing;
-            playerRecordings[index] = message.recording;
-            playerTimestamps[index] = Date.now();
-            Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
         }
 
         function reset() {
