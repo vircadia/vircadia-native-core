@@ -1622,7 +1622,8 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
     };
 
     entityTreeElement->forEachEntity([&args, &getMapped, &element](EntityItemPointer item) {
-        EntityItemID newID = getMapped(item->getEntityItemID());
+        EntityItemID oldID = item->getEntityItemID();
+        EntityItemID newID = getMapped(oldID);
         EntityItemProperties properties = item->getProperties();
 
         EntityItemID oldParentID = properties.getParentID();
