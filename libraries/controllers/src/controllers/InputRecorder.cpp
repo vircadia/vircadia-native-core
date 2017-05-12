@@ -25,7 +25,7 @@
 
 QString SAVE_DIRECTORY = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/" + BuildInfo::MODIFIED_ORGANIZATION + "/" + BuildInfo::INTERFACE_NAME + "/hifi-input-recordings/";
 QString FILE_PREFIX_NAME = "input-recording-";
-QString COMPRESS_EXTENSION = ".gz";
+QString COMPRESS_EXTENSION = "json.gz";
 namespace controller {
 
     QJsonObject poseToJsonObject(const Pose pose) {
