@@ -56,6 +56,14 @@ static const int CHEST = 3;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
+const std::map<vr::ETrackingResult, QString> TRACKING_RESULT_TO_STRING = {
+    {vr::TrackingResult_Uninitialized, QString("vr::TrackingResult_Uninitialized")},
+    {vr::TrackingResult_Calibrating_InProgress, QString("vr::TrackingResult_Calibrating_InProgess")},
+    {vr::TrackingResult_Calibrating_OutOfRange, QString("TrackingResult_Calibrating_OutOfRange")},
+    {vr::TrackingResult_Running_OK, QString("TrackingResult_Running_Ok")},
+    {vr::TrackingResult_Running_OutOfRange, QString("TrackingResult_Running_OutOfRange")}
+};
+
 static glm::mat4 computeOffset(glm::mat4 defaultToReferenceMat, glm::mat4 defaultJointMat, controller::Pose puckPose) {
     glm::mat4 poseMat = createMatFromQuatAndPos(puckPose.rotation, puckPose.translation);
     glm::mat4 referenceJointMat = defaultToReferenceMat * defaultJointMat;
@@ -68,22 +76,10 @@ static bool sortPucksYPosition(std::pair<uint32_t, controller::Pose> firstPuck, 
 
 static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) {
     QString result;
-    switch (trackingResult) {
-        case vr::TrackingResult_Uninitialized:
-            result = "vr::TrackingResult_Uninitialized";
-            break;
-        case vr::TrackingResult_Calibrating_InProgress:
-            result = "vr::TrackingResult_Calibrating_InProgess";
-            break;
-        case vr::TrackingResult_Calibrating_OutOfRange:
-            result = "vr::TrackingResult_Calibrating_OutOfRange";
-            break;
-        case vr::TrackingResult_Running_OK:
-            result = "vr::TrackingResult_Running_OK";
-            break;
-        case vr::TrackingResult_Running_OutOfRange:
-            result = "vr::TrackingResult_Running_OutOfRange";
-            break;
+    auto iterator = TRACKING_RESULT_TO_STRING.find(trackingResult);
+
+    if (iterator != TRACKING_RESULT_TO_STRING.end()) {
+        return iterator->second;
     }
     return result;
 }
@@ -164,6 +160,15 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
         userInputMapper->registerDevice(_inputDevice);
         _registeredWithInputMapper = true;
     }
+}
+
+ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) {
+    createPreferences();
+
+    _configStringMap[Config::Auto] =  QString("Auto");
+    _configStringMap[Config::Feet] =  QString("Feet");
+    _configStringMap[Config::FeetAndHips] =  QString("FeetAndHips");
+    _configStringMap[Config::FeetHipsAndChest] =  QString("FeetHipsAndChest");
 }
 
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -626,25 +631,7 @@ void ViveControllerManager::InputDevice::saveSettings() const {
 }
 
 QString ViveControllerManager::InputDevice::configToString(Config config) {
-    QString currentConfig;
-    switch (config) {
-        case Config::Auto:
-            currentConfig = "Auto";
-            break;
-
-        case Config::Feet:
-            currentConfig = "Feet";
-            break;
-
-        case Config::FeetAndHips:
-            currentConfig = "FeetAndHips";
-            break;
-
-        case Config::FeetHipsAndChest:
-            currentConfig = "FeetHipsAndChest";
-            break;
-    }
-    return currentConfig;
+    return _configStringMap[config];
 }
 
 void ViveControllerManager::InputDevice::setConfigFromString(const QString& value) {
@@ -665,7 +652,7 @@ void ViveControllerManager::InputDevice::createPreferences() {
     static const QString VIVE_PUCKS_CONFIG = "Vive Pucks Configuration";
 
     {
-        auto getter = [this]()->QString { return configToString(_preferedConfig); };
+        auto getter = [this]()->QString { return _configStringMap[_preferedConfig]; };
         auto setter = [this](const QString& value) { setConfigFromString(value); saveSettings(); };
         auto preference = new ComboBoxPreference(VIVE_PUCKS_CONFIG, "Configuration", getter, setter);
         QStringList list = (QStringList() << "Auto" << "Feet" << "FeetAndHips" << "FeetHipsAndChest");
