@@ -27,8 +27,6 @@
 
 #include "KTXCache.h"
 
-const int ABSOLUTE_MAX_TEXTURE_NUM_PIXELS = 8192 * 8192;
-
 namespace gpu {
 class Batch;
 }
