@@ -209,7 +209,6 @@ const PacketVersion VERSION_ENTITIES_PHYSICS_PACKET = 67;
 const PacketVersion VERSION_ENTITIES_ZONE_FILTERS = 68;
 const PacketVersion VERSION_ENTITIES_HINGE_CONSTRAINT = 69;
 const PacketVersion VERSION_ENTITIES_BULLET_DYNAMICS = 70;
-const PacketVersion VERSION_ENTITIES_DYNAMICS_MOTOR = 71;
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,

@@ -258,18 +258,21 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintSlider::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
+        arguments["point"] = glmToQMap(_pointInA);
+        arguments["axis"] = glmToQMap(_axisInA);
+        arguments["otherEntityID"] = _otherID;
+        arguments["otherPoint"] = glmToQMap(_pointInB);
+        arguments["otherAxis"] = glmToQMap(_axisInB);
+        arguments["linearLow"] = _linearLow;
+        arguments["linearHigh"] = _linearHigh;
+        arguments["angularLow"] = _angularLow;
+        arguments["angularHigh"] = _angularHigh;
         if (_constraint) {
-            arguments["point"] = glmToQMap(_pointInA);
-            arguments["axis"] = glmToQMap(_axisInA);
-            arguments["otherEntityID"] = _otherID;
-            arguments["otherPoint"] = glmToQMap(_pointInB);
-            arguments["otherAxis"] = glmToQMap(_axisInB);
-            arguments["linearLow"] = _linearLow;
-            arguments["linearHigh"] = _linearHigh;
-            arguments["angularLow"] = _angularLow;
-            arguments["angularHigh"] = _angularHigh;
             arguments["linearPosition"] = static_cast<btSliderConstraint*>(_constraint)->getLinearPos();
             arguments["angularPosition"] = static_cast<btSliderConstraint*>(_constraint)->getAngularPos();
+        } else {
+            arguments["linearPosition"] = 0.0f;
+            arguments["angularPosition"] = 0.0f;
         }
     });
     return arguments;

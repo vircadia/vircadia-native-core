@@ -126,8 +126,8 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
             axisInB = glm::normalize(axisInB);
         }
 
-        glm::quat rotA = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInA);
-        glm::quat rotB = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInB);
+        glm::quat rotA = glm::rotation(DEFAULT_CONE_TWIST_AXIS, axisInA);
+        glm::quat rotB = glm::rotation(DEFAULT_CONE_TWIST_AXIS, axisInB);
 
         btTransform frameInA(glmToBullet(rotA), glmToBullet(pivotInA));
         btTransform frameInB(glmToBullet(rotB), glmToBullet(pivotInB));
@@ -141,7 +141,7 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
     } else {
         // This coneTwist is between an entity and the world-frame.
 
-        glm::quat rot = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), axisInA);
+        glm::quat rot = glm::rotation(DEFAULT_CONE_TWIST_AXIS, axisInA);
 
         btTransform frameInA(glmToBullet(rot), glmToBullet(pivotInA));
 
@@ -295,19 +295,17 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintConeTwist::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        if (_constraint) {
-            arguments["pivot"] = glmToQMap(_pivotInA);
-            arguments["axis"] = glmToQMap(_axisInA);
-            arguments["otherEntityID"] = _otherID;
-            arguments["otherPivot"] = glmToQMap(_pivotInB);
-            arguments["otherAxis"] = glmToQMap(_axisInB);
-            arguments["swingSpan1"] = _swingSpan1;
-            arguments["swingSpan2"] = _swingSpan2;
-            arguments["twistSpan"] = _twistSpan;
-            arguments["softness"] = _softness;
-            arguments["biasFactor"] = _biasFactor;
-            arguments["relaxationFactor"] = _relaxationFactor;
-        }
+        arguments["pivot"] = glmToQMap(_pivotInA);
+        arguments["axis"] = glmToQMap(_axisInA);
+        arguments["otherEntityID"] = _otherID;
+        arguments["otherPivot"] = glmToQMap(_pivotInB);
+        arguments["otherAxis"] = glmToQMap(_axisInB);
+        arguments["swingSpan1"] = _swingSpan1;
+        arguments["swingSpan2"] = _swingSpan2;
+        arguments["twistSpan"] = _twistSpan;
+        arguments["softness"] = _softness;
+        arguments["biasFactor"] = _biasFactor;
+        arguments["relaxationFactor"] = _relaxationFactor;
     });
     return arguments;
 }
