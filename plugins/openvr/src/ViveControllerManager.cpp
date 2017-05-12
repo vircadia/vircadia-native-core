@@ -22,6 +22,8 @@
 #include <ui-plugins/PluginContainer.h>
 #include <UserActivityLogger.h>
 #include <NumericalConstants.h>
+#include <Preferences.h>
+#include <SettingHandle.h>
 #include <OffscreenUi.h>
 #include <GLMHelpers.h>
 #include <glm/ext.hpp>
@@ -64,7 +66,7 @@ static glm::mat4 computeOffset(glm::mat4 defaultToReferenceMat, glm::mat4 defaul
 }
 
 static bool sortPucksYPosition(std::pair<uint32_t, controller::Pose> firstPuck, std::pair<uint32_t, controller::Pose> secondPuck) {
-    return (firstPuck.second.translation.y < firstPuck.second.translation.y);
+    return (firstPuck.second.translation.y < secondPuck.second.translation.y);
 }
 
 bool ViveControllerManager::isSupported() const {
@@ -243,6 +245,7 @@ void ViveControllerManager::InputDevice::calibrateOrUncalibrate(const controller
 }
 
 void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibrationData& inputCalibration) {
+    qDebug() << "Puck Calibration: Starting...";
     // convert the hmd head from sensor space to avatar space
     glm::mat4 hmdSensorFlippedMat = inputCalibration.hmdSensorMat * Matrices::Y_180;
     glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
@@ -262,19 +265,30 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
     glm::mat4 defaultToReferenceMat = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
 
     int puckCount = (int)_validTrackedObjects.size();
-    if (puckCount == MIN_PUCK_COUNT) {
-        _config = Config::Feet;
-    } else if (puckCount == MIN_FEET_AND_HIPS) {
-        _config = Config::FeetAndHips;
-    } else if (puckCount >= MIN_FEET_HIPS_CHEST) {
-        _config = Config::FeetHipsAndChest;
-    } else {
+    qDebug() << "Puck Calibration: " << puckCount << " pucks found for calibration";
+    _config = _preferedConfig;
+    if (_config != Config::Auto && puckCount < MIN_PUCK_COUNT) {
+        qDebug() << "Puck Calibration: Failed: Could not meet the minimal # of pucks";
+        uncalibrate();
         return;
+    } else if (_config == Config::Auto){
+        if (puckCount == MIN_PUCK_COUNT) {
+            _config = Config::Feet;
+            qDebug() << "Puck Calibration: Auto Config: " << configToString(_config) << " configuration";
+        } else if (puckCount == MIN_FEET_AND_HIPS) {
+            _config = Config::FeetAndHips;
+            qDebug() << "Puck Calibration: Auto Config: " << configToString(_config) << " configuration";
+        } else if (puckCount >= MIN_FEET_HIPS_CHEST) {
+            _config = Config::FeetHipsAndChest;
+            qDebug() << "Puck Calibration: Auto Config: " << configToString(_config) << " configuration";
+        } else {
+            qDebug() << "Puck Calibration: Auto Config Failed: Could not meet the minimal # of pucks";
+            uncalibrate();
+            return;
+        }
     }
 
     std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
-
-
 
     auto& firstFoot = _validTrackedObjects[FIRST_FOOT];
     auto& secondFoot = _validTrackedObjects[SECOND_FOOT];
@@ -296,19 +310,25 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 
     if (_config == Config::Feet) {
         // done
-    } else if (_config == Config::FeetAndHips) {
+    } else if (_config == Config::FeetAndHips && puckCount >= MIN_FEET_AND_HIPS) {
         _jointToPuckMap[controller::HIPS] = _validTrackedObjects[HIP].first;
         _pucksOffset[_validTrackedObjects[HIP].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[HIP].second);
-    } else if (_config == Config::FeetHipsAndChest) {
+    } else if (_config == Config::FeetHipsAndChest && puckCount >= MIN_FEET_HIPS_CHEST) {
         _jointToPuckMap[controller::HIPS] = _validTrackedObjects[HIP].first;
         _pucksOffset[_validTrackedObjects[HIP].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[HIP].second);
         _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[CHEST].first;
         _pucksOffset[_validTrackedObjects[CHEST].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultSpine2, _validTrackedObjects[CHEST].second);
+    } else {
+        qDebug() << "Puck Calibration: " << configToString(_config) << " Config Failed: Could not meet the minimal # of pucks";
+        uncalibrate();
+        return;
     }
     _calibrated = true;
+    qDebug() << "PuckCalibration: " << configToString(_config) << " Configuration Successful";
 }
 
 void ViveControllerManager::InputDevice::uncalibrate() {
+    _config = Config::Auto;
     _pucksOffset.clear();
     _jointToPuckMap.clear();
     _calibrated = false;
@@ -541,6 +561,74 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
         } else {
             _rightHapticDuration = remainingHapticTime;
         }
+    }
+}
+
+void ViveControllerManager::InputDevice::loadSettings() {
+    Settings settings;
+    settings.beginGroup("PUCK_CONFIG");
+    {
+        _preferedConfig = (Config)settings.value("configuration", QVariant((int)Config::Auto)).toInt();
+    }
+    settings.endGroup();
+}
+
+void ViveControllerManager::InputDevice::saveSettings() const {
+    Settings settings;
+    settings.beginGroup("PUCK_CONFIG");
+    {
+        settings.setValue(QString("configuration"), (int)_preferedConfig);
+    }
+    settings.endGroup();
+}
+
+QString ViveControllerManager::InputDevice::configToString(Config config) {
+    QString currentConfig;
+    switch (config) {
+        case Config::Auto:
+            currentConfig = "Auto";
+            break;
+
+        case Config::Feet:
+            currentConfig = "Feet";
+            break;
+
+        case Config::FeetAndHips:
+            currentConfig = "FeetAndHips";
+            break;
+
+        case Config::FeetHipsAndChest:
+            currentConfig = "FeetHipsAndChest";
+            break;
+    }
+    return currentConfig;
+}
+
+void ViveControllerManager::InputDevice::setConfigFromString(const QString& value) {
+    if (value ==  "Auto") {
+        _preferedConfig = Config::Auto;
+    } else if (value == "Feet") {
+        _preferedConfig = Config::Feet;
+    } else if (value == "FeetAndHips") {
+        _preferedConfig = Config::FeetAndHips;
+    } else if (value == "FeetHipsAndChest") {
+        _preferedConfig = Config::FeetHipsAndChest;
+    }
+}
+
+void ViveControllerManager::InputDevice::createPreferences() {
+    loadSettings();
+    auto preferences = DependencyManager::get<Preferences>();
+    static const QString VIVE_PUCKS_CONFIG = "Vive Pucks Configuration";
+
+    {
+        auto getter = [this]()->QString { return configToString(_preferedConfig); };
+        auto setter = [this](const QString& value) { setConfigFromString(value); saveSettings(); };
+        auto preference = new ComboBoxPreference(VIVE_PUCKS_CONFIG, "Configuration", getter, setter);
+        QStringList list = (QStringList() << "Auto" << "Feet" << "FeetAndHips" << "FeetHipsAndChest");
+        preference->setItems(list);
+        preferences->addPreference(preference);
+
     }
 }
 

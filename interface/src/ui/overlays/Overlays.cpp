@@ -408,6 +408,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
                                                                      const QVector<OverlayID>& overlaysToInclude,
                                                                      const QVector<OverlayID>& overlaysToDiscard,
                                                                      bool visibleOnly, bool collidableOnly) {
+    QReadLocker lock(&_lock);
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
 

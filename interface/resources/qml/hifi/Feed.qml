@@ -238,8 +238,25 @@ Column {
             stackShadowNarrowing: root.stackShadowNarrowing;
             shadowHeight: root.stackedCardShadowHeight;
 
-            hoverThunk: function () { scroll.currentIndex = index; }
-            unhoverThunk: function () { scroll.currentIndex = -1; }
+            hoverThunk: function () { scrollToIndex(index); }
+            unhoverThunk: function () { scrollToIndex(-1); }
         }
+    }
+    NumberAnimation {
+        id: anim;
+        target: scroll;
+        property: "contentX";
+        duration: 250;
+    }
+    function scrollToIndex(index) {
+        anim.running = false;
+        var pos = scroll.contentX;
+        var destPos;
+        scroll.positionViewAtIndex(index, ListView.Contain);
+        destPos = scroll.contentX;
+        anim.from = pos;
+        anim.to = destPos;
+        scroll.currentIndex = index;
+        anim.running = true;
     }
 }
