@@ -21,6 +21,7 @@
   var LIFETIME = 120;
   var RESPAWN_INTERVAL = 1000;
   var MAX_LANTERNS = 4;
+  var SCALE_FACTOR = 1;
 
   var LANTERN = {
       type: "Model",
@@ -29,9 +30,9 @@
       modelURL: LANTERN_MODEL_URL,
       script: LANTERN_SCRIPT_URL,
       dimensions: {
-          x: 0.2049,
-          y: 0.4,
-          z: 0.2049
+          x: 0.2049 * SCALE_FACTOR,
+          y: 0.4 * SCALE_FACTOR,
+          z: 0.2049 * SCALE_FACTOR
       },
       gravity: {
           x: 0,
@@ -57,14 +58,15 @@
       this.entityID = entityID;
       var props = Entities.getEntityProperties(this.entityID);
 
-      if(props.owningAvatarID === MyAvatar.sessionUUID){
+      if (props.owningAvatarID === MyAvatar.sessionUUID) {
         this.respawnTimer = Script.setInterval(this.spawnAllLanterns.bind(this), RESPAWN_INTERVAL);
       }
     },
 
     unload: function(entityID) {
-      if(this.respawnTimer)
-        Script.clearInterval(this.respawnTimer);
+      if (this.respawnTimer) {
+          Script.clearInterval(this.respawnTimer);
+      }
     },
 
     spawnAllLanterns: function() {
@@ -72,14 +74,14 @@
       var lanternCount = 0;
       var nearbyEntities = Entities.findEntities(props.position, props.dimensions.x * 0.75);
 
-      for(var i = 0; i < nearbyEntities.length; i++) {
+      for (var i = 0; i < nearbyEntities.length; i++) {
         var name = Entities.getEntityProperties(nearbyEntities[i], ["name"]).name;
-        if(name === "Floating Lantern") {
+        if (name === "Floating Lantern") {
           lanternCount++;
         }
       }
 
-      while(lanternCount++ < MAX_LANTERNS) {
+      while (lanternCount++ < MAX_LANTERNS) {
         this.spawnLantern();
       }
     },

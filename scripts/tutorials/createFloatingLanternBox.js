@@ -19,6 +19,7 @@ var SCRIPT_URL = Script.resolvePath("./entity_scripts/floatingLanternBox.js?v=" 
 var START_POSITION = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 2));
 START_POSITION.y -= .6;
 var LIFETIME = 3600;
+var SCALE_FACTOR = 1;
 
 var lanternBox = {
   type: "Model",
@@ -31,9 +32,9 @@ var lanternBox = {
   position: START_POSITION,
   lifetime: LIFETIME,
   dimensions: {
-    x: 0.8696,
-    y: 0.58531,
-    z: 0.9264
+    x: 0.8696 * SCALE_FACTOR,
+    y: 0.58531 * SCALE_FACTOR,
+    z: 0.9264 * SCALE_FACTOR
   },
   owningAvatarID: MyAvatar.sessionUUID
 };
