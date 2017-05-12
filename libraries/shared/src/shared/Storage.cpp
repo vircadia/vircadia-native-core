@@ -68,7 +68,7 @@ StoragePointer FileStorage::create(const QString& filename, size_t size, const u
 }
 
 FileStorage::FileStorage(const QString& filename) : _file(filename) {
-    if (_file.open(QFile::ReadWrite)) {
+    if (_file.open(QFile::ReadOnly)) {
         _mapped = _file.map(0, _file.size());
         if (_mapped) {
             _valid = true;
@@ -88,5 +88,36 @@ FileStorage::~FileStorage() {
     }
     if (_file.isOpen()) {
         _file.close();
+    }
+}
+
+void FileStorage::ensureWriteAccess() {
+    if (_hasWriteAccess) {
+        return;
+    }
+
+    if (_mapped) {
+        if (!_file.unmap(_mapped)) {
+            throw std::runtime_error("Unable to unmap file");
+        }
+    }
+    if (_file.isOpen()) {
+        _file.close();
+    }
+    _valid = false;
+    _mapped = nullptr;
+
+    if (_file.open(QFile::ReadWrite)) {
+        _mapped = _file.map(0, _file.size());
+        if (_mapped) {
+            _valid = true;
+            _hasWriteAccess = true;
+        } else {
+            qCWarning(storagelogging) << "Failed to map file " << _file.fileName();
+            throw std::runtime_error("Failed to map file");
+        }
+    } else {
+        qCWarning(storagelogging) << "Failed to open file " << _file.fileName();
+        throw std::runtime_error("Failed to open file");
     }
 }
