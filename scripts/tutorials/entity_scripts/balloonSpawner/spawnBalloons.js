@@ -28,12 +28,13 @@
     var NUM_COLORS = 7;
     var COUNTDOWN_SECONDS = 9;
 
+    var _this = this;
     var spawnRate = 2000;
     var xRangeMax = 1;
     var zRangeMax = 1;
     var gravityCoefficient = 0.25;
     var balloonLifetime = 10;
-    var spawnTime = 300;
+    var spawnDuration = 300;
     var musicInjector;
     var spawnIntervalID;
     var spawnMusic;
@@ -41,7 +42,7 @@
     var countdownEntityID;
     
 
-    this.preload = function(pEntityID) {
+    _this.preload = function(pEntityID) {
         var parentProperties = Entities.getEntityProperties(pEntityID, ["userData"]),
             spawnMusicURL,
             spawnerSettings;
@@ -51,10 +52,10 @@
         spawnMusicURL = spawnerSettings.spawnMusicURL ? spawnerSettings.spawnMusicURL : SPAWN_MUSIC_URL;
         spawnMusic = SoundCache.getSound(spawnMusicURL);
 
-        startCountdown(pEntityID);
+        _this.startCountdown(pEntityID);
     };
 
-    function startCountdown(pEntityID) {
+    _this.startCountdown = function(pEntityID) {
         var countdownSeconds = COUNTDOWN_SECONDS,
             parentProperties = Entities.getEntityProperties(pEntityID, ["position"]),
             countdownEntityProperties;
@@ -91,13 +92,13 @@
             } else {
                 Entities.editEntity(countdownEntityID, {"text": countdownSeconds});
                 if (countdownSeconds === 0) {
-                    spawnBalloons(pEntityID);
+                    _this.spawnBalloons(pEntityID);
                 }
             }
         }, 1000);
-    }
+    };
 
-    function spawnBalloons(pEntityID) {
+    _this.spawnBalloons = function(pEntityID) {
         var parentProperties = Entities.getEntityProperties(pEntityID, ["position", "userData"]),
             spawnerSettings,
             spawnMusicVolume,
@@ -110,11 +111,16 @@
         xRangeMax = !isNaN(spawnerSettings.xRangeMax) ? spawnerSettings.xRangeMax : xRangeMax;
         zRangeMax = !isNaN(spawnerSettings.zRangeMax) ? spawnerSettings.zRangeMax : zRangeMax;
         gravityCoefficient = !isNaN(spawnerSettings.gravityCoefficient) ? spawnerSettings.gravityCoefficient : gravityCoefficient;
-        spawnTime = !isNaN(spawnerSettings.spawnTime) ? spawnerSettings.spawnTime : spawnTime;
+        spawnDuration = !isNaN(spawnerSettings.spawnDuration) ? spawnerSettings.spawnDuration : spawnDuration;
         balloonLifetime = !isNaN(spawnerSettings.balloonLifetime) ? spawnerSettings.balloonLifetime : balloonLifetime;
         spawnRate =  !isNaN(spawnerSettings.spawnRate) ? spawnerSettings.spawnRate : spawnRate;
         spawnMusicVolume = !isNaN(spawnerSettings.spawnMusicVolume) ? spawnerSettings.spawnMusicVolume : 0.1;
-        
+
+        if (spawnRate < 10){
+            spawnRate = 10;
+            print("The lowest balloon spawn rate allowed is 10.");
+        }
+
         if (spawnMusic.downloaded){
             musicInjector = Audio.playSound(spawnMusic, {
                 position: parentProperties.position,
@@ -183,18 +189,18 @@
             };
             Entities.addEntity(balloonProperties);
 
-            //Stop spawning after spawnTime
-            if (spawnCount * spawnRate / 1000 > spawnTime){
-                Script.clearInterval(spawnIntervalID);
-                 if (musicInjector !== undefined && musicInjector.isPlaying) {
-                    musicInjector.stop();
-                    musicInjector = undefined;
-                }	
+            //Clean up after spawnDuration
+            if (spawnCount * spawnRate / 1000 > spawnDuration){
+                _this.cleanUp(pEntityID);
             }
          }, spawnRate);
-    }	
+    };    	
 
-    this.unload = function(){
+    _this.unload = function(){
+        _this.cleanUp();
+    };
+
+    _this.cleanUp = function(pEntityID) {
         if (spawnIntervalID){
             Script.clearInterval(spawnIntervalID);
         }
@@ -203,11 +209,14 @@
         }
         if (countdownEntityID){
             Entities.deleteEntity(countdownEntityID);
-        }
+        }        
         if (musicInjector !== undefined && musicInjector.isPlaying) {
             musicInjector.stop();
             musicInjector = undefined;
-        }		
+        }
+        if (pEntityID){
+            Entities.deleteEntity(pEntityID);
+        }	
     };
     
 });

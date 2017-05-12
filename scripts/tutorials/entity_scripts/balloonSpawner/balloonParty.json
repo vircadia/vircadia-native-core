@@ -13,7 +13,7 @@
             "shape": "Cube",
             "visible": "false",
             "collisionless": "true",
-            "userData": "{\"spawnRate\":1000,\"xRangeMax\":1,\"zRangeMax\":1,\"gravityCoefficient\":0.25,\"balloonLifetime\":10,\"spawnTime\":300,\"spawnMusicURL\":\"http://mpassets.highfidelity.com/8410ef73-9506-4dc7-b364-0174998a859e-v1/Audio/Blue_Skies.wav\",\"spawnMusicVolume\":0.1}"
+            "userData": "{\"spawnRate\":1000,\"xRangeMax\":1,\"zRangeMax\":1,\"gravityCoefficient\":0.25,\"balloonLifetime\":10,\"spawnDuration\":300,\"spawnMusicURL\":\"http://mpassets.highfidelity.com/8410ef73-9506-4dc7-b364-0174998a859e-v1/Audio/Blue_Skies.wav\",\"spawnMusicVolume\":0.1}"
         }
     ],
     "Version": 63
