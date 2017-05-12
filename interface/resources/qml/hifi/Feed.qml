@@ -246,7 +246,7 @@ Column {
         id: anim;
         target: scroll;
         property: "contentX";
-        duration: 500;
+        duration: 250;
     }
     function scrollToIndex(index) {
         anim.running = false;
@@ -256,6 +256,7 @@ Column {
         destPos = scroll.contentX;
         anim.from = pos;
         anim.to = destPos;
+        scroll.currentIndex = index;
         anim.running = true;
     }
 }
