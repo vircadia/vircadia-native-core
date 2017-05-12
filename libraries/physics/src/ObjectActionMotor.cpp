@@ -59,11 +59,9 @@ void ObjectActionMotor::updateActionWorker(btScalar deltaTimeStep) {
 
         if (_angularTimeScale < MAX_MOTOR_TIMESCALE) {
 
-            if (!_otherID.isNull()) {
-                if (other) {
-                    glm::vec3 otherAngularVelocity = other->getAngularVelocity();
-                    rigidBody->setAngularVelocity(glmToBullet(_angularVelocityTarget + otherAngularVelocity));
-                }
+            if (other) {
+                glm::vec3 otherAngularVelocity = other->getAngularVelocity();
+                rigidBody->setAngularVelocity(glmToBullet(_angularVelocityTarget + otherAngularVelocity));
             } else {
                 rigidBody->setAngularVelocity(glmToBullet(_angularVelocityTarget));
             }

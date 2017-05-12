@@ -15,8 +15,8 @@
 #include "ObjectConstraintConeTwist.h"
 #include "PhysicsLogging.h"
 
-
-const uint16_t ObjectConstraintConeTwist::constraintVersion = 1;
+const uint16_t CONE_TWIST_VERSION_WITH_UNUSED_PAREMETERS = 1;
+const uint16_t ObjectConstraintConeTwist::constraintVersion = 2;
 const glm::vec3 DEFAULT_CONE_TWIST_AXIS(1.0f, 0.0f, 0.0f);
 
 ObjectConstraintConeTwist::ObjectConstraintConeTwist(const QUuid& id, EntityItemPointer ownerEntity) :
@@ -56,18 +56,12 @@ void ObjectConstraintConeTwist::updateConeTwist() {
     float swingSpan1;
     float swingSpan2;
     float twistSpan;
-    float softness;
-    float biasFactor;
-    float relaxationFactor;
 
     withReadLock([&]{
         constraint = static_cast<btConeTwistConstraint*>(_constraint);
         swingSpan1 = _swingSpan1;
         swingSpan2 = _swingSpan2;
         twistSpan = _twistSpan;
-        softness = _softness;
-        biasFactor = _biasFactor;
-        relaxationFactor = _relaxationFactor;
     });
 
     if (!constraint) {
@@ -76,10 +70,7 @@ void ObjectConstraintConeTwist::updateConeTwist() {
 
     constraint->setLimit(swingSpan1,
                          swingSpan2,
-                         twistSpan,
-                         softness,
-                         biasFactor,
-                         relaxationFactor);
+                         twistSpan);
 }
 
 
@@ -171,9 +162,6 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
     float swingSpan1;
     float swingSpan2;
     float twistSpan;
-    float softness;
-    float biasFactor;
-    float relaxationFactor;
 
     bool needUpdate = false;
     bool somethingChanged = ObjectDynamic::updateArguments(arguments);
@@ -227,25 +215,6 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
             twistSpan = _twistSpan;
         }
 
-        ok = true;
-        softness = EntityDynamicInterface::extractFloatArgument("coneTwist constraint", arguments, "softness", ok, false);
-        if (!ok) {
-            softness = _softness;
-        }
-
-        ok = true;
-        biasFactor = EntityDynamicInterface::extractFloatArgument("coneTwist constraint", arguments, "biasFactor", ok, false);
-        if (!ok) {
-            biasFactor = _biasFactor;
-        }
-
-        ok = true;
-        relaxationFactor =
-            EntityDynamicInterface::extractFloatArgument("coneTwist constraint", arguments, "relaxationFactor", ok, false);
-        if (!ok) {
-            relaxationFactor = _relaxationFactor;
-        }
-
         if (somethingChanged ||
             pivotInA != _pivotInA ||
             axisInA != _axisInA ||
@@ -254,10 +223,7 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
             axisInB != _axisInB ||
             swingSpan1 != _swingSpan1 ||
             swingSpan2 != _swingSpan2 ||
-            twistSpan != _twistSpan ||
-            softness != _softness ||
-            biasFactor != _biasFactor ||
-            relaxationFactor != _relaxationFactor) {
+            twistSpan != _twistSpan) {
             // something changed
             needUpdate = true;
         }
@@ -273,9 +239,6 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
             _swingSpan1 = swingSpan1;
             _swingSpan2 = swingSpan2;
             _twistSpan = twistSpan;
-            _softness = softness;
-            _biasFactor = biasFactor;
-            _relaxationFactor = relaxationFactor;
 
             _active = true;
 
@@ -303,9 +266,6 @@ QVariantMap ObjectConstraintConeTwist::getArguments() {
         arguments["swingSpan1"] = _swingSpan1;
         arguments["swingSpan2"] = _swingSpan2;
         arguments["twistSpan"] = _twistSpan;
-        arguments["softness"] = _softness;
-        arguments["biasFactor"] = _biasFactor;
-        arguments["relaxationFactor"] = _relaxationFactor;
     });
     return arguments;
 }
@@ -330,9 +290,6 @@ QByteArray ObjectConstraintConeTwist::serialize() const {
         dataStream << _swingSpan1;
         dataStream << _swingSpan2;
         dataStream << _twistSpan;
-        dataStream << _softness;
-        dataStream << _biasFactor;
-        dataStream << _relaxationFactor;
     });
 
     return serializedConstraintArguments;
@@ -351,7 +308,7 @@ void ObjectConstraintConeTwist::deserialize(QByteArray serializedArguments) {
 
     uint16_t serializationVersion;
     dataStream >> serializationVersion;
-    if (serializationVersion != ObjectConstraintConeTwist::constraintVersion) {
+    if (serializationVersion > ObjectConstraintConeTwist::constraintVersion) {
         assert(false);
         return;
     }
@@ -370,9 +327,12 @@ void ObjectConstraintConeTwist::deserialize(QByteArray serializedArguments) {
         dataStream >> _swingSpan1;
         dataStream >> _swingSpan2;
         dataStream >> _twistSpan;
-        dataStream >> _softness;
-        dataStream >> _biasFactor;
-        dataStream >> _relaxationFactor;
+        if (serializationVersion == CONE_TWIST_VERSION_WITH_UNUSED_PAREMETERS) {
+            float softness, biasFactor, relaxationFactor;
+            dataStream >> softness;
+            dataStream >> biasFactor;
+            dataStream >> relaxationFactor;
+        }
 
         _active = true;
     });

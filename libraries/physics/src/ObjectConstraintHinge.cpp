@@ -16,7 +16,8 @@
 #include "PhysicsLogging.h"
 
 
-const uint16_t ObjectConstraintHinge::constraintVersion = 1;
+const uint16_t HINGE_VERSION_WITH_UNUSED_PAREMETERS = 1;
+const uint16_t ObjectConstraintHinge::constraintVersion = 2;
 const glm::vec3 DEFAULT_HINGE_AXIS(1.0f, 0.0f, 0.0f);
 
 ObjectConstraintHinge::ObjectConstraintHinge(const QUuid& id, EntityItemPointer ownerEntity) :
@@ -56,25 +57,19 @@ void ObjectConstraintHinge::updateHinge() {
     glm::vec3 axisInA;
     float low;
     float high;
-    float softness;
-    float biasFactor;
-    float relaxationFactor;
 
     withReadLock([&]{
         axisInA = _axisInA;
         constraint = static_cast<btHingeConstraint*>(_constraint);
         low = _low;
         high = _high;
-        biasFactor = _biasFactor;
-        relaxationFactor = _relaxationFactor;
-        softness = _softness;
     });
 
     if (!constraint) {
         return;
     }
 
-    constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
+    constraint->setLimit(low, high);
 }
 
 
@@ -159,9 +154,6 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
     glm::vec3 axisInB;
     float low;
     float high;
-    float softness;
-    float biasFactor;
-    float relaxationFactor;
 
     bool needUpdate = false;
     bool somethingChanged = ObjectDynamic::updateArguments(arguments);
@@ -209,25 +201,6 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             high = _high;
         }
 
-        ok = true;
-        softness = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "softness", ok, false);
-        if (!ok) {
-            softness = _softness;
-        }
-
-        ok = true;
-        biasFactor = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments, "biasFactor", ok, false);
-        if (!ok) {
-            biasFactor = _biasFactor;
-        }
-
-        ok = true;
-        relaxationFactor = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments,
-                                                                        "relaxationFactor", ok, false);
-        if (!ok) {
-            relaxationFactor = _relaxationFactor;
-        }
-
         if (somethingChanged ||
             pivotInA != _pivotInA ||
             axisInA != _axisInA ||
@@ -235,10 +208,7 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             pivotInB != _pivotInB ||
             axisInB != _axisInB ||
             low != _low ||
-            high != _high ||
-            softness != _softness ||
-            biasFactor != _biasFactor ||
-            relaxationFactor != _relaxationFactor) {
+            high != _high) {
             // something changed
             needUpdate = true;
         }
@@ -253,9 +223,6 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             _axisInB = axisInB;
             _low = low;
             _high = high;
-            _softness = softness;
-            _biasFactor = biasFactor;
-            _relaxationFactor = relaxationFactor;
 
             _active = true;
 
@@ -282,9 +249,6 @@ QVariantMap ObjectConstraintHinge::getArguments() {
         arguments["otherAxis"] = glmToQMap(_axisInB);
         arguments["low"] = _low;
         arguments["high"] = _high;
-        arguments["softness"] = _softness;
-        arguments["biasFactor"] = _biasFactor;
-        arguments["relaxationFactor"] = _relaxationFactor;
         if (_constraint) {
             arguments["angle"] = static_cast<btHingeConstraint*>(_constraint)->getHingeAngle(); // [-PI,PI]
         } else {
@@ -310,9 +274,6 @@ QByteArray ObjectConstraintHinge::serialize() const {
         dataStream << _axisInB;
         dataStream << _low;
         dataStream << _high;
-        dataStream << _softness;
-        dataStream << _biasFactor;
-        dataStream << _relaxationFactor;
 
         dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
@@ -334,7 +295,7 @@ void ObjectConstraintHinge::deserialize(QByteArray serializedArguments) {
 
     uint16_t serializationVersion;
     dataStream >> serializationVersion;
-    if (serializationVersion != ObjectConstraintHinge::constraintVersion) {
+    if (serializationVersion > ObjectConstraintHinge::constraintVersion) {
         assert(false);
         return;
     }
@@ -347,9 +308,12 @@ void ObjectConstraintHinge::deserialize(QByteArray serializedArguments) {
         dataStream >> _axisInB;
         dataStream >> _low;
         dataStream >> _high;
-        dataStream >> _softness;
-        dataStream >> _biasFactor;
-        dataStream >> _relaxationFactor;
+        if (serializationVersion == HINGE_VERSION_WITH_UNUSED_PAREMETERS) {
+            float softness, biasFactor, relaxationFactor;
+            dataStream >> softness;
+            dataStream >> biasFactor;
+            dataStream >> relaxationFactor;
+        }
 
         quint64 serverExpires;
         dataStream >> serverExpires;
