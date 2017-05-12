@@ -22,6 +22,8 @@
 #include "Forward.h"
 #include "Resource.h"
 
+const int ABSOLUTE_MAX_TEXTURE_NUM_PIXELS = 8192 * 8192;
+
 namespace ktx {
     class KTX;
     using KTXUniquePointer = std::unique_ptr<KTX>;

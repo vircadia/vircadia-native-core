@@ -106,6 +106,10 @@ namespace Setting {
             return (_isSet) ? _value : other;
         }
 
+        bool isSet() const {
+            return _isSet;
+        }
+
         const T& getDefault() const {
             return _defaultValue;
         }
