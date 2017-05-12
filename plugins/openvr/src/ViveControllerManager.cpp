@@ -63,7 +63,7 @@ static glm::mat4 computeOffset(glm::mat4 defaultToReferenceMat, glm::mat4 defaul
 }
 
 static bool sortPucksYPosition(std::pair<uint32_t, controller::Pose> firstPuck, std::pair<uint32_t, controller::Pose> secondPuck) {
-    return (firstPuck.second.translation.y < firstPuck.second.translation.y);
+    return (firstPuck.second.translation.y < secondPuck.second.translation.y);
 }
 
 static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) {
@@ -280,6 +280,7 @@ void ViveControllerManager::InputDevice::calibrateOrUncalibrate(const controller
 }
 
 void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibrationData& inputCalibration) {
+    qDebug() << "Puck Calibration: Starting...";
     // convert the hmd head from sensor space to avatar space
     glm::mat4 hmdSensorFlippedMat = inputCalibration.hmdSensorMat * Matrices::Y_180;
     glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
@@ -299,26 +300,30 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
     glm::mat4 defaultToReferenceMat = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
 
     int puckCount = (int)_validTrackedObjects.size();
+    qDebug() << "Puck Calibration: " << puckCount << " pucks found for calibration";
     _config = _preferedConfig;
     if (_config != Config::Auto && puckCount < MIN_PUCK_COUNT) {
+        qDebug() << "Puck Calibration: Failed: Could not meet the minimal # of pucks";
         uncalibrate();
         return;
     } else if (_config == Config::Auto){
         if (puckCount == MIN_PUCK_COUNT) {
             _config = Config::Feet;
+            qDebug() << "Puck Calibration: Auto Config: " << configToString(_config) << " configuration";
         } else if (puckCount == MIN_FEET_AND_HIPS) {
             _config = Config::FeetAndHips;
+            qDebug() << "Puck Calibration: Auto Config: " << configToString(_config) << " configuration";
         } else if (puckCount >= MIN_FEET_HIPS_CHEST) {
             _config = Config::FeetHipsAndChest;
+            qDebug() << "Puck Calibration: Auto Config: " << configToString(_config) << " configuration";
         } else {
+            qDebug() << "Puck Calibration: Auto Config Failed: Could not meet the minimal # of pucks";
             uncalibrate();
             return;
         }
     }
 
     std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
-
-
 
     auto& firstFoot = _validTrackedObjects[FIRST_FOOT];
     auto& secondFoot = _validTrackedObjects[SECOND_FOOT];
@@ -349,10 +354,12 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
         _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[CHEST].first;
         _pucksOffset[_validTrackedObjects[CHEST].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultSpine2, _validTrackedObjects[CHEST].second);
     } else {
+        qDebug() << "Puck Calibration: " << configToString(_config) << " Config Failed: Could not meet the minimal # of pucks";
         uncalibrate();
         return;
     }
     _calibrated = true;
+    qDebug() << "PuckCalibration: " << configToString(_config) << " Configuration Successful";
 }
 
 void ViveControllerManager::InputDevice::uncalibrate() {
@@ -618,9 +625,9 @@ void ViveControllerManager::InputDevice::saveSettings() const {
     settings.endGroup();
 }
 
-QString ViveControllerManager::InputDevice::configToString() {
+QString ViveControllerManager::InputDevice::configToString(Config config) {
     QString currentConfig;
-    switch (_preferedConfig) {
+    switch (config) {
         case Config::Auto:
             currentConfig = "Auto";
             break;
@@ -658,7 +665,7 @@ void ViveControllerManager::InputDevice::createPreferences() {
     static const QString VIVE_PUCKS_CONFIG = "Vive Pucks Configuration";
 
     {
-        auto getter = [this]()->QString { return configToString(); };
+        auto getter = [this]()->QString { return configToString(_preferedConfig); };
         auto setter = [this](const QString& value) { setConfigFromString(value); saveSettings(); };
         auto preference = new ComboBoxPreference(VIVE_PUCKS_CONFIG, "Configuration", getter, setter);
         QStringList list = (QStringList() << "Auto" << "Feet" << "FeetAndHips" << "FeetHipsAndChest");

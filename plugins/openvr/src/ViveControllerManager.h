@@ -129,7 +129,7 @@ private:
         bool _timeTilCalibrationSet { false };
         mutable std::recursive_mutex _lock;
 
-        QString configToString();
+        QString configToString(Config config);
         void setConfigFromString(const QString& value);
         void loadSettings();
         void saveSettings() const;
