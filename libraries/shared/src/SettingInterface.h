@@ -21,7 +21,6 @@ namespace Setting {
     class Manager;
 
     void init();
-    void cleanupSettings();
 
     class Interface {
     public:
