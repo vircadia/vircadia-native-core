@@ -85,8 +85,9 @@
 
             log("Create recording entity for " + filename);
 
-            if (updateTimestampTimer !== null) {
-                Script.clearInterval(updateTimestampTimer);  // Just in case.
+            if (updateTimestampTimer !== null) {  // Just in case.
+                Script.clearInterval(updateTimestampTimer);
+                updateTimestampTimer = null;
             }
 
             searchState = SEARCH_IDLE;
@@ -234,6 +235,7 @@
             }
             if (updateTimestampTimer !== null) {  // Just in case.
                 Script.clearInterval(updateTimestampTimer);
+                updateTimestampTimer = null;
             }
         }
 
