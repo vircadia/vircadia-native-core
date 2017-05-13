@@ -336,7 +336,7 @@ public:
 
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
-                #if 0 //def NDEBUG
+                #ifdef NDEBUG
                     deadlockDetectionCrash();
                 #endif
             }
