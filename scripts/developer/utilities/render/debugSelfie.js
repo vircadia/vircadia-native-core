@@ -37,5 +37,10 @@ function addTwo() {
 
 
 var newOverlay = addTwo();
+var config = Render.getConfig("SelfieFrame");
+config.enabled = true;
 
-Script.scriptEnding.connect(function () { Overlays.deleteOverlay(newOverlay); })
+Script.scriptEnding.connect(function () {
+    config.enabled = false;
+    Overlays.deleteOverlay(newOverlay);
+})

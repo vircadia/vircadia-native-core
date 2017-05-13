@@ -21,7 +21,7 @@ public:
 class SelfieRenderTaskConfig : public render::Task::Config {
     Q_OBJECT
 public:
-    SelfieRenderTaskConfig() : render::Task::Config(true) {}
+    SelfieRenderTaskConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
 
