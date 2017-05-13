@@ -6,8 +6,8 @@
 #include <render/RenderFetchCullSortTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
-    
-    
+#include "OctreeRenderer.h"
+
 
 class MainRenderTask {
 public:
