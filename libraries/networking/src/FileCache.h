@@ -80,7 +80,7 @@ protected:
     /// must be called after construction to create the cache on the fs and restore persisted files
     void initialize();
 
-    FilePointer writeFile(const char* data, Metadata&& metadata);
+    FilePointer writeFile(const char* data, Metadata&& metadata, bool overwrite = false);
     FilePointer getFile(const Key& key);
 
     /// create a file

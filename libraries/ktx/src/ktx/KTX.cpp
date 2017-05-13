@@ -114,6 +114,9 @@ size_t Header::evalFaceSize(uint32_t level) const {
 }
 size_t Header::evalImageSize(uint32_t level) const {
     auto faceSize = evalFaceSize(level);
+    if ((faceSize < 4) || ((faceSize & 0x3) != 0)) {
+        return 0;
+    }
     if (numberOfFaces == NUM_CUBEMAPFACES && numberOfArrayElements == 0) {
         return faceSize;
     } else {
@@ -139,6 +142,9 @@ ImageDescriptors Header::generateImageDescriptors() const {
     size_t imageOffset = 0;
     for (uint32_t level = 0; level < numberOfMipmapLevels; ++level) {
         auto imageSize = static_cast<uint32_t>(evalImageSize(level));
+        if ((imageSize < 4) || ((imageSize & 0x3) != 0)) {
+            return ImageDescriptors();
+        }
         if (imageSize == 0) {
             return ImageDescriptors();
         }

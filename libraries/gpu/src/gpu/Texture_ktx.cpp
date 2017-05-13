@@ -542,6 +542,13 @@ bool Texture::evalTextureFormat(const ktx::Header& header, Element& mipFormat, E
         } else {
             return false;
         }
+    } else if (header.getGLFormat() == ktx::GLFormat::RG && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 1) {
+        mipFormat = Format::VEC2NU8_XY;
+        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::RG8) {
+            texelFormat = Format::VEC2NU8_XY;
+        } else {
+            return false;
+        }
     } else if (header.getGLFormat() == ktx::GLFormat::COMPRESSED_FORMAT && header.getGLType() == ktx::GLType::COMPRESSED_TYPE) {
         if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT) {
             mipFormat = Format::COLOR_COMPRESSED_SRGB;
