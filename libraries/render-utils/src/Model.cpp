@@ -462,8 +462,6 @@ bool Model::convexHullContains(glm::vec3 point) {
 void Model::calculateTriangleSets() {
     PROFILE_RANGE(render, __FUNCTION__);
 
-    qDebug() << __FUNCTION__ << "url:" << _url;
-
     const FBXGeometry& geometry = getFBXGeometry();
     int numberOfMeshes = geometry.meshes.size();
 
