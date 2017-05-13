@@ -99,8 +99,8 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec
             float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched) {
 
     bool intersectedSomething = false;
-    float boxDistance = distance; //  std::numeric_limits<float>::max();
-    float bestDistance = distance; //  std::numeric_limits<float>::max();
+    float boxDistance = distance;
+    float bestDistance = distance;
 
     if (_bounds.findRayIntersection(origin, direction, boxDistance, face, surfaceNormal)) {
 
@@ -218,7 +218,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
         return false; // no triangles below here, so we can't intersect
     }
 
-    float bestLocalDistance = distance; // std::numeric_limits<float>::max();
+    float bestLocalDistance = distance;
     BoxFace bestLocalFace;
     glm::vec3 bestLocalNormal;
     bool intersects = false;
@@ -232,9 +232,9 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
             return false;
         }
 
-        bestLocalDistance = distance; // std::numeric_limits<float>::max();
+        bestLocalDistance = distance;
 
-        float childDistance = distance; // std::numeric_limits<float>::max();
+        float childDistance = distance;
         BoxFace childFace;
         glm::vec3 childNormal;
 
