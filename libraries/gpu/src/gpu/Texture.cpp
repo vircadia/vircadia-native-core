@@ -441,6 +441,7 @@ void Texture::assignStoredMip(uint16 level, storage::StoragePointer& storage) {
     // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipSize(level, getStoredMipFormat());
     auto size = storage->size();
+    // NOTE: doing the same thing in all the next block but beeing able to breakpoint with more accuracy
     if (storage->size() < expectedSize) {
         _storage->assignMipData(level, storage);
         _stamp++;
@@ -471,6 +472,7 @@ void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePoin
     // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipFaceSize(level, getStoredMipFormat());
     auto size = storage->size();
+    // NOTE: doing the same thing in all the next block but beeing able to breakpoint with more accuracy
     if (size < expectedSize) {
         _storage->assignMipFaceData(level, face, storage);
         _stamp++;
