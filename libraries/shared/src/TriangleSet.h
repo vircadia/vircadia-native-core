@@ -33,6 +33,8 @@ public:
 
     const AABox& getBounds() const { return _bounds; }
 
+    size_t size() const { return _triangleIndices.size(); }
+
 protected:
     std::vector<Triangle>& _allTriangles;
     std::vector<int> _triangleIndices;
@@ -52,7 +54,6 @@ public:
     void insert(int triangleIndex);
     void reset(const AABox& bounds, int depth = 0);
     void clear();
-    void prune();
 
     // Determine if the given ray (origin/direction) in model space intersects with any triangles in the set. If an 
     // intersection occurs, the distance and surface normal will be provided.

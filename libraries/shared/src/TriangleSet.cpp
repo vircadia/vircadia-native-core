@@ -33,13 +33,16 @@ void TriangleSet::clear() {
 bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
     float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision) {
 
+    // reset our distance to be the max possible, lower level tests will store best distance here
+    distance = std::numeric_limits<float>::max();
+
     if (!_isBalanced) {
         balanceOctree();
     }
 
     int trianglesTouched = 0;
     auto result = _triangleOctree.findRayIntersection(origin, direction, distance, face, surfaceNormal, precision, trianglesTouched);
-    qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleOctree._population;
+    //qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleOctree._population;
     return result;
 }
 
@@ -77,10 +80,9 @@ void TriangleSet::balanceOctree() {
         _triangleOctree.insert(i);
     }
 
-    // prune the empty cells
-    _triangleOctree.prune();
-
     _isBalanced = true;
+
+    //debugDump();
 }
 
 
@@ -106,10 +108,17 @@ bool InternalTriangleSet::findRayIntersection(const glm::vec3& origin, const glm
             float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched) {
 
     bool intersectedSomething = false;
-    float boxDistance = std::numeric_limits<float>::max();
-    float bestDistance = std::numeric_limits<float>::max();
+    float boxDistance = distance; //  std::numeric_limits<float>::max();
+    float bestDistance = distance; //  std::numeric_limits<float>::max();
 
     if (_bounds.findRayIntersection(origin, direction, boxDistance, face, surfaceNormal)) {
+
+        // if our bounding box intersects at a distance greater than the current known
+        // best distance, than we can safely not check any of our triangles
+        if (boxDistance > bestDistance) {
+            return false;
+        }
+
         if (precision) {
             for (const auto& triangleIndex : _triangleIndices) {
                 const auto& triangle = _allTriangles[triangleIndex];
@@ -148,10 +157,6 @@ void TriangleOctreeCell::clear() {
     _population = 0;
 }
 
-void TriangleOctreeCell::prune() {
-    // do nothing yet...
-}
-
 void TriangleOctreeCell::reset(const AABox& bounds, int depth) {
     clear();
     _triangleSet._bounds = bounds;
@@ -159,10 +164,6 @@ void TriangleOctreeCell::reset(const AABox& bounds, int depth) {
     if (depth <= MAX_DEPTH) {
         int childDepth = depth + 1;
         _children.clear();
-        for (int child = 0; child < MAX_CHILDREN; child++) {
-            AABox childBounds = getBounds().getOctreeChild((AABox::OctreeChild)child);
-            _children.push_back(TriangleOctreeCell(_allTriangles, childBounds, childDepth));
-        }
     }
 }
 
@@ -170,8 +171,9 @@ void TriangleOctreeCell::debugDump() {
     qDebug() << __FUNCTION__;
     qDebug() << "bounds:" << getBounds();
     qDebug() << "depth:" << _depth;
-    //qDebug() << "triangleSet:" << _triangleSet.size() << "at this level";
     qDebug() << "population:" << _population << "this level or below";
+    qDebug() << "triangleSet:" << _triangleSet.size() << "in this cell";
+    qDebug() << "child cells:" << _children.size();
     if (_depth < MAX_DEPTH) {
         int childNum = 0;
         for (auto& child : _children) {
@@ -187,8 +189,26 @@ void TriangleOctreeCell::insert(int triangleIndex) {
     _population++;
     // if we're not yet at the max depth, then check which child the triangle fits in
     if (_depth < MAX_DEPTH) {
+
+        // check existing children to see if this triangle fits them...
         for (auto& child : _children) {
             if (child.getBounds().contains(triangle)) {
+                child.insert(triangleIndex);
+                return;
+            }
+        }
+
+        // if it doesn't exist in an existing child, then check for new possible children
+        // note: this will actually re-check the bounds of all the existing children as well, hmmm
+        for (int child = 0; child < MAX_CHILDREN; child++) {
+            AABox childBounds = getBounds().getOctreeChild((AABox::OctreeChild)child);
+            if (childBounds.contains(triangle)) {
+
+                // create a child node
+                auto child = TriangleOctreeCell(_allTriangles, childBounds, _depth + 1);
+                _children.push_back(child);
+
+                // insert this triangle into it
                 child.insert(triangleIndex);
                 return;
             }
@@ -206,16 +226,23 @@ bool TriangleOctreeCell::findRayIntersection(const glm::vec3& origin, const glm:
         return false; // no triangles below here, so we can't intersect
     }
 
-    float bestLocalDistance = std::numeric_limits<float>::max();
+    float bestLocalDistance = distance; // std::numeric_limits<float>::max();
     BoxFace bestLocalFace;
     glm::vec3 bestLocalNormal;
     bool intersects = false;
 
     // if the ray intersects our bounding box, then continue
     if (getBounds().findRayIntersection(origin, direction, bestLocalDistance, bestLocalFace, bestLocalNormal)) {
-        bestLocalDistance = std::numeric_limits<float>::max();
 
-        float childDistance = std::numeric_limits<float>::max();
+        // if the intersection with our bounding box, is greater than the current best distance (the distance passed in)
+        // then we know that none of our triangles can represent a better intersection and we can return
+        if (bestLocalDistance > distance) {
+            return false;
+        }
+
+        bestLocalDistance = distance; // std::numeric_limits<float>::max();
+
+        float childDistance = distance; // std::numeric_limits<float>::max();
         BoxFace childFace;
         glm::vec3 childNormal;
 
