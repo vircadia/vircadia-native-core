@@ -399,6 +399,13 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
 
+    // allows solutionSource to be overridden by an animVar
+    auto solutionSource = animVars.lookup(_solutionSourceVar, (int)_solutionSource);
+
+    if (context.getEnableDebugDrawIKConstraints()) {
+        debugDrawConstraints(context);
+    }
+
     const float MAX_OVERLAY_DT = 1.0f / 30.0f; // what to clamp delta-time to in AnimInverseKinematics::overlay
     if (dt > MAX_OVERLAY_DT) {
         dt = MAX_OVERLAY_DT;
@@ -410,25 +417,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
         PROFILE_RANGE_EX(simulation_animation, "ik/relax", 0xffff00ff, 0);
 
-        // relax toward underPoses
-        // HACK: this relaxation needs to be constant per-frame rather than per-realtime
-        // in order to prevent IK "flutter" for bad FPS.  The bad news is that the good parts
-        // of this relaxation will be FPS dependent (low FPS will make the limbs align slower
-        // in real-time), however most people will not notice this and this problem is less
-        // annoying than the flutter.
-        const float blend = (1.0f / 60.0f) / (0.25f); // effectively: dt / RELAXATION_TIMESCALE
-        int numJoints = (int)_relativePoses.size();
-        for (int i = 0; i < numJoints; ++i) {
-            float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot(), underPoses[i].rot()));
-            if (_accumulators[i].isDirty()) {
-                // this joint is affected by IK --> blend toward underPose rotation
-                _relativePoses[i].rot() = glm::normalize(glm::lerp(_relativePoses[i].rot(), dotSign * underPoses[i].rot(), blend));
-            } else {
-                // this joint is NOT affected by IK --> slam to underPose rotation
-                _relativePoses[i].rot() = underPoses[i].rot();
-            }
-            _relativePoses[i].trans() = underPoses[i].trans();
-        }
+        initRelativePosesFromSolutionSource((SolutionSource)solutionSource, underPoses);
 
         if (!underPoses.empty()) {
             // Sometimes the underpose itself can violate the constraints.  Rather than
@@ -604,9 +593,9 @@ void AnimInverseKinematics::clearIKJointLimitHistory() {
     }
 }
 
-RotationConstraint* AnimInverseKinematics::getConstraint(int index) {
+RotationConstraint* AnimInverseKinematics::getConstraint(int index) const {
     RotationConstraint* constraint = nullptr;
-    std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.find(index);
+    std::map<int, RotationConstraint*>::const_iterator constraintItr = _constraints.find(index);
     if (constraintItr != _constraints.end()) {
         constraint = constraintItr->second;
     }
@@ -622,17 +611,19 @@ void AnimInverseKinematics::clearConstraints() {
     _constraints.clear();
 }
 
-// set up swing limits around a swingTwistConstraint in an ellipse, where lateralSwingTheta is the swing limit for lateral swings (side to side)
-// anteriorSwingTheta is swing limit for forward and backward swings.  (where x-axis of reference rotation is sideways and -z-axis is forward)
-static void setEllipticalSwingLimits(SwingTwistConstraint* stConstraint, float lateralSwingTheta, float anteriorSwingTheta) {
+// set up swing limits around a swingTwistConstraint in an ellipse, where lateralSwingPhi is the swing limit for lateral swings (side to side)
+// anteriorSwingPhi is swing limit for forward and backward swings.  (where x-axis of reference rotation is sideways and -z-axis is forward)
+static void setEllipticalSwingLimits(SwingTwistConstraint* stConstraint, float lateralSwingPhi, float anteriorSwingPhi) {
     assert(stConstraint);
-    const int NUM_SUBDIVISIONS = 8;
+    const int NUM_SUBDIVISIONS = 16;
     std::vector<float> minDots;
     minDots.reserve(NUM_SUBDIVISIONS);
     float dTheta = TWO_PI / NUM_SUBDIVISIONS;
     float theta = 0.0f;
     for (int i = 0; i < NUM_SUBDIVISIONS; i++) {
-        minDots.push_back(cosf(glm::length(glm::vec2(anteriorSwingTheta * cosf(theta), lateralSwingTheta * sinf(theta)))));
+        float theta_prime = atanf((lateralSwingPhi / anteriorSwingPhi) * tanf(theta));
+        float phi = (cosf(2.0f * theta_prime) * ((lateralSwingPhi - anteriorSwingPhi) / 2.0f)) + ((lateralSwingPhi + anteriorSwingPhi) / 2.0f);
+        minDots.push_back(cosf(phi));
         theta += dTheta;
     }
     stConstraint->setSwingLimits(minDots);
@@ -640,7 +631,6 @@ static void setEllipticalSwingLimits(SwingTwistConstraint* stConstraint, float l
 
 void AnimInverseKinematics::initConstraints() {
     if (!_skeleton) {
-        return;
     }
     // We create constraints for the joints shown here
     // (and their Left counterparts if applicable).
@@ -744,30 +734,27 @@ void AnimInverseKinematics::initConstraints() {
             std::vector<glm::vec3> swungDirections;
             float deltaTheta = PI / 4.0f;
             float theta = 0.0f;
-            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.25f, sinf(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.25f, sinf(theta)));
             theta += deltaTheta;
             swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.0f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.25f, sinf(theta))); // posterior
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.25f, sinf(theta))); // posterior
             theta += deltaTheta;
             swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.0f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.25f, sinf(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.25f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.5f, sinf(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.5f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.5f, sinf(theta))); // anterior
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.5f, sinf(theta))); // anterior
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.5f, sinf(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.5f, sinf(theta)));
 
-            // rotate directions into joint-frame
-            glm::quat invAbsoluteRotation = glm::inverse(absolutePoses[i].rot());
-            int numDirections = (int)swungDirections.size();
-            for (int j = 0; j < numDirections; ++j) {
-                swungDirections[j] = invAbsoluteRotation * swungDirections[j];
+            std::vector<float> minDots;
+            for (size_t i = 0; i < swungDirections.size(); i++) {
+                minDots.push_back(glm::dot(glm::normalize(swungDirections[i]), Vectors::UNIT_Y));
             }
-            stConstraint->setSwingLimits(swungDirections);
-
+            stConstraint->setSwingLimits(minDots);
             constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (0 == baseName.compare("Hand", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
@@ -957,6 +944,32 @@ void AnimInverseKinematics::initConstraints() {
     }
 }
 
+void AnimInverseKinematics::initLimitCenterPoses() {
+    assert(_skeleton);
+    _limitCenterPoses.reserve(_skeleton->getNumJoints());
+    for (int i = 0; i < _skeleton->getNumJoints(); i++) {
+        AnimPose pose = _skeleton->getRelativeDefaultPose(i);
+        RotationConstraint* constraint = getConstraint(i);
+        if (constraint) {
+            pose.rot() = constraint->computeCenterRotation();
+        }
+        _limitCenterPoses.push_back(pose);
+    }
+
+    // The limit center rotations for the LeftArm and RightArm form a t-pose.
+    // In order for the elbows to look more natural, we rotate them down by the avatar's sides
+    const float UPPER_ARM_THETA = PI / 3.0f;  // 60 deg
+    int leftArmIndex = _skeleton->nameToJointIndex("LeftArm");
+    const glm::quat armRot = glm::angleAxis(UPPER_ARM_THETA, Vectors::UNIT_X);
+    if (leftArmIndex >= 0 && leftArmIndex < (int)_limitCenterPoses.size()) {
+        _limitCenterPoses[leftArmIndex].rot() = _limitCenterPoses[leftArmIndex].rot() * armRot;
+    }
+    int rightArmIndex = _skeleton->nameToJointIndex("RightArm");
+    if (rightArmIndex >= 0 && rightArmIndex < (int)_limitCenterPoses.size()) {
+        _limitCenterPoses[rightArmIndex].rot() = _limitCenterPoses[rightArmIndex].rot() * armRot;
+    }
+}
+
 void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
     AnimNode::setSkeletonInternal(skeleton);
 
@@ -973,6 +986,7 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
 
     if (skeleton) {
         initConstraints();
+        initLimitCenterPoses();
         _headIndex = _skeleton->nameToJointIndex("Head");
         _hipsIndex = _skeleton->nameToJointIndex("Hips");
 
@@ -987,5 +1001,172 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         _headIndex = -1;
         _hipsIndex = -1;
         _hipsParentIndex = -1;
+    }
+}
+
+static glm::vec3 sphericalToCartesian(float phi, float theta) {
+    float cos_phi = cosf(phi);
+    float sin_phi = sinf(phi);
+    return glm::vec3(sin_phi * cosf(theta), cos_phi, -sin_phi * sinf(theta));
+}
+
+void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) const {
+    if (_skeleton) {
+        const vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+        const vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
+        const vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+        const vec4 PURPLE(0.5f, 0.0f, 1.0f, 1.0f);
+        const vec4 CYAN(0.0f, 1.0f, 1.0f, 1.0f);
+        const vec4 GRAY(0.2f, 0.2f, 0.2f, 1.0f);
+        const vec4 MAGENTA(1.0f, 0.0f, 1.0f, 1.0f);
+        const float AXIS_LENGTH = 2.0f; // cm
+        const float TWIST_LENGTH = 4.0f; // cm
+        const float HINGE_LENGTH = 6.0f; // cm
+        const float SWING_LENGTH = 5.0f; // cm
+
+        AnimPoseVec poses = _skeleton->getRelativeDefaultPoses();
+
+        // copy reference rotations into the relative poses
+        for (int i = 0; i < (int)poses.size(); i++) {
+            const RotationConstraint* constraint = getConstraint(i);
+            if (constraint) {
+                poses[i].rot() = constraint->getReferenceRotation();
+            }
+        }
+
+        // convert relative poses to absolute
+        _skeleton->convertRelativePosesToAbsolute(poses);
+
+        mat4 geomToWorldMatrix = context.getRigToWorldMatrix() * context.getGeometryToRigMatrix();
+
+        // draw each pose and constraint
+        for (int i = 0; i < (int)poses.size(); i++) {
+            // transform local axes into world space.
+            auto pose = poses[i];
+            glm::vec3 xAxis = transformVectorFast(geomToWorldMatrix, pose.rot() * Vectors::UNIT_X);
+            glm::vec3 yAxis = transformVectorFast(geomToWorldMatrix, pose.rot() * Vectors::UNIT_Y);
+            glm::vec3 zAxis = transformVectorFast(geomToWorldMatrix, pose.rot() * Vectors::UNIT_Z);
+            glm::vec3 pos = transformPoint(geomToWorldMatrix, pose.trans());
+            DebugDraw::getInstance().drawRay(pos, pos + AXIS_LENGTH * xAxis, RED);
+            DebugDraw::getInstance().drawRay(pos, pos + AXIS_LENGTH * yAxis, GREEN);
+            DebugDraw::getInstance().drawRay(pos, pos + AXIS_LENGTH * zAxis, BLUE);
+
+            // draw line to parent
+            int parentIndex = _skeleton->getParentIndex(i);
+            if (parentIndex != -1) {
+                glm::vec3 parentPos = transformPoint(geomToWorldMatrix, poses[parentIndex].trans());
+                DebugDraw::getInstance().drawRay(pos, parentPos, GRAY);
+            }
+
+            glm::quat parentAbsRot;
+            if (parentIndex != -1) {
+                parentAbsRot = poses[parentIndex].rot();
+            }
+
+            const RotationConstraint* constraint = getConstraint(i);
+            if (constraint) {
+                glm::quat refRot = constraint->getReferenceRotation();
+                const ElbowConstraint* elbowConstraint = dynamic_cast<const ElbowConstraint*>(constraint);
+                if (elbowConstraint) {
+                    glm::vec3 hingeAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * refRot * elbowConstraint->getHingeAxis());
+                    DebugDraw::getInstance().drawRay(pos, pos + HINGE_LENGTH * hingeAxis, MAGENTA);
+
+                    // draw elbow constraints
+                    glm::quat minRot = glm::angleAxis(elbowConstraint->getMinAngle(), elbowConstraint->getHingeAxis());
+                    glm::quat maxRot = glm::angleAxis(elbowConstraint->getMaxAngle(), elbowConstraint->getHingeAxis());
+
+                    const int NUM_SWING_STEPS = 10;
+                    for (int i = 0; i < NUM_SWING_STEPS + 1; i++) {
+                        glm::quat rot = glm::normalize(glm::lerp(minRot, maxRot, i * (1.0f / NUM_SWING_STEPS)));
+                        glm::vec3 axis = transformVectorFast(geomToWorldMatrix, parentAbsRot * rot * refRot * Vectors::UNIT_Y);
+                        DebugDraw::getInstance().drawRay(pos, pos + TWIST_LENGTH * axis, CYAN);
+                    }
+
+                } else {
+                    const SwingTwistConstraint* swingTwistConstraint = dynamic_cast<const SwingTwistConstraint*>(constraint);
+                    if (swingTwistConstraint) {
+                        // twist constraints
+
+                        glm::vec3 hingeAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * refRot * Vectors::UNIT_Y);
+                        DebugDraw::getInstance().drawRay(pos, pos + HINGE_LENGTH * hingeAxis, MAGENTA);
+
+                        glm::quat minRot = glm::angleAxis(swingTwistConstraint->getMinTwist(), Vectors::UNIT_Y);
+                        glm::quat maxRot = glm::angleAxis(swingTwistConstraint->getMaxTwist(), Vectors::UNIT_Y);
+
+                        const int NUM_SWING_STEPS = 10;
+                        for (int i = 0; i < NUM_SWING_STEPS + 1; i++) {
+                            glm::quat rot = glm::normalize(glm::lerp(minRot, maxRot, i * (1.0f / NUM_SWING_STEPS)));
+                            glm::vec3 axis = transformVectorFast(geomToWorldMatrix, parentAbsRot * rot * refRot * Vectors::UNIT_X);
+                            DebugDraw::getInstance().drawRay(pos, pos + TWIST_LENGTH * axis, CYAN);
+                        }
+
+                        // draw swing constraints.
+                        const size_t NUM_MIN_DOTS = swingTwistConstraint->getMinDots().size();
+                        const float D_THETA = TWO_PI / (NUM_MIN_DOTS - 1);
+                        float theta = 0.0f;
+                        for (size_t i = 0, j = NUM_MIN_DOTS - 2; i < NUM_MIN_DOTS - 1; j = i, i++, theta += D_THETA) {
+                            // compute swing rotation from theta and phi angles.
+                            float phi = acosf(swingTwistConstraint->getMinDots()[i]);
+                            glm::vec3 swungAxis = sphericalToCartesian(phi, theta);
+                            glm::vec3 worldSwungAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * refRot * swungAxis);
+                            glm::vec3 swingTip = pos + SWING_LENGTH * worldSwungAxis;
+
+                            float prevPhi = acos(swingTwistConstraint->getMinDots()[j]);
+                            float prevTheta = theta - D_THETA;
+                            glm::vec3 prevSwungAxis = sphericalToCartesian(prevPhi, prevTheta);
+                            glm::vec3 prevWorldSwungAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * refRot * prevSwungAxis);
+                            glm::vec3 prevSwingTip = pos + SWING_LENGTH * prevWorldSwungAxis;
+
+                            DebugDraw::getInstance().drawRay(pos, swingTip, PURPLE);
+                            DebugDraw::getInstance().drawRay(prevSwingTip, swingTip, PURPLE);
+                        }
+                    }
+                }
+                pose.rot() = constraint->computeCenterRotation();
+            }
+        }
+    }
+}
+
+// for bones under IK, blend between previous solution (_relativePoses) to targetPoses
+// for bones NOT under IK, copy directly from underPoses.
+// mutates _relativePoses.
+void AnimInverseKinematics::blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPoses, float blendFactor) {
+    // relax toward poses
+    int numJoints = (int)_relativePoses.size();
+    for (int i = 0; i < numJoints; ++i) {
+        float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot(), targetPoses[i].rot()));
+        if (_accumulators[i].isDirty()) {
+            // this joint is affected by IK --> blend toward the targetPoses rotation
+            _relativePoses[i].rot() = glm::normalize(glm::lerp(_relativePoses[i].rot(), dotSign * targetPoses[i].rot(), blendFactor));
+        } else {
+            // this joint is NOT affected by IK --> slam to underPoses rotation
+            _relativePoses[i].rot() = underPoses[i].rot();
+        }
+        _relativePoses[i].trans() = underPoses[i].trans();
+    }
+}
+
+void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPoses) {
+    const float RELAX_BLEND_FACTOR = (1.0f / 16.0f);
+    const float COPY_BLEND_FACTOR = 1.0f;
+    switch (solutionSource) {
+    default:
+    case SolutionSource::RelaxToUnderPoses:
+        blendToPoses(underPoses, underPoses, RELAX_BLEND_FACTOR);
+        break;
+    case SolutionSource::RelaxToLimitCenterPoses:
+        blendToPoses(_limitCenterPoses, underPoses, RELAX_BLEND_FACTOR);
+        break;
+    case SolutionSource::PreviousSolution:
+        // do nothing... _relativePoses is already the previous solution
+        break;
+    case SolutionSource::UnderPoses:
+        _relativePoses = underPoses;
+        break;
+    case SolutionSource::LimitCenterPoses:
+        // essentially copy limitCenterPoses over to _relativePoses.
+        blendToPoses(_limitCenterPoses, underPoses, COPY_BLEND_FACTOR);
+        break;
     }
 }

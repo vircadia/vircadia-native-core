@@ -19,3 +19,6 @@ set_target_properties(skeleton-dump PROPERTIES FOLDER "Tools")
 
 add_subdirectory(atp-get)
 set_target_properties(atp-get PROPERTIES FOLDER "Tools")
+
+add_subdirectory(oven)
+set_target_properties(oven PROPERTIES FOLDER "Tools")
