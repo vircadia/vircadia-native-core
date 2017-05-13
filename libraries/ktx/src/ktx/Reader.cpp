@@ -151,7 +151,7 @@ namespace ktx {
             auto expectedImageSize = header.evalImageSize(images.size());
             if (imageSize != expectedImageSize) {
                 break;
-            } else if ((imageSize < 4) || (imageSize & 0x3)) {
+            } else if (!Header::checkAlignment(imageSize)) {
                 break;
             }
 
