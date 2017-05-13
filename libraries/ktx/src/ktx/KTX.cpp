@@ -22,6 +22,9 @@ uint32_t Header::evalPadding(size_t byteSize) {
     return (uint32_t) (3 - (byteSize + 3) % PACKING_SIZE);// padding ? PACKING_SIZE - padding : 0);
 }
 
+bool Header::checkAlignment(size_t byteSize) {
+    return ((byteSize & 0x3) == 0);
+}
 
 const Header::Identifier ktx::Header::IDENTIFIER {{
     0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A
@@ -114,7 +117,7 @@ size_t Header::evalFaceSize(uint32_t level) const {
 }
 size_t Header::evalImageSize(uint32_t level) const {
     auto faceSize = evalFaceSize(level);
-    if ((faceSize < 4) || ((faceSize & 0x3) != 0)) {
+    if (!checkAlignment(faceSize)) {
         return 0;
     }
     if (numberOfFaces == NUM_CUBEMAPFACES && numberOfArrayElements == 0) {
@@ -142,7 +145,7 @@ ImageDescriptors Header::generateImageDescriptors() const {
     size_t imageOffset = 0;
     for (uint32_t level = 0; level < numberOfMipmapLevels; ++level) {
         auto imageSize = static_cast<uint32_t>(evalImageSize(level));
-        if ((imageSize < 4) || ((imageSize & 0x3) != 0)) {
+        if (!checkAlignment(imageSize)) {
             return ImageDescriptors();
         }
         if (imageSize == 0) {
