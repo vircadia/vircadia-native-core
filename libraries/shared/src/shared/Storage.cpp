@@ -21,10 +21,6 @@ ViewStorage::ViewStorage(const storage::StoragePointer& owner, size_t size, cons
 
 StoragePointer Storage::createView(size_t viewSize, size_t offset) const {
     auto selfSize = size();
-    if ((viewSize < 4) || ((viewSize & 0x3) != 0)) {
-        throw std::runtime_error("Invalid mapping range");
-    }
-
     if (0 == viewSize) {
         viewSize = selfSize;
     }
