@@ -16,38 +16,10 @@
 
 
 
-class InternalTriangleSet {
-public:
-    InternalTriangleSet(std::vector<Triangle>& allTriangles) :
-        _allTriangles(allTriangles)
-    { }
-
-    virtual void insert(int triangleIndex);
-    void clear();
-
-    // Determine if the given ray (origin/direction) in model space intersects with any triangles in the set. If an 
-    // intersection occurs, the distance and surface normal will be provided.
-    // note: this might side-effect internal structures
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, 
-        float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched);
-
-    const AABox& getBounds() const { return _bounds; }
-
-    size_t size() const { return _triangleIndices.size(); }
-
-protected:
-    std::vector<Triangle>& _allTriangles;
-    std::vector<int> _triangleIndices;
-    AABox _bounds;
-
-    friend class TriangleOctreeCell;
-};
-
 class TriangleOctreeCell {
 public:
     TriangleOctreeCell(std::vector<Triangle>& allTriangles) :
-        _allTriangles(allTriangles),
-        _triangleSet(allTriangles)
+        _allTriangles(allTriangles)
     { }
 
 
@@ -60,24 +32,28 @@ public:
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched);
 
-    const AABox& getBounds() const { return _triangleSet.getBounds(); }
+    const AABox& getBounds() const { return _bounds; }
 
     void debugDump();
 
 protected:
     TriangleOctreeCell(std::vector<Triangle>& allTriangles, const AABox& bounds, int depth);
 
+    // checks our internal list of triangles
+    bool findRayIntersectionInternal(const glm::vec3& origin, const glm::vec3& direction,
+        float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched);
+
     std::vector<Triangle>& _allTriangles;
-    InternalTriangleSet _triangleSet;
     std::vector<TriangleOctreeCell> _children;
     int _depth { 0 };
     int _population { 0 };
+    AABox _bounds;
+    std::vector<int> _triangleIndices;
 
     friend class TriangleSet;
 };
 
 class TriangleSet {
-    // pass through public implementation all the features of InternalTriangleSet
 public:
     TriangleSet() :
         _triangleOctree(_triangles)
