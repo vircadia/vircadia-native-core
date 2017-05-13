@@ -148,7 +148,7 @@ namespace ktx {
             size_t imageSize = *reinterpret_cast<const uint32_t*>(currentPtr);
             currentPtr += sizeof(uint32_t);
 
-            auto expectedImageSize = header.evalImageSize(images.size());
+            auto expectedImageSize = header.evalImageSize((uint32_t) images.size());
             if (imageSize != expectedImageSize) {
                 break;
             } else if (!Header::checkAlignment(imageSize)) {
