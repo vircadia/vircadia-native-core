@@ -305,30 +305,35 @@ void Rig::clearJointAnimationPriority(int index) {
     }
 }
 
-void Rig::clearIKJointLimitHistory() {
+std::shared_ptr<AnimInverseKinematics> Rig::getAnimInverseKinematicsNode() const {
+    std::shared_ptr<AnimInverseKinematics> result;
     if (_animNode) {
         _animNode->traverse([&](AnimNode::Pointer node) {
             // only report clip nodes as valid roles.
             auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
             if (ikNode) {
-                ikNode->clearIKJointLimitHistory();
+                result = ikNode;
+                return false;
+            } else {
+                return true;
             }
-            return true;
         });
+    }
+    return result;
+}
+
+void Rig::clearIKJointLimitHistory() {
+    auto ikNode = getAnimInverseKinematicsNode();
+    if (ikNode) {
+        ikNode->clearIKJointLimitHistory();
     }
 }
 
 void Rig::setMaxHipsOffsetLength(float maxLength) {
     _maxHipsOffsetLength = maxLength;
-
-    if (_animNode) {
-        _animNode->traverse([&](AnimNode::Pointer node) {
-            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
-            if (ikNode) {
-                ikNode->setMaxHipsOffsetLength(_maxHipsOffsetLength);
-            }
-            return true;
-        });
+    auto ikNode = getAnimInverseKinematicsNode();
+    if (ikNode) {
+        ikNode->setMaxHipsOffsetLength(_maxHipsOffsetLength);
     }
 }
 
@@ -936,7 +941,7 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
     }
 }
 
-void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
+void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform) {
 
     PROFILE_RANGE_EX(simulation_animation_detail, __FUNCTION__, 0xffff00ff, 0);
     PerformanceTimer perfTimer("updateAnimations");
@@ -949,7 +954,8 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
 
-        AnimContext context(_enableDebugDrawIKTargets, getGeometryToRigTransform());
+        AnimContext context(_enableDebugDrawIKTargets, _enableDebugDrawIKConstraints,
+                            getGeometryToRigTransform(), rigToWorldTransform);
 
         // evaluate the animation
         AnimNode::Triggers triggersOut;
@@ -1025,10 +1031,12 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     _animVars.set("notIsTalking", !params.isTalking);
 
     if (params.hipsEnabled) {
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
         _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
         _animVars.set("hipsPosition", extractTranslation(params.hipsMatrix));
         _animVars.set("hipsRotation", glmExtractRotation(params.hipsMatrix));
     } else {
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToUnderPoses);
         _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
     }
 
@@ -1440,7 +1448,7 @@ void Rig::computeAvatarBoundingCapsule(
 
     // call overlay twice: once to verify AnimPoseVec joints and again to do the IK
     AnimNode::Triggers triggersOut;
-    AnimContext context(false, glm::mat4());
+    AnimContext context(false, false, glm::mat4(), glm::mat4());
     float dt = 1.0f; // the value of this does not matter
     ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
     AnimPoseVec finalPoses =  ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());

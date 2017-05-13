@@ -25,7 +25,8 @@ public:
     static const AnimPose identity;
 
     glm::vec3 xformPoint(const glm::vec3& rhs) const;
-    glm::vec3 xformVector(const glm::vec3& rhs) const;  // really slow
+    glm::vec3 xformVector(const glm::vec3& rhs) const;  // really slow, but accurate for transforms with non-uniform scale
+    glm::vec3 xformVectorFast(const glm::vec3& rhs) const;  // faster, but does not handle non-uniform scale correctly.
 
     glm::vec3 operator*(const glm::vec3& rhs) const; // same as xformPoint
     AnimPose operator*(const AnimPose& rhs) const;
