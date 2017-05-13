@@ -45,7 +45,7 @@ class TriangleSet {
         int _depth{ 0 };
         int _population{ 0 };
         AABox _bounds;
-        std::vector<int> _triangleIndices;
+        std::vector<size_t> _triangleIndices;
 
         friend class TriangleSet;
     };
