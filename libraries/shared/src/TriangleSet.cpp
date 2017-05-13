@@ -81,7 +81,7 @@ void TriangleSet::balanceOctree() {
 
     // insert all the triangles
 
-    for (int i = 0; i < _triangles.size(); i++) {
+    for (size_t i = 0; i < _triangles.size(); i++) {
         _triangleOctree.insert(i);
     }
 
@@ -153,10 +153,6 @@ void TriangleSet::TriangleOctreeCell::reset(const AABox& bounds, int depth) {
     clear();
     _bounds = bounds;
     _depth = depth;
-    if (depth <= MAX_DEPTH) {
-        int childDepth = depth + 1;
-        _children.clear();
-    }
 }
 
 void TriangleSet::TriangleOctreeCell::debugDump() {
@@ -176,7 +172,7 @@ void TriangleSet::TriangleOctreeCell::debugDump() {
     }
 }
 
-void TriangleSet::TriangleOctreeCell::insert(int triangleIndex) {
+void TriangleSet::TriangleOctreeCell::insert(size_t triangleIndex) {
     const Triangle& triangle = _allTriangles[triangleIndex];
     _population++;
     // if we're not yet at the max depth, then check which child the triangle fits in

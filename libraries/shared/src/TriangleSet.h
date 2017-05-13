@@ -22,7 +22,7 @@ class TriangleSet {
             _allTriangles(allTriangles)
         { }
 
-        void insert(int triangleIndex);
+        void insert(size_t triangleIndex);
         void reset(const AABox& bounds, int depth = 0);
         void clear();
 
