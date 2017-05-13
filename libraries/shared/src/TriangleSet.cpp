@@ -27,7 +27,7 @@ void TriangleSet::clear() {
     _bounds.clear();
     _isBalanced = false;
 
-    // delete the octree?
+    _triangleOctree.clear();
 }
 
 bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -42,7 +42,12 @@ bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
 
     int trianglesTouched = 0;
     auto result = _triangleOctree.findRayIntersection(origin, direction, distance, face, surfaceNormal, precision, trianglesTouched);
-    qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleOctree._population;
+
+    #if WANT_DEBUGGING
+    if (precision) {
+        qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleOctree._population;
+    }
+    #endif
     return result;
 }
 
@@ -82,13 +87,15 @@ void TriangleSet::balanceOctree() {
 
     _isBalanced = true;
 
+    #if WANT_DEBUGGING
     debugDump();
+    #endif
 }
 
 
 // Determine of the given ray (origin/direction) in model space intersects with any triangles
 // in the set. If an intersection occurs, the distance and surface normal will be provided.
-bool TriangleOctreeCell::findRayIntersectionInternal(const glm::vec3& origin, const glm::vec3& direction,
+bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec3& origin, const glm::vec3& direction,
             float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched) {
 
     bool intersectedSomething = false;
@@ -126,22 +133,23 @@ bool TriangleOctreeCell::findRayIntersectionInternal(const glm::vec3& origin, co
     return intersectedSomething;
 }
 
-static const int MAX_DEPTH = 3; // for now
+static const int MAX_DEPTH = 4; // for now
 static const int MAX_CHILDREN = 8;
 
-TriangleOctreeCell::TriangleOctreeCell(std::vector<Triangle>& allTriangles, const AABox& bounds, int depth) :
+TriangleSet::TriangleOctreeCell::TriangleOctreeCell(std::vector<Triangle>& allTriangles, const AABox& bounds, int depth) :
     _allTriangles(allTriangles)
 {
     reset(bounds, depth);
 }
 
-void TriangleOctreeCell::clear() {
+void TriangleSet::TriangleOctreeCell::clear() {
     _population = 0;
     _triangleIndices.clear();
     _bounds.clear();
+    _children.clear();
 }
 
-void TriangleOctreeCell::reset(const AABox& bounds, int depth) {
+void TriangleSet::TriangleOctreeCell::reset(const AABox& bounds, int depth) {
     clear();
     _bounds = bounds;
     _depth = depth;
@@ -151,7 +159,7 @@ void TriangleOctreeCell::reset(const AABox& bounds, int depth) {
     }
 }
 
-void TriangleOctreeCell::debugDump() {
+void TriangleSet::TriangleOctreeCell::debugDump() {
     qDebug() << __FUNCTION__;
     qDebug() << "bounds:" << getBounds();
     qDebug() << "depth:" << _depth;
@@ -168,7 +176,7 @@ void TriangleOctreeCell::debugDump() {
     }
 }
 
-void TriangleOctreeCell::insert(int triangleIndex) {
+void TriangleSet::TriangleOctreeCell::insert(int triangleIndex) {
     const Triangle& triangle = _allTriangles[triangleIndex];
     _population++;
     // if we're not yet at the max depth, then check which child the triangle fits in
@@ -201,15 +209,9 @@ void TriangleOctreeCell::insert(int triangleIndex) {
     // either we're at max depth, or the triangle doesn't fit in one of our
     // children and so we want to just record it here
     _triangleIndices.push_back(triangleIndex);
-
-    /*
-    _bounds += triangle.v0;
-    _bounds += triangle.v1;
-    _bounds += triangle.v2;
-    */
 }
 
-bool TriangleOctreeCell::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                 float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched) {
 
     if (_population < 1) {
