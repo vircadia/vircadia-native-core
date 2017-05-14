@@ -38,13 +38,11 @@
 #include <StatTracker.h>
 #include <LogHandler.h>
 
-
 #include <gpu/Texture.h>
 #include <gl/Config.h>
 #include <model/TextureMap.h>
 #include <ktx/KTX.h>
 #include <image/Image.h>
-
 
 QSharedPointer<FileLogger> logger;
 
@@ -59,7 +57,9 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
         OutputDebugStringA(logMessage.toLocal8Bit().constData());
         OutputDebugStringA("\n");
 #endif
-        logger->addMessage(qPrintable(logMessage + "\n"));
+        if (logger) {
+            logger->addMessage(qPrintable(logMessage + "\n"));
+        }
     }
 }
 
@@ -148,6 +148,60 @@ int main(int argc, char** argv) {
     testTexture->setKtxBacking(TEST_IMAGE_KTX.toStdString());
     return 0;
 }
+
+#if 0
+static const QString TEST_FOLDER { "H:/ktx_cacheold" };
+//static const QString TEST_FOLDER { "C:/Users/bdavis/Git/KTX/testimages" };
+
+//static const QString EXTENSIONS { "4bbdf8f786470e4ab3e672d44b8e8df2.ktx" };
+static const QString EXTENSIONS { "*.ktx" };
+
+int mainTemp(int, char**) {
+    qInstallMessageHandler(messageHandler);
+    auto fileInfoList = QDir { TEST_FOLDER }.entryInfoList(QStringList  { EXTENSIONS });
+    for (auto fileInfo : fileInfoList) {
+        qDebug() << fileInfo.filePath();
+        std::shared_ptr<storage::Storage> storage { new storage::FileStorage { fileInfo.filePath() } };
+
+        if (!ktx::KTX::validate(storage)) {
+            qDebug() << "KTX invalid";
+        }
+
+        auto ktxFile = ktx::KTX::create(storage);
+        ktx::KTXDescriptor ktxDescriptor = ktxFile->toDescriptor();
+        assert(ktxFile->_keyValues == ktxDescriptor.keyValues);
+
+        qDebug() << "Contains " << ktxDescriptor.keyValues.size() << " key value pairs";
+        for (const auto& kv : ktxDescriptor.keyValues) {
+            qDebug() << "\t" << kv._key.c_str();
+        }
+
+        auto offsetToMinMipKV = ktxDescriptor.getValueOffsetForKey(ktx::HIFI_MIN_POPULATED_MIP_KEY);
+        if (offsetToMinMipKV) {
+            auto data = storage->data() + ktx::KTX_HEADER_SIZE + offsetToMinMipKV;
+            auto minMipLevelAvailable = *data;
+            qDebug() << "\tMin mip available " << minMipLevelAvailable;
+            assert(minMipLevelAvailable < ktxDescriptor.header.numberOfMipmapLevels);
+        }
+        auto storageSize = storage->size();
+        for (const auto& faceImageDesc : ktxDescriptor.images) {
+            //assert(0 == (faceImageDesc._faceSize % 4));
+            for (const auto& faceOffset : faceImageDesc._faceOffsets) {
+                assert(0 == (faceOffset % 4));
+                auto faceEndOffset = faceOffset + faceImageDesc._faceSize;
+                assert(faceEndOffset <= storageSize);
+            }
+        }
+
+        for (const auto& faceImage : ktxFile->_images) {
+            for (const ktx::Byte* faceBytes : faceImage._faceBytes) {
+                assert(0 == (reinterpret_cast<size_t>(faceBytes) % 4));
+            }
+        }
+    }
+    return 0;
+}
+#endif
 
 #include "main.moc"
 

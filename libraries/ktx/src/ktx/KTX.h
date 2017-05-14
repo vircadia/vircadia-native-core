@@ -180,105 +180,107 @@ namespace ktx {
         RGB16F                          = 0x881B,
         RGBA16F                         = 0x881A,
 
-        R32F      = 0x822E,
-        RG32F      = 0x8230,
-        RGB32F      = 0x8815,
-        RGBA32F      = 0x8814,
+        R32F                            = 0x822E,
+        RG32F                           = 0x8230,
+        RGB32F                          = 0x8815,
+        RGBA32F                         = 0x8814,
 
-        R11F_G11F_B10F      = 0x8C3A,
-        RGB9_E5      = 0x8C3D,
+        R11F_G11F_B10F                  = 0x8C3A,
+        RGB9_E5                         = 0x8C3D,
 
 
-        R8I      = 0x8231,
-        R8UI      = 0x8232,
-        R16I      = 0x8233,
-        R16UI      = 0x8234,
-        R32I      = 0x8235,
-        R32UI      = 0x8236,
-        RG8I      = 0x8237,
-        RG8UI      = 0x8238,
-        RG16I      = 0x8239,
-        RG16UI      = 0x823A,
-        RG32I      = 0x823B,
-        RG32UI      = 0x823C,
+        R8I                             = 0x8231,
+        R8UI                            = 0x8232,
+        R16I                            = 0x8233,
+        R16UI                           = 0x8234,
+        R32I                            = 0x8235,
+        R32UI                           = 0x8236,
+        RG8I                            = 0x8237,
+        RG8UI                           = 0x8238,
+        RG16I                           = 0x8239,
+        RG16UI                          = 0x823A,
+        RG32I                           = 0x823B,
+        RG32UI                          = 0x823C,
 
-        RGB8I      = 0x8D8F,
-        RGB8UI      = 0x8D7D,
-        RGB16I      = 0x8D89,
-        RGB16UI      = 0x8D77,
+        RGB8I                           = 0x8D8F,
+        RGB8UI                          = 0x8D7D,
+        RGB16I                          = 0x8D89,
+        RGB16UI                         = 0x8D77,
 
-        RGB32I      = 0x8D83,
-        RGB32UI      = 0x8D71,
-        RGBA8I      = 0x8D8E,
-        RGBA8UI      = 0x8D7C,
-        RGBA16I      = 0x8D88,
-        RGBA16UI      = 0x8D76,
-        RGBA32I      = 0x8D82,
+        RGB32I                          = 0x8D83,
+        RGB32UI                         = 0x8D71,
+        RGBA8I                          = 0x8D8E,
+        RGBA8UI                         = 0x8D7C,
+        RGBA16I                         = 0x8D88,
+        RGBA16UI                        = 0x8D76,
+        RGBA32I                         = 0x8D82,
 
-        RGBA32UI      = 0x8D70,
+        RGBA32UI                        = 0x8D70,
 
         // GL 4.4 Table 8.13
-        DEPTH_COMPONENT16 = 0x81A5,
-        DEPTH_COMPONENT24 = 0x81A6,
-        DEPTH_COMPONENT32 = 0x81A7,
+        DEPTH_COMPONENT16               = 0x81A5,
+        DEPTH_COMPONENT24               = 0x81A6,
+        DEPTH_COMPONENT32               = 0x81A7,
 
-        DEPTH_COMPONENT32F = 0x8CAC,
-        DEPTH24_STENCIL8 = 0x88F0,
-        DEPTH32F_STENCIL8 = 0x8CAD,
+        DEPTH_COMPONENT32F              = 0x8CAC,
+        DEPTH24_STENCIL8                = 0x88F0,
+        DEPTH32F_STENCIL8               = 0x8CAD,
 
-        STENCIL_INDEX1 = 0x8D46,
-        STENCIL_INDEX4 = 0x8D47,
-        STENCIL_INDEX8 = 0x8D48,
-        STENCIL_INDEX16 = 0x8D49,
+        STENCIL_INDEX1                  = 0x8D46,
+        STENCIL_INDEX4                  = 0x8D47,
+        STENCIL_INDEX8                  = 0x8D48,
+        STENCIL_INDEX16                 = 0x8D49,
     };
 
     enum class GLInternalFormat_Compressed : uint32_t {
         // GL 4.4 Table 8.14
-        COMPRESSED_RED = 0x8225,
-        COMPRESSED_RG = 0x8226,
-        COMPRESSED_RGB = 0x84ED,
-        COMPRESSED_RGBA = 0x84EE,
+        COMPRESSED_RED                              = 0x8225,
+        COMPRESSED_RG                               = 0x8226,
+        COMPRESSED_RGB                              = 0x84ED,
+        COMPRESSED_RGBA                             = 0x84EE,
 
-        COMPRESSED_SRGB = 0x8C48,
-        COMPRESSED_SRGB_ALPHA = 0x8C49,
+        COMPRESSED_SRGB                             = 0x8C48,
+        COMPRESSED_SRGB_ALPHA                       = 0x8C49,
 
-        COMPRESSED_SRGB_S3TC_DXT1_EXT = 0x8C4C,
-        COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT = 0x8C4D,
-        COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT = 0x8C4E,
-        COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT = 0x8C4F,
+        COMPRESSED_ETC1_RGB8_OES                    = 0x8D64,
 
-        COMPRESSED_RED_RGTC1 = 0x8DBB,
-        COMPRESSED_SIGNED_RED_RGTC1 = 0x8DBC,
-        COMPRESSED_RG_RGTC2 = 0x8DBD,
-        COMPRESSED_SIGNED_RG_RGTC2 = 0x8DBE,
+        COMPRESSED_SRGB_S3TC_DXT1_EXT               = 0x8C4C,
+        COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT         = 0x8C4D,
+        COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT         = 0x8C4E,
+        COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT         = 0x8C4F,
 
-        COMPRESSED_RGBA_BPTC_UNORM = 0x8E8C,
-        COMPRESSED_SRGB_ALPHA_BPTC_UNORM = 0x8E8D,
-        COMPRESSED_RGB_BPTC_SIGNED_FLOAT = 0x8E8E,
-        COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT = 0x8E8F,
+        COMPRESSED_RED_RGTC1                        = 0x8DBB,
+        COMPRESSED_SIGNED_RED_RGTC1                 = 0x8DBC,
+        COMPRESSED_RG_RGTC2                         = 0x8DBD,
+        COMPRESSED_SIGNED_RG_RGTC2                  = 0x8DBE,
 
-        COMPRESSED_RGB8_ETC2 = 0x9274,
-        COMPRESSED_SRGB8_ETC2 = 0x9275,
-        COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2 = 0x9276,
-        COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2 = 0x9277,
-        COMPRESSED_RGBA8_ETC2_EAC = 0x9278,
-        COMPRESSED_SRGB8_ALPHA8_ETC2_EAC = 0x9279,
+        COMPRESSED_RGBA_BPTC_UNORM                  = 0x8E8C,
+        COMPRESSED_SRGB_ALPHA_BPTC_UNORM            = 0x8E8D,
+        COMPRESSED_RGB_BPTC_SIGNED_FLOAT            = 0x8E8E,
+        COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT          = 0x8E8F,
 
-        COMPRESSED_R11_EAC = 0x9270,
-        COMPRESSED_SIGNED_R11_EAC = 0x9271,
-        COMPRESSED_RG11_EAC = 0x9272,
-        COMPRESSED_SIGNED_RG11_EAC = 0x9273,
+        COMPRESSED_RGB8_ETC2                        = 0x9274,
+        COMPRESSED_SRGB8_ETC2                       = 0x9275,
+        COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2    = 0x9276,
+        COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2   = 0x9277,
+        COMPRESSED_RGBA8_ETC2_EAC                   = 0x9278,
+        COMPRESSED_SRGB8_ALPHA8_ETC2_EAC            = 0x9279,
+
+        COMPRESSED_R11_EAC                          = 0x9270,
+        COMPRESSED_SIGNED_R11_EAC                   = 0x9271,
+        COMPRESSED_RG11_EAC                         = 0x9272,
+        COMPRESSED_SIGNED_RG11_EAC                  = 0x9273,
     };
 
     enum class GLBaseInternalFormat : uint32_t {
         // GL 4.4 Table 8.11
-        DEPTH_COMPONENT = 0x1902,
-        DEPTH_STENCIL = 0x84F9,
-        RED = 0x1903,
-        RG = 0x8227,
-        RGB = 0x1907,
-        RGBA = 0x1908,
-        STENCIL_INDEX = 0x1901,
+        DEPTH_COMPONENT                 = 0x1902,
+        DEPTH_STENCIL                   = 0x84F9,
+        RED                             = 0x1903,
+        RG                              = 0x8227,
+        RGB                             = 0x1907,
+        RGBA                            = 0x1908,
+        STENCIL_INDEX                   = 0x1901,
     };
 
     enum CubeMapFace {
@@ -316,14 +318,14 @@ namespace ktx {
         Byte identifier[IDENTIFIER_LENGTH];
         uint32_t endianness { ENDIAN_TEST };
 
-        uint32_t glType;
+        uint32_t glType { static_cast<uint32_t>(GLType::UNSIGNED_BYTE) };
         uint32_t glTypeSize { 0 };
-        uint32_t glFormat;
-        uint32_t glInternalFormat;
-        uint32_t glBaseInternalFormat;
+        uint32_t glFormat { static_cast<uint32_t>(GLFormat::RGBA) };
+        uint32_t glInternalFormat { static_cast<uint32_t>(GLInternalFormat_Uncompressed::RGBA8) };
+        uint32_t glBaseInternalFormat { static_cast<uint32_t>(GLBaseInternalFormat::RGBA) };
 
         uint32_t pixelWidth { 1 };
-        uint32_t pixelHeight { 0 };
+        uint32_t pixelHeight { 1 };
         uint32_t pixelDepth { 0 };
         uint32_t numberOfArrayElements { 0 };
         uint32_t numberOfFaces { 1 };
@@ -386,8 +388,12 @@ namespace ktx {
         void setCube(uint32_t width, uint32_t height) { setDimensions(width, height, 0, 0, NUM_CUBEMAPFACES); }
         void setCubeArray(uint32_t width, uint32_t height, uint32_t numSlices) { setDimensions(width, height, 0, (numSlices > 0 ? numSlices : 1), NUM_CUBEMAPFACES); }
 
+        bool isValid() const;
+
+        // Generate a set of image descriptors based on the assumption that the full mip pyramid is populated
         ImageDescriptors generateImageDescriptors() const;
     };
+
     static const size_t KTX_HEADER_SIZE = 64;
     static_assert(sizeof(Header) == KTX_HEADER_SIZE, "KTX Header size is static and should not change from the spec");
     static const size_t KV_SIZE_WIDTH = 4; // Number of bytes for keyAndValueByteSize
@@ -426,6 +432,7 @@ namespace ktx {
         const uint32_t _imageSize;
         const uint32_t _faceSize;
         const uint32_t _padding;
+
         ImageHeader(bool cube, size_t imageOffset, uint32_t imageSize, uint32_t padding) :
             _numFaces(cube ? NUM_CUBEMAPFACES : 1),
             _imageOffset(imageOffset),
@@ -486,6 +493,8 @@ namespace ktx {
     public:
         ~KTX();
 
+        static bool validate(const StoragePointer& src);
+            
         // Define a KTX object manually to write it somewhere (in a file on disk?)
         // This path allocate the Storage where to store header, keyvalues and copy mips
         // Then COPY all the data
