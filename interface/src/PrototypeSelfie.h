@@ -24,8 +24,8 @@ public:
     SelfieRenderTaskConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
-
-protected:
+public slots:
+    void resetSize(int width, int height);
 };
 
 class SelfieRenderTask {

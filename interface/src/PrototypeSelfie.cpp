@@ -19,6 +19,14 @@ void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render
 
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 
+void SelfieRenderTaskConfig::resetSize(int width, int height) {
+    bool wasEnabled = isEnabled();
+    setEnabled(false);
+    auto textureCache = DependencyManager::get<TextureCache>();
+    textureCache->resetSelfieFramebuffer(width, height);
+    setEnabled(wasEnabled);
+}
+
 class BeginSelfieFrame {
 public:
     using JobModel = render::Job::ModelO<BeginSelfieFrame, RenderArgsPointer>;

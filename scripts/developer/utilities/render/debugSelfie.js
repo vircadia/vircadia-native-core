@@ -9,21 +9,19 @@ function addOne() {
          });
 
 }
-
+function offset() {
+    var orientation = MyAvatar.orientation;
+    orientation = Quat.safeEulerAngles(orientation);
+    orientation.x = 0;
+    orientation = Quat.fromVec3Degrees(orientation);
+    return Vec3.sum(MyAvatar.position, Vec3.multiply(5, Quat.getForward(orientation)));
+}
 function addTwo() {
-
-   	var orientation = MyAvatar.orientation;
-	orientation = Quat.safeEulerAngles(orientation);
-	orientation.x = 0;
-	orientation = Quat.fromVec3Degrees(orientation);
-	var root = Vec3.sum(MyAvatar.position, Vec3.multiply(5, Quat.getForward(orientation)));
-
-
     return Overlays.addOverlay("image3d", {
    	                //url: kickOverlayURL(),
                     	url: "http://selfieFrame",
 					//url: "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg",
-     				position: root,
+                    position: offset(),
                     size: 1,
                     scale: -5.0,
                     color: { red: 255, green: 255, blue: 255},
@@ -38,9 +36,17 @@ function addTwo() {
 
 var newOverlay = addTwo();
 var config = Render.getConfig("SelfieFrame");
+function updateCamera() {
+    //config.position = offset();
+    //config.orientation = MyAvatar.orientation;
+}
+var size = Controller.getViewportDimensions();
+config.resetSize(size.x, size.y);
+Script.update.connect(updateCamera);
 config.enabled = true;
 
 Script.scriptEnding.connect(function () {
     config.enabled = false;
+    Script.update.disconnect(updateCamera);
     Overlays.deleteOverlay(newOverlay);
 })
