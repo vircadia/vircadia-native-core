@@ -29,57 +29,38 @@ void SelfieRenderTaskConfig::resetSize(int width, int height) {
 
 class BeginSelfieFrame {
 public:
-    using JobModel = render::Job::ModelO<BeginSelfieFrame, RenderArgsPointer>;
+    using Config = BeginSelfieFrameConfig;
+    using JobModel = render::Job::Model<BeginSelfieFrame>;
 
-
-    void run(const render::RenderContextPointer& renderContext, RenderArgsPointer& cachedArgs) {
+    void run(const render::RenderContextPointer& renderContext) {
         auto args = renderContext->args;
-
         auto textureCache = DependencyManager::get<TextureCache>();
-
         auto destFramebuffer = textureCache->getSelfieFramebuffer();
-        _cachedArgs._blitFramebuffer = args->_blitFramebuffer;
         args->_blitFramebuffer = destFramebuffer;
         args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
-
 
         auto srcViewFrustum = args->getViewFrustum();
         auto srcPos = srcViewFrustum.getPosition();
         srcPos.x += 2.0f;
         srcViewFrustum.setPosition(srcPos);
         args->pushViewFrustum(srcViewFrustum);
-
-       // cachedArgs = _cachedArgs;
     }
-
-protected:
-    RenderArgs _cachedArgs;
 };
 
 class EndSelfieFrame {
 public:
-    using JobModel = render::Job::ModelI<EndSelfieFrame, RenderArgsPointer>;
+    using JobModel = render::Job::Model<EndSelfieFrame>;
 
-
-    void run(const render::RenderContextPointer& renderContext, const RenderArgsPointer& cachedArgs) {
+    void run(const render::RenderContextPointer& renderContext) {
         auto args = renderContext->args;
         args->popViewFrustum();
-        
     }
-
-protected:
 };
 
 void SelfieRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor) {
-
-
-    const auto cachedArg = task.addJob<BeginSelfieFrame>("BeginSelfie");
-
+    task.addJob<BeginSelfieFrame>("BeginSelfie");
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
- 
     task.addJob<RenderDeferredTask>("RenderDeferredTask", items);
-
-    task.addJob<EndSelfieFrame>("EndSelfie", cachedArg);
-
+    task.addJob<EndSelfieFrame>("EndSelfie");
 }

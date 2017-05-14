@@ -18,6 +18,17 @@ public:
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred = true);
 };
 
+class BeginSelfieFrameConfig : public render::Task::Config {
+    Q_OBJECT
+    Q_PROPERTY(glm::vec3 position MEMBER position NOTIFY dirty)  // of viewpoint to render from
+    Q_PROPERTY(glm::quat orientation MEMBER orientation NOTIFY dirty)  // of viewpoint to render from
+public:
+    glm::vec3 position{};
+    glm::quat orientation{};
+signals:
+    void dirty();
+};
+
 class SelfieRenderTaskConfig : public render::Task::Config {
     Q_OBJECT
 public:
@@ -31,13 +42,9 @@ public slots:
 class SelfieRenderTask {
 public:
     using Config = SelfieRenderTaskConfig;
-
     using JobModel = render::Task::Model<SelfieRenderTask, Config>;
-
     SelfieRenderTask() {}
-
     void configure(const Config& config) {}
-
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor);
 };
 
