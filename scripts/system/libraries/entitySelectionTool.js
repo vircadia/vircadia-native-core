@@ -341,6 +341,11 @@ SelectionDisplay = (function() {
         green: 120,
         blue: 120
     };
+    var grabberColorCloner = {
+        red: 0,
+        green: 155,
+        blue: 0
+    };
     var grabberLineWidth = 0.5;
     var grabberSolid = true;
     var grabberMoveUpPosition = {
@@ -397,6 +402,23 @@ SelectionDisplay = (function() {
         },
         size: grabberSizeFace,
         color: grabberColorFace,
+        alpha: 1,
+        solid: grabberSolid,
+        visible: false,
+        dashed: false,
+        lineWidth: grabberLineWidth,
+        drawInFront: true,
+        borderSize: 1.4,
+    };
+
+    var grabberPropertiesCloner = {
+        position: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        size: grabberSizeCorner,
+        color: grabberColorCloner,
         alpha: 1,
         solid: grabberSolid,
         visible: false,
@@ -583,6 +605,8 @@ SelectionDisplay = (function() {
     var grabberPointLightF = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberPointLightN = Overlays.addOverlay("cube", grabberPropertiesEdge);
 
+    var grabberCloner = Overlays.addOverlay("cube", grabberPropertiesCloner);
+
     var stretchHandles = [
         grabberLBN,
         grabberRBN,
@@ -629,6 +653,8 @@ SelectionDisplay = (function() {
         grabberPointLightR,
         grabberPointLightF,
         grabberPointLightN,
+
+        grabberCloner
     ];
 
 
@@ -970,6 +996,7 @@ SelectionDisplay = (function() {
         grabberPointLightCircleX,
         grabberPointLightCircleY,
         grabberPointLightCircleZ,
+
     ].concat(stretchHandles);
 
     overlayNames[highlightBox] = "highlightBox";
@@ -1016,7 +1043,7 @@ SelectionDisplay = (function() {
 
     overlayNames[rotateZeroOverlay] = "rotateZeroOverlay";
     overlayNames[rotateCurrentOverlay] = "rotateCurrentOverlay";
-
+    overlayNames[grabberCloner] = "grabberCloner";
     var activeTool = null;
     var grabberTools = {};
 
@@ -2136,6 +2163,12 @@ SelectionDisplay = (function() {
             position: FAR
         });
 
+        Overlays.editOverlay(grabberCloner, {
+            visible: true,
+            rotation: rotation,
+            position: EdgeTR
+        });
+
         var boxPosition = Vec3.multiplyQbyV(rotation, center);
         boxPosition = Vec3.sum(position, boxPosition);
         Overlays.editOverlay(selectionBox, {
@@ -2293,7 +2326,6 @@ SelectionDisplay = (function() {
             rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         });
 
-
     };
 
     that.setOverlaysVisible = function(isVisible) {
@@ -2325,7 +2357,7 @@ SelectionDisplay = (function() {
         greatestDimension: 0.0,
         startingDistance: 0.0,
         startingElevation: 0.0,
-        onBegin: function(event) {
+        onBegin: function(event,isAltFromGrab) {
             SelectionManager.saveProperties();
             startPosition = SelectionManager.worldPosition;
             var dimensions = SelectionManager.worldDimensions;
@@ -2340,7 +2372,7 @@ SelectionDisplay = (function() {
             // Duplicate entities if alt is pressed.  This will make a
             // copy of the selected entities and move the _original_ entities, not
             // the new ones.
-            if (event.isAlt) {
+            if (event.isAlt || isAltFromGrab) {
                 duplicatedEntityIDs = [];
                 for (var otherEntityID in SelectionManager.savedProperties) {
                     var properties = SelectionManager.savedProperties[otherEntityID];
@@ -2580,6 +2612,34 @@ SelectionDisplay = (function() {
             SelectionManager._update();
         },
     });
+
+    addGrabberTool(grabberCloner, {
+        mode: "CLONE",
+        onBegin: function(event) {
+
+            var pickRay = generalComputePickRay(event.x, event.y);
+            var result = Overlays.findRayIntersection(pickRay);
+            translateXZTool.pickPlanePosition = result.intersection;
+            translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y),
+                SelectionManager.worldDimensions.z);
+
+            translateXZTool.onBegin(event,true);
+        },
+        elevation: function (event) {
+            translateXZTool.elevation(event);
+        },
+
+        onEnd: function (event) {
+            translateXZTool.onEnd(event);
+        },
+
+        onMove: function (event) {
+            translateXZTool.onMove(event);
+        }
+    });
+
+
+
 
     var vec3Mult = function(v1, v2) {
             return {
@@ -4482,6 +4542,12 @@ SelectionDisplay = (function() {
                     highlightNeeded = true;
                     break;
 
+                case grabberCloner:
+                    pickedColor = grabberColorCloner;
+                    pickedAlpha = grabberAlpha;
+                    highlightNeeded = true;
+                    break;
+                    
                 default:
                     if (previousHandle) {
                         Overlays.editOverlay(previousHandle, {
