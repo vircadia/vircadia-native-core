@@ -45,7 +45,7 @@ bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
 
     #if WANT_DEBUGGING
     if (precision) {
-        qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleOctree._population;
+        qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleOctree._population << "_triangles.size:" << _triangles.size();
     }
     #endif
     return result;
@@ -80,7 +80,6 @@ void TriangleSet::balanceOctree() {
     _triangleOctree.reset(_bounds, 0);
 
     // insert all the triangles
-
     for (size_t i = 0; i < _triangles.size(); i++) {
         _triangleOctree.insert(i);
     }
@@ -159,14 +158,15 @@ void TriangleSet::TriangleOctreeCell::debugDump() {
     qDebug() << __FUNCTION__;
     qDebug() << "bounds:" << getBounds();
     qDebug() << "depth:" << _depth;
-    qDebug() << "population:" << _population << "this level or below";
-    qDebug() << "triangleIndices:" << _triangleIndices.size() << "in this cell";
+    qDebug() << "population:" << _population << "this level or below" 
+             << " ---- triangleIndices:" << _triangleIndices.size() << "in this cell";
+
     qDebug() << "child cells:" << _children.size();
     if (_depth < MAX_DEPTH) {
         int childNum = 0;
         for (auto& child : _children) {
             qDebug() << "child:" << childNum;
-            child.debugDump();
+            child.second.debugDump();
             childNum++;
         }
     }
@@ -178,26 +178,21 @@ void TriangleSet::TriangleOctreeCell::insert(size_t triangleIndex) {
     // if we're not yet at the max depth, then check which child the triangle fits in
     if (_depth < MAX_DEPTH) {
 
-        // check existing children to see if this triangle fits them...
-        for (auto& child : _children) {
-            if (child.getBounds().contains(triangle)) {
-                child.insert(triangleIndex);
-                return;
-            }
-        }
-
-        // if it doesn't exist in an existing child, then check for new possible children
-        // note: this will actually re-check the bounds of all the existing children as well, hmmm
         for (int child = 0; child < MAX_CHILDREN; child++) {
             AABox childBounds = getBounds().getOctreeChild((AABox::OctreeChild)child);
+
+
+            // if the child AABox would contain the triangle...
             if (childBounds.contains(triangle)) {
+                // if the child cell doesn't yet exist, create it...
+                if (_children.find((AABox::OctreeChild)child) == _children.end()) {
+                    _children.insert(
+                        std::pair<AABox::OctreeChild, TriangleOctreeCell>
+                        ((AABox::OctreeChild)child, TriangleOctreeCell(_allTriangles, childBounds, _depth + 1)));
+                }
 
-                // create a child node
-                auto child = TriangleOctreeCell(_allTriangles, childBounds, _depth + 1);
-                _children.push_back(child);
-
-                // insert this triangle into it
-                child.insert(triangleIndex);
+                // insert the triangleIndex in the child cell
+                _children.at((AABox::OctreeChild)child).insert(triangleIndex);
                 return;
             }
         }
@@ -224,6 +219,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
 
         // if the intersection with our bounding box, is greater than the current best distance (the distance passed in)
         // then we know that none of our triangles can represent a better intersection and we can return
+
         if (bestLocalDistance > distance) {
             return false;
         }
@@ -240,7 +236,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
                 // check each child, if there's an intersection, it will return some distance that we need
                 // to compare against the other results, because there might be multiple intersections and
                 // we will always choose the best (shortest) intersection
-                if (child.findRayIntersection(origin, direction, childDistance, childFace, childNormal, precision, trianglesTouched)) {
+                if (child.second.findRayIntersection(origin, direction, childDistance, childFace, childNormal, precision, trianglesTouched)) {
                     if (childDistance < bestLocalDistance) {
                         bestLocalDistance = childDistance;
                         bestLocalFace = childFace;

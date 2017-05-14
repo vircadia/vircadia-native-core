@@ -41,7 +41,7 @@ class TriangleSet {
             float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched);
 
         std::vector<Triangle>& _allTriangles;
-        std::vector<TriangleOctreeCell> _children;
+        std::map<AABox::OctreeChild, TriangleOctreeCell> _children;
         int _depth{ 0 };
         int _population{ 0 };
         AABox _bounds;
