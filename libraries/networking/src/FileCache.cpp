@@ -97,7 +97,7 @@ FilePointer FileCache::addFile(Metadata&& metadata, const std::string& filepath)
     return file;
 }
 
-FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata) {
+FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata, bool overwrite) {
     assert(_initialized);
 
     std::string filepath = getFilepath(metadata.key);
@@ -107,8 +107,13 @@ FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata) {
     // if file already exists, return it
     FilePointer file = getFile(metadata.key);
     if (file) {
-        qCWarning(file_cache, "[%s] Attempted to overwrite %s", _dirname.c_str(), metadata.key.c_str());
-        return file;
+        if (!overwrite) {
+            qCWarning(file_cache, "[%s] Attempted to overwrite %s", _dirname.c_str(), metadata.key.c_str());
+            return file;
+        } else {
+            qCWarning(file_cache, "[%s] Overwriting %s", _dirname.c_str(), metadata.key.c_str());
+            file.reset();
+        }
     }
 
     QSaveFile saveFile(QString::fromStdString(filepath));

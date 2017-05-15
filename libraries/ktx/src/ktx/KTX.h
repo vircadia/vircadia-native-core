@@ -309,6 +309,7 @@ namespace ktx {
         static const uint32_t REVERSE_ENDIAN_TEST = 0x01020304;
 
         static uint32_t evalPadding(size_t byteSize);
+        static bool checkAlignment(size_t byteSize);
 
         Header();
 
