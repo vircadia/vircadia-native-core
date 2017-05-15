@@ -659,7 +659,7 @@ void ViveControllerManager::InputDevice::createPreferences() {
         preference->setItems(list);
         preferences->addPreference(preference);
 
-    }        
+    }
 }
 
 controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {
