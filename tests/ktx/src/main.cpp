@@ -21,6 +21,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 #include <QtCore/QThreadPool>
+#include <QtCore/QSaveFile>
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QResizeEvent>
@@ -88,6 +89,20 @@ int main(int argc, char** argv) {
     QCoreApplication::setOrganizationDomain("highfidelity.com");
     logger.reset(new FileLogger());
 
+    Q_ASSERT(ktx::evalPadding(0) == 0);
+    Q_ASSERT(ktx::evalPadding(1) == 3);
+    Q_ASSERT(ktx::evalPadding(2) == 2);
+    Q_ASSERT(ktx::evalPadding(3) == 1);
+    Q_ASSERT(ktx::evalPadding(4) == 0);
+    Q_ASSERT(ktx::evalPadding(1024) == 0);
+    Q_ASSERT(ktx::evalPadding(1025) == 3);
+    Q_ASSERT(ktx::evalPadded(0) == 0);
+    Q_ASSERT(ktx::evalPadded(1) == 4);
+    Q_ASSERT(ktx::evalPadded(2) == 4);
+    Q_ASSERT(ktx::evalPadded(3) == 4);
+    Q_ASSERT(ktx::evalPadded(4) == 4);
+    Q_ASSERT(ktx::evalPadded(1024) == 1024);
+    Q_ASSERT(ktx::evalPadded(1025) == 1028);
     Q_ASSERT(sizeof(ktx::Header) == 12 + (sizeof(uint32_t) * 13));
 
     DependencyManager::set<tracing::Tracer>();
@@ -100,8 +115,10 @@ int main(int argc, char** argv) {
     auto ktxMemory = gpu::Texture::serialize(*testTexture);
     {
         const auto& ktxStorage = ktxMemory->getStorage();
-        QFile outFile(TEST_IMAGE_KTX);
-        if (!outFile.open(QFile::Truncate | QFile::ReadWrite)) {
+        Q_ASSERT_X(ktx::KTX::validate(ktxStorage), __FUNCTION__, "KTX storage validation failed");
+        Q_ASSERT_X(ktxMemory->isValid(), __FUNCTION__, "KTX self-validation failed");
+        QSaveFile outFile(TEST_IMAGE_KTX);
+        if (!outFile.open(QFile::WriteOnly)) {
             throw std::runtime_error("Unable to open file");
         }
         auto ktxSize = ktxStorage->size();
@@ -109,7 +126,7 @@ int main(int argc, char** argv) {
         auto dest = outFile.map(0, ktxSize);
         memcpy(dest, ktxStorage->data(), ktxSize);
         outFile.unmap(dest);
-        outFile.close();
+        outFile.commit();
     }
 
     {
@@ -169,7 +186,6 @@ int mainTemp(int, char**) {
 
         auto ktxFile = ktx::KTX::create(storage);
         ktx::KTXDescriptor ktxDescriptor = ktxFile->toDescriptor();
-        assert(ktxFile->_keyValues == ktxDescriptor.keyValues);
 
         qDebug() << "Contains " << ktxDescriptor.keyValues.size() << " key value pairs";
         for (const auto& kv : ktxDescriptor.keyValues) {

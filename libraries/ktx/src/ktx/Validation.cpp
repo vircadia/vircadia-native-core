@@ -63,111 +63,111 @@ static const std::unordered_set<uint32_t> VALID_GL_FORMATS {
 };
 
 static const std::unordered_set<uint32_t> VALID_GL_INTERNAL_FORMATS {
-    (uint32_t)GLInternalFormat_Uncompressed::R8,
-    (uint32_t)GLInternalFormat_Uncompressed::R8_SNORM,
-    (uint32_t)GLInternalFormat_Uncompressed::R16,
-    (uint32_t)GLInternalFormat_Uncompressed::R16_SNORM,
-    (uint32_t)GLInternalFormat_Uncompressed::RG8,
-    (uint32_t)GLInternalFormat_Uncompressed::RG8_SNORM,
-    (uint32_t)GLInternalFormat_Uncompressed::RG16,
-    (uint32_t)GLInternalFormat_Uncompressed::RG16_SNORM,
-    (uint32_t)GLInternalFormat_Uncompressed::R3_G3_B2,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB4,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB5,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB565,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB8,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB8_SNORM,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB10,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB12,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB16,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB16_SNORM,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA2,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA4,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB5_A1,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA8,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA8_SNORM,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB10_A2,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB10_A2UI,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA12,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA16,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA16_SNORM,
-    (uint32_t)GLInternalFormat_Uncompressed::SRGB8,
-    (uint32_t)GLInternalFormat_Uncompressed::SRGB8_ALPHA8,
-    (uint32_t)GLInternalFormat_Uncompressed::R16F,
-    (uint32_t)GLInternalFormat_Uncompressed::RG16F,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB16F,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA16F,
-    (uint32_t)GLInternalFormat_Uncompressed::R32F,
-    (uint32_t)GLInternalFormat_Uncompressed::RG32F,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA32F,
-    (uint32_t)GLInternalFormat_Uncompressed::R11F_G11F_B10F,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB9_E5,
-    (uint32_t)GLInternalFormat_Uncompressed::R8I,
-    (uint32_t)GLInternalFormat_Uncompressed::R8UI,
-    (uint32_t)GLInternalFormat_Uncompressed::R16I,
-    (uint32_t)GLInternalFormat_Uncompressed::R16UI,
-    (uint32_t)GLInternalFormat_Uncompressed::R32I,
-    (uint32_t)GLInternalFormat_Uncompressed::R32UI,
-    (uint32_t)GLInternalFormat_Uncompressed::RG8I,
-    (uint32_t)GLInternalFormat_Uncompressed::RG8UI,
-    (uint32_t)GLInternalFormat_Uncompressed::RG16I,
-    (uint32_t)GLInternalFormat_Uncompressed::RG16UI,
-    (uint32_t)GLInternalFormat_Uncompressed::RG32I,
-    (uint32_t)GLInternalFormat_Uncompressed::RG32UI,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB8I,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB8UI,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB16I,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB16UI,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB32I,
-    (uint32_t)GLInternalFormat_Uncompressed::RGB32UI,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA8I,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA8UI,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA16I,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA16UI,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA32I,
-    (uint32_t)GLInternalFormat_Uncompressed::RGBA32UI,
-    (uint32_t)GLInternalFormat_Uncompressed::DEPTH_COMPONENT16,
-    (uint32_t)GLInternalFormat_Uncompressed::DEPTH_COMPONENT24,
-    (uint32_t)GLInternalFormat_Uncompressed::DEPTH_COMPONENT32,
-    (uint32_t)GLInternalFormat_Uncompressed::DEPTH_COMPONENT32F,
-    (uint32_t)GLInternalFormat_Uncompressed::DEPTH24_STENCIL8,
-    (uint32_t)GLInternalFormat_Uncompressed::DEPTH32F_STENCIL8,
-    (uint32_t)GLInternalFormat_Uncompressed::STENCIL_INDEX1,
-    (uint32_t)GLInternalFormat_Uncompressed::STENCIL_INDEX4,
-    (uint32_t)GLInternalFormat_Uncompressed::STENCIL_INDEX8,
-    (uint32_t)GLInternalFormat_Uncompressed::STENCIL_INDEX16,
+    (uint32_t)GLInternalFormat::R8,
+    (uint32_t)GLInternalFormat::R8_SNORM,
+    (uint32_t)GLInternalFormat::R16,
+    (uint32_t)GLInternalFormat::R16_SNORM,
+    (uint32_t)GLInternalFormat::RG8,
+    (uint32_t)GLInternalFormat::RG8_SNORM,
+    (uint32_t)GLInternalFormat::RG16,
+    (uint32_t)GLInternalFormat::RG16_SNORM,
+    (uint32_t)GLInternalFormat::R3_G3_B2,
+    (uint32_t)GLInternalFormat::RGB4,
+    (uint32_t)GLInternalFormat::RGB5,
+    (uint32_t)GLInternalFormat::RGB565,
+    (uint32_t)GLInternalFormat::RGB8,
+    (uint32_t)GLInternalFormat::RGB8_SNORM,
+    (uint32_t)GLInternalFormat::RGB10,
+    (uint32_t)GLInternalFormat::RGB12,
+    (uint32_t)GLInternalFormat::RGB16,
+    (uint32_t)GLInternalFormat::RGB16_SNORM,
+    (uint32_t)GLInternalFormat::RGBA2,
+    (uint32_t)GLInternalFormat::RGBA4,
+    (uint32_t)GLInternalFormat::RGB5_A1,
+    (uint32_t)GLInternalFormat::RGBA8,
+    (uint32_t)GLInternalFormat::RGBA8_SNORM,
+    (uint32_t)GLInternalFormat::RGB10_A2,
+    (uint32_t)GLInternalFormat::RGB10_A2UI,
+    (uint32_t)GLInternalFormat::RGBA12,
+    (uint32_t)GLInternalFormat::RGBA16,
+    (uint32_t)GLInternalFormat::RGBA16_SNORM,
+    (uint32_t)GLInternalFormat::SRGB8,
+    (uint32_t)GLInternalFormat::SRGB8_ALPHA8,
+    (uint32_t)GLInternalFormat::R16F,
+    (uint32_t)GLInternalFormat::RG16F,
+    (uint32_t)GLInternalFormat::RGB16F,
+    (uint32_t)GLInternalFormat::RGBA16F,
+    (uint32_t)GLInternalFormat::R32F,
+    (uint32_t)GLInternalFormat::RG32F,
+    (uint32_t)GLInternalFormat::RGBA32F,
+    (uint32_t)GLInternalFormat::R11F_G11F_B10F,
+    (uint32_t)GLInternalFormat::RGB9_E5,
+    (uint32_t)GLInternalFormat::R8I,
+    (uint32_t)GLInternalFormat::R8UI,
+    (uint32_t)GLInternalFormat::R16I,
+    (uint32_t)GLInternalFormat::R16UI,
+    (uint32_t)GLInternalFormat::R32I,
+    (uint32_t)GLInternalFormat::R32UI,
+    (uint32_t)GLInternalFormat::RG8I,
+    (uint32_t)GLInternalFormat::RG8UI,
+    (uint32_t)GLInternalFormat::RG16I,
+    (uint32_t)GLInternalFormat::RG16UI,
+    (uint32_t)GLInternalFormat::RG32I,
+    (uint32_t)GLInternalFormat::RG32UI,
+    (uint32_t)GLInternalFormat::RGB8I,
+    (uint32_t)GLInternalFormat::RGB8UI,
+    (uint32_t)GLInternalFormat::RGB16I,
+    (uint32_t)GLInternalFormat::RGB16UI,
+    (uint32_t)GLInternalFormat::RGB32I,
+    (uint32_t)GLInternalFormat::RGB32UI,
+    (uint32_t)GLInternalFormat::RGBA8I,
+    (uint32_t)GLInternalFormat::RGBA8UI,
+    (uint32_t)GLInternalFormat::RGBA16I,
+    (uint32_t)GLInternalFormat::RGBA16UI,
+    (uint32_t)GLInternalFormat::RGBA32I,
+    (uint32_t)GLInternalFormat::RGBA32UI,
+    (uint32_t)GLInternalFormat::DEPTH_COMPONENT16,
+    (uint32_t)GLInternalFormat::DEPTH_COMPONENT24,
+    (uint32_t)GLInternalFormat::DEPTH_COMPONENT32,
+    (uint32_t)GLInternalFormat::DEPTH_COMPONENT32F,
+    (uint32_t)GLInternalFormat::DEPTH24_STENCIL8,
+    (uint32_t)GLInternalFormat::DEPTH32F_STENCIL8,
+    (uint32_t)GLInternalFormat::STENCIL_INDEX1,
+    (uint32_t)GLInternalFormat::STENCIL_INDEX4,
+    (uint32_t)GLInternalFormat::STENCIL_INDEX8,
+    (uint32_t)GLInternalFormat::STENCIL_INDEX16,
 };
 
 static const std::unordered_set<uint32_t> VALID_GL_INTERNAL_COMPRESSED_FORMATS {
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RED,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RG,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RGB,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RGBA,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SRGB,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_ETC1_RGB8_OES,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SIGNED_RED_RGTC1,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SIGNED_RG_RGTC2,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RGBA_BPTC_UNORM,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_BPTC_UNORM,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RGB_BPTC_SIGNED_FLOAT,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RGB8_ETC2,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SRGB8_ETC2,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RGBA8_ETC2_EAC,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SRGB8_ALPHA8_ETC2_EAC,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_R11_EAC,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SIGNED_R11_EAC,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_RG11_EAC,
-    (uint32_t)GLInternalFormat_Compressed::COMPRESSED_SIGNED_RG11_EAC,
+    (uint32_t)GLInternalFormat::COMPRESSED_RED,
+    (uint32_t)GLInternalFormat::COMPRESSED_RG,
+    (uint32_t)GLInternalFormat::COMPRESSED_RGB,
+    (uint32_t)GLInternalFormat::COMPRESSED_RGBA,
+    (uint32_t)GLInternalFormat::COMPRESSED_SRGB,
+    (uint32_t)GLInternalFormat::COMPRESSED_SRGB_ALPHA,
+    (uint32_t)GLInternalFormat::COMPRESSED_ETC1_RGB8_OES,
+    (uint32_t)GLInternalFormat::COMPRESSED_SRGB_S3TC_DXT1_EXT,
+    (uint32_t)GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,
+    (uint32_t)GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,
+    (uint32_t)GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,
+    (uint32_t)GLInternalFormat::COMPRESSED_RED_RGTC1,
+    (uint32_t)GLInternalFormat::COMPRESSED_SIGNED_RED_RGTC1,
+    (uint32_t)GLInternalFormat::COMPRESSED_RG_RGTC2,
+    (uint32_t)GLInternalFormat::COMPRESSED_SIGNED_RG_RGTC2,
+    (uint32_t)GLInternalFormat::COMPRESSED_RGBA_BPTC_UNORM,
+    (uint32_t)GLInternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM,
+    (uint32_t)GLInternalFormat::COMPRESSED_RGB_BPTC_SIGNED_FLOAT,
+    (uint32_t)GLInternalFormat::COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,
+    (uint32_t)GLInternalFormat::COMPRESSED_RGB8_ETC2,
+    (uint32_t)GLInternalFormat::COMPRESSED_SRGB8_ETC2,
+    (uint32_t)GLInternalFormat::COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+    (uint32_t)GLInternalFormat::COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+    (uint32_t)GLInternalFormat::COMPRESSED_RGBA8_ETC2_EAC,
+    (uint32_t)GLInternalFormat::COMPRESSED_SRGB8_ALPHA8_ETC2_EAC,
+    (uint32_t)GLInternalFormat::COMPRESSED_R11_EAC,
+    (uint32_t)GLInternalFormat::COMPRESSED_SIGNED_R11_EAC,
+    (uint32_t)GLInternalFormat::COMPRESSED_RG11_EAC,
+    (uint32_t)GLInternalFormat::COMPRESSED_SIGNED_RG11_EAC,
 };
 
 static const std::unordered_set<uint32_t> VALID_GL_BASE_INTERNAL_FORMATS {
@@ -199,7 +199,17 @@ bool Header::isValid() const {
         return false;
     }
 
-    if (glFormat == (uint32_t)GLFormat::COMPRESSED_FORMAT && glType == (uint32_t)GLType::COMPRESSED_TYPE) {
+    if (isCompressed()) {
+        if (glType != COMPRESSED_TYPE) {
+            qDebug("Invalid type for compressed texture 0x%x", glType);
+            return false;
+        }
+
+        if (glTypeSize != COMPRESSED_TYPE_SIZE) {
+            qDebug("Invalid type size for compressed texture %d", glTypeSize);
+            return false;
+        }
+
         if (VALID_GL_INTERNAL_COMPRESSED_FORMATS.count(glInternalFormat) != 1) {
             qDebug("Invalid compressed internal format 0x%x", glInternalFormat);
             return false;
@@ -241,7 +251,7 @@ bool Header::isValid() const {
     // FIXME validate numberOfMipmapLevels based on the dimensions?
 
     if ((bytesOfKeyValueData % 4) != 0) {
-        qDebug() << "Invalid keyvalue data size " << numberOfFaces;
+        qDebug() << "Invalid keyvalue data size " << bytesOfKeyValueData;
         return false;
     }
 
@@ -370,6 +380,53 @@ bool KTX::validate(const StoragePointer& src) {
     // The buffer should be empty afer we've skipped all of the KTX data
     if (!buffer.empty()) {
         return false;
+    }
+
+    return true;
+}
+
+
+
+bool KTX::isValid() const {
+    if (!_header.isValid()) {
+        return false;
+    }
+
+    if (_images.size() != _header.numberOfMipmapLevels) {
+        return false;
+    }
+
+    const auto start = _storage->data();
+    const auto end = start + _storage->size();
+
+    // FIXME, do key value checks?
+
+    for (const auto& image : _images) {
+        if (image._numFaces != _header.numberOfFaces) {
+            return false;
+        }
+
+        for (const auto& facePointer : image._faceBytes) {
+            if (facePointer + image._faceSize > end) {
+                return false;
+            }
+        }
+    }
+
+
+    for (uint8_t mip = 0; mip < _header.numberOfMipmapLevels; ++mip) {
+        for (uint8_t face = 0; face < _header.numberOfFaces; ++face) {
+            auto faceStorage = getMipFaceTexelsData(mip, face);
+            // The face start offset must be 4 byte aligned
+            if (!checkAlignment(faceStorage->data() - start)) {
+                return false;
+            }
+
+            // The face size must be 4 byte aligned
+            if (!checkAlignment(faceStorage->size())) {
+                return false;
+            }
+        }
     }
 
     return true;

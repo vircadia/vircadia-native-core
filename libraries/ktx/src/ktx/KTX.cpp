@@ -16,16 +16,6 @@
 
 using namespace ktx;
 
-uint32_t Header::evalPadding(size_t byteSize) {
-    //auto padding = byteSize % PACKING_SIZE;
- //   return (uint32_t) (padding ? PACKING_SIZE - padding : 0);
-    return (uint32_t) (3 - (byteSize + 3) % PACKING_SIZE);// padding ? PACKING_SIZE - padding : 0);
-}
-
-bool Header::checkAlignment(size_t byteSize) {
-    return ((byteSize & 0x3) == 0);
-}
-
 const Header::Identifier ktx::Header::IDENTIFIER {{
     0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A
 }};
@@ -40,24 +30,24 @@ uint32_t Header::evalMaxDimension() const {
 
 uint32_t Header::evalPixelOrBlockWidth(uint32_t level) const {
     auto pixelWidth = std::max(getPixelWidth() >> level, 1U);
-    if (getGLType() == GLType::COMPRESSED_TYPE) {
-        return (pixelWidth + 3) / 4;
+    if (isCompressed()) {
+        return evalAlignedCount(pixelWidth);
     } else {
         return pixelWidth;
     }
 }
 uint32_t Header::evalPixelOrBlockHeight(uint32_t level) const {
     auto pixelWidth = std::max(getPixelHeight() >> level, 1U);
-    if (getGLType() == GLType::COMPRESSED_TYPE) {
-        auto format = getGLInternaFormat_Compressed();
+    if (glType == COMPRESSED_TYPE) {
+        auto format = getGLInternaFormat();
         switch (format) {
-            case GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT: // BC1
-            case GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: // BC1A
-            case GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: // BC3
-            case GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1: // BC4
-            case GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2: // BC5
-            case GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_BPTC_UNORM: // BC7
-                return (pixelWidth + 3) / 4;
+            case GLInternalFormat::COMPRESSED_SRGB_S3TC_DXT1_EXT: // BC1
+            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: // BC1A
+            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: // BC3
+            case GLInternalFormat::COMPRESSED_RED_RGTC1: // BC4
+            case GLInternalFormat::COMPRESSED_RG_RGTC2: // BC5
+            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM: // BC7
+                return evalAlignedCount(pixelWidth);
             default:
                 throw std::runtime_error("Unknown format");
         }
@@ -70,31 +60,33 @@ uint32_t Header::evalPixelOrBlockDepth(uint32_t level) const {
 }
 
 size_t Header::evalPixelOrBlockSize() const {
-    if (getGLType() == GLType::COMPRESSED_TYPE) {
-        auto format = getGLInternaFormat_Compressed();
-        if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT) {
-            return 8;
-        } else if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT) {
-            return 8;
-        } else if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT) {
-            return 16;
-        } else if (format == GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1) {
-            return 8;
-        } else if (format == GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2) {
-            return 16;
-        } else if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_BPTC_UNORM) {
-            return 16;
+    if (isCompressed()) {
+        auto format = getGLInternaFormat();
+        switch (format) {
+            case GLInternalFormat::COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+            case GLInternalFormat::COMPRESSED_RED_RGTC1:
+                return 8;
+            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+            case GLInternalFormat::COMPRESSED_RG_RGTC2:
+                return 16;
+            default:
+                break;
         }
     } else {
         auto baseFormat = getGLBaseInternalFormat();
-        if (baseFormat == GLBaseInternalFormat::RED) {
-            return 1;
-        } else if (baseFormat == GLBaseInternalFormat::RG) {
-            return 2;
-        } else if (baseFormat == GLBaseInternalFormat::RGB) {
-            return 3;
-        } else if (baseFormat == GLBaseInternalFormat::RGBA) {
-            return 4;
+        switch (baseFormat) {
+            case GLBaseInternalFormat::RED:
+                return 1;
+            case GLBaseInternalFormat::RG:
+                return 2;
+            case GLBaseInternalFormat::RGB:
+                return 3;
+            case GLBaseInternalFormat::RGBA:
+                return 4;
+            default: 
+                break;
         }
     }
 
@@ -108,16 +100,16 @@ size_t Header::evalRowSize(uint32_t level) const {
     if (pixSize == 0) {
         return 0;
     }
-    auto netSize = pixWidth * pixSize;
-    auto padding = evalPadding(netSize);
-    return netSize + padding;
+    return evalPadded(pixWidth * pixSize);
 }
+
 size_t Header::evalFaceSize(uint32_t level) const {
     auto pixHeight = evalPixelOrBlockHeight(level);
     auto pixDepth = evalPixelOrBlockDepth(level);
     auto rowSize = evalRowSize(level);
     return pixDepth * pixHeight * rowSize;
 }
+
 size_t Header::evalImageSize(uint32_t level) const {
     auto faceSize = evalFaceSize(level);
     if (!checkAlignment(faceSize)) {
@@ -192,7 +184,7 @@ KeyValue::KeyValue(const std::string& key, const std::string& value) :
 }
 
 uint32_t KeyValue::serializedByteSize() const {
-    return (uint32_t) (sizeof(uint32_t) + _byteSize + Header::evalPadding(_byteSize));
+    return (uint32_t)sizeof(uint32_t) + evalPadded(_byteSize);
 }
 
 uint32_t KeyValue::serializedKeyValuesByteSize(const KeyValues& keyValues) {
@@ -200,14 +192,8 @@ uint32_t KeyValue::serializedKeyValuesByteSize(const KeyValues& keyValues) {
     for (auto& keyval : keyValues) {
         keyValuesSize += keyval.serializedByteSize();
     }
-    return (keyValuesSize + Header::evalPadding(keyValuesSize));
-}
-
-
-KTX::KTX() {
-}
-
-KTX::~KTX() {
+    Q_ASSERT(keyValuesSize % 4 == 0);
+    return keyValuesSize;
 }
 
 void KTX::resetStorage(const StoragePointer& storage) {
@@ -230,7 +216,7 @@ size_t KTX::getTexelsDataSize() const {
     if (!_storage) {
         return 0;
     }
-    return  (_storage->data() + _storage->size()) - getTexelsData();
+    return  _storage->size() - sizeof(Header) - getKeyValueDataSize();
 }
 
 const Byte* KTX::getKeyValueData() const {
