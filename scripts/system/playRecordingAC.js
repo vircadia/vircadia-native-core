@@ -294,7 +294,7 @@
                 recordingFilename = recording;
                 playRecording(recordingFilename, position, orientation);
             } else {
-                errorMessage = "Could not play recording " + recording.slice(4);  // Remove leading "atp:".
+                errorMessage = "Could not persist recording " + recording.slice(4);  // Remove leading "atp:".
                 log(errorMessage);
                 error(errorMessage);
             }
