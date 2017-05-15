@@ -18,6 +18,7 @@
 #include <QStandardPaths>
 
 #include <SettingHandle.h>
+#include <DependencyManager.h>
 
 class QFile;
 class QTemporaryFile;
@@ -32,7 +33,9 @@ private:
     QUrl _URL;
 };
 
-class Snapshot {
+class Snapshot : public QObject, public Dependency {
+    Q_OBJECT
+    SINGLETON_DEPENDENCY
 public:
     static QString saveSnapshot(QImage image);
     static QTemporaryFile* saveTempSnapshot(QImage image);
@@ -40,6 +43,13 @@ public:
 
     static Setting::Handle<QString> snapshotsLocation;
     static void uploadSnapshot(const QString& filename, const QUrl& href = QUrl(""));
+
+signals:
+    void snapshotLocationSet(const QString& value);
+
+public slots:
+    Q_INVOKABLE QString getSnapshotsLocation();
+    Q_INVOKABLE void setSnapshotsLocation(const QString& location);
 private:
     static QFile* savedFileForSnapshot(QImage & image, bool isTemporary);
 };

@@ -216,6 +216,7 @@ void Texture::MemoryStorage::assignMipFaceData(uint16 level, uint8 face, const s
 TexturePointer Texture::createExternal(const ExternalRecycler& recycler, const Sampler& sampler) {
     TexturePointer tex = std::make_shared<Texture>(TextureUsageType::EXTERNAL);
     tex->_type = TEX_2D;
+    tex->_texelFormat = Element::COLOR_RGBA_32;
     tex->_maxMipLevel = 0;
     tex->_sampler = sampler;
     tex->setExternalRecycler(recycler);
@@ -407,8 +408,12 @@ void Texture::setStoredMipFormat(const Element& format) {
     _storage->setFormat(format);
 }
 
-const Element& Texture::getStoredMipFormat() const {
-    return _storage->getFormat();
+Element Texture::getStoredMipFormat() const {
+    if (_storage) {
+        return _storage->getFormat();
+    } else {
+        return Element();
+    }
 }
 
 void Texture::assignStoredMip(uint16 level, Size size, const Byte* bytes) {
@@ -436,7 +441,11 @@ void Texture::assignStoredMip(uint16 level, storage::StoragePointer& storage) {
     // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipSize(level, getStoredMipFormat());
     auto size = storage->size();
-    if (storage->size() <= expectedSize) {
+    // NOTE: doing the same thing in all the next block but beeing able to breakpoint with more accuracy
+    if (storage->size() < expectedSize) {
+        _storage->assignMipData(level, storage);
+        _stamp++;
+    } else if (size == expectedSize) {
         _storage->assignMipData(level, storage);
         _stamp++;
     } else if (size > expectedSize) {
@@ -463,7 +472,11 @@ void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePoin
     // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipFaceSize(level, getStoredMipFormat());
     auto size = storage->size();
-    if (size <= expectedSize) {
+    // NOTE: doing the same thing in all the next block but beeing able to breakpoint with more accuracy
+    if (size < expectedSize) {
+        _storage->assignMipFaceData(level, face, storage);
+        _stamp++;
+    } else if (size == expectedSize) {
         _storage->assignMipFaceData(level, face, storage);
         _stamp++;
     } else if (size > expectedSize) {

@@ -99,6 +99,61 @@ struct GPUKTXPayload {
 };
 const std::string GPUKTXPayload::KEY { "hifi.gpu" };
 
+
+struct IrradianceKTXPayload {
+    using Version = uint8;
+
+    static const std::string KEY;
+    static const Version CURRENT_VERSION{ 0 };
+    static const size_t PADDING{ 3 };
+    static const size_t SIZE{ sizeof(Version) +  sizeof(SphericalHarmonics) + PADDING };
+    static_assert(IrradianceKTXPayload::SIZE == 148, "Packing size may differ between platforms");
+    static_assert(IrradianceKTXPayload::SIZE % 4 == 0, "IrradianceKTXPayload is not 4 bytes aligned");
+
+    SphericalHarmonics _irradianceSH;
+
+    Byte* serialize(Byte* data) const {
+        *(Version*)data = CURRENT_VERSION;
+        data += sizeof(Version);
+
+        memcpy(data, &_irradianceSH, sizeof(SphericalHarmonics));
+        data += sizeof(SphericalHarmonics);
+
+        return data + PADDING;
+    }
+
+    bool unserialize(const Byte* data, size_t size) {
+        if (size != SIZE) {
+            return false;
+        }
+
+        Version version = *(const Version*)data;
+        if (version != CURRENT_VERSION) {
+            return false;
+        }
+        data += sizeof(Version);
+
+        memcpy(&_irradianceSH, data, sizeof(SphericalHarmonics));
+        data += sizeof(SphericalHarmonics);
+
+        return true;
+    }
+
+    static bool isIrradianceKTX(const ktx::KeyValue& val) {
+        return (val._key.compare(KEY) == 0);
+    }
+
+    static bool findInKeyValues(const ktx::KeyValues& keyValues, IrradianceKTXPayload& payload) {
+        auto found = std::find_if(keyValues.begin(), keyValues.end(), isIrradianceKTX);
+        if (found != keyValues.end()) {
+            auto value = found->_value;
+            return payload.unserialize(value.data(), value.size());
+        }
+        return false;
+    }
+};
+const std::string IrradianceKTXPayload::KEY{ "hifi.irradianceSH" };
+
 KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
     {
         // We are doing a lot of work here just to get descriptor data
@@ -304,15 +359,26 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
         }
     }
 
-    GPUKTXPayload keyval;
-    keyval._samplerDesc = texture.getSampler().getDesc();
-    keyval._usage = texture.getUsage();
-    keyval._usageType = texture.getUsageType();
+    GPUKTXPayload gpuKeyval;
+    gpuKeyval._samplerDesc = texture.getSampler().getDesc();
+    gpuKeyval._usage = texture.getUsage();
+    gpuKeyval._usageType = texture.getUsageType();
+
     Byte keyvalPayload[GPUKTXPayload::SIZE];
-    keyval.serialize(keyvalPayload);
+    gpuKeyval.serialize(keyvalPayload);
 
     ktx::KeyValues keyValues;
     keyValues.emplace_back(GPUKTXPayload::KEY, (uint32)GPUKTXPayload::SIZE, (ktx::Byte*) &keyvalPayload);
+
+    if (texture.getIrradiance()) {
+        IrradianceKTXPayload irradianceKeyval;
+        irradianceKeyval._irradianceSH = *texture.getIrradiance();
+
+        Byte irradianceKeyvalPayload[IrradianceKTXPayload::SIZE];
+        irradianceKeyval.serialize(irradianceKeyvalPayload);
+
+        keyValues.emplace_back(IrradianceKTXPayload::KEY, (uint32)IrradianceKTXPayload::SIZE, (ktx::Byte*) &irradianceKeyvalPayload);
+    }
 
     auto hash = texture.sourceHash();
     if (!hash.empty()) {
@@ -409,6 +475,12 @@ TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDe
     // Assing the mips availables
     texture->setStoredMipFormat(mipFormat);
     texture->setKtxBacking(ktxfile);
+
+    IrradianceKTXPayload irradianceKtxKeyValue;
+    if (IrradianceKTXPayload::findInKeyValues(descriptor.keyValues, irradianceKtxKeyValue)) {
+        texture->overrideIrradiance(std::make_shared<SphericalHarmonics>(irradianceKtxKeyValue._irradianceSH));
+    }
+
     return texture;
 }
 
@@ -423,6 +495,8 @@ bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RGBA, ktx::GLInternalFormat_Uncompressed::SRGB8_ALPHA8, ktx::GLBaseInternalFormat::RGBA);
     } else if (texelFormat == Format::COLOR_R_8 && mipFormat == Format::COLOR_R_8) {
         header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RED, ktx::GLInternalFormat_Uncompressed::R8, ktx::GLBaseInternalFormat::RED);
+    } else if (texelFormat == Format::VEC2NU8_XY && mipFormat == Format::VEC2NU8_XY) {
+        header.setUncompressed(ktx::GLType::UNSIGNED_BYTE, 1, ktx::GLFormat::RG, ktx::GLInternalFormat_Uncompressed::RG8, ktx::GLBaseInternalFormat::RG);
     } else if (texelFormat == Format::COLOR_COMPRESSED_SRGB && mipFormat == Format::COLOR_COMPRESSED_SRGB) {
         header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT, ktx::GLBaseInternalFormat::RGB);
     } else if (texelFormat == Format::COLOR_COMPRESSED_SRGBA_MASK && mipFormat == Format::COLOR_COMPRESSED_SRGBA_MASK) {
@@ -465,6 +539,13 @@ bool Texture::evalTextureFormat(const ktx::Header& header, Element& mipFormat, E
         mipFormat = Format::COLOR_R_8;
         if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::R8) {
             texelFormat = Format::COLOR_R_8;
+        } else {
+            return false;
+        }
+    } else if (header.getGLFormat() == ktx::GLFormat::RG && header.getGLType() == ktx::GLType::UNSIGNED_BYTE && header.getTypeSize() == 1) {
+        mipFormat = Format::VEC2NU8_XY;
+        if (header.getGLInternaFormat_Uncompressed() == ktx::GLInternalFormat_Uncompressed::RG8) {
+            texelFormat = Format::VEC2NU8_XY;
         } else {
             return false;
         }

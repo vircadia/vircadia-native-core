@@ -142,11 +142,6 @@ void renderWorldBox(gpu::Batch& batch) {
     geometryCache->renderSolidSphereInstance(batch, GREY);
 }
 
-//  Return a random vector of average length 1
-const glm::vec3 randVector() {
-    return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.0f;
-}
-
 //  Do some basic timing tests and report the results
 void runTimingTests() {
     //  How long does it take to make a call to get the time?

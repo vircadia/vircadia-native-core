@@ -281,7 +281,7 @@ public:
     float getAngularDamping() const;
     void setAngularDamping(float value);
 
-    QString getName() const;
+    virtual QString getName() const override;
     void setName(const QString& value);
     QString getDebugName();
 

@@ -50,6 +50,10 @@ Context::Context(const Context& context) {
 Context::~Context() {
 }
 
+const std::string& Context::getBackendVersion() const {
+    return _backend->getVersion();
+}
+
 void Context::beginFrame(const glm::mat4& renderPose) {
     assert(!_frameActive);
     _frameActive = true;

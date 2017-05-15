@@ -11,6 +11,20 @@
 using namespace gpu;
 using namespace gpu::gl;
 
+bool GLTexelFormat::isCompressed() const {
+    switch (internalFormat) {
+        case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+        case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+        case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+        case GL_COMPRESSED_RED_RGTC1:
+        case GL_COMPRESSED_RG_RGTC2:
+            return true;
+            break;
+        default:
+            return false;
+            break;
+    }
+}
 
 GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
     GLenum result = GL_RGBA8;
@@ -126,6 +140,7 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
             switch (dstFormat.getSemantic()) {
                 case gpu::RGB:
                 case gpu::RGBA:
+                case gpu::XY:
                     result = GL_RG8;
                     break;
                 default:
@@ -275,6 +290,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
             case gpu::RGBA:
+            case gpu::XY:
                 texel.internalFormat = GL_RG8;
                 break;
             default:
@@ -502,6 +518,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
             case gpu::RGBA:
+            case gpu::XY:
                 texel.internalFormat = GL_RG8;
                 break;
             default:

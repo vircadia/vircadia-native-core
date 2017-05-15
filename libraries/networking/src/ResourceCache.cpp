@@ -533,13 +533,13 @@ void Resource::ensureLoading() {
 }
 
 void Resource::setLoadPriority(const QPointer<QObject>& owner, float priority) {
-    if (!(_failedToLoad || _loaded)) {
+    if (!(_failedToLoad)) {
         _loadPriorities.insert(owner, priority);
     }
 }
 
 void Resource::setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities) {
-    if (_failedToLoad || _loaded) {
+    if (_failedToLoad) {
         return;
     }
     for (QHash<QPointer<QObject>, float>::const_iterator it = priorities.constBegin();
@@ -549,7 +549,7 @@ void Resource::setLoadPriorities(const QHash<QPointer<QObject>, float>& prioriti
 }
 
 void Resource::clearLoadPriority(const QPointer<QObject>& owner) {
-    if (!(_failedToLoad || _loaded)) {
+    if (!(_failedToLoad)) {
         _loadPriorities.remove(owner);
     }
 }
@@ -612,10 +612,12 @@ void Resource::allReferencesCleared() {
     }
 }
 
-void Resource::init() {
+void Resource::init(bool resetLoaded) {
     _startedLoading = false;
     _failedToLoad = false;
-    _loaded = false;
+    if (resetLoaded) {
+        _loaded = false;
+    }
     _attempts = 0;
     _activeUrl = _url;
     

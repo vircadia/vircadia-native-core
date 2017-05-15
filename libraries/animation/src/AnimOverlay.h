@@ -37,6 +37,7 @@ public:
         EmptyBoneSet,
         LeftHandBoneSet,
         RightHandBoneSet,
+        HipsOnlyBoneSet,
         NumBoneSets
     };
 
@@ -75,6 +76,7 @@ public:
     void buildEmptyBoneSet();
     void buildLeftHandBoneSet();
     void buildRightHandBoneSet();
+    void buildHipsOnlyBoneSet();
 
     // no copies
     AnimOverlay(const AnimOverlay&) = delete;

@@ -990,6 +990,17 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                                                                 entityItemID, properties);
             endDecode = usecTimestampNow();
 
+            EntityItemPointer existingEntity;
+            if (!isAdd) {
+                // search for the entity by EntityItemID
+                startLookup = usecTimestampNow();
+                existingEntity = findEntityByEntityItemID(entityItemID);
+                endLookup = usecTimestampNow();
+                if (!existingEntity) {
+                    // this is not an add-entity operation, and we don't know about the identified entity.
+                    validEditPacket = false;
+                }
+            }
 
             if (validEditPacket && !_entityScriptSourceWhitelist.isEmpty() && !properties.getScript().isEmpty()) {
                 bool passedWhiteList = false;
@@ -1036,12 +1047,6 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
-
-                // search for the entity by EntityItemID
-                startLookup = usecTimestampNow();
-                EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
-                endLookup = usecTimestampNow();
-                
                 startFilter = usecTimestampNow();
                 bool wasChanged = false;
                 // Having (un)lock rights bypasses the filter, unless it's a physics result.

@@ -113,7 +113,8 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
 }
 
 bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
-                                 glm::vec3& linearVelocity, glm::vec3& angularVelocity) {
+                                 glm::vec3& linearVelocity, glm::vec3& angularVelocity,
+                                 float& linearTimeScale, float& angularTimeScale) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
 
@@ -213,6 +214,9 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
 
         // update linearVelocity based on offset via _relativePosition;
         linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
+
+        linearTimeScale = _linearTimeScale;
+        angularTimeScale = _angularTimeScale;
     });
 
     return true;

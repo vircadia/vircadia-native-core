@@ -11,11 +11,14 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 (function () { // BEGIN LOCAL_SCOPE
+
+    var request = Script.require('request').request;
 
     var LABEL = "makeUserConnection";
     var MAX_AVATAR_DISTANCE = 0.2; // m
-    var GRIP_MIN = 0.05; // goes from 0-1, so 5% pressed is pressed
+    var GRIP_MIN = 0.75; // goes from 0-1, so 75% pressed is pressed
     var MESSAGE_CHANNEL = "io.highfidelity.makeUserConnection";
     var STATES = {
         INACTIVE: 0,
@@ -125,61 +128,6 @@
 
     function cleanId(guidWithCurlyBraces) {
         return guidWithCurlyBraces.slice(1, -1);
-    }
-    function request(options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
-        var httpRequest = new XMLHttpRequest(), key;
-        // QT bug: apparently doesn't handle onload. Workaround using readyState.
-        httpRequest.onreadystatechange = function () {
-            var READY_STATE_DONE = 4;
-            var HTTP_OK = 200;
-            if (httpRequest.readyState >= READY_STATE_DONE) {
-                var error = (httpRequest.status !== HTTP_OK) && httpRequest.status.toString() + ':' + httpRequest.statusText,
-                    response = !error && httpRequest.responseText,
-                    contentType = !error && httpRequest.getResponseHeader('content-type');
-                if (!error && contentType.indexOf('application/json') === 0) { // ignoring charset, etc.
-                    try {
-                        response = JSON.parse(response);
-                    } catch (e) {
-                        error = e;
-                    }
-                }
-                if (error) {
-                    response = {statusCode: httpRequest.status};
-                }
-                callback(error, response);
-            }
-        };
-        if (typeof options === 'string') {
-            options = {uri: options};
-        }
-        if (options.url) {
-            options.uri = options.url;
-        }
-        if (!options.method) {
-            options.method = 'GET';
-        }
-        if (options.body && (options.method === 'GET')) { // add query parameters
-            var params = [], appender = (-1 === options.uri.search('?')) ? '?' : '&';
-            for (key in options.body) {
-                if (options.body.hasOwnProperty(key)) {
-                    params.push(key + '=' + options.body[key]);
-                }
-            }
-            options.uri += appender + params.join('&');
-            delete options.body;
-        }
-        if (options.json) {
-            options.headers = options.headers || {};
-            options.headers["Content-type"] = "application/json";
-            options.body = JSON.stringify(options.body);
-        }
-        for (key in options.headers || {}) {
-            if (options.headers.hasOwnProperty(key)) {
-                httpRequest.setRequestHeader(key, options.headers[key]);
-            }
-        }
-        httpRequest.open(options.method, options.uri, true);
-        httpRequest.send(options.body);
     }
 
     function handToString(hand) {
@@ -514,7 +462,7 @@
         endHandshakeAnimation();
         // No-op if we were successful, but this way we ensure that failures and abandoned handshakes don't leave us
         // in a weird state.
-        request({uri: requestUrl, method: 'DELETE'}, debug);
+        request({ uri: requestUrl, method: 'DELETE' }, debug);
     }
 
     function updateTriggers(value, fromKeyboard, hand) {
@@ -597,7 +545,11 @@
         }
         UserActivityLogger.makeUserConnection(connectingId, false, result.connection);
     }
-    var POLL_INTERVAL_MS = 200, POLL_LIMIT = 5;
+    // This is a bit fragile - but to account for skew in when people actually create the
+    // connection request, I've upped this to 2 seconds (plus the round-trip times)
+    // TODO: keep track of when the person we are connecting with is done, and don't stop
+    // until say 1 second after that.
+    var POLL_INTERVAL_MS = 200, POLL_LIMIT = 10;
     function handleConnectionResponseAndMaybeRepeat(error, response) {
         // If response is 'pending', set a short timeout to try again.
         // If we fail other than pending, set result and immediately call connectionRequestCompleted.

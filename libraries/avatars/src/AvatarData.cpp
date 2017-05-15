@@ -63,8 +63,6 @@ AvatarData::AvatarData() :
     _keyState(NO_KEY_DOWN),
     _forceFaceTrackerConnected(false),
     _headData(NULL),
-    _displayNameTargetAlpha(1.0f),
-    _displayNameAlpha(1.0f),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
     _targetVelocity(0.0f)
@@ -393,9 +391,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         if (isFingerPointing) {
             setAtBit(flags, HAND_STATE_FINGER_POINTING_BIT);
         }
-        // faceshift state
+        // face tracker state
         if (_headData->_isFaceTrackerConnected) {
-            setAtBit(flags, IS_FACESHIFT_CONNECTED);
+            setAtBit(flags, IS_FACE_TRACKER_CONNECTED);
         }
         // eye tracker state
         if (_headData->_isEyeTrackerConnected) {
@@ -883,7 +881,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newHandState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
             + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
-        auto newFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+        auto newFaceTrackerConnected = oneAtBit(bitItems, IS_FACE_TRACKER_CONNECTED);
         auto newEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
 
         bool keyStateChanged = (_keyState != newKeyState);
@@ -1497,11 +1495,14 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
+void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew) {
 
-    if (identity.updatedAt < _identityUpdatedAt) {
+    // Consider the case where this packet is being processed on Client A, and Client A is connected to Sandbox B.
+    // If Client A's system clock is *ahead of* Sandbox B's system clock, "clockSkew" will be *negative*.
+    // If Client A's system clock is *behind* Sandbox B's system clock, "clockSkew" will be *positive*.
+    if ((_identityUpdatedAt > identity.updatedAt - clockSkew) && (_identityUpdatedAt != 0)) {
         qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
-                << "identity.updatedAt:" << identity.updatedAt << "_identityUpdatedAt:" << _identityUpdatedAt;
+            << "_identityUpdatedAt (" << _identityUpdatedAt << ") is greater than identity.updatedAt - clockSkew (" << identity.updatedAt << "-" << clockSkew << ")";
         return;
     }
 
@@ -1537,7 +1538,7 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
 
     // use the timestamp from this identity, since we want to honor the updated times in "server clock"
     // this will overwrite any changes we made locally to this AvatarData's _identityUpdatedAt
-    _identityUpdatedAt = identity.updatedAt;
+    _identityUpdatedAt = identity.updatedAt - clockSkew;
 }
 
 QByteArray AvatarData::identityByteArray() const {

@@ -18,6 +18,8 @@ Q_LOGGING_CATEGORY(gpugl45logging, "hifi.gpu.gl45")
 using namespace gpu;
 using namespace gpu::gl45;
 
+const std::string GL45Backend::GL45_VERSION { "GL45" };
+
 void GL45Backend::recycle() const {
     Parent::recycle();
 }

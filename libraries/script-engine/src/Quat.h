@@ -60,6 +60,8 @@ public slots:
     float dot(const glm::quat& q1, const glm::quat& q2);
     void print(const QString& label, const glm::quat& q);
     bool equal(const glm::quat& q1, const glm::quat& q2);
+    glm::quat cancelOutRollAndPitch(const glm::quat& q);
+    glm::quat cancelOutRoll(const glm::quat& q);
 };
 
 #endif // hifi_Quat_h

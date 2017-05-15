@@ -11,11 +11,10 @@
 #ifndef hifi_FancyCamera_h
 #define hifi_FancyCamera_h
 
-#include "Camera.h"
+#include <shared/Camera.h>
 
-#include <EntityItem.h>
+#include <EntityTypes.h>
 
-// TODO: come up with a better name than "FancyCamera"
 class FancyCamera : public Camera {
     Q_OBJECT
 
@@ -31,6 +30,8 @@ public:
     FancyCamera() : Camera() {}
 
     EntityItemPointer getCameraEntityPointer() const { return _cameraEntity; }
+    PickRay computePickRay(float x, float y) const override;
+
 
 public slots:
     QUuid getCameraEntity() const;

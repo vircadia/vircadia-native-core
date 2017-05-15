@@ -94,12 +94,12 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 //     +-----+-----+-+-+-+--+
 // Key state - K0,K1 is found in the 1st and 2nd bits
 // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
-// Faceshift - F is found in the 5th bit
+// Face tracker - F is found in the 5th bit
 // Eye tracker - E is found in the 6th bit
 // Referential Data - R is found in the 7th bit
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
-const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
+const int IS_FACE_TRACKER_CONNECTED = 4; // 5th bit
 const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
@@ -123,7 +123,7 @@ namespace AvatarDataPacket {
     // it might be nice to use a dictionary to compress that
 
     // Packet State Flags - we store the details about the existence of other records in this bitset:
-    // AvatarGlobalPosition, Avatar Faceshift, eye tracking, and existence of
+    // AvatarGlobalPosition, Avatar face tracker, eye tracking, and existence of
     using HasFlags = uint16_t;
     const HasFlags PACKET_HAS_AVATAR_GLOBAL_POSITION = 1U << 0;
     const HasFlags PACKET_HAS_AVATAR_BOUNDING_BOX    = 1U << 1;
@@ -218,7 +218,7 @@ namespace AvatarDataPacket {
     } PACKED_END;
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
 
-    // only present if IS_FACESHIFT_CONNECTED flag is set in AvatarInfo.flags
+    // only present if IS_FACE_TRACKER_CONNECTED flag is set in AvatarInfo.flags
     PACKED_BEGIN struct FaceTrackerInfo {
         float leftEyeBlink;
         float rightEyeBlink;
@@ -356,6 +356,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(glm::mat4 controllerRightHandMatrix READ getControllerRightHandMatrix)
 
 public:
+
+    virtual QString getName() const override { return QString("Avatar:") + _displayName; }
 
     static const QString FRAME_NAME;
 
@@ -536,7 +538,7 @@ public:
 
     // identityChanged returns true if identity has changed, false otherwise.
     // displayNameChanged returns true if displayName has changed, false otherwise.
-    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
+    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew);
 
     QByteArray identityByteArray() const;
 
@@ -691,9 +693,6 @@ protected:
     QString _displayName;
     QString _sessionDisplayName { };
     QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
-
-    float _displayNameTargetAlpha;
-    float _displayNameAlpha;
 
     QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _jointNames; ///< in order of depth-first traversal

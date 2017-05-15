@@ -20,6 +20,8 @@
 #include <PathUtils.h>
 #include <NumericalConstants.h>
 
+#include <StreamUtils.h>
+
 #include "StandardController.h"
 #include "StateController.h"
 #include "InputRecorder.h"
@@ -563,7 +565,18 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
     if (source->isPose()) {
         Pose value = getPose(source, route->peek);
         static const Pose IDENTITY_POSE { vec3(), quat() };
+
         if (debugRoutes && route->debug) {
+            qCDebug(controllers) << "Value was t:" << value.translation << "r:" << value.rotation;
+        }
+        // Apply each of the filters.
+        for (const auto& filter : route->filters) {
+            value = filter->apply(value);
+        }
+
+        if (debugRoutes && route->debug) {
+            qCDebug(controllers) << "Filtered value was t:" << value.translation << "r:" << value.rotation;
+
             if (!value.valid) {
                 qCDebug(controllers) << "Applying invalid pose";
             } else if (value == IDENTITY_POSE) {

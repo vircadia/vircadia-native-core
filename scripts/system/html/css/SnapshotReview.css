@@ -8,142 +8,302 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
-body {
-    padding-top: 0;
-    padding-bottom: 14px;
-}
+/*
+// START styling of top bar and its contents
+*/
 
-.snapsection {
-    padding-top: 14px;
-    text-align: center;
-}
-
-.snapsection.title {
-    padding-top: 0;
+.title {
+    padding: 6px 10px;
     text-align: left;
+    height: 26px;
+    line-height: 26px;
+    clear: both;
 }
 
 .title label {
-    font-size: 18px;
     position: relative;
-    top: 12px;
+    font-size: 18px;
+    float: left;
 }
 
+#snapshotSettings {
+    position: relative;
+    float: right;
+}
+#settingsLabel {
+    position: relative;
+    float: right;
+    font-family: Raleway-SemiBold;
+    font-size: 14px;
+}
+.hifi-glyph {
+    font-size: 30px;
+    top: -4px;
+}
+input[type=button].naked {
+    color: #afafaf;
+    background: none;
+}
+input[type=button].naked:hover {
+    color: #ffffff;
+}
+input[type=button].naked:active {
+    color: #afafaf;
+}
+/*
+// END styling of top bar and its contents
+*/
+
+/*
+// START styling of snapshot instructions panel
+*/
+.snapshotInstructions {
+    font-family: Raleway-Regular;
+    margin: 0 20px;
+    width: 100%;
+    height: 50%;
+}
+/*
+// END styling of snapshot instructions panel
+*/
+
+/*
+// START styling of snapshot pane and its contents
+*/
 #snapshot-pane {
     width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    box-sizing: border-box;
-    padding-top: 56px;
-    padding-bottom: 175px;
+    height: 560px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #snapshot-images {
-    height: 100%;
     width: 100%;
-    position: relative;
-}
-
-#snapshot-images > div {
-    position: relative;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
 }
 
 #snapshot-images img {
     max-width: 100%;
     max-height: 100%;
+}
+
+.gifLabel {
+    position:absolute;
+    left: 15px;
+    top: 10px;
+    font-family: Raleway-SemiBold;
+    font-size: 18px;
+    color: white;
+    text-shadow: 2px 2px 3px #000000;
+}
+/*
+// END styling of snapshot pane and its contents
+*/
+
+/*
+// START styling of share overlay
+*/
+.shareControls {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+    height: 65px;
+    line-height: 65px;
+    width: calc(100% - 8px);
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    vertical-align: middle;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
 }
-
-#snapshot-images div.property {
-    margin-top: 0;
+.showShareButtonsButtonDiv {
+    display: inline-flex;
+    align-items: center;
+    font-family: Raleway-SemiBold;
+    font-size: 14px;
+    color: white;
+    width: 75px;
+    height: 100%;
+    margin-bottom: 0px;
+}
+.showShareButtonsButtonDiv.active:hover {
+    background-color: rgba(0, 0, 0, 0.45);
+    background-size: 2px;
+}
+.showShareButtonsButtonDiv > label {
+    text-shadow: 2px 2px 3px #000000;
+    margin-bottom: -14px;
+    margin-left: 12px;
+}
+.showShareButtonsButtonDiv:hover > label {
+    text-shadow: none;
+}
+.showShareButtonDots {
+    display: block;
+    width: 40px;
+    height: 40px;
+    font-family: HiFi-Glyphs;
+    font-size: 60px;
     position: absolute;
-    top: 50%;
-    left: 7px;
-    transform: translate(0%, -50%);
+    left: 6px;
+    bottom: 32px;
+    color: white;
+    pointer-events: none;
 }
-
-#snapshot-images img {
-    box-sizing: border-box;
-    padding: 0 7px 0 7px;
+.shareButtons {
+    display: flex;
+    align-items: flex-end;
+    height: 40px;
+    width: calc(100% - 60px);
+    margin-bottom: -24px;
+    margin-left: 0;
 }
-
-#snapshot-images img.multiple {
-    padding-left: 28px;
+.shareButtons img {
+    width: 40px;
+    height: 40px;
 }
+.shareButton {
+    width: 40px;
+    height: 40px;
+    display: inline-block;
+}
+.shareButton.disabled {
+    background-color: #000000;
+    opacity: 0.5;
+}
+.shareControlsHelp {
+    height: 25px;
+    line-height: 25px;
+    position: absolute;
+    bottom: 40px;
+    left: 73px;
+    right: 0;
+    font-family: Raleway-Regular;
+    font-weight: 500;
+    font-size: 16px;
+    padding-left: 8px;
+    color: white;
+}
+.helpTextDiv {
+    width: 350px;
+    height: 65px;
+    margin-right: 15px;
+    line-height: 65px;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    font-family: Raleway-Regular;
+    font-weight: 500;
+    font-size: 16px;
+    color: white;
+}
+/*
+// END styling of share overlay
+*/
 
+/*
+// START styling of confirmation message
+*/
+.confirmationMessageContainer {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.45);
+    text-align: center;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+}
+.confirmationMessage {
+    width: 130px;
+    height: 130px;
+    margin: 50px auto 0 auto;
+}
+.confirmationMessage > img {
+    width: 72px;
+    height: 72px;
+    display: block;
+    margin: 0 auto;
+    padding: 10px 0 0 0;
+}
+/*
+// END styling of uploading message
+*/
+
+/*
+// START styling of snapshot controls (bottom panel) and its contents
+*/
 #snapshot-controls {
     width: 100%;
     position: absolute;
     left: 0;
-    bottom: 14px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+}
+#snap-settings {
+    display: inline;
+    width: 150px;
+    margin: 2px auto 0 auto;
+}
+#snap-settings form input {
+    margin-bottom: 5px;
 }
 
-.prompt {
-    font-family: Raleway-SemiBold;
-    font-size: 14px;
-}
-
-div.button {
-    padding-top: 21px;
-}
-
-.compound-button {
-    position: relative;
-    height: auto;
-}
-
-.compound-button input {
-    padding-left: 40px;
-}
-
-.compound-button .glyph {
-    display: inline-block;
-    position: absolute;
-    left: 12px;
-    top: 16px;
-    width: 23px;
-    height: 23px;
-    background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcKICAgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIgogICB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIgogICB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiCiAgIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgaGVpZ2h0PSI0MCIKICAgd2lkdGg9IjQwIgogICBpZD0ic3ZnMiIKICAgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIKICAgdmlld0JveD0iMCAwIDQwIDQwIgogICB5PSIwcHgiCiAgIHg9IjBweCIKICAgdmVyc2lvbj0iMS4xIj48bWV0YWRhdGEKICAgICBpZD0ibWV0YWRhdGEzNCI+PHJkZjpSREY+PGNjOldvcmsKICAgICAgICAgcmRmOmFib3V0PSIiPjxkYzpmb3JtYXQ+aW1hZ2Uvc3ZnK3htbDwvZGM6Zm9ybWF0PjxkYzp0eXBlCiAgICAgICAgICAgcmRmOnJlc291cmNlPSJodHRwOi8vcHVybC5vcmcvZGMvZGNtaXR5cGUvU3RpbGxJbWFnZSIgLz48ZGM6dGl0bGU+PC9kYzp0aXRsZT48L2NjOldvcms+PC9yZGY6UkRGPjwvbWV0YWRhdGE+PGRlZnMKICAgICBpZD0iZGVmczMyIiAvPjxzdHlsZQogICAgIGlkPSJzdHlsZTQiCiAgICAgdHlwZT0idGV4dC9jc3MiPgoJLnN0MHtmaWxsOiM0MTQwNDI7fQoJLnN0MXtmaWxsOiNDQ0NDQ0M7fQoJLnN0MntmaWxsOiMxMzk4QkI7fQoJLnN0M3tmaWxsOiMzMUQ4RkY7fQo8L3N0eWxlPjxnCiAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwtMTEwKSIKICAgICBpZD0iTGF5ZXJfMSI+PGNpcmNsZQogICAgICAgc3R5bGU9ImZpbGw6I2ZmZmZmZjtmaWxsLW9wYWNpdHk6MSIKICAgICAgIGlkPSJjaXJjbGUxMyIKICAgICAgIHI9IjQuNDQwMDAwMSIKICAgICAgIGN5PSIxMjYuMTciCiAgICAgICBjeD0iMjAuNTQwMDAxIgogICAgICAgY2xhc3M9InN0MSIgLz48cGF0aAogICAgICAgc3R5bGU9ImZpbGw6I2ZmZmZmZjtmaWxsLW9wYWNpdHk6MSIKICAgICAgIGlkPSJwYXRoMTUiCiAgICAgICBkPSJtIDI4Ljg3LDEzOS4yNiBjIDAuMDEsLTAuMDEgMC4wMiwtMC4wMiAwLjAzLC0wLjAzIGwgMCwtMS44NiBjIDAsLTIuNjggLTIuMzMsLTQuNzcgLTUsLTQuNzcgbCAtNi40MiwwIGMgLTIuNjgsMCAtNC44NSwyLjA5IC00Ljg1LDQuNzcgbCAwLDEuODggMTYuMjQsMCB6IgogICAgICAgY2xhc3M9InN0MSIgLz48cGF0aAogICAgICAgc3R5bGU9ImZpbGw6I2ZmZmZmZjtmaWxsLW9wYWNpdHk6MSIKICAgICAgIGlkPSJwYXRoMTciCiAgICAgICBkPSJtIDM4LjE3LDEyMy40MiBjIDAsLTMuOTcgLTMuMjIsLTcuMTkgLTcuMTksLTcuMTkgbCAtMjAuMzEsMCBjIC0zLjk3LDAgLTcuMTksMy4yMiAtNy4xOSw3LjE5IGwgMCwxNC4xOCBjIDAsMy45NyAzLjIyLDcuMTkgNy4xOSw3LjE5IGwgMjAuMzEsMCBjIDMuOTcsMCA3LjE5LC0zLjIyIDcuMTksLTcuMTkgbCAwLC0xNC4xOCB6IG0gLTEuNzgsMTQuMjcgYyAwLDMuMDMgLTIuNDYsNS40OSAtNS40OSw1LjQ5IGwgLTIwLjMyLDAgYyAtMy4wMywwIC01LjQ5LC0yLjQ2IC01LjQ5LC01LjQ5IGwgMCwtMTQuMTkgYyAwLC0zLjAzIDIuNDYsLTUuNDkgNS40OSwtNS40OSBsIDIwLjMzLDAgYyAzLjAzLDAgNS40OSwyLjQ2IDUuNDksNS40OSBsIDAsMTQuMTkgeiIKICAgICAgIGNsYXNzPSJzdDEiIC8+PC9nPjxnCiAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwtMTEwKSIKICAgICBpZD0iTGF5ZXJfMiIgLz48L3N2Zz4=);
-    background-repeat: no-repeat;
-    background-size: 23px 23px;
-}
-
-.setting {
-    display: inline-table;
-    height: 28px;
-}
-
-.setting label {
-    display: table-cell;
-    vertical-align: middle;
-    font-family: Raleway-SemiBold;
-    font-size: 14px;
-}
-
-.setting + .setting {
-    margin-left: 18px;
-}
-
-input[type=button].naked {
-    font-size: 40px;
-    line-height: 40px;
-    width: 30px;
+#snap-button {
+    width: 72px;
+    height: 72px;
     padding: 0;
-    margin: 0 0 -6px 0;
-    position: relative;
-    top: -6px;
-    left: -8px;
-    background: none;
+    border-radius: 50%;
+    background: #EA4C5F;
+    border: 3px solid white;
+    margin: 2px auto 0 auto;
+    box-sizing: content-box;
+    display: inline;
+    outline:none;
 }
+#snap-button:disabled {
+    background: gray;
+}
+#snap-button:hover:enabled {
+    background: #C62147;
+}
+#snap-button:active:enabled {
+    background: #EA4C5F;
+}
+#snap-settings-right {
+    display: inline;
+    width: 150px;
+    margin: auto;
+}
+/*
+// END styling of snapshot controls (bottom panel) and its contents
+*/
 
-input[type=button].naked:hover {
-    color: #00b4ef;
-    background: none;
+/*
+// START misc styling
+*/
+body {
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
 }
+p {
+    margin: 2px 0;
+}
+h4 {
+    margin: 14px 0 0 0;
+}
+.centeredImage {
+    margin: 0 auto;
+    display: block;
+}
+/*
+// END misc styling
+*/

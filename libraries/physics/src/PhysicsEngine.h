@@ -41,8 +41,8 @@ public:
     void* _b; // ObjectMotionState pointer
 };
 
-typedef std::map<ContactKey, ContactInfo> ContactMap;
-typedef std::vector<Collision> CollisionEvents;
+using ContactMap = std::map<ContactKey, ContactInfo>;
+using CollisionEvents = std::vector<Collision>;
 
 class PhysicsEngine {
 public:

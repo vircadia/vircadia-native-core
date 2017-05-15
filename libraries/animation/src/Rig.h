@@ -42,16 +42,17 @@ public:
     };
 
     struct HeadParameters {
-        glm::quat worldHeadOrientation = glm::quat();  // world space (-z forward)
-        glm::quat rigHeadOrientation = glm::quat();  // rig space (-z forward)
-        glm::vec3 rigHeadPosition = glm::vec3();     // rig space
-        bool isInHMD = false;
-        int neckJointIndex = -1;
+        glm::mat4 hipsMatrix = glm::mat4();           // rig space
+        glm::mat4 spine2Matrix = glm::mat4();         // rig space
+        glm::quat rigHeadOrientation = glm::quat();   // rig space (-z forward)
+        glm::vec3 rigHeadPosition = glm::vec3();      // rig space
+        bool hipsEnabled = false;
+        bool headEnabled = false;
+        bool spine2Enabled = false;
         bool isTalking = false;
     };
 
     struct EyeParameters {
-        glm::quat worldHeadOrientation = glm::quat();
         glm::vec3 eyeLookAt = glm::vec3();  // world space
         glm::vec3 eyeSaccade = glm::vec3(); // world space
         glm::vec3 modelTranslation = glm::vec3();
@@ -228,6 +229,9 @@ public:
 
     void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
 
+    // input assumed to be in rig space
+    void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
+
 signals:
     void onLoadComplete();
 
@@ -237,10 +241,9 @@ protected:
     void applyOverridePoses();
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
-    void updateNeckJoint(int index, const HeadParameters& params);
-    void computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut,
-                                 glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const;
-    void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
+    void updateHeadAnimVars(const HeadParameters& params);
+
+    void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
     AnimPose _modelOffset;  // model to rig space

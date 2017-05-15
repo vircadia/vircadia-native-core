@@ -285,7 +285,7 @@ public:
         Stamp bumpStamp() { return ++_stamp; }
 
         void setFormat(const Element& format) { _format = format; }
-        const Element& getFormat() const { return _format; }
+        Element getFormat() const { return _format; }
 
     private:
         Stamp _stamp { 0 };
@@ -372,7 +372,7 @@ public:
     bool isColorRenderTarget() const;
     bool isDepthStencilRenderTarget() const;
 
-    const Element& getTexelFormat() const { return _texelFormat; }
+    Element getTexelFormat() const { return _texelFormat; }
 
     Vec3u getDimensions() const { return Vec3u(_width, _height, _depth); }
     uint16 getWidth() const { return _width; }
@@ -468,7 +468,7 @@ public:
 
     // Mip storage format is constant across all mips
     void setStoredMipFormat(const Element& format);
-    const Element& getStoredMipFormat() const;
+    Element getStoredMipFormat() const;
 
     // Manually allocate the mips down until the specified maxMip
     // this is just allocating the sysmem version of it

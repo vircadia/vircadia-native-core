@@ -128,16 +128,15 @@
 #include <QmlWebWindowClass.h>
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
-
+#include <trackers/EyeTracker.h>
+#include <avatars-renderer/ScriptAvatar.h>
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
-#include "avatar/ScriptAvatar.h"
+#include "avatar/MyHead.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
-#include "devices/EyeTracker.h"
-#include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -480,7 +479,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<ModelCache>();
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<SoundCache>();
-    DependencyManager::set<Faceshift>();
     DependencyManager::set<DdeFaceTracker>();
     DependencyManager::set<EyeTracker>();
     DependencyManager::set<AudioClient>();
@@ -535,6 +533,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
+    DependencyManager::set<Snapshot>();
 
     return previousSessionCrashed;
 }
@@ -942,10 +941,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
     // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
+    static const QString TESTER = "HIFI_TESTER";
     auto gpuIdent = GPUIdent::getInstance();
     auto glContextData = getGLContextData();
     QJsonObject properties = {
         { "version", applicationVersion() },
+        { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
         { "previousSessionCrashed", _previousSessionCrashed },
         { "previousSessionRuntime", sessionRunTime.get() },
         { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
@@ -1209,10 +1210,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     this->installEventFilter(this);
 
-    // initialize our face trackers after loading the menu settings
-    auto faceshiftTracker = DependencyManager::get<Faceshift>();
-    faceshiftTracker->init();
-    connect(faceshiftTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #ifdef HAVE_DDE
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->init();
@@ -1591,6 +1588,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, &DomainHandler::hostnameChanged, this, &Application::addAssetToWorldMessageClose);
 
     updateSystemTabletMode();
+
+    connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -2052,6 +2051,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
+    rootContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
@@ -2195,7 +2195,7 @@ void Application::paintGL() {
                 _myCamera.setOrientation(glm::quat_cast(camMat));
             } else {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition());
-                _myCamera.setOrientation(myAvatar->getHead()->getCameraOrientation());
+                _myCamera.setOrientation(myAvatar->getMyHead()->getCameraOrientation());
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             if (isHMDMode()) {
@@ -3629,20 +3629,13 @@ ivec2 Application::getMouse() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
-    auto faceshift = DependencyManager::get<Faceshift>();
     auto dde = DependencyManager::get<DdeFaceTracker>();
 
-    return (dde->isActive() ? static_cast<FaceTracker*>(dde.data()) :
-            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) : nullptr));
+    return dde->isActive() ? static_cast<FaceTracker*>(dde.data()) : nullptr;
 }
 
 FaceTracker* Application::getSelectedFaceTracker() {
     FaceTracker* faceTracker = nullptr;
-#ifdef HAVE_FACESHIFT
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Faceshift)) {
-        faceTracker = DependencyManager::get<Faceshift>().data();
-    }
-#endif
 #ifdef HAVE_DDE
     if (Menu::getInstance()->isOptionChecked(MenuOption::UseCamera)) {
         faceTracker = DependencyManager::get<DdeFaceTracker>().data();
@@ -3652,15 +3645,8 @@ FaceTracker* Application::getSelectedFaceTracker() {
 }
 
 void Application::setActiveFaceTracker() const {
-#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
-    bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
-#endif
-#ifdef HAVE_FACESHIFT
-    auto faceshiftTracker = DependencyManager::get<Faceshift>();
-    faceshiftTracker->setIsMuted(isMuted);
-    faceshiftTracker->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) && !isMuted);
-#endif
 #ifdef HAVE_DDE
+    bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
     Menu::getInstance()->getActionForOption(MenuOption::BinaryEyelidControl)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::CoupleEyelids)->setVisible(isUsingDDE);
@@ -4105,6 +4091,30 @@ void Application::cycleCamera() {
     cameraMenuChanged(); // handle the menu change
 }
 
+void Application::cameraModeChanged() {
+    switch (_myCamera.getMode()) {
+        case CAMERA_MODE_FIRST_PERSON:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
+            break;
+        case CAMERA_MODE_THIRD_PERSON:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+            break;
+        case CAMERA_MODE_MIRROR:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+            break;
+        case CAMERA_MODE_INDEPENDENT:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::IndependentMode, true);
+            break;
+        case CAMERA_MODE_ENTITY:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::CameraEntityMode, true);
+            break;
+        default:
+            break;
+    }
+    cameraMenuChanged();
+}
+
+
 void Application::cameraMenuChanged() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
@@ -4378,7 +4388,13 @@ void Application::update(float deltaTime) {
     controller::InputCalibrationData calibrationData = {
         myAvatar->getSensorToWorldMatrix(),
         createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
-        myAvatar->getHMDSensorMatrix()
+        myAvatar->getHMDSensorMatrix(),
+        myAvatar->getCenterEyeCalibrationMat(),
+        myAvatar->getHeadCalibrationMat(),
+        myAvatar->getSpine2CalibrationMat(),
+        myAvatar->getHipsCalibrationMat(),
+        myAvatar->getLeftFootCalibrationMat(),
+        myAvatar->getRightFootCalibrationMat()
     };
 
     InputPluginPointer keyboardMousePlugin;
@@ -4425,6 +4441,13 @@ void Application::update(float deltaTime) {
     controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
     controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
     myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
+
+    controller::Pose hipsPose = userInputMapper->getPoseState(controller::Action::HIPS);
+    controller::Pose spine2Pose = userInputMapper->getPoseState(controller::Action::SPINE2);
+    myAvatar->setSpineControllerPosesInSensorFrame(hipsPose.transform(avatarToSensorMatrix), spine2Pose.transform(avatarToSensorMatrix));
+
+    controller::Pose headPose = userInputMapper->getPoseState(controller::Action::HEAD);
+    myAvatar->setHeadControllerPoseInSensorFrame(headPose.transform(avatarToSensorMatrix));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
@@ -5136,7 +5159,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 }
 
 void Application::resetSensors(bool andReload) {
-    DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
     getActiveDisplayPlugin()->resetSensors();
@@ -5434,9 +5456,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     entityScriptingInterface->setPacketSender(&_entityEditSender);
     entityScriptingInterface->setEntityTree(getEntities()->getTree());
 
-    // AvatarManager has some custom types
-    AvatarManager::registerMetaTypes(scriptEngine);
-
     // give the script engine to the RecordingScriptingInterface for its callbacks
     DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(scriptEngine);
 
@@ -5487,6 +5506,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Snapshot", DependencyManager::get<Snapshot>().data());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
@@ -6431,7 +6451,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
         // If we're not doing an animated snapshot as well...
-        if (!includeAnimated || !(SnapshotAnimated::alsoTakeAnimatedSnapshot.get())) {
+        if (!includeAnimated) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
             emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
         } else {

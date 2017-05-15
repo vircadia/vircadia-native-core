@@ -13,7 +13,7 @@
 //
 
 /* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
-   MyAvatar, Menu */
+   MyAvatar, Menu, Vec3 */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletRezzed = false;
@@ -214,6 +214,24 @@
                     closeTabletUI();
                     rezTablet();
                     tabletShown = false;
+
+                    // also cause the stylus model to be loaded
+                    var tmpStylusID = Overlays.addOverlay("model", {
+                        name: "stylus",
+                        url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
+                        loadPriority: 10.0,
+                        position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.1, z: -2})),
+                        dimensions: { x: 0.01, y: 0.01, z: 0.2 },
+                        solid: true,
+                        visible: true,
+                        ignoreRayIntersection: true,
+                        drawInFront: false,
+                        lifetime: 3
+                    });
+                    Script.setTimeout(function() {
+                        Overlays.deleteOverlay(tmpStylusID);
+                    }, 300);
+
                 } else if (!tabletShown) {
                     hideTabletUI();
                 }

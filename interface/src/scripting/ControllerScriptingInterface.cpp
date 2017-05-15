@@ -17,7 +17,7 @@
 #include <plugins/PluginManager.h>
 
 #include "Application.h"
-#include "devices/MotionTracker.h"
+#include <trackers/MotionTracker.h>
 
 void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
     if (event->type() == HFActionEvent::startType()) {

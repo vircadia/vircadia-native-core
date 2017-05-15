@@ -71,7 +71,7 @@ private:
     void processTabletEvents(QObject* object, const QKeyEvent* event);
 
 protected:
-    std::mutex _mutex;
+    std::mutex _mapMutex;
     std::map<QString, TabletProxy*> _tabletProxies;
     QObject* _toolbarScriptingInterface { nullptr };
     bool _toolbarMode { false };
@@ -90,7 +90,7 @@ class TabletProxy : public QObject {
     Q_PROPERTY(bool landscape READ getLandscape WRITE setLandscape)
     Q_PROPERTY(bool tabletShown MEMBER _tabletShown NOTIFY tabletShownChanged)
 public:
-    TabletProxy(QString name);
+    TabletProxy(QObject* parent, QString name);
 
     void setQmlTabletRoot(QQuickItem* qmlTabletRoot, QObject* qmlOffscreenSurface);
 
@@ -248,7 +248,7 @@ protected:
     QVariant _initialPath { "" };
     QVariant _currentPathLoaded { "" };
     QString _name;
-    std::mutex _mutex;
+    std::mutex _tabletMutex;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTabletRoot { nullptr };
     QObject* _qmlOffscreenSurface { nullptr };
@@ -309,7 +309,7 @@ signals:
 protected:
     QUuid _uuid;
     int _stableOrder;
-    mutable std::mutex _mutex;
+    mutable std::mutex _buttonMutex;
     QQuickItem* _qmlButton { nullptr };
     QObject* _toolbarButtonProxy { nullptr };
     QVariantMap _properties;

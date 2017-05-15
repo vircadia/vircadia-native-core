@@ -48,6 +48,10 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* deadZone(float min);
         Q_INVOKABLE QObject* constrainToInteger();
         Q_INVOKABLE QObject* constrainToPositiveInteger();
+        Q_INVOKABLE QObject* translate(glm::vec3 translate);
+        Q_INVOKABLE QObject* transform(glm::mat4 transform);
+        Q_INVOKABLE QObject* postTransform(glm::mat4 transform);
+        Q_INVOKABLE QObject* rotate(glm::quat rotation);
 
     private:
         void to(const Endpoint::Pointer& destination);

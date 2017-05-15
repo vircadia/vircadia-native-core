@@ -304,6 +304,8 @@ public slots:
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
     Q_INVOKABLE bool isChildOfParent(QUuid childID, QUuid parentID);
 
+    Q_INVOKABLE QString getNestableType(QUuid id);
+
     Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
     Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
 

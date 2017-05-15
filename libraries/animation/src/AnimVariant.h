@@ -165,6 +165,15 @@ public:
         }
     }
 
+    glm::vec3 lookupRigToGeometryVector(const QString& key, const glm::vec3& defaultValue) const {
+        if (key.isEmpty()) {
+            return defaultValue;
+        } else {
+            auto iter = _map.find(key);
+            return iter != _map.end() ? transformVectorFast(_rigToGeometryMat, iter->second.getVec3()) : defaultValue;
+        }
+    }
+
     const glm::quat& lookupRaw(const QString& key, const glm::quat& defaultValue) const {
         if (key.isEmpty()) {
             return defaultValue;

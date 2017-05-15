@@ -1,7 +1,4 @@
 //
-//  Leapmotion.cpp
-//  interface/src/devices
-//
 //  Created by Sam Cake on 6/2/2014
 //  Copyright 2014 High Fidelity, Inc.
 //
@@ -10,9 +7,10 @@
 //
 
 #include "Leapmotion.h"
-#include "Menu.h"
 
 #include <NumericalConstants.h>
+
+#include "Menu.h"
 
 const int PALMROOT_NUM_JOINTS = 3;
 const int FINGER_NUM_JOINTS = 4;

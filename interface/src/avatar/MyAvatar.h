@@ -22,14 +22,15 @@
 
 #include <controllers/Pose.h>
 #include <controllers/Actions.h>
+#include <avatars-renderer/Avatar.h>
 
-#include "Avatar.h"
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
 #include <ThreadSafeValueCache.h>
 
 class AvatarActionHold;
 class ModelItemID;
+class MyHead;
 
 enum eyeContactTarget {
     LEFT_EYE,
@@ -149,6 +150,7 @@ public:
     explicit MyAvatar(QThread* thread, RigPointer rig);
     ~MyAvatar();
 
+    void instantiableAvatar() override {};
     void registerMetaTypes(QScriptEngine* engine);
 
     virtual void simulateAttachments(float deltaTime) override;
@@ -353,7 +355,7 @@ public:
 
     eyeContactTarget getEyeContactTarget();
 
-    Q_INVOKABLE glm::vec3 getTrackedHeadPosition() const { return _trackedHeadPosition; }
+    const MyHead* getMyHead() const;
     Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
     Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
     Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
@@ -453,6 +455,19 @@ public:
     controller::Pose getLeftFootControllerPoseInAvatarFrame() const;
     controller::Pose getRightFootControllerPoseInAvatarFrame() const;
 
+    void setSpineControllerPosesInSensorFrame(const controller::Pose& hips, const controller::Pose& spine2);
+    controller::Pose getHipsControllerPoseInSensorFrame() const;
+    controller::Pose getSpine2ControllerPoseInSensorFrame() const;
+    controller::Pose getHipsControllerPoseInWorldFrame() const;
+    controller::Pose getSpine2ControllerPoseInWorldFrame() const;
+    controller::Pose getHipsControllerPoseInAvatarFrame() const;
+    controller::Pose getSpine2ControllerPoseInAvatarFrame() const;
+
+    void setHeadControllerPoseInSensorFrame(const controller::Pose& head);
+    controller::Pose getHeadControllerPoseInSensorFrame() const;
+    controller::Pose getHeadControllerPoseInWorldFrame() const;
+    controller::Pose getHeadControllerPoseInAvatarFrame() const;
+
     bool hasDriveInput() const;
 
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
@@ -461,9 +476,21 @@ public:
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
+    // all calibration matrices are in absolute avatar space.
+    glm::mat4 getCenterEyeCalibrationMat() const;
+    glm::mat4 getHeadCalibrationMat() const;
+    glm::mat4 getSpine2CalibrationMat() const;
+    glm::mat4 getHipsCalibrationMat() const;
+    glm::mat4 getLeftFootCalibrationMat() const;
+    glm::mat4 getRightFootCalibrationMat() const;
+
     void addHoldAction(AvatarActionHold* holdAction);  // thread-safe
     void removeHoldAction(AvatarActionHold* holdAction);  // thread-safe
     void updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose& postUpdatePose);
+
+    // derive avatar body position and orientation from the current HMD Sensor location.
+    // results are in HMD frame
+    glm::mat4 deriveBodyFromHMDSensor() const;
 
 public slots:
     void increaseSize();
@@ -553,9 +580,7 @@ private:
 
     void setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visiblity);
 
-    // derive avatar body position and orientation from the current HMD Sensor location.
-    // results are in HMD frame
-    glm::mat4 deriveBodyFromHMDSensor() const;
+private:
 
     virtual void updatePalms() override {}
     void lateUpdatePalms();
@@ -567,17 +592,17 @@ private:
     std::array<float, MAX_DRIVE_KEYS> _driveKeys;
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
-    bool _wasPushing;
-    bool _isPushing;
-    bool _isBeingPushed;
-    bool _isBraking;
-    bool _isAway;
+    bool _wasPushing { false };
+    bool _isPushing { false };
+    bool _isBeingPushed { false };
+    bool _isBraking { false };
+    bool _isAway { false };
 
-    float _boomLength;
+    float _boomLength { ZOOM_DEFAULT };
     float _yawSpeed; // degrees/sec
     float _pitchSpeed; // degrees/sec
 
-    glm::vec3 _thrust;  // impulse accumulator for outside sources
+    glm::vec3 _thrust { 0.0f };  // impulse accumulator for outside sources
 
     glm::vec3 _actionMotorVelocity; // target local-frame velocity of avatar (default controller actions)
     glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (analog script)
@@ -593,7 +618,7 @@ private:
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
-    bool _shouldRender;
+    bool _shouldRender { true };
     float _oculusYawOffset;
 
     eyeContactTarget _eyeContactTarget;
@@ -691,9 +716,11 @@ private:
     // These are stored in SENSOR frame
     ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInSensorFrameCache { controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
-
     ThreadSafeValueCache<controller::Pose> _leftFootControllerPoseInSensorFrameCache{ controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _rightFootControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _hipsControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _spine2ControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _headControllerPoseInSensorFrameCache{ controller::Pose() };
 
     bool _hmdLeanRecenterEnabled = true;
 

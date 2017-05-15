@@ -109,7 +109,7 @@ public:
     }
 };
 
-class QWindowCamera : public Camera {
+class QWindowCamera : public SimpleCamera {
     Key forKey(int key) {
         switch (key) {
             case Qt::Key_W: return FORWARD;
@@ -1067,7 +1067,7 @@ private:
     }
 
     void cycleMode() {
-        static auto defaultProjection = Camera().matrices.perspective;
+        static auto defaultProjection = SimpleCamera().matrices.perspective;
         _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);
         if (_renderMode == HMD) {
             _camera.matrices.perspective[0] = vec4 { 0.759056330, 0.000000000, 0.000000000, 0.000000000 };

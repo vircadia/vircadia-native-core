@@ -16,9 +16,15 @@
 namespace controller {
 
 struct InputCalibrationData {
-    glm::mat4 sensorToWorldMat;
-    glm::mat4 avatarMat;
-    glm::mat4 hmdSensorMat;
+    glm::mat4 sensorToWorldMat;    // sensor to world
+    glm::mat4 avatarMat;           // avatar to world
+    glm::mat4 hmdSensorMat;        // hmd pos and orientation in sensor space
+    glm::mat4 defaultCenterEyeMat; // default pose for the center of the eyes in avatar space.
+    glm::mat4 defaultHeadMat;      // default pose for head joint in avatar space
+    glm::mat4 defaultSpine2;       // default pose for spine2 joint in avatar space
+    glm::mat4 defaultHips;         // default pose for hips joint in avatar space
+    glm::mat4 defaultLeftFoot;     // default pose for leftFoot joint in avatar space
+    glm::mat4 defaultRightFoot;    // default pose for leftFoot joint in avatar space
 };
 
 enum class ChannelType {

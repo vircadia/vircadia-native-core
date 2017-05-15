@@ -10,6 +10,8 @@
 #ifndef hifi_Controllers_Filters_Scale_h
 #define hifi_Controllers_Filters_Scale_h
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "../Filter.h"
 
 namespace controller {
@@ -23,6 +25,11 @@ public:
     virtual float apply(float value) const override {
         return value * _scale;
     }
+
+    virtual Pose apply(Pose value) const override {
+        return value.transform(glm::scale(glm::mat4(), glm::vec3(_scale)));
+    }
+
     virtual bool parseParameters(const QJsonValue& parameters) override;
 
 private:

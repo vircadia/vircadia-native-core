@@ -273,10 +273,11 @@
             PLAYER_COMMAND_PLAY = "play",
             PLAYER_COMMAND_STOP = "stop",
 
-            playerIDs = [],         // UUIDs of AC player scripts.
-            playerIsPlayings = [],  // True if AC player script is playing a recording.
-            playerRecordings = [],  // Assignment client mappings of recordings being played.
-            playerTimestamps = [],  // Timestamps of last heartbeat update from player script.
+            playerIDs = [],             // UUIDs of AC player scripts.
+            playerIsPlayings = [],      // True if AC player script is playing a recording.
+            playerRecordings = [],      // Assignment client mappings of recordings being played.
+            playerTimestamps = [],      // Timestamps of last heartbeat update from player script.
+            playerStartupTimeouts = [], // Timers that check that recording has started playing.
 
             updateTimer,
             UPDATE_INTERVAL = 5000;  // Must be > player's HEARTBEAT_INTERVAL.
@@ -297,6 +298,7 @@
                     playerIsPlayings.splice(i, 1);
                     playerRecordings.splice(i, 1);
                     playerTimestamps.splice(i, 1);
+                    playerStartupTimeouts.splice(i, 1);
                 }
             }
 
@@ -333,16 +335,25 @@
                 orientation: orientation
             }));
 
-            Script.setTimeout(function () {
-                if (!playerIsPlayings[index] || playerRecordings[index] !== recording) {
+            playerStartupTimeouts[index] = Script.setTimeout(function () {
+                if ((!playerIsPlayings[index] || playerRecordings[index] !== recording) && playerStartupTimeouts[index]) {
                     error("Didn't start playing recording "
                         + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
                 }
+                playerStartupTimeouts[index] = null;
             }, CHECK_PLAYING_TIMEOUT);
-
         }
 
         function stopPlayingRecording(playerID) {
+            var index;
+
+            // Cancel check that recording started playing.
+            index = playerIDs.indexOf(playerID);
+            if (index !== -1 && playerStartupTimeouts[index] !== null) {
+                // Cannot clearTimeout() without program log error, so just set null.
+                playerStartupTimeouts[index] = null;
+            }
+
             Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
                 player: playerID,
                 command: PLAYER_COMMAND_STOP
@@ -375,6 +386,7 @@
             playerIsPlayings = [];
             playerRecordings = [];
             playerTimestamps = [];
+            playerStartupTimeouts = [];
             Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
         }
 

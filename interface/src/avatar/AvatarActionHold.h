@@ -38,7 +38,8 @@ public:
 
     bool getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
     virtual bool getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
-                           glm::vec3& linearVelocity, glm::vec3& angularVelocity) override;
+                           glm::vec3& linearVelocity, glm::vec3& angularVelocity,
+                           float& linearTimeScale, float& angularTimeScale) override;
 
     virtual void prepareForPhysicsSimulation() override;
 

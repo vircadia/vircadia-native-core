@@ -22,6 +22,7 @@ ModelOverlay::ModelOverlay()
       _modelTextures(QVariantMap())
 {
     _model->init();
+    _model->setLoadingPriority(_loadPriority);
     _isLoaded = false;
 }
 
@@ -30,9 +31,11 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
     _modelTextures(QVariantMap()),
     _url(modelOverlay->_url),
-    _updateModel(false)
+    _updateModel(false),
+    _loadPriority(modelOverlay->getLoadPriority())
 {
     _model->init();
+    _model->setLoadingPriority(_loadPriority);
     if (_url.isValid()) {
         _updateModel = true;
         _isLoaded = false;
@@ -111,6 +114,12 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
 
     if (origPosition != getPosition() || origRotation != getRotation() || origDimensions != getDimensions() || origScale != getScale()) {
         _updateModel = true;
+    }
+
+    auto loadPriorityProperty = properties["loadPriority"];
+    if (loadPriorityProperty.isValid()) {
+        _loadPriority = loadPriorityProperty.toFloat();
+        _model->setLoadingPriority(_loadPriority);
     }
 
     auto urlValue = properties["url"];
@@ -278,4 +287,11 @@ void ModelOverlay::locationChanged(bool tellPhysics) {
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
     }
+}
+
+QString ModelOverlay::getName() const {
+    if (_name != "") {
+        return QString("Overlay:") + getType() + ":" + _name;
+    }
+    return QString("Overlay:") + getType() + ":" + _url.toString();
 }

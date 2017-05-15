@@ -17,12 +17,12 @@
 
 
 const uint16_t ObjectConstraintHinge::constraintVersion = 1;
-
+const glm::vec3 DEFAULT_HINGE_AXIS(1.0f, 0.0f, 0.0f);
 
 ObjectConstraintHinge::ObjectConstraintHinge(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectConstraint(DYNAMIC_TYPE_HINGE, id, ownerEntity),
-    _pivotInA(glm::vec3(0.0f)),
-    _axisInA(glm::vec3(0.0f))
+    _axisInA(DEFAULT_HINGE_AXIS),
+    _axisInB(DEFAULT_HINGE_AXIS)
 {
     #if WANT_DEBUG
     qCDebug(physics) << "ObjectConstraintHinge::ObjectConstraintHinge";
@@ -48,23 +48,26 @@ QList<btRigidBody*> ObjectConstraintHinge::getRigidBodies() {
     return result;
 }
 
+void ObjectConstraintHinge::prepareForPhysicsSimulation() {
+}
+
 void ObjectConstraintHinge::updateHinge() {
     btHingeConstraint* constraint { nullptr };
+    glm::vec3 axisInA;
     float low;
     float high;
     float softness;
     float biasFactor;
     float relaxationFactor;
-    float motorVelocity;
 
     withReadLock([&]{
+        axisInA = _axisInA;
         constraint = static_cast<btHingeConstraint*>(_constraint);
         low = _low;
         high = _high;
-        softness = _softness;
         biasFactor = _biasFactor;
         relaxationFactor = _relaxationFactor;
-        motorVelocity = _motorVelocity;
+        softness = _softness;
     });
 
     if (!constraint) {
@@ -72,12 +75,6 @@ void ObjectConstraintHinge::updateHinge() {
     }
 
     constraint->setLimit(low, high, softness, biasFactor, relaxationFactor);
-    if (motorVelocity != 0.0f) {
-        constraint->setMotorTargetVelocity(motorVelocity);
-        constraint->enableMotor(true);
-    } else {
-        constraint->enableMotor(false);
-    }
 }
 
 
@@ -107,12 +104,27 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         return nullptr;
     }
 
+    if (glm::length(axisInA) < FLT_EPSILON) {
+        qCWarning(physics) << "hinge axis cannot be a zero vector";
+        axisInA = DEFAULT_HINGE_AXIS;
+    } else {
+        axisInA = glm::normalize(axisInA);
+    }
+
     if (!otherEntityID.isNull()) {
         // This hinge is between two entities... find the other rigid body.
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
             return nullptr;
         }
+
+        if (glm::length(axisInB) < FLT_EPSILON) {
+            qCWarning(physics) << "hinge axis cannot be a zero vector";
+            axisInB = DEFAULT_HINGE_AXIS;
+        } else {
+            axisInB = glm::normalize(axisInB);
+        }
+
         constraint = new btHingeConstraint(*rigidBodyA, *rigidBodyB,
                                            glmToBullet(pivotInA), glmToBullet(pivotInB),
                                            glmToBullet(axisInA), glmToBullet(axisInB),
@@ -150,7 +162,6 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
     float softness;
     float biasFactor;
     float relaxationFactor;
-    float motorVelocity;
 
     bool needUpdate = false;
     bool somethingChanged = ObjectDynamic::updateArguments(arguments);
@@ -217,13 +228,6 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             relaxationFactor = _relaxationFactor;
         }
 
-        ok = true;
-        motorVelocity = EntityDynamicInterface::extractFloatArgument("hinge constraint", arguments,
-                                                                     "motorVelocity", ok, false);
-        if (!ok) {
-            motorVelocity = _motorVelocity;
-        }
-
         if (somethingChanged ||
             pivotInA != _pivotInA ||
             axisInA != _axisInA ||
@@ -234,8 +238,7 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             high != _high ||
             softness != _softness ||
             biasFactor != _biasFactor ||
-            relaxationFactor != _relaxationFactor ||
-            motorVelocity != _motorVelocity) {
+            relaxationFactor != _relaxationFactor) {
             // something changed
             needUpdate = true;
         }
@@ -253,7 +256,6 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
             _softness = softness;
             _biasFactor = biasFactor;
             _relaxationFactor = relaxationFactor;
-            _motorVelocity = motorVelocity;
 
             _active = true;
 
@@ -284,7 +286,6 @@ QVariantMap ObjectConstraintHinge::getArguments() {
             arguments["softness"] = _softness;
             arguments["biasFactor"] = _biasFactor;
             arguments["relaxationFactor"] = _relaxationFactor;
-            arguments["motorVelocity"] = _motorVelocity;
             arguments["angle"] = static_cast<btHingeConstraint*>(_constraint)->getHingeAngle(); // [-PI,PI]
         }
     });
@@ -313,8 +314,6 @@ QByteArray ObjectConstraintHinge::serialize() const {
 
         dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
-
-        dataStream << _motorVelocity;
     });
 
     return serializedConstraintArguments;
@@ -355,8 +354,6 @@ void ObjectConstraintHinge::deserialize(QByteArray serializedArguments) {
         _expires = serverTimeToLocalTime(serverExpires);
 
         dataStream >> _tag;
-
-        dataStream >> _motorVelocity;
 
         _active = true;
     });

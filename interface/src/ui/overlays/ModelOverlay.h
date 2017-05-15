@@ -22,6 +22,8 @@ public:
     static QString const TYPE;
     virtual QString getType() const override { return TYPE; }
 
+    virtual QString getName() const override;
+
     ModelOverlay();
     ModelOverlay(const ModelOverlay* modelOverlay);
 
@@ -41,6 +43,8 @@ public:
 
     void locationChanged(bool tellPhysics) override;
 
+    float getLoadPriority() const { return _loadPriority; }
+
 protected:
     // helper to extract metadata from our Model's rigged joints
     template <typename itemType> using mapFunction = std::function<itemType(int jointIndex)>;
@@ -55,6 +59,7 @@ private:
     QUrl _url;
     bool _updateModel = { false };
     bool _scaleToFit = { false };
+    float _loadPriority { 0.0f };
 };
 
 #endif // hifi_ModelOverlay_h

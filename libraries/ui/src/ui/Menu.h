@@ -9,6 +9,8 @@
 #ifndef hifi_ui_Menu_h
 #define hifi_ui_Menu_h
 
+#include <functional>
+
 #include <QtCore/QDir>
 #include <QtCore/QPointer>
 #include <QtCore/QStandardPaths>
@@ -87,6 +89,14 @@ public:
                                                     const bool checked = false,
                                                     const QObject* receiver = NULL,
                                                     const char* member = NULL,
+                                                    int menuItemLocation = UNSPECIFIED_POSITION,
+                                                    const QString& grouping = QString());
+
+    QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
+                                                    const QString& actionName,
+                                                    const std::function<void(bool)>& handler,
+                                                    const QKeySequence& shortcut = 0,
+                                                    const bool checked = false,
                                                     int menuItemLocation = UNSPECIFIED_POSITION,
                                                     const QString& grouping = QString());
 

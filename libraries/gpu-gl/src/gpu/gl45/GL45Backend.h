@@ -17,7 +17,6 @@
 #include <thread>
 
 #define INCREMENTAL_TRANSFER 0
-#define THREADED_TEXTURE_BUFFERING 1
 #define GPU_SSBO_TRANSFORM_OBJECT 1
 
 namespace gpu { namespace gl45 {
@@ -40,6 +39,9 @@ public:
 
     explicit GL45Backend(bool syncCache) : Parent(syncCache) {}
     GL45Backend() : Parent() {}
+
+    static const std::string GL45_VERSION;
+    const std::string& getVersion() const override { return GL45_VERSION; }
 
     class GL45Texture : public GLTexture {
         using Parent = GLTexture;

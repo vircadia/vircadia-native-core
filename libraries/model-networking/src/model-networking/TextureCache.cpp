@@ -421,7 +421,7 @@ void NetworkTexture::startRequestForNextMipLevel() {
 
         _ktxResourceState = PENDING_MIP_REQUEST;
 
-        init();
+        init(false);
         float priority = -(float)_originalKtxDescriptor->header.numberOfMipmapLevels + (float)_lowestKnownPopulatedMip;
         setLoadPriority(this, priority);
         _url.setFragment(QString::number(_lowestKnownPopulatedMip - 1));
@@ -472,12 +472,20 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 void NetworkTexture::ktxHeaderRequestFinished() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA);
 
+    if (!_ktxHeaderRequest) {
+        return;
+    }
+
     _ktxHeaderRequestFinished = true;
     maybeHandleFinishedInitialLoad();
 }
 
 void NetworkTexture::ktxMipRequestFinished() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA || _ktxResourceState == REQUESTING_MIP);
+
+    if (!_ktxMipRequest) {
+        return;
+    }
 
     if (_ktxResourceState == LOADING_INITIAL_DATA) {
         _ktxHighMipRequestFinished = true;
@@ -682,6 +690,27 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, _maxNumPixels));
 }
 
+void NetworkTexture::refresh() {
+    if ((_ktxHeaderRequest || _ktxMipRequest) && !_loaded && !_failedToLoad) {
+        return;
+    }
+    if (_ktxHeaderRequest || _ktxMipRequest) {
+        if (_ktxHeaderRequest) {
+            _ktxHeaderRequest->disconnect(this);
+            _ktxHeaderRequest->deleteLater();
+            _ktxHeaderRequest = nullptr;
+        }
+        if (_ktxMipRequest) {
+            _ktxMipRequest->disconnect(this);
+            _ktxMipRequest->deleteLater();
+            _ktxMipRequest = nullptr;
+        }
+        TextureCache::requestCompleted(_self);
+    }
+
+    Resource::refresh();
+}
+
 ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url, const QByteArray& data, int maxNumPixels) :
     _resource(resource),
     _url(url),
@@ -763,6 +792,8 @@ void ImageReader::read() {
                 texture = gpu::Texture::unserialize(ktxFile->getFilepath());
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
+                } else {
+                    qCWarning(modelnetworking) << "Invalid cached KTX " << _url << " under hash " << hash.c_str() << ", recreating...";
                 }
             }
         }
@@ -806,7 +837,7 @@ void ImageReader::read() {
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
             size_t length = memKtx->_storage->size();
             auto& ktxCache = textureCache->_ktxCache;
-            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length));
+            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length)); // 
             if (!networkTexture->_file) {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {
