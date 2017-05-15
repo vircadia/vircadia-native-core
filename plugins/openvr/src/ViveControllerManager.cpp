@@ -169,7 +169,6 @@ ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : contro
     _configStringMap[Config::Feet] =  QString("Feet");
     _configStringMap[Config::FeetAndHips] =  QString("FeetAndHips");
     _configStringMap[Config::FeetHipsAndChest] =  QString("FeetHipsAndChest");
-    _lowVelocityFilter = false;
 }
 
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -660,11 +659,6 @@ void ViveControllerManager::InputDevice::createPreferences() {
         preference->setItems(list);
         preferences->addPreference(preference);
 
-    }
-
-    {
-        auto getter = [this]()->float { return _translationFilterConstant; };
-        auto setter = [this](const float& value) { _translationFilterConstant; };
     }
         
 }

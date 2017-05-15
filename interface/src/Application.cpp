@@ -3622,10 +3622,6 @@ void Application::idle(float nsecsElapsed) {
     _overlayConductor.update(secondsSinceLastUpdate);
 }
 
-void Application::setLowVelocityFilter(bool lowVelocityFilter) {
-    controller::InputDevice::setLowVelocityFilter(lowVelocityFilter);
-}
-
 ivec2 Application::getMouse() const {
     return getApplicationCompositor().getReticlePosition();
 }
