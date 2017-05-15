@@ -14,10 +14,10 @@
 
 #include <QSet>
 
+#include <avatars-renderer/Avatar.h>
 #include <ObjectMotionState.h>
 #include <BulletUtil.h>
 
-#include "Avatar.h"
 
 class AvatarMotionState : public ObjectMotionState {
 public:
