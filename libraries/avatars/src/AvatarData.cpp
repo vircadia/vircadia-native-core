@@ -1538,7 +1538,14 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
 
     // use the timestamp from this identity, since we want to honor the updated times in "server clock"
     // this will overwrite any changes we made locally to this AvatarData's _identityUpdatedAt
-    _identityUpdatedAt = identity.updatedAt - clockSkew;
+    // Additionally, ensure that the timestamp that we try to record isn't negative, as
+    // "_identityUpdatedAt" is an *unsigned* 64-bit integer. Furthermore, negative timestamps
+    // wouldn't make sense.
+    if (identity.updatedAt - clockSkew >= 0) {
+        _identityUpdatedAt = identity.updatedAt - clockSkew;
+    } else {
+        _identityUpdatedAt = 0;
+    }
 }
 
 QByteArray AvatarData::identityByteArray() const {
