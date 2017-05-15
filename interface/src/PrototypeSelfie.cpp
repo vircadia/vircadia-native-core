@@ -28,21 +28,29 @@ void SelfieRenderTaskConfig::resetSize(int width, int height) {
 }
 
 class BeginSelfieFrame {
+    glm::vec3 _position{};
+    glm::quat _orientation{};
 public:
     using Config = BeginSelfieFrameConfig;
-    using JobModel = render::Job::Model<BeginSelfieFrame>;
+    using JobModel = render::Job::Model<BeginSelfieFrame, Config>;
+
+    void configure(const Config& config) {
+        qDebug() << "FIXME pos" << config.position << "orient" << config.orientation;
+        _position = config.position;
+        _orientation = config.orientation;
+    }
 
     void run(const render::RenderContextPointer& renderContext) {
         auto args = renderContext->args;
         auto textureCache = DependencyManager::get<TextureCache>();
         auto destFramebuffer = textureCache->getSelfieFramebuffer();
+        // Why don't we have to reset these values? Is it because we happen to be last in the pipeline (which would be a bug waiting to happen)?
         args->_blitFramebuffer = destFramebuffer;
         args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
 
         auto srcViewFrustum = args->getViewFrustum();
-        auto srcPos = srcViewFrustum.getPosition();
-        srcPos.x += 2.0f;
-        srcViewFrustum.setPosition(srcPos);
+        srcViewFrustum.setPosition(_position);
+        srcViewFrustum.setOrientation(_orientation);
         args->pushViewFrustum(srcViewFrustum);
     }
 };
