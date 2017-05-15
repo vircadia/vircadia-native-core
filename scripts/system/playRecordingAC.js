@@ -286,6 +286,11 @@
         function play(user, recording, position, orientation) {
             var errorMessage;
 
+            if (autoPlayTimer) {  // Cancel autoplay.
+                Script.clearTimeout(autoPlayTimer);
+                autoPlayTimer = null;
+            }
+
             userID = user;
 
             if (Entity.create(recording, position, orientation)) {
@@ -297,6 +302,8 @@
                 errorMessage = "Could not persist recording " + recording.slice(4);  // Remove leading "atp:".
                 log(errorMessage);
                 error(errorMessage);
+
+                autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Resume autoplay later.
             }
         }
 
