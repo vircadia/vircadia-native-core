@@ -44,14 +44,17 @@ glm::quat MyHead::getCameraOrientation() const {
 void MyHead::simulate(float deltaTime) {
     auto player = DependencyManager::get<recording::Deck>();
     // Only use face trackers when not playing back a recording.
-    if (!player->isPlaying()) {
+    if (player->isPlaying()) {
+        Parent::simulate(deltaTime);
+    } else {
+        computeAudioLoudness(deltaTime);
+
         FaceTracker* faceTracker = qApp->getActiveFaceTracker();
-        _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
+        _isFaceTrackerConnected = faceTracker && !faceTracker->isMuted();
         if (_isFaceTrackerConnected) {
             _transientBlendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
 
             if (typeid(*faceTracker) == typeid(DdeFaceTracker)) {
-
                 if (Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
                     calculateMouthShapes(deltaTime);
 
@@ -68,9 +71,19 @@ void MyHead::simulate(float deltaTime) {
                 }
                 applyEyelidOffset(getFinalOrientationInWorldFrame());
             }
-        }
+        } else {
+            computeFaceMovement(deltaTime);
+		}
+
         auto eyeTracker = DependencyManager::get<EyeTracker>();
-        _isEyeTrackerConnected = eyeTracker->isTracking();
+        _isEyeTrackerConnected = eyeTracker && eyeTracker->isTracking();
+        if (_isEyeTrackerConnected) {
+            // TODO? figure out where EyeTracker data harvested. Move it here?
+            _saccade = glm::vec3();
+        } else {
+            computeEyeMovement(deltaTime);
+        }
+
     }
-    Parent::simulate(deltaTime);
+    computeEyePosition();
 }

@@ -210,7 +210,8 @@ namespace ktx {
             if (currentDataSize + sizeof(uint32_t) < allocatedImagesDataSize) {
                 uint32_t imageOffset = currentPtr - destBytes;
                 size_t imageSize = srcImages[l]._imageSize;
-                *(reinterpret_cast<uint32_t*> (currentPtr)) = (uint32_t) imageSize;
+                size_t imageFaceSize = srcImages[l]._faceSize;
+                *(reinterpret_cast<uint32_t*> (currentPtr)) = (uint32_t)imageFaceSize; // the imageSize written in the ktx is the FACE size
                 currentPtr += sizeof(uint32_t);
                 currentDataSize += sizeof(uint32_t);
 

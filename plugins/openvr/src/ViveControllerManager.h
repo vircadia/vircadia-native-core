@@ -25,6 +25,7 @@
 #include <plugins/InputPlugin.h>
 #include <RenderArgs.h>
 #include <render/Scene.h>
+#include "OpenVrHelpers.h"
 
 namespace vr {
     class IVRSystem;
@@ -50,7 +51,7 @@ public:
 private:
     class InputDevice : public controller::InputDevice {
     public:
-        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) { createPreferences(); }
+        InputDevice(vr::IVRSystem*& system);
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;
@@ -76,6 +77,7 @@ private:
         void handleHeadPoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat, const vec3& linearVelocity,
                                  const vec3& angularVelocity);
         void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
+        void printDeviceTrackingResultChange(uint32_t deviceIndex);
 
         class FilteredStick {
         public:
@@ -109,6 +111,8 @@ private:
         std::vector<std::pair<uint32_t, controller::Pose>> _validTrackedObjects;
         std::map<uint32_t, glm::mat4> _pucksOffset;
         std::map<int, uint32_t> _jointToPuckMap;
+        std::map<Config, QString> _configStringMap;
+        PoseData _lastSimPoseData;
         // perform an action when the InputDevice mutex is acquired.
         using Locker = std::unique_lock<std::recursive_mutex>;
         template <typename F>
@@ -126,7 +130,7 @@ private:
         bool _timeTilCalibrationSet { false };
         mutable std::recursive_mutex _lock;
 
-        QString configToString();
+        QString configToString(Config config);
         void setConfigFromString(const QString& value);
         void loadSettings();
         void saveSettings() const;
