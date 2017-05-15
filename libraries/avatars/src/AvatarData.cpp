@@ -1541,7 +1541,7 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
     // Additionally, ensure that the timestamp that we try to record isn't negative, as
     // "_identityUpdatedAt" is an *unsigned* 64-bit integer. Furthermore, negative timestamps
     // wouldn't make sense.
-    if (identity.updatedAt - clockSkew >= 0) {
+    if (identity.updatedAt > clockSkew) {
         _identityUpdatedAt = identity.updatedAt - clockSkew;
     } else {
         _identityUpdatedAt = 0;
