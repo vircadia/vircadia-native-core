@@ -445,7 +445,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasFaceTrackerInfo) {
         auto startSection = destinationBuffer;
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
-        auto blendshapeCoefficients = _headData->getSummedBlendshapeCoefficients();
+        const auto& blendshapeCoefficients = _headData->getSummedBlendshapeCoefficients();
 
         faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
         faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
@@ -1538,7 +1538,14 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
 
     // use the timestamp from this identity, since we want to honor the updated times in "server clock"
     // this will overwrite any changes we made locally to this AvatarData's _identityUpdatedAt
-    _identityUpdatedAt = identity.updatedAt - clockSkew;
+    // Additionally, ensure that the timestamp that we try to record isn't negative, as
+    // "_identityUpdatedAt" is an *unsigned* 64-bit integer. Furthermore, negative timestamps
+    // wouldn't make sense.
+    if (identity.updatedAt > clockSkew) {
+        _identityUpdatedAt = identity.updatedAt - clockSkew;
+    } else {
+        _identityUpdatedAt = 0;
+    }
 }
 
 QByteArray AvatarData::identityByteArray() const {

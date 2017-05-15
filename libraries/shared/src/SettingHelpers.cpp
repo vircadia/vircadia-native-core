@@ -126,7 +126,16 @@ QJsonDocument variantMapToJsonDocument(const QSettings::SettingsMap& map) {
         }
 
         switch (variantType) {
-            case QVariant::Map:
+            case QVariant::Map: {
+                auto varmap = variant.toMap();
+                for (auto mapit = varmap.cbegin(); mapit != varmap.cend(); ++mapit) {
+                    auto& mapkey = mapit.key();
+                    auto& mapvariant = mapit.value();
+                    object.insert(key + "/" + mapkey, QJsonValue::fromVariant(mapvariant));
+                }
+                break;
+            }
+
             case QVariant::List:
             case QVariant::Hash: {
                 qCritical() << "Unsupported variant type" << variant.typeName();

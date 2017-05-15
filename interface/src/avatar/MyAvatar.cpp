@@ -291,6 +291,11 @@ QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
 }
 
 void MyAvatar::resetSensorsAndBody() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "resetSensorsAndBody");
+        return;
+    }
+
     qApp->getActiveDisplayPlugin()->resetSensors();
     reset(true, false, true);
 }
