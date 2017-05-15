@@ -205,6 +205,8 @@ public:
     virtual void dumpTree() override;
     virtual void pruneTree() override;
 
+    static QByteArray remapActionDataIDs(QByteArray actionData, QHash<EntityItemID, EntityItemID>& map);
+
     QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
                                        float x, float y, float z);
 

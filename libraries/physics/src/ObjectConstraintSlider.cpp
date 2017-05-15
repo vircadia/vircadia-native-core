@@ -17,12 +17,12 @@
 
 
 const uint16_t ObjectConstraintSlider::constraintVersion = 1;
-
+const glm::vec3 DEFAULT_SLIDER_AXIS(1.0f, 0.0f, 0.0f);
 
 ObjectConstraintSlider::ObjectConstraintSlider(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectConstraint(DYNAMIC_TYPE_SLIDER, id, ownerEntity),
-    _pointInA(glm::vec3(0.0f)),
-    _axisInA(glm::vec3(0.0f))
+    _axisInA(DEFAULT_SLIDER_AXIS),
+    _axisInB(DEFAULT_SLIDER_AXIS)
 {
 }
 
@@ -34,7 +34,7 @@ QList<btRigidBody*> ObjectConstraintSlider::getRigidBodies() {
     result += getRigidBody();
     QUuid otherEntityID;
     withReadLock([&]{
-        otherEntityID = _otherEntityID;
+        otherEntityID = _otherID;
     });
     if (!otherEntityID.isNull()) {
         result += getOtherRigidBody(otherEntityID);
@@ -77,7 +77,7 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
         constraint = static_cast<btSliderConstraint*>(_constraint);
         pointInA = _pointInA;
         axisInA = _axisInA;
-        otherEntityID = _otherEntityID;
+        otherEntityID = _otherID;
         pointInB = _pointInB;
         axisInB = _axisInB;
     });
@@ -91,11 +91,25 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
         return nullptr;
     }
 
+    if (glm::length(axisInA) < FLT_EPSILON) {
+        qCWarning(physics) << "slider axis cannot be a zero vector";
+        axisInA = DEFAULT_SLIDER_AXIS;
+    } else {
+        axisInA = glm::normalize(axisInA);
+    }
+
     if (!otherEntityID.isNull()) {
         // This slider is between two entities... find the other rigid body.
 
-        glm::quat rotA = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInA));
-        glm::quat rotB = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInB));
+        if (glm::length(axisInB) < FLT_EPSILON) {
+            qCWarning(physics) << "slider axis cannot be a zero vector";
+            axisInB = DEFAULT_SLIDER_AXIS;
+        } else {
+            axisInB = glm::normalize(axisInB);
+        }
+
+        glm::quat rotA = glm::rotation(DEFAULT_SLIDER_AXIS, axisInA);
+        glm::quat rotB = glm::rotation(DEFAULT_SLIDER_AXIS, axisInB);
 
         btTransform frameInA(glmToBullet(rotA), glmToBullet(pointInA));
         btTransform frameInB(glmToBullet(rotB), glmToBullet(pointInB));
@@ -109,7 +123,7 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
     } else {
         // This slider is between an entity and the world-frame.
 
-        glm::quat rot = glm::rotation(glm::vec3(1.0f, 0.0f, 0.0f), glm::normalize(axisInA));
+        glm::quat rot = glm::rotation(DEFAULT_SLIDER_AXIS, axisInA);
 
         btTransform frameInA(glmToBullet(rot), glmToBullet(pointInA));
 
@@ -160,7 +174,7 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
         otherEntityID = QUuid(EntityDynamicInterface::extractStringArgument("slider constraint",
                                                                             arguments, "otherEntityID", ok, false));
         if (!ok) {
-            otherEntityID = _otherEntityID;
+            otherEntityID = _otherID;
         }
 
         ok = true;
@@ -202,7 +216,7 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
         if (somethingChanged ||
             pointInA != _pointInA ||
             axisInA != _axisInA ||
-            otherEntityID != _otherEntityID ||
+            otherEntityID != _otherID ||
             pointInB != _pointInB ||
             axisInB != _axisInB ||
             linearLow != _linearLow ||
@@ -218,7 +232,7 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
         withWriteLock([&] {
             _pointInA = pointInA;
             _axisInA = axisInA;
-            _otherEntityID = otherEntityID;
+            _otherID = otherEntityID;
             _pointInB = pointInB;
             _axisInB = axisInB;
             _linearLow = linearLow;
@@ -244,18 +258,21 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintSlider::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
+        arguments["point"] = glmToQMap(_pointInA);
+        arguments["axis"] = glmToQMap(_axisInA);
+        arguments["otherEntityID"] = _otherID;
+        arguments["otherPoint"] = glmToQMap(_pointInB);
+        arguments["otherAxis"] = glmToQMap(_axisInB);
+        arguments["linearLow"] = _linearLow;
+        arguments["linearHigh"] = _linearHigh;
+        arguments["angularLow"] = _angularLow;
+        arguments["angularHigh"] = _angularHigh;
         if (_constraint) {
-            arguments["point"] = glmToQMap(_pointInA);
-            arguments["axis"] = glmToQMap(_axisInA);
-            arguments["otherEntityID"] = _otherEntityID;
-            arguments["otherPoint"] = glmToQMap(_pointInB);
-            arguments["otherAxis"] = glmToQMap(_axisInB);
-            arguments["linearLow"] = _linearLow;
-            arguments["linearHigh"] = _linearHigh;
-            arguments["angularLow"] = _angularLow;
-            arguments["angularHigh"] = _angularHigh;
             arguments["linearPosition"] = static_cast<btSliderConstraint*>(_constraint)->getLinearPos();
             arguments["angularPosition"] = static_cast<btSliderConstraint*>(_constraint)->getAngularPos();
+        } else {
+            arguments["linearPosition"] = 0.0f;
+            arguments["angularPosition"] = 0.0f;
         }
     });
     return arguments;
@@ -275,7 +292,7 @@ QByteArray ObjectConstraintSlider::serialize() const {
 
         dataStream << _pointInA;
         dataStream << _axisInA;
-        dataStream << _otherEntityID;
+        dataStream << _otherID;
         dataStream << _pointInB;
         dataStream << _axisInB;
         dataStream << _linearLow;
@@ -313,7 +330,7 @@ void ObjectConstraintSlider::deserialize(QByteArray serializedArguments) {
 
         dataStream >> _pointInA;
         dataStream >> _axisInA;
-        dataStream >> _otherEntityID;
+        dataStream >> _otherID;
         dataStream >> _pointInB;
         dataStream >> _axisInB;
         dataStream >> _linearLow;

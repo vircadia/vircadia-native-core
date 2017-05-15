@@ -523,6 +523,8 @@ Menu::Menu() {
         avatar.get(), SLOT(setEnableDebugDrawSensorToWorldMatrix(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderIKTargets, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawIKTargets(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderIKConstraints, 0, false,
+        avatar.get(), SLOT(setEnableDebugDrawIKConstraints(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ActionMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
