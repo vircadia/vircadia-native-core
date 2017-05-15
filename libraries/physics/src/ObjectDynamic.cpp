@@ -24,6 +24,27 @@ ObjectDynamic::ObjectDynamic(EntityDynamicType type, const QUuid& id, EntityItem
 ObjectDynamic::~ObjectDynamic() {
 }
 
+void ObjectDynamic::remapIDs(QHash<EntityItemID, EntityItemID>& map) {
+    withWriteLock([&]{
+        if (!_id.isNull()) {
+            // just force our ID to something new -- action IDs don't go into the map
+            _id = QUuid::createUuid();
+        }
+
+        if (!_otherID.isNull()) {
+            QHash<EntityItemID, EntityItemID>::iterator iter = map.find(_otherID);
+            if (iter == map.end()) {
+                // not found, add it
+                QUuid oldOtherID = _otherID;
+                _otherID = QUuid::createUuid();
+                map.insert(oldOtherID, _otherID);
+            } else {
+                _otherID = iter.value();
+            }
+        }
+    });
+}
+
 qint64 ObjectDynamic::getEntityServerClockSkew() const {
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -273,4 +294,39 @@ QList<btRigidBody*> ObjectDynamic::getRigidBodies() {
     QList<btRigidBody*> result;
     result += getRigidBody();
     return result;
+}
+
+SpatiallyNestablePointer ObjectDynamic::getOther() {
+    SpatiallyNestablePointer other;
+    withWriteLock([&]{
+        if (_otherID == QUuid()) {
+            // no other
+            return;
+        }
+        other = _other.lock();
+        if (other && other->getID() == _otherID) {
+            // other is already up-to-date
+            return;
+        }
+        if (other) {
+            // we have a pointer to other, but it's wrong
+            other.reset();
+            _other.reset();
+        }
+        // we have an other-id but no pointer to other cached
+        QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+        if (!parentFinder) {
+            return;
+        }
+        EntityItemPointer ownerEntity = _ownerEntity.lock();
+        if (!ownerEntity) {
+            return;
+        }
+        bool success;
+        _other = parentFinder->find(_otherID, success, ownerEntity->getParentTree());
+        if (success) {
+            other = _other.lock();
+        }
+    });
+    return other;
 }

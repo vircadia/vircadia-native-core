@@ -42,41 +42,6 @@ ObjectActionSpring::~ObjectActionSpring() {
     #endif
 }
 
-SpatiallyNestablePointer ObjectActionSpring::getOther() {
-    SpatiallyNestablePointer other;
-    withWriteLock([&]{
-        if (_otherID == QUuid()) {
-            // no other
-            return;
-        }
-        other = _other.lock();
-        if (other && other->getID() == _otherID) {
-            // other is already up-to-date
-            return;
-        }
-        if (other) {
-            // we have a pointer to other, but it's wrong
-            other.reset();
-            _other.reset();
-        }
-        // we have an other-id but no pointer to other cached
-        QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
-        if (!parentFinder) {
-            return;
-        }
-        EntityItemPointer ownerEntity = _ownerEntity.lock();
-        if (!ownerEntity) {
-            return;
-        }
-        bool success;
-        _other = parentFinder->find(_otherID, success, ownerEntity->getParentTree());
-        if (success) {
-            other = _other.lock();
-        }
-    });
-    return other;
-}
-
 bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
                                    glm::vec3& linearVelocity, glm::vec3& angularVelocity,
                                    float& linearTimeScale, float& angularTimeScale) {

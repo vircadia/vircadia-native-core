@@ -49,6 +49,8 @@
                         "id": "ik",
                         "type": "inverseKinematics",
                         "data": {
+                            "solutionSource": "relaxToUnderPoses",
+                            "solutionSourceVar": "solutionSource",
                             "targets": [
                                 {
                                     "jointName": "Hips",

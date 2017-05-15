@@ -25,6 +25,8 @@
 #include "RecurseOctreeToMapOperator.h"
 #include "LogHandler.h"
 #include "EntityEditFilters.h"
+#include "EntityDynamicFactoryInterface.h"
+
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
@@ -1527,6 +1529,48 @@ void EntityTree::pruneTree() {
     recurseTreeWithOperator(&theOperator);
 }
 
+
+QByteArray EntityTree::remapActionDataIDs(QByteArray actionData, QHash<EntityItemID, EntityItemID>& map) {
+    if (actionData.isEmpty()) {
+        return actionData;
+    }
+
+    QDataStream serializedActionsStream(actionData);
+    QVector<QByteArray> serializedActions;
+    serializedActionsStream >> serializedActions;
+
+    auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
+
+    QHash<QUuid, EntityDynamicPointer> remappedActions;
+    foreach(QByteArray serializedAction, serializedActions) {
+        QDataStream serializedActionStream(serializedAction);
+        EntityDynamicType actionType;
+        QUuid oldActionID;
+        serializedActionStream >> actionType;
+        serializedActionStream >> oldActionID;
+        EntityDynamicPointer action = actionFactory->factoryBA(nullptr, serializedAction);
+        if (action) {
+            action->remapIDs(map);
+            remappedActions[action->getID()] = action;
+        }
+    }
+
+    QVector<QByteArray> remappedSerializedActions;
+
+    QHash<QUuid, EntityDynamicPointer>::const_iterator i = remappedActions.begin();
+    while (i != remappedActions.end()) {
+        EntityDynamicPointer action = i.value();
+        QByteArray bytesForAction = action->serialize();
+        remappedSerializedActions << bytesForAction;
+        i++;
+    }
+
+    QByteArray result;
+    QDataStream remappedSerializedActionsStream(&result, QIODevice::WriteOnly);
+    remappedSerializedActionsStream << remappedSerializedActions;
+    return result;
+}
+
 QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
                                                float x, float y, float z) {
     SendEntitiesOperationArgs args;
@@ -1543,71 +1587,67 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
     });
     packetSender->releaseQueuedMessages();
 
+    // the values from map are used as the list of successfully "sent" entities.  If some didn't actually make it,
+    // pull them out.  Bogus entries could happen if part of the imported data makes some reference to an entity
+    // that isn't in the data being imported.
+    QHash<EntityItemID, EntityItemID>::iterator i = map.begin();
+    while (i != map.end()) {
+        EntityItemID newID = i.value();
+        if (localTree->findEntityByEntityItemID(newID)) {
+            i++;
+        } else {
+            i = map.erase(i);
+        }
+    }
+
     return map.values().toVector();
 }
 
 bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extraData) {
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-    std::function<const EntityItemID(EntityItemPointer&)> getMapped = [&](EntityItemPointer& item) -> const EntityItemID {
-        EntityItemID oldID = item->getEntityItemID();
-        if (args->map->contains(oldID)) { // Already been handled (e.g., as a parent of somebody that we've processed).
-            return args->map->value(oldID);
-        }
-        EntityItemID newID = QUuid::createUuid();
-        args->map->insert(oldID, newID);
 
+    auto getMapped = [&args](EntityItemID oldID) {
+        if (oldID.isNull()) {
+            return EntityItemID();
+        }
+
+        QHash<EntityItemID, EntityItemID>::iterator iter = args->map->find(oldID);
+        if (iter == args->map->end()) {
+            EntityItemID newID = QUuid::createUuid();
+            args->map->insert(oldID, newID);
+            return newID;
+        }
+        return iter.value();
+    };
+
+    entityTreeElement->forEachEntity([&args, &getMapped, &element](EntityItemPointer item) {
+        EntityItemID oldID = item->getEntityItemID();
+        EntityItemID newID = getMapped(oldID);
         EntityItemProperties properties = item->getProperties();
+
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
             properties.setPosition(properties.getPosition() + args->root);
         } else {
             EntityItemPointer parentEntity = args->ourTree->findEntityByEntityItemID(oldParentID);
             if (parentEntity) { // map the parent
-                // Warning: (non-tail) recursion of getMapped could blow the call stack if the parent hierarchy is VERY deep.
-                properties.setParentID(getMapped(parentEntity));
+                properties.setParentID(getMapped(parentEntity->getID()));
                 // But do not add root offset in this case.
             } else { // Should not happen, but let's try to be helpful...
                 item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
             }
         }
 
-        if (!properties.getXNNeighborID().isInvalidID()) {
-            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getXNNeighborID());
-            if (neighborEntity) {
-                properties.setXNNeighborID(getMapped(neighborEntity));
-            }
-        }
-        if (!properties.getXPNeighborID().isInvalidID()) {
-            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getXPNeighborID());
-            if (neighborEntity) {
-                properties.setXPNeighborID(getMapped(neighborEntity));
-            }
-        }
-        if (!properties.getYNNeighborID().isInvalidID()) {
-            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getYNNeighborID());
-            if (neighborEntity) {
-                properties.setYNNeighborID(getMapped(neighborEntity));
-            }
-        }
-        if (!properties.getYPNeighborID().isInvalidID()) {
-            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getYPNeighborID());
-            if (neighborEntity) {
-                properties.setYPNeighborID(getMapped(neighborEntity));
-            }
-        }
-        if (!properties.getZNNeighborID().isInvalidID()) {
-            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getZNNeighborID());
-            if (neighborEntity) {
-                properties.setZNNeighborID(getMapped(neighborEntity));
-            }
-        }
-        if (!properties.getZPNeighborID().isInvalidID()) {
-            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getZPNeighborID());
-            if (neighborEntity) {
-                properties.setZPNeighborID(getMapped(neighborEntity));
-            }
-        }
+        properties.setXNNeighborID(getMapped(properties.getXNNeighborID()));
+        properties.setXPNeighborID(getMapped(properties.getXPNeighborID()));
+        properties.setYNNeighborID(getMapped(properties.getYNNeighborID()));
+        properties.setYPNeighborID(getMapped(properties.getYPNeighborID()));
+        properties.setZNNeighborID(getMapped(properties.getZNNeighborID()));
+        properties.setZPNeighborID(getMapped(properties.getZPNeighborID()));
+
+        QByteArray actionData = properties.getActionData();
+        properties.setActionData(remapActionDataIDs(actionData, *args->map));
 
         // set creation time to "now" for imported entities
         properties.setCreated(usecTimestampNow());
@@ -1623,13 +1663,13 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
         if (args->otherTree) {
             args->otherTree->withWriteLock([&] {
-                args->otherTree->addEntity(newID, properties);
+                EntityItemPointer entity = args->otherTree->addEntity(newID, properties);
+                entity->deserializeActions();
             });
         }
         return newID;
-    };
+    });
 
-    entityTreeElement->forEachEntity(getMapped);
     return true;
 }
 

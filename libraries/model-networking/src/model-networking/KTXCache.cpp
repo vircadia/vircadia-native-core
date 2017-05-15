@@ -22,7 +22,7 @@ KTXCache::KTXCache(const std::string& dir, const std::string& ext) :
 }
 
 KTXFilePointer KTXCache::writeFile(const char* data, Metadata&& metadata) {
-    FilePointer file = FileCache::writeFile(data, std::move(metadata));
+    FilePointer file = FileCache::writeFile(data, std::move(metadata), true);
     return std::static_pointer_cast<KTXFile>(file);
 }
 

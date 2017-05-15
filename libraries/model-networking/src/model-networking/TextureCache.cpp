@@ -792,6 +792,8 @@ void ImageReader::read() {
                 texture = gpu::Texture::unserialize(ktxFile->getFilepath());
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
+                } else {
+                    qCWarning(modelnetworking) << "Invalid cached KTX " << _url << " under hash " << hash.c_str() << ", recreating...";
                 }
             }
         }
@@ -835,7 +837,7 @@ void ImageReader::read() {
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
             size_t length = memKtx->_storage->size();
             auto& ktxCache = textureCache->_ktxCache;
-            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length));
+            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length)); // 
             if (!networkTexture->_file) {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {
