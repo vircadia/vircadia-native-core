@@ -1052,7 +1052,6 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
 void Model::computeMeshPartLocalBounds() {
     for (auto& part : _modelMeshRenderItems) {
-        assert(part->_meshIndex < _modelMeshRenderItems.size());
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
         part->computeAdjustedLocalBound(state.clusterMatrices);
     }
