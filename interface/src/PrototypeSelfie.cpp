@@ -35,7 +35,7 @@ public:
     using JobModel = render::Job::Model<BeginSelfieFrame, Config>;
 
     void configure(const Config& config) {
-        qDebug() << "FIXME pos" << config.position << "orient" << config.orientation;
+        //qDebug() << "FIXME pos" << config.position << "orient" << config.orientation;
         _position = config.position;
         _orientation = config.orientation;
     }
@@ -45,12 +45,15 @@ public:
         auto textureCache = DependencyManager::get<TextureCache>();
         auto destFramebuffer = textureCache->getSelfieFramebuffer();
         // Why don't we have to reset these values? Is it because we happen to be last in the pipeline (which would be a bug waiting to happen)?
+        // Hmm, maybe we do have to! In hmd we're getting stereo on our texture!
         args->_blitFramebuffer = destFramebuffer;
         args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
 
         auto srcViewFrustum = args->getViewFrustum();
         srcViewFrustum.setPosition(_position);
         srcViewFrustum.setOrientation(_orientation);
+        //srcViewFrustum.calculate(); // do we need this? I don't think so
+        //qDebug() << "FIXME pos" << _position << "orient" << _orientation << "frust pos" << srcViewFrustum.getPosition() << "orient" << srcViewFrustum.getOrientation() << "direct" << srcViewFrustum.getDirection();
         args->pushViewFrustum(srcViewFrustum);
     }
 };

@@ -25,6 +25,7 @@ class BeginSelfieFrameConfig : public render::Task::Config {
 public:
     glm::vec3 position{};
     glm::quat orientation{};
+    BeginSelfieFrameConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
 };
