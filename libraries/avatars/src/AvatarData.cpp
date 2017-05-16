@@ -2052,11 +2052,13 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             setSkeletonModelURL(bodyModelURL);
         }
     }
+
+    QString newDisplayName = "";
     if (json.contains(JSON_AVATAR_DISPLAY_NAME)) {
-        auto newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
-        if (newDisplayName != getDisplayName()) {
-            setDisplayName(newDisplayName);
-        }
+        newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
+    }
+    if (newDisplayName != getDisplayName()) {
+        setDisplayName(newDisplayName);
     }
 
     auto currentBasis = getRecordingBasis();
