@@ -2086,14 +2086,16 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         setTargetScale((float)json[JSON_AVATAR_SCALE].toDouble());
     }
 
+    QVector<AttachmentData> attachments;
     if (json.contains(JSON_AVATAR_ATTACHMENTS) && json[JSON_AVATAR_ATTACHMENTS].isArray()) {
         QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
-        QVector<AttachmentData> attachments;
         for (auto attachmentJson : attachmentsJson) {
             AttachmentData attachment;
             attachment.fromJson(attachmentJson.toObject());
             attachments.push_back(attachment);
         }
+    }
+    if (attachments != getAttachmentData()) {
         setAttachmentData(attachments);
     }
 
