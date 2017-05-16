@@ -286,6 +286,7 @@
             recordingFilename = "",
             autoPlayTimer = null,
 
+            autoPlay,
             playRecording;
 
         function error(message) {
@@ -323,7 +324,7 @@
             }
         }
 
-        function autoPlay() {
+        autoPlay = function () {
             var recording,
                 AUTOPLAY_SEARCH_DELTA = 1000;
 
@@ -346,7 +347,7 @@
                     autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL);  // Try again soon.
                 }
             }, Math.random() * AUTOPLAY_SEARCH_DELTA);
-        }
+        };
 
         playRecording = function (recording, position, orientation, isManual) {
             Recording.loadRecording(recording, function (success) {
