@@ -38,14 +38,14 @@
 #include "AudioMixer.h"
 
 static const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
-static const int DEFAULT_NUM_STATIC_JITTER_FRAMES = -1;
+static const int DISABLE_STATIC_JITTER_FRAMES = -1;
 static const float DEFAULT_NOISE_MUTING_THRESHOLD = 1.0f;
 static const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 static const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 static const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
 static const QString AUDIO_THREADING_GROUP_KEY = "audio_threading";
 
-int AudioMixer::_numStaticJitterFrames{ DEFAULT_NUM_STATIC_JITTER_FRAMES };
+int AudioMixer::_numStaticJitterFrames{ DISABLE_STATIC_JITTER_FRAMES };
 float AudioMixer::_noiseMutingThreshold{ DEFAULT_NOISE_MUTING_THRESHOLD };
 float AudioMixer::_attenuationPerDoublingInDistance{ DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE };
 std::map<QString, std::shared_ptr<CodecPlugin>> AudioMixer::_availableCodecs{ };
@@ -238,7 +238,7 @@ void AudioMixer::sendStatsPacket() {
     }
 
     // general stats
-    statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == DEFAULT_NUM_STATIC_JITTER_FRAMES;
+    statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == DISABLE_STATIC_JITTER_FRAMES;
 
     statsObject["threads"] = _slavePool.numThreads();
 
@@ -497,7 +497,7 @@ int AudioMixer::prepareFrame(const SharedNodePointer& node, unsigned int frame) 
 }
 
 void AudioMixer::clearDomainSettings() {
-    _numStaticJitterFrames = DEFAULT_NUM_STATIC_JITTER_FRAMES;
+    _numStaticJitterFrames = DISABLE_STATIC_JITTER_FRAMES;
     _attenuationPerDoublingInDistance = DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE;
     _noiseMutingThreshold = DEFAULT_NOISE_MUTING_THRESHOLD;
     _codecPreferenceOrder.clear();
@@ -541,7 +541,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
             qDebug() << "Static desired jitter buffer frames:" << _numStaticJitterFrames;
         } else {
             qDebug() << "Disabling dynamic jitter buffers.";
-            _numStaticJitterFrames = DEFAULT_NUM_STATIC_JITTER_FRAMES;
+            _numStaticJitterFrames = DISABLE_STATIC_JITTER_FRAMES;
         }
 
         // check for deprecated audio settings
