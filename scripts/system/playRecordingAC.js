@@ -48,9 +48,17 @@
             searchState = SEARCH_IDLE,
             otherPlayersPlaying,
             otherPlayersPlayingCounts,
-            pauseCount;
+            pauseCount,
+            isDestroyLater = false,
+
+            destroy;
 
         function onUpdateTimestamp() {
+            if (isDestroyLater) {
+                destroy();
+                return;
+            }
+
             userData.timestamp = Date.now();
             Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
             EntityViewer.queryOctree();  // Keep up to date ready for find().
@@ -229,7 +237,7 @@
             return result;
         }
 
-        function destroy() {
+        destroy = function () {
             // Delete current persistence entity.
             if (entityID !== null) {  // Just in case.
                 Entities.deleteEntity(entityID);
@@ -240,6 +248,11 @@
                 Script.clearInterval(updateTimestampTimer);
                 updateTimestampTimer = null;
             }
+        };
+
+        function destroyLater() {
+            // Schedules a call to destroy() when timer threading suits.
+            isDestroyLater = true;
         }
 
         function setUp() {
@@ -260,6 +273,7 @@
             create: create,
             find: find,
             destroy: destroy,
+            destroyLater: destroyLater,
             setUp: setUp,
             tearDown: tearDown
         };
@@ -297,7 +311,7 @@
                 log("Play recording " + recording);
                 isPlayingRecording = true;  // Immediate feedback.
                 recordingFilename = recording;
-                playRecording(recordingFilename, position, orientation);
+                playRecording(recordingFilename, position, orientation, true);
             } else {
                 errorMessage = "Could not persist recording " + recording.slice(4);  // Remove leading "atp:".
                 log(errorMessage);
@@ -317,14 +331,17 @@
                 if (recording) {
                     log("Play persisted recording " + recording.recording);
                     userID = null;
-                    playRecording(recording.recording, recording.position, recording.orientation);
+                    autoPlayTimer = null;
+                    isPlayingRecording = true;  // Immediate feedback.
+                    recordingFilename = recording.recording;
+                    playRecording(recording.recording, recording.position, recording.orientation, false);
                 } else {
                     autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL);  // Try again soon.
                 }
             }, Math.random() * AUTOPLAY_SEARCH_DELTA);
         }
 
-        playRecording = function (recording, position, orientation) {
+        playRecording = function (recording, position, orientation, isManual) {
             Recording.loadRecording(recording, function (success) {
                 var errorMessage;
 
@@ -342,17 +359,22 @@
                     Recording.setPlayerLoop(true);
                     Recording.setPlayerUseSkeletonModel(true);
 
-                    isPlayingRecording = true;
-                    recordingFilename = recording;
-
                     Recording.setPlayerTime(0.0);
                     Recording.startPlaying();
 
                     UserActivityLogger.logAction("playRecordingAC_play_recording");
                 } else {
+                    if (isManual) {
+                        // Delete persistence entity if manual play request.
+                        Entity.destroyLater();  // Schedule for deletion; works around timer threading issues.
+                    }
+
                     errorMessage = "Could not load recording " + recording.slice(4);  // Remove leading "atp:".
                     log(errorMessage);
                     error(errorMessage);
+
+                    isPlayingRecording = false;
+                    recordingFilename = "";
                     autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Try again later.
                 }
             });
