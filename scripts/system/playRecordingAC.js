@@ -286,7 +286,7 @@
         function play(user, recording, position, orientation) {
             var errorMessage;
 
-            if (autoPlayTimer) {  // Cancel autoplay.
+            if (autoPlayTimer) {  // Cancel auto-play.
                 Script.clearTimeout(autoPlayTimer);
                 autoPlayTimer = null;
             }
@@ -295,7 +295,7 @@
 
             if (Entity.create(recording, position, orientation)) {
                 log("Play recording " + recording);
-                isPlayingRecording = true;
+                isPlayingRecording = true;  // Immediate feedback.
                 recordingFilename = recording;
                 playRecording(recordingFilename, position, orientation);
             } else {
@@ -303,7 +303,7 @@
                 log(errorMessage);
                 error(errorMessage);
 
-                autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Resume autoplay later.
+                autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Resume auto-play later.
             }
         }
 
@@ -315,7 +315,7 @@
             Script.setTimeout(function () {
                 recording = Entity.find();
                 if (recording) {
-                    log("Play persisted recording " + recordingFilename);
+                    log("Play persisted recording " + recording.recording);
                     userID = null;
                     playRecording(recording.recording, recording.position, recording.orientation);
                 } else {
