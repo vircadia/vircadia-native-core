@@ -50,4 +50,24 @@ protected:
     int _maxDrawn; // initialized by Config
 };
 
+class DebugZoneLighting {
+public:
+    using JobModel = render::Job::Model<DebugZoneLighting>;
+
+    DebugZoneLighting() {}
+
+    void run(const render::RenderContextPointer& context);
+
+protected:
+
+    gpu::PipelinePointer _keyLightPipeline;
+    gpu::PipelinePointer _ambientPipeline;
+    gpu::PipelinePointer _backgroundPipeline;
+
+    const gpu::PipelinePointer& getKeyLightPipeline();
+    const gpu::PipelinePointer& getAmbientPipeline();
+    const gpu::PipelinePointer& getBackgroundPipeline();
+};
+
+
 #endif

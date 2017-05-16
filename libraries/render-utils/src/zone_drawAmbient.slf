@@ -1,0 +1,39 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 5/16/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include model/Light.slh@>
+
+<@include LightingModel.slh@>
+<! <$declareLightBuffer()$> !>
+<$declareLightAmbientBuffer()$>
+
+<@include LightAmbient.slh@>
+<! <@include LightDirectional.slh@> !>
+
+<$declareLightingAmbient(_SCRIBE_NULL, 1, _SCRIBE_NULL, _SCRIBE_NULL)$>
+
+in vec2 varTexCoord0;
+out vec4 _fragColor;
+
+void main(void) {
+
+    LightAmbient lightAmbient = getLightAmbient();
+    
+  //  _fragColor = vec4(varTexCoord0, 0.0, 1.0);
+
+    float z = sqrt( dot(varTexCoord0.xy, varTexCoord0.xy)); 
+    vec3 dir = vec3(varTexCoord0.xy, z);
+
+    vec3 ambient = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(lightAmbient), dir).xyz;
+    _fragColor = vec4(ambient, 1.0);
+}
+
+

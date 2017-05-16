@@ -206,6 +206,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
             auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath, image::TextureUsage::STRICT_TEXTURE);
             task.addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         }
+
+        task.addJob<DebugZoneLighting>("DebugZoneLighting");
     }
 
 
