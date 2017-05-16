@@ -39,13 +39,6 @@ private:
     QByteArray _data;
 
 protected:
-    virtual glm::vec3 getPosition() override;
-    virtual glm::quat getRotation() override;
-    virtual glm::vec3 getLinearVelocity() override;
-    virtual void setLinearVelocity(glm::vec3 linearVelocity) override;
-    virtual glm::vec3 getAngularVelocity() override;
-    virtual void setAngularVelocity(glm::vec3 angularVelocity) override;
-
     bool _active;
     EntityItemWeakPointer _ownerEntity;
 };
