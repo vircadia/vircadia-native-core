@@ -23,12 +23,12 @@
 
 AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
                                                 const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn) :
+    jointName(jointNameIn),
     positionVar(positionVarIn),
     rotationVar(rotationVarIn),
     typeVar(typeVarIn),
     weightVar(weightVarIn),
     weight(weightIn),
-    jointName(jointNameIn),
     numFlexCoefficients(flexCoefficientsIn.size()),
     jointIndex(-1)
 {
@@ -39,12 +39,12 @@ AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, cons
 }
 
 AnimInverseKinematics::IKTargetVar::IKTargetVar(const IKTargetVar& orig) :
+    jointName(orig.jointName),
     positionVar(orig.positionVar),
     rotationVar(orig.rotationVar),
     typeVar(orig.typeVar),
     weightVar(orig.weightVar),
     weight(orig.weight),
-    jointName(orig.jointName),
     numFlexCoefficients(orig.numFlexCoefficients),
     jointIndex(orig.jointIndex)
 {
@@ -305,7 +305,7 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
     // cache tip absolute position
     glm::vec3 tipPosition = absolutePoses[tipIndex].trans();
 
-    int chainDepth = 1;
+    size_t chainDepth = 1;
 
     // descend toward root, pivoting each joint to get tip closer to target position
     while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {

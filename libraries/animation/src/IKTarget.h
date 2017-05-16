@@ -36,7 +36,7 @@ public:
     void setIndex(int index) { _index = index; }
     void setType(int);
     void setFlexCoefficients(size_t numFlexCoefficientsIn, const float* flexCoefficientsIn);
-    float getFlexCoefficient(int chainDepth) const;
+    float getFlexCoefficient(size_t chainDepth) const;
 
     void setWeight(float weight) { _weight = weight; }
     float getWeight() const { return _weight; }

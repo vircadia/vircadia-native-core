@@ -84,11 +84,11 @@ protected:
                     const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn);
         IKTargetVar(const IKTargetVar& orig);
 
+        QString jointName;
         QString positionVar;
         QString rotationVar;
         QString typeVar;
         QString weightVar;
-        QString jointName;
         float weight;
         float flexCoefficients[MAX_FLEX_COEFFICIENTS];
         size_t numFlexCoefficients;
