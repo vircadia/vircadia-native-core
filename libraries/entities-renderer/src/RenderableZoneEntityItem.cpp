@@ -54,12 +54,17 @@ public:
 
     void setSkyboxURL(const QString& skyboxUrl);
 
+    void setBackgroundMode(BackgroundMode mode);
+    void setSkyboxColor(const glm::vec3& color);
+    void setProceduralUserData(QString userData);
+
 protected:
     render::Item::Bound _bound;
 
     model::LightPointer _sunLight;
     model::LightPointer _ambientLight;
     model::SunSkyStagePointer _background;
+    BackgroundMode _backgroundMode { BACKGROUND_MODE_INHERIT };
 
     LightStagePointer _stage;
     LightStage::Index _sunIndex { LightStage::INVALID_INDEX };
@@ -89,6 +94,7 @@ protected:
     bool _pendingSkyboxTexture { false };
     bool _validSkyboxTexture { false };
 
+    QString _proceduralUserData;
 };
 
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
@@ -364,8 +370,9 @@ void RenderableZoneEntityItem::updateKeyAmbientFromEntity(RenderableZoneEntityIt
 void RenderableZoneEntityItem::updateKeyBackgroundFromEntity(RenderableZoneEntityItemMeta& keyZonePayload) {
     auto background = keyZonePayload.editBackground();
 
-    this->getBackgroundMode();
-
+    keyZonePayload.setBackgroundMode(this->getBackgroundMode());
+    keyZonePayload.setSkyboxColor(this->getSkyboxProperties().getColorVec3());
+    keyZonePayload.setProceduralUserData(this->getUserData());
     keyZonePayload.setSkyboxURL(this->getSkyboxProperties().getURL());
 }
 
@@ -547,6 +554,22 @@ void RenderableZoneEntityItemMeta::updateSkyboxMap() {
     }
 }
 
+void RenderableZoneEntityItemMeta::setBackgroundMode(BackgroundMode mode) {
+    _backgroundMode = mode;
+}
+
+void RenderableZoneEntityItemMeta::setSkyboxColor(const glm::vec3& color) {
+    editSkybox()->setColor(color);
+}
+
+void RenderableZoneEntityItemMeta::setProceduralUserData(QString userData) {
+    if (_proceduralUserData != userData) {
+        _proceduralUserData = userData;
+        std::dynamic_pointer_cast<ProceduralSkybox>(editSkybox())->parse(_proceduralUserData);
+    }
+}
+
+
 
 void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
   //  entity->render(args);
@@ -602,8 +625,17 @@ void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
 
     if (isVisible()) {
         // FInally, push the light visible in the frame
+        // THe directional key light for sure
         _stage->_currentFrame.pushSunLight(_sunIndex);
-        _stage->_currentFrame.pushAmbientLight(_ambientIndex);
-        _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
+
+        // The ambient light only if it has a valid texture to render with
+        if (_validAmbientTexture || _validSkyboxTexture) {
+            _stage->_currentFrame.pushAmbientLight(_ambientIndex);
+        }
+
+        // The background only if the mode is not inherit
+        if (_backgroundMode != BACKGROUND_MODE_INHERIT) {
+            _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
+        }
     }
 }
