@@ -1496,13 +1496,18 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
 }
 
 void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew) {
+    quint64 identityPacketUpdatedAt = identity.updatedAt;
+
+    if (identityPacketUpdatedAt <= (uint64_t)(abs(clockSkew))) { // Incoming timestamp is bad - compute our own timestamp
+        identityPacketUpdatedAt = usecTimestampNow() + clockSkew;
+    }
 
     // Consider the case where this packet is being processed on Client A, and Client A is connected to Sandbox B.
     // If Client A's system clock is *ahead of* Sandbox B's system clock, "clockSkew" will be *negative*.
     // If Client A's system clock is *behind* Sandbox B's system clock, "clockSkew" will be *positive*.
-    if ((_identityUpdatedAt > identity.updatedAt - clockSkew) && (_identityUpdatedAt != 0)) {
+    if ((_identityUpdatedAt > identityPacketUpdatedAt - clockSkew) && (_identityUpdatedAt != 0)) {
         qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
-            << "_identityUpdatedAt (" << _identityUpdatedAt << ") is greater than identity.updatedAt - clockSkew (" << identity.updatedAt << "-" << clockSkew << ")";
+            << "_identityUpdatedAt (" << _identityUpdatedAt << ") is greater than identityPacketUpdatedAt - clockSkew (" << identityPacketUpdatedAt << "-" << clockSkew << ")";
         return;
     }
 
@@ -1538,7 +1543,7 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
 
     // use the timestamp from this identity, since we want to honor the updated times in "server clock"
     // this will overwrite any changes we made locally to this AvatarData's _identityUpdatedAt
-    _identityUpdatedAt = identity.updatedAt - clockSkew;
+    _identityUpdatedAt = identityPacketUpdatedAt - clockSkew;
 }
 
 QByteArray AvatarData::identityByteArray() const {
