@@ -14,6 +14,8 @@
 
 #include "render/Engine.h"
 
+#include "DeferredFrameTransform.h"
+
 class ZoneRendererConfig : public render::Task::Config {
     Q_OBJECT
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
@@ -52,13 +54,21 @@ protected:
 
 class DebugZoneLighting {
 public:
-    using JobModel = render::Job::Model<DebugZoneLighting>;
+    using Inputs = DeferredFrameTransformPointer;
+    using JobModel = render::Job::ModelI<DebugZoneLighting, Inputs>;
 
     DebugZoneLighting() {}
 
-    void run(const render::RenderContextPointer& context);
+    void run(const render::RenderContextPointer& context, const Inputs& inputs);
 
 protected:
+
+    enum Slots {
+        ZONE_DEFERRED_TRANSFORM_BUFFER = 0,
+        ZONE_AMBIENT_BUFFER,
+        ZONE_AMBIENT_MAP,
+        ZONE_SKYBOX_MAP,
+    };
 
     gpu::PipelinePointer _keyLightPipeline;
     gpu::PipelinePointer _ambientPipeline;

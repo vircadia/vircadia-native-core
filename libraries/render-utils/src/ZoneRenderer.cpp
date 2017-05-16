@@ -20,6 +20,7 @@
 #include "DeferredLightingEffect.h"
 
 #include "zone_drawAmbient_frag.h"
+#include "zone_drawSkybox_frag.h"
 
 
 using namespace render;
@@ -50,6 +51,9 @@ void ZoneRendererTask::build(JobModel& task, const Varying& input, Varying& oupu
 
 void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) {
     
+    auto backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
+    backgroundStage->_currentFrame.clear();
+
     // call render in the correct order first...
     render::renderItems(context, inputs);
 
@@ -68,37 +72,63 @@ const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        //slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
-        //slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ZONE_DEFERRED_TRANSFORM_BUFFER));
+        slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), ZONE_AMBIENT_BUFFER));
+        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), ZONE_AMBIENT_MAP));
+        
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         _ambientPipeline = gpu::Pipeline::create(program, state);
     }
     return _ambientPipeline;
 }
 const gpu::PipelinePointer& DebugZoneLighting::getBackgroundPipeline() {
     if (!_backgroundPipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
+        auto ps = gpu::Shader::createPixel(std::string(zone_drawSkybox_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ZONE_DEFERRED_TRANSFORM_BUFFER));
+        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), ZONE_SKYBOX_MAP));
+
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        _backgroundPipeline = gpu::Pipeline::create(program, state);
     }
     return _backgroundPipeline;
 }
 
-void DebugZoneLighting::run(const render::RenderContextPointer& context) {
+void DebugZoneLighting::run(const render::RenderContextPointer& context, const Inputs& inputs) {
     RenderArgs* args = context->args;
 
+    auto deferredTransform = inputs;
+
     auto lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
-   
     const auto light = lightStage->getLight(0);
     model::LightPointer keyAmbiLight;
     if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
         keyAmbiLight = lightStage->getLight(lightStage->_currentFrame._ambientLights.front());
     } else {
-   //     keyAmbiLight = _allocatedLights[_globalLights.front()];
+        keyAmbiLight = DependencyManager::get<DeferredLightingEffect>()->getGlobalLight();
     }
 
-/*    if (lightBufferUnit >= 0) {
-        batch.setUniformBuffer(lightBufferUnit, keySunLight->getLightSchemaBuffer());
-    }*/
+    auto backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
+    model::SkyboxPointer skybox;
+    if (backgroundStage && backgroundStage->_currentFrame._backgrounds.size()) {
+        auto background = backgroundStage->getBackground(backgroundStage->_currentFrame._backgrounds.front());
+        if (background) {
+            skybox = background->getSkybox();
+        }
+    } else {
+        skybox = DependencyManager::get<DeferredLightingEffect>()->getDefaultSkybox();
+    }
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
 
@@ -108,21 +138,29 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context) {
         batch.resetViewTransform();
 
         Transform model;
-        model.setTranslation(glm::vec3(0.0, 0.0, -10.0));
-        batch.setModelTransform(model);
+        model.setTranslation(glm::vec3(-4.0, 0.0, -10.0));
+
+        batch.setUniformBuffer(ZONE_DEFERRED_TRANSFORM_BUFFER, deferredTransform->getFrameTransformBuffer());
 
         batch.setPipeline(getAmbientPipeline());
+        batch.setModelTransform(model);
         if (keyAmbiLight) {
-            if (keyAmbiLight->hasAmbient()) {
-                batch.setUniformBuffer(0, keyAmbiLight->getAmbientSchemaBuffer());
-            }
+            batch.setUniformBuffer(ZONE_AMBIENT_BUFFER, keyAmbiLight->getAmbientSchemaBuffer());
 
             if (keyAmbiLight->getAmbientMap()) {
-                batch.setResourceTexture(0, keyAmbiLight->getAmbientMap());
+                batch.setResourceTexture(ZONE_AMBIENT_MAP, keyAmbiLight->getAmbientMap());
             }
         }
-
         batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        batch.setPipeline(getBackgroundPipeline());
+        model.setTranslation(glm::vec3(-4.0, 3.0, -10.0));
+        batch.setModelTransform(model);
+        if (skybox) {
+            batch.setResourceTexture(ZONE_SKYBOX_MAP, skybox->getCubemap());
+        }
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
 
     }); 
 }

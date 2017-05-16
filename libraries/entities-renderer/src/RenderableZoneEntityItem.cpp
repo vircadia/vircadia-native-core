@@ -354,11 +354,8 @@ void RenderableZoneEntityItem::updateKeyAmbientFromEntity(RenderableZoneEntityIt
 
 
     // Set the keylight
-    ambientLight->setColor(ColorUtils::toVec3(this->getKeyLightProperties().getColor()));
     ambientLight->setAmbientIntensity(this->getKeyLightProperties().getAmbientIntensity());
-    // ambientLight->setIntensity(this->getKeyLightProperties().getIntensity());
-    ambientLight->setDirection(this->getKeyLightProperties().getDirection());
-
+ 
     if (this->getKeyLightProperties().getAmbientURL().isEmpty()) {
         keyZonePayload.setAmbientURL(this->getSkyboxProperties().getURL());
     } else {

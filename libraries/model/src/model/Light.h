@@ -113,7 +113,6 @@ public:
     void setIntensity(float intensity);
 
     bool isRanged() const { return (getType() == POINT) || (getType() == SPOT); }
-    bool hasAmbient() const { return (getType() == AMBIENT); }
  
     // FalloffRradius is the physical radius of the light sphere through which energy shines,
     // expressed in meters. It is used only to calculate the falloff curve of the light.

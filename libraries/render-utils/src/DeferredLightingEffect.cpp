@@ -146,15 +146,21 @@ void DeferredLightingEffect::init() {
 
     auto textureCache = DependencyManager::get<TextureCache>();
 
-    QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx" };
-//    QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx" };
+    {
+        PROFILE_RANGE(render, "Process Default Skybox");
+        auto textureCache = DependencyManager::get<TextureCache>();
 
-    _defaultSkyboxTexture = _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxUrl, image::TextureUsage::CUBE_TEXTURE, { { "generateIrradiance", false } });
-  //  _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, image::TextureUsage::CUBE_TEXTURE, { { "generateIrradiance", true } });
+        auto skyboxUrl = PathUtils::resourcesPath().toStdString() + "images/Default-Sky-9-cubemap.ktx";
 
-    _defaultSkybox->setCubemap(_defaultSkyboxTexture);
+        _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl);
+        _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
 
-    lp->setAmbientMap(_defaultSkyboxTexture);
+        _defaultSkybox->setCubemap(_defaultSkyboxTexture);
+    }
+
+
+    lp->setAmbientIntensity(0.5f);
+    lp->setAmbientMap(_defaultSkyboxAmbientTexture);
 
 }
 
@@ -177,7 +183,7 @@ void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBuff
     if (lightBufferUnit >= 0) {
         batch.setUniformBuffer(lightBufferUnit, keySunLight->getLightSchemaBuffer());
     }
-    if (keyAmbiLight->hasAmbient() && (ambientBufferUnit >= 0)) {
+    if (ambientBufferUnit >= 0) {
         batch.setUniformBuffer(ambientBufferUnit, keyAmbiLight->getAmbientSchemaBuffer());
     }
 
@@ -315,14 +321,19 @@ static void loadLightVolumeProgram(const char* vertSource, const char* fragSourc
 }
 
 void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light) {
-    auto globalLight = _allocatedLights.front();
+ /*   auto globalLight = _allocatedLights.front();
     globalLight->setDirection(light->getDirection());
     globalLight->setColor(light->getColor());
     globalLight->setIntensity(light->getIntensity());
     globalLight->setAmbientIntensity(light->getAmbientIntensity());
     globalLight->setAmbientSphere(light->getAmbientSphere());
-    globalLight->setAmbientMap(light->getAmbientMap());
+    globalLight->setAmbientMap(light->getAmbientMap());*/
 }
+
+const model::LightPointer& DeferredLightingEffect::getGlobalLight() const {
+    return _allocatedLights.front();
+}
+
 
 #include <shared/Shapes.h>
 

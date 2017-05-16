@@ -138,5 +138,4 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
     }
     */
 
-    backgroundStage->_currentFrame.clear();
 }

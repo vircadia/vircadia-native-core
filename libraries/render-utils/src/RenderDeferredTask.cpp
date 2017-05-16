@@ -207,7 +207,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
             task.addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         }
 
-        task.addJob<DebugZoneLighting>("DebugZoneLighting");
+        task.addJob<DebugZoneLighting>("DebugZoneLighting", deferredFrameTransform);
     }
 
 

@@ -77,7 +77,6 @@ public:
     };
     using Descs = std::vector<Desc>;
 
-
     Index findLight(const LightPointer& light) const;
     Index addLight(const LightPointer& light);
 

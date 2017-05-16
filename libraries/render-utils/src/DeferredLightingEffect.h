@@ -53,6 +53,7 @@ public:
 
     // update global lighting
     void setGlobalLight(const model::LightPointer& light);
+    const model::LightPointer& getGlobalLight() const;
 
     const LightStagePointer& getLightStage() { return _lightStage; }
     const BackgroundStagePointer& getBackgroundStage() { return _backgroundStage; }
