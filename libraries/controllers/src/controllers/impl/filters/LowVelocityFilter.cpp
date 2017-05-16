@@ -18,7 +18,7 @@ namespace controller {
 
     Pose LowVelocityFilter::apply(Pose newPose) const {
         Pose finalPose = newPose;
-        if (finalPose.isValid()) {
+        if (finalPose.isValid() && _oldPose.isValid()) {
             float rotationFilter = glm::clamp(1.0f - (glm::length(_oldPose.getVelocity() / _rotationConstant)), 0.0f, 1.0f);
             float translationFilter = glm::clamp(1.0f - (glm::length(_oldPose.getVelocity() / _translationConstant)), 0.0f, 1.0f);
             finalPose.translation = _oldPose.getTranslation() * translationFilter + newPose.getTranslation() * (1.0f - translationFilter);
@@ -35,11 +35,9 @@ namespace controller {
             if (obj.contains(JSON_ROTATION) && obj.contains(JSON_TRANSLATION)) {
                 _rotationConstant = obj[JSON_ROTATION].toDouble();
                 _translationConstant = obj[JSON_TRANSLATION].toDouble();
-                qDebug() << "--------->Successfully parsed low velocity filter";
                 return true;
             }
         }
-        qDebug() << "--------->failed parsed low velocity filter";
         return false;
     }
     
