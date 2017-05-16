@@ -32,8 +32,7 @@ EntityDynamicPointer interfaceDynamicFactory(EntityDynamicType type, const QUuid
         case DYNAMIC_TYPE_OFFSET:
             return std::make_shared<ObjectActionOffset>(id, ownerEntity);
         case DYNAMIC_TYPE_SPRING:
-            // the old "Spring" action moved to "Tractor"
-            return std::make_shared<ObjectActionTractor>(id, ownerEntity);
+            qDebug() << "The 'spring' Action is deprecated.  Replacing with 'tractor' Action.";
         case DYNAMIC_TYPE_TRACTOR:
             return std::make_shared<ObjectActionTractor>(id, ownerEntity);
         case DYNAMIC_TYPE_HOLD:
