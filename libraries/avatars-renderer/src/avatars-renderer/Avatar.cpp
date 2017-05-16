@@ -1293,6 +1293,17 @@ void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
     radius = halfExtents.x;
 }
 
+float Avatar::computeMass() {
+    float radius;
+    glm::vec3 start, end;
+    getCapsule(start, end, radius);
+    // NOTE:
+    // volumeOfCapsule = volumeOfCylinder + volumeOfSphere
+    // volumeOfCapsule = (2PI * R^2 * H) + (4PI * R^3 / 3)
+    // volumeOfCapsule = 2PI * R^2 * (H + 2R/3)
+    return _density * TWO_PI * radius * radius * (glm::length(end - start) + 2.0f * radius / 3.0f);
+}
+
 // virtual
 void Avatar::rebuildCollisionShape() {
     addPhysicsFlags(Simulation::DIRTY_SHAPE);
