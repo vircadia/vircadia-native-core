@@ -1594,7 +1594,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
         EntityItemID newID = i.value();
         EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
         if (entity) {
-            entity->checkAndAdjustQueryAACube();
+            entity->computePuffedQueryAACube();
             // queue the packet to send to the server
             EntityItemProperties properties = entity->getProperties();
             properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
