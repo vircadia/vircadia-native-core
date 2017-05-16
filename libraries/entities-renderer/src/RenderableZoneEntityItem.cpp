@@ -572,8 +572,6 @@ void RenderableZoneEntityItemMeta::setProceduralUserData(QString userData) {
 
 
 void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
-  //  entity->render(args);
- 
     if (!_stage) {
         _stage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     }
