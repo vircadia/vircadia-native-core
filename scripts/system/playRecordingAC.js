@@ -301,6 +301,8 @@
             var errorMessage;
 
             if (autoPlayTimer) {  // Cancel auto-play.
+                // FIXME: Once in a while Script.clearTimeout() fails.
+                // [DEBUG] [hifi.scriptengine] [3748] [agent] stopTimer -- not in _timerFunctionMap QObject(0x0)
                 Script.clearTimeout(autoPlayTimer);
                 autoPlayTimer = null;
             }
@@ -327,6 +329,11 @@
 
             // Random delay to help reduce collisions between AC scripts.
             Script.setTimeout(function () {
+                // Guard against Script.clearTimeout() in play() not always working.
+                if (isPlayingRecording) {
+                    return;
+                }
+
                 recording = Entity.find();
                 if (recording) {
                     log("Play persisted recording " + recording.recording);
