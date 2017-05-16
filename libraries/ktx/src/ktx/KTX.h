@@ -424,15 +424,12 @@ namespace ktx {
         // will have a byte offset of 0.
         const size_t _imageOffset;
         const uint32_t _imageSize;
-        // The full size of this image / mip level. This will be equivalent to _imageSize except when _numFaces > 1
-        const uint32_t _fullImageSize;
         const uint32_t _faceSize;
         const uint32_t _padding;
         ImageHeader(bool cube, size_t imageOffset, uint32_t imageSize, uint32_t padding) :
             _numFaces(cube ? NUM_CUBEMAPFACES : 1),
             _imageOffset(imageOffset),
-            _imageSize(imageSize),
-            _fullImageSize(imageSize * _numFaces),
+            _imageSize(imageSize * _numFaces),
             _faceSize(imageSize),
             _padding(padding) {
         }

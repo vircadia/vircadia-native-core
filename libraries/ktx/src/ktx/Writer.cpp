@@ -89,7 +89,7 @@ namespace ktx {
         for (uint32_t l = 0; l < numMips; l++) {
             if (imageDescriptors.size() > l) {
                 storageSize += sizeof(uint32_t);
-                storageSize += imageDescriptors[l]._fullImageSize;
+                storageSize += imageDescriptors[l]._imageSize;
                 storageSize += Header::evalPadding(imageDescriptors[l]._imageSize);
             }
         }
@@ -158,7 +158,7 @@ namespace ktx {
             }
 #endif
             currentDestPtr += sizeof(uint32_t);
-            currentDestPtr += descriptors[i]._fullImageSize;
+            currentDestPtr += descriptors[i]._imageSize;
         }
 
         return destByteSize;
