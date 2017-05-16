@@ -53,7 +53,6 @@ public:
     glm::vec3 root;
     EntityTree* ourTree;
     EntityTreePointer otherTree;
-    EntityEditPacketSender* packetSender;
     QHash<EntityItemID, EntityItemID>* map;
 };
 

@@ -1574,7 +1574,6 @@ QByteArray EntityTree::remapActionDataIDs(QByteArray actionData, QHash<EntityIte
 QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
                                                float x, float y, float z) {
     SendEntitiesOperationArgs args;
-    args.packetSender = packetSender;
     args.ourTree = this;
     args.otherTree = localTree;
     args.root = glm::vec3(x, y, z);
@@ -1585,20 +1584,28 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
     withReadLock([&] {
         recurseTreeWithOperation(sendEntitiesOperation, &args);
     });
-    packetSender->releaseQueuedMessages();
 
     // the values from map are used as the list of successfully "sent" entities.  If some didn't actually make it,
     // pull them out.  Bogus entries could happen if part of the imported data makes some reference to an entity
-    // that isn't in the data being imported.
+    // that isn't in the data being imported.  For those that made it, fix up their queryAACubes and send an
+    // add-entity packet to the server.
     QHash<EntityItemID, EntityItemID>::iterator i = map.begin();
     while (i != map.end()) {
         EntityItemID newID = i.value();
-        if (localTree->findEntityByEntityItemID(newID)) {
+        EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
+        if (entity) {
+            entity->checkAndAdjustQueryAACube();
+            // queue the packet to send to the server
+            EntityItemProperties properties = entity->getProperties();
+            properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
+            packetSender->queueEditEntityMessage(PacketType::EntityAdd, localTree, newID, properties);
             i++;
         } else {
             i = map.erase(i);
         }
     }
+
+    packetSender->releaseQueuedMessages();
 
     return map.values().toVector();
 }
@@ -1652,13 +1659,8 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
         // set creation time to "now" for imported entities
         properties.setCreated(usecTimestampNow());
 
-        properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
-
         EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
         EntityTreePointer tree = entityTreeElement->getTree();
-
-        // queue the packet to send to the server
-        args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, tree, newID, properties);
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
         if (args->otherTree) {
