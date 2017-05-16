@@ -648,13 +648,13 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                 // TODO Move image offset calculation to ktx ImageDescriptor
                 for (int level = static_cast<int>(images.size()) - 1; level >= 0; --level) {
                     auto& image = images[level];
-                    if (image._imageSize > imageSizeRemaining) {
+                    if (image._fullImageSize > imageSizeRemaining) {
                         break;
                     }
-                    ktxData -= image._imageSize;
-                    texture->assignStoredMip(static_cast<gpu::uint16>(level), image._imageSize, ktxData);
+                    ktxData -= image._fullImageSize;
+                    texture->assignStoredMip(static_cast<gpu::uint16>(level), image._fullImageSize, ktxData);
                     ktxData -= ktx::IMAGE_SIZE_WIDTH;
-                    imageSizeRemaining -= (image._imageSize + ktx::IMAGE_SIZE_WIDTH);
+                    imageSizeRemaining -= (image._fullImageSize + ktx::IMAGE_SIZE_WIDTH);
                 }
 
                 // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 

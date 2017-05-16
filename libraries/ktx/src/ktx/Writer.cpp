@@ -89,7 +89,7 @@ namespace ktx {
         for (uint32_t l = 0; l < numMips; l++) {
             if (imageDescriptors.size() > l) {
                 storageSize += sizeof(uint32_t);
-                storageSize += imageDescriptors[l]._imageSize;
+                storageSize += imageDescriptors[l]._fullImageSize;
                 storageSize += Header::evalPadding(imageDescriptors[l]._imageSize);
             }
         }
@@ -127,6 +127,7 @@ namespace ktx {
     size_t KTX::writeWithoutImages(Byte* destBytes, size_t destByteSize, const Header& header, const ImageDescriptors& descriptors, const KeyValues& keyValues) {
         // Check again that we have enough destination capacity
         if (!destBytes || (destByteSize < evalStorageSize(header, descriptors, keyValues))) {
+            qWarning() << "Destination capacity is insufficient to write KTX without images";
             return 0;
         }
 
@@ -149,13 +150,15 @@ namespace ktx {
         for (size_t i = 0; i < descriptors.size(); ++i) {
             auto ptr = reinterpret_cast<uint32_t*>(currentDestPtr);
             *ptr = descriptors[i]._imageSize;
-            ptr++;
+
 #ifdef DEBUG
+            ptr++;
             for (size_t k = 0; k < descriptors[i]._imageSize/4; k++) {
                 *(ptr + k) = 0xFFFFFFFF;
             }
 #endif
-            currentDestPtr += descriptors[i]._imageSize + sizeof(uint32_t);
+            currentDestPtr += sizeof(uint32_t);
+            currentDestPtr += descriptors[i]._fullImageSize;
         }
 
         return destByteSize;

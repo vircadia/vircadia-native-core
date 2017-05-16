@@ -38,15 +38,15 @@ UInt32 numberOfArrayElements
 UInt32 numberOfFaces
 UInt32 numberOfMipmapLevels
 UInt32 bytesOfKeyValueData
-  
+
 for each keyValuePair that fits in bytesOfKeyValueData
     UInt32   keyAndValueByteSize
     Byte     keyAndValue[keyAndValueByteSize]
     Byte     valuePadding[3 - ((keyAndValueByteSize + 3) % 4)]
 end
-  
+
 for each mipmap_level in numberOfMipmapLevels*
-    UInt32 imageSize; 
+    UInt32 imageSize;
     for each array_element in numberOfArrayElements*
        for each face in numberOfFaces
            for each z_slice in pixelDepth*
@@ -269,7 +269,7 @@ namespace ktx {
         COMPRESSED_RG11_EAC = 0x9272,
         COMPRESSED_SIGNED_RG11_EAC = 0x9273,
     };
- 
+
     enum class GLBaseInternalFormat : uint32_t {
         // GL 4.4 Table 8.11
         DEPTH_COMPONENT = 0x1902,
@@ -419,17 +419,20 @@ namespace ktx {
         using FaceOffsets = std::vector<size_t>;
         using FaceBytes = std::vector<const Byte*>;
 
+        const uint32_t _numFaces;
         // This is the byte offset from the _start_ of the image region. For example, level 0
         // will have a byte offset of 0.
-        const uint32_t _numFaces;
         const size_t _imageOffset;
         const uint32_t _imageSize;
+        // The full size of this image / mip level. This will be equivalent to _imageSize except when _numFaces > 1
+        const uint32_t _fullImageSize;
         const uint32_t _faceSize;
         const uint32_t _padding;
         ImageHeader(bool cube, size_t imageOffset, uint32_t imageSize, uint32_t padding) :
             _numFaces(cube ? NUM_CUBEMAPFACES : 1),
             _imageOffset(imageOffset),
-            _imageSize(imageSize * _numFaces),
+            _imageSize(imageSize),
+            _fullImageSize(imageSize * _numFaces),
             _faceSize(imageSize),
             _padding(padding) {
         }
@@ -466,7 +469,7 @@ namespace ktx {
 
     class KTX;
 
-    // A KTX descriptor is a lightweight container for all the information about a serialized KTX file, but without the 
+    // A KTX descriptor is a lightweight container for all the information about a serialized KTX file, but without the
     // actual image / face data available.
     struct KTXDescriptor {
         KTXDescriptor(const Header& header, const KeyValues& keyValues, const ImageDescriptors& imageDescriptors) : header(header), keyValues(keyValues), images(imageDescriptors) {}
@@ -495,7 +498,7 @@ namespace ktx {
         // Instead of creating a full Copy of the src data in a KTX object, the write serialization can be performed with the
         // following two functions
         //   size_t sizeNeeded = KTX::evalStorageSize(header, images);
-        //   
+        //
         //   //allocate a buffer of size "sizeNeeded" or map a file with enough capacity
         //   Byte* destBytes = new Byte[sizeNeeded];
         //
