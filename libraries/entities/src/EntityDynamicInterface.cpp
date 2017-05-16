@@ -50,7 +50,7 @@
 
 
 A dynamic is a callback which is registered with bullet.  A dynamic is called-back every physics
-simulation step and can do whatever it wants with the various datastructures it has available.  An
+simulation step and can do whatever it wants with the various datastructures it has available.  A
 dynamic, for example, can pull an EntityItem toward a point as if that EntityItem were connected to that
 point by a spring.
 
@@ -103,7 +103,7 @@ EntityDynamicType EntityDynamicInterface::dynamicTypeFromString(QString dynamicT
         return DYNAMIC_TYPE_OFFSET;
     }
     if (normalizedDynamicTypeString == "spring") {
-        return DYNAMIC_TYPE_SPRING;
+        return DYNAMIC_TYPE_TRACTOR;
     }
     if (normalizedDynamicTypeString == "tractor") {
         return DYNAMIC_TYPE_TRACTOR;
@@ -142,7 +142,6 @@ QString EntityDynamicInterface::dynamicTypeToString(EntityDynamicType dynamicTyp
         case DYNAMIC_TYPE_OFFSET:
             return "offset";
         case DYNAMIC_TYPE_SPRING:
-            return "spring";
         case DYNAMIC_TYPE_TRACTOR:
             return "tractor";
         case DYNAMIC_TYPE_HOLD:
