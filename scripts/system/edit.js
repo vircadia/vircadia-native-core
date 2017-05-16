@@ -504,26 +504,26 @@ var toolBar = (function () {
                     blue: 0
                 },
                 emitAcceleration: {
-                    x: 0,
-                    y: 5,
-                    z: 0
+                    x: -0.5,
+                    y: 2.5,
+                    z: -0.5
                 },
                 accelerationSpread: {
-                    x: 1,
-                    y: 0,
-                    z: 1
+                    x: 0.5,
+                    y: 1,
+                    z: 0.5
                 },
-                emitRate: 3,
+                emitRate: 5.5,
                 emitSpeed: 0,
                 speedSpread: 0,
-                lifespan: 1,
+                lifespan: 1.5,
                 maxParticles: 10,
                 particleRadius: 0.25,
                 radiusStart: 0,
                 radiusFinish: 0.1,
                 radiusSpread: 0,
                 alpha: 0,
-                alphaStart: 0.1,
+                alphaStart: 1,
                 alphaFinish: 0,
                 polarStart: 0,
                 polarFinish: 0,
