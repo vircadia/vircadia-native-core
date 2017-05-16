@@ -43,7 +43,7 @@
                          |                        |
               +--------------------+     +-----------------------+
               |                    |     |                       |
-              | ObjectActionSpring |     | ObjectConstraintHinge |
+              | ObjectActionTractor|     | ObjectConstraintHinge |
               |     (physics)      |     |       (physics)       |
               +--------------------+     +-----------------------+
 
@@ -60,7 +60,7 @@ script or when receiving information via an EntityTree data-stream (either over 
 svo file).
 
 In the interface, if an EntityItem has dynamics, this EntityItem will have pointers to ObjectDynamic
-subclass (like ObjectDynamicSpring) instantiations.  Code in the entities library affects a dynamic-object
+subclass (like ObjectDynamicTractor) instantiations.  Code in the entities library affects a dynamic-object
 via the EntityDynamicInterface (which knows nothing about bullet).  When the ObjectDynamic subclass
 instance is created, it is registered as a dynamic with bullet.  Bullet will call into code in this
 instance with the btDynamicInterface every physics-simulation step.
@@ -75,11 +75,11 @@ right now the AssignmentDynamic class is a place-holder.
 
 The dynamic-objects are instantiated by singleton (dependecy) subclasses of EntityDynamicFactoryInterface.
 In the interface, the subclass is an InterfaceDynamicFactory and it will produce things like
-ObjectDynamicSpring.  In an entity-server the subclass is an AssignmentDynamicFactory and it always
+ObjectDynamicTractor.  In an entity-server the subclass is an AssignmentDynamicFactory and it always
 produces AssignmentDynamics.
 
 Depending on the dynamic's type, it will have various arguments.  When a script changes an argument of an
-dynamic, the argument-holding member-variables of ObjectDynamicSpring (in this example) are updated and
+dynamic, the argument-holding member-variables of ObjectDynamicTractor (in this example) are updated and
 also serialized into _dynamicData in the EntityItem.  Each subclass of ObjectDynamic knows how to serialize
 and deserialize its own arguments.  _dynamicData is what gets sent over the wire or saved in an svo file.
 When a packet-reader receives data for _dynamicData, it will save it in the EntityItem; this causes the
