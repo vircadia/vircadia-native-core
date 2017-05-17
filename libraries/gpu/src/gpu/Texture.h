@@ -178,12 +178,11 @@ public:
     static uint32_t getTextureCPUCount();
     static Size getTextureCPUMemoryUsage();
     static uint32_t getTextureGPUCount();
-    static uint32_t getTextureGPUSparseCount();
     static Size getTextureTransferPendingSize();
     static Size getTextureGPUMemoryUsage();
-    static Size getTextureGPUVirtualMemoryUsage();
+    static Size getTextureGPUResourceMemoryUsage();
+    static Size getTextureGPUResidentMemoryUsage();
     static Size getTextureGPUFramebufferMemoryUsage();
-    static Size getTextureGPUSparseMemoryUsage();
     static uint32_t getTextureGPUTransferCount();
     static Size getAllowedGPUMemoryUsage();
     static void setAllowedGPUMemoryUsage(Size size);

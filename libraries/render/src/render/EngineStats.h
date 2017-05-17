@@ -36,6 +36,10 @@ namespace render {
         Q_PROPERTY(qint64 textureGPUVirtualMemoryUsage MEMBER textureGPUVirtualMemoryUsage NOTIFY dirty)
         Q_PROPERTY(quint32 textureGPUTransferCount MEMBER textureGPUTransferCount NOTIFY dirty)
 
+        Q_PROPERTY(quint32 textureTransferPendingSize MEMBER textureTransferPendingSize NOTIFY dirty)
+
+        Q_PROPERTY(qint64 textureGPUFramebufferSize MEMBER textureGPUFramebufferSize NOTIFY dirty)
+
         Q_PROPERTY(quint32 frameAPIDrawcallCount MEMBER frameAPIDrawcallCount NOTIFY dirty)
         Q_PROPERTY(quint32 frameDrawcallCount MEMBER frameDrawcallCount NOTIFY dirty)
         Q_PROPERTY(quint32 frameDrawcallRate MEMBER frameDrawcallRate NOTIFY dirty)
@@ -64,7 +68,10 @@ namespace render {
         qint64 textureCPUMemoryUsage{ 0 };
         qint64 textureGPUMemoryUsage{ 0 };
         qint64 textureGPUVirtualMemoryUsage{ 0 };
-        quint32 textureGPUTransferCount{ 0 };
+        quint32 textureGPUTransferCount { 0 };
+        qint64 textureTransferPendingSize { 0 };
+
+        qint64 textureGPUFramebufferSize { 0 };
 
         quint32 frameAPIDrawcallCount{ 0 };
         quint32 frameDrawcallCount{ 0 };

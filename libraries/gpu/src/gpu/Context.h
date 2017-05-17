@@ -28,6 +28,47 @@ class QImage;
 
 namespace gpu {
 
+template <typename T>
+struct ContextMetric {
+    std::atomic<T> _value { 0 };
+    std::atomic<T> _maximum { 0 };
+
+    T getValue() { return _value; }
+    T getMaximum() { return _maximum; }
+
+    void increment() {
+        auto total = ++_value;
+        if (total > _maximum.load()) {
+            _maximum = total;
+        }
+    }
+    void increment() {
+        --_value;
+    }
+
+    void update(T prevValue, T newValue) {
+        if (prevValue == newValue) {
+            return;
+        }
+        if (newValue > prevValue) {
+            auto total = _value.fetch_add(newValue - prevValue);
+            if (total > _maximum.load()) {
+                _maximum = total;
+            }
+        } else {
+            _value.fetch_sub(prevValue - newValue);
+        }
+    }
+
+    void reset() {
+        _value = 0;
+        _maximum = 0;
+    }
+};
+
+using ContextMetricCount = ContextMetric<uint32_t>;
+using ContextMetricSize = ContextMetric<Size>;
+
 struct ContextStats {
 public:
     int _ISNumFormatChanges = 0;
@@ -107,11 +148,26 @@ public:
     static void decrementTextureGPUSparseCount();
     static void updateTextureTransferPendingSize(Resource::Size prevObjectSize, Resource::Size newObjectSize);
     static void updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
-    static void updateTextureGPUSparseMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
-    static void updateTextureGPUVirtualMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
+ //   static void updateTextureGPUSparseMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
+ //   static void updateTextureGPUVirtualMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
     static void updateTextureGPUFramebufferMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
     static void incrementTextureGPUTransferCount();
     static void decrementTextureGPUTransferCount();
+
+    static ContextMetricSize freeGPUMemSize;
+
+    static ContextMetricCount bufferCount;
+    static ContextMetricSize bufferGPUMemSize;
+
+    static ContextMetricCount textureCount;
+    static ContextMetricSize textureGPUMemSize;
+    static ContextMetricSize textureResidentGPUMemSize;
+    static ContextMetricSize textureResourceGPUMemSize;
+    static ContextMetricSize textureFramebufferGPUMemSize;
+
+    static ContextMetricCount textureTransferCount;
+
+
 
 protected:
     virtual bool isStereo() {
@@ -224,14 +280,16 @@ public:
     static Size getBufferGPUMemoryUsage();
 
     static uint32_t getTextureGPUCount();
-    static uint32_t getTextureGPUSparseCount();
+    static uint32_t getTextureGPUResourceCount();
     static Size getFreeGPUMemory();
     static Size getUsedGPUMemory();
     static Size getTextureTransferPendingSize();
     static Size getTextureGPUMemoryUsage();
-    static Size getTextureGPUVirtualMemoryUsage();
+
+    static Size getTextureGPUResourceMemoryUsage();
+    static Size getTextureGPUResidentMemoryUsage();
     static Size getTextureGPUFramebufferMemoryUsage();
-    static Size getTextureGPUSparseMemoryUsage();
+
     static uint32_t getTextureGPUTransferCount();
 
 protected:
@@ -269,15 +327,20 @@ protected:
     static void setFreeGPUMemory(Size size);
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
-    static void incrementTextureGPUSparseCount();
-    static void decrementTextureGPUSparseCount();
-    static void updateTextureTransferPendingSize(Size prevObjectSize, Size newObjectSize);
-    static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
-    static void updateTextureGPUSparseMemoryUsage(Size prevObjectSize, Size newObjectSize);
-    static void updateTextureGPUVirtualMemoryUsage(Size prevObjectSize, Size newObjectSize);
-    static void updateTextureGPUFramebufferMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void incrementTextureGPUResourceCount();
+    static void decrementTextureGPUResourceCount();
+
     static void incrementTextureGPUTransferCount();
     static void decrementTextureGPUTransferCount();
+
+    static void updateTextureTransferPendingSize(Size prevObjectSize, Size newObjectSize);
+    static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+
+    static void updateTextureGPUResourceMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void updateTextureGPUResidentMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void updateTextureGPUFramebufferMemoryUsage(Size prevObjectSize, Size newObjectSize);
+
+
 
     // Buffer, Texture and Fence Counters
     static std::atomic<Size> _freeGPUMemory;

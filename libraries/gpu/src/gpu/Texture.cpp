@@ -85,10 +85,6 @@ uint32_t Texture::getTextureGPUCount() {
     return Context::getTextureGPUCount();
 }
 
-uint32_t Texture::getTextureGPUSparseCount() {
-    return Context::getTextureGPUSparseCount();
-}
-
 Texture::Size Texture::getTextureTransferPendingSize() {
     return Context::getTextureTransferPendingSize();
 }
@@ -97,17 +93,16 @@ Texture::Size Texture::getTextureGPUMemoryUsage() {
     return Context::getTextureGPUMemoryUsage();
 }
 
-Texture::Size Texture::getTextureGPUVirtualMemoryUsage() {
-    return Context::getTextureGPUVirtualMemoryUsage();
+Texture::Size getTextureGPUResourceMemoryUsage() {
+    return Context::getTextureGPUResourceMemoryUsage();
 }
 
+Texture::Size getTextureGPUResidentMemoryUsage() {
+    return Context::getTextureGPUResidentMemoryUsage();
+}
 
 Texture::Size Texture::getTextureGPUFramebufferMemoryUsage() {
     return Context::getTextureGPUFramebufferMemoryUsage();
-}
-
-Texture::Size Texture::getTextureGPUSparseMemoryUsage() {
-    return Context::getTextureGPUSparseMemoryUsage();
 }
 
 uint32_t Texture::getTextureGPUTransferCount() {
