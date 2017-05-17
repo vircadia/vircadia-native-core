@@ -48,6 +48,8 @@ class QScriptEngineDebugger;
 static const QString NO_SCRIPT("");
 
 static const int SCRIPT_FPS = 60;
+static const int DEFAULT_MAX_ENTITY_PPS = 9000;
+static const int DEFAULT_ENTITY_PPS_PER_SCRIPT = 900;
 
 class CallbackData {
 public:
