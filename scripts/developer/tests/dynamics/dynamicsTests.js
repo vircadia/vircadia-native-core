@@ -28,7 +28,7 @@
 
 
 
-    function coneTwistAndSpringLeverTest(params) {
+    function coneTwistAndTractorLeverTest(params) {
         var pos = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: -0.5, z: -2}));
         var lifetime = params.lifetime;
 
@@ -84,10 +84,10 @@
             tag: "cone-twist test"
         });
 
-        Entities.addAction("spring", leverID, {
+        Entities.addAction("tractor", leverID, {
             targetRotation: { x: 0, y: 0, z: 0, w: 1 },
             angularTimeScale: 0.2,
-            tag: "cone-twist test spring"
+            tag: "cone-twist test tractor"
         });
 
 
@@ -349,11 +349,11 @@
             userData: "{ \"grabbableKey\": { \"grabbable\": true, \"kinematic\": false } }"
         });
 
-        Entities.addAction("spring", headID, {
+        Entities.addAction("tractor", headID, {
             targetRotation: { x: 0, y: 0, z: 0, w: 1 },
             angularTimeScale: 2.0,
             otherID: bodyID,
-            tag: "cone-twist test spring"
+            tag: "cone-twist test tractor"
         });
 
 
@@ -705,7 +705,7 @@
 
             if (event["dynamics-tests-command"]) {
                 var commandToFunctionMap = {
-                    "cone-twist-and-spring-lever-test": coneTwistAndSpringLeverTest,
+                    "cone-twist-and-tractor-lever-test": coneTwistAndTractorLeverTest,
                     "door-vs-world-test": doorVSWorldTest,
                     "hinge-chain-test": hingeChainTest,
                     "slider-vs-world-test": sliderVSWorldTest,
