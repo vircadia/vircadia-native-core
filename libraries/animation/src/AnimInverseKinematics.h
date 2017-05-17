@@ -78,7 +78,7 @@ protected:
     AnimInverseKinematics(const AnimInverseKinematics&) = delete;
     AnimInverseKinematics& operator=(const AnimInverseKinematics&) = delete;
 
-    static const size_t MAX_FLEX_COEFFICIENTS = 10;
+    enum FlexCoefficients { MAX_FLEX_COEFFICIENTS = 10 };
     struct IKTargetVar {
         IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
                     const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn);

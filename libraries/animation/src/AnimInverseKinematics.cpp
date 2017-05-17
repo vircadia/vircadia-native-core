@@ -32,7 +32,7 @@ AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, cons
     numFlexCoefficients(flexCoefficientsIn.size()),
     jointIndex(-1)
 {
-    numFlexCoefficients = std::min(numFlexCoefficients, MAX_FLEX_COEFFICIENTS);
+    numFlexCoefficients = std::min(numFlexCoefficients, (size_t)MAX_FLEX_COEFFICIENTS);
     for (size_t i = 0; i < numFlexCoefficients; i++) {
         flexCoefficients[i] = flexCoefficientsIn[i];
     }
@@ -48,7 +48,7 @@ AnimInverseKinematics::IKTargetVar::IKTargetVar(const IKTargetVar& orig) :
     numFlexCoefficients(orig.numFlexCoefficients),
     jointIndex(orig.jointIndex)
 {
-    numFlexCoefficients = std::min(numFlexCoefficients, MAX_FLEX_COEFFICIENTS);
+    numFlexCoefficients = std::min(numFlexCoefficients, (size_t)MAX_FLEX_COEFFICIENTS);
     for (size_t i = 0; i < numFlexCoefficients; i++) {
         flexCoefficients[i] = orig.flexCoefficients[i];
     }
