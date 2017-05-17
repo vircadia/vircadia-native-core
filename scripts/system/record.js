@@ -37,6 +37,12 @@
         Window.alert(message);
     }
 
+    function logDetails() {
+        return {
+            current_domain: location.placename
+        };
+    }
+
     RecordingIndicator = (function () {
         // Displays "recording" overlay.
 
@@ -181,7 +187,7 @@
 
             recordingState = IDLE;
             log("Finish recording");
-            UserActivityLogger.logAction("record_finish_recording");
+            UserActivityLogger.logAction("record_finish_recording", logDetails());
             playSound(finishRecordingSound);
             Recording.stopRecording();
             RecordingIndicator.hide();
@@ -519,7 +525,7 @@
                         value: Player.numberOfPlayers()
                     }));
                     updateRecordingStatus(!Recorder.isIdle());
-                    UserActivityLogger.logAction("record_open_dialog");
+                    UserActivityLogger.logAction("record_open_dialog", logDetails());
                     break;
                 case STOP_PLAYING_RECORDING_ACTION:
                     // Stop the specified player.
@@ -530,7 +536,7 @@
                     recording = Window.browseAssets("Select Recording to Play", "recordings", "*.hfr");
                     if (recording) {
                         log("Load recording " + recording);
-                        UserActivityLogger.logAction("record_load_recording");
+                        UserActivityLogger.logAction("record_load_recording", logDetails());
                         Player.playRecording("atp:" + recording, MyAvatar.position, MyAvatar.orientation);
                     }
                     break;
@@ -660,7 +666,7 @@
         isConnected = Window.location.isConnected;
         Script.update.connect(onUpdate);
 
-        UserActivityLogger.logAction("record_run_script");
+        UserActivityLogger.logAction("record_run_script", logDetails());
     }
 
     function tearDown() {
