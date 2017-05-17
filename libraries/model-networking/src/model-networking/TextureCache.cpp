@@ -501,12 +501,19 @@ void NetworkTexture::ktxMipRequestFinished() {
             if (texture) {
                 texture->assignStoredMip(_ktxMipLevelRangeInFlight.first,
                     _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
-                _lowestKnownPopulatedMip = _textureSource->getGPUTexture()->minAvailableMipLevel();
+
+                if (texture->minAvailableMipLevel() <= _ktxMipLevelRangeInFlight.first) {
+                    _lowestKnownPopulatedMip = texture->minAvailableMipLevel();
+                    _ktxResourceState = WAITING_FOR_MIP_REQUEST;
+                } else {
+                    qWarning(networking) << "Failed to load mip: " << _url << ":" << _ktxMipLevelRangeInFlight.first;
+                    _ktxResourceState = FAILED_TO_LOAD;
+                }
             } else {
+                _ktxResourceState = WAITING_FOR_MIP_REQUEST;
                 qWarning(networking) << "Trying to update mips but texture is null";
             }
             finishedLoading(true);
-            _ktxResourceState = WAITING_FOR_MIP_REQUEST;
         } else {
             finishedLoading(false);
             if (handleFailedRequest(_ktxMipRequest->getResult())) {
