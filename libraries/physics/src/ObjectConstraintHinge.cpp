@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <LogHandler.h>
+
 #include "QVariantGLM.h"
 
 #include "EntityTree.h"
@@ -93,6 +95,9 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         return constraint;
     }
 
+    static QString repeatedHingeNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
+        "ObjectConstraintHinge::getConstraint -- no rigidBody.*");
+
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
         qCDebug(physics) << "ObjectConstraintHinge::getConstraint -- no rigidBodyA";
@@ -110,6 +115,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         // This hinge is between two entities... find the other rigid body.
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
+            qCDebug(physics) << "ObjectConstraintHinge::getConstraint -- no rigidBodyB";
             return nullptr;
         }
 
