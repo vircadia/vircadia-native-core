@@ -376,7 +376,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
         glm::vec3 meshFrameDirection = glm::vec3(worldToMeshMatrix * glm::vec4(direction, 0.0f));
 
-        for (const auto& triangleSet : _modelSpaceMeshTriangleSets) {
+        for (auto& triangleSet : _modelSpaceMeshTriangleSets) {
             float triangleSetDistance = 0.0f;
             BoxFace triangleSetFace;
             glm::vec3 triangleSetNormal;

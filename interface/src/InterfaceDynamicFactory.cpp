@@ -14,7 +14,6 @@
 #include <avatar/AvatarActionHold.h>
 #include <avatar/AvatarActionFarGrab.h>
 #include <ObjectActionOffset.h>
-#include <ObjectActionSpring.h>
 #include <ObjectActionTractor.h>
 #include <ObjectActionTravelOriented.h>
 #include <ObjectConstraintHinge.h>
@@ -33,7 +32,7 @@ EntityDynamicPointer interfaceDynamicFactory(EntityDynamicType type, const QUuid
         case DYNAMIC_TYPE_OFFSET:
             return std::make_shared<ObjectActionOffset>(id, ownerEntity);
         case DYNAMIC_TYPE_SPRING:
-            return std::make_shared<ObjectActionSpring>(id, ownerEntity);
+            qDebug() << "The 'spring' Action is deprecated.  Replacing with 'tractor' Action.";
         case DYNAMIC_TYPE_TRACTOR:
             return std::make_shared<ObjectActionTractor>(id, ownerEntity);
         case DYNAMIC_TYPE_HOLD:

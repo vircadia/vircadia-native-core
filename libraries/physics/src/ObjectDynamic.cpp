@@ -160,56 +160,6 @@ btRigidBody* ObjectDynamic::getRigidBody() {
     return nullptr;
 }
 
-glm::vec3 ObjectDynamic::getPosition() {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return glm::vec3(0.0f);
-    }
-    return bulletToGLM(rigidBody->getCenterOfMassPosition());
-}
-
-glm::quat ObjectDynamic::getRotation() {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return glm::quat(0.0f, 0.0f, 0.0f, 1.0f);
-    }
-    return bulletToGLM(rigidBody->getOrientation());
-}
-
-glm::vec3 ObjectDynamic::getLinearVelocity() {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return glm::vec3(0.0f);
-    }
-    return bulletToGLM(rigidBody->getLinearVelocity());
-}
-
-void ObjectDynamic::setLinearVelocity(glm::vec3 linearVelocity) {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return;
-    }
-    rigidBody->setLinearVelocity(glmToBullet(glm::vec3(0.0f)));
-    rigidBody->activate();
-}
-
-glm::vec3 ObjectDynamic::getAngularVelocity() {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return glm::vec3(0.0f);
-    }
-    return bulletToGLM(rigidBody->getAngularVelocity());
-}
-
-void ObjectDynamic::setAngularVelocity(glm::vec3 angularVelocity) {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return;
-    }
-    rigidBody->setAngularVelocity(glmToBullet(angularVelocity));
-    rigidBody->activate();
-}
-
 void ObjectDynamic::activateBody(bool forceActivation) {
     auto rigidBody = getRigidBody();
     if (rigidBody) {
