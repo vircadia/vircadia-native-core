@@ -310,7 +310,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAvatarOrientation) {
         auto startSection = destinationBuffer;
-        auto localOrientation = getLocalOrientation();
+        auto localOrientation = getOrientationOutbound();
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, localOrientation);
 
         int numBytes = destinationBuffer - startSection;
@@ -1487,6 +1487,10 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
         << "identityOut.sessionDisplayName:" << identityOut.sessionDisplayName;
 #endif
 
+}
+
+glm::quat AvatarData::getOrientationOutbound() const {
+    return (getLocalOrientation());
 }
 
 static const QUrl emptyURL("");

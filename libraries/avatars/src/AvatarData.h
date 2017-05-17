@@ -604,6 +604,9 @@ public:
         return _lastSentJointData;
     }
 
+    // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
+    virtual glm::quat getOrientationOutbound() const;
+
     static const float OUT_OF_VIEW_PENALTY;
 
     static void sortAvatars(
