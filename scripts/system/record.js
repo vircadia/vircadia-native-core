@@ -37,6 +37,12 @@
         Window.alert(message);
     }
 
+    function logDetails() {
+        return {
+            current_domain: location.placename
+        };
+    }
+
     RecordingIndicator = (function () {
         // Displays "recording" overlay.
 
@@ -181,7 +187,7 @@
 
             recordingState = IDLE;
             log("Finish recording");
-            UserActivityLogger.logAction("record_finish_recording");
+            UserActivityLogger.logAction("record_finish_recording", logDetails());
             playSound(finishRecordingSound);
             Recording.stopRecording();
             RecordingIndicator.hide();
@@ -269,6 +275,7 @@
 
     Player = (function () {
         var HIFI_RECORDER_CHANNEL = "HiFi-Recorder-Channel",
+            RECORDER_COMMAND_ERROR = "error",
             HIFI_PLAYER_CHANNEL = "HiFi-Player-Channel",
             PLAYER_COMMAND_PLAY = "play",
             PLAYER_COMMAND_STOP = "stop",
@@ -277,7 +284,6 @@
             playerIsPlayings = [],      // True if AC player script is playing a recording.
             playerRecordings = [],      // Assignment client mappings of recordings being played.
             playerTimestamps = [],      // Timestamps of last heartbeat update from player script.
-            playerStartupTimeouts = [], // Timers that check that recording has started playing.
 
             updateTimer,
             UPDATE_INTERVAL = 5000;  // Must be > player's HEARTBEAT_INTERVAL.
@@ -298,7 +304,6 @@
                     playerIsPlayings.splice(i, 1);
                     playerRecordings.splice(i, 1);
                     playerTimestamps.splice(i, 1);
-                    playerStartupTimeouts.splice(i, 1);
                 }
             }
 
@@ -309,8 +314,7 @@
         }
 
         function playRecording(recording, position, orientation) {
-            var index,
-                CHECK_PLAYING_TIMEOUT = 10000;
+            var index;
 
             // Optional function parameters.
             if (position === undefined) {
@@ -334,26 +338,9 @@
                 position: position,
                 orientation: orientation
             }));
-
-            playerStartupTimeouts[index] = Script.setTimeout(function () {
-                if ((!playerIsPlayings[index] || playerRecordings[index] !== recording) && playerStartupTimeouts[index]) {
-                    error("Didn't start playing recording "
-                        + recording.slice(4) + "!");  // Remove leading "atp:" from recording.
-                }
-                playerStartupTimeouts[index] = null;
-            }, CHECK_PLAYING_TIMEOUT);
         }
 
         function stopPlayingRecording(playerID) {
-            var index;
-
-            // Cancel check that recording started playing.
-            index = playerIDs.indexOf(playerID);
-            if (index !== -1 && playerStartupTimeouts[index] !== null) {
-                // Cannot clearTimeout() without program log error, so just set null.
-                playerStartupTimeouts[index] = null;
-            }
-
             Messages.sendMessage(HIFI_PLAYER_CHANNEL, JSON.stringify({
                 player: playerID,
                 command: PLAYER_COMMAND_STOP
@@ -370,15 +357,21 @@
 
             message = JSON.parse(message);
 
-            index = playerIDs.indexOf(sender);
-            if (index === -1) {
-                index = playerIDs.length;
-                playerIDs[index] = sender;
+            if (message.command === RECORDER_COMMAND_ERROR) {
+                if (message.user === MyAvatar.sessionUUID) {
+                    error(message.message);
+                }
+            } else {
+                index = playerIDs.indexOf(sender);
+                if (index === -1) {
+                    index = playerIDs.length;
+                    playerIDs[index] = sender;
+                }
+                playerIsPlayings[index] = message.playing;
+                playerRecordings[index] = message.recording;
+                playerTimestamps[index] = Date.now();
+                Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
             }
-            playerIsPlayings[index] = message.playing;
-            playerRecordings[index] = message.recording;
-            playerTimestamps[index] = Date.now();
-            Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
         }
 
         function reset() {
@@ -386,7 +379,6 @@
             playerIsPlayings = [];
             playerRecordings = [];
             playerTimestamps = [];
-            playerStartupTimeouts = [];
             Dialog.updatePlayerDetails(playerIsPlayings, playerRecordings, playerIDs);
         }
 
@@ -519,10 +511,11 @@
                         value: Player.numberOfPlayers()
                     }));
                     updateRecordingStatus(!Recorder.isIdle());
-                    UserActivityLogger.logAction("record_open_dialog");
+                    UserActivityLogger.logAction("record_open_dialog", logDetails());
                     break;
                 case STOP_PLAYING_RECORDING_ACTION:
                     // Stop the specified player.
+                    log("Unload recording " + message.value);
                     Player.stopPlayingRecording(message.value);
                     break;
                 case LOAD_RECORDING_ACTION:
@@ -530,7 +523,7 @@
                     recording = Window.browseAssets("Select Recording to Play", "recordings", "*.hfr");
                     if (recording) {
                         log("Load recording " + recording);
-                        UserActivityLogger.logAction("record_load_recording");
+                        UserActivityLogger.logAction("record_load_recording", logDetails());
                         Player.playRecording("atp:" + recording, MyAvatar.position, MyAvatar.orientation);
                     }
                     break;
@@ -660,7 +653,7 @@
         isConnected = Window.location.isConnected;
         Script.update.connect(onUpdate);
 
-        UserActivityLogger.logAction("record_run_script");
+        UserActivityLogger.logAction("record_run_script", logDetails());
     }
 
     function tearDown() {

@@ -359,7 +359,7 @@ function showUploadingMessage(selectedID, destination) {
     shareBarHelp.classList.add("uploading");
     shareBarHelp.setAttribute("data-destination", destination);
 }
-function hideUploadingMessageAndShare(selectedID, storyID) {
+function hideUploadingMessageAndMaybeShare(selectedID, storyID) {
     if (selectedID.id) {
         selectedID = selectedID.id; // sometimes (?), `containerID` is passed as an HTML object to these functions; we just want the ID
     }
@@ -382,21 +382,28 @@ function hideUploadingMessageAndShare(selectedID, storyID) {
                 var facebookButton = document.getElementById(selectedID + "facebookButton");
                 window.open(facebookButton.getAttribute("href"), "_blank");
                 shareBarHelp.innerHTML = facebookShareText;
+                // This emitWebEvent() call isn't necessary in the "hifi" and "blast" cases
+                // because the "removeFromStoryIDsToMaybeDelete()" call happens
+                // in snapshot.js when sharing with that method.
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "snapshot",
+                    action: "removeFromStoryIDsToMaybeDelete",
+                    story_id: storyID
+                }));
                 break;
             case 'twitter':
                 var twitterButton = document.getElementById(selectedID + "twitterButton");
                 window.open(twitterButton.getAttribute("href"), "_blank");
                 shareBarHelp.innerHTML = twitterShareText;
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "snapshot",
+                    action: "removeFromStoryIDsToMaybeDelete",
+                    story_id: storyID
+                }));
                 break;
         }
 
         shareBarHelp.setAttribute("data-destination", "");
-
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: "snapshot",
-            action: "removeFromStoryIDsToMaybeDelete",
-            story_id: storyID
-        }));
     }
 }
 function updateShareInfo(containerID, storyID) {
@@ -417,7 +424,7 @@ function updateShareInfo(containerID, storyID) {
     twitterButton.setAttribute("target", "_blank");
     twitterButton.setAttribute("href", 'https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelityinc&hashtags=VR,HiFi');
 
-    hideUploadingMessageAndShare(containerID, storyID);
+    hideUploadingMessageAndMaybeShare(containerID, storyID);
 }
 function blastToConnections(selectedID, isGif) {
     if (selectedID.id) {
@@ -552,6 +559,12 @@ function shareButtonClicked(destination, selectedID) {
 
     if (!storyID) {
         showUploadingMessage(selectedID, destination);
+    } else {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "snapshot",
+            action: "removeFromStoryIDsToMaybeDelete",
+            story_id: storyID
+        }));
     }
 }
 

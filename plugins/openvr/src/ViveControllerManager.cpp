@@ -40,7 +40,7 @@ void releaseOpenVrSystem();
 
 
 static const char* CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
-const quint64 CALIBRATION_TIMELAPSE = 2 * USECS_PER_SECOND;
+const quint64 CALIBRATION_TIMELAPSE = 1 * USECS_PER_SECOND;
 
 static const char* MENU_PARENT = "Avatar";
 static const char* MENU_NAME = "Vive Controllers";

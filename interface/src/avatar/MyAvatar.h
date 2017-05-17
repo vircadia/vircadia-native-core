@@ -190,6 +190,8 @@ public:
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
     Q_INVOKABLE QVariant getOrientationVar() const;
 
+    // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
+    glm::quat getOrientationOutbound() const override;
 
     // Pass a recent sample of the HMD to the avatar.
     // This can also update the avatar's position to follow the HMD
@@ -632,6 +634,14 @@ private:
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
+
+    // Smoothing.
+    const float SMOOTH_TIME_ORIENTATION = 0.5f;
+
+    // Smoothing data for blending from one position/orientation to another on remote agents.
+    float _smoothOrientationTimer;
+    glm::quat _smoothOrientationInitial;
+    glm::quat _smoothOrientationTarget;
 
     // private methods
     void updateOrientation(float deltaTime);
