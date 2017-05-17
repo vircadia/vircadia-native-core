@@ -125,7 +125,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
 
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
-    Q_PROPERTY(float isAway READ getIsAway WRITE setAway)
+    Q_PROPERTY(bool isAway READ getIsAway WRITE setAway)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)

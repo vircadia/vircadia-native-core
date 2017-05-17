@@ -112,6 +112,9 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _dynamicsWorld = nullptr;
         }
         int16_t collisionGroup = computeCollisionGroup();
+        if (_rigidBody) {
+            updateMassProperties();
+        }
         if (world && _rigidBody) {
             // add to new world
             _dynamicsWorld = world;
@@ -127,7 +130,9 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         _ghost.setCollisionGroupAndMask(collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR & (~ collisionGroup));
         _ghost.setCollisionWorld(_dynamicsWorld);
         _ghost.setRadiusAndHalfHeight(_radius, _halfHeight);
-        _ghost.setWorldTransform(_rigidBody->getWorldTransform());
+        if (_rigidBody) {
+            _ghost.setWorldTransform(_rigidBody->getWorldTransform());
+        }
     }
     if (_dynamicsWorld) {
         if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
