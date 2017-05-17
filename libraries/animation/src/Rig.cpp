@@ -1088,10 +1088,12 @@ void Rig::updateHeadAnimVars(const HeadParameters& params) {
                 // Since there is an explicit hips ik target, switch the head to use the more generic RotationAndPosition IK chain type.
                 // this will allow the spine to bend more, ensuring that it can reach the head target position.
                 _animVars.set("headType", (int)IKTarget::Type::RotationAndPosition);
+                _animVars.unset("headWeight");  // use the default weight for this target.
             } else {
                 // When there is no hips IK target, use the HmdHead IK chain type.  This will make the spine very stiff,
                 // but because the IK _hipsOffset is enabled, the hips will naturally follow underneath the head.
                 _animVars.set("headType", (int)IKTarget::Type::HmdHead);
+                _animVars.set("headWeight", 8.0f);
             }
         } else {
             _animVars.unset("headPosition");
@@ -1400,22 +1402,24 @@ void Rig::computeAvatarBoundingCapsule(
 
     AnimInverseKinematics ikNode("boundingShape");
     ikNode.setSkeleton(_animSkeleton);
+
+    // AJT: FIX ME!!!!! ensure that empty weights vector does something reasonable....
     ikNode.setTargetVars("LeftHand",
                          "leftHandPosition",
                          "leftHandRotation",
-                         "leftHandType");
+                         "leftHandType", "leftHandWeight", 1.0f, {});
     ikNode.setTargetVars("RightHand",
                          "rightHandPosition",
                          "rightHandRotation",
-                         "rightHandType");
+                         "rightHandType", "rightHandWeight", 1.0f, {});
     ikNode.setTargetVars("LeftFoot",
                          "leftFootPosition",
                          "leftFootRotation",
-                         "leftFootType");
+                         "leftFootType", "leftFootWeight", 1.0f, {});
     ikNode.setTargetVars("RightFoot",
                          "rightFootPosition",
                          "rightFootRotation",
-                         "rightFootType");
+                         "rightFootType", "rightFootWeight", 1.0f, {});
 
     AnimPose geometryToRig = _modelOffset * _geometryOffset;
 
