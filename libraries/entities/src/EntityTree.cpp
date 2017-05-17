@@ -452,6 +452,13 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
 
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(getThisPointer(), entityID);
+
+    existingEntity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+        auto descendantID = descendant->getID();
+        theOperator.addEntityIDToDeleteList(descendantID);
+        emit deletingEntity(descendantID);
+    });
+
     recurseTreeWithOperator(&theOperator);
     processRemovedEntities(theOperator);
     _isDirty = true;
