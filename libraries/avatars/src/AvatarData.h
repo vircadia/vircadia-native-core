@@ -538,7 +538,7 @@ public:
 
     // identityChanged returns true if identity has changed, false otherwise.
     // displayNameChanged returns true if displayName has changed, false otherwise.
-    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew);
+    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
 
     QByteArray identityByteArray() const;
 

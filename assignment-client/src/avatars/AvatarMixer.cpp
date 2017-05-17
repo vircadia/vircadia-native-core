@@ -402,7 +402,7 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
             bool identityChanged = false;
             bool displayNameChanged = false;
-            avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged, senderNode->getClockSkewUsec());
+            avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged);
             if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();
@@ -665,12 +665,12 @@ void AvatarMixer::sendStatsPacket() {
 
 void AvatarMixer::run() {
     qCDebug(avatars) << "Waiting for connection to domain to request settings from domain-server.";
-    
+
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &AvatarMixer::domainSettingsRequestComplete);
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AvatarMixer::domainSettingsRequestFailed);
-   
+
     ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
 
 }
@@ -695,7 +695,7 @@ void AvatarMixer::domainSettingsRequestComplete() {
 
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
-    
+
     // start our tight loop...
     start();
 }
@@ -745,7 +745,7 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     } else {
         qCDebug(avatars) << "Avatar mixer will automatically determine number of threads to use. Using:" << _slavePool.numThreads() << "threads.";
     }
-    
+
     const QString AVATARS_SETTINGS_KEY = "avatars";
 
     static const QString MIN_SCALE_OPTION = "min_avatar_scale";
