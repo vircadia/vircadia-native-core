@@ -2052,11 +2052,13 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             setSkeletonModelURL(bodyModelURL);
         }
     }
+
+    QString newDisplayName = "";
     if (json.contains(JSON_AVATAR_DISPLAY_NAME)) {
-        auto newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
-        if (newDisplayName != getDisplayName()) {
-            setDisplayName(newDisplayName);
-        }
+        newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
+    }
+    if (newDisplayName != getDisplayName()) {
+        setDisplayName(newDisplayName);
     }
 
     auto currentBasis = getRecordingBasis();
@@ -2086,14 +2088,16 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         setTargetScale((float)json[JSON_AVATAR_SCALE].toDouble());
     }
 
+    QVector<AttachmentData> attachments;
     if (json.contains(JSON_AVATAR_ATTACHMENTS) && json[JSON_AVATAR_ATTACHMENTS].isArray()) {
         QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
-        QVector<AttachmentData> attachments;
         for (auto attachmentJson : attachmentsJson) {
             AttachmentData attachment;
             attachment.fromJson(attachmentJson.toObject());
             attachments.push_back(attachment);
         }
+    }
+    if (attachments != getAttachmentData()) {
         setAttachmentData(attachments);
     }
 
