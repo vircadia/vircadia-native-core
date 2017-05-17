@@ -15,7 +15,7 @@ void IKTarget::setPose(const glm::quat& rotation, const glm::vec3& translation) 
 }
 
 void IKTarget::setFlexCoefficients(size_t numFlexCoefficientsIn, const float* flexCoefficientsIn) {
-    _numFlexCoefficients = std::min(numFlexCoefficientsIn, MAX_FLEX_COEFFICIENTS);
+    _numFlexCoefficients = std::min(numFlexCoefficientsIn, (size_t)MAX_FLEX_COEFFICIENTS);
     for (size_t i = 0; i < _numFlexCoefficients; i++) {
         _flexCoefficients[i] = flexCoefficientsIn[i];
     }

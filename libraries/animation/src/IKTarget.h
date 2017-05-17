@@ -41,7 +41,8 @@ public:
     void setWeight(float weight) { _weight = weight; }
     float getWeight() const { return _weight; }
 
-    static const size_t MAX_FLEX_COEFFICIENTS = 10;
+    enum FlexCoefficients { MAX_FLEX_COEFFICIENTS = 10 };
+
 private:
     AnimPose _pose;
     int _index{-1};
