@@ -1584,8 +1584,6 @@ void AvatarData::setDisplayName(const QString& displayName) {
     _displayName = displayName;
     _sessionDisplayName = "";
 
-    sendIdentityPacket();
-
     qCDebug(avatars) << "Changing display name for avatar to" << displayName;
     markIdentityDataChanged();
 }
