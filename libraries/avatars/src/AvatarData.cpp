@@ -310,7 +310,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAvatarOrientation) {
         auto startSection = destinationBuffer;
-        auto localOrientation = getLocalOrientation();
+        auto localOrientation = getOrientationOutbound();
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, localOrientation);
 
         int numBytes = destinationBuffer - startSection;
@@ -1489,6 +1489,10 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
 
 }
 
+glm::quat AvatarData::getOrientationOutbound() const {
+    return (getLocalOrientation());
+}
+
 static const QUrl emptyURL("");
 QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     // We don't put file urls on the wire, but instead convert to empty.
@@ -1496,13 +1500,18 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
 }
 
 void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew) {
+    quint64 identityPacketUpdatedAt = identity.updatedAt;
+
+    if (identityPacketUpdatedAt <= (uint64_t)(abs(clockSkew))) { // Incoming timestamp is bad - compute our own timestamp
+        identityPacketUpdatedAt = usecTimestampNow() + clockSkew;
+    }
 
     // Consider the case where this packet is being processed on Client A, and Client A is connected to Sandbox B.
     // If Client A's system clock is *ahead of* Sandbox B's system clock, "clockSkew" will be *negative*.
     // If Client A's system clock is *behind* Sandbox B's system clock, "clockSkew" will be *positive*.
-    if ((_identityUpdatedAt > identity.updatedAt - clockSkew) && (_identityUpdatedAt != 0)) {
+    if ((_identityUpdatedAt > identityPacketUpdatedAt - clockSkew) && (_identityUpdatedAt != 0)) {
         qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
-            << "_identityUpdatedAt (" << _identityUpdatedAt << ") is greater than identity.updatedAt - clockSkew (" << identity.updatedAt << "-" << clockSkew << ")";
+            << "_identityUpdatedAt (" << _identityUpdatedAt << ") is greater than identityPacketUpdatedAt - clockSkew (" << identityPacketUpdatedAt << "-" << clockSkew << ")";
         return;
     }
 
@@ -1538,7 +1547,7 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
 
     // use the timestamp from this identity, since we want to honor the updated times in "server clock"
     // this will overwrite any changes we made locally to this AvatarData's _identityUpdatedAt
-    _identityUpdatedAt = identity.updatedAt - clockSkew;
+    _identityUpdatedAt = identityPacketUpdatedAt - clockSkew;
 }
 
 QByteArray AvatarData::identityByteArray() const {
@@ -2047,11 +2056,13 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             setSkeletonModelURL(bodyModelURL);
         }
     }
+
+    QString newDisplayName = "";
     if (json.contains(JSON_AVATAR_DISPLAY_NAME)) {
-        auto newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
-        if (newDisplayName != getDisplayName()) {
-            setDisplayName(newDisplayName);
-        }
+        newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
+    }
+    if (newDisplayName != getDisplayName()) {
+        setDisplayName(newDisplayName);
     }
 
     auto currentBasis = getRecordingBasis();
@@ -2081,14 +2092,16 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         setTargetScale((float)json[JSON_AVATAR_SCALE].toDouble());
     }
 
+    QVector<AttachmentData> attachments;
     if (json.contains(JSON_AVATAR_ATTACHMENTS) && json[JSON_AVATAR_ATTACHMENTS].isArray()) {
         QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
-        QVector<AttachmentData> attachments;
         for (auto attachmentJson : attachmentsJson) {
             AttachmentData attachment;
             attachment.fromJson(attachmentJson.toObject());
             attachments.push_back(attachment);
         }
+    }
+    if (attachments != getAttachmentData()) {
         setAttachmentData(attachments);
     }
 
