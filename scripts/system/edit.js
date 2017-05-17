@@ -527,7 +527,7 @@ var toolBar = (function () {
                 alphaFinish: 0,
                 polarStart: 0,
                 polarFinish: 0,
-                textures: "https://raw.githubusercontent.com/Triplelexx/hifi/f98c3556fd0011150e35dc20275434b6321ac014/interface/resources/images/wispy-smoke.png"
+                textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png"
             });
         });
 
