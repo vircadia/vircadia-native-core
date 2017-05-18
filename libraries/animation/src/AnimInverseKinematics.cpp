@@ -21,6 +21,39 @@
 #include "SwingTwistConstraint.h"
 #include "AnimationLogging.h"
 
+AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
+                                                const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn) :
+    jointName(jointNameIn),
+    positionVar(positionVarIn),
+    rotationVar(rotationVarIn),
+    typeVar(typeVarIn),
+    weightVar(weightVarIn),
+    weight(weightIn),
+    numFlexCoefficients(flexCoefficientsIn.size()),
+    jointIndex(-1)
+{
+    numFlexCoefficients = std::min(numFlexCoefficients, (size_t)MAX_FLEX_COEFFICIENTS);
+    for (size_t i = 0; i < numFlexCoefficients; i++) {
+        flexCoefficients[i] = flexCoefficientsIn[i];
+    }
+}
+
+AnimInverseKinematics::IKTargetVar::IKTargetVar(const IKTargetVar& orig) :
+    jointName(orig.jointName),
+    positionVar(orig.positionVar),
+    rotationVar(orig.rotationVar),
+    typeVar(orig.typeVar),
+    weightVar(orig.weightVar),
+    weight(orig.weight),
+    numFlexCoefficients(orig.numFlexCoefficients),
+    jointIndex(orig.jointIndex)
+{
+    numFlexCoefficients = std::min(numFlexCoefficients, (size_t)MAX_FLEX_COEFFICIENTS);
+    for (size_t i = 0; i < numFlexCoefficients; i++) {
+        flexCoefficients[i] = orig.flexCoefficients[i];
+    }
+}
+
 AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimNode::Type::InverseKinematics, id) {
 }
 
@@ -60,26 +93,22 @@ void AnimInverseKinematics::computeAbsolutePoses(AnimPoseVec& absolutePoses) con
     }
 }
 
-void AnimInverseKinematics::setTargetVars(
-        const QString& jointName,
-        const QString& positionVar,
-        const QString& rotationVar,
-        const QString& typeVar) {
+void AnimInverseKinematics::setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar,
+                                          const QString& typeVar, const QString& weightVar, float weight, const std::vector<float>& flexCoefficients) {
+    IKTargetVar targetVar(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients);
+
     // if there are dups, last one wins.
     bool found = false;
-    for (auto& targetVar: _targetVarVec) {
-        if (targetVar.jointName == jointName) {
-            // update existing targetVar
-            targetVar.positionVar = positionVar;
-            targetVar.rotationVar = rotationVar;
-            targetVar.typeVar = typeVar;
+    for (auto& targetVarIter: _targetVarVec) {
+        if (targetVarIter.jointName == jointName) {
+            targetVarIter = targetVar;
             found = true;
             break;
         }
     }
     if (!found) {
         // create a new entry
-        _targetVarVec.push_back(IKTargetVar(jointName, positionVar, rotationVar, typeVar));
+        _targetVarVec.push_back(targetVar);
     }
 }
 
@@ -107,10 +136,15 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
                 glm::quat rotation = animVars.lookupRigToGeometry(targetVar.rotationVar, defaultPose.rot());
                 glm::vec3 translation = animVars.lookupRigToGeometry(targetVar.positionVar, defaultPose.trans());
+                float weight = animVars.lookup(targetVar.weightVar, targetVar.weight);
 
                 target.setPose(rotation, translation);
                 target.setIndex(targetVar.jointIndex);
+                target.setWeight(weight);
+                target.setFlexCoefficients(targetVar.numFlexCoefficients, targetVar.flexCoefficients);
+
                 targets.push_back(target);
+
                 if (targetVar.jointIndex > _maxTargetIndex) {
                     _maxTargetIndex = targetVar.jointIndex;
                 }
@@ -271,6 +305,8 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
     // cache tip absolute position
     glm::vec3 tipPosition = absolutePoses[tipIndex].trans();
 
+    size_t chainDepth = 1;
+
     // descend toward root, pivoting each joint to get tip closer to target position
     while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {
         // compute the two lines that should be aligned
@@ -312,9 +348,8 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
                 float angle = acosf(cosAngle);
                 const float MIN_ADJUSTMENT_ANGLE = 1.0e-4f;
                 if (angle > MIN_ADJUSTMENT_ANGLE) {
-                    // reduce angle by a fraction (for stability)
-                    const float STABILITY_FRACTION = 0.5f;
-                    angle *= STABILITY_FRACTION;
+                    // reduce angle by a flexCoefficient
+                    angle *= target.getFlexCoefficient(chainDepth);
                     deltaRotation = glm::angleAxis(angle, axis);
 
                     // The swing will re-orient the tip but there will tend to be be a non-zero delta between the tip's
@@ -385,6 +420,8 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
 
         pivotIndex = pivotsParentIndex;
         pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
+
+        chainDepth++;
     }
     return lowestMovedIndex;
 }
@@ -806,7 +843,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setTwistLimits(-MAX_SHOULDER_TWIST, MAX_SHOULDER_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_SHOULDER_SWING = PI / 20.0f;
+            const float MAX_SHOULDER_SWING = PI / 16.0f;
             minDots.push_back(cosf(MAX_SHOULDER_SWING));
             stConstraint->setSwingLimits(minDots);
 

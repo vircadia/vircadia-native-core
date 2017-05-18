@@ -1692,7 +1692,7 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
             }
         } else {
             float speed = glm::length(value);
-            if (!isnan(speed)) {
+            if (!glm::isnan(speed)) {
                 const float MIN_LINEAR_SPEED = 0.001f;
                 const float MAX_LINEAR_SPEED = 270.0f; // 3m per step at 90Hz
                 if (speed < MIN_LINEAR_SPEED) {
@@ -1730,7 +1730,7 @@ void EntityItem::updateGravity(const glm::vec3& value) {
             _gravity = Vectors::ZERO;
         } else {
             float magnitude = glm::length(value);
-            if (!isnan(magnitude)) {
+            if (!glm::isnan(magnitude)) {
                 const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
                 if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
                     _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
@@ -1750,7 +1750,7 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
             setLocalAngularVelocity(Vectors::ZERO);
         } else {
             float speed = glm::length(value);
-            if (!isnan(speed)) {
+            if (!glm::isnan(speed)) {
                 const float MIN_ANGULAR_SPEED = 0.0002f;
                 const float MAX_ANGULAR_SPEED = 9.0f * TWO_PI; // 1/10 rotation per step at 90Hz
                 if (speed < MIN_ANGULAR_SPEED) {

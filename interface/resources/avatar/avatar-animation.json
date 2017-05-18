@@ -56,43 +56,64 @@
                                     "jointName": "Hips",
                                     "positionVar": "hipsPosition",
                                     "rotationVar": "hipsRotation",
-                                    "typeVar": "hipsType"
+                                    "typeVar": "hipsType",
+                                    "weightVar": "hipsWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1]
                                 },
                                 {
                                     "jointName": "RightHand",
                                     "positionVar": "rightHandPosition",
                                     "rotationVar": "rightHandRotation",
-                                    "typeVar": "rightHandType"
+                                    "typeVar": "rightHandType",
+                                    "weightVar": "rightHandWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1, 0.5, 0.5, 0.25, 0.1, 0.05, 0.01, 0.0, 0.0]
                                 },
                                 {
                                     "jointName": "LeftHand",
                                     "positionVar": "leftHandPosition",
                                     "rotationVar": "leftHandRotation",
-                                    "typeVar": "leftHandType"
+                                    "typeVar": "leftHandType",
+                                    "weightVar": "leftHandWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1, 0.5, 0.5, 0.25, 0.1, 0.05, 0.01, 0.0, 0.0]
                                 },
                                 {
                                     "jointName": "RightFoot",
                                     "positionVar": "rightFootPosition",
                                     "rotationVar": "rightFootRotation",
-                                    "typeVar": "rightFootType"
+                                    "typeVar": "rightFootType",
+                                    "weightVar": "rightFootWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1, 0.45, 0.45]
                                 },
                                 {
                                     "jointName": "LeftFoot",
                                     "positionVar": "leftFootPosition",
                                     "rotationVar": "leftFootRotation",
-                                    "typeVar": "leftFootType"
+                                    "typeVar": "leftFootType",
+                                    "weightVar": "leftFootWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1, 0.45, 0.45]
                                 },
                                 {
                                     "jointName": "Spine2",
                                     "positionVar": "spine2Position",
                                     "rotationVar": "spine2Rotation",
-                                    "typeVar": "spine2Type"
+                                    "typeVar": "spine2Type",
+                                    "weightVar": "spine2Weight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [0.45, 0.45]
                                 },
                                 {
                                     "jointName": "Head",
                                     "positionVar": "headPosition",
                                     "rotationVar": "headRotation",
-                                    "typeVar": "headType"
+                                    "typeVar": "headType",
+                                    "weightVar": "headWeight",
+                                    "weight": 4.0,
+                                    "flexCoefficients": [1, 0.5, 0.5, 0.5, 0.5]
                                 }
                             ]
                         },
