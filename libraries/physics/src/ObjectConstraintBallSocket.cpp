@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <LogHandler.h>
+
 #include "QVariantGLM.h"
 
 #include "EntityTree.h"
@@ -83,6 +85,9 @@ btTypedConstraint* ObjectConstraintBallSocket::getConstraint() {
         return constraint;
     }
 
+    static QString repeatedBallSocketNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
+        "ObjectConstraintBallSocket::getConstraint -- no rigidBody.*");
+
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
         qCDebug(physics) << "ObjectConstraintBallSocket::getConstraint -- no rigidBodyA";
@@ -94,6 +99,7 @@ btTypedConstraint* ObjectConstraintBallSocket::getConstraint() {
 
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
+            qCDebug(physics) << "ObjectConstraintBallSocket::getConstraint -- no rigidBodyB";
             return nullptr;
         }
 

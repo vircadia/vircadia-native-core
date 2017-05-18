@@ -19,9 +19,6 @@
 AvatarMotionState::AvatarMotionState(AvatarSharedPointer avatar, const btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
     assert(_avatar);
     _type = MOTIONSTATE_TYPE_AVATAR;
-    if (_shape) {
-        _mass = 100.0f; // HACK
-    }
 }
 
 AvatarMotionState::~AvatarMotionState() {
