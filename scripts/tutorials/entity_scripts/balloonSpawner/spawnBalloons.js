@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() {
+(function () {
     var RED_BALLOON_URL = Script.resolvePath("../Models/redBalloon.fbx");
     var BLUE_BALLOON_URL = Script.resolvePath("../Models/blueBalloon.fbx");
     var GREEN_BALLOON_URL = Script.resolvePath("../Models/greenBalloon.fbx");
@@ -27,6 +27,9 @@
 
     var NUM_COLORS = 7;
     var COUNTDOWN_SECONDS = 9;
+    //Lowering the spawn rate below 10 spawns so many balloons that the interface slows down
+    var MIN_SPAWN_RATE = 10;
+    var MILLISECONDS_IN_SECOND = 1000;
 
     var _this = this;
     var spawnRate = 2000;
@@ -40,13 +43,12 @@
     var spawnMusic;
     var countdownIntervalID;
     var countdownEntityID;
-    
 
-    _this.preload = function(pEntityID) {
+    _this.preload = function (pEntityID) {
         var parentProperties = Entities.getEntityProperties(pEntityID, ["userData"]),
             spawnMusicURL,
             spawnerSettings;
-        if (parentProperties.userData){
+        if (parentProperties.userData) {
             spawnerSettings = JSON.parse(parentProperties.userData);
         }
         spawnMusicURL = spawnerSettings.spawnMusicURL ? spawnerSettings.spawnMusicURL : SPAWN_MUSIC_URL;
@@ -55,7 +57,7 @@
         _this.startCountdown(pEntityID);
     };
 
-    _this.startCountdown = function(pEntityID) {
+    _this.startCountdown = function (pEntityID) {
         var countdownSeconds = COUNTDOWN_SECONDS,
             parentProperties = Entities.getEntityProperties(pEntityID, ["position"]),
             countdownEntityProperties;
@@ -98,13 +100,13 @@
         }, 1000);
     };
 
-    _this.spawnBalloons = function(pEntityID) {
+    _this.spawnBalloons = function (pEntityID) {
         var parentProperties = Entities.getEntityProperties(pEntityID, ["position", "userData"]),
             spawnerSettings,
             spawnMusicVolume,
             spawnCount = 0;
 
-        if (parentProperties.userData){
+        if (parentProperties.userData) {
             spawnerSettings = JSON.parse(parentProperties.userData);
         }
 
@@ -116,12 +118,12 @@
         spawnRate =  !isNaN(spawnerSettings.spawnRate) ? spawnerSettings.spawnRate : spawnRate;
         spawnMusicVolume = !isNaN(spawnerSettings.spawnMusicVolume) ? spawnerSettings.spawnMusicVolume : 0.1;
 
-        if (spawnRate < 10){
-            spawnRate = 10;
-            print("The lowest balloon spawn rate allowed is 10.");
+        if (spawnRate < MIN_SPAWN_RATE) {
+            spawnRate = MIN_SPAWN_RATE;
+            print("The lowest balloon spawn rate allowed is " + MIN_SPAWN_RATE);
         }
 
-        if (spawnMusic.downloaded){
+        if (spawnMusic.downloaded) {
             musicInjector = Audio.playSound(spawnMusic, {
                 position: parentProperties.position,
                 volume: spawnMusicVolume,
@@ -129,7 +131,7 @@
             });
         }
 
-        spawnIntervalID = Script.setInterval(function() {
+        spawnIntervalID = Script.setInterval(function () {
             var colorID = Math.floor(Math.random() * NUM_COLORS),
                 color = BALLOON_COLORS[colorID],
                 balloonURL = BALLOON_URLS[colorID],
@@ -190,31 +192,31 @@
             Entities.addEntity(balloonProperties);
 
             //Clean up after spawnDuration
-            if (spawnCount * spawnRate / 1000 > spawnDuration){
+            if (spawnCount * spawnRate / MILLISECONDS_IN_SECOND > spawnDuration) {
                 _this.cleanUp(pEntityID);
             }
          }, spawnRate);
     };    	
 
-    _this.unload = function(){
+    _this.unload = function () {
         _this.cleanUp();
     };
 
-    _this.cleanUp = function(pEntityID) {
-        if (spawnIntervalID){
+    _this.cleanUp = function (pEntityID) {
+        if (spawnIntervalID ) {
             Script.clearInterval(spawnIntervalID);
         }
-        if (countdownIntervalID){
+        if (countdownIntervalID) {
             Script.clearInterval(countdownIntervalID);
         }
-        if (countdownEntityID){
+        if (countdownEntityID) {
             Entities.deleteEntity(countdownEntityID);
         }        
         if (musicInjector !== undefined && musicInjector.isPlaying) {
             musicInjector.stop();
             musicInjector = undefined;
         }
-        if (pEntityID){
+        if (pEntityID) {
             Entities.deleteEntity(pEntityID);
         }	
     };
