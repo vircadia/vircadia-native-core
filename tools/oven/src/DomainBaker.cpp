@@ -23,10 +23,12 @@
 #include "DomainBaker.h"
 
 DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainName,
-                         const QString& baseOutputPath, const QUrl& destinationPath) :
+                         const QString& baseOutputPath, const QUrl& destinationPath,
+                         bool shouldRebakeOriginals) :
     _localEntitiesFileURL(localModelFileURL),
     _domainName(domainName),
-    _baseOutputPath(baseOutputPath)
+    _baseOutputPath(baseOutputPath),
+    _shouldRebakeOriginals(shouldRebakeOriginals)
 {
     // make sure the destination path has a trailing slash
     if (!destinationPath.toString().endsWith('/')) {
@@ -168,9 +170,25 @@ void DomainBaker::enumerateEntities() {
                 static const QStringList BAKEABLE_MODEL_EXTENSIONS { ".fbx" };
                 auto completeLowerExtension = modelFileName.mid(modelFileName.indexOf('.')).toLower();
 
-                if (BAKEABLE_MODEL_EXTENSIONS.contains(completeLowerExtension)) {
-                    // grab a clean version of the URL without a query or fragment
-                    modelURL = modelURL.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+                static const QString BAKED_MODEL_EXTENSION = ".baked.fbx";
+
+                if (BAKEABLE_MODEL_EXTENSIONS.contains(completeLowerExtension) ||
+                    (_shouldRebakeOriginals && completeLowerExtension == BAKED_MODEL_EXTENSION)) {
+
+                    if (completeLowerExtension == BAKED_MODEL_EXTENSION) {
+                        // grab a URL to the original, that we assume is stored a directory up, in the "original" folder
+                        // with just the fbx extension
+                        qDebug() << "Re-baking original for" << modelURL;
+
+                        auto originalFileName = modelFileName;
+                        originalFileName.replace(".baked", "");
+                        modelURL = modelURL.resolved("../original/" + originalFileName);
+
+                        qDebug() << "Original must be present at" << modelURL;
+                    } else {
+                        // grab a clean version of the URL without a query or fragment
+                        modelURL = modelURL.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+                    }
 
                     // setup an FBXBaker for this URL, as long as we don't already have one
                     if (!_modelBakers.contains(modelURL)) {
