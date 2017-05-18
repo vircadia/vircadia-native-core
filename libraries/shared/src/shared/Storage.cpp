@@ -25,7 +25,9 @@ StoragePointer Storage::createView(size_t viewSize, size_t offset) const {
         viewSize = selfSize;
     }
     if ((viewSize + offset) > selfSize) {
-        throw std::runtime_error("Invalid mapping range");
+        return StoragePointer();
+        //TODO: Disable te exception for now and return an empty storage instead.
+        //throw std::runtime_error("Invalid mapping range");
     }
     return std::make_shared<ViewStorage>(shared_from_this(), viewSize, data() + offset);
 }
