@@ -195,7 +195,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const AnimContext& 
 
         // solve all targets
         for (auto& target: targets) {
-            bool debug = numLoops == MAX_IK_LOOPS;
+            bool debug = false;
             solveTargetWithCCD(context, target, absolutePoses, debug);
         }
 
@@ -254,6 +254,8 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const AnimContext& 
 }
 
 void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug) {
+    size_t chainDepth = 0;
+
     IKTarget::Type targetType = target.getType();
     if (targetType == IKTarget::Type::RotationOnly) {
         // the final rotation will be enforced after the iterations
@@ -287,9 +289,18 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
         targetType == IKTarget::Type::RotationAndPosition ||
         targetType == IKTarget::Type::HipsRelativeRotationAndPosition) {
 
-        // rotate tip directly to target orientation
-        tipOrientation = target.getRotation();
-        glm::quat tipRelativeRotation = glm::inverse(tipParentOrientation) * tipOrientation;
+        // rotate tip toward target orientation
+        glm::quat deltaRot = target.getRotation() * glm::inverse(tipOrientation);
+
+        // decompose deltaRot into axis angle
+        glm::vec3 axis = glm::axis(deltaRot);
+        float angle = glm::angle(deltaRot);
+
+        // apply flexCoefficent and re-compose quat
+        glm::quat deltaRotation = glm::angleAxis(angle * target.getFlexCoefficient(chainDepth), axis);
+
+        // compute parent relative rotation
+        glm::quat tipRelativeRotation = glm::inverse(tipParentOrientation) * deltaRotation * tipOrientation;
 
         // then enforce tip's constraint
         RotationConstraint* constraint = getConstraint(tipIndex);
@@ -301,6 +312,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                 tipRelativeRotation = tipRelativeRotation;
             }
         }
+
         // store the relative rotation change in the accumulator
         _accumulators[tipIndex].add(tipRelativeRotation, target.getWeight());
 
@@ -312,7 +324,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
     // cache tip absolute position
     glm::vec3 tipPosition = absolutePoses[tipIndex].trans();
 
-    size_t chainDepth = 1;
+    chainDepth++;
 
     // descend toward root, pivoting each joint to get tip closer to target position
     while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {
