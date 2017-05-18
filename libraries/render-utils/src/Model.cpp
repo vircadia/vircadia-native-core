@@ -1153,7 +1153,9 @@ void Model::deleteGeometry() {
     _deleteGeometryCounter++;
     _blendedVertexBuffers.clear();
     _meshStates.clear();
-    _rig->destroyAnimGraph();
+    if (_rig) {
+        _rig->destroyAnimGraph();
+    }
     _blendedBlendshapeCoefficients.clear();
     _renderGeometry.reset();
     _collisionGeometry.reset();
