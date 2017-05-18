@@ -8,9 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-<@include DeferredTransform.slh@>
-<$declareDeferredFrameTransform()$>
+<@include zone_draw.slh@>
 
 <@include model/Light.slh@>
 
@@ -25,33 +23,31 @@ out vec4 _fragColor;
 
 void main(void) {
 
-    const float INNER_RADIUS = 1.0;
-    const float INNER_RADIUS2 = INNER_RADIUS * INNER_RADIUS;
-    const float OUTER_RADIUS = 1.05;
-    const float OUTER_RADIUS2 = OUTER_RADIUS * OUTER_RADIUS;
-    vec2 sphereUV = (varTexCoord0.xy * 2.0 - vec2(1.0)) * OUTER_RADIUS;
-    float sphereR2 = dot(sphereUV.xy, sphereUV.xy);
-    if (sphereR2 > OUTER_RADIUS * OUTER_RADIUS) {
-        discard;
-    }
-    if (sphereR2 > INNER_RADIUS2) {
-        float falloff = (sphereR2 - OUTER_RADIUS2) / (OUTER_RADIUS2 - INNER_RADIUS2);
-        _fragColor = vec4(0.0, 0.0, 0.0, falloff * falloff);
-        return;
-    }
-    vec3 spherePos = normalize(vec3(sphereUV, sqrt(1.0 - sphereR2)));
-
-
-    vec3 fragNormal = vec3(getViewInverse() * vec4(spherePos, 0.0));
-
+    <$evalGlobeWidget()$>
 
     Light light = getLight();
-
-	vec3 lightDirection = getLightDirection(light);
+    vec3 lightDirection = getLightDirection(light);
     vec3 lightIrradiance = getLightIrradiance(light);
+    vec3 color = vec3(0.0);
+  
+    const float INOUT_RATIO = 0.4;
+    const float SUN_THRESHOLD = 0.99;
 
-    vec3 color = lightIrradiance;
+    vec3 outSpherePos = normalize(vec3(sphereUV, -sqrt(1.0 - sphereR2)));
+    vec3 outNormal = vec3(getViewInverse() * vec4(outSpherePos, 0.0));
+    float val = step(SUN_THRESHOLD, dot(-lightDirection, outNormal));
 
+    color = lightIrradiance * vec3(val);
+
+    if (sphereR2 < INOUT_RATIO * INOUT_RATIO * SCOPE_RADIUS2) {
+        vec2 inSphereUV = sphereUV / INOUT_RATIO;
+        vec3 inSpherePos = normalize(vec3(inSphereUV, sqrt(1.0 - dot(inSphereUV.xy, inSphereUV.xy))));
+        vec3 inNormal = vec3(getViewInverse() * vec4(inSpherePos, 0.0));
+
+        color += lightIrradiance * vec3(dot(-lightDirection, inNormal));
+    }
+
+    color = color * 1.0 - base.w + base.xyz * base.w;
     const float INV_GAMMA_22 = 1.0 / 2.2;
     _fragColor = vec4(pow(color, vec3(INV_GAMMA_22)), 1.0);
 }
