@@ -39,25 +39,23 @@
         
         {
             "from": "Vive.LeftFoot", "to" : "Standard.LeftFoot",
-            "filters" : [{"type" :  "lowVelocity", "rotation" : 9.0, "translation": 9.0 }],
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}],
             "when": [ "Application.InHMD"]
         },
         
         {
             "from": "Vive.RightFoot", "to" : "Standard.RightFoot",
-            "filters" : [{"type" :  "lowVelocity", "rotation" : 9.0, "translation": 9.0}]
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}]
             ,"when": [ "Application.InHMD"]
         },
         
         {
             "from": "Vive.Hips", "to" : "Standard.Hips",
-            "filters" : [{"type" :  "lowVelocity", "rotation" : 10.0, "translation": 10.0}],
             "when": [ "Application.InHMD"]
         },
         
         {
             "from": "Vive.Spine2", "to" : "Standard.Spine2",
-            "filters" : [{"type" :  "lowVelocity", "rotation" : 10.0, "translation": 10.0}],
             "when": [ "Application.InHMD"]
         },
         

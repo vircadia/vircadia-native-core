@@ -4376,6 +4376,7 @@ void Application::update(float deltaTime) {
         }
     }
 
+    userInputMapper->setInputCalibrationData(calibrationData);
     userInputMapper->update(deltaTime);
 
     if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
