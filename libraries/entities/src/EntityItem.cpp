@@ -1624,7 +1624,7 @@ void EntityItem::updateParentID(const QUuid& value) {
         setParentID(value);
         // children are forced to be kinematic
         // may need to not collide with own avatar
-        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP | Simulation::DIRTY_POSITION);
     }
 }
 

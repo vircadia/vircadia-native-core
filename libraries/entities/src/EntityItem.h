@@ -475,6 +475,8 @@ public:
 
     virtual bool getMeshes(MeshProxyList& result) { return true; }
 
+    virtual void locationChanged(bool tellPhysics = true) override;
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }
@@ -482,7 +484,6 @@ protected:
     const QByteArray getDynamicDataInternal() const;
     void setDynamicDataInternal(QByteArray dynamicData);
 
-    virtual void locationChanged(bool tellPhysics = true) override;
     virtual void dimensionsChanged() override;
 
     EntityTypes::EntityType _type;

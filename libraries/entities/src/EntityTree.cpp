@@ -1249,6 +1249,9 @@ void EntityTree::fixupMissingParents() {
             if (entity->isParentIDValid()) {
                 // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
                 doMove = true;
+                // the bounds on the render-item may need to be updated, the rigid body in the physics engine may
+                // need to be moved.
+                entity->locationChanged(true);
             } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
                 // this is a child of an avatar, which the entity server will never have
                 // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
