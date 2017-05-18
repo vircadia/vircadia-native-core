@@ -100,6 +100,15 @@ void DomainBaker::loadLocalFile() {
     // load up the local entities file
     QFile entitiesFile { _localEntitiesFileURL.toLocalFile() };
 
+    // first make a copy of the local entities file in our output folder
+    if (!entitiesFile.copy(_uniqueOutputPath + "/" + "original-" + _localEntitiesFileURL.fileName())) {
+        // add an error to our list to specify that the file could not be copied
+        handleError("Could not make a copy of entities file");
+
+        // return to stop processing
+        return;
+    }
+
     if (!entitiesFile.open(QIODevice::ReadOnly)) {
         // add an error to our list to specify that the file could not be read
         handleError("Could not open entities file");
