@@ -1020,7 +1020,7 @@ function loaded() {
 
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
-                            elTextFaceCamera = properties.faceCamera;
+                            elTextFaceCamera.checked = properties.faceCamera;
                             elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red + "," + properties.textColor.green + "," + properties.textColor.blue + ")";
                             elTextTextColorRed.value = properties.textColor.red;
                             elTextTextColorGreen.value = properties.textColor.green;

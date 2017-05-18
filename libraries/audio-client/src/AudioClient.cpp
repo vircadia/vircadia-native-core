@@ -799,7 +799,8 @@ QString AudioClient::getDefaultDeviceName(QAudio::Mode mode) {
 
 QVector<QString> AudioClient::getDeviceNames(QAudio::Mode mode) {
     QVector<QString> deviceNames;
-    foreach(QAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
+    const QList<QAudioDeviceInfo> &availableDevice = getAvailableDevices(mode);
+    foreach(const QAudioDeviceInfo &audioDevice, availableDevice) {
         deviceNames << audioDevice.deviceName().trimmed();
     }
     return deviceNames;
@@ -1402,7 +1403,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
         _audioInput->stop();
         _inputDevice = NULL;
 
-        delete _audioInput;
+        _audioInput->deleteLater();
         _audioInput = NULL;
         _numInputCallbackBytes = 0;
 
@@ -1418,6 +1419,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
     if (!inputDeviceInfo.isNull()) {
         qCDebug(audioclient) << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
         _inputAudioDeviceName = inputDeviceInfo.deviceName().trimmed();
+        emit currentInputDeviceChanged(_inputAudioDeviceName);
 
         if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
             qCDebug(audioclient) << "The format to be used for audio input is" << _inputFormat;
@@ -1504,13 +1506,16 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
     // cleanup any previously initialized device
     if (_audioOutput) {
+        _audioOutputIODevice.close();
         _audioOutput->stop();
 
-        delete _audioOutput;
+        //must be deleted in next eventloop cycle when its called from notify()
+        _audioOutput->deleteLater();
         _audioOutput = NULL;
 
         _loopbackOutputDevice = NULL;
-        delete _loopbackAudioOutput;
+        //must be deleted in next eventloop cycle when its called from notify()
+        _loopbackAudioOutput->deleteLater();
         _loopbackAudioOutput = NULL;
 
         delete[] _outputMixBuffer;
@@ -1535,6 +1540,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
     if (!outputDeviceInfo.isNull()) {
         qCDebug(audioclient) << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
         _outputAudioDeviceName = outputDeviceInfo.deviceName().trimmed();
+        emit currentOutputDeviceChanged(_outputAudioDeviceName);
 
         if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
             qCDebug(audioclient) << "The format to be used for audio output is" << _outputFormat;

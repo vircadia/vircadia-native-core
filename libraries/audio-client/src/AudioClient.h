@@ -94,7 +94,6 @@ public:
             _audio(audio), _unfulfilledReads(0) {}
 
         void start() { open(QIODevice::ReadOnly | QIODevice::Unbuffered); }
-        void stop() { close(); }
         qint64 readData(char * data, qint64 maxSize) override;
         qint64 writeData(const char * data, qint64 maxSize) override { return 0; }
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
@@ -221,6 +220,9 @@ signals:
     void audioFinished();
 
     void muteEnvironmentRequested(glm::vec3 position, float radius);
+
+    void currentOutputDeviceChanged(const QString& name);
+    void currentInputDeviceChanged(const QString& name);
 
 protected:
     AudioClient();

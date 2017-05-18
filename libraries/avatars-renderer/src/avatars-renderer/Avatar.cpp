@@ -338,34 +338,6 @@ void Avatar::simulate(float deltaTime, bool inView) {
         _simulationInViewRate.increment();
     }
 
-    if (!isMyAvatar()) {
-        if (_smoothPositionTimer < _smoothPositionTime) {
-            // Smooth the remote avatar movement.
-            _smoothPositionTimer += deltaTime;
-            if (_smoothPositionTimer < _smoothPositionTime) {
-                AvatarData::setPosition(
-                    lerp(_smoothPositionInitial,
-                        _smoothPositionTarget,
-                        easeInOutQuad(glm::clamp(_smoothPositionTimer / _smoothPositionTime, 0.0f, 1.0f)))
-                );
-                updateAttitude();
-            }
-        }
-
-        if (_smoothOrientationTimer < _smoothOrientationTime) {
-            // Smooth the remote avatar movement.
-            _smoothOrientationTimer += deltaTime;
-            if (_smoothOrientationTimer < _smoothOrientationTime) {
-                AvatarData::setOrientation(
-                    slerp(_smoothOrientationInitial,
-                        _smoothOrientationTarget,
-                        easeInOutQuad(glm::clamp(_smoothOrientationTimer / _smoothOrientationTime, 0.0f, 1.0f)))
-                );
-                updateAttitude();
-            }
-        }
-    }
-
     PerformanceTimer perfTimer("simulate");
     {
         PROFILE_RANGE(simulation, "updateJoints");
@@ -1293,6 +1265,17 @@ void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
     radius = halfExtents.x;
 }
 
+float Avatar::computeMass() {
+    float radius;
+    glm::vec3 start, end;
+    getCapsule(start, end, radius);
+    // NOTE:
+    // volumeOfCapsule = volumeOfCylinder + volumeOfSphere
+    // volumeOfCapsule = (2PI * R^2 * H) + (4PI * R^3 / 3)
+    // volumeOfCapsule = 2PI * R^2 * (H + 2R/3)
+    return _density * TWO_PI * radius * radius * (glm::length(end - start) + 2.0f * radius / 3.0f);
+}
+
 // virtual
 void Avatar::rebuildCollisionShape() {
     addPhysicsFlags(Simulation::DIRTY_SHAPE);
@@ -1371,31 +1354,13 @@ glm::quat Avatar::getUncachedRightPalmRotation() const {
 }
 
 void Avatar::setPosition(const glm::vec3& position) {
-    if (isMyAvatar()) {
-        // This is the local avatar, no need to handle any position smoothing.
-        AvatarData::setPosition(position);
-        updateAttitude();
-        return;
-    }
-
-    // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-    _smoothPositionInitial = getPosition();
-    _smoothPositionTarget = position;
-    _smoothPositionTimer = 0.0f;
+    AvatarData::setPosition(position);
+    updateAttitude();
 }
 
 void Avatar::setOrientation(const glm::quat& orientation) {
-    if (isMyAvatar()) {
-        // This is the local avatar, no need to handle any position smoothing.
-        AvatarData::setOrientation(orientation);
-        updateAttitude();
-        return;
-    }
-
-    // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-    _smoothOrientationInitial = getOrientation();
-    _smoothOrientationTarget = orientation;
-    _smoothOrientationTimer = 0.0f;
+    AvatarData::setOrientation(orientation);
+    updateAttitude();
 }
 
 void Avatar::updatePalms() {

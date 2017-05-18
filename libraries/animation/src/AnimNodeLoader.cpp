@@ -173,6 +173,13 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     }                                                                   \
     float NAME = (float)NAME##_VAL.toDouble()
 
+#define READ_OPTIONAL_FLOAT(NAME, JSON_OBJ, DEFAULT)                    \
+    auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
+    float NAME = (float)DEFAULT;                                        \
+    if (NAME##_VAL.isDouble()) {                                        \
+        NAME = (float)NAME##_VAL.toDouble();                            \
+    }                                                                   \
+    do {} while (0)
 
 static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUrl) {
     auto idVal = jsonObj.value("id");
@@ -352,6 +359,23 @@ static AnimOverlay::BoneSet stringToBoneSetEnum(const QString& str) {
     return AnimOverlay::NumBoneSets;
 }
 
+static const char* solutionSourceStrings[(int)AnimInverseKinematics::SolutionSource::NumSolutionSources] = {
+    "relaxToUnderPoses",
+    "relaxToLimitCenterPoses",
+    "previousSolution",
+    "underPoses",
+    "limitCenterPoses"
+};
+
+static AnimInverseKinematics::SolutionSource stringToSolutionSourceEnum(const QString& str) {
+    for (int i = 0; i < (int)AnimInverseKinematics::SolutionSource::NumSolutionSources; i++) {
+        if (str == solutionSourceStrings[i]) {
+            return (AnimInverseKinematics::SolutionSource)i;
+        }
+    }
+    return AnimInverseKinematics::SolutionSource::NumSolutionSources;
+}
+
 static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_STRING(boneSet, jsonObj, id, jsonUrl, nullptr);
@@ -453,9 +477,39 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
         READ_STRING(positionVar, targetObj, id, jsonUrl, nullptr);
         READ_STRING(rotationVar, targetObj, id, jsonUrl, nullptr);
         READ_OPTIONAL_STRING(typeVar, targetObj);
+        READ_OPTIONAL_STRING(weightVar, targetObj);
+        READ_OPTIONAL_FLOAT(weight, targetObj, 1.0f);
 
-        node->setTargetVars(jointName, positionVar, rotationVar, typeVar);
+        auto flexCoefficientsValue = targetObj.value("flexCoefficients");
+        if (!flexCoefficientsValue.isArray()) {
+            qCCritical(animation) << "AnimNodeLoader, bad or missing flexCoefficients array in \"targets\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            return nullptr;
+        }
+        auto flexCoefficientsArray = flexCoefficientsValue.toArray();
+        std::vector<float> flexCoefficients;
+        for (const auto& value : flexCoefficientsArray) {
+            flexCoefficients.push_back((float)value.toDouble());
+        }
+
+        node->setTargetVars(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients);
     };
+
+    READ_OPTIONAL_STRING(solutionSource, jsonObj);
+
+    if (!solutionSource.isEmpty()) {
+        AnimInverseKinematics::SolutionSource solutionSourceType = stringToSolutionSourceEnum(solutionSource);
+        if (solutionSourceType != AnimInverseKinematics::SolutionSource::NumSolutionSources) {
+            node->setSolutionSource(solutionSourceType);
+        } else {
+            qCWarning(animation) << "AnimNodeLoader, bad solutionSourceType in \"solutionSource\", id = " << id << ", url = " << jsonUrl.toDisplayString();
+        }
+    }
+
+    READ_OPTIONAL_STRING(solutionSourceVar, jsonObj);
+
+    if (!solutionSourceVar.isEmpty()) {
+        node->setSolutionSourceVar(solutionSourceVar);
+    }
 
     return node;
 }

@@ -564,11 +564,8 @@ const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 
-Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runServer, QString runServerPathOption) :
+Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
-    _shouldRunServer(runServer),
-    _runServerPath(runServerPathOption),
-    _runningMarker(this, RUNNING_MARKER_FILENAME),
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
     _previousSessionCrashed(setupEssentials(argc, argv)),
@@ -623,8 +620,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // make sure the debug draw singleton is initialized on the main thread.
     DebugDraw::getInstance().removeMarker("");
 
-    _runningMarker.startRunningMarker();
-
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
     PluginManager::getInstance()->setContainer(pluginContainer);
 
@@ -676,38 +671,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     static const QString OCULUS_STORE_ARG = "--oculus-store";
     setProperty(hifi::properties::OCULUS_STORE, arguments().indexOf(OCULUS_STORE_ARG) != -1);
 
-    static const QString NO_UPDATER_ARG = "--no-updater";
-    static const bool noUpdater = arguments().indexOf(NO_UPDATER_ARG) != -1;
-    static const bool wantsSandboxRunning = shouldRunServer();
-    static bool determinedSandboxState = false;
-    static bool sandboxIsRunning = false;
-    SandboxUtils sandboxUtils;
-    // updateHeartbeat() because we are going to poll shortly...
     updateHeartbeat();
-    sandboxUtils.ifLocalSandboxRunningElse([&]() {
-        qCDebug(interfaceapp) << "Home sandbox appears to be running.....";
-        determinedSandboxState = true;
-        sandboxIsRunning = true;
-    }, [&]() {
-        qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
-        if (wantsSandboxRunning) {
-            QString contentPath = getRunServerPath();
-            SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME, noUpdater);
-            sandboxIsRunning = true;
-        }
-        determinedSandboxState = true;
-    });
-
-    // SandboxUtils::runLocalSandbox currently has 2 sec delay after spawning sandbox, so 4
-    // sec here is ok I guess.  TODO: ping sandbox so we know it is up, perhaps?
-    quint64 MAX_WAIT_TIME = USECS_PER_SECOND * 4;
-    auto startWaiting = usecTimestampNow();
-    while (!determinedSandboxState && (usecTimestampNow() - startWaiting <= MAX_WAIT_TIME)) {
-        QCoreApplication::processEvents();
-        // updateHeartbeat() while polling so we don't scare the deadlock watchdog
-        updateHeartbeat();
-        usleep(USECS_PER_MSEC * 50); // 20hz
-    }
 
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
@@ -1224,6 +1188,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
 
     // If launched from Steam, let it handle updates
+    const QString HIFI_NO_UPDATER_COMMAND_LINE_KEY = "--no-updater";
+    bool noUpdater = arguments().indexOf(HIFI_NO_UPDATER_COMMAND_LINE_KEY) != -1;
     if (!noUpdater) {
         auto applicationUpdater = DependencyManager::get<AutoUpdater>();
         connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
@@ -1439,15 +1405,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(_window, SIGNAL(windowMinimizedChanged(bool)), this, SLOT(windowMinimizedChanged(bool)));
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 
-    auto textureCache = DependencyManager::get<TextureCache>();
+    {
+        PROFILE_RANGE(render, "Process Default Skybox");
+        auto textureCache = DependencyManager::get<TextureCache>();
 
-    QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.jpg" };
-    QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
+        auto skyboxUrl = PathUtils::resourcesPath().toStdString() + "images/Default-Sky-9-cubemap.ktx";
 
-    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, image::TextureUsage::CUBE_TEXTURE, { { "generateIrradiance", false } });
-    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, image::TextureUsage::CUBE_TEXTURE, { { "generateIrradiance", true } });
+        _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl);
+        _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
 
-    _defaultSkybox->setCubemap(_defaultSkyboxTexture);
+        _defaultSkybox->setCubemap(_defaultSkyboxTexture);
+    }
 
     EntityItem::setEntitiesShouldFadeFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
@@ -1464,110 +1432,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         const auto testScript = property(hifi::properties::TEST).toUrl();
         scriptEngines->loadScript(testScript, false);
     } else {
-        enum HandControllerType {
-            Vive,
-            Oculus
-        };
-        static const std::map<HandControllerType, int> MIN_CONTENT_VERSION = {
-            { Vive, 1 },
-            { Oculus, 27 }
-        };
-
-        // Get sandbox content set version
-        auto acDirPath = PathUtils::getAppDataPath() + "../../" + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
-        auto contentVersionPath = acDirPath + "content-version.txt";
-        qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
-        int contentVersion = 0;
-        QFile contentVersionFile(contentVersionPath);
-        if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            QString line = contentVersionFile.readAll();
-            contentVersion = line.toInt(); // returns 0 if conversion fails
-        }
-
-        // Get controller availability
-        bool hasHandControllers = false;
-        HandControllerType handControllerType = Vive;
-        if (PluginUtils::isViveControllerAvailable()) {
-            hasHandControllers = true;
-            handControllerType = Vive;
-        } else if (PluginUtils::isOculusTouchControllerAvailable()) {
-            hasHandControllers = true;
-            handControllerType = Oculus;
-        }
-
-        // Check tutorial content versioning
-        bool hasTutorialContent = contentVersion >= MIN_CONTENT_VERSION.at(handControllerType);
-
-        // Check HMD use (may be technically available without being in use)
-        bool hasHMD = PluginUtils::isHMDAvailable();
-        bool isUsingHMD = hasHMD && hasHandControllers && _displayPlugin->isHmd();
-
-        Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
-        Setting::Handle<bool> firstRun { Settings::firstRun, true };
-
-        bool isTutorialComplete = tutorialComplete.get();
-        bool shouldGoToTutorial = isUsingHMD && hasTutorialContent && !isTutorialComplete;
-
-        qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMD;
-        qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
-            ", complete:" << isTutorialComplete << ", should go:" << shouldGoToTutorial;
-
-        // when --url in command line, teleport to location
-        const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
-        int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
-        QString addressLookupString;
-        if (urlIndex != -1) {
-            addressLookupString = arguments().value(urlIndex + 1);
-        }
-
-        const QString TUTORIAL_PATH = "/tutorial_begin";
-
-        if (shouldGoToTutorial) {
-            if (sandboxIsRunning) {
-                qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-                DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
-            } else {
-                qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-                if (firstRun.get()) {
-                    showHelp();
-                }
-                if (addressLookupString.isEmpty()) {
-                    DependencyManager::get<AddressManager>()->goToEntry();
-                } else {
-                    DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
-                }
-            }
-        } else {
-
-            bool isFirstRun = firstRun.get();
-
-            if (isFirstRun) {
-                showHelp();
-            }
-
-            // If this is a first run we short-circuit the address passed in
-            if (isFirstRun) {
-                if (isUsingHMD) {
-                    if (sandboxIsRunning) {
-                        qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-                        DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                    } else {
-                        qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-                        DependencyManager::get<AddressManager>()->goToEntry();
-                    }
-                } else {
-                    DependencyManager::get<AddressManager>()->goToEntry();
-                }
-            } else {
-                qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
-                DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
-            }
-        }
-
-        _connectionMonitor.init();
-
-        // After all of the constructor is completed, then set firstRun to false.
-        firstRun.set(false);
+        PROFILE_RANGE(render, "GetSandboxStatus");
+        auto reply = SandboxUtils::getStatus();
+        connect(reply, &QNetworkReply::finished, this, [=] {
+            handleSandboxStatus(reply);
+        });
     }
 
     // Monitor model assets (e.g., from Clara.io) added to the world that may need resizing.
@@ -2065,6 +1934,8 @@ void Application::initializeUi() {
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
+    rootContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
     }
@@ -2480,6 +2351,118 @@ void Application::resizeGL() {
         offscreenUi->resize(fromGlm(uiSize), true);
         _offscreenContext->makeCurrent();
     }
+}
+
+void Application::handleSandboxStatus(QNetworkReply* reply) {
+    PROFILE_RANGE(render, "HandleSandboxStatus");
+
+    bool sandboxIsRunning = SandboxUtils::readStatus(reply->readAll());
+    qDebug() << "HandleSandboxStatus" << sandboxIsRunning;
+
+    enum HandControllerType {
+        Vive,
+        Oculus
+    };
+    static const std::map<HandControllerType, int> MIN_CONTENT_VERSION = {
+        { Vive, 1 },
+        { Oculus, 27 }
+    };
+
+    // Get sandbox content set version
+    auto acDirPath = PathUtils::getAppDataPath() + "../../" + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
+    auto contentVersionPath = acDirPath + "content-version.txt";
+    qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
+    int contentVersion = 0;
+    QFile contentVersionFile(contentVersionPath);
+    if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString line = contentVersionFile.readAll();
+        contentVersion = line.toInt(); // returns 0 if conversion fails
+    }
+
+    // Get controller availability
+    bool hasHandControllers = false;
+    HandControllerType handControllerType = Vive;
+    if (PluginUtils::isViveControllerAvailable()) {
+        hasHandControllers = true;
+        handControllerType = Vive;
+    } else if (PluginUtils::isOculusTouchControllerAvailable()) {
+        hasHandControllers = true;
+        handControllerType = Oculus;
+    }
+
+    // Check tutorial content versioning
+    bool hasTutorialContent = contentVersion >= MIN_CONTENT_VERSION.at(handControllerType);
+
+    // Check HMD use (may be technically available without being in use)
+    bool hasHMD = PluginUtils::isHMDAvailable();
+    bool isUsingHMD = hasHMD && hasHandControllers && _displayPlugin->isHmd();
+
+    Setting::Handle<bool> tutorialComplete{ "tutorialComplete", false };
+    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
+
+    bool isTutorialComplete = tutorialComplete.get();
+    bool shouldGoToTutorial = isUsingHMD && hasTutorialContent && !isTutorialComplete;
+
+    qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMD;
+    qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
+        ", complete:" << isTutorialComplete << ", should go:" << shouldGoToTutorial;
+
+    // when --url in command line, teleport to location
+    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
+    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+    QString addressLookupString;
+    if (urlIndex != -1) {
+        addressLookupString = arguments().value(urlIndex + 1);
+    }
+
+    const QString TUTORIAL_PATH = "/tutorial_begin";
+
+    if (shouldGoToTutorial) {
+        if (sandboxIsRunning) {
+            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
+            DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
+        } else {
+            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
+            if (firstRun.get()) {
+                showHelp();
+            }
+            if (addressLookupString.isEmpty()) {
+                DependencyManager::get<AddressManager>()->goToEntry();
+            } else {
+                DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+            }
+        }
+    } else {
+
+        bool isFirstRun = firstRun.get();
+
+        if (isFirstRun) {
+            showHelp();
+        }
+
+        // If this is a first run we short-circuit the address passed in
+        if (isFirstRun) {
+            if (isUsingHMD) {
+                if (sandboxIsRunning) {
+                    qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
+                    DependencyManager::get<AddressManager>()->goToLocalSandbox();
+                } else {
+                    qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
+                    DependencyManager::get<AddressManager>()->goToEntry();
+                }
+            } else {
+                DependencyManager::get<AddressManager>()->goToEntry();
+            }
+        } else {
+            qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+            DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+        }
+    }
+
+    _connectionMonitor.init();
+
+    // After all of the constructor is completed, then set firstRun to false.
+    firstRun.set(false);
 }
 
 bool Application::importJSONFromURL(const QString& urlString) {
@@ -5287,9 +5270,8 @@ void Application::nodeActivated(SharedNodePointer node) {
     }
 
     if (node->getType() == NodeType::AvatarMixer) {
-        // new avatar mixer, send off our identity packet right away
+        // new avatar mixer, send off our identity packet on next update loop
         getMyAvatar()->markIdentityDataChanged();
-        getMyAvatar()->sendIdentityPacket();
         getMyAvatar()->resetLastSent();
     }
 }
@@ -6458,7 +6440,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         if (!includeAnimated) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
             emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
-        } else {
+        } else if (!SnapshotAnimated::isAlreadyTakingSnapshotAnimated()) {
             // Get an animated GIF snapshot and save it
             SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
         }
