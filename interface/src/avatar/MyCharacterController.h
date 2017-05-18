@@ -40,8 +40,11 @@ public:
     /// return true if RayShotgun hits anything
     bool testRayShotgun(const glm::vec3& position, const glm::vec3& step, RayShotgunResult& result);
 
+    void setDensity(btScalar density) { _density = density; }
+
 protected:
     void initRayShotgun(const btCollisionWorld* world);
+    void updateMassProperties() override;
 
 private:
     btConvexHullShape* computeShape() const;
@@ -52,6 +55,7 @@ protected:
     // shotgun scan data
     btAlignedObjectArray<btVector3> _topPoints;
     btAlignedObjectArray<btVector3> _bottomPoints;
+    btScalar _density { 1.0f };
 };
 
 #endif // hifi_MyCharacterController_h

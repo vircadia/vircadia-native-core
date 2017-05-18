@@ -56,12 +56,6 @@ protected:
     btRigidBody* getOtherRigidBody(EntityItemID otherEntityID);
     EntityItemPointer getEntityByID(EntityItemID entityID) const;
     virtual btRigidBody* getRigidBody();
-    virtual glm::vec3 getPosition() override;
-    virtual glm::quat getRotation() override;
-    virtual glm::vec3 getLinearVelocity() override;
-    virtual void setLinearVelocity(glm::vec3 linearVelocity) override;
-    virtual glm::vec3 getAngularVelocity() override;
-    virtual void setAngularVelocity(glm::vec3 angularVelocity) override;
     virtual void activateBody(bool forceActivation = false);
     virtual void forceBodyNonStatic();
 

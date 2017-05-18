@@ -189,6 +189,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
             if (shape) {
                 AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+                motionState->setMass(avatar->computeMass());
                 avatar->setPhysicsCallback([=] (uint32_t flags) { motionState->addDirtyFlags(flags); });
                 _motionStates.insert(avatar.get(), motionState);
                 _motionStatesToAddToPhysics.insert(motionState);

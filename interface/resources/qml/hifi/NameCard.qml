@@ -132,62 +132,16 @@ Item {
         color: hifi.colors.textFieldLightBackground
         border.color: hifi.colors.blueHighlight
         border.width: 0
-        TextInput {
-            id: myDisplayNameText
-            // Properties
-            text: thisNameCard.displayName
-            maximumLength: 256
-            clip: true
-            // Size
-            width: parent.width
-            height: parent.height
-            // Anchors
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.leftMargin: 10
-            anchors.right: parent.right
-            anchors.rightMargin: editGlyph.width + editGlyph.anchors.rightMargin
-            // Style
-            color: hifi.colors.darkGray
-            FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
-            font.family: firaSansSemiBold.name
-            font.pixelSize: displayNameTextPixelSize
-            selectionColor: hifi.colors.blueAccent
-            selectedTextColor: "black"
-            // Text Positioning
-            verticalAlignment: TextInput.AlignVCenter
-            horizontalAlignment: TextInput.AlignLeft
-            autoScroll: false;
-            // Signals
-            onEditingFinished: {
-                if (MyAvatar.displayName !== text) {
-                    MyAvatar.displayName = text;
-                    UserActivityLogger.palAction("display_name_change", text);
-                }
-                cursorPosition = 0
-                focus = false
-                myDisplayName.border.width = 0
-                color = hifi.colors.darkGray
-                pal.currentlyEditingDisplayName = false
-                autoScroll = false;
-            }
-        }
         MouseArea {
             anchors.fill: parent
             hoverEnabled: true
             onClicked: {
-                myDisplayName.border.width = 1
-                myDisplayNameText.focus ? myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX, mouseY, TextInput.CursorOnCharacter) : myDisplayNameText.selectAll();
-                myDisplayNameText.focus = true
-                myDisplayNameText.color = "black"
-                pal.currentlyEditingDisplayName = true
-                myDisplayNameText.autoScroll = true;
+                myDisplayNameText.focus = true;
+                myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX - myDisplayNameText.anchors.leftMargin, mouseY, TextInput.CursorOnCharacter);
             }
             onDoubleClicked: {
                 myDisplayNameText.selectAll();
                 myDisplayNameText.focus = true;
-                pal.currentlyEditingDisplayName = true
-                myDisplayNameText.autoScroll = true;
             }
             onEntered: myDisplayName.color = hifi.colors.lightGrayText;
             onExited: myDisplayName.color = hifi.colors.textFieldLightBackground;
@@ -206,6 +160,54 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             color: hifi.colors.baseGray
+        }
+        TextInput {
+            id: myDisplayNameText
+            // Properties
+            text: thisNameCard.displayName
+            maximumLength: 256
+            clip: true
+            // Size
+            width: parent.width
+            height: parent.height
+            // Anchors
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 10
+            anchors.right: parent.right
+            anchors.rightMargin: editGlyph.width + editGlyph.anchors.rightMargin
+            // Style
+            FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+            font.family: firaSansSemiBold.name
+            font.pixelSize: displayNameTextPixelSize
+            selectionColor: hifi.colors.blueAccent
+            selectedTextColor: "black"
+            // Text Positioning
+            verticalAlignment: TextInput.AlignVCenter
+            horizontalAlignment: TextInput.AlignLeft
+            autoScroll: false;
+            // Signals
+            onEditingFinished: {
+                if (MyAvatar.displayName !== text) {
+                    MyAvatar.displayName = text;
+                    UserActivityLogger.palAction("display_name_change", text);
+                }
+                focus = false;
+            }
+            onFocusChanged: {
+                if (focus === true) {
+                    myDisplayName.border.width = 1
+                    color = "black"
+                    autoScroll = true;
+                    pal.currentlyEditingDisplayName = true
+                } else {
+                    myDisplayName.border.width = 0
+                    color: hifi.colors.darkGray
+                    cursorPosition = 0;
+                    autoScroll = false;
+                    pal.currentlyEditingDisplayName = false
+                }
+            }
         }
     }
     // DisplayName container for others' cards

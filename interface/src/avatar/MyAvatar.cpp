@@ -239,6 +239,7 @@ MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
     });
 
     connect(rig.get(), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
+    _characterController.setDensity(_density);
 }
 
 MyAvatar::~MyAvatar() {

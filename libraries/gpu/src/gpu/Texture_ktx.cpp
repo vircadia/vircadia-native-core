@@ -210,7 +210,16 @@ PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
     if (faceSize != 0 && faceOffset != 0) {
         auto file = maybeOpenFile();
-        result = file->createView(faceSize, faceOffset)->toMemoryStorage();
+        if (file) {
+            auto storageView = file->createView(faceSize, faceOffset);
+            if (storageView) {
+                return storageView->toMemoryStorage();
+            } else {
+                qWarning() << "Failed to get a valid storageView for faceSize=" << faceSize << "  faceOffset=" << faceOffset << "out of valid file " << QString::fromStdString(_filename);
+            }
+        } else {
+            qWarning() << "Failed to get a valid file out of maybeOpenFile " << QString::fromStdString(_filename);
+        }
     }
     return result;
 }
@@ -238,8 +247,9 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
         throw std::runtime_error("Invalid level");
     }
 
-    if (storage->size() != _ktxDescriptor->images[level]._imageSize) {
-        qWarning() << "Invalid image size: " << storage->size() << ", expected: " << _ktxDescriptor->images[level]._imageSize
+    auto& imageDesc = _ktxDescriptor->images[level];
+    if (storage->size() != imageDesc._imageSize) {
+        qWarning() << "Invalid image size: " << storage->size() << ", expected: " << imageDesc._imageSize
             << ", level: " << level << ", filename: " << QString::fromStdString(_filename);
         return;
     }
@@ -258,7 +268,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
             return;
         }
 
-        memcpy(imageData, storage->data(), _ktxDescriptor->images[level]._imageSize);
+        memcpy(imageData, storage->data(), storage->size());
         _minMipLevelAvailable = level;
         if (_offsetToMinMipKV > 0) {
             auto minMipKeyData = file->mutableData() + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
