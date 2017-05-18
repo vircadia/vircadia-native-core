@@ -173,14 +173,15 @@ void HeadData::fromJson(const QJsonObject& json) {
         }
     }
 
-    if (json.contains(JSON_AVATAR_HEAD_ROTATION)) {
-        setOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
-    }
-
     if (json.contains(JSON_AVATAR_HEAD_LOOKAT)) {
         auto relativeLookAt = vec3FromJsonValue(json[JSON_AVATAR_HEAD_LOOKAT]);
         if (glm::length2(relativeLookAt) > 0.01f) {
             setLookAtPosition((_owningAvatar->getOrientation() * relativeLookAt) + _owningAvatar->getPosition());
         }
+    }
+
+    // Do after look-at because look-at requires original avatar orientation and setOrientation() may change the value.
+    if (json.contains(JSON_AVATAR_HEAD_ROTATION)) {
+        setOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
     }
 }
