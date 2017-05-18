@@ -65,7 +65,8 @@ protected:
 
     enum Slots {
         ZONE_DEFERRED_TRANSFORM_BUFFER = 0,
-        ZONE_AMBIENT_BUFFER,
+		ZONE_KEYLIGHT_BUFFER,
+		ZONE_AMBIENT_BUFFER,
         ZONE_AMBIENT_MAP,
         ZONE_SKYBOX_MAP,
     };
