@@ -1691,14 +1691,20 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
                 setLocalVelocity(Vectors::ZERO);
             }
         } else {
-            const float MIN_LINEAR_SPEED = 0.001f;
-            if (glm::length(value) < MIN_LINEAR_SPEED) {
-                velocity = ENTITY_ITEM_ZERO_VEC3;
-            } else {
-                velocity = value;
+            float speed = glm::length(value);
+            if (!isnan(speed)) {
+                const float MIN_LINEAR_SPEED = 0.001f;
+                const float MAX_LINEAR_SPEED = 270.0f; // 3m per step at 90Hz
+                if (speed < MIN_LINEAR_SPEED) {
+                    velocity = ENTITY_ITEM_ZERO_VEC3;
+                } else if (speed > MAX_LINEAR_SPEED) {
+                    velocity = (MAX_LINEAR_SPEED / speed) * value;
+                } else {
+                    velocity = value;
+                }
+                setLocalVelocity(velocity);
+                _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
             }
-            setLocalVelocity(velocity);
-            _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
         }
     }
 }
@@ -1723,8 +1729,16 @@ void EntityItem::updateGravity(const glm::vec3& value) {
         if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
             _gravity = Vectors::ZERO;
         } else {
-            _gravity = value;
-            _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+            float magnitude = glm::length(value);
+            if (!isnan(magnitude)) {
+                const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
+                if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
+                    _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
+                } else {
+                    _gravity = value;
+                }
+                _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+            }
         }
     }
 }
@@ -1735,14 +1749,20 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
         if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
             setLocalAngularVelocity(Vectors::ZERO);
         } else {
-            const float MIN_ANGULAR_SPEED = 0.0002f;
-            if (glm::length(value) < MIN_ANGULAR_SPEED) {
-                angularVelocity = ENTITY_ITEM_ZERO_VEC3;
-            } else {
-                angularVelocity = value;
+            float speed = glm::length(value);
+            if (!isnan(speed)) {
+                const float MIN_ANGULAR_SPEED = 0.0002f;
+                const float MAX_ANGULAR_SPEED = 9.0f * TWO_PI; // 1/10 rotation per step at 90Hz
+                if (speed < MIN_ANGULAR_SPEED) {
+                    angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+                } else if (speed > MAX_ANGULAR_SPEED) {
+                    angularVelocity = (MAX_ANGULAR_SPEED / speed) * value;
+                } else {
+                    angularVelocity = value;
+                }
+                setLocalAngularVelocity(angularVelocity);
+                _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
             }
-            setLocalAngularVelocity(angularVelocity);
-            _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
         }
     }
 }

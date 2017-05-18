@@ -52,6 +52,7 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
 static const float AUDIO_LOUDNESS_SCALE = 1024.0f;
+static const float DEFAULT_AVATAR_DENSITY = 1000.0f; // density of water
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
@@ -65,7 +66,8 @@ AvatarData::AvatarData() :
     _headData(NULL),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
-    _targetVelocity(0.0f)
+    _targetVelocity(0.0f),
+    _density(DEFAULT_AVATAR_DENSITY)
 {
     setBodyPitch(0.0f);
     setBodyYaw(-90.0f);
@@ -1578,8 +1580,6 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 void AvatarData::setDisplayName(const QString& displayName) {
     _displayName = displayName;
     _sessionDisplayName = "";
-
-    sendIdentityPacket();
 
     qCDebug(avatars) << "Changing display name for avatar to" << displayName;
     markIdentityDataChanged();

@@ -32,7 +32,8 @@ public:
     void loadPoses(const AnimPoseVec& poses);
     void computeAbsolutePoses(AnimPoseVec& absolutePoses) const;
 
-    void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar, const QString& typeVar);
+    void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar,
+                       const QString& typeVar, const QString& weightVar, float weight, const std::vector<float>& flexCoefficients);
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimNode::Triggers& triggersOut) override;
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
@@ -77,22 +78,20 @@ protected:
     AnimInverseKinematics(const AnimInverseKinematics&) = delete;
     AnimInverseKinematics& operator=(const AnimInverseKinematics&) = delete;
 
+    enum FlexCoefficients { MAX_FLEX_COEFFICIENTS = 10 };
     struct IKTargetVar {
-        IKTargetVar(const QString& jointNameIn,
-                const QString& positionVarIn,
-                const QString& rotationVarIn,
-                const QString& typeVarIn) :
-            positionVar(positionVarIn),
-            rotationVar(rotationVarIn),
-            typeVar(typeVarIn),
-            jointName(jointNameIn),
-            jointIndex(-1)
-        {}
+        IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
+                    const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn);
+        IKTargetVar(const IKTargetVar& orig);
 
+        QString jointName;
         QString positionVar;
         QString rotationVar;
         QString typeVar;
-        QString jointName;
+        QString weightVar;
+        float weight;
+        float flexCoefficients[MAX_FLEX_COEFFICIENTS];
+        size_t numFlexCoefficients;
         int jointIndex; // cached joint index
     };
 

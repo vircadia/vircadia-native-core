@@ -629,6 +629,8 @@ public:
         _identitySequenceId++;
     }
 
+    float getDensity() const { return _density; }
+
 signals:
     void displayNameChanged();
 
@@ -785,6 +787,7 @@ protected:
 
     bool _identityDataChanged { false };
     quint64 _identitySequenceId { 0 };
+    float _density;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
