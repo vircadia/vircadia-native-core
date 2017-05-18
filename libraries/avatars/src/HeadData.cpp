@@ -52,6 +52,13 @@ glm::quat HeadData::getOrientation() const {
     return _owningAvatar->getOrientation() * getRawOrientation();
 }
 
+void HeadData::setHeadOrientation(const glm::quat& orientation) {
+    glm::quat bodyOrientation = _owningAvatar->getOrientation();
+    glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
+    _basePitch = eulers.x;
+    _baseYaw = eulers.y;
+    _baseRoll = eulers.z;
+}
 
 void HeadData::setOrientation(const glm::quat& orientation) {
     // rotate body about vertical axis
@@ -61,10 +68,7 @@ void HeadData::setOrientation(const glm::quat& orientation) {
     _owningAvatar->setOrientation(bodyOrientation);
 
     // the rest goes to the head
-    glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
-    _basePitch = eulers.x;
-    _baseYaw = eulers.y;
-    _baseRoll = eulers.z;
+    setHeadOrientation(orientation);
 }
 
 //Lazily construct a lookup map from the blendshapes
@@ -180,8 +184,7 @@ void HeadData::fromJson(const QJsonObject& json) {
         }
     }
 
-    // Do after look-at because look-at requires original avatar orientation and setOrientation() may change the value.
     if (json.contains(JSON_AVATAR_HEAD_ROTATION)) {
-        setOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
+        setHeadOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
     }
 }

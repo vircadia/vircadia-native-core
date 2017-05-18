@@ -2078,14 +2078,11 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
     }
 
     // Do after avatar orientation because head look-at needs avatar orientation.
-    // But the head setOrientation() overwrites avatar orientation so reset the correct orientation after.
     if (json.contains(JSON_AVATAR_HEAD)) {
-        auto avatarOrientation = getOrientation();
         if (!_headData) {
             _headData = new HeadData(this);
         }
         _headData->fromJson(json[JSON_AVATAR_HEAD].toObject());
-        setOrientation(avatarOrientation);
     }
 
     if (json.contains(JSON_AVATAR_SCALE)) {
