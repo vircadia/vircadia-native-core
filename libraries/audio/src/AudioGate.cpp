@@ -187,7 +187,7 @@ void GateImpl::setHold(float hold) {
     _holdInc = (int32_t)((_holdMin - 0x7fffffff) / (PROGHOLD * _sampleRate));
     _holdInc = MIN(_holdInc, -1); // prevent 0 on long releases
 
-    _holdMax = 0x7fffffff - (uint32_t)(_holdInc * hold/1000.0 * _sampleRate);
+    _holdMax = 0x7fffffff - (uint32_t)(_holdInc * (double)hold/1000.0 * _sampleRate);
 }
 
 //
@@ -196,7 +196,7 @@ void GateImpl::setHold(float hold) {
 void GateImpl::setHysteresis(float hysteresis) {
 
     // gate hysteresis in log2 domain
-    _hysteresis = (int32_t)(hysteresis * DB_TO_LOG2 * (1 << LOG2_FRACBITS));
+    _hysteresis = (int32_t)((double)hysteresis * DB_TO_LOG2 * (1 << LOG2_FRACBITS));
 }
 
 //
