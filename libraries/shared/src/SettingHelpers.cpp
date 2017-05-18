@@ -138,7 +138,7 @@ QJsonDocument variantMapToJsonDocument(const QSettings::SettingsMap& map) {
 
             case QVariant::List:
             case QVariant::Hash: {
-                qCritical() << "Unsupported variant type" << variant.typeName();
+                qCritical() << "Unsupported variant type" << variant.typeName() << ";" << key << variant;
                 Q_ASSERT(false);
                 break;
             }
