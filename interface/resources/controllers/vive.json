@@ -45,17 +45,19 @@
         
         {
             "from": "Vive.RightFoot", "to" : "Standard.RightFoot",
-            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}]
-            ,"when": [ "Application.InHMD"]
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}],
+            "when": [ "Application.InHMD"]
         },
         
         {
             "from": "Vive.Hips", "to" : "Standard.Hips",
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 0.01, "translation": 0.01}],
             "when": [ "Application.InHMD"]
         },
         
         {
             "from": "Vive.Spine2", "to" : "Standard.Spine2",
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 0.01, "translation": 0.01}],
             "when": [ "Application.InHMD"]
         },
         

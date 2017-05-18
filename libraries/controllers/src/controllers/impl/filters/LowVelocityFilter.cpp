@@ -22,20 +22,21 @@ namespace controller {
     Pose LowVelocityFilter::apply(Pose newPose) const {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         const InputCalibrationData calibrationData = userInputMapper->getInputCalibrationData();
+        glm::mat4 sensorToAvatarMat = glm::inverse(calibrationData.avatarMat) * calibrationData.sensorToWorldMat;
+        glm::mat4 avatarToSensorMat = glm::inverse(calibrationData.sensorToWorldMat) * calibrationData.avatarMat;
         Pose finalPose = newPose;
         if (finalPose.isValid() && _oldPose.isValid()) {
-            Pose sensorPose = finalPose.transform(calibrationData.avatarMat);
-            Pose lastPose = _oldPose.transform(calibrationData.avatarMat);
-            
+            Pose sensorPose = finalPose.transform(avatarToSensorMat);
+            Pose lastPose = _oldPose;
+
             float rotationFilter = glm::clamp(1.0f - (glm::length(lastPose.getVelocity() / _rotationConstant)), 0.0f, 1.0f);
             float translationFilter = glm::clamp(1.0f - (glm::length(lastPose.getVelocity() / _translationConstant)), 0.0f, 1.0f);
             sensorPose.translation = lastPose.getTranslation() * translationFilter + sensorPose.getTranslation() * (1.0f - translationFilter);
             sensorPose.rotation = safeMix(lastPose.getRotation(), sensorPose.getRotation(), 1.0f - rotationFilter);
 
-            finalPose = sensorPose.transform(glm::inverse(calibrationData.avatarMat));
-            finalPose.valid = true;
+            finalPose = sensorPose.transform(sensorToAvatarMat);
         }
-        _oldPose = finalPose;
+        _oldPose = finalPose.transform(avatarToSensorMat);
         return finalPose;
     }
 
@@ -51,5 +52,5 @@ namespace controller {
         }
         return false;
     }
-    
+
 }
