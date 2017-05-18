@@ -63,7 +63,7 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
     if (!_keyLightPipeline) {
 		auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-		auto ps = gpu::Shader::createPixel(std::string(zone_drawSkybox_frag));
+		auto ps = gpu::Shader::createPixel(std::string(zone_drawKeyLight_frag));
 		gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
 		gpu::Shader::BindingSet slotBindings;
