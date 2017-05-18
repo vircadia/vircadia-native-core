@@ -12,14 +12,6 @@
 #include "AudioDynamics.h"
 #include "AudioGate.h"
 
-//#define ENABLE_GRAPH_WINDOW
-#ifdef ENABLE_GRAPH_WINDOW
-int GraphInit(int nBins, int delay);
-void GraphDraw(int *data, int threshold, int peak, bool flag);
-void GraphClose(void);
-int initDone = GraphInit(256, 1);
-#endif
-
 // log2 domain headroom bits above 0dB (int32_t)
 static const int LOG2_HEADROOM_Q30 = 1;
 
@@ -326,10 +318,6 @@ void GateImpl::processHistogram(int numFrames) {
     // smooth threshold update
     _threshAdapt = threshold + MULQ31((_threshAdapt - threshold), tcThreshold);
 
-#ifdef ENABLE_GRAPH_WINDOW
-    int peakIndex = (NHIST-1) - (_holdPeak >> (LOG2_FRACBITS - 3));
-    GraphDraw(_histogram, index, peakIndex, _attn == 0x0);
-#endif
     //printf("threshold = %0.1f\n", (_threshAdapt - (LOG2_HEADROOM_Q15 << LOG2_FRACBITS)) * -6.02f / (1 << LOG2_FRACBITS));
 }
 
