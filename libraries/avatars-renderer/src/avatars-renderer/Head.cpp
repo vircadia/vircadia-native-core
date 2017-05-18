@@ -65,69 +65,77 @@ void Head::computeAudioLoudness(float deltaTime) {
 }
 
 void Head::computeEyeMovement(float deltaTime) {
-    // Update eye saccades
-    const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
-    const float AVERAGE_SACCADE_INTERVAL = 6.0f;
-    const float MICROSACCADE_MAGNITUDE = 0.002f;
-    const float SACCADE_MAGNITUDE = 0.04f;
-    const float NOMINAL_FRAME_RATE = 60.0f;
+    if (!_isFaceTrackerConnected) {
+        if (!_isEyeTrackerConnected) {
+            // Update eye saccades
+            const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
+            const float AVERAGE_SACCADE_INTERVAL = 6.0f;
+            const float MICROSACCADE_MAGNITUDE = 0.002f;
+            const float SACCADE_MAGNITUDE = 0.04f;
+            const float NOMINAL_FRAME_RATE = 60.0f;
 
-    if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
-        _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
-    } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
-        _saccadeTarget = SACCADE_MAGNITUDE * randVector();
-    }
-    _saccade += (_saccadeTarget - _saccade) * pow(0.5f, NOMINAL_FRAME_RATE * deltaTime);
+            if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
+                _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
+            } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
+                _saccadeTarget = SACCADE_MAGNITUDE * randVector();
+            }
+            _saccade += (_saccadeTarget - _saccade) * pow(0.5f, NOMINAL_FRAME_RATE * deltaTime);
+        } else {
+            _saccade = glm::vec3();
+        }
 
-    // Detect transition from talking to not; force blink after that and a delay
-    bool forceBlink = false;
-    const float TALKING_LOUDNESS = 100.0f;
-    const float BLINK_AFTER_TALKING = 0.25f;
-    _timeWithoutTalking += deltaTime;
-    if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
-        _timeWithoutTalking = 0.0f;
-    } else if (_timeWithoutTalking - deltaTime < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
-        forceBlink = true;
-    }
+        // Detect transition from talking to not; force blink after that and a delay
+        bool forceBlink = false;
+        const float TALKING_LOUDNESS = 100.0f;
+        const float BLINK_AFTER_TALKING = 0.25f;
+        _timeWithoutTalking += deltaTime;
+        if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
+            _timeWithoutTalking = 0.0f;
+        } else if (_timeWithoutTalking - deltaTime < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
+            forceBlink = true;
+        }
 
-    const float BLINK_SPEED = 10.0f;
-    const float BLINK_SPEED_VARIABILITY = 1.0f;
-    const float BLINK_START_VARIABILITY = 0.25f;
-    const float FULLY_OPEN = 0.0f;
-    const float FULLY_CLOSED = 1.0f;
-    if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
-        // no blinking when brows are raised; blink less with increasing loudness
-        const float BASE_BLINK_RATE = 15.0f / 60.0f;
-        const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
-        if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
-                ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
-            _leftEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
-            _rightEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
-            if (randFloat() < 0.5f) {
-                _leftEyeBlink = BLINK_START_VARIABILITY;
-            } else {
-                _rightEyeBlink = BLINK_START_VARIABILITY;
+        const float BLINK_SPEED = 10.0f;
+        const float BLINK_SPEED_VARIABILITY = 1.0f;
+        const float BLINK_START_VARIABILITY = 0.25f;
+        const float FULLY_OPEN = 0.0f;
+        const float FULLY_CLOSED = 1.0f;
+        if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
+            // no blinking when brows are raised; blink less with increasing loudness
+            const float BASE_BLINK_RATE = 15.0f / 60.0f;
+            const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
+            if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
+                    ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
+                _leftEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
+                _rightEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
+                if (randFloat() < 0.5f) {
+                    _leftEyeBlink = BLINK_START_VARIABILITY;
+                } else {
+                    _rightEyeBlink = BLINK_START_VARIABILITY;
+                }
+            }
+        } else {
+            _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
+            _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
+
+            if (_leftEyeBlink == FULLY_CLOSED) {
+                _leftEyeBlinkVelocity = -BLINK_SPEED;
+
+            } else if (_leftEyeBlink == FULLY_OPEN) {
+                _leftEyeBlinkVelocity = 0.0f;
+            }
+            if (_rightEyeBlink == FULLY_CLOSED) {
+                _rightEyeBlinkVelocity = -BLINK_SPEED;
+
+            } else if (_rightEyeBlink == FULLY_OPEN) {
+                _rightEyeBlinkVelocity = 0.0f;
             }
         }
+
+        applyEyelidOffset(getOrientation());
     } else {
-        _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
-        _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
-
-        if (_leftEyeBlink == FULLY_CLOSED) {
-            _leftEyeBlinkVelocity = -BLINK_SPEED;
-
-        } else if (_leftEyeBlink == FULLY_OPEN) {
-            _leftEyeBlinkVelocity = 0.0f;
-        }
-        if (_rightEyeBlink == FULLY_CLOSED) {
-            _rightEyeBlinkVelocity = -BLINK_SPEED;
-
-        } else if (_rightEyeBlink == FULLY_OPEN) {
-            _rightEyeBlinkVelocity = 0.0f;
-        }
+        _saccade = glm::vec3();
     }
-
-    applyEyelidOffset(getOrientation());
 }
 
 void Head::computeFaceMovement(float deltaTime) {
