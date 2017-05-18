@@ -810,8 +810,10 @@ void Model::setURL(const QUrl& url) {
     deleteGeometry();
 
     auto resource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
-    resource->setLoadPriority(this, _loadingPriority);
-    _renderWatcher.setResource(resource);
+    if (resource) {
+        resource->setLoadPriority(this, _loadingPriority);
+        _renderWatcher.setResource(resource);
+    }
     onInvalidate();
 }
 
