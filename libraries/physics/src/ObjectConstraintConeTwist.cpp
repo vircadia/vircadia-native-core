@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <LogHandler.h>
+
 #include "QVariantGLM.h"
 
 #include "EntityTree.h"
@@ -94,6 +96,9 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
         return constraint;
     }
 
+    static QString repeatedConeTwistNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
+        "ObjectConstraintConeTwist::getConstraint -- no rigidBody.*");
+
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
         qCDebug(physics) << "ObjectConstraintConeTwist::getConstraint -- no rigidBodyA";
@@ -125,6 +130,7 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
 
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
+            qCDebug(physics) << "ObjectConstraintConeTwist::getConstraint -- no rigidBodyB";
             return nullptr;
         }
 

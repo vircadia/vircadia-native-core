@@ -165,15 +165,15 @@ namespace AvatarDataPacket {
     const size_t AVATAR_ORIENTATION_SIZE = 6;
 
     PACKED_BEGIN struct AvatarScale {
-        SmallFloat scale;                 // avatar's scale, compressed by packFloatRatioToTwoByte() 
+        SmallFloat scale;                 // avatar's scale, compressed by packFloatRatioToTwoByte()
     } PACKED_END;
     const size_t AVATAR_SCALE_SIZE = 2;
 
     PACKED_BEGIN struct LookAtPosition {
         float lookAtPosition[3];          // world space position that eyes are focusing on.
-                                          // FIXME - unless the person has an eye tracker, this is simulated... 
+                                          // FIXME - unless the person has an eye tracker, this is simulated...
                                           //    a) maybe we can just have the client calculate this
-                                          //    b) at distance this will be hard to discern and can likely be 
+                                          //    b) at distance this will be hard to discern and can likely be
                                           //       descimated or dropped completely
                                           //
                                           // POTENTIAL SAVINGS - 12 bytes
@@ -376,10 +376,10 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    typedef enum { 
+    typedef enum {
         NoData,
         PALMinimum,
-        MinimumData, 
+        MinimumData,
         CullSmallData,
         IncludeSmallData,
         SendAllData
@@ -388,7 +388,7 @@ public:
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail);
 
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-        AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition, 
+        AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition,
         QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut = nullptr) const;
 
     virtual void doneEncoding(bool cullSmallChanges);
@@ -417,23 +417,23 @@ public:
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     virtual void updateAttitude() {} // Tell skeleton mesh about changes
 
-    glm::quat getHeadOrientation() const { 
+    glm::quat getHeadOrientation() const {
         lazyInitHeadData();
-        return _headData->getOrientation(); 
+        return _headData->getOrientation();
     }
-    void setHeadOrientation(const glm::quat& orientation) { 
+    void setHeadOrientation(const glm::quat& orientation) {
         if (_headData) {
             _headData->setOrientation(orientation);
         }
     }
 
-    void setLookAtPosition(const glm::vec3& lookAtPosition) { 
+    void setLookAtPosition(const glm::vec3& lookAtPosition) {
         if (_headData) {
-            _headData->setLookAtPosition(lookAtPosition); 
+            _headData->setLookAtPosition(lookAtPosition);
         }
     }
 
-    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { 
+    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) {
         if (_headData) {
             _headData->setBlendshapeCoefficients(blendshapeCoefficients);
         }
@@ -470,7 +470,7 @@ public:
 
     void setDomainMinimumScale(float domainMinimumScale)
         { _domainMinimumScale = glm::clamp(domainMinimumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
-    void setDomainMaximumScale(float domainMaximumScale) 
+    void setDomainMaximumScale(float domainMaximumScale)
         { _domainMaximumScale = glm::clamp(domainMaximumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
 
     //  Hand State
@@ -531,14 +531,14 @@ public:
         QString displayName;
         QString sessionDisplayName;
         AvatarEntityMap avatarEntityData;
-        quint64 updatedAt;
+        quint64 sequenceId;
     };
 
     static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
 
     // identityChanged returns true if identity has changed, false otherwise.
     // displayNameChanged returns true if displayName has changed, false otherwise.
-    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew);
+    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
 
     QByteArray identityByteArray() const;
 
@@ -548,8 +548,8 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
-    virtual void setSessionDisplayName(const QString& sessionDisplayName) { 
-        _sessionDisplayName = sessionDisplayName; 
+    virtual void setSessionDisplayName(const QString& sessionDisplayName) {
+        _sessionDisplayName = sessionDisplayName;
         markIdentityDataChanged();
     }
 
@@ -604,6 +604,9 @@ public:
         return _lastSentJointData;
     }
 
+    // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
+    virtual glm::quat getOrientationOutbound() const;
+
     static const float OUT_OF_VIEW_PENALTY;
 
     static void sortAvatars(
@@ -623,8 +626,10 @@ public:
     bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
     void markIdentityDataChanged() {
         _identityDataChanged = true;
-        _identityUpdatedAt = usecTimestampNow();
+        _identitySequenceId++;
     }
+
+    float getDensity() const { return _density; }
 
 signals:
     void displayNameChanged();
@@ -781,7 +786,8 @@ protected:
     float _audioAverageLoudness { 0.0f };
 
     bool _identityDataChanged { false };
-    quint64 _identityUpdatedAt { 0 };
+    quint64 _identitySequenceId { 0 };
+    float _density;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

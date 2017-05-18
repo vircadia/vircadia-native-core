@@ -662,6 +662,25 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
     return result;
 }
 
+QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const {
+	EntityTypes::EntityType type = EntityTypes::getEntityTypeFromName(entityType);
+
+	QVector<QUuid> result;
+	if (_entityTree) {
+		QVector<EntityItemPointer> entities;
+		_entityTree->withReadLock([&] {
+			_entityTree->findEntities(center, radius, entities);
+		});
+
+		foreach(EntityItemPointer entity, entities) {
+			if (entity->getType() == type) {
+				result << entity->getEntityItemID();
+			}
+		}
+	}
+	return result;
+}
+
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 
                 const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
     PROFILE_RANGE(script_entities, __FUNCTION__);

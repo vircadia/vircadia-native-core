@@ -79,6 +79,7 @@ private:
     QString percentageForMixStats(int counter);
 
     void parseSettingsObject(const QJsonObject& settingsObject);
+    void clearDomainSettings();
 
     float _trailingMixRatio { 0.0f };
     float _throttlingRatio { 0.0f };

@@ -145,7 +145,7 @@ private:
     std::unordered_map<QUuid, QVector<JointData>> _lastOtherAvatarSentJoints;
 
     uint64_t _identityChangeTimestamp;
-    bool _avatarSessionDisplayNameMustChange{ false };
+    bool _avatarSessionDisplayNameMustChange{ true };
 
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;

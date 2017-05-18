@@ -39,7 +39,7 @@ glm::vec3 AnimPose::xformPoint(const glm::vec3& rhs) const {
     return *this * rhs;
 }
 
-// really slow
+// really slow, but accurate for transforms with non-uniform scale
 glm::vec3 AnimPose::xformVector(const glm::vec3& rhs) const {
     glm::vec3 xAxis = _rot * glm::vec3(_scale.x, 0.0f, 0.0f);
     glm::vec3 yAxis = _rot * glm::vec3(0.0f, _scale.y, 0.0f);
@@ -47,6 +47,11 @@ glm::vec3 AnimPose::xformVector(const glm::vec3& rhs) const {
     glm::mat3 mat(xAxis, yAxis, zAxis);
     glm::mat3 transInvMat = glm::inverse(glm::transpose(mat));
     return transInvMat * rhs;
+}
+
+// faster, but does not handle non-uniform scale correctly.
+glm::vec3 AnimPose::xformVectorFast(const glm::vec3& rhs) const {
+    return _rot * (_scale * rhs);
 }
 
 AnimPose AnimPose::operator*(const AnimPose& rhs) const {

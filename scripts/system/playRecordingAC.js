@@ -14,6 +14,7 @@
 
     var APP_NAME = "PLAYBACK",
         HIFI_RECORDER_CHANNEL = "HiFi-Recorder-Channel",
+        RECORDER_COMMAND_ERROR = "error",
         HIFI_PLAYER_CHANNEL = "HiFi-Player-Channel",
         PLAYER_COMMAND_PLAY = "play",
         PLAYER_COMMAND_STOP = "stop",
@@ -47,9 +48,17 @@
             searchState = SEARCH_IDLE,
             otherPlayersPlaying,
             otherPlayersPlayingCounts,
-            pauseCount;
+            pauseCount,
+            isDestroyLater = false,
+
+            destroy;
 
         function onUpdateTimestamp() {
+            if (isDestroyLater) {
+                destroy();
+                return;
+            }
+
             userData.timestamp = Date.now();
             Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
             EntityViewer.queryOctree();  // Keep up to date ready for find().
@@ -69,12 +78,14 @@
 
             if (sender !== scriptUUID) {
                 message = JSON.parse(message);
-                index = otherPlayersPlaying.indexOf(message.entity);
-                if (index !== -1) {
-                    otherPlayersPlayingCounts[index] += 1;
-                } else {
-                    otherPlayersPlaying.push(message.entity);
-                    otherPlayersPlayingCounts.push(1);
+                if (message.playing !== undefined) {
+                    index = otherPlayersPlaying.indexOf(message.entity);
+                    if (index !== -1) {
+                        otherPlayersPlayingCounts[index] += 1;
+                    } else {
+                        otherPlayersPlaying.push(message.entity);
+                        otherPlayersPlayingCounts.push(1);
+                    }
                 }
             }
         }
@@ -83,10 +94,11 @@
             // Create a new persistence entity (even if already have one but that should never occur).
             var properties;
 
-            log("Create recording " + filename);
+            log("Create recording entity for " + filename);
 
-            if (updateTimestampTimer !== null) {
-                Script.clearInterval(updateTimestampTimer);  // Just in case.
+            if (updateTimestampTimer !== null) {  // Just in case.
+                Script.clearInterval(updateTimestampTimer);
+                updateTimestampTimer = null;
             }
 
             searchState = SEARCH_IDLE;
@@ -114,6 +126,7 @@
                 return true;
             }
 
+            log("Could not create recording entity for " + filename);
             return false;
         }
 
@@ -224,7 +237,7 @@
             return result;
         }
 
-        function destroy() {
+        destroy = function () {
             // Delete current persistence entity.
             if (entityID !== null) {  // Just in case.
                 Entities.deleteEntity(entityID);
@@ -233,7 +246,13 @@
             }
             if (updateTimestampTimer !== null) {  // Just in case.
                 Script.clearInterval(updateTimestampTimer);
+                updateTimestampTimer = null;
             }
+        };
+
+        function destroyLater() {
+            // Schedules a call to destroy() when timer threading suits.
+            isDestroyLater = true;
         }
 
         function setUp() {
@@ -254,6 +273,7 @@
             create: create,
             find: find,
             destroy: destroy,
+            destroyLater: destroyLater,
             setUp: setUp,
             tearDown: tearDown
         };
@@ -261,41 +281,78 @@
 
     Player = (function () {
         // Recording playback functions.
-        var isPlayingRecording = false,
+        var userID = null,
+            isPlayingRecording = false,
             recordingFilename = "",
             autoPlayTimer = null,
 
+            autoPlay,
             playRecording;
 
-        function play(recording, position, orientation) {
+        function error(message) {
+            // Send error message to user.
+            Messages.sendMessage(HIFI_RECORDER_CHANNEL, JSON.stringify({
+                command: RECORDER_COMMAND_ERROR,
+                user: userID,
+                message: message
+            }));
+        }
+
+        function play(user, recording, position, orientation) {
+            var errorMessage;
+
+            if (autoPlayTimer) {  // Cancel auto-play.
+                // FIXME: Once in a while Script.clearTimeout() fails.
+                // [DEBUG] [hifi.scriptengine] [3748] [agent] stopTimer -- not in _timerFunctionMap QObject(0x0)
+                Script.clearTimeout(autoPlayTimer);
+                autoPlayTimer = null;
+            }
+
+            userID = user;
+
             if (Entity.create(recording, position, orientation)) {
-                log("Play new recording " + recordingFilename);
-                isPlayingRecording = true;
+                log("Play recording " + recording);
+                isPlayingRecording = true;  // Immediate feedback.
                 recordingFilename = recording;
-                playRecording(recordingFilename, position, orientation);
+                playRecording(recordingFilename, position, orientation, true);
             } else {
-                log("Could not create entity to play new recording " + recordingFilename);
+                errorMessage = "Could not persist recording " + recording.slice(4);  // Remove leading "atp:".
+                log(errorMessage);
+                error(errorMessage);
+
+                autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Resume auto-play later.
             }
         }
 
-        function autoPlay() {
+        autoPlay = function () {
             var recording,
                 AUTOPLAY_SEARCH_DELTA = 1000;
 
             // Random delay to help reduce collisions between AC scripts.
             Script.setTimeout(function () {
+                // Guard against Script.clearTimeout() in play() not always working.
+                if (isPlayingRecording) {
+                    return;
+                }
+
                 recording = Entity.find();
                 if (recording) {
-                    log("Play persisted recording " + recordingFilename);
-                    playRecording(recording.recording, recording.position, recording.orientation);
+                    log("Play persisted recording " + recording.recording);
+                    userID = null;
+                    autoPlayTimer = null;
+                    isPlayingRecording = true;  // Immediate feedback.
+                    recordingFilename = recording.recording;
+                    playRecording(recording.recording, recording.position, recording.orientation, false);
                 } else {
                     autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_SEARCH_INTERVAL);  // Try again soon.
                 }
             }, Math.random() * AUTOPLAY_SEARCH_DELTA);
-        }
+        };
 
-        playRecording = function (recording, position, orientation) {
+        playRecording = function (recording, position, orientation, isManual) {
             Recording.loadRecording(recording, function (success) {
+                var errorMessage;
+
                 if (success) {
                     Users.disableIgnoreRadius();
 
@@ -310,15 +367,22 @@
                     Recording.setPlayerLoop(true);
                     Recording.setPlayerUseSkeletonModel(true);
 
-                    isPlayingRecording = true;
-                    recordingFilename = recording;
-
                     Recording.setPlayerTime(0.0);
                     Recording.startPlaying();
 
                     UserActivityLogger.logAction("playRecordingAC_play_recording");
                 } else {
-                    log("Failed to load recording " + recording);
+                    if (isManual) {
+                        // Delete persistence entity if manual play request.
+                        Entity.destroyLater();  // Schedule for deletion; works around timer threading issues.
+                    }
+
+                    errorMessage = "Could not load recording " + recording.slice(4);  // Remove leading "atp:".
+                    log(errorMessage);
+                    error(errorMessage);
+
+                    isPlayingRecording = false;
+                    recordingFilename = "";
                     autoPlayTimer = Script.setTimeout(autoPlay, AUTOPLAY_ERROR_INTERVAL);  // Try again later.
                 }
             });
@@ -374,7 +438,15 @@
             recording: Player.recording(),
             entity: Entity.id()
         }));
-        heartbeatTimer = Script.setTimeout(sendHeartbeat, HEARTBEAT_INTERVAL);
+    }
+
+    function onHeartbeatTimer() {
+        sendHeartbeat();
+        heartbeatTimer = Script.setTimeout(onHeartbeatTimer, HEARTBEAT_INTERVAL);
+    }
+
+    function startHeartbeat() {
+        onHeartbeatTimer();
     }
 
     function stopHeartbeat() {
@@ -394,7 +466,7 @@
             switch (message.command) {
             case PLAYER_COMMAND_PLAY:
                 if (!Player.isPlaying()) {
-                    Player.play(message.recording, message.position, message.orientation);
+                    Player.play(sender, message.recording, message.position, message.orientation);
                 } else {
                     log("Didn't start playing " + message.recording + " because already playing " + Player.recording());
                 }
@@ -418,7 +490,7 @@
         Messages.subscribe(HIFI_PLAYER_CHANNEL);
 
         Player.autoPlay();
-        sendHeartbeat();
+        startHeartbeat();
 
         UserActivityLogger.logAction("playRecordingAC_script_load");
     }
