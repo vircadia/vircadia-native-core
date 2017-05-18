@@ -5284,9 +5284,8 @@ void Application::nodeActivated(SharedNodePointer node) {
     }
 
     if (node->getType() == NodeType::AvatarMixer) {
-        // new avatar mixer, send off our identity packet right away
+        // new avatar mixer, send off our identity packet on next update loop
         getMyAvatar()->markIdentityDataChanged();
-        getMyAvatar()->sendIdentityPacket();
         getMyAvatar()->resetLastSent();
     }
 }
