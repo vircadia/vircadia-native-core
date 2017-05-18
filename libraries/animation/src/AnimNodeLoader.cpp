@@ -173,6 +173,13 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     }                                                                   \
     float NAME = (float)NAME##_VAL.toDouble()
 
+#define READ_OPTIONAL_FLOAT(NAME, JSON_OBJ, DEFAULT)                    \
+    auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
+    float NAME = (float)DEFAULT;                                        \
+    if (NAME##_VAL.isDouble()) {                                        \
+        NAME = (float)NAME##_VAL.toDouble();                            \
+    }                                                                   \
+    do {} while (0)
 
 static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUrl) {
     auto idVal = jsonObj.value("id");
@@ -470,8 +477,21 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
         READ_STRING(positionVar, targetObj, id, jsonUrl, nullptr);
         READ_STRING(rotationVar, targetObj, id, jsonUrl, nullptr);
         READ_OPTIONAL_STRING(typeVar, targetObj);
+        READ_OPTIONAL_STRING(weightVar, targetObj);
+        READ_OPTIONAL_FLOAT(weight, targetObj, 1.0f);
 
-        node->setTargetVars(jointName, positionVar, rotationVar, typeVar);
+        auto flexCoefficientsValue = targetObj.value("flexCoefficients");
+        if (!flexCoefficientsValue.isArray()) {
+            qCCritical(animation) << "AnimNodeLoader, bad or missing flexCoefficients array in \"targets\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            return nullptr;
+        }
+        auto flexCoefficientsArray = flexCoefficientsValue.toArray();
+        std::vector<float> flexCoefficients;
+        for (const auto& value : flexCoefficientsArray) {
+            flexCoefficients.push_back((float)value.toDouble());
+        }
+
+        node->setTargetVars(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients);
     };
 
     READ_OPTIONAL_STRING(solutionSource, jsonObj);
