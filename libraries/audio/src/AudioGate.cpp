@@ -145,6 +145,7 @@ public:
     int32_t envelope(int32_t attn);
 
     virtual void process(int16_t* input, int16_t* output, int numFrames) = 0;
+    virtual void removeDC(int16_t* input, int16_t* output, int numFrames) = 0;
 };
 
 GateImpl::GateImpl(int sampleRate) {
@@ -412,6 +413,7 @@ public:
 
     // mono input/output (in-place is allowed)
     void process(int16_t* input, int16_t* output, int numFrames) override;
+    void removeDC(int16_t* input, int16_t* output, int numFrames) override;
 };
 
 template<int N>
@@ -467,6 +469,21 @@ void GateMono<N>::process(int16_t* input, int16_t* output, int numFrames) {
     processHistogram(numFrames);
 }
 
+template<int N>
+void GateMono<N>::removeDC(int16_t* input, int16_t* output, int numFrames) {
+
+    for (int n = 0; n < numFrames; n++) {
+
+        int32_t x = input[n];
+
+        // remove DC
+        _dc.process(x);
+
+        // store 16-bit output
+        output[n] = (int16_t)saturateQ30(x);
+    }
+}
+
 //
 // Gate (stereo)
 //
@@ -482,6 +499,7 @@ public:
 
     // interleaved stereo input/output (in-place is allowed)
     void process(int16_t* input, int16_t* output, int numFrames) override;
+    void removeDC(int16_t* input, int16_t* output, int numFrames) override;
 };
 
 template<int N>
@@ -540,6 +558,23 @@ void GateStereo<N>::process(int16_t* input, int16_t* output, int numFrames) {
     processHistogram(numFrames);
 }
 
+template<int N>
+void GateStereo<N>::removeDC(int16_t* input, int16_t* output, int numFrames) {
+
+    for (int n = 0; n < numFrames; n++) {
+
+        int32_t x0 = input[2*n+0];
+        int32_t x1 = input[2*n+1];
+
+        // remove DC
+        _dc.process(x0, x1);
+
+        // store 16-bit output
+        output[2*n+0] = (int16_t)saturateQ30(x0);
+        output[2*n+1] = (int16_t)saturateQ30(x1);
+    }
+}
+
 //
 // Gate (quad)
 //
@@ -555,6 +590,7 @@ public:
 
     // interleaved quad input/output (in-place is allowed)
     void process(int16_t* input, int16_t* output, int numFrames) override;
+    void removeDC(int16_t* input, int16_t* output, int numFrames) override;
 };
 
 template<int N>
@@ -619,6 +655,27 @@ void GateQuad<N>::process(int16_t* input, int16_t* output, int numFrames) {
     processHistogram(numFrames);
 }
 
+template<int N>
+void GateQuad<N>::removeDC(int16_t* input, int16_t* output, int numFrames) {
+
+    for (int n = 0; n < numFrames; n++) {
+
+        int32_t x0 = input[4*n+0];
+        int32_t x1 = input[4*n+1];
+        int32_t x2 = input[4*n+2];
+        int32_t x3 = input[4*n+3];
+
+        // remove DC
+        _dc.process(x0, x1, x2, x3);
+
+        // store 16-bit output
+        output[4*n+0] = (int16_t)saturateQ30(x0);
+        output[4*n+1] = (int16_t)saturateQ30(x1);
+        output[4*n+2] = (int16_t)saturateQ30(x2);
+        output[4*n+3] = (int16_t)saturateQ30(x3);
+    }
+}
+
 //
 // Public API
 //
@@ -675,6 +732,10 @@ AudioGate::~AudioGate() {
 
 void AudioGate::render(int16_t* input, int16_t* output, int numFrames) {
     _impl->process(input, output, numFrames);
+}
+
+void AudioGate::removeDC(int16_t* input, int16_t* output, int numFrames) {
+    _impl->removeDC(input, output, numFrames);
 }
 
 void AudioGate::setThreshold(float threshold) {

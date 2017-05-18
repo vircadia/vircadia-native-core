@@ -20,6 +20,7 @@ public:
 
     // interleaved int16_t input/output (in-place is allowed)
     void render(int16_t* input, int16_t* output, int numFrames);
+    void removeDC(int16_t* input, int16_t* output, int numFrames);
 
     void setThreshold(float threshold);
     void setRelease(float release);
