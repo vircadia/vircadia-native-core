@@ -76,7 +76,7 @@ using GL41Texture = GL41Backend::GL41Texture;
 
 GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture)
     : GLTexture(backend, texture, allocate(texture)) {
-    incrementTextureGPUCount();
+    Backend::textureCount.increment();
 }
 
 GLuint GL41Texture::allocate(const Texture& texture) {
@@ -210,11 +210,13 @@ void GL41FixedAllocationTexture::syncSampler() const {
 using GL41AttachmentTexture = GL41Backend::GL41AttachmentTexture;
 
 GL41AttachmentTexture::GL41AttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41FixedAllocationTexture(backend, texture) {
-    Backend::updateTextureGPUFramebufferMemoryUsage(0, size());
+    Backend::textureFramebufferCount.increment();
+    Backend::textureFramebufferGPUMemSize.update(0, size());
 }
 
 GL41AttachmentTexture::~GL41AttachmentTexture() {
-    Backend::updateTextureGPUFramebufferMemoryUsage(size(), 0);
+    Backend::textureFramebufferCount.decrement();
+    Backend::textureFramebufferGPUMemSize.update(size(), 0);
 }
 
 // Strict resource textures
@@ -243,6 +245,8 @@ using GL41VariableAllocationTexture = GL41Backend::GL41VariableAllocationTexture
 GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) :
      GL41Texture(backend, texture)
 {
+    Backend::textureResourceCount.increment();
+
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
     _maxAllocatedMip = _populatedMip = mipLevels;
@@ -272,7 +276,8 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
 }
 
 GL41VariableAllocationTexture::~GL41VariableAllocationTexture() {
-    Backend::updateTextureGPUMemoryUsage(_size, 0);
+    Backend::textureResourceCount.decrement();
+    Backend::textureResourceGPUMemSize.update(_size, 0);
 }
 
 void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
@@ -291,7 +296,8 @@ void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
     for (uint16_t mip = _allocatedMip; mip < mipLevels; ++mip) {
         _size += _gpuObject.evalMipSize(mip);
     }
-    Backend::updateTextureGPUMemoryUsage(0, _size);
+    Backend::textureResourceGPUMemSize.update(0, _size);
+
 }
 
 
@@ -462,7 +468,7 @@ void GL41VariableAllocationTexture::promote() {
     // destroy the old texture
     glDeleteTextures(1, &oldId);
     // update the memory usage
-    Backend::updateTextureGPUMemoryUsage(oldSize, 0);
+    Backend::textureResourceGPUMemSize.update(oldSize, 0);
     populateTransferQueue();
 }
 
@@ -493,7 +499,7 @@ void GL41VariableAllocationTexture::demote() {
     // destroy the old texture
     glDeleteTextures(1, &oldId);
     // update the memory usage
-    Backend::updateTextureGPUMemoryUsage(oldSize, 0);
+    Backend::textureResourceGPUMemSize.update(oldSize, 0);
     populateTransferQueue();
 }
 

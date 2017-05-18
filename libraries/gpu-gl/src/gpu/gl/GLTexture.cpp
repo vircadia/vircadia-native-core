@@ -132,7 +132,9 @@ void GLTexture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, u
 
 
 GLExternalTexture::GLExternalTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id) 
-    : Parent(backend, texture, id) { }
+    : Parent(backend, texture, id) {
+    Backend::textureExternalCount.increment();
+}
 
 GLExternalTexture::~GLExternalTexture() {
     auto backend = _backend.lock();
@@ -145,6 +147,7 @@ GLExternalTexture::~GLExternalTexture() {
         }
         const_cast<GLuint&>(_id) = 0;
     }
+    Backend::textureExternalCount.decrement();
 }
 
 
@@ -211,7 +214,7 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
         _transferSize = bytesPerLine * lines;
     }
 
-    Backend::updateTextureTransferPendingSize(0, _transferSize);
+    Backend::texturePendingGPUTransferMemSize.update(0, _transferSize);
 
     if (_transferSize > GLVariableAllocationSupport::MAX_TRANSFER_SIZE) {
         qCWarning(gpugllogging) << "Transfer size of " << _transferSize << " exceeds theoretical maximum transfer size";
@@ -233,7 +236,7 @@ TransferJob::TransferJob(const GLTexture& parent, std::function<void()> transfer
 }
 
 TransferJob::~TransferJob() {
-    Backend::updateTextureTransferPendingSize(_transferSize, 0);
+    Backend::texturePendingGPUTransferMemSize.update(_transferSize, 0);
 }
 
 bool TransferJob::tryTransfer() {

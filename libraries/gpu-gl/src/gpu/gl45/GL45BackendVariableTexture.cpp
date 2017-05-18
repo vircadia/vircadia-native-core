@@ -34,7 +34,7 @@ GL45VariableAllocationTexture::GL45VariableAllocationTexture(const std::weak_ptr
 }
 
 GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
-    Backend::updateTextureGPUMemoryUsage(_size, 0);
+    Backend::textureGPUMemSize.update(_size, 0);
 }
 
 // Managed size resource textures
@@ -77,8 +77,7 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
         _size += _gpuObject.evalMipSize(mip);
     }
 
-    Backend::updateTextureGPUMemoryUsage(0, _size);
-
+    Backend::textureResourceGPUMemSize.update(0, _size);
 }
 
 void GL45ResourceTexture::copyMipsFromTexture() {
@@ -139,7 +138,7 @@ void GL45ResourceTexture::promote() {
     // destroy the old texture
     glDeleteTextures(1, &oldId);
     // update the memory usage
-    Backend::updateTextureGPUMemoryUsage(oldSize, 0);
+    Backend::textureResourceGPUMemSize.update(oldSize, 0);
     syncSampler();
     populateTransferQueue();
 }
@@ -163,7 +162,7 @@ void GL45ResourceTexture::demote() {
     // destroy the old texture
     glDeleteTextures(1, &oldId);
     // update the memory usage
-    Backend::updateTextureGPUMemoryUsage(oldSize, 0);
+    Backend::textureResourceGPUMemSize.update(oldSize, 0);
     syncSampler();
     populateTransferQueue();
 }

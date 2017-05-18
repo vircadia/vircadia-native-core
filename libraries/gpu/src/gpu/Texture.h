@@ -21,6 +21,7 @@
 
 #include "Forward.h"
 #include "Resource.h"
+#include "Metric.h"
 
 const int ABSOLUTE_MAX_TEXTURE_NUM_PIXELS = 8192 * 8192;
 
@@ -167,8 +168,9 @@ enum class TextureUsageType : uint8 {
 };
 
 class Texture : public Resource {
-    static std::atomic<uint32_t> _textureCPUCount;
-    static std::atomic<Size> _textureCPUMemoryUsage;
+    static ContextMetricCount _textureCPUCount;
+    static ContextMetricSize _textureCPUMemSize;
+
     static std::atomic<Size> _allowedCPUMemoryUsage;
     static std::atomic<bool> _enableSparseTextures;
     static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
@@ -176,14 +178,8 @@ class Texture : public Resource {
 public:
     static const uint32_t CUBE_FACE_COUNT { 6 };
     static uint32_t getTextureCPUCount();
-    static Size getTextureCPUMemoryUsage();
-    static uint32_t getTextureGPUCount();
-    static Size getTextureTransferPendingSize();
-    static Size getTextureGPUMemoryUsage();
-    static Size getTextureGPUResourceMemoryUsage();
-    static Size getTextureGPUResidentMemoryUsage();
-    static Size getTextureGPUFramebufferMemoryUsage();
-    static uint32_t getTextureGPUTransferCount();
+    static Size getTextureCPUMemSize();
+
     static Size getAllowedGPUMemoryUsage();
     static void setAllowedGPUMemoryUsage(Size size);
 

@@ -44,7 +44,7 @@ Item {
                     color: "#1AC567"
                 },
                 {
-                    prop: "textureGPUTransferCount",
+                    prop: "texturePendingGPUTransferCount",
                     label: "Transfer",
                     color: "#9495FF"
                 }
@@ -59,12 +59,12 @@ Item {
             valueNumDigits: "1"
             plots: [
                 {
-                    prop: "textureCPUMemoryUsage",
+                    prop: "textureCPUMemSize",
                     label: "CPU",
                     color: "#00B4EF"
                 },
                 {
-                    prop: "textureGPUMemoryUsage",
+                    prop: "textureGPUMemSize",
                     label: "GPU",
                     color: "#1AC567"
                 },
@@ -74,7 +74,17 @@ Item {
                     color: "#9495FF"
                 },
                 {
-                    prop: "textureGPUFramebufferSize",
+                    prop: "textureResourceGPUMemSize",
+                    label: "Resource",
+                    color: "#1FC6A6"
+                },
+                {
+                    prop: "textureResidentGPUMemSize",
+                    label: "Resident",
+                    color: "#FF6309"
+                },
+                {
+                    prop: "textureFramebufferGPUMemSize",
                     label: "Framebuffer",
                     color: "#EF93D1"
                 }

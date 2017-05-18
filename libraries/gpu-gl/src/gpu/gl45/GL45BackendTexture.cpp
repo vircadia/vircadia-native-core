@@ -116,7 +116,7 @@ using GL45Texture = GL45Backend::GL45Texture;
 
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture)
     : GLTexture(backend, texture, allocate(texture)) {
-    incrementTextureGPUCount();
+    Backend::textureCount.increment();
 }
 
 GLuint GL45Texture::allocate(const Texture& texture) {
@@ -241,11 +241,11 @@ void GL45FixedAllocationTexture::syncSampler() const {
 using GL45AttachmentTexture = GL45Backend::GL45AttachmentTexture;
 
 GL45AttachmentTexture::GL45AttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45FixedAllocationTexture(backend, texture) {
-    Backend::updateTextureGPUFramebufferMemoryUsage(0, size());
+    Backend::textureFramebufferGPUMemSize.update(0, size());
 }
 
 GL45AttachmentTexture::~GL45AttachmentTexture() {
-    Backend::updateTextureGPUFramebufferMemoryUsage(size(), 0);
+    Backend::textureFramebufferGPUMemSize.update(size(), 0);
 }
 
 // Strict resource textures

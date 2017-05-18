@@ -26,7 +26,7 @@ GLBuffer::GLBuffer(const std::weak_ptr<GLBackend>& backend, const Buffer& buffer
     _size((GLuint)buffer._renderSysmem.getSize()),
     _stamp(buffer._renderSysmem.getStamp())
 {
-    Backend::incrementBufferGPUCount();
-    Backend::updateBufferGPUMemoryUsage(0, _size);
+    Backend::bufferCount.increment();
+    Backend::bufferGPUMemSize.update(0, _size);
 }
 

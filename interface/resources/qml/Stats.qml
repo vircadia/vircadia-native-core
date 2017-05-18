@@ -277,23 +277,19 @@ Item {
                         text: "  Count: " + root.gpuTextures;
                     }
                     StatText {
-                        text: "  Rectified: " + root.rectifiedTextureCount;
-                    }
-                    StatText {
-                        text: "  Decimated: " + root.decimatedTextureCount;
-                    }
-                    StatText {
                         text: "  Pending Transfer: " + root.texturePendingTransfers + " MB";
                     }
                     StatText {
-                        text: "  Resource Memory: " + root.gpuTextureMemory + " MB";
+                        text: "  Resource Memory: " + root.gpuTextureResourceMemory + " MB";
+                    }
+                    StatText {
+                        text: "  Resident Memory: " + root.gpuTextureResidentMemory + " MB";
                     }
                     StatText {
                         text: "  Framebuffer Memory: " + root.gpuTextureFramebufferMemory + " MB";
                     }
                     StatText {
-                        text: "  Sparse Memory: " + root.gpuTextureSparseMemory + " MB";
-                        visible: 0 != root.gpuSparseTextureEnabled;
+                        text: "  External Memory: " + root.gpuTextureExternalMemory + " MB";
                     }
                     StatText {
                         text: "GPU Buffers: "
@@ -302,7 +298,7 @@ Item {
                         text: "  Count: " + root.gpuBuffers;
                     }
                     StatText {
-                        text: "  Memory: " + root.gpuBufferMemory;
+                        text: "  Memory: " + root.gpuBufferMemory + " MB";
                     }
                     StatText {
                         text: "GL Swapchain Memory: " + root.glContextSwapchainMemory + " MB";
