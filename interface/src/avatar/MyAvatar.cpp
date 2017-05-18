@@ -38,6 +38,7 @@
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
 #include <AnimClip.h>
+#include <AnimInverseKinematics.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
@@ -109,6 +110,9 @@ MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", false),
+    _smoothOrientationTimer(std::numeric_limits<float>::max()),
+    _smoothOrientationInitial(),
+    _smoothOrientationTarget(),
     _hmdSensorMatrix(),
     _hmdSensorOrientation(),
     _hmdSensorPosition(),
@@ -235,6 +239,7 @@ MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
     });
 
     connect(rig.get(), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
+    _characterController.setDensity(_density);
 }
 
 MyAvatar::~MyAvatar() {
@@ -264,6 +269,17 @@ QVariant MyAvatar::getOrientationVar() const {
     return quatToVariant(Avatar::getOrientation());
 }
 
+glm::quat MyAvatar::getOrientationOutbound() const {
+    // Allows MyAvatar to send out smoothed data to remote agents if required.
+    if (_smoothOrientationTimer > SMOOTH_TIME_ORIENTATION) {
+        return (getLocalOrientation());
+    }
+
+    // Smooth the remote avatar movement.
+    float t = _smoothOrientationTimer / SMOOTH_TIME_ORIENTATION;
+    float interp = Interpolate::easeInOutQuad(glm::clamp(t, 0.0f, 1.0f));
+    return (slerp(_smoothOrientationInitial, _smoothOrientationTarget, interp));
+}
 
 // virtual
 void MyAvatar::simulateAttachments(float deltaTime) {
@@ -290,6 +306,11 @@ QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
 }
 
 void MyAvatar::resetSensorsAndBody() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "resetSensorsAndBody");
+        return;
+    }
+
     qApp->getActiveDisplayPlugin()->resetSensors();
     reset(true, false, true);
 }
@@ -386,6 +407,11 @@ void MyAvatar::update(float deltaTime) {
     const float HMD_FACING_TIMESCALE = 4.0f; // very slow average
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     _hmdSensorFacingMovingAverage = lerp(_hmdSensorFacingMovingAverage, _hmdSensorFacing, tau);
+
+    if (_smoothOrientationTimer < SMOOTH_TIME_ORIENTATION) {
+        _rotationChanged = usecTimestampNow();
+        _smoothOrientationTimer += deltaTime;
+    }
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
     glm::vec3 p = transformPoint(getSensorToWorldMatrix(), _hmdSensorPosition + glm::vec3(_hmdSensorFacingMovingAverage.x, 0.0f, _hmdSensorFacingMovingAverage.y));
@@ -504,6 +530,7 @@ void MyAvatar::simulate(float deltaTime) {
 
         if (_rig) {
             _rig->setEnableDebugDrawIKTargets(_enableDebugDrawIKTargets);
+            _rig->setEnableDebugDrawIKConstraints(_enableDebugDrawIKConstraints);
         }
 
         _skeletonModel->simulate(deltaTime);
@@ -925,6 +952,10 @@ void MyAvatar::setEnableDebugDrawSensorToWorldMatrix(bool isEnabled) {
 
 void MyAvatar::setEnableDebugDrawIKTargets(bool isEnabled) {
     _enableDebugDrawIKTargets = isEnabled;
+}
+
+void MyAvatar::setEnableDebugDrawIKConstraints(bool isEnabled) {
+    _enableDebugDrawIKConstraints = isEnabled;
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
@@ -1806,8 +1837,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
     // snap turn every half second.
+    bool snapTurn = false;
     if (getDriveKey(STEP_YAW) != 0.0f) {
         totalBodyYaw += getDriveKey(STEP_YAW);
+        snapTurn = true;
     }
 
     // use head/HMD orientation to turn while flying
@@ -1840,9 +1873,16 @@ void MyAvatar::updateOrientation(float deltaTime) {
         totalBodyYaw += (speedFactor * deltaAngle * (180.0f / PI));
     }
 
-
     // update body orientation by movement inputs
+    glm::quat initialOrientation = getOrientationOutbound();
     setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
+
+    if (snapTurn) {
+        // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
+        _smoothOrientationInitial = initialOrientation;
+        _smoothOrientationTarget = getOrientation();
+        _smoothOrientationTimer = 0.0f;
+    }
 
     getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 

@@ -148,12 +148,24 @@ namespace ktx {
             size_t imageSize = *reinterpret_cast<const uint32_t*>(currentPtr);
             currentPtr += sizeof(uint32_t);
 
+            auto expectedImageSize = header.evalImageSize((uint32_t) images.size());
+            if (imageSize != expectedImageSize) {
+                break;
+            } else if (!Header::checkAlignment(imageSize)) {
+                break;
+            }
+
+            // The image size is the face size, beware!
+            size_t faceSize = imageSize;
+            if (numFaces == NUM_CUBEMAPFACES) {
+                imageSize = NUM_CUBEMAPFACES * faceSize;
+            }
+
             // If enough data ahead then capture the pointer
             if ((currentPtr - srcBytes) + imageSize <= (srcSize)) {
                 auto padding = Header::evalPadding(imageSize);
 
                 if (numFaces == NUM_CUBEMAPFACES) {
-                    size_t faceSize = imageSize / NUM_CUBEMAPFACES;
                     Image::FaceBytes faces(NUM_CUBEMAPFACES);
                     for (uint32_t face = 0; face < NUM_CUBEMAPFACES; face++) {
                         faces[face] = currentPtr;
@@ -166,6 +178,7 @@ namespace ktx {
                     currentPtr += imageSize + padding;
                 }
             } else {
+                // Stop here
                 break;
             }
         }
@@ -190,6 +203,10 @@ namespace ktx {
 
         // populate image table
         result->_images = parseImages(result->getHeader(), result->getTexelsDataSize(), result->getTexelsData());
+        if (result->_images.size() != result->getHeader().getNumberOfLevels()) {
+            // Fail if the number of images produced doesn't match the header number of levels
+            return nullptr;
+        }
 
         return result;
     }

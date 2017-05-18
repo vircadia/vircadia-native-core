@@ -52,6 +52,7 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
 static const float AUDIO_LOUDNESS_SCALE = 1024.0f;
+static const float DEFAULT_AVATAR_DENSITY = 1000.0f; // density of water
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
@@ -65,7 +66,8 @@ AvatarData::AvatarData() :
     _headData(NULL),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
-    _targetVelocity(0.0f)
+    _targetVelocity(0.0f),
+    _density(DEFAULT_AVATAR_DENSITY)
 {
     setBodyPitch(0.0f);
     setBodyYaw(-90.0f);
@@ -170,13 +172,13 @@ QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail) {
     AvatarDataPacket::HasFlags hasFlagsOut;
     auto lastSentTime = _lastToByteArray;
     _lastToByteArray = usecTimestampNow();
-    return AvatarData::toByteArray(dataDetail, lastSentTime, getLastSentJointData(), 
+    return AvatarData::toByteArray(dataDetail, lastSentTime, getLastSentJointData(),
                         hasFlagsOut, false, false, glm::vec3(0), nullptr,
                         &_outboundDataRate);
 }
 
 QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-    AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, 
+    AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust,
     glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut) const {
 
     bool cullSmallChanges = (dataDetail == CullSmallData);
@@ -199,7 +201,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     // FIXME -
     //
-    //    BUG -- if you enter a space bubble, and then back away, the avatar has wrong orientation until "send all" happens... 
+    //    BUG -- if you enter a space bubble, and then back away, the avatar has wrong orientation until "send all" happens...
     //      this is an iFrame issue... what to do about that?
     //
     //    BUG -- Resizing avatar seems to "take too long"... the avatar doesn't redraw at smaller size right away
@@ -310,7 +312,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAvatarOrientation) {
         auto startSection = destinationBuffer;
-        auto localOrientation = getLocalOrientation();
+        auto localOrientation = getOrientationOutbound();
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, localOrientation);
 
         int numBytes = destinationBuffer - startSection;
@@ -445,7 +447,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasFaceTrackerInfo) {
         auto startSection = destinationBuffer;
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
-        auto blendshapeCoefficients = _headData->getSummedBlendshapeCoefficients();
+        const auto& blendshapeCoefficients = _headData->getSummedBlendshapeCoefficients();
 
         faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
         faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
@@ -1471,13 +1473,13 @@ QStringList AvatarData::getJointNames() const {
 void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
     QDataStream packetStream(data);
 
-    packetStream >> identityOut.uuid 
-                 >> identityOut.skeletonModelURL 
+    packetStream >> identityOut.uuid
+                 >> identityOut.skeletonModelURL
                  >> identityOut.attachmentData
                  >> identityOut.displayName
                  >> identityOut.sessionDisplayName
                  >> identityOut.avatarEntityData
-                 >> identityOut.updatedAt;
+                 >> identityOut.sequenceId;
 
 #ifdef WANT_DEBUG
     qCDebug(avatars) << __FUNCTION__
@@ -1489,22 +1491,25 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
 
 }
 
+glm::quat AvatarData::getOrientationOutbound() const {
+    return (getLocalOrientation());
+}
+
 static const QUrl emptyURL("");
 QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     // We don't put file urls on the wire, but instead convert to empty.
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew) {
+void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
 
-    // Consider the case where this packet is being processed on Client A, and Client A is connected to Sandbox B.
-    // If Client A's system clock is *ahead of* Sandbox B's system clock, "clockSkew" will be *negative*.
-    // If Client A's system clock is *behind* Sandbox B's system clock, "clockSkew" will be *positive*.
-    if ((_identityUpdatedAt > identity.updatedAt - clockSkew) && (_identityUpdatedAt != 0)) {
-        qCDebug(avatars) << "Ignoring late identity packet for avatar " << getSessionUUID() 
-            << "_identityUpdatedAt (" << _identityUpdatedAt << ") is greater than identity.updatedAt - clockSkew (" << identity.updatedAt << "-" << clockSkew << ")";
+    if (identity.sequenceId < _identitySequenceId) {
+        qCDebug(avatars) << "Ignoring older identity packet for avatar" << getSessionUUID()
+            << "_identitySequenceId (" << _identitySequenceId << ") is greater than" << identity.sequenceId;
         return;
     }
+    // otherwise, set the identitySequenceId to match the incoming identity
+    _identitySequenceId = identity.sequenceId;
 
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
@@ -1536,9 +1541,6 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
         identityChanged = true;
     }
 
-    // use the timestamp from this identity, since we want to honor the updated times in "server clock"
-    // this will overwrite any changes we made locally to this AvatarData's _identityUpdatedAt
-    _identityUpdatedAt = identity.updatedAt - clockSkew;
 }
 
 QByteArray AvatarData::identityByteArray() const {
@@ -1547,13 +1549,13 @@ QByteArray AvatarData::identityByteArray() const {
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
     _avatarEntitiesLock.withReadLock([&] {
-        identityStream << getSessionUUID() 
-                       << urlToSend 
+        identityStream << getSessionUUID()
+                       << urlToSend
                        << _attachmentData
                        << _displayName
                        << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
                        << _avatarEntityData
-                       << _identityUpdatedAt;
+                       << _identitySequenceId;
     });
 
     return identityData;
@@ -1578,8 +1580,6 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 void AvatarData::setDisplayName(const QString& displayName) {
     _displayName = displayName;
     _sessionDisplayName = "";
-
-    sendIdentityPacket();
 
     qCDebug(avatars) << "Changing display name for avatar to" << displayName;
     markIdentityDataChanged();
@@ -2047,11 +2047,13 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             setSkeletonModelURL(bodyModelURL);
         }
     }
+
+    QString newDisplayName = "";
     if (json.contains(JSON_AVATAR_DISPLAY_NAME)) {
-        auto newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
-        if (newDisplayName != getDisplayName()) {
-            setDisplayName(newDisplayName);
-        }
+        newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
+    }
+    if (newDisplayName != getDisplayName()) {
+        setDisplayName(newDisplayName);
     }
 
     auto currentBasis = getRecordingBasis();
@@ -2081,14 +2083,16 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         setTargetScale((float)json[JSON_AVATAR_SCALE].toDouble());
     }
 
+    QVector<AttachmentData> attachments;
     if (json.contains(JSON_AVATAR_ATTACHMENTS) && json[JSON_AVATAR_ATTACHMENTS].isArray()) {
         QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
-        QVector<AttachmentData> attachments;
         for (auto attachmentJson : attachmentsJson) {
             AttachmentData attachment;
             attachment.fromJson(attachmentJson.toObject());
             attachments.push_back(attachment);
         }
+    }
+    if (attachments != getAttachmentData()) {
         setAttachmentData(attachments);
     }
 
@@ -2464,11 +2468,11 @@ QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEnt
         if (!jsonEntityProperties.isObject()) {
             qCDebug(avatars) << "bad AvatarEntityData in AvatarEntityMap" << QString(entityProperties.toHex());
         }
-        
+
         QVariant variantEntityProperties = jsonEntityProperties.toVariant();
         QVariantMap entityPropertiesMap = variantEntityProperties.toMap();
         QScriptValue scriptEntityProperties = variantMapToScriptValue(entityPropertiesMap, *engine);
-        
+
         QString key = entityID.toString();
         obj.setProperty(key, scriptEntityProperties);
     }
@@ -2480,12 +2484,12 @@ void AvatarEntityMapFromScriptValue(const QScriptValue& object, AvatarEntityMap&
     while (itr.hasNext()) {
         itr.next();
         QUuid EntityID = QUuid(itr.name());
-        
+
         QScriptValue scriptEntityProperties = itr.value();
         QVariant variantEntityProperties = scriptEntityProperties.toVariant();
         QJsonDocument jsonEntityProperties = QJsonDocument::fromVariant(variantEntityProperties);
         QByteArray binaryEntityProperties = jsonEntityProperties.toBinaryData();
-        
+
         value[EntityID] = binaryEntityProperties;
     }
 }

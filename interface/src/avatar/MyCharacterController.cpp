@@ -49,12 +49,9 @@ void MyCharacterController::updateShapeIfNecessary() {
             // create RigidBody if it doesn't exist
             if (!_rigidBody) {
                 btCollisionShape* shape = computeShape();
-
-                // HACK: use some simple mass property defaults for now
-                const btScalar DEFAULT_AVATAR_MASS = 100.0f;
-                const btVector3 DEFAULT_AVATAR_INERTIA_TENSOR(30.0f, 8.0f, 30.0f);
-
-                _rigidBody = new btRigidBody(DEFAULT_AVATAR_MASS, nullptr, shape, DEFAULT_AVATAR_INERTIA_TENSOR);
+                btScalar mass = 1.0f;
+                btVector3 inertia(1.0f, 1.0f, 1.0f);
+                _rigidBody = new btRigidBody(mass, nullptr, shape, inertia);
             } else {
                 btCollisionShape* shape = _rigidBody->getCollisionShape();
                 if (shape) {
@@ -63,6 +60,7 @@ void MyCharacterController::updateShapeIfNecessary() {
                 shape = computeShape();
                 _rigidBody->setCollisionShape(shape);
             }
+            updateMassProperties();
 
             _rigidBody->setSleepingThresholds(0.0f, 0.0f);
             _rigidBody->setAngularFactor(0.0f);
@@ -330,4 +328,24 @@ void MyCharacterController::initRayShotgun(const btCollisionWorld* world) {
             }
         }
     }
+}
+
+void MyCharacterController::updateMassProperties() {
+    assert(_rigidBody);
+    // the inertia tensor of a capsule with Y-axis of symmetry, radius R and cylinder height H is:
+    // Ix = density * (volumeCylinder * (H^2 / 12 + R^2 / 4) + volumeSphere * (2R^2 / 5 + H^2 / 2 + 3HR / 8))
+    // Iy = density * (volumeCylinder * (R^2 / 2) + volumeSphere * (2R^2 / 5)
+    btScalar r2 = _radius * _radius;
+    btScalar h2 = 4.0f * _halfHeight * _halfHeight;
+    btScalar volumeSphere = 4.0f * PI * r2 * _radius / 3.0f;
+    btScalar volumeCylinder = TWO_PI * r2 * 2.0f * _halfHeight;
+    btScalar cylinderXZ = volumeCylinder * (h2 / 12.0f + r2 / 4.0f);
+    btScalar capsXZ = volumeSphere * (2.0f * r2 / 5.0f + h2 / 2.0f + 6.0f * _halfHeight * _radius / 8.0f);
+    btScalar inertiaXZ = _density * (cylinderXZ + capsXZ);
+    btScalar inertiaY = _density * ((volumeCylinder * r2 / 2.0f) + volumeSphere * (2.0f * r2 / 5.0f));
+    btVector3 inertia(inertiaXZ, inertiaY, inertiaXZ);
+
+    btScalar mass = _density * (volumeCylinder + volumeSphere);
+
+    _rigidBody->setMassProps(mass, inertia);
 }

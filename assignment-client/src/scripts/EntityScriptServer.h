@@ -24,9 +24,6 @@
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
-static const int DEFAULT_MAX_ENTITY_PPS = 9000;
-static const int DEFAULT_ENTITY_PPS_PER_SCRIPT = 900;
-
 class EntityScriptServer : public ThreadedAssignment {
     Q_OBJECT
 

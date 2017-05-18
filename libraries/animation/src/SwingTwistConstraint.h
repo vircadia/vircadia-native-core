@@ -58,7 +58,7 @@ public:
     virtual void dynamicallyAdjustLimits(const glm::quat& rotation) override;
 
     // for testing purposes
-    const std::vector<float>& getMinDots() { return _swingLimitFunction.getMinDots(); }
+    const std::vector<float>& getMinDots() const { return _swingLimitFunction.getMinDots(); }
 
     // SwingLimitFunction is an implementation of the constraint check described in the paper:
     // "The Parameterization of Joint Rotation with the Unit Quaternion" by Quang Liu and Edmond C. Prakash
@@ -81,7 +81,7 @@ public:
         float getMinDot(float theta) const;
 
         // for testing purposes
-        const std::vector<float>& getMinDots() { return _minDots; }
+        const std::vector<float>& getMinDots() const { return _minDots; }
 
     private:
         // the limits are stored in a lookup table with cyclic boundary conditions
@@ -98,6 +98,11 @@ public:
     const SwingLimitFunction& getSwingLimitFunction() const { return _swingLimitFunction; }
 
     void clearHistory() override;
+
+    virtual glm::quat computeCenterRotation() const override;
+
+    float getMinTwist() const { return _minTwist; }
+    float getMaxTwist() const { return _maxTwist; }
 
 private:
     float handleTwistBoundaryConditions(float twistAngle) const;

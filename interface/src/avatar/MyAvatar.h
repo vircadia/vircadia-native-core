@@ -125,7 +125,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
 
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
-    Q_PROPERTY(float isAway READ getIsAway WRITE setAway)
+    Q_PROPERTY(bool isAway READ getIsAway WRITE setAway)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
@@ -190,6 +190,8 @@ public:
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
     Q_INVOKABLE QVariant getOrientationVar() const;
 
+    // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
+    glm::quat getOrientationOutbound() const override;
 
     // Pass a recent sample of the HMD to the avatar.
     // This can also update the avatar's position to follow the HMD
@@ -521,6 +523,7 @@ public slots:
     void setEnableDebugDrawHandControllers(bool isEnabled);
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
     void setEnableDebugDrawIKTargets(bool isEnabled);
+    void setEnableDebugDrawIKConstraints(bool isEnabled);
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
@@ -632,6 +635,14 @@ private:
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
 
+    // Smoothing.
+    const float SMOOTH_TIME_ORIENTATION = 0.5f;
+
+    // Smoothing data for blending from one position/orientation to another on remote agents.
+    float _smoothOrientationTimer;
+    glm::quat _smoothOrientationInitial;
+    glm::quat _smoothOrientationTarget;
+
     // private methods
     void updateOrientation(float deltaTime);
     void updateActionMotor(float deltaTime);
@@ -706,6 +717,7 @@ private:
     bool _enableDebugDrawHandControllers { false };
     bool _enableDebugDrawSensorToWorldMatrix { false };
     bool _enableDebugDrawIKTargets { false };
+    bool _enableDebugDrawIKConstraints { false };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
