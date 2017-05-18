@@ -1251,6 +1251,15 @@ void EntityTree::fixupMissingParents() {
                 doMove = true;
                 // the bounds on the render-item may need to be updated, the rigid body in the physics engine may
                 // need to be moved.
+                entity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
+                                       Simulation::DIRTY_COLLISION_GROUP |
+                                       Simulation::DIRTY_POSITION);
+                entity->forEachDescendant([&](SpatiallyNestablePointer object) {
+                    if (object->getNestableType() == NestableType::Entity) {
+                        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                        entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+                    }
+                });
                 entity->locationChanged(true);
             } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
                 // this is a child of an avatar, which the entity server will never have
