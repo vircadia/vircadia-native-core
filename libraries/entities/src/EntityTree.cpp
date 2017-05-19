@@ -1218,6 +1218,7 @@ void EntityTree::fixupMissingParents() {
         if (!entity) {
             // entity was deleted before we found its parent
             iter.remove();
+            continue;
         }
 
         entity->requiresRecalcBoxes();
