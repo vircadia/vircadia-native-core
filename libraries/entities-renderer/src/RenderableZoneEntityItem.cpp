@@ -82,22 +82,18 @@ int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     return bytesRead;
 }
 
-void RenderableZoneEntityItem::initialSimulation() {
-    _model->setScaleToFit(true, getDimensions());
-    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-    _model->setRotation(getRotation());
-    _model->setTranslation(getPosition());
-    _model->simulate(0.0f);
-    _needsInitialSimulation = false;
-}
-
 void RenderableZoneEntityItem::updateGeometry() {
     if (_model && !_model->isActive() && hasCompoundShapeURL()) {
         // Since we have a delayload, we need to update the geometry if it has been downloaded
         _model->setURL(getCompoundShapeURL());
     }
     if (_model && _model->isActive() && _needsInitialSimulation) {
-        initialSimulation();
+        _model->setScaleToFit(true, getDimensions());
+        _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+        _model->simulate(0.0f);
+        _needsInitialSimulation = false;
     }
 }
 

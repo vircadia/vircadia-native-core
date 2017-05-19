@@ -48,7 +48,6 @@ private:
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
     void notifyBoundChanged();
 
-    void initialSimulation();
     void updateGeometry();
     
     template<typename Lambda>
