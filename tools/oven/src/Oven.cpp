@@ -30,11 +30,10 @@ Oven::Oven(int argc, char* argv[]) :
     // init the settings interface so we can save and load settings
     Setting::init();
 
-    // enable compression in image library
+    // enable compression in image library, except for cube maps
     image::setColorTexturesCompressionEnabled(true);
     image::setGrayscaleTexturesCompressionEnabled(true);
     image::setNormalTexturesCompressionEnabled(true);
-    image::setCubeTexturesCompressionEnabled(true);
 
     // check if we were passed any command line arguments that would tell us just to run without the GUI
 
