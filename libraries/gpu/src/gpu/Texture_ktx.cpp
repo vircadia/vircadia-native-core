@@ -210,7 +210,6 @@ std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() const {
 }
 
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
-    storage::StoragePointer result;
     auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
     if (faceSize != 0 && faceOffset != 0) {
@@ -226,7 +225,7 @@ PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
             qWarning() << "Failed to get a valid file out of maybeOpenFile " << QString::fromStdString(_filename);
         }
     }
-    return result;
+    return nullptr;
 }
 
 Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
@@ -260,8 +259,13 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     }
 
     auto file = maybeOpenFile();
+    if (!file) {
+        qWarning() << "Failed to open file to assign mip data " << QString::fromStdString(_filename);
+        return;
+    }
 
-    auto imageData = file->mutableData();
+    auto fileData = file->mutableData();
+    auto imageData = fileData;
     imageData += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
     imageData += ktx::IMAGE_SIZE_WIDTH;
 
@@ -276,7 +280,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
         memcpy(imageData, storage->data(), storage->size());
         _minMipLevelAvailable = level;
         if (_offsetToMinMipKV > 0) {
-            auto minMipKeyData = file->mutableData() + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
+            auto minMipKeyData = fileData + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
             memcpy(minMipKeyData, (void*)&_minMipLevelAvailable, 1);
         }
     }
