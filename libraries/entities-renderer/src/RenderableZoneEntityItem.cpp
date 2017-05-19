@@ -81,7 +81,7 @@ int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
 }
 
 Model* RenderableZoneEntityItem::getModel() {
-    Model* model = new Model(nullptr);
+    Model* model = new Model();
     model->setIsWireframe(true);
     model->init();
     return model;
