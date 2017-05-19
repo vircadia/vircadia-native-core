@@ -309,7 +309,7 @@ var toolBar = (function () {
                     gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
                 });
             }
-        }        
+        }
     }
 
     function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
@@ -482,22 +482,52 @@ var toolBar = (function () {
             createNewEntity({
                 type: "ParticleEffect",
                 isEmitting: true,
+                emitterShouldTrail: true,
+                color: {
+                    red: 200,
+                    green: 200,
+                    blue: 200
+                },
+                colorSpread: {
+                    red: 0,
+                    green: 0,
+                    blue: 0
+                },
+                colorStart: {
+                    red: 200,
+                    green: 200,
+                    blue: 200
+                },
+                colorFinish: {
+                    red: 0,
+                    green: 0,
+                    blue: 0
+                },
                 emitAcceleration: {
-                    x: 0,
-                    y: -1,
-                    z: 0
+                    x: -0.5,
+                    y: 2.5,
+                    z: -0.5
                 },
                 accelerationSpread: {
-                    x: 5,
-                    y: 0,
-                    z: 5
+                    x: 0.5,
+                    y: 1,
+                    z: 0.5
                 },
-                emitSpeed: 1,
-                lifespan: 1,
-                particleRadius: 0.025,
+                emitRate: 5.5,
+                emitSpeed: 0,
+                speedSpread: 0,
+                lifespan: 1.5,
+                maxParticles: 10,
+                particleRadius: 0.25,
+                radiusStart: 0,
+                radiusFinish: 0.1,
+                radiusSpread: 0,
+                alpha: 0,
+                alphaStart: 1,
                 alphaFinish: 0,
-                emitRate: 100,
-                textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png"
+                polarStart: 0,
+                polarFinish: 0,
+                textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png"
             });
         });
 
@@ -656,7 +686,7 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
         return;
 
     var data = JSON.parse(message);
-    
+
     if (data.method === "selectOverlay") {
         print("setting selection to overlay " + data.overlayID);
         var entity = entityIconOverlayManager.findEntity(data.overlayID);
@@ -664,7 +694,7 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
         if (entity !== null) {
             selectionManager.setSelections([entity]);
         }
-    } 
+    }
 }
 
 Messages.subscribe("entityToolUpdates");
@@ -774,7 +804,7 @@ function wasTabletClicked(event) {
     var result = Overlays.findRayIntersection(rayPick, true, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
     return result.intersects;
 }
-    
+
 function mouseClickEvent(event) {
     var wantDebug = false;
     var result, properties, tabletClicked;
@@ -784,7 +814,7 @@ function mouseClickEvent(event) {
         if (tabletClicked) {
             return;
         }
-        
+
         if (result === null || result === undefined) {
             if (!event.isShifted) {
                 selectionManager.clearSelections();
@@ -2062,7 +2092,7 @@ function selectParticleEntity(entityID) {
 
     selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
-    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));    
+    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
 
     // Switch to particle explorer
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");

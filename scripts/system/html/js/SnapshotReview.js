@@ -44,6 +44,7 @@ function showSetupComplete() {
             '<p>Snapshot location set.</p>' +
             '<p>Press the big red button to take a snap!</p>' +
         '</div>';
+    document.getElementById("snap-button").disabled = false;
 }
 function showSnapshotInstructions() {
     var snapshotImagesDiv = document.getElementById("snapshot-images");
@@ -69,7 +70,6 @@ function login() {
     }));
 }
 function clearImages() {
-    document.getElementById("snap-button").disabled = false;
     var snapshotImagesDiv = document.getElementById("snapshot-images");
     snapshotImagesDiv.classList.remove("snapshotInstructions");
     while (snapshotImagesDiv.hasChildNodes()) {
@@ -359,7 +359,7 @@ function showUploadingMessage(selectedID, destination) {
     shareBarHelp.classList.add("uploading");
     shareBarHelp.setAttribute("data-destination", destination);
 }
-function hideUploadingMessageAndShare(selectedID, storyID) {
+function hideUploadingMessageAndMaybeShare(selectedID, storyID) {
     if (selectedID.id) {
         selectedID = selectedID.id; // sometimes (?), `containerID` is passed as an HTML object to these functions; we just want the ID
     }
@@ -382,21 +382,28 @@ function hideUploadingMessageAndShare(selectedID, storyID) {
                 var facebookButton = document.getElementById(selectedID + "facebookButton");
                 window.open(facebookButton.getAttribute("href"), "_blank");
                 shareBarHelp.innerHTML = facebookShareText;
+                // This emitWebEvent() call isn't necessary in the "hifi" and "blast" cases
+                // because the "removeFromStoryIDsToMaybeDelete()" call happens
+                // in snapshot.js when sharing with that method.
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "snapshot",
+                    action: "removeFromStoryIDsToMaybeDelete",
+                    story_id: storyID
+                }));
                 break;
             case 'twitter':
                 var twitterButton = document.getElementById(selectedID + "twitterButton");
                 window.open(twitterButton.getAttribute("href"), "_blank");
                 shareBarHelp.innerHTML = twitterShareText;
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "snapshot",
+                    action: "removeFromStoryIDsToMaybeDelete",
+                    story_id: storyID
+                }));
                 break;
         }
 
         shareBarHelp.setAttribute("data-destination", "");
-
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: "snapshot",
-            action: "removeFromStoryIDsToMaybeDelete",
-            story_id: storyID
-        }));
     }
 }
 function updateShareInfo(containerID, storyID) {
@@ -415,9 +422,9 @@ function updateShareInfo(containerID, storyID) {
     facebookButton.setAttribute("href", 'https://www.facebook.com/dialog/feed?app_id=1585088821786423&link=' + shareURL);
 
     twitterButton.setAttribute("target", "_blank");
-    twitterButton.setAttribute("href", 'https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelity&hashtags=VR,HiFi');
+    twitterButton.setAttribute("href", 'https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelityinc&hashtags=VR,HiFi');
 
-    hideUploadingMessageAndShare(containerID, storyID);
+    hideUploadingMessageAndMaybeShare(containerID, storyID);
 }
 function blastToConnections(selectedID, isGif) {
     if (selectedID.id) {
@@ -552,6 +559,12 @@ function shareButtonClicked(destination, selectedID) {
 
     if (!storyID) {
         showUploadingMessage(selectedID, destination);
+    } else {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "snapshot",
+            action: "removeFromStoryIDsToMaybeDelete",
+            story_id: storyID
+        }));
     }
 }
 
@@ -637,6 +650,7 @@ window.onload = function () {
                             shareForUrl("p1");
                             appendShareBar("p1", messageOptions.isLoggedIn, messageOptions.canShare, true, false, false, messageOptions.canBlast);
                             document.getElementById("p1").classList.remove("processingGif");
+                            document.getElementById("snap-button").disabled = false;
                         }
                     } else {
                         imageCount = message.image_data.length;
@@ -675,6 +689,9 @@ function takeSnapshot() {
         type: "snapshot",
         action: "takeSnapshot"
     }));
+    if (document.getElementById('stillAndGif').checked === true) {
+        document.getElementById("snap-button").disabled = true;
+    }
 }
 
 function testInBrowser(test) {

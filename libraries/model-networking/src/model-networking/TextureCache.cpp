@@ -501,12 +501,19 @@ void NetworkTexture::ktxMipRequestFinished() {
             if (texture) {
                 texture->assignStoredMip(_ktxMipLevelRangeInFlight.first,
                     _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
-                _lowestKnownPopulatedMip = _textureSource->getGPUTexture()->minAvailableMipLevel();
+
+                if (texture->minAvailableMipLevel() <= _ktxMipLevelRangeInFlight.first) {
+                    _lowestKnownPopulatedMip = texture->minAvailableMipLevel();
+                    _ktxResourceState = WAITING_FOR_MIP_REQUEST;
+                } else {
+                    qWarning(networking) << "Failed to load mip: " << _url << ":" << _ktxMipLevelRangeInFlight.first;
+                    _ktxResourceState = FAILED_TO_LOAD;
+                }
             } else {
+                _ktxResourceState = WAITING_FOR_MIP_REQUEST;
                 qWarning(networking) << "Trying to update mips but texture is null";
             }
             finishedLoading(true);
-            _ktxResourceState = WAITING_FOR_MIP_REQUEST;
         } else {
             finishedLoading(false);
             if (handleFailedRequest(_ktxMipRequest->getResult())) {
@@ -792,6 +799,8 @@ void ImageReader::read() {
                 texture = gpu::Texture::unserialize(ktxFile->getFilepath());
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
+                } else {
+                    qCWarning(modelnetworking) << "Invalid cached KTX " << _url << " under hash " << hash.c_str() << ", recreating...";
                 }
             }
         }
@@ -835,7 +844,7 @@ void ImageReader::read() {
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
             size_t length = memKtx->_storage->size();
             auto& ktxCache = textureCache->_ktxCache;
-            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length));
+            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length)); // 
             if (!networkTexture->_file) {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {

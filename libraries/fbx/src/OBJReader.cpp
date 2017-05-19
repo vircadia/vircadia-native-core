@@ -273,10 +273,9 @@ std::tuple<bool, QByteArray> requestData(QUrl& url) {
         return std::make_tuple(false, QByteArray());
     }
 
-    request->send();
-
     QEventLoop loop;
     QObject::connect(request, &ResourceRequest::finished, &loop, &QEventLoop::quit);
+    request->send();
     loop.exec();
 
     if (request->getResult() == ResourceRequest::Success) {

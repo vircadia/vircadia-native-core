@@ -21,7 +21,7 @@ const int AvatarActionHold::velocitySmoothFrames = 6;
 
 
 AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectActionSpring(id, ownerEntity)
+    ObjectActionTractor(id, ownerEntity)
 {
     _type = DYNAMIC_TYPE_HOLD;
     _measuredLinearVelocities.resize(AvatarActionHold::velocitySmoothFrames);
@@ -224,12 +224,12 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     if (_kinematic) {
-        if (prepareForSpringUpdate(deltaTimeStep)) {
+        if (prepareForTractorUpdate(deltaTimeStep)) {
             doKinematicUpdate(deltaTimeStep);
         }
     } else {
         forceBodyNonStatic();
-        ObjectActionSpring::updateActionWorker(deltaTimeStep);
+        ObjectActionTractor::updateActionWorker(deltaTimeStep);
     }
 }
 

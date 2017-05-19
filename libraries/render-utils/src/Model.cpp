@@ -376,7 +376,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
         glm::vec3 meshFrameDirection = glm::vec3(worldToMeshMatrix * glm::vec4(direction, 0.0f));
 
-        for (const auto& triangleSet : _modelSpaceMeshTriangleSets) {
+        for (auto& triangleSet : _modelSpaceMeshTriangleSets) {
             float triangleSetDistance = 0.0f;
             BoxFace triangleSetFace;
             glm::vec3 triangleSetNormal;
@@ -573,7 +573,7 @@ bool Model::addToScene(const render::ScenePointer& scene,
 
     bool somethingAdded = false;
     if (_collisionGeometry) {
-        if (_collisionRenderItems.empty()) {
+        if (_collisionRenderItemsMap.empty()) {
             foreach (auto renderItem, _collisionRenderItems) {
                 auto item = scene->allocateID();
                 auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
@@ -583,7 +583,7 @@ bool Model::addToScene(const render::ScenePointer& scene,
                 transaction.resetItem(item, renderPayload);
                 _collisionRenderItemsMap.insert(item, renderPayload);
             }
-            somethingAdded = !_collisionRenderItems.empty();
+            somethingAdded = !_collisionRenderItemsMap.empty();
         }
     } else {
         if (_modelMeshRenderItemsMap.empty()) {
@@ -632,7 +632,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
         transaction.removeItem(item);
     }
     _collisionRenderItems.clear();
-    _collisionRenderItems.clear();
+    _collisionRenderItemsMap.clear();
     _addedToScene = false;
 
     _renderInfoVertexCount = 0;
@@ -1046,12 +1046,12 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 //virtual
 void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
-    _rig->updateAnimations(deltaTime, parentTransform);
+    glm::mat4 rigToWorldTransform = createMatFromQuatAndPos(getRotation(), getTranslation());
+    _rig->updateAnimations(deltaTime, parentTransform, rigToWorldTransform);
 }
 
 void Model::computeMeshPartLocalBounds() {
     for (auto& part : _modelMeshRenderItems) {
-        assert(part->_meshIndex < _modelMeshRenderItems.size());
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
         part->computeAdjustedLocalBound(state.clusterMatrices);
     }

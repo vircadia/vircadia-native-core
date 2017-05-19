@@ -38,6 +38,7 @@
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
 #include <AnimClip.h>
+#include <AnimInverseKinematics.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
@@ -109,6 +110,9 @@ MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", false),
+    _smoothOrientationTimer(std::numeric_limits<float>::max()),
+    _smoothOrientationInitial(),
+    _smoothOrientationTarget(),
     _hmdSensorMatrix(),
     _hmdSensorOrientation(),
     _hmdSensorPosition(),
@@ -150,8 +154,6 @@ MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
     // when we leave a domain we lift whatever restrictions that domain may have placed on our scale
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &MyAvatar::clearScaleRestriction);
 
-    _characterController.setEnabled(true);
-
     _bodySensorMatrix = deriveBodyFromHMDSensor();
 
     using namespace recording;
@@ -165,12 +167,14 @@ MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 setRecordingBasis();
             }
-            _wasCharacterControllerEnabled = _characterController.isEnabled();
-            _characterController.setEnabled(false);
+            _previousCollisionGroup = _characterController.computeCollisionGroup();
+            _characterController.setCollisionless(true);
         } else {
             clearRecordingBasis();
             useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
-            _characterController.setEnabled(_wasCharacterControllerEnabled);
+            if (_previousCollisionGroup != BULLET_COLLISION_GROUP_COLLISIONLESS) {
+                _characterController.setCollisionless(false);
+            }
         }
 
         auto audioIO = DependencyManager::get<AudioClient>();
@@ -235,6 +239,7 @@ MyAvatar::MyAvatar(QThread* thread, RigPointer rig) :
     });
 
     connect(rig.get(), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
+    _characterController.setDensity(_density);
 }
 
 MyAvatar::~MyAvatar() {
@@ -264,6 +269,17 @@ QVariant MyAvatar::getOrientationVar() const {
     return quatToVariant(Avatar::getOrientation());
 }
 
+glm::quat MyAvatar::getOrientationOutbound() const {
+    // Allows MyAvatar to send out smoothed data to remote agents if required.
+    if (_smoothOrientationTimer > SMOOTH_TIME_ORIENTATION) {
+        return (getLocalOrientation());
+    }
+
+    // Smooth the remote avatar movement.
+    float t = _smoothOrientationTimer / SMOOTH_TIME_ORIENTATION;
+    float interp = Interpolate::easeInOutQuad(glm::clamp(t, 0.0f, 1.0f));
+    return (slerp(_smoothOrientationInitial, _smoothOrientationTarget, interp));
+}
 
 // virtual
 void MyAvatar::simulateAttachments(float deltaTime) {
@@ -290,6 +306,11 @@ QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
 }
 
 void MyAvatar::resetSensorsAndBody() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "resetSensorsAndBody");
+        return;
+    }
+
     qApp->getActiveDisplayPlugin()->resetSensors();
     reset(true, false, true);
 }
@@ -386,6 +407,11 @@ void MyAvatar::update(float deltaTime) {
     const float HMD_FACING_TIMESCALE = 4.0f; // very slow average
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     _hmdSensorFacingMovingAverage = lerp(_hmdSensorFacingMovingAverage, _hmdSensorFacing, tau);
+
+    if (_smoothOrientationTimer < SMOOTH_TIME_ORIENTATION) {
+        _rotationChanged = usecTimestampNow();
+        _smoothOrientationTimer += deltaTime;
+    }
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
     glm::vec3 p = transformPoint(getSensorToWorldMatrix(), _hmdSensorPosition + glm::vec3(_hmdSensorFacingMovingAverage.x, 0.0f, _hmdSensorFacingMovingAverage.y));
@@ -504,6 +530,7 @@ void MyAvatar::simulate(float deltaTime) {
 
         if (_rig) {
             _rig->setEnableDebugDrawIKTargets(_enableDebugDrawIKTargets);
+            _rig->setEnableDebugDrawIKConstraints(_enableDebugDrawIKConstraints);
         }
 
         _skeletonModel->simulate(deltaTime);
@@ -552,12 +579,12 @@ void MyAvatar::simulate(float deltaTime) {
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
         bool flyingAllowed = true;
-        bool ghostingAllowed = true;
+        bool collisionlessAllowed = true;
         entityTree->withWriteLock([&] {
             std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
             if (zone) {
                 flyingAllowed = zone->getFlyingAllowed();
-                ghostingAllowed = zone->getGhostingAllowed();
+                collisionlessAllowed = zone->getGhostingAllowed();
             }
             auto now = usecTimestampNow();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
@@ -588,9 +615,7 @@ void MyAvatar::simulate(float deltaTime) {
             }
         });
         _characterController.setFlyingAllowed(flyingAllowed);
-        if (!_characterController.isEnabled() && !ghostingAllowed) {
-            _characterController.setEnabled(true);
-        }
+        _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
     updateAvatarEntities();
@@ -927,6 +952,10 @@ void MyAvatar::setEnableDebugDrawSensorToWorldMatrix(bool isEnabled) {
 
 void MyAvatar::setEnableDebugDrawIKTargets(bool isEnabled) {
     _enableDebugDrawIKTargets = isEnabled;
+}
+
+void MyAvatar::setEnableDebugDrawIKConstraints(bool isEnabled) {
+    _enableDebugDrawIKConstraints = isEnabled;
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
@@ -1449,7 +1478,8 @@ void MyAvatar::updateMotors() {
     _characterController.clearMotors();
     glm::quat motorRotation;
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
-        if (_characterController.getState() == CharacterController::State::Hover) {
+        if (_characterController.getState() == CharacterController::State::Hover ||
+                _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
             motorRotation = getMyHead()->getCameraOrientation();
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
@@ -1495,6 +1525,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
         qDebug() << "Warning: getParentVelocity failed" << getID();
         parentVelocity = glm::vec3();
     }
+    _characterController.handleChangedCollisionGroup();
     _characterController.setParentVelocity(parentVelocity);
 
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
@@ -1806,8 +1837,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
     // snap turn every half second.
+    bool snapTurn = false;
     if (getDriveKey(STEP_YAW) != 0.0f) {
         totalBodyYaw += getDriveKey(STEP_YAW);
+        snapTurn = true;
     }
 
     // use head/HMD orientation to turn while flying
@@ -1840,9 +1873,16 @@ void MyAvatar::updateOrientation(float deltaTime) {
         totalBodyYaw += (speedFactor * deltaAngle * (180.0f / PI));
     }
 
-
     // update body orientation by movement inputs
+    glm::quat initialOrientation = getOrientationOutbound();
     setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
+
+    if (snapTurn) {
+        // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
+        _smoothOrientationInitial = initialOrientation;
+        _smoothOrientationTarget = getOrientation();
+        _smoothOrientationTimer = 0.0f;
+    }
 
     getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
@@ -1883,8 +1923,9 @@ void MyAvatar::updateActionMotor(float deltaTime) {
 
     glm::vec3 direction = forward + right;
     CharacterController::State state = _characterController.getState();
-    if (state == CharacterController::State::Hover) {
-        // we're flying --> support vertical motion
+    if (state == CharacterController::State::Hover ||
+            _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+        // we can fly --> support vertical motion
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         direction += up;
     }
@@ -1906,7 +1947,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         float finalMaxMotorSpeed = getUniformScale() * MAX_ACTION_MOTOR_SPEED;
         float speedGrowthTimescale  = 2.0f;
         float speedIncreaseFactor = 1.8f;
-        motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
+        motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale, 0.0f, 1.0f) * speedIncreaseFactor;
         const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
 
         if (_isPushing) {
@@ -1949,9 +1990,17 @@ void MyAvatar::updatePosition(float deltaTime) {
         measureMotionDerivatives(deltaTime);
         _moving = speed2 > MOVING_SPEED_THRESHOLD_SQUARED;
     } else {
-        // physics physics simulation updated elsewhere
         float speed2 = glm::length2(velocity);
         _moving = speed2 > MOVING_SPEED_THRESHOLD_SQUARED;
+
+        if (_moving) {
+            // scan for walkability
+            glm::vec3 position = getPosition();
+            MyCharacterController::RayShotgunResult result;
+            glm::vec3 step = deltaTime * (getRotation() * _actionMotorVelocity);
+            _characterController.testRayShotgun(position, step, result);
+            _characterController.setStepUpEnabled(result.walkable);
+        }
     }
 
     // capture the head rotation, in sensor space, when the user first indicates they would like to move/fly.
@@ -2188,30 +2237,33 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
-
-    setCharacterControllerEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
+    setCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
 }
 
-void MyAvatar::setCharacterControllerEnabled(bool enabled) {
+void MyAvatar::setCollisionsEnabled(bool enabled) {
 
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setCharacterControllerEnabled", Q_ARG(bool, enabled));
+        QMetaObject::invokeMethod(this, "setCollisionsEnabled", Q_ARG(bool, enabled));
         return;
     }
 
-    bool ghostingAllowed = true;
-    auto entityTreeRenderer = qApp->getEntities();
-    if (entityTreeRenderer) {
-        std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
-        if (zone) {
-            ghostingAllowed = zone->getGhostingAllowed();
-        }
-    }
-    _characterController.setEnabled(ghostingAllowed ? enabled : true);
+    _characterController.setCollisionless(!enabled);
+}
+
+bool MyAvatar::getCollisionsEnabled() {
+    // may return 'false' even though the collisionless option was requested
+    // because the zone may disallow collisionless avatars
+    return _characterController.computeCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
+}
+
+void MyAvatar::setCharacterControllerEnabled(bool enabled) {
+    qCDebug(interfaceapp) << "MyAvatar.characterControllerEnabled is deprecated. Use MyAvatar.collisionsEnabled instead.";
+    setCollisionsEnabled(enabled);
 }
 
 bool MyAvatar::getCharacterControllerEnabled() {
-    return _characterController.isEnabled();
+    qCDebug(interfaceapp) << "MyAvatar.characterControllerEnabled is deprecated. Use MyAvatar.collisionsEnabled instead.";
+    return getCollisionsEnabled();
 }
 
 void MyAvatar::clearDriveKeys() {

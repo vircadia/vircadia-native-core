@@ -44,14 +44,17 @@ glm::quat MyHead::getCameraOrientation() const {
 void MyHead::simulate(float deltaTime) {
     auto player = DependencyManager::get<recording::Deck>();
     // Only use face trackers when not playing back a recording.
-    if (!player->isPlaying()) {
+    if (player->isPlaying()) {
+        Parent::simulate(deltaTime);
+    } else {
+        computeAudioLoudness(deltaTime);
+
         FaceTracker* faceTracker = qApp->getActiveFaceTracker();
-        _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
+        _isFaceTrackerConnected = faceTracker && !faceTracker->isMuted();
         if (_isFaceTrackerConnected) {
-            _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+            _transientBlendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
 
             if (typeid(*faceTracker) == typeid(DdeFaceTracker)) {
-
                 if (Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
                     calculateMouthShapes(deltaTime);
 
@@ -60,17 +63,27 @@ void MyHead::simulate(float deltaTime) {
                     const int FUNNEL_BLENDSHAPE = 40;
                     const int SMILE_LEFT_BLENDSHAPE = 28;
                     const int SMILE_RIGHT_BLENDSHAPE = 29;
-                    _blendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
-                    _blendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
-                    _blendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
-                    _blendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
-                    _blendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
+                    _transientBlendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
+                    _transientBlendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
+                    _transientBlendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
+                    _transientBlendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
+                    _transientBlendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
                 }
                 applyEyelidOffset(getFinalOrientationInWorldFrame());
             }
-        }
+        } else {
+            computeFaceMovement(deltaTime);
+		}
+
         auto eyeTracker = DependencyManager::get<EyeTracker>();
-        _isEyeTrackerConnected = eyeTracker->isTracking();
+        _isEyeTrackerConnected = eyeTracker && eyeTracker->isTracking();
+        if (_isEyeTrackerConnected) {
+            // TODO? figure out where EyeTracker data harvested. Move it here?
+            _saccade = glm::vec3();
+        } else {
+            computeEyeMovement(deltaTime);
+        }
+
     }
-    Parent::simulate(deltaTime);
+    computeEyePosition();
 }

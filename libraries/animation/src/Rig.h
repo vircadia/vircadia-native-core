@@ -26,6 +26,7 @@
 #include "SimpleMovingAverage.h"
 
 class Rig;
+class AnimInverseKinematics;
 typedef std::shared_ptr<Rig> RigPointer;
 
 // Rig instances are reentrant.
@@ -111,6 +112,8 @@ public:
     void clearJointStates();
     void clearJointAnimationPriority(int index);
 
+    std::shared_ptr<AnimInverseKinematics> getAnimInverseKinematicsNode() const;
+
     void clearIKJointLimitHistory();
     void setMaxHipsOffsetLength(float maxLength);
     float getMaxHipsOffsetLength() const;
@@ -159,7 +162,7 @@ public:
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState);
 
     // Regardless of who started the animations or how many, update the joints.
-    void updateAnimations(float deltaTime, glm::mat4 rootTransform);
+    void updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform);
 
     // legacy
     void inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
@@ -228,6 +231,7 @@ public:
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
     void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
+    void setEnableDebugDrawIKConstraints(bool enableDebugDrawIKConstraints) { _enableDebugDrawIKConstraints = enableDebugDrawIKConstraints; }
 
     // input assumed to be in rig space
     void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
@@ -338,6 +342,7 @@ protected:
     float _maxHipsOffsetLength { 1.0f };
 
     bool _enableDebugDrawIKTargets { false };
+    bool _enableDebugDrawIKConstraints { false };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

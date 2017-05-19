@@ -96,7 +96,7 @@ namespace MenuOption {
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
-    const QString EnableCharacterController = "Collide with world";
+    const QString EnableAvatarCollisions = "Enable Avatar Collisions";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString EntityScriptServerLog = "Entity Script Server Log";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
@@ -161,6 +161,7 @@ namespace MenuOption {
     const QString RenderResolutionQuarter = "1/4";
     const QString RenderSensorToWorldMatrix = "Show SensorToWorld Matrix";
     const QString RenderIKTargets = "Show IK Targets";
+    const QString RenderIKConstraints = "Show IK Constraints";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts...";

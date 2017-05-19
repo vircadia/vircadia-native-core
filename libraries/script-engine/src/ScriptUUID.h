@@ -15,9 +15,10 @@
 #define hifi_ScriptUUID_h
 
 #include <QUuid>
+#include <QtScript/QScriptable>
 
 /// Scriptable interface for a UUID helper class object. Used exclusively in the JavaScript API
-class ScriptUUID : public QObject {
+class ScriptUUID : public QObject, protected QScriptable {
     Q_OBJECT
 
 public slots:
@@ -26,7 +27,7 @@ public slots:
     QUuid generate();
     bool isEqual(const QUuid& idA, const QUuid& idB);
     bool isNull(const QUuid& id);
-    void print(const QString& lable, const QUuid& id);
+    void print(const QString& label, const QUuid& id);
 };
 
 #endif // hifi_ScriptUUID_h

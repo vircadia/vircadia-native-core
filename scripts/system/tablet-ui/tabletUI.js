@@ -92,7 +92,7 @@
         tabletScalePercentage = getTabletScalePercentageFromSettings();
         UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml",
                                     DEFAULT_WIDTH * (tabletScalePercentage / 100),
-                                    null, activeHand, true);
+                                    null, activeHand, true, null, false);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;

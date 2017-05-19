@@ -1376,7 +1376,9 @@ function MyController(hand) {
                 visible: true,
                 alpha: 1,
                 parentID: AVATAR_SELF_ID,
-                parentJointIndex: this.controllerJointIndex,
+                parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
+                                                         "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                                                         "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"),
                 endParentID: farParentID
             };
             this.overlayLine = Overlays.addOverlay("line3d", lineProperties);

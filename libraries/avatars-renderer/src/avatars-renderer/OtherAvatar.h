@@ -14,7 +14,7 @@
 class OtherAvatar : public Avatar {
 public:
     explicit OtherAvatar(QThread* thread, RigPointer rig = nullptr);
-    void instantiableAvatar() {};
+    virtual void instantiableAvatar() override {};
 };
 
 #endif // hifi_OtherAvatar_h

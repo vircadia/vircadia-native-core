@@ -8,6 +8,7 @@ import "../styles" as HifiStyles
 import "../styles-uit"
 import "../"
 import "."
+
 Item {
     id: web
     HifiConstants { id: hifi }
@@ -22,17 +23,14 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool isDesktop: false
-    property string initialPage: ""
-    property bool startingUp: true
     property alias webView: webview
     property alias profile: webview.profile
     property bool remove: false
-    property var urlList: []
-    property var forwardList: []
 
-    
-    property int currentPage: -1 // used as a model for repeater
-    property alias pagesModel: pagesModel
+    // Manage own browse history because WebEngineView history is wiped when a new URL is loaded via
+    // onNewViewRequested, e.g., as happens when a social media share button is clicked.
+    property var history: []
+    property int historyIndex: -1
 
     Rectangle {
         id: buttons
@@ -51,21 +49,22 @@ Item {
             
             TabletWebButton {
                 id: back
-                enabledColor: hifi.colors.baseGray
-                enabled: false
+                enabledColor: hifi.colors.darkGray
+                disabledColor: hifi.colors.lightGrayText
+                enabled: historyIndex > 0
                 text: "BACK"
 
                 MouseArea {
                     anchors.fill: parent
                     onClicked: goBack()
-                    hoverEnabled: true
-                    
                 }
             }
 
             TabletWebButton {
                 id: close
                 enabledColor: hifi.colors.darkGray
+                disabledColor: hifi.colors.lightGrayText
+                enabled: true
                 text: "CLOSE"
 
                 MouseArea {
@@ -74,7 +73,6 @@ Item {
                 }
             }
         }
-
 
         RalewaySemiBold {
             id: displayUrl
@@ -90,7 +88,6 @@ Item {
             }
         }
 
-
         MouseArea {
             anchors.fill: parent
             preventStealing: true
@@ -98,29 +95,10 @@ Item {
         }
     }
 
-    ListModel {
-        id: pagesModel
-        onCountChanged: {
-            currentPage = count - 1;
-            if (currentPage > 0) {
-                back.enabledColor = hifi.colors.darkGray;
-            } else {
-                back.enabledColor = hifi.colors.baseGray;
-            }
-        }
-    }
-        
     function goBack() {
-        if (webview.canGoBack) {
-            forwardList.push(webview.url);
-            webview.goBack();
-        } else if (web.urlList.length > 0) {
-            var url = web.urlList.pop();
-            loadUrl(url);
-        } else if (web.forwardList.length > 0) {
-            var url = web.forwardList.pop();
-            loadUrl(url);
-            web.forwardList = [];
+        if (historyIndex > 0) {
+            historyIndex--;
+            loadUrl(history[historyIndex]);
         }
     }
 
@@ -137,19 +115,12 @@ Item {
     }
 
     function goForward() {
-        if (currentPage < pagesModel.count - 1) {
-            currentPage++;
+        if (historyIndex < history.length - 1) {
+            historyIndex++;
+            loadUrl(history[historyIndex]);
         }
     }
 
-    function gotoPage(url) {
-        urlAppend(url)
-    }
-
-    function isUrlLoaded(url) {
-        return (pagesModel.get(currentPage).webUrl === url);
-    }
-    
     function reloadPage() {
         view.reloadAndBypassCache()
         view.setActiveFocusOnPress(true);
@@ -161,36 +132,8 @@ Item {
         web.url = webview.url;
     }
 
-    function onInitialPage(url) {
-        return (url === webview.url);
-    }
-        
-    
-    function urlAppend(url) {
-        var lurl = decodeURIComponent(url)
-        if (lurl[lurl.length - 1] !== "/") {
-            lurl = lurl + "/"
-        }
-        web.urlList.push(url);
-        setBackButtonStatus();
-    }
-
-    function setBackButtonStatus() {
-        if (web.urlList.length > 0 || webview.canGoBack) {
-            back.enabledColor = hifi.colors.darkGray;
-            back.enabled = true;
-        } else {
-            back.enabledColor = hifi.colors.baseGray;
-            back.enabled = false;
-        }
-    }
-
     onUrlChanged: {
         loadUrl(url);
-        if (startingUp) {
-            web.initialPage = webview.url;
-            startingUp = false;
-        }
     }
 
     QtObject {
@@ -258,6 +201,17 @@ Item {
             grantFeaturePermission(securityOrigin, feature, true);
         }
 
+        onUrlChanged: {
+            // Record history, skipping null and duplicate items.
+            var urlString = url + "";
+            urlString = urlString.replace(/\//g, "%2F");  // Consistent representation of "/"s to avoid false differences.
+            if (urlString.length > 0 && (historyIndex === -1 || urlString !== history[historyIndex])) {
+                historyIndex++;
+                history = history.slice(0, historyIndex);
+                history.push(urlString);
+            }
+        }
+
         onLoadingChanged: {
             keyboardRaised = false;
             punctuationMode = false;
@@ -277,17 +231,11 @@ Item {
             }
 
             if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
-                if (startingUp) {
-                    web.initialPage = webview.url;
-                    startingUp = false;
-                }
                 webview.forceActiveFocus();
             }
         }
         
         onNewViewRequested: {
-            var currentUrl = webview.url;
-            urlAppend(currentUrl);
             request.openIn(webview);
         }
     }
