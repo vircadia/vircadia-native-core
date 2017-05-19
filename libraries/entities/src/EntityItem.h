@@ -187,7 +187,7 @@ public:
 
     const Transform getTransformToCenter(bool& success) const;
 
-    inline void requiresRecalcBoxes();
+    void requiresRecalcBoxes();
 
     // Hyperlink related getters and setters
     QString getHref() const;
