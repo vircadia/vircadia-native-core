@@ -1253,14 +1253,14 @@ void EntityTree::fixupMissingParents() {
                 // need to be moved.
                 entity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
                                        Simulation::DIRTY_COLLISION_GROUP |
-                                       Simulation::DIRTY_POSITION);
+                                       Simulation::DIRTY_TRANSFORM);
                 entityChanged(entity);
                 entity->forEachDescendant([&](SpatiallyNestablePointer object) {
                     if (object->getNestableType() == NestableType::Entity) {
                         EntityItemPointer descendantEntity = std::static_pointer_cast<EntityItem>(object);
                         descendantEntity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
                                                          Simulation::DIRTY_COLLISION_GROUP |
-                                                         Simulation::DIRTY_POSITION);
+                                                         Simulation::DIRTY_TRANSFORM);
                         entityChanged(descendantEntity);
                     }
                 });
@@ -1620,6 +1620,10 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
         EntityItemID newID = i.value();
         EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
         if (entity) {
+            if (!entity->getParentID().isNull()) {
+                QWriteLocker locker(&_missingParentLock);
+                _missingParent.append(entity);
+            }
             entity->forceQueryAACubeUpdate();
             moveOperator.addEntityToMoveList(entity, entity->getQueryAACube());
             i++;

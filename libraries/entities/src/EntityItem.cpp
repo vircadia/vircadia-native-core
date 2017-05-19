@@ -1639,14 +1639,14 @@ void EntityItem::updateParentID(const QUuid& value) {
 
         // children are forced to be kinematic
         // may need to not collide with own avatar
-        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP | Simulation::DIRTY_POSITION);
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP | Simulation::DIRTY_TRANSFORM);
         tree->entityChanged(getThisPointer());
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
                                        Simulation::DIRTY_COLLISION_GROUP |
-                                       Simulation::DIRTY_POSITION);
+                                       Simulation::DIRTY_TRANSFORM);
                 tree->entityChanged(entity);
             }
         });
