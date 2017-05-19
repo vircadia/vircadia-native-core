@@ -36,15 +36,17 @@ void RenderableZoneEntityItem::changeProperties(Lambda setNewProperties) {
     QString oldShapeURL = getCompoundShapeURL();
     glm::vec3 oldPosition = getPosition(), oldDimensions = getDimensions();
     glm::quat oldRotation = getRotation();
-    
+
     setNewProperties();
-    
+
     if (oldShapeURL != getCompoundShapeURL()) {
         if (_model) {
-            delete _model;
+            _model.reset();
         }
-        
-        _model = getModel();
+
+        _model = std::make_shared<Model>();
+        _model->setIsWireframe(true);
+        _model->init();
         _needsInitialSimulation = true;
         _model->setURL(getCompoundShapeURL());
     }
@@ -80,13 +82,6 @@ int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     return bytesRead;
 }
 
-Model* RenderableZoneEntityItem::getModel() {
-    Model* model = new Model();
-    model->setIsWireframe(true);
-    model->init();
-    return model;
-}
-
 void RenderableZoneEntityItem::initialSimulation() {
     _model->setScaleToFit(true, getDimensions());
     _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
@@ -108,7 +103,7 @@ void RenderableZoneEntityItem::updateGeometry() {
 
 void RenderableZoneEntityItem::render(RenderArgs* args) {
     Q_ASSERT(getType() == EntityTypes::Zone);
-    
+
     if (_drawZoneBoundaries) {
         switch (getShapeType()) {
             case SHAPE_TYPE_COMPOUND: {
@@ -123,9 +118,9 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                     render::Item::Status::Getters statusGetters;
                     makeEntityItemStatusGetters(getThisPointer(), statusGetters);
                     _model->addToScene(scene, transaction);
-                    
+
                     scene->enqueueTransaction(transaction);
-                    
+
                     _model->setVisibleInScene(getVisible(), scene);
                 }
                 break;
@@ -134,7 +129,7 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
             case SHAPE_TYPE_SPHERE: {
                 PerformanceTimer perfTimer("zone->renderPrimitive");
                 glm::vec4 DEFAULT_COLOR(1.0f, 1.0f, 1.0f, 1.0f);
-                
+
                 Q_ASSERT(args->_batch);
                 gpu::Batch& batch = *args->_batch;
 
@@ -159,7 +154,7 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 break;
         }
     }
-    
+
     if ((!_drawZoneBoundaries || getShapeType() != SHAPE_TYPE_COMPOUND) &&
         _model && !_model->needsFixupInScene()) {
         // If the model is in the scene but doesn't need to be, remove it.
@@ -175,11 +170,11 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
         return EntityItem::contains(point);
     }
     const_cast<RenderableZoneEntityItem*>(this)->updateGeometry();
-    
+
     if (_model && _model->isActive() && EntityItem::contains(point)) {
         return _model->convexHullContains(point);
     }
-    
+
     return false;
 }
 
@@ -188,7 +183,7 @@ public:
     RenderableZoneEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
     typedef render::Payload<RenderableZoneEntityItemMeta> Payload;
     typedef Payload::DataPointer Pointer;
-    
+
     EntityItemPointer entity;
 };
 
@@ -196,7 +191,7 @@ namespace render {
     template <> const ItemKey payloadGetKey(const RenderableZoneEntityItemMeta::Pointer& payload) {
         return ItemKey::Builder::opaqueShape();
     }
-    
+
     template <> const Item::Bound payloadGetBound(const RenderableZoneEntityItemMeta::Pointer& payload) {
         if (payload && payload->entity) {
             bool success;
@@ -220,7 +215,7 @@ namespace render {
 bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
                                            render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
-    
+
     auto renderData = std::make_shared<RenderableZoneEntityItemMeta>(self);
     auto renderPayload = std::make_shared<RenderableZoneEntityItemMeta::Payload>(renderData);
 
