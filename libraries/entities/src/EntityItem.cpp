@@ -1373,11 +1373,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         if (saveQueryAACube != _queryAACube) {
             somethingChanged = true;
         }
-    } else {
-        markAncestorMissing(true);
     }
 
-    // Now check the sub classes 
+    // Now check the sub classes
     somethingChanged |= setSubClassProperties(properties);
 
     // Finally notify if change detected

@@ -158,9 +158,6 @@ public:
 
     SpatiallyNestablePointer getThisPointer() const;
 
-    void markAncestorMissing(bool value) { _missingAncestor = value; }
-    bool getAncestorMissing() { return _missingAncestor; }
-
     void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
     void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
 
@@ -207,7 +204,6 @@ protected:
     mutable AACube _queryAACube;
     mutable bool _queryAACubeSet { false };
 
-    bool _missingAncestor { false };
     quint64 _scaleChanged { 0 };
     quint64 _translationChanged { 0 };
     quint64 _rotationChanged { 0 };

@@ -295,7 +295,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 _missingParent.append(childEntity);
                 continue;
             }
-            if (!childEntity->isParentIDValid()) {
+            if (!childEntity->getParentID().isNull()) {
                 QWriteLocker locker(&_missingParentLock);
                 _missingParent.append(childEntity);
             }
@@ -383,9 +383,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         // Recurse the tree and store the entity in the correct tree element
         AddEntityOperator theOperator(getThisPointer(), result);
         recurseTreeWithOperator(&theOperator);
-        if (result->getAncestorMissing()) {
-            // we added the entity, but didn't know about all its ancestors, so it went into the wrong place.
-            // add it to a list of entities needing to be fixed once their parents are known.
+        if (!result->getParentID().isNull()) {
             QWriteLocker locker(&_missingParentLock);
             _missingParent.append(result);
         }
@@ -1221,11 +1219,11 @@ void EntityTree::fixupMissingParents() {
             // entity was deleted before we found its parent
             iter.remove();
         }
-        bool queryAACubeSuccess;
+        bool queryAACubeSuccess { false };
+        bool maxAACubeSuccess { false };
         AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
         if (queryAACubeSuccess) {
             // make sure queryAACube encompasses maxAACube
-            bool maxAACubeSuccess;
             AACube maxAACube = entity->getMaximumAACube(maxAACubeSuccess);
             if (maxAACubeSuccess && !newCube.contains(maxAACube)) {
                 newCube = maxAACube;
@@ -1233,7 +1231,7 @@ void EntityTree::fixupMissingParents() {
         }
 
         bool doMove = false;
-        if (entity->isParentIDValid()) {
+        if (entity->isParentIDValid() && maxAACubeSuccess) { // maxAACubeSuccess of true means all ancestors are known
             iter.remove(); // this entity is all hooked up; we can remove it from the list
             // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
             doMove = true;
@@ -1266,7 +1264,6 @@ void EntityTree::fixupMissingParents() {
 
         if (queryAACubeSuccess && doMove) {
             moveOperator.addEntityToMoveList(entity, newCube);
-            entity->markAncestorMissing(false);
         }
     }
 
