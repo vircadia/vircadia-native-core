@@ -184,6 +184,11 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
 }
 
 std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() const {
+    // 1. Try to get the shared ptr
+    // 2. If it doesn't exist, grab the mutex around its creation
+    // 3. If it was created before we got the mutex, return it
+    // 4. Otherwise, create it
+
     std::shared_ptr<storage::FileStorage> file = _cacheFile.lock();
     if (file) {
         return file;
