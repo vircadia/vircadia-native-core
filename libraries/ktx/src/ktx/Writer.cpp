@@ -149,7 +149,8 @@ namespace ktx {
 
         for (size_t i = 0; i < descriptors.size(); ++i) {
             auto ptr = reinterpret_cast<uint32_t*>(currentDestPtr);
-            *ptr = descriptors[i]._imageSize;
+            uint32_t imageFaceSize = descriptors[i]._faceSize;
+            *ptr = imageFaceSize; // the imageSize written in the ktx is the FACE size
 
 #ifdef DEBUG
             ptr++;
