@@ -240,7 +240,7 @@ void GateImpl::updateHistogram(int32_t value, int count = 1) {
 // When only a single distribution is present, the threshold becomes level-dependent:
 // At levels below the fixed threshold, the threshold adapts toward the upper edge
 // of the distribution, presumed to be noise.
-// At levels above the fixed threshold, he threshold adapts toward the lower edge
+// At levels above the fixed threshold, the threshold adapts toward the lower edge
 // of the distribution, presumed to be signal.
 // This is implemented by adding a hidden (bias) distribution at the fixed threshold.
 // 
