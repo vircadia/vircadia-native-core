@@ -18,7 +18,7 @@ public:
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred = true);
 };
 
-class BeginSelfieFrameConfig : public render::Task::Config {
+class BeginSelfieFrameConfig : public render::Task::Config { // Exposes view frustum position/orientation to javascript.
     Q_OBJECT
     Q_PROPERTY(glm::vec3 position MEMBER position NOTIFY dirty)  // of viewpoint to render from
     Q_PROPERTY(glm::quat orientation MEMBER orientation NOTIFY dirty)  // of viewpoint to render from

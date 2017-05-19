@@ -19,7 +19,7 @@ void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render
 
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 
-void SelfieRenderTaskConfig::resetSize(int width, int height) {
+void SelfieRenderTaskConfig::resetSize(int width, int height) { // Carefully adjust the framebuffer / texture.
     bool wasEnabled = isEnabled();
     setEnabled(false);
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -27,14 +27,18 @@ void SelfieRenderTaskConfig::resetSize(int width, int height) {
     setEnabled(wasEnabled);
 }
 
-class BeginSelfieFrame {
+class BeginSelfieFrame {  // Changes renderContext for our framebuffer and and view.
     glm::vec3 _position{};
     glm::quat _orientation{};
 public:
     using Config = BeginSelfieFrameConfig;
     using JobModel = render::Job::ModelO<BeginSelfieFrame, RenderArgsPointer, Config>;
+    BeginSelfieFrame() {
+        _cachedArgsPointer = std::make_shared<RenderArgs>(_cachedArgs);
+    }
 
     void configure(const Config& config) {
+        // Why does this run all the time, even when not enabled? Should we check and bail?
         //qDebug() << "FIXME pos" << config.position << "orient" << config.orientation;
         _position = config.position;
         _orientation = config.orientation;
@@ -45,8 +49,8 @@ public:
         auto textureCache = DependencyManager::get<TextureCache>();
         auto destFramebuffer = textureCache->getSelfieFramebuffer();
         // Caching/restoring the old values doesn't seem to be needed. Is it because we happen to be last in the pipeline (which would be a bug waiting to happen)?
-        _cachedArgs._blitFramebuffer = args->_blitFramebuffer;
-        _cachedArgs._viewport = args->_viewport;
+        _cachedArgsPointer->_blitFramebuffer = args->_blitFramebuffer;
+        _cachedArgsPointer->_viewport = args->_viewport;
         args->_blitFramebuffer = destFramebuffer;
         args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
         // FIXME: We're also going to need to clear/restore the stereo setup!
@@ -57,14 +61,15 @@ public:
         //srcViewFrustum.calculate(); // do we need this? I don't think so
         //qDebug() << "FIXME pos" << _position << "orient" << _orientation << "frust pos" << srcViewFrustum.getPosition() << "orient" << srcViewFrustum.getOrientation() << "direct" << srcViewFrustum.getDirection();
         args->pushViewFrustum(srcViewFrustum);
-        cachedArgs = std::make_shared<RenderArgs>(_cachedArgs);
+        cachedArgs = _cachedArgsPointer;
     }
 
 protected:
     RenderArgs _cachedArgs;
+    RenderArgsPointer _cachedArgsPointer;
 };
 
-class EndSelfieFrame {
+class EndSelfieFrame {  // Restores renderContext.
 public:
     using JobModel = render::Job::ModelI<EndSelfieFrame, RenderArgsPointer>;
 
