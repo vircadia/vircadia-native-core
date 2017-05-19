@@ -265,6 +265,11 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     }
 
     auto fileData = file->mutableData();
+    if (!fileData) {
+        qWarning() << "Failed to get mutable data for " << QString::fromStdString(_filename);
+        return;
+    }
+
     auto imageData = fileData;
     imageData += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
     imageData += ktx::IMAGE_SIZE_WIDTH;
