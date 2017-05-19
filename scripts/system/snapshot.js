@@ -138,10 +138,10 @@ function onMessage(message) {
                     isLoggedIn = Account.isLoggedIn();
                     if (isLoggedIn) {
                         print('Sharing snapshot with audience "for_url":', message.data);
-                        Window.shareSnapshot(message.data, message.href || href);
+                        Window.shareSnapshot(message.data, Settings.getValue("previousSnapshotHref"));
                     } else {
                         shareAfterLogin = true;
-                        snapshotToShareAfterLogin.push({ path: message.data, href: message.href || href });
+                        snapshotToShareAfterLogin.push({ path: message.data, href: Settings.getValue("previousSnapshotHref") });
                     }
                 }
             });
@@ -349,6 +349,7 @@ function takeSnapshot() {
     // We will record snapshots based on the starting location. That could change, e.g., when recording a .gif.
     // Even the domainId could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
+    Settings.setValue("previousSnapshotHref", href);
     domainId = location.domainId;
     Settings.setValue("previousSnapshotDomainID", domainId);
 
