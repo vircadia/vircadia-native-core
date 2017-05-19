@@ -1506,6 +1506,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
     // cleanup any previously initialized device
     if (_audioOutput) {
+        _audioOutputIODevice.close();
         _audioOutput->stop();
 
         //must be deleted in next eventloop cycle when its called from notify()
