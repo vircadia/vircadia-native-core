@@ -1254,10 +1254,12 @@ void EntityTree::fixupMissingParents() {
                 entity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
                                        Simulation::DIRTY_COLLISION_GROUP |
                                        Simulation::DIRTY_POSITION);
+                entityChanged(entity);
                 entity->forEachDescendant([&](SpatiallyNestablePointer object) {
                     if (object->getNestableType() == NestableType::Entity) {
-                        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
-                        entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+                        EntityItemPointer descendantEntity = std::static_pointer_cast<EntityItem>(object);
+                        descendantEntity->markDirtyFlags(Simulation::DIRTY_POSITION);
+                        entityChanged(descendantEntity);
                     }
                 });
                 entity->locationChanged(true);

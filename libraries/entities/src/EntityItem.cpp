@@ -1609,11 +1609,19 @@ void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
 void EntityItem::updatePosition(const glm::vec3& value) {
     if (getLocalPosition() != value) {
         setLocalPosition(value);
+
+        EntityTreePointer tree = getTree();
+        if (!tree) {
+            return;
+        }
+
         markDirtyFlags(Simulation::DIRTY_POSITION);
+        tree->entityChanged(getThisPointer());
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+                tree->entityChanged(entity);
             }
         });
         locationChanged();
@@ -1623,13 +1631,21 @@ void EntityItem::updatePosition(const glm::vec3& value) {
 void EntityItem::updateParentID(const QUuid& value) {
     if (getParentID() != value) {
         setParentID(value);
+
+        EntityTreePointer tree = getTree();
+        if (!tree) {
+            return;
+        }
+
         // children are forced to be kinematic
         // may need to not collide with own avatar
         markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP | Simulation::DIRTY_POSITION);
+        tree->entityChanged(getThisPointer());
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+                tree->entityChanged(entity);
             }
         });
         locationChanged();
