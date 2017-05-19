@@ -1258,7 +1258,9 @@ void EntityTree::fixupMissingParents() {
                 entity->forEachDescendant([&](SpatiallyNestablePointer object) {
                     if (object->getNestableType() == NestableType::Entity) {
                         EntityItemPointer descendantEntity = std::static_pointer_cast<EntityItem>(object);
-                        descendantEntity->markDirtyFlags(Simulation::DIRTY_POSITION);
+                        descendantEntity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
+                                                         Simulation::DIRTY_COLLISION_GROUP |
+                                                         Simulation::DIRTY_POSITION);
                         entityChanged(descendantEntity);
                     }
                 });
