@@ -1219,6 +1219,8 @@ void EntityTree::fixupMissingParents() {
             // entity was deleted before we found its parent
             iter.remove();
         }
+
+        entity->requiresRecalcBoxes();
         bool queryAACubeSuccess { false };
         bool maxAACubeSuccess { false };
         AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
