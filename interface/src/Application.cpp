@@ -5348,7 +5348,6 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
                 qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
                 // don't break here because we want all the relevant entities to start their downloads
                 result = false;
-                break;
             }
         }
         return result;
