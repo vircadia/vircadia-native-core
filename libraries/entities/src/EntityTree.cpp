@@ -122,7 +122,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
         _simulation->addEntity(entity);
     }
 
-    if (!entity->isParentIDValid()) {
+    if (!entity->getParentID().isNull()) {
         QWriteLocker locker(&_missingParentLock);
         _missingParent.append(entity);
     }
@@ -1212,73 +1212,61 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 void EntityTree::fixupMissingParents() {
     MovingEntitiesOperator moveOperator(getThisPointer());
 
-    QList<EntityItemPointer> missingParents;
-    {
-        QWriteLocker locker(&_missingParentLock);
-        QMutableVectorIterator<EntityItemWeakPointer> iter(_missingParent);
-        while (iter.hasNext()) {
-            EntityItemWeakPointer entityWP = iter.next();
-            EntityItemPointer entity = entityWP.lock();
-            if (entity) {
-                if (entity->isParentIDValid()) {
-                    iter.remove();
-                } else {
-                    missingParents.append(entity);
-                }
-            } else {
-                // entity was deleted before we found its parent.
-                iter.remove();
+    QWriteLocker locker(&_missingParentLock);
+    QMutableVectorIterator<EntityItemWeakPointer> iter(_missingParent);
+    while (iter.hasNext()) {
+        EntityItemWeakPointer entityWP = iter.next();
+        EntityItemPointer entity = entityWP.lock();
+        if (!entity) {
+            // entity was deleted before we found its parent
+            iter.remove();
+        }
+        bool queryAACubeSuccess;
+        AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
+        if (queryAACubeSuccess) {
+            // make sure queryAACube encompasses maxAACube
+            bool maxAACubeSuccess;
+            AACube maxAACube = entity->getMaximumAACube(maxAACubeSuccess);
+            if (maxAACubeSuccess && !newCube.contains(maxAACube)) {
+                newCube = maxAACube;
             }
         }
-    }
 
-    for (EntityItemPointer entity : missingParents) {
-        if (entity) {
-            bool queryAACubeSuccess;
-            AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
-            if (queryAACubeSuccess) {
-                // make sure queryAACube encompasses maxAACube
-                bool maxAACubeSuccess;
-                AACube maxAACube = entity->getMaximumAACube(maxAACubeSuccess);
-                if (maxAACubeSuccess && !newCube.contains(maxAACube)) {
-                    newCube = maxAACube;
+        bool doMove = false;
+        if (entity->isParentIDValid()) {
+            iter.remove(); // this entity is all hooked up; we can remove it from the list
+            // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
+            doMove = true;
+            // the bounds on the render-item may need to be updated, the rigid body in the physics engine may
+            // need to be moved.
+            entity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
+                                   Simulation::DIRTY_COLLISION_GROUP |
+                                   Simulation::DIRTY_TRANSFORM);
+            entityChanged(entity);
+            entity->forEachDescendant([&](SpatiallyNestablePointer object) {
+                if (object->getNestableType() == NestableType::Entity) {
+                    EntityItemPointer descendantEntity = std::static_pointer_cast<EntityItem>(object);
+                    descendantEntity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
+                                                     Simulation::DIRTY_COLLISION_GROUP |
+                                                     Simulation::DIRTY_TRANSFORM);
+                    entityChanged(descendantEntity);
                 }
+            });
+            entity->locationChanged(true);
+        } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
+            // this is a child of an avatar, which the entity server will never have
+            // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
+            if (!_childrenOfAvatars.contains(entity->getParentID())) {
+                _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
             }
+            _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
+            doMove = true;
+            iter.remove(); // and pull it out of the list
+        }
 
-            bool doMove = false;
-            if (entity->isParentIDValid()) {
-                // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
-                doMove = true;
-                // the bounds on the render-item may need to be updated, the rigid body in the physics engine may
-                // need to be moved.
-                entity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
-                                       Simulation::DIRTY_COLLISION_GROUP |
-                                       Simulation::DIRTY_TRANSFORM);
-                entityChanged(entity);
-                entity->forEachDescendant([&](SpatiallyNestablePointer object) {
-                    if (object->getNestableType() == NestableType::Entity) {
-                        EntityItemPointer descendantEntity = std::static_pointer_cast<EntityItem>(object);
-                        descendantEntity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
-                                                         Simulation::DIRTY_COLLISION_GROUP |
-                                                         Simulation::DIRTY_TRANSFORM);
-                        entityChanged(descendantEntity);
-                    }
-                });
-                entity->locationChanged(true);
-            } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
-                // this is a child of an avatar, which the entity server will never have
-                // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
-                if (!_childrenOfAvatars.contains(entity->getParentID())) {
-                    _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
-                }
-                _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
-                doMove = true;
-            }
-
-            if (queryAACubeSuccess && doMove) {
-                moveOperator.addEntityToMoveList(entity, newCube);
-                entity->markAncestorMissing(false);
-            }
+        if (queryAACubeSuccess && doMove) {
+            moveOperator.addEntityToMoveList(entity, newCube);
+            entity->markAncestorMissing(false);
         }
     }
 
