@@ -17,7 +17,7 @@
 class CrashHandler {
 
 public:
-    static bool checkForResetSettings(bool suppressPrompt = false);
+    static bool checkForResetSettings(bool wasLikelyCrash, bool suppressPrompt = false);
 
 private:
     enum Action {

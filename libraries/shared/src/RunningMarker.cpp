@@ -53,6 +53,11 @@ RunningMarker::~RunningMarker() {
     _runningMarkerThread->deleteLater();
 }
 
+bool RunningMarker::fileExists() const {
+    QFile runningMarkerFile(getFilePath());
+    return runningMarkerFile.exists();
+}
+
 void RunningMarker::writeRunningMarkerFile() {
     QFile runningMarkerFile(getFilePath());
 
@@ -69,7 +74,7 @@ void RunningMarker::deleteRunningMarkerFile() {
     }
 }
 
-QString RunningMarker::getFilePath() {
+QString RunningMarker::getFilePath() const {
     return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + _name;
 }
 
