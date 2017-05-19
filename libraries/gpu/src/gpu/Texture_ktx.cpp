@@ -184,6 +184,11 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
 }
 
 std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() const {
+    // 1. Try to get the shared ptr
+    // 2. If it doesn't exist, grab the mutex around its creation
+    // 3. If it was created before we got the mutex, return it
+    // 4. Otherwise, create it
+
     std::shared_ptr<storage::FileStorage> file = _cacheFile.lock();
     if (file) {
         return file;
@@ -205,7 +210,6 @@ std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() const {
 }
 
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
-    storage::StoragePointer result;
     auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
     if (faceSize != 0 && faceOffset != 0) {
@@ -221,7 +225,7 @@ PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
             qWarning() << "Failed to get a valid file out of maybeOpenFile " << QString::fromStdString(_filename);
         }
     }
-    return result;
+    return nullptr;
 }
 
 Size KtxStorage::getMipFaceSize(uint16 level, uint8 face) const {
@@ -255,8 +259,18 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     }
 
     auto file = maybeOpenFile();
+    if (!file) {
+        qWarning() << "Failed to open file to assign mip data " << QString::fromStdString(_filename);
+        return;
+    }
 
-    auto imageData = file->mutableData();
+    auto fileData = file->mutableData();
+    if (!fileData) {
+        qWarning() << "Failed to get mutable data for " << QString::fromStdString(_filename);
+        return;
+    }
+
+    auto imageData = fileData;
     imageData += ktx::KTX_HEADER_SIZE + _ktxDescriptor->header.bytesOfKeyValueData + _ktxDescriptor->images[level]._imageOffset;
     imageData += ktx::IMAGE_SIZE_WIDTH;
 
@@ -271,7 +285,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
         memcpy(imageData, storage->data(), storage->size());
         _minMipLevelAvailable = level;
         if (_offsetToMinMipKV > 0) {
-            auto minMipKeyData = file->mutableData() + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
+            auto minMipKeyData = fileData + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
             memcpy(minMipKeyData, (void*)&_minMipLevelAvailable, 1);
         }
     }
