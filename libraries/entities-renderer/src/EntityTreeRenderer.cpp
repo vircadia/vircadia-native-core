@@ -141,7 +141,7 @@ void EntityTreeRenderer::clear() {
 
     // reset the zone to the default (while we load the next scene)
     _layeredZones.clear();
-    applyZoneAndHasSkybox(nullptr);
+ //   applyZoneAndHasSkybox(nullptr);
 
     OctreeRenderer::clear();
 }
@@ -198,11 +198,11 @@ void EntityTreeRenderer::update() {
 
         // If we haven't already updated and previously attempted to load a texture,
         // check if the texture loaded and apply it
-        if (!updated &&
+      /*  if (!updated &&
             ((_pendingAmbientTexture && (!_ambientTexture || _ambientTexture->isLoaded())) ||
             (_pendingSkyboxTexture && (!_skyboxTexture || _skyboxTexture->isLoaded())))) {
             applySkyboxAndHasAmbient();
-        }
+        }*/
 
         // Even if we're not moving the mouse, if we started clicking on an entity and we have
         // not yet released the hold then this is still considered a holdingClickOnEntity event
@@ -371,7 +371,7 @@ bool EntityTreeRenderer::applyLayeredZones() {
      return true;
 }
 
-
+/*
 bool EntityTreeRenderer::applyZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone) {
     auto textureCache = DependencyManager::get<TextureCache>();
     auto scene = DependencyManager::get<SceneScriptingInterface>();
@@ -427,8 +427,8 @@ bool EntityTreeRenderer::applyZoneAndHasSkybox(const std::shared_ptr<ZoneEntityI
 
     // Set the skybox texture
     return layerZoneAndHasSkybox(zone);
-}
-
+}*/
+/*
 bool EntityTreeRenderer::layerZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone) {
     assert(zone);
 
@@ -483,8 +483,8 @@ bool EntityTreeRenderer::layerZoneAndHasSkybox(const std::shared_ptr<ZoneEntityI
     }
 
     return hasSkybox;
-}
-
+}*/
+/*
 bool EntityTreeRenderer::applySkyboxAndHasAmbient() {
     auto textureCache = DependencyManager::get<TextureCache>();
     auto scene = DependencyManager::get<SceneScriptingInterface>();
@@ -539,7 +539,7 @@ bool EntityTreeRenderer::applySkyboxAndHasAmbient() {
     }
 
     return isAmbientSet;
-}
+}*/
 
 const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer entityItem) {
     const FBXGeometry* result = NULL;
@@ -1169,7 +1169,7 @@ std::pair<EntityTreeRenderer::LayeredZones::iterator, bool> EntityTreeRenderer::
 void EntityTreeRenderer::LayeredZones::apply() {
     assert(_entityTreeRenderer);
 
-    applyPartial(begin());
+  //  applyPartial(begin());
 }
 
 void EntityTreeRenderer::LayeredZones::update(std::shared_ptr<ZoneEntityItem> zone) {
@@ -1211,11 +1211,11 @@ void EntityTreeRenderer::LayeredZones::update(std::shared_ptr<ZoneEntityItem> zo
         }
 
         if (shouldUpdate) {
-            applyPartial(layer);
+    //        applyPartial(layer);
         }
     }
 }
-
+/*
 void EntityTreeRenderer::LayeredZones::applyPartial(iterator layer) {
     bool hasSkybox = false;
     _skyboxLayer = end();
@@ -1243,7 +1243,7 @@ void EntityTreeRenderer::LayeredZones::applyPartial(iterator layer) {
 
     _skyboxLayer = layer;
 }
-
+*/
 bool EntityTreeRenderer::LayeredZones::contains(const LayeredZones& other) {
     bool result = std::equal(other.begin(), other._skyboxLayer, begin());
     if (result) {

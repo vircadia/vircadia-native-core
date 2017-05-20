@@ -45,7 +45,8 @@ void main(void) {
         vec3 inSpherePos = normalize(vec3(inSphereUV, sqrt(1.0 - dot(inSphereUV.xy, inSphereUV.xy))));
         vec3 inNormal = vec3(getViewInverse() * vec4(inSpherePos, 0.0));
 
-        color += lightIrradiance * vec3(dot(-lightDirection, inNormal));
+		vec3 marbleColor = max(lightIrradiance * vec3(dot(-lightDirection, inNormal)), vec3(0.01));
+        color += marbleColor;
     }
 
     color = color * 1.0 - base.w + base.xyz * base.w;
