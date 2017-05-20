@@ -98,6 +98,12 @@ void Head::computeEyeMovement(float deltaTime) {
             forceBlink = true;
         }
 
+        const float BROW_LIFT_THRESHOLD = 100.0f;
+        if (_audioAttack > BROW_LIFT_THRESHOLD) {
+            _browAudioLift += sqrtf(_audioAttack) * 0.01f;
+        }
+        _browAudioLift = glm::clamp(_browAudioLift *= 0.7f, 0.0f, 1.0f);
+
         const float BLINK_SPEED = 10.0f;
         const float BLINK_SPEED_VARIABILITY = 1.0f;
         const float BLINK_START_VARIABILITY = 0.25f;
@@ -143,12 +149,6 @@ void Head::computeEyeMovement(float deltaTime) {
 
 void Head::computeFaceMovement(float deltaTime) {
     if (!_isFaceTrackerConnected) {
-        const float BROW_LIFT_THRESHOLD = 100.0f;
-        if (_audioAttack > BROW_LIFT_THRESHOLD) {
-            _browAudioLift += sqrtf(_audioAttack) * 0.01f;
-        }
-        _browAudioLift = glm::clamp(_browAudioLift *= 0.7f, 0.0f, 1.0f);
-
         // use data to update fake Faceshift blendshape coefficients
         calculateMouthShapes(deltaTime);
         FaceTracker::updateFakeCoefficients(_leftEyeBlink,
