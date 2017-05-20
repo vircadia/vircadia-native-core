@@ -175,8 +175,8 @@ void Head::computeEyePosition() {
 
 void Head::simulate(float deltaTime) {
     computeAudioLoudness(deltaTime);
-    computeFaceMovement(deltaTime);
     computeEyeMovement(deltaTime);
+    computeFaceMovement(deltaTime);
     computeEyePosition();
 }
 
