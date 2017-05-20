@@ -59,6 +59,7 @@ void Head::computeAudioLoudness(float deltaTime) {
     }
 
     if (!_isFaceTrackerConnected) {
+        // Update audio attack data for facial animation (eyebrows and mouth)
         float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
         _audioAttack = audioAttackAveragingRate * _audioAttack +
             (1.0f - audioAttackAveragingRate) * fabs((audioLoudness - _longTermAverageLoudness) - _lastLoudness);
@@ -142,7 +143,6 @@ void Head::computeEyeMovement(float deltaTime) {
 
 void Head::computeFaceMovement(float deltaTime) {
     if (!_isFaceTrackerConnected) {
-        // Update audio attack data for facial animation (eyebrows and mouth)
         const float BROW_LIFT_THRESHOLD = 100.0f;
         if (_audioAttack > BROW_LIFT_THRESHOLD) {
             _browAudioLift += sqrtf(_audioAttack) * 0.01f;
