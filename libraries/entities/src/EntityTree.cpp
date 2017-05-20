@@ -123,15 +123,14 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     }
 
     if (!entity->getParentID().isNull()) {
-        QWriteLocker locker(&_missingParentLock);
-        _missingParent.append(entity);
+        addToNeedsParentFixupList(entity);
     }
 
     _isDirty = true;
     emit addingEntity(entity->getEntityItemID());
 
     // find and hook up any entities with this entity as a (previously) missing parent
-    fixupMissingParents();
+    fixupNeedsParentFixups();
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
@@ -291,13 +290,11 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             bool success;
             AACube queryCube = childEntity->getQueryAACube(success);
             if (!success) {
-                QWriteLocker locker(&_missingParentLock);
-                _missingParent.append(childEntity);
+                addToNeedsParentFixupList(childEntity);
                 continue;
             }
             if (!childEntity->getParentID().isNull()) {
-                QWriteLocker locker(&_missingParentLock);
-                _missingParent.append(childEntity);
+                addToNeedsParentFixupList(childEntity);
             }
 
             UpdateEntityOperator theChildOperator(getThisPointer(), containingElement, childEntity, queryCube);
@@ -384,8 +381,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         AddEntityOperator theOperator(getThisPointer(), result);
         recurseTreeWithOperator(&theOperator);
         if (!result->getParentID().isNull()) {
-            QWriteLocker locker(&_missingParentLock);
-            _missingParent.append(result);
+            addToNeedsParentFixupList(result);
         }
 
         postAddEntity(result);
@@ -1207,11 +1203,13 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
     }
 }
 
-void EntityTree::fixupMissingParents() {
+
+void EntityTree::fixupNeedsParentFixups() {
     MovingEntitiesOperator moveOperator(getThisPointer());
 
-    QWriteLocker locker(&_missingParentLock);
-    QMutableVectorIterator<EntityItemWeakPointer> iter(_missingParent);
+    QWriteLocker locker(&_needsParentFixupLock);
+
+    QMutableVectorIterator<EntityItemWeakPointer> iter(_needsParentFixup);
     while (iter.hasNext()) {
         EntityItemWeakPointer entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
@@ -1283,8 +1281,13 @@ void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
     }
 }
 
+void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
+    QWriteLocker locker(&_needsParentFixupLock);
+    _needsParentFixup.append(entity);
+}
+
 void EntityTree::update() {
-    fixupMissingParents();
+    fixupNeedsParentFixups();
     if (_simulation) {
         withWriteLock([&] {
             _simulation->updateEntities();
@@ -1609,8 +1612,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
         EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
         if (entity) {
             if (!entity->getParentID().isNull()) {
-                QWriteLocker locker(&_missingParentLock);
-                _missingParent.append(entity);
+                addToNeedsParentFixupList(entity);
             }
             entity->forceQueryAACubeUpdate();
             moveOperator.addEntityToMoveList(entity, entity->getQueryAACube());
