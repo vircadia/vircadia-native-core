@@ -58,10 +58,12 @@ void Head::computeAudioLoudness(float deltaTime) {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
 
-    float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
-    _audioAttack = audioAttackAveragingRate * _audioAttack +
-        (1.0f - audioAttackAveragingRate) * fabs((audioLoudness - _longTermAverageLoudness) - _lastLoudness);
-    _lastLoudness = (audioLoudness - _longTermAverageLoudness);
+    if (!_isFaceTrackerConnected) {
+        float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
+        _audioAttack = audioAttackAveragingRate * _audioAttack +
+            (1.0f - audioAttackAveragingRate) * fabs((audioLoudness - _longTermAverageLoudness) - _lastLoudness);
+        _lastLoudness = (audioLoudness - _longTermAverageLoudness);
+    }
 }
 
 void Head::computeEyeMovement(float deltaTime) {
@@ -139,23 +141,25 @@ void Head::computeEyeMovement(float deltaTime) {
 }
 
 void Head::computeFaceMovement(float deltaTime) {
-    // Update audio attack data for facial animation (eyebrows and mouth)
-    const float BROW_LIFT_THRESHOLD = 100.0f;
-    if (_audioAttack > BROW_LIFT_THRESHOLD) {
-        _browAudioLift += sqrtf(_audioAttack) * 0.01f;
-    }
-    _browAudioLift = glm::clamp(_browAudioLift *= 0.7f, 0.0f, 1.0f);
+    if (!_isFaceTrackerConnected) {
+        // Update audio attack data for facial animation (eyebrows and mouth)
+        const float BROW_LIFT_THRESHOLD = 100.0f;
+        if (_audioAttack > BROW_LIFT_THRESHOLD) {
+            _browAudioLift += sqrtf(_audioAttack) * 0.01f;
+        }
+        _browAudioLift = glm::clamp(_browAudioLift *= 0.7f, 0.0f, 1.0f);
 
-    // use data to update fake Faceshift blendshape coefficients
-    calculateMouthShapes(deltaTime);
-    FaceTracker::updateFakeCoefficients(_leftEyeBlink,
-                                        _rightEyeBlink,
-                                        _browAudioLift,
-                                        _audioJawOpen,
-                                        _mouth2,
-                                        _mouth3,
-                                        _mouth4,
-                                        _transientBlendshapeCoefficients);
+        // use data to update fake Faceshift blendshape coefficients
+        calculateMouthShapes(deltaTime);
+        FaceTracker::updateFakeCoefficients(_leftEyeBlink,
+                                            _rightEyeBlink,
+                                            _browAudioLift,
+                                            _audioJawOpen,
+                                            _mouth2,
+                                            _mouth3,
+                                            _mouth4,
+                                            _transientBlendshapeCoefficients);
+    }
 }
 
 void Head::computeEyePosition() {
