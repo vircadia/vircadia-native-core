@@ -310,3 +310,7 @@ uint32_t Context::getTexturePendingGPUTransferCount() {
 Size Context::getTexturePendingGPUTransferMemSize() {
     return Backend::texturePendingGPUTransferMemSize.getValue();
 }
+
+Size Context::getTextureResourcePopulatedGPUMemSize() {
+    return Backend::textureResourcePopulatedGPUMemSize.getValue();
+}
