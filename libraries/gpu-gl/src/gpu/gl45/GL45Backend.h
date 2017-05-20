@@ -86,6 +86,7 @@ public:
         friend class GL45Backend;
     protected:
         GL45StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL45StrictResourceTexture();
     };
 
     //

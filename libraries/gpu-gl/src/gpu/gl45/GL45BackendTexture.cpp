@@ -116,7 +116,6 @@ using GL45Texture = GL45Backend::GL45Texture;
 
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture)
     : GLTexture(backend, texture, allocate(texture)) {
-    Backend::textureCount.increment();
 }
 
 GLuint GL45Texture::allocate(const Texture& texture) {
@@ -241,10 +240,12 @@ void GL45FixedAllocationTexture::syncSampler() const {
 using GL45AttachmentTexture = GL45Backend::GL45AttachmentTexture;
 
 GL45AttachmentTexture::GL45AttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45FixedAllocationTexture(backend, texture) {
+    Backend::textureFramebufferCount.increment();
     Backend::textureFramebufferGPUMemSize.update(0, size());
 }
 
 GL45AttachmentTexture::~GL45AttachmentTexture() {
+    Backend::textureFramebufferCount.decrement();
     Backend::textureFramebufferGPUMemSize.update(size(), 0);
 }
 
@@ -252,6 +253,9 @@ GL45AttachmentTexture::~GL45AttachmentTexture() {
 using GL45StrictResourceTexture = GL45Backend::GL45StrictResourceTexture;
 
 GL45StrictResourceTexture::GL45StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45FixedAllocationTexture(backend, texture) {
+    Backend::textureResidentCount.increment();
+    Backend::textureResidentGPUMemSize.update(0, size());
+
     auto mipLevels = _gpuObject.getNumMips();
     for (uint16_t sourceMip = 0; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip;
@@ -263,5 +267,10 @@ GL45StrictResourceTexture::GL45StrictResourceTexture(const std::weak_ptr<GLBacke
     if (texture.isAutogenerateMips()) {
         generateMips();
     }
+}
+
+GL45StrictResourceTexture::~GL45StrictResourceTexture() {
+    Backend::textureResidentCount.decrement();
+    Backend::textureResidentGPUMemSize.update(size(), 0);
 }
 

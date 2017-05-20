@@ -13,6 +13,9 @@ using namespace gpu;
 using namespace gpu::gl;
 
 GLBuffer::~GLBuffer() {
+    Backend::bufferCount.decrement();
+    Backend::bufferGPUMemSize.update(_size, 0);
+
     if (_id) {
         auto backend = _backend.lock();
         if (backend) {

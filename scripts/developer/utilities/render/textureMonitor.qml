@@ -23,7 +23,7 @@ Item {
         anchors.fill:parent
  
         property var config: Render.getConfig("Stats")
- 
+
         function evalEvenHeight() {
             // Why do we have to do that manually ? cannot seem to find a qml / anchor / layout mode that does that ?
             return (height - spacing * (children.length - 1)) / children.length
@@ -39,14 +39,29 @@ Item {
                     color: "#00B4EF"
                 },
                 {
-                    prop: "textureGPUCount",
-                    label: "GPU",
-                    color: "#1AC567"
-                },
-                {
                     prop: "texturePendingGPUTransferCount",
                     label: "Transfer",
-                    color: "#9495FF"
+                    color: "#359D85"
+                },
+                {
+                    prop: "textureResourceGPUCount",
+                    label: "Resource",
+                    color: "#1FC6A6"
+                },
+                {
+                    prop: "textureResidentGPUCount",
+                    label: "Resident",
+                    color: "#FF6309"
+                },
+                {
+                    prop: "textureFramebufferGPUCount",
+                    label: "Framebuffer",
+                    color: "#EF93D1"
+                },
+                {
+                    prop: "textureExternalGPUCount",
+                    label: "External",
+                    color: "#C62147"
                 }
             ]
         }
@@ -64,14 +79,14 @@ Item {
                     color: "#00B4EF"
                 },
                 {
-                    prop: "textureGPUMemSize",
-                    label: "GPU",
-                    color: "#1AC567"
+                    prop: "texturePendingGPUTransferSize",
+                    label: "Transfer",
+                    color: "#359D85"
                 },
                 {
-                    prop: "textureTransferPendingSize",
-                    label: "Pending Transfer",
-                    color: "#9495FF"
+                    prop: "textureGPUMemSize",
+                    label: "GPU",
+                    color: "#E3E3E3"
                 },
                 {
                     prop: "textureResourceGPUMemSize",

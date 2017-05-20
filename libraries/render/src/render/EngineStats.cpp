@@ -33,6 +33,11 @@ void EngineStats::run(const RenderContextPointer& renderContext) {
     config->textureCPUMemSize = gpu::Texture::getTextureCPUMemSize();
     config->textureGPUMemSize = gpu::Context::getTextureGPUMemSize();
 
+    config->textureResidentGPUCount = gpu::Context::getTextureResidentGPUCount();
+    config->textureFramebufferGPUCount = gpu::Context::getTextureFramebufferGPUCount();
+    config->textureResourceGPUCount = gpu::Context::getTextureResourceGPUCount();
+    config->textureExternalGPUCount = gpu::Context::getTextureExternalGPUCount();
+
     config->textureResidentGPUMemSize = gpu::Context::getTextureResidentGPUMemSize();
     config->textureFramebufferGPUMemSize = gpu::Context::getTextureFramebufferGPUMemSize();
     config->textureResourceGPUMemSize = gpu::Context::getTextureResourceGPUMemSize();

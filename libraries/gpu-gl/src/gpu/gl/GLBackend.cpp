@@ -644,8 +644,8 @@ void GLBackend::recycle() const {
         ids.reserve(buffersTrash.size());
         for (auto pair : buffersTrash) {
             ids.push_back(pair.first);
-            bufferCount.decrement();
-            bufferGPUMemSize.update(pair.second, 0);
+       //     bufferCount.decrement();
+        //    bufferGPUMemSize.update(pair.second, 0);
         }
         if (!ids.empty()) {
             glDeleteBuffers((GLsizei)ids.size(), ids.data());
@@ -678,8 +678,8 @@ void GLBackend::recycle() const {
         ids.reserve(texturesTrash.size());
         for (auto pair : texturesTrash) {
             ids.push_back(pair.first);
-            textureCount.decrement();
-            textureGPUMemSize.update(pair.second, 0);
+          //  textureCount.decrement();
+          //  textureGPUMemSize.update(pair.second, 0);
         }
         if (!ids.empty()) {
             glDeleteTextures((GLsizei)ids.size(), ids.data());

@@ -76,7 +76,6 @@ using GL41Texture = GL41Backend::GL41Texture;
 
 GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture)
     : GLTexture(backend, texture, allocate(texture)) {
-    Backend::textureCount.increment();
 }
 
 GLuint GL41Texture::allocate(const Texture& texture) {
@@ -223,6 +222,9 @@ GL41AttachmentTexture::~GL41AttachmentTexture() {
 using GL41StrictResourceTexture = GL41Backend::GL41StrictResourceTexture;
 
 GL41StrictResourceTexture::GL41StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41FixedAllocationTexture(backend, texture) {
+    Backend::textureResidentCount.increment();
+    Backend::textureResidentGPUMemSize.update(0, size());
+
     withPreservedTexture([&] {
    
         auto mipLevels = _gpuObject.getNumMips();
@@ -239,6 +241,12 @@ GL41StrictResourceTexture::GL41StrictResourceTexture(const std::weak_ptr<GLBacke
         generateMips();
     }
 }
+
+GL41StrictResourceTexture::~GL41StrictResourceTexture() {
+    Backend::textureResidentCount.decrement();
+    Backend::textureResidentGPUMemSize.update(size(), 0);
+}
+
 
 using GL41VariableAllocationTexture = GL41Backend::GL41VariableAllocationTexture;
 

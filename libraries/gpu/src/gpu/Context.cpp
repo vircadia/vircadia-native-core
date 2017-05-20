@@ -243,12 +243,11 @@ ContextMetricSize  Backend::freeGPUMemSize;
 ContextMetricCount Backend::bufferCount;
 ContextMetricSize  Backend::bufferGPUMemSize;
 
-ContextMetricCount Backend::textureCount;
+ContextMetricCount Backend::textureResidentCount;
 ContextMetricCount Backend::textureFramebufferCount;
 ContextMetricCount Backend::textureResourceCount;
 ContextMetricCount Backend::textureExternalCount;
 
-ContextMetricSize  Backend::textureGPUMemSize;
 ContextMetricSize  Backend::textureResidentGPUMemSize;
 ContextMetricSize  Backend::textureFramebufferGPUMemSize;
 ContextMetricSize  Backend::textureResourceGPUMemSize;
@@ -274,9 +273,11 @@ Context::Size Context::getBufferGPUMemSize() {
 }
 
 uint32_t Context::getTextureGPUCount() {
-    return Backend::textureCount.getValue();
+    return getTextureResidentGPUCount() + getTextureResourceGPUCount() + getTextureFramebufferGPUCount();
 }
-
+uint32_t Context::getTextureResidentGPUCount() {
+    return Backend::textureResidentCount.getValue();
+}
 uint32_t Context::getTextureFramebufferGPUCount() {
     return Backend::textureFramebufferCount.getValue();
 }
@@ -288,7 +289,7 @@ uint32_t Context::getTextureExternalGPUCount() {
 }
 
 Size Context::getTextureGPUMemSize() {
-    return Backend::textureGPUMemSize.getValue();
+    return getTextureResidentGPUMemSize() + getTextureResourceGPUMemSize() + getTextureFramebufferGPUMemSize();
 }
 Size Context::getTextureResidentGPUMemSize() {
     return Backend::textureResidentGPUMemSize.getValue();

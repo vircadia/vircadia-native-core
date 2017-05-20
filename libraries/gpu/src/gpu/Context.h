@@ -101,12 +101,10 @@ public:
     static ContextMetricCount bufferCount;
     static ContextMetricSize  bufferGPUMemSize;
 
-    static ContextMetricCount textureCount;
+    static ContextMetricCount textureResidentCount;
     static ContextMetricCount textureFramebufferCount;
     static ContextMetricCount textureResourceCount;
     static ContextMetricCount textureExternalCount;
-
-    static ContextMetricSize  textureGPUMemSize;
 
     static ContextMetricSize  textureResidentGPUMemSize;
     static ContextMetricSize  textureFramebufferGPUMemSize;
@@ -231,6 +229,7 @@ public:
     static Size getBufferGPUMemSize();
 
     static uint32_t getTextureGPUCount();
+    static uint32_t getTextureResidentGPUCount();
     static uint32_t getTextureFramebufferGPUCount();
     static uint32_t getTextureResourceGPUCount();
     static uint32_t getTextureExternalGPUCount();

@@ -31,10 +31,12 @@ using GL45VariableAllocationTexture = GL45Backend::GL45VariableAllocationTexture
 
 GL45VariableAllocationTexture::GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45Texture(backend, texture) {
     ++_frameTexturesCreated;
+    Backend::textureResourceCount.increment();
 }
 
 GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
-    Backend::textureGPUMemSize.update(_size, 0);
+    Backend::textureResourceCount.decrement();
+    Backend::textureResourceGPUMemSize.update(_size, 0);
 }
 
 // Managed size resource textures

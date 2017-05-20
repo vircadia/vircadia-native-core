@@ -347,8 +347,31 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::SRGBA:
                 texel.internalFormat = GL_SRGB8_ALPHA8;
                 break;
+            default:
+                qCWarning(gpugllogging) << "Unknown combination of texel format";
+            }
 
+            break;
+        }
 
+        case gpu::BLOB: {
+            texel.format = GL_RGBA;
+            texel.type = ELEMENT_TYPE_TO_GL[srcFormat.getType()];
+
+            switch (srcFormat.getSemantic()) {
+            case gpu::BGRA:
+            case gpu::SBGRA:
+                texel.format = GL_BGRA;
+                break;
+            case gpu::RGB:
+            case gpu::RGBA:
+            case gpu::SRGB:
+            case gpu::SRGBA:
+            default:
+                break;
+            };
+
+            switch (dstFormat.getSemantic()) {
             case gpu::COMPRESSED_BC4_RED:
                 texel.internalFormat = GL_COMPRESSED_RED_RGTC1;
                 break;
@@ -364,7 +387,6 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::COMPRESSED_BC5_XY:
                 texel.internalFormat = GL_COMPRESSED_RG_RGTC2;
                 break;
-
             default:
                 qCWarning(gpugllogging) << "Unknown combination of texel format";
             }
@@ -618,7 +640,30 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::SRGBA:
                 texel.internalFormat = GL_SRGB8_ALPHA8; // standard 2.2 gamma correction color
                 break;
+            default:
+                qCWarning(gpugllogging) << "Unknown combination of texel format";
+            }
+            break;
+        }
 
+        case gpu::BLOB: {
+            texel.format = GL_RGBA;
+            texel.type = ELEMENT_TYPE_TO_GL[srcFormat.getType()];
+
+            switch (srcFormat.getSemantic()) {
+            case gpu::BGRA:
+            case gpu::SBGRA:
+                texel.format = GL_BGRA;
+                break;
+            case gpu::RGB:
+            case gpu::RGBA:
+            case gpu::SRGB:
+            case gpu::SRGBA:
+            default:
+                break;
+            };
+
+            switch (dstFormat.getSemantic()) {
             case gpu::COMPRESSED_BC4_RED:
                 texel.internalFormat = GL_COMPRESSED_RED_RGTC1;
                 break;

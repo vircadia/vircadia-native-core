@@ -92,6 +92,7 @@ public:
         friend class GL41Backend;
     protected:
         GL41StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41StrictResourceTexture();
     };
 
     class GL41VariableAllocationTexture : public GL41Texture, public GLVariableAllocationSupport {
