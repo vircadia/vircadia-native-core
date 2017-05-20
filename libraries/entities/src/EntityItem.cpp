@@ -1369,10 +1369,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
 
     AACube saveQueryAACube = _queryAACube;
-    if (checkAndAdjustQueryAACube()) {
-        if (saveQueryAACube != _queryAACube) {
-            somethingChanged = true;
-        }
+    checkAndAdjustQueryAACube();
+    if (saveQueryAACube != _queryAACube) {
+        somethingChanged = true;
     }
 
     // Now check the sub classes
@@ -1609,46 +1608,33 @@ void EntityItem::updatePosition(const glm::vec3& value) {
         setLocalPosition(value);
 
         EntityTreePointer tree = getTree();
-        if (!tree) {
-            return;
-        }
-
         markDirtyFlags(Simulation::DIRTY_POSITION);
-        tree->entityChanged(getThisPointer());
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->markDirtyFlags(Simulation::DIRTY_POSITION);
-                tree->entityChanged(entity);
+                if (tree) {
+                    tree->entityChanged(entity);
+                }
             }
         });
-        locationChanged();
     }
 }
 
 void EntityItem::updateParentID(const QUuid& value) {
     if (getParentID() != value) {
         setParentID(value);
-
-        EntityTreePointer tree = getTree();
-        if (!tree) {
-            return;
-        }
-
         // children are forced to be kinematic
         // may need to not collide with own avatar
-        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP | Simulation::DIRTY_TRANSFORM);
-        tree->entityChanged(getThisPointer());
-        forEachDescendant([&](SpatiallyNestablePointer object) {
-            if (object->getNestableType() == NestableType::Entity) {
-                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
-                entity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
-                                       Simulation::DIRTY_COLLISION_GROUP |
-                                       Simulation::DIRTY_TRANSFORM);
-                tree->entityChanged(entity);
-            }
-        });
-        locationChanged();
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
+
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->addToNeedsParentFixupList(getThisPointer());
+        }
     }
 }
 
