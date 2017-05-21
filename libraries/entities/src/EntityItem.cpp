@@ -810,7 +810,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, updateCollisionless);
     READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, updateCollisionMask);
     READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, updateDynamic);
-    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
+    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, updateLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
@@ -1344,6 +1344,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dynamic, updateDynamic);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, updateLocked);
 
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -1352,7 +1353,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
@@ -2764,6 +2764,12 @@ bool EntityItem::getLocked() const {
 }
 
 void EntityItem::setLocked(bool value) { 
+    withWriteLock([&] {
+	_locked = value;
+    });
+}
+
+void EntityItem::updateLocked(bool value) {
     bool changed { false };
     withWriteLock([&] {
         if (_locked != value) {
