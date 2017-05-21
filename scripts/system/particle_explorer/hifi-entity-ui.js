@@ -42,14 +42,17 @@ var RADIAN = Math.PI/180;
 function HifiEntityUI(parent, structure){
     this.parent = parent;
     this.structure = structure;
+    var self = this;
     this.webBridgeSync = _.debounce(function(id, val){
         console.log(id, val);
-
+        if(self.bridge){
+            self.bridge.emitWebEvent(JSON.stringify({}));
+        }
     }, 125);
 }
 
 HifiEntityUI.prototype = {
-    bindWeb: function (bridge){
+    bindBridge: function (bridge){
         this.bridge = bridge;
     },
     build: function () {
@@ -78,7 +81,7 @@ HifiEntityUI.prototype = {
         parent.appendChild(sectionDivHeader);
 
         var sectionDivBody = document.createElement("div");
-        sectionDivBody.className = "spatial-group";
+        sectionDivBody.className = "property-group";
         var animationWrapper = document.createElement("div");
         animationWrapper.className = "section-wrap";
 
@@ -87,49 +90,47 @@ HifiEntityUI.prototype = {
         }
         sectionDivBody.appendChild(animationWrapper);
         parent.appendChild(sectionDivBody);
-
-        var height = (animationWrapper.clientHeight) + "px";
-        if (collapsed) {
-            sectionDivBody.className = sectionDivBody.className
-                .replace("visible", "")
-                .replace(/\s{2,}/g, " ");
-
-            sectionDivBody.style.maxHeight = "0px";
-        } else {
-            sectionDivBody.className += " visible";
-            sectionDivBody.style.maxHeight = height;
-        }
-
-        sectionDivHeader.onclick = function( ) {
-            collapsed = !collapsed;
+        _.defer(function() {
+            var height = (animationWrapper.clientHeight) + "px";
             if (collapsed) {
                 sectionDivBody.className = sectionDivBody.className
                     .replace("visible", "")
                     .replace(/\s{2,}/g, " ");
+
                 sectionDivBody.style.maxHeight = "0px";
             } else {
                 sectionDivBody.className += " visible";
                 sectionDivBody.style.maxHeight = height;
             }
-            // sectionDivBody.style.display = collapsed ? "none": "block";
-            dropDown.innerHTML = collapsed ? "L": "M";
-            sectionDivHeader.setAttribute("collapsed", collapsed);
-        };
-    },
-    addLabel: function(parent, name) {
-        var label = document.createElement("label");
-        label.innerHTML = name;
-        parent.appendChild(label);
-        return label;
-    },
-    addQuaternionVector: function(parent, group){
-        /*
 
-            x = RotationAxis.x * sin(RotationAngle / 2)
-            y = RotationAxis.y * sin(RotationAngle / 2)
-            z = RotationAxis.z * sin(RotationAngle / 2)
-            w = cos(RotationAngle / 2)
-        */
+            sectionDivHeader.onclick = function( ) {
+                collapsed = !collapsed;
+                if (collapsed) {
+                    sectionDivBody.className = sectionDivBody.className
+                        .replace("visible", "")
+                        .replace(/\s{2,}/g, " ");
+                    sectionDivBody.style.maxHeight = "0px";
+                } else {
+                    sectionDivBody.className += " visible";
+                    sectionDivBody.style.maxHeight = height;
+                }
+                // sectionDivBody.style.display = collapsed ? "none": "block";
+                dropDown.innerHTML = collapsed ? "L": "M";
+                sectionDivHeader.setAttribute("collapsed", collapsed);
+            };
+        });
+    },
+    addLabel: function(parent, group) {
+        var label = document.createElement("label");
+        label.innerHTML = group.name;
+        parent.appendChild(label);
+        if (group.unit) {
+            var span = document.createElement("span");
+            span.innerHTML = group.unit;
+            span.className = "unit";
+            label.appendChild(span);
+        }
+        return label;
     },
     addVector: function(parent, group){
         var self = this;
@@ -149,12 +150,12 @@ HifiEntityUI.prototype = {
             element.className = inputs[index];
             element.id = group.id + "-" + inputs[index];
             element.oninput = function(event) {
-                self.webBridgeSync(group.id, {x: domArray[0].value, y: domArray[1].value, z: domArray[2].value})
-            }
+                self.webBridgeSync(group.id, {x: domArray[0].value, y: domArray[1].value, z: domArray[2].value});
+            };
             domArray.push(element);
         }
 
-        this.addLabel(parent, group.name);
+        this.addLabel(parent, group);
         parent.className += " property  vector-section xyz";
 
         // Add Tuple and the rest
@@ -171,6 +172,9 @@ HifiEntityUI.prototype = {
             tupleContainer.appendChild(div);
         }
         parent.appendChild(tupleContainer);
+    },
+    addVectorQuaternion: function(parent, group) {
+        this.addVector(parent,group);
     },
     addColorPicker: function(parent, group) {
         var self = this;
@@ -205,10 +209,7 @@ HifiEntityUI.prototype = {
             element.oninput = function(event) {
                 $colPickContainer.colpickSetColor({r: domArray[0].value, g: domArray[1].value, b: domArray[2].value},
                     true);
-
-
-                //
-            }
+            };
             domArray.push(element);
         }
 
@@ -219,7 +220,7 @@ HifiEntityUI.prototype = {
 
         /* Color Picker Logic Here */
 
-        parent.appendChild($colPickContainer[0])
+        parent.appendChild($colPickContainer[0]);
 
         $colPickContainer.colpick({
             colorScheme: 'dark',
@@ -246,7 +247,7 @@ HifiEntityUI.prototype = {
         li.className ="cr object color";
 
 
-        this.addLabel(parent, group.name);
+        this.addLabel(parent, group);
         parent.className += " property vector-section rgb";
 
         // Add Tuple and the rest
@@ -268,7 +269,7 @@ HifiEntityUI.prototype = {
     },
     addTextureField: function(parent, group) {
         var self = this;
-        this.addLabel(parent, group.name);
+        this.addLabel(parent, group);
         parent.className += " property texture";
         var textureImage = document.createElement("div");
         var textureUrl = document.createElement("input");
@@ -300,7 +301,7 @@ HifiEntityUI.prototype = {
     },
     addSlider: function(parent, group) {
         var self = this;
-        this.addLabel(parent, group.name);
+        this.addLabel(parent, group);
         parent.className += " property range";
         var container = document.createElement("div");
         container.className = "slider-wrapper";
@@ -334,19 +335,23 @@ HifiEntityUI.prototype = {
             inputField.id = group.id;
         } else if (group.type === "SliderRadian") {
             slider.setAttribute("min", group.min !== undefined ? group.min: 0);
-            slider.setAttribute("max", group.max !== undefined ? group.max: Math.PI);
-            slider.setAttribute("step", Math.PI/180);
+            slider.setAttribute("max", group.max !== undefined ? group.max: 180);
+            slider.setAttribute("step", 1);
 
-            inputField.setAttribute("min", (group.min !== undefined ? group.min: 0) / RADIAN);
-            inputField.setAttribute("max", (group.max !== undefined ? group.max: Math.PI)/ RADIAN);
+            inputField.setAttribute("min", (group.min !== undefined ? group.min: 0) );
+            inputField.setAttribute("max", (group.max !== undefined ? group.max: 180));
 
             inputField.oninput = function (event){
-                slider.value = RADIAN * event.target.value;
-                self.webBridgeSync(group.id, slider.value);
+                slider.value = event.target.value;
+                self.webBridgeSync(group.id, slider.value * RADIAN );
             };
             slider.oninput = function (event){
-                inputField.value = Math.round((event.target.value / RADIAN) * 100)/100;
-                self.webBridgeSync(group.id, slider.value);
+                if (event.target.value > 0){
+                    inputField.value = Math.floor(event.target.value);
+                } else {
+                    inputField.value = Math.ceil(event.target.value);
+                }
+                self.webBridgeSync(group.id, slider.value * RADIAN);
             };
             var degrees = document.createElement("label");
             degrees.innerHTML = "&#176;";
@@ -390,7 +395,7 @@ HifiEntityUI.prototype = {
         };
         checkBox.id = group.id;
         parent.appendChild(checkBox);
-        var label = this.addLabel(parent, group.name);
+        var label = this.addLabel(parent, group);
         label.setAttribute("for", checkBox.id);
         parent.className += " property checkbox";
     },
@@ -433,11 +438,11 @@ HifiEntityUI.prototype = {
                 parent.appendChild(row);
                 break;
             case "Vector":
-                self.addVector(row,group);
+                self.addVector(row, group);
                 parent.appendChild(row);
                 break;
             case "VectorQuaternion":
-                self.addLabel(row, group.name);
+                self.addVectorQuaternion(row, group);
                 parent.appendChild(row);
                 break;
             default:

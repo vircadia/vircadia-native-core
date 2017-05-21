@@ -68,6 +68,7 @@
                 type: "SliderInteger",
                 max: 1000
             },
+            { type: "Row" },
             {
                 id: "emitSpeed",
                 name: "Emit Speed",
@@ -78,10 +79,10 @@
             { type: "Row" },
             {
                 id: "emitOrientation",
+                unit: "deg",
                 name: "Emit Orientation",
-                type: "VectorQuaternion"
+                type: "Vector"
             },
-
             { type: "Row" },
             {
                 id: "emitShouldTrail",
@@ -162,11 +163,13 @@
                 name: "Alpha Spread",
                 type: "SliderFloat"
             },
+            { type: "Row" },
             {
                 id: "alphaStart",
                 name: "Alpha Start",
                 type: "SliderFloat"
             },
+            { type: "Row" },
             {
                 id: "alphaFinish",
                 name: "Alpha Finish",
@@ -178,11 +181,14 @@
             {
                 id: "polarStart",
                 name: "Polar Start",
+                unit: "deg",
                 type: "SliderRadian"
             },
+            { type: "Row" },
             {
                 id: "polarFinish",
                 name: "Polar Finish",
+                unit: "deg",
                 type: "SliderRadian"
             },
             { type: "Row" }
@@ -191,13 +197,16 @@
             {
                 id: "azimuthStart",
                 name: "Azimuth Start",
+                unit: "deg",
                 type: "SliderRadian",
-                min: -Math.PI,
+                min: -180,
                 max: 0
             },
+            { type: "Row" },
             {
                 id: "azimuthFinish",
                 name: "Azimuth Finish",
+                unit: "deg",
                 type: "SliderRadian"
             },
             { type: "Row" }
@@ -216,12 +225,14 @@
                 type: "SliderFloat",
                 max: 4.0
             },
+            { type: "Row" },
             {
                 id: "radiusStart",
                 name: "Radius Start",
                 type: "SliderFloat",
                 max: 4.0
             },
+            { type: "Row" },
             {
                 id: "radiusFinish",
                 name: "Radius Finish",

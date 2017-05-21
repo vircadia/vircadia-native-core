@@ -12,12 +12,12 @@
 /*global window, alert, EventBridge, dat, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
 
 
-var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath('particleExplorer.html');
+var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath(' .html');
 
 ParticleExplorerTool = function() {
     var that = {};
 
-    that.createWebView = function() {
+    that.createWebView = function() { 
         that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         that.webView.setVisible = function(value) {};
         that.webView.webEventReceived.connect(that.webEventReceived);

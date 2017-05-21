@@ -13,13 +13,13 @@ input[type="button"] {
 
 }
 
-.spatial-group {
+.property-group {
     max-height: 0;
     -webkit-transition: max-height 0.15s ease-out;
     transition: max-height 0.15s ease-out;
     overflow: hidden;
 }
-.spatial-group.visible {
+.property-group.visible {
     transition: max-height 0.25s ease-in;
 }
 .section-wrap {
