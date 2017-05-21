@@ -274,10 +274,11 @@ TabView {
     // that it would remove by title name instead.
     function enableParticles(enabled) {
         if (enabled && editTabView.children.length < 4) {
+            console.log("ADDING PARTICLES TAB");
             editTabView.addTab("P",  Qt.createComponent("tabs/ParticleTab.qml"));
         } else if (!enabled && editTabView.children.length > 2) {
+            console.log("REMOVING PARTICLES TAB");
             editTabView.removeTab(4);
-            editTabView.removeTab(5);
         }
     }
 

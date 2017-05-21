@@ -12,7 +12,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* HifiEntityUI */
+/* global HifiEntityUI, openEventBridge, EventBridge, document, window */
 
 (function(){
     var menuStructure = {
@@ -246,8 +246,11 @@
 
     var root = document.getElementById("particle-explorer");
 
-    window.addEventListener('load', function(){
+    window.onload = function(){
         var ui = new HifiEntityUI(root, menuStructure);
-        ui.build();
-    });
+        openEventBridge( function(EventBridge) {
+            ui.build();
+            ui.connect(EventBridge);
+        })
+    };
 })();

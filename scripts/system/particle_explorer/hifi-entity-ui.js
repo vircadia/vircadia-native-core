@@ -44,21 +44,90 @@ function HifiEntityUI(parent, structure){
     this.structure = structure;
     var self = this;
     this.webBridgeSync = _.debounce(function(id, val){
-        console.log(id, val);
-        if(self.bridge){
-            self.bridge.emitWebEvent(JSON.stringify({}));
+        if (self.EventBridge){
+            var sendPackage = {};
+            sendPackage[id] = val;
+            var message = {
+                messageType: "settings_update",
+                updateSettings: sendPackage
+            };
+            self.EventBridge.emitWebEvent(JSON.stringify(message));
         }
     }, 125);
 }
 
 HifiEntityUI.prototype = {
-    bindBridge: function (bridge){
-        this.bridge = bridge;
+    connect: function (EventBridge){
+        this.EventBridge = EventBridge;
+        var self = this;
+        EventBridge.emitWebEvent(JSON.stringify({
+            messageType: 'page_loaded'
+        }));
+
+        EventBridge.scriptEventReceived.connect(function(data){
+            data = JSON.parse(data);
+            if (data.messageType === 'particle_settings') {
+                // Update settings
+                var currentProperties = data.currentProperties;
+                // Do expected property match with structure;
+                Object.keys(currentProperties).forEach(function(value, index) {
+                    var property = currentProperties[value];
+                    var field = self.builtRows[value];
+                    if (field) {
+
+                        var el = document.getElementById(value);
+
+                        console.log(value, property, field, el);
+                        if (field.className.indexOf("radian") !== -1) {
+                            el.value = property / RADIAN;
+                            el.onchange({target: el});
+                        } else if (field.className.indexOf("range") !== -1 || field.className.indexOf("texture") !== -1){
+                            el.value = property;
+                            el.onchange({target: el});
+                        } else if (field.className.indexOf("checkbox") !== -1) {
+                            if (property){
+                                el.setAttribute("checked", property);
+                            } else {
+                                el.removeAttribute("checked");
+                            }
+                        } else if (field.className.indexOf("vector-section") !== -1) {
+                            if (field.className.indexOf("rgb") !== -1) {
+                                var red = document.getElementById(value+"-red");
+                                var blue = document.getElementById(value+"-blue");
+                                var green = document.getElementById(value+"-green");
+                                red.value = property.red;
+                                blue.value = property.blue;
+                                green.value = property.green;
+                                // crashes here.
+
+                            } else if (field.className.indexOf("xyz")) {
+
+                                var x = document.getElementById(value+"-x");
+                                var y = document.getElementById(value+"-y");
+                                var z = document.getElementById(value+"-z");
+                                // crashes here.
+
+                                if (value === "emitOrientation") {
+
+                                } else {
+                                    x.value = property.x;
+                                    y.value = property.y;
+                                    z.value = property.z;
+                                }
+                            }
+                        }
+                    }
+
+                });
+            } else if (data.messageType === 'particle_close') {
+                // Legacy event on particle close. This webview actually gets removed now
+            }
+        });
     },
     build: function () {
         var self = this;
         var sections = Object.keys(this.structure);
-
+        this.builtRows = {};
         sections.forEach(function(section, index){
             var properties = self.structure[section];
             self.addSection(self.parent,section,properties,index);
@@ -86,7 +155,12 @@ HifiEntityUI.prototype = {
         animationWrapper.className = "section-wrap";
 
         for (var property in properties) {
-            self.addElement(animationWrapper, properties[property]);
+
+            var builtRow = self.addElement(animationWrapper, properties[property])
+            var id = properties[property].id;
+            if (id) {
+                self.builtRows[id] = builtRow;
+            }
         }
         sectionDivBody.appendChild(animationWrapper);
         parent.appendChild(sectionDivBody);
@@ -152,6 +226,7 @@ HifiEntityUI.prototype = {
             element.oninput = function(event) {
                 self.webBridgeSync(group.id, {x: domArray[0].value, y: domArray[1].value, z: domArray[2].value});
             };
+            element.onchange = element.oninput;
             domArray.push(element);
         }
 
@@ -210,6 +285,7 @@ HifiEntityUI.prototype = {
                 $colPickContainer.colpickSetColor({r: domArray[0].value, g: domArray[1].value, b: domArray[2].value},
                     true);
             };
+            element.onchange = element.oninput;
             domArray.push(element);
         }
 
@@ -274,6 +350,7 @@ HifiEntityUI.prototype = {
         var textureImage = document.createElement("div");
         var textureUrl = document.createElement("input");
         textureUrl.setAttribute("type", "text");
+        textureUrl.id = group.id;
         textureImage.className = "texture-image no-texture";
         var image = document.createElement("img");
         var imageLoad = _.debounce(function(url){
@@ -294,7 +371,7 @@ HifiEntityUI.prototype = {
             var url = event.target.value;
             imageLoad(url);
         };
-
+        textureUrl.onchange = textureUrl.oninput;
         textureImage.appendChild(image);
         parent.appendChild(textureImage);
         parent.appendChild(textureUrl);
@@ -327,6 +404,7 @@ HifiEntityUI.prototype = {
                 slider.value = event.target.value;
                 self.webBridgeSync(group.id, slider.value);
             };
+            inputField.onchange = inputField.oninput;
             slider.oninput = function (event){
                 inputField.value = event.target.value;
                 self.webBridgeSync(group.id, slider.value);
@@ -337,7 +415,7 @@ HifiEntityUI.prototype = {
             slider.setAttribute("min", group.min !== undefined ? group.min: 0);
             slider.setAttribute("max", group.max !== undefined ? group.max: 180);
             slider.setAttribute("step", 1);
-
+            parent.className += " radian";
             inputField.setAttribute("min", (group.min !== undefined ? group.min: 0) );
             inputField.setAttribute("max", (group.max !== undefined ? group.max: 180));
 
@@ -345,6 +423,9 @@ HifiEntityUI.prototype = {
                 slider.value = event.target.value;
                 self.webBridgeSync(group.id, slider.value * RADIAN );
             };
+            inputField.onchange = inputField.oninput;
+
+            inputField.id = group.id;
             slider.oninput = function (event){
                 if (event.target.value > 0){
                     inputField.value = Math.floor(event.target.value);
@@ -361,7 +442,6 @@ HifiEntityUI.prototype = {
             degrees.style.paddingLeft = "0.4rem";
             container.appendChild(degrees);
 
-            slider.id = group.id;
         } else {
             // Must then be Float
             inputField.setAttribute("min", group.min !== undefined? group.min: 0);
@@ -376,6 +456,7 @@ HifiEntityUI.prototype = {
                 self.webBridgeSync(group.id, slider.value);
                 // bind web sock update here.
             };
+            inputField.onchange = inputField.oninput;
             slider.oninput = function (event){
                 inputField.value = event.target.value;
                 self.webBridgeSync(group.id, inputField.value);
@@ -448,6 +529,6 @@ HifiEntityUI.prototype = {
             default:
                 console.log("not defined");
         }
-
+        return row;
     }
 };
