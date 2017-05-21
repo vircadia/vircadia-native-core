@@ -4,7 +4,7 @@
 //  Created by Eric Levin on 2/15/16
 //  Copyright 2016 High Fidelity, Inc.
 //  Adds particleExplorer tool to the edit panel when a user selects a particle entity from the edit tool window
-//  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
+//  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,7 +20,7 @@ ParticleExplorerTool = function() {
     that.createWebView = function() {
         that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         that.webView.setVisible = function(value) {};
-        that.webView.webEventReceived.connect(that.webEventReceived);        
+        that.webView.webEventReceived.connect(that.webEventReceived);
     }
 
     that.destroyWebView = function() {
