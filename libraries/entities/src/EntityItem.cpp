@@ -2765,7 +2765,7 @@ bool EntityItem::getLocked() const {
 
 void EntityItem::setLocked(bool value) { 
     withWriteLock([&] {
-	_locked = value;
+        _locked = value;
     });
 }
 
