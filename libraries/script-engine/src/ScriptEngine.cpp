@@ -397,16 +397,12 @@ void ScriptEngine::waitTillDoneRunning() {
                 }
             }
 
-            // NOTE: This will be called on the main application thread from stopAllScripts.
-            //       The application thread will need to continue to process events, because
+            // NOTE: This will be called on the main application thread (among other threads) from stopAllScripts.
+            //       The thread will need to continue to process events, because
             //       the scripts will likely need to marshall messages across to the main thread, e.g.
             //       if they access Settings or Menu in any of their shutdown code. So:
-            // Process events for the main application thread, allowing invokeMethod calls to pass between threads.
+            // Process events for this thread, allowing invokeMethod calls to pass between threads.
             QCoreApplication::processEvents();
-            // In some cases (debugging), processEvents may give the thread enough time to shut down, so recheck it.
-            if (!thread()) {
-                break;
-            }
 
             // Avoid a pure busy wait
             QThread::yieldCurrentThread();
