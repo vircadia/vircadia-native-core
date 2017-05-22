@@ -92,6 +92,7 @@ AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
+const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
 
 void AccountManager::logout() {
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
@@ -192,7 +193,7 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
         // prepare to refresh our token if it is about to expire
         if (needsToRefreshToken()) {
             qCDebug(networking) << "Refreshing access token since it will be expiring soon.";
-            requestNewAccessToken();
+            refreshAccessToken();
         }
 
         // tell listeners that the auth endpoint has changed
@@ -452,7 +453,7 @@ bool AccountManager::hasValidAccessToken() {
 
         if (!_isWaitingForTokenRefresh && needsToRefreshToken()) {
             qCDebug(networking) << "Refreshing access token since it will be expiring soon.";
-            requestNewAccessToken();
+            refreshAccessToken();
         }
 
         return true;
@@ -471,12 +472,12 @@ bool AccountManager::checkAndSignalForAccessToken() {
 }
 
 bool AccountManager::needsToRefreshToken() {
-    if (!_accountInfo.getAccessToken().token.isEmpty())
-    {
+    if (!_accountInfo.getAccessToken().token.isEmpty()) {
         qlonglong expireThreshold = QDateTime::currentDateTime().addSecs(1 * 60 * 60).toMSecsSinceEpoch();
-        if (_accountInfo.getAccessToken().expiryTimestamp < expireThreshold) return true;
+        return _accountInfo.getAccessToken().expiryTimestamp < expireThreshold;
+    } else {
+        return false;
     }
-    return false;
 }
 
 void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken) {
@@ -511,8 +512,6 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     QUrl grantURL = _authURL;
     grantURL.setPath("/oauth/token");
 
-    const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
-
     QByteArray postData;
     postData.append("grant_type=password&");
     postData.append("username=" + login + "&");
@@ -536,8 +535,6 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
     QUrl grantURL = _authURL;
     grantURL.setPath("/oauth/token");
 
-    const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
-
     QByteArray postData;
     postData.append("grant_type=password&");
     postData.append("steam_auth_ticket=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
@@ -551,7 +548,8 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
     connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccessTokenError(QNetworkReply::NetworkError)));
 }
 
-void AccountManager::requestNewAccessToken() {
+void AccountManager::refreshAccessToken() {
+
     _isWaitingForTokenRefresh = true;
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
@@ -563,8 +561,6 @@ void AccountManager::requestNewAccessToken() {
     QUrl grantURL = _authURL;
     grantURL.setPath("/oauth/token");
 
-    const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
-
     QByteArray postData;
     postData.append("grant_type=refresh_token&");
     postData.append("refresh_token=" + QUrl::toPercentEncoding(_accountInfo.getAccessToken().refreshToken) + "&");
@@ -574,8 +570,8 @@ void AccountManager::requestNewAccessToken() {
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
     QNetworkReply* requestReply = networkAccessManager.post(request, postData);
-    connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestNewAccessTokenFinished);
-    connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestNewAccessTokenError(QNetworkReply::NetworkError)));
+    connect(requestReply, &QNetworkReply::finished, this, &AccountManager::refreshAccessTokenFinished);
+    connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(refreshAccessTokenError(QNetworkReply::NetworkError)));
 }
 
 void AccountManager::requestAccessTokenFinished() {
@@ -620,7 +616,7 @@ void AccountManager::requestAccessTokenError(QNetworkReply::NetworkError error) 
     emit loginFailed();
 }
 
-void AccountManager::requestNewAccessTokenFinished() {
+void AccountManager::refreshAccessTokenFinished() {
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
 
     QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
@@ -633,34 +629,27 @@ void AccountManager::requestNewAccessTokenFinished() {
             || !rootObject.contains("token_type")) {
             // TODO: error handling - malformed token response
             qCDebug(networking) << "Received a response for refresh grant that is missing one or more expected values.";
-        }
-        else {
+        } else {
             // clear the path from the response URL so we have the right root URL for this access token
             QUrl rootURL = requestReply->url();
             rootURL.setPath("");
 
-            qCDebug(networking) << "Storing an account with access-token for" << qPrintable(rootURL.toString());
+            qCDebug(networking) << "Storing an account with a refreshed access-token for" << qPrintable(rootURL.toString());
 
             _accountInfo.setAccessTokenFromJSON(rootObject);
 
             persistAccountToFile();
-
-            requestProfile();
         }
-    }
-    else {
-        // TODO: error handling
-        qCDebug(networking) << "Error in response for refresh grant -" << rootObject["error_description"].toString();
-        emit loginFailed();
+    } else {
+        qCWarning(networking) << "Error in response for refresh grant - " << rootObject["error_description"].toString();
     }
 
     _isWaitingForTokenRefresh = false;
 }
 
-void AccountManager::requestNewAccessTokenError(QNetworkReply::NetworkError error) {
+void AccountManager::refreshAccessTokenError(QNetworkReply::NetworkError error) {
     // TODO: error handling
     qCDebug(networking) << "AccountManager: failed to refresh access token - " << error;
-    emit loginFailed();
     _isWaitingForTokenRefresh = false;
 }
 

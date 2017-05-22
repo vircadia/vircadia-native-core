@@ -98,13 +98,13 @@ public:
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
     void requestAccessTokenWithSteam(QByteArray authSessionTicket);
-    void requestNewAccessToken();
+    void refreshAccessToken();
 
     void requestAccessTokenFinished();
-    void requestNewAccessTokenFinished();
+    void refreshAccessTokenFinished();
     void requestProfileFinished();
     void requestAccessTokenError(QNetworkReply::NetworkError error);
-    void requestNewAccessTokenError(QNetworkReply::NetworkError error);
+    void refreshAccessTokenError(QNetworkReply::NetworkError error);
     void requestProfileError(QNetworkReply::NetworkError error);
     void logout();
     void generateNewUserKeypair() { generateNewKeypair(); }
