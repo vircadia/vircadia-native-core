@@ -354,7 +354,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             break;
         }
 
-        case gpu::BLOB: {
+        case gpu::TILE4x4: {
             texel.format = GL_RGBA;
             texel.type = ELEMENT_TYPE_TO_GL[srcFormat.getType()];
 
@@ -646,7 +646,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             break;
         }
 
-        case gpu::BLOB: {
+        case gpu::TILE4x4: {
             texel.format = GL_RGBA;
             texel.type = ELEMENT_TYPE_TO_GL[srcFormat.getType()];
 

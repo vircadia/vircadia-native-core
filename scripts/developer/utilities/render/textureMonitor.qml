@@ -29,43 +29,6 @@ Item {
             return (height - spacing * (children.length - 1)) / children.length
         }
         PlotPerf {
-            title: "Num Textures"
-            height: parent.evalEvenHeight()
-            object: stats.config
-            plots: [
-                {
-                    prop: "textureCPUCount",
-                    label: "CPU",
-                    color: "#00B4EF"
-                },
-                {
-                    prop: "texturePendingGPUTransferCount",
-                    label: "Transfer",
-                    color: "#359D85"
-                },
-                {
-                    prop: "textureResourceGPUCount",
-                    label: "Resource",
-                    color: "#1FC6A6"
-                },
-                {
-                    prop: "textureResidentGPUCount",
-                    label: "Resident",
-                    color: "#FF6309"
-                },
-                {
-                    prop: "textureFramebufferGPUCount",
-                    label: "Framebuffer",
-                    color: "#EF93D1"
-                },
-                {
-                    prop: "textureExternalGPUCount",
-                    label: "External",
-                    color: "#C62147"
-                }
-            ]
-        }
-        PlotPerf {
             title: "gpu::Texture Memory"
             height: parent.evalEvenHeight()
             object: stats.config
@@ -79,19 +42,9 @@ Item {
                     color: "#00B4EF"
                 },
                 {
-                    prop: "texturePendingGPUTransferSize",
-                    label: "Transfer",
-                    color: "#359D85"
-                },
-                {
                     prop: "textureGPUMemSize",
                     label: "GPU",
                     color: "#E3E3E3"
-                },
-                {
-                    prop: "textureResourceGPUMemSize",
-                    label: "Resource",
-                    color: "#1FC6A6"
                 },
                 {
                     prop: "textureResidentGPUMemSize",
@@ -104,9 +57,19 @@ Item {
                     color: "#EF93D1"
                 },
                 {
+                    prop: "textureResourceGPUMemSize",
+                    label: "Resource",
+                    color: "#1FC6A6"
+                },
+                {
                     prop: "textureResourcePopulatedGPUMemSize",
                     label: "Populated",
                     color: "#C6A61F"
+                },
+                {
+                    prop: "texturePendingGPUTransferSize",
+                    label: "Transfer",
+                    color: "#A2277C"
                 }
             ]
         }

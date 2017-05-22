@@ -98,12 +98,12 @@ enum Dimension : uint8_t {
     MAT2,
     MAT3,
     MAT4,
-    BLOB, // Blob element's size is defined from the type and semantic, it s counted as 1 component
+    TILE4x4, // Blob element's size is defined from the type and semantic, it s counted as 1 component
     NUM_DIMENSIONS,
 };
 
 // Count (of scalars) in an Element for a given Dimension
-static const int LOCATION_COUNT[NUM_DIMENSIONS] = {
+static const int DIMENSION_LOCATION_COUNT[NUM_DIMENSIONS] = {
     1,
     1,
     1,
@@ -115,7 +115,7 @@ static const int LOCATION_COUNT[NUM_DIMENSIONS] = {
 };
 
 // Count (of scalars) in an Element for a given Dimension's location
-static const int SCALAR_COUNT_PER_LOCATION[NUM_DIMENSIONS] = {
+static const int DIMENSION_SCALAR_COUNT_PER_LOCATION[NUM_DIMENSIONS] = {
     1,
     2,
     3,
@@ -127,7 +127,7 @@ static const int SCALAR_COUNT_PER_LOCATION[NUM_DIMENSIONS] = {
 };
 
 // Count (of scalars) in an Element for a given Dimension
-static const int SCALAR_COUNT[NUM_DIMENSIONS] = {
+static const int DIMENSION_SCALAR_COUNT[NUM_DIMENSIONS] = {
     1,
     2,
     3,
@@ -136,6 +136,18 @@ static const int SCALAR_COUNT[NUM_DIMENSIONS] = {
     9,
     16,
     1,
+};
+
+// Tile dimension described by the ELement for "Tilexxx" DIMENSIONs
+static const glm::ivec2 DIMENSION_TILE_DIM[NUM_DIMENSIONS] = {
+    { 1, 1 },
+    { 1, 1 },
+    { 1, 1 },
+    { 1, 1 },
+    { 1, 1 },
+    { 1, 1 },
+    { 1, 1 },
+    { 4, 4 },
 };
 
 // Semantic of an Element
@@ -222,11 +234,11 @@ static const int SEMANTIC_SIZE_FACTOR[NUM_SEMANTICS] = {
     // THe size of a compressed element is defined from the semantic
     1, //_FIRST_COMPRESSED,
 
-    1, //COMPRESSED_BC1_SRGB,
-    1, //COMPRESSED_BC1_SRGBA,
-    1, //COMPRESSED_BC3_SRGBA,
-    1, //COMPRESSED_BC4_RED,
-    1, //COMPRESSED_BC5_XY,
+    8, //COMPRESSED_BC1_SRGB, 1/2 byte/pixel * 4x4 pixels = 8 bytes
+    8, //COMPRESSED_BC1_SRGBA, 1/2 byte/pixel * 4x4 pixels = 8 bytes
+    16, //COMPRESSED_BC3_SRGBA, 1 byte/pixel * 4x4 pixels = 16 bytes
+    8, //COMPRESSED_BC4_RED, 1/2 byte/pixel * 4x4 pixels = 8 bytes
+    16, //COMPRESSED_BC5_XY, 1 byte/pixel * 4x4 pixels = 16 bytes
 
     1, //_LAST_COMPRESSED,
 
@@ -239,6 +251,7 @@ static const int SEMANTIC_SIZE_FACTOR[NUM_SEMANTICS] = {
     1, //SAMPLER_MULTISAMPLE,
     1, //SAMPLER_SHADOW,
 };
+
 
 // Element is a simple 16bit value that contains everything we need to know about an element
 // of a buffer, a pixel of a texture, a varying input/output or uniform from a shader pipeline.
@@ -266,12 +279,13 @@ public:
     bool isNormalized() const { return (getType() >= NORMALIZED_START); }
     bool isInteger() const { return TYPE_IS_INTEGER[getType()]; }
 
-    uint8 getScalarCount() const { return  SCALAR_COUNT[(Dimension)_dimension]; }
-    uint32 getSize() const { return (SCALAR_COUNT[_dimension] * TYPE_SIZE[_type] * SEMANTIC_SIZE_FACTOR[_semantic]); }
+    uint8 getScalarCount() const { return DIMENSION_SCALAR_COUNT[(Dimension)_dimension]; }
+    uint32 getSize() const { return (DIMENSION_SCALAR_COUNT[_dimension] * TYPE_SIZE[_type] * SEMANTIC_SIZE_FACTOR[_semantic]); }
+    const glm::ivec2& getTile() const { return (DIMENSION_TILE_DIM[_dimension]); }
 
-    uint8 getLocationCount() const { return  LOCATION_COUNT[(Dimension)_dimension]; }
-    uint8 getLocationScalarCount() const { return  SCALAR_COUNT_PER_LOCATION[(Dimension)_dimension]; }
-    uint32 getLocationSize() const { return SCALAR_COUNT_PER_LOCATION[_dimension] * TYPE_SIZE[_type]; }
+    uint8 getLocationCount() const { return  DIMENSION_LOCATION_COUNT[(Dimension)_dimension]; }
+    uint8 getLocationScalarCount() const { return DIMENSION_SCALAR_COUNT_PER_LOCATION[(Dimension)_dimension]; }
+    uint32 getLocationSize() const { return DIMENSION_SCALAR_COUNT_PER_LOCATION[_dimension] * TYPE_SIZE[_type]; }
 
     uint16 getRaw() const { return *((uint16*) (this)); }
 

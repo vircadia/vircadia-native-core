@@ -280,7 +280,7 @@ Item {
                         text: "  Pending Transfer: " + root.texturePendingTransfers + " MB";
                     }
                     StatText {
-                        text: "  Resource Memory: " + root.gpuTextureResourceMemory + " MB";
+                        text: "  Resource Allocated/Populated: " + root.gpuTextureResourceMemory + " / " + root.gpuTextureResourcePopulatedMemory + " MB";
                     }
                     StatText {
                         text: "  Resident Memory: " + root.gpuTextureResidentMemory + " MB";

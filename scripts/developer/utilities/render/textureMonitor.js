@@ -15,7 +15,7 @@ var window = new OverlayWindow({
     title: 'Textures',
     source: qml,
     width: 320, 
-    height: 720
+    height: 400
 });
 window.setPosition(500, 50);
 window.closed.connect(function() { Script.stop(); });
