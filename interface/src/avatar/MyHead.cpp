@@ -46,7 +46,7 @@ void MyHead::simulate(float deltaTime) {
     // Only use face trackers when not playing back a recording.
     if (!player->isPlaying()) {
         FaceTracker* faceTracker = qApp->getActiveFaceTracker();
-        _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
+        _isFaceTrackerConnected = faceTracker != nullptr && !faceTracker->isMuted();
         if (_isFaceTrackerConnected) {
             _transientBlendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
 
