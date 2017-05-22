@@ -25,8 +25,10 @@ public:
 
     void startRunningMarker();
 
-    QString getFilePath();
+    QString getFilePath() const;
     static QString getMarkerFilePath(QString name);
+
+    bool fileExists() const;
 
     void writeRunningMarkerFile();
     void deleteRunningMarkerFile();

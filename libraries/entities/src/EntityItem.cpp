@@ -2764,9 +2764,20 @@ bool EntityItem::getLocked() const {
 }
 
 void EntityItem::setLocked(bool value) { 
+    bool changed { false };
     withWriteLock([&] {
-        _locked = value;
+        if (_locked != value) {
+            _locked = value;
+            changed = true;
+        }
     });
+    if (changed) {
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
+    }
 }
 
 QString EntityItem::getUserData() const { 
