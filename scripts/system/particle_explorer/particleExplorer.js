@@ -41,9 +41,9 @@
             {
                 id: "lifespan",
                 name: "Lifespan",
-                type: "SliderInteger",
-                min: -1,
-                max: 3600
+                type: "SliderFloat",
+                min: 0.01,
+                max: 10
             },
             { type: "Row" },
             {
@@ -51,7 +51,7 @@
                 name: "Max Particles",
                 type: "SliderInteger",
                 min: 1,
-                max: 1000
+                max: 10000
             },
             { type: "Row" },
             {
@@ -251,6 +251,6 @@
         openEventBridge( function(EventBridge) {
             ui.build();
             ui.connect(EventBridge);
-        })
+        });
     };
 })();
