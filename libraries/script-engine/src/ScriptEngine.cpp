@@ -231,7 +231,7 @@ void ScriptEngine::disconnectNonEssentialSignals() {
     // Ensure the thread should be running, and does exist
     if (_isRunning && _isThreaded && (workerThread = thread())) {
         connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
-        connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
+        connect(this, &QObject::destroyed, workerThread, &QObject::deleteLater);
     }
 }
 
@@ -346,7 +346,7 @@ void ScriptEngine::runInThread() {
     // disconnectNonEssentialSignals() method
     connect(workerThread, &QThread::started, this, &ScriptEngine::run);
     connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
-    connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
+    connect(this, &QObject::destroyed, workerThread, &QObject::deleteLater);
 
     workerThread->start();
 }
