@@ -23,8 +23,6 @@
 
 #include "Avatar.h"
 
-const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
-
 using namespace std;
 
 static bool disableEyelidAdjustment { false };
@@ -43,7 +41,9 @@ void Head::reset() {
     _baseYaw = _basePitch = _baseRoll = 0.0f;
 }
 
-void Head::computeAudioLoudness(float deltaTime) {
+void Head::simulate(float deltaTime) {
+    const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
+
     // grab the audio loudness from the owning avatar, if we have one
     float audioLoudness = _owningAvatar ? _owningAvatar->getAudioLoudness() : 0.0f;
 
@@ -58,16 +58,6 @@ void Head::computeAudioLoudness(float deltaTime) {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
 
-    if (!_isFaceTrackerConnected) {
-        // Update audio attack data for facial animation (eyebrows and mouth)
-        float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
-        _audioAttack = audioAttackAveragingRate * _audioAttack +
-            (1.0f - audioAttackAveragingRate) * fabs((audioLoudness - _longTermAverageLoudness) - _lastLoudness);
-        _lastLoudness = (audioLoudness - _longTermAverageLoudness);
-    }
-}
-
-void Head::computeEyeMovement(float deltaTime) {
     if (!_isFaceTrackerConnected) {
         if (!_isEyeTrackerConnected) {
             // Update eye saccades
@@ -97,6 +87,12 @@ void Head::computeEyeMovement(float deltaTime) {
         } else if (_timeWithoutTalking - deltaTime < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
             forceBlink = true;
         }
+
+        // Update audio attack data for facial animation (eyebrows and mouth)
+        float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
+        _audioAttack = audioAttackAveragingRate * _audioAttack +
+            (1.0f - audioAttackAveragingRate) * fabs((audioLoudness - _longTermAverageLoudness) - _lastLoudness);
+        _lastLoudness = (audioLoudness - _longTermAverageLoudness);
 
         const float BROW_LIFT_THRESHOLD = 100.0f;
         if (_audioAttack > BROW_LIFT_THRESHOLD) {
@@ -141,14 +137,6 @@ void Head::computeEyeMovement(float deltaTime) {
             }
         }
 
-        applyEyelidOffset(getOrientation());
-    } else {
-        _saccade = glm::vec3();
-    }
-}
-
-void Head::computeFaceMovement(float deltaTime) {
-    if (!_isFaceTrackerConnected) {
         // use data to update fake Faceshift blendshape coefficients
         calculateMouthShapes(deltaTime);
         FaceTracker::updateFakeCoefficients(_leftEyeBlink,
@@ -159,10 +147,13 @@ void Head::computeFaceMovement(float deltaTime) {
                                             _mouth3,
                                             _mouth4,
                                             _transientBlendshapeCoefficients);
-    }
-}
 
-void Head::computeEyePosition() {
+        applyEyelidOffset(getOrientation());
+
+    } else {
+        _saccade = glm::vec3();
+    }
+
     _leftEyePosition = _rightEyePosition = getPosition();
     if (_owningAvatar) {
         auto skeletonModel = static_cast<Avatar*>(_owningAvatar)->getSkeletonModel();
@@ -171,13 +162,6 @@ void Head::computeEyePosition() {
         }
     }
     _eyePosition = 0.5f * (_leftEyePosition + _rightEyePosition);
-}
-
-void Head::simulate(float deltaTime) {
-    computeAudioLoudness(deltaTime);
-    computeEyeMovement(deltaTime);
-    computeFaceMovement(deltaTime);
-    computeEyePosition();
 }
 
 void Head::calculateMouthShapes(float deltaTime) {
