@@ -115,19 +115,20 @@ GLTexture::~GLTexture() {
     }
 }
 
-void GLTexture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const {
+Size GLTexture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const {
     if (!_gpuObject.isStoredMipFaceAvailable(sourceMip)) {
-        return;
+        return 0;
     }
-    auto size = _gpuObject.evalMipDimensions(sourceMip);
+    auto dim = _gpuObject.evalMipDimensions(sourceMip);
     auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
     auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
     if (mipData) {
         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.internalFormat, texelFormat.format, texelFormat.type, mipSize, mipData->readData());
+        return copyMipFaceLinesFromTexture(targetMip, face, dim, 0, texelFormat.internalFormat, texelFormat.format, texelFormat.type, mipSize, mipData->readData());
     } else {
         qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
     }
+    return 0;
 }
 
 

@@ -63,6 +63,8 @@ static const int TYPE_SIZE[NUM_TYPES] = {
     2,
     2,
     1,
+    1,
+
     1
 };
 // Array answering the question Does this type is integer or not 

@@ -102,6 +102,11 @@ Item {
                     prop: "textureFramebufferGPUMemSize",
                     label: "Framebuffer",
                     color: "#EF93D1"
+                },
+                {
+                    prop: "textureResourcePopulatedGPUMemSize",
+                    label: "Populated",
+                    color: "#C6A61F"
                 }
             ]
         }

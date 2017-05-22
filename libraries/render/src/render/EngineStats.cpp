@@ -46,6 +46,8 @@ void EngineStats::run(const RenderContextPointer& renderContext) {
     config->texturePendingGPUTransferCount = gpu::Context::getTexturePendingGPUTransferCount();
     config->texturePendingGPUTransferSize = gpu::Context::getTexturePendingGPUTransferMemSize();
 
+    config->textureResourcePopulatedGPUMemSize = gpu::Context::getTextureResourcePopulatedGPUMemSize();
+
     renderContext->args->_context->getFrameStats(_gpuStats);
 
     config->frameAPIDrawcallCount = _gpuStats._DSNumAPIDrawcalls;

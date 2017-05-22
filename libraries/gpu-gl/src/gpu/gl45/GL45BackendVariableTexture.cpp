@@ -37,6 +37,31 @@ GL45VariableAllocationTexture::GL45VariableAllocationTexture(const std::weak_ptr
 GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
     Backend::textureResourceCount.decrement();
     Backend::textureResourceGPUMemSize.update(_size, 0);
+    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
+}
+void GL45VariableAllocationTexture::incrementPopulatedSize(Size delta) const {
+    _populatedSize += delta;
+    if (_size < _populatedSize) {
+        
+        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
+    } else  {
+        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
+    }
+}
+void GL45VariableAllocationTexture::decrementPopulatedSize(Size delta) const {
+    _populatedSize -= delta;
+    if (_size < _populatedSize) {
+        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
+    } else  {
+        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
+    }
+}
+        
+Size GL45VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+    Size amountCopied = 0;
+    amountCopied = Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
+    incrementPopulatedSize(amountCopied);
+    return amountCopied;
 }
 
 // Managed size resource textures
@@ -63,7 +88,6 @@ GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend
     _memoryPressureStateStale = true;
     copyMipsFromTexture();
     syncSampler();
-
 }
 
 void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
@@ -75,22 +99,24 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
     glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
     auto mipLevels = _gpuObject.getNumMips();
     _size = 0;
+    bool wtf = false;
     for (uint16_t mip = _allocatedMip; mip < mipLevels; ++mip) {
         _size += _gpuObject.evalMipSize(mip);
     }
-
     Backend::textureResourceGPUMemSize.update(0, _size);
 }
 
-void GL45ResourceTexture::copyMipsFromTexture() {
+Size GL45ResourceTexture::copyMipsFromTexture() {
     auto mipLevels = _gpuObject.getNumMips();
     size_t maxFace = GLTexture::getFaceCount(_target);
+    Size amount = 0;
     for (uint16_t sourceMip = _populatedMip; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip - _allocatedMip;
         for (uint8_t face = 0; face < maxFace; ++face) {
-            copyMipFaceFromTexture(sourceMip, targetMip, face);
+            amount += copyMipFaceFromTexture(sourceMip, targetMip, face);
         }
     }
+    return amount;
 }
 
 void GL45ResourceTexture::syncSampler() const {
@@ -141,6 +167,7 @@ void GL45ResourceTexture::promote() {
     glDeleteTextures(1, &oldId);
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
+    // no change to Backend::textureResourcePopulatedGPUMemSize
     syncSampler();
     populateTransferQueue();
 }
@@ -150,6 +177,7 @@ void GL45ResourceTexture::demote() {
     Q_ASSERT(_allocatedMip < _maxAllocatedMip);
     auto oldId = _id;
     auto oldSize = _size;
+    auto oldPopulatedMip = _populatedMip;
 
     // allocate new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
@@ -165,6 +193,16 @@ void GL45ResourceTexture::demote() {
     glDeleteTextures(1, &oldId);
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
+     // Demoting unpopulate the memory delta
+    if (oldPopulatedMip != _populatedMip) {
+        auto numPopulatedDemoted = _populatedMip - oldPopulatedMip;
+        Size amountUnpopulated = 0;
+        for (int i = 0; i < numPopulatedDemoted; i++) {
+             //amountUnpopulated += _gpuObject.getStoredMipSize(oldPopulatedMip + i);
+             amountUnpopulated += _gpuObject.evalMipSize(oldPopulatedMip + i);
+        }
+       decrementPopulatedSize(amountUnpopulated);
+    }
     syncSampler();
     populateTransferQueue();
 }

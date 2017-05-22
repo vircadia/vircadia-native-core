@@ -50,7 +50,7 @@ public:
     protected:
         GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         void generateMips() const override;
-        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
+        Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         virtual void syncSampler() const;
     };
 
@@ -98,12 +98,17 @@ public:
         friend class GL45Backend;
         using PromoteLambda = std::function<void()>;
 
+        // Overight copy to inject counter for populated amount
+        Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
 
     protected:
         GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         ~GL45VariableAllocationTexture();
         Size size() const override { return _size; }
         Size _size { 0 };
+        void incrementPopulatedSize(Size delta) const;
+        void decrementPopulatedSize(Size delta) const;
+        mutable Size _populatedSize { 0 };
     };
 
     class GL45ResourceTexture : public GL45VariableAllocationTexture {
@@ -118,7 +123,7 @@ public:
         void populateTransferQueue() override;
 
         void allocateStorage(uint16 mip);
-        void copyMipsFromTexture();
+        Size copyMipsFromTexture();
     };
 
 #if 0

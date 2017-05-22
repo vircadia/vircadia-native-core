@@ -424,8 +424,12 @@ public:
     uint16 evalMipHeight(uint16 level) const { return std::max(_height >> level, 1); }
     uint16 evalMipDepth(uint16 level) const { return std::max(_depth >> level, 1); }
 
-    // The size of a face is a multiple of the padded line = (width * texelFormat_size + alignment padding)
+    // The true size of a line or a sirface depends on the format and the padding
+    // is a multiple of the padded line = (width * texelFormat_size + alignment padding)
+    // 
+    uint16 evaTiledWidth(uint16 width) const { return width >> 2 + width & 0x03; }
     Size evalMipLineSize(uint16 level) const { return evalPaddedSize(evalMipWidth(level) * getTexelFormat().getSize()); }
+    Size evalMipSurfaceSize(uint16 level) const { return evalPaddedSize(evalMipWidth(level) * getTexelFormat().getSize()); }
 
     // Size for each face of a mip at a particular level
     uint32 evalMipFaceNumTexels(uint16 level) const { return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level); }

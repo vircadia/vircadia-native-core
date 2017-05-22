@@ -45,6 +45,7 @@ namespace render {
 
         Q_PROPERTY(quint32 texturePendingGPUTransferCount MEMBER texturePendingGPUTransferCount NOTIFY dirty)
         Q_PROPERTY(qint64 texturePendingGPUTransferSize MEMBER texturePendingGPUTransferSize NOTIFY dirty)
+        Q_PROPERTY(qint64 textureResourcePopulatedGPUMemSize MEMBER textureResourcePopulatedGPUMemSize NOTIFY dirty)
 
         Q_PROPERTY(quint32 frameAPIDrawcallCount MEMBER frameAPIDrawcallCount NOTIFY dirty)
         Q_PROPERTY(quint32 frameDrawcallCount MEMBER frameDrawcallCount NOTIFY dirty)
@@ -84,6 +85,7 @@ namespace render {
         qint64 textureResourceGPUMemSize { 0 };
         qint64 textureExternalGPUMemSize { 0 };
         qint64 texturePendingGPUTransferSize { 0 };
+        qint64 textureResourcePopulatedGPUMemSize { 0 };
 
         quint32 frameAPIDrawcallCount{ 0 };
         quint32 frameDrawcallCount{ 0 };

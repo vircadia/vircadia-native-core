@@ -256,6 +256,8 @@ ContextMetricSize  Backend::textureExternalGPUMemSize;
 ContextMetricCount Backend::texturePendingGPUTransferCount;
 ContextMetricSize  Backend::texturePendingGPUTransferMemSize;
 
+ContextMetricSize  Backend::textureResourcePopulatedGPUMemSize;
+
 Size Context::getFreeGPUMemSize() {
     return Backend::freeGPUMemSize.getValue();
 }

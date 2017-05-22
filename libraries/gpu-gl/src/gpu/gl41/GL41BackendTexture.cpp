@@ -103,7 +103,8 @@ void GL41Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+Size GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+    Size amountCopied = sourceSize;
     if (GL_TEXTURE_2D == _target) {
         switch (internalFormat) {
             case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
@@ -136,8 +137,10 @@ void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
         }
     } else {
         assert(false);
+        amountCopied = 0;
     }
     (void)CHECK_GL_ERROR();
+    return amountCopied;
 }
 
 void GL41Texture::syncSampler() const {
@@ -274,18 +277,21 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
     allocateStorage(allocatedMip);
     _memoryPressureStateStale = true;
     size_t maxFace = GLTexture::getFaceCount(_target);
+    Size amount = 0;
     for (uint16_t sourceMip = _populatedMip; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip - _allocatedMip;
         for (uint8_t face = 0; face < maxFace; ++face) {
-            copyMipFaceFromTexture(sourceMip, targetMip, face);
+            amount +=  copyMipFaceFromTexture(sourceMip, targetMip, face);
         }
     }
+    Backend::textureResourcePopulatedGPUMemSize.update(0, amount);
     syncSampler();
 }
 
 GL41VariableAllocationTexture::~GL41VariableAllocationTexture() {
     Backend::textureResourceCount.decrement();
     Backend::textureResourceGPUMemSize.update(_size, 0);
+    Backend::textureResourcePopulatedGPUMemSize.update(_size, 0);
 }
 
 void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
@@ -309,10 +315,12 @@ void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
 }
 
 
-void GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+Size GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+    Size amountCopied = 0;
     withPreservedTexture([&] {
-        Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
+        amountCopied = Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
     });
+    return amountCopied;
 }
 
 void GL41VariableAllocationTexture::syncSampler() const {
@@ -477,6 +485,7 @@ void GL41VariableAllocationTexture::promote() {
     glDeleteTextures(1, &oldId);
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
+    // no change to Backend::textureResourcePopulatedGPUMemSize
     populateTransferQueue();
 }
 
@@ -508,6 +517,7 @@ void GL41VariableAllocationTexture::demote() {
     glDeleteTextures(1, &oldId);
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
+    Backend::textureResourcePopulatedGPUMemSize.update(oldSize, _size); // Demoting unpopulate the memory delta old - _size
     populateTransferQueue();
 }
 
