@@ -531,6 +531,8 @@ bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat
         header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1, ktx::GLBaseInternalFormat::RED);
     } else if (texelFormat == Format::COLOR_COMPRESSED_XY && mipFormat == Format::COLOR_COMPRESSED_XY) {
         header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2, ktx::GLBaseInternalFormat::RG);
+    } else if (texelFormat == Format::COLOR_COMPRESSED_SRGBA_HIGH && mipFormat == Format::COLOR_COMPRESSED_SRGBA_HIGH) {
+        header.setCompressed(ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_BPTC_UNORM, ktx::GLBaseInternalFormat::RGBA);
     } else {
         return false;
     }
@@ -589,6 +591,9 @@ bool Texture::evalTextureFormat(const ktx::Header& header, Element& mipFormat, E
         } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2) {
             mipFormat = Format::COLOR_COMPRESSED_XY;
             texelFormat = Format::COLOR_COMPRESSED_XY;
+        } else if (header.getGLInternaFormat_Compressed() == ktx::GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_BPTC_UNORM) {
+            mipFormat = Format::COLOR_COMPRESSED_SRGBA_HIGH;
+            texelFormat = Format::COLOR_COMPRESSED_SRGBA_HIGH;
         } else {
             return false;
         }
