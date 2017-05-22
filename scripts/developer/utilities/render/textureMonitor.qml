@@ -49,7 +49,7 @@ Item {
                 {
                     prop: "textureResidentGPUMemSize",
                     label: "Resident",
-                    color: "#FF6309"
+                    color: "#A2277C"
                 },
                 {
                     prop: "textureFramebufferGPUMemSize",
@@ -69,7 +69,7 @@ Item {
                 {
                     prop: "texturePendingGPUTransferSize",
                     label: "Transfer",
-                    color: "#A2277C"
+                    color: "#FF6309"
                 }
             ]
         }

@@ -271,16 +271,16 @@ Item {
                         text: "GPU Textures: ";
                     }
                     StatText {
-                        text: "  Pressure State: " + root.gpuTextureMemoryPressureState;
-                    }
-                    StatText {
                         text: "  Count: " + root.gpuTextures;
                     }
                     StatText {
-                        text: "  Pending Transfer: " + root.texturePendingTransfers + " MB";
+                        text: "  Pressure State: " + root.gpuTextureMemoryPressureState;
                     }
                     StatText {
-                        text: "  Resource Allocated/Populated: " + root.gpuTextureResourceMemory + " / " + root.gpuTextureResourcePopulatedMemory + " MB";
+                        text: "  Resource Allocated / Populated / Pending: ";
+                    }
+                    StatText {
+                        text: "       " + root.gpuTextureResourceMemory + " / " + root.gpuTextureResourcePopulatedMemory + " / " + root.texturePendingTransfers + " MB";
                     }
                     StatText {
                         text: "  Resident Memory: " + root.gpuTextureResidentMemory + " MB";

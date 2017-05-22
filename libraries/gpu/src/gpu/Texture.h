@@ -429,7 +429,8 @@ public:
     // 
     // Here are the static function to compute the different sizes from parametered dimensions and format
     // Tile size must be a power of 2
-    static uint16 evalTiledLength(uint16 length, int tile) { return length / tile + ((~length & tile) != 0); }
+    static uint16 evalTiledPadding(uint16 length, int tile) { int tileMinusOne = (tile - 1); return (tileMinusOne - (length + tileMinusOne) % tile); }
+    static uint16 evalTiledLength(uint16 length, int tile) { return length / tile + (evalTiledPadding(length, tile) != 0); }
     static uint16 evalTiledWidth(uint16 width, int tileX) { return evalTiledLength(width, tileX); }
     static uint16 evalTiledHeight(uint16 height, int tileY) { return evalTiledLength(height, tileY); }
     static Size evalLineSize(uint16 width, const Element& format) { return evalPaddedSize(evalTiledWidth(width, format.getTile().x) * format.getSize()); }

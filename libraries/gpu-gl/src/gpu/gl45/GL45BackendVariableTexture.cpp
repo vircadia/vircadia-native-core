@@ -42,7 +42,6 @@ GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
 void GL45VariableAllocationTexture::incrementPopulatedSize(Size delta) const {
     _populatedSize += delta;
     if (_size < _populatedSize) {
-        
         Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
     } else  {
         Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
@@ -101,6 +100,9 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
     _size = 0;
     bool wtf = false;
     for (uint16_t mip = _allocatedMip; mip < mipLevels; ++mip) {
+        if (_gpuObject.evalMipSize(mip) == 0) {
+            wtf = true;
+        }
         _size += _gpuObject.evalMipSize(mip);
     }
     Backend::textureResourceGPUMemSize.update(0, _size);
@@ -198,7 +200,6 @@ void GL45ResourceTexture::demote() {
         auto numPopulatedDemoted = _populatedMip - oldPopulatedMip;
         Size amountUnpopulated = 0;
         for (int i = 0; i < numPopulatedDemoted; i++) {
-             //amountUnpopulated += _gpuObject.getStoredMipSize(oldPopulatedMip + i);
              amountUnpopulated += _gpuObject.evalMipSize(oldPopulatedMip + i);
         }
        decrementPopulatedSize(amountUnpopulated);
