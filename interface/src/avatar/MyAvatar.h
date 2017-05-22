@@ -488,6 +488,10 @@ public:
     glm::mat4 getHipsCalibrationMat() const;
     glm::mat4 getLeftFootCalibrationMat() const;
     glm::mat4 getRightFootCalibrationMat() const;
+    glm::mat4 getRightArmCalibrationMat() const;
+    glm::mat4 getLeftArmCalibrationMat() const;
+    glm::mat4 getLeftHandCalibrationMat() const;
+    glm::mat4 getRightHandCalibrationMat() const;
 
     void addHoldAction(AvatarActionHold* holdAction);  // thread-safe
     void removeHoldAction(AvatarActionHold* holdAction);  // thread-safe

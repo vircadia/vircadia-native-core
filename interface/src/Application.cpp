@@ -4368,7 +4368,11 @@ void Application::update(float deltaTime) {
         myAvatar->getSpine2CalibrationMat(),
         myAvatar->getHipsCalibrationMat(),
         myAvatar->getLeftFootCalibrationMat(),
-        myAvatar->getRightFootCalibrationMat()
+        myAvatar->getRightFootCalibrationMat(),
+        myAvatar->getRightArmCalibrationMat(),
+        myAvatar->getLeftArmCalibrationMat(),
+        myAvatar->getRightHandCalibrationMat(),
+        myAvatar->getLeftHandCalibrationMat()
     };
 
     InputPluginPointer keyboardMousePlugin;

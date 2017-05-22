@@ -102,7 +102,17 @@ private:
             float _timer { 0.0f };
             glm::vec2 _stick { 0.0f, 0.0f };
         };
-        enum class Config { Feet, FeetAndHips, FeetHipsAndChest, Auto };
+        enum class Config {
+            Auto,
+            Feet,
+            Hands,
+            Shoulders,
+            FeetAndHips,
+            FeetHipsAndChest,
+            FeetHipsAndShoulders,
+            FeetHipsChestAndHands,
+            FeetHipsShouldersAndHands
+        };
         Config _config { Config::Auto };
         Config _preferedConfig { Config::Auto };
         FilteredStick _filteredLeftStick;
@@ -128,6 +138,7 @@ private:
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
+        bool overrideHands { false };
         mutable std::recursive_mutex _lock;
 
         QString configToString(Config config);
