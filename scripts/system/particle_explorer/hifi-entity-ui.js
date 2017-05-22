@@ -45,11 +45,12 @@ function HifiEntityUI(parent, structure){
     var self = this;
     this.webBridgeSync = _.debounce(function(id, val){
         if (self.EventBridge){
+
             var sendPackage = {};
             sendPackage[id] = val;
             var message = {
                 messageType: "settings_update",
-                updateSettings: sendPackage
+                updatedSettings: sendPackage
             };
             self.EventBridge.emitWebEvent(JSON.stringify(message));
         }
@@ -68,6 +69,7 @@ HifiEntityUI.prototype = {
             data = JSON.parse(data);
             if (data.messageType === 'particle_settings') {
                 // Update settings
+                console.log(data);
                 var currentProperties = data.currentProperties;
                 // Do expected property match with structure;
                 Object.keys(currentProperties).forEach(function(value, index) {
@@ -76,8 +78,6 @@ HifiEntityUI.prototype = {
                     if (field) {
 
                         var el = document.getElementById(value);
-
-                        console.log(value, property, field, el);
                         if (field.className.indexOf("radian") !== -1) {
                             el.value = property / RADIAN;
                             el.onchange({target: el});
@@ -98,6 +98,7 @@ HifiEntityUI.prototype = {
                                 red.value = property.red;
                                 blue.value = property.blue;
                                 green.value = property.green;
+                                red.oninput({target: red});
                                 // crashes here.
 
                             } else if (field.className.indexOf("xyz")) {
