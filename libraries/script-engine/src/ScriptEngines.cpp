@@ -9,6 +9,7 @@
 #include "ScriptEngines.h"
 
 #include <QtCore/QStandardPaths>
+#include <QtCore/QFileInfo>
 
 #include <QtWidgets/QApplication>
 
@@ -449,6 +450,7 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         return result;
     }
     QUrl scriptUrl;
+
     if (!scriptFilename.isValid() ||
         (scriptFilename.scheme() != "http" &&
          scriptFilename.scheme() != "https" &&
@@ -472,8 +474,11 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         scriptEngine->deleteLater();
     }, Qt::QueuedConnection);
 
+	// Check that the script is actually a script
+	QFileInfo fileInfo(scriptFilename.toString());
+	bool hasValidScriptSuffix = (fileInfo.completeSuffix() == "js");
 
-    if (scriptFilename.isEmpty() || !scriptUrl.isValid()) {
+    if (scriptFilename.isEmpty() || !scriptUrl.isValid()  || !hasValidScriptSuffix) {
         launchScriptEngine(scriptEngine);
     } else {
         // connect to the appropriate signals of this script engine
