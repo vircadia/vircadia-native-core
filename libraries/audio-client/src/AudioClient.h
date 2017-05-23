@@ -46,6 +46,7 @@
 #include <AudioLimiter.h>
 #include <AudioConstants.h>
 #include <AudioNoiseGate.h>
+#include <AudioGate.h>
 
 #include <shared/RateCounter.h>
 
@@ -361,6 +362,7 @@ private:
     AudioIOStats _stats;
 
     AudioNoiseGate _noiseGate;
+    AudioGate* _audioGate { nullptr };
 
     AudioPositionGetter _positionGetter;
     AudioOrientationGetter _orientationGetter;

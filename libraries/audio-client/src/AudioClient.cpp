@@ -1415,6 +1415,10 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
         delete _inputToNetworkResampler;
         _inputToNetworkResampler = NULL;
     }
+    if (_audioGate) {
+        delete _audioGate;
+        _audioGate = nullptr;
+    }
 
     if (!inputDeviceInfo.isNull()) {
         qCDebug(audioclient) << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
@@ -1439,6 +1443,10 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
             } else {
                 qCDebug(audioclient) << "No resampling required for audio input to match desired network format.";
             }
+
+            // the audio gate runs after the resampler
+            _audioGate = new AudioGate(_desiredInputFormat.sampleRate(), _desiredInputFormat.channelCount());
+            qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount() << "channels.";
 
             // if the user wants stereo but this device can't provide then bail
             if (!_isStereoInput || _inputFormat.channelCount() == 2) {
