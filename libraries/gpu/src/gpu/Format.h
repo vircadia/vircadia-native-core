@@ -163,6 +163,7 @@ enum Semantic {
     COMPRESSED_BC3_SRGBA,
     COMPRESSED_BC4_RED,
     COMPRESSED_BC5_XY,
+    COMPRESSED_BC7_SRGBA,
 
     _LAST_COMPRESSED,
 
@@ -234,6 +235,7 @@ public:
     static const Element COLOR_COMPRESSED_SRGBA_MASK;
     static const Element COLOR_COMPRESSED_SRGBA;
     static const Element COLOR_COMPRESSED_XY;
+    static const Element COLOR_COMPRESSED_SRGBA_HIGH;
     static const Element VEC2NU8_XY;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;
