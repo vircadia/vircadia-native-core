@@ -627,20 +627,6 @@ void Agent::encodeFrameOfZeros(QByteArray& encodedZeros) {
 }
 
 void Agent::computeLoudness(const QByteArray* decodedBuffer, QSharedPointer<ScriptableAvatar> scriptableAvatar) {
-    //float loudness = 0.0f;
-    //if (decodedBuffer) {
-    //    auto soundData = reinterpret_cast<const int16_t*>(decodedBuffer->constData());
-    //    int numFrames = decodedBuffer->size() / sizeof(int16_t);
-    //    // now iterate and come up with average
-    //    if (numFrames > 0) {
-    //        for(int i = 0; i < numFrames; i++) {
-    //            loudness += (float) std::abs(soundData[i]);
-    //        }
-    //        loudness /= numFrames;
-    //    }
-    //}
-    //scriptableAvatar->setAudioLoudness(loudness);
-
     float lastInputLoudness = 0.0f;
     if (decodedBuffer) {
         auto samples = reinterpret_cast<const int16_t*>(decodedBuffer->constData());
