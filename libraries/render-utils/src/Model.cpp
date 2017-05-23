@@ -235,13 +235,14 @@ void Model::updateRenderItems() {
         render::Transaction transaction;
         foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter](ModelMeshPartPayload& data) {
-                if (data._model && data._model->isLoaded()) {
+                ModelPointer model = data._model.lock();
+                if (model && model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
-                    if (deleteGeometryCounter == data._model->_deleteGeometryCounter) {
-                        Transform modelTransform = data._model->getTransform();
+                    if (deleteGeometryCounter == model->_deleteGeometryCounter) {
+                        Transform modelTransform = model->getTransform();
                         modelTransform.setScale(glm::vec3(1.0f));
 
-                        const Model::MeshState& state = data._model->getMeshState(data._meshIndex);
+                        const Model::MeshState& state = model->getMeshState(data._meshIndex);
                         Transform renderTransform = modelTransform;
                         if (state.clusterMatrices.size() == 1) {
                             renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
@@ -1225,7 +1226,7 @@ void Model::createVisibleRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
+            _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
             shapeID++;
         }
     }

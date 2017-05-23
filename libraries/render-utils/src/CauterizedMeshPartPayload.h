@@ -13,7 +13,7 @@
 
 class CauterizedMeshPartPayload : public ModelMeshPartPayload {
 public:
-    CauterizedMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
+    CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
 
     void updateTransformForCauterizedMesh(const Transform& renderTransform, const gpu::BufferPointer& buffer);
 
