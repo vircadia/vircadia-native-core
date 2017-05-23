@@ -16,8 +16,8 @@
 #include "RenderUtilsLogging.h"
 
 
-CauterizedModel::CauterizedModel(RigPointer rig, QObject* parent) :
-        Model(rig, parent) {
+CauterizedModel::CauterizedModel(QObject* parent) :
+        Model(parent) {
 }
 
 CauterizedModel::~CauterizedModel() {
@@ -107,7 +107,7 @@ void CauterizedModel::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-            auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+            auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }
 
@@ -130,14 +130,14 @@ void CauterizedModel::updateClusterMatrices() {
             glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-        auto cauterizeMatrix = _rig->getJointTransform(geometry.neckJointIndex) * zeroScale;
+        auto cauterizeMatrix = _rig.getJointTransform(geometry.neckJointIndex) * zeroScale;
 
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
             const FBXMesh& mesh = geometry.meshes.at(i);
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointMatrix = cauterizeMatrix;
                 }

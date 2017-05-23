@@ -582,7 +582,7 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loading
         return model;
     }
 
-    model = std::make_shared<Model>(std::make_shared<Rig>(), nullptr, spatiallyNestableOverride);
+    model = std::make_shared<Model>(nullptr, spatiallyNestableOverride);
     model->setLoadingPriority(loadingPriority);
     model->init();
     model->setURL(QUrl(url));
