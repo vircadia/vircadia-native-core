@@ -41,6 +41,7 @@ GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
 }
 void GL45VariableAllocationTexture::incrementPopulatedSize(Size delta) const {
     _populatedSize += delta;
+    // Keep the 2 code paths to be able to debug
     if (_size < _populatedSize) {
         Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
     } else  {
@@ -49,6 +50,7 @@ void GL45VariableAllocationTexture::incrementPopulatedSize(Size delta) const {
 }
 void GL45VariableAllocationTexture::decrementPopulatedSize(Size delta) const {
     _populatedSize -= delta;
+    // Keep the 2 code paths to be able to debug
     if (_size < _populatedSize) {
         Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
     } else  {
@@ -98,11 +100,7 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
     glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
     auto mipLevels = _gpuObject.getNumMips();
     _size = 0;
-    bool wtf = false;
     for (uint16_t mip = _allocatedMip; mip < mipLevels; ++mip) {
-        if (_gpuObject.evalMipSize(mip) == 0) {
-            wtf = true;
-        }
         _size += _gpuObject.evalMipSize(mip);
     }
     Backend::textureResourceGPUMemSize.update(0, _size);

@@ -110,10 +110,15 @@ public:
         void promote() override;
         void demote() override;
         void populateTransferQueue() override;
+
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
+        Size copyMipsFromTexture();
 
         Size size() const override { return _size; }
         Size _size { 0 };
+        void incrementPopulatedSize(Size delta) const;
+        void decrementPopulatedSize(Size delta) const;
+        mutable Size _populatedSize { 0 };
     };
 
     class GL41ResourceTexture : public GL41VariableAllocationTexture {
