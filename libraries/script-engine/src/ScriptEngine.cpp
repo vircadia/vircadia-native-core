@@ -426,9 +426,9 @@ QString ScriptEngine::getFilename() const {
 }
 
 bool ScriptEngine::hasValidScriptSuffix(const QString& scriptFileName) {
-	QFileInfo fileInfo(scriptFileName);
-	QString scriptSuffixToLower = fileInfo.completeSuffix().toLower();
-	return scriptSuffixToLower.contains(QString("js"), Qt::CaseInsensitive);
+    QFileInfo fileInfo(scriptFileName);
+    QString scriptSuffixToLower = fileInfo.completeSuffix().toLower();
+    return scriptSuffixToLower.contains(QString("js"), Qt::CaseInsensitive);
 }
 
 void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
@@ -441,10 +441,10 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     _isReloading = reload;
 
 	// Check that script has a supported file extension
-	if (!hasValidScriptSuffix(_fileNameString)) {
-		scriptErrorMessage("File extension of file: " + _fileNameString + " is not a currently supported script type");
-		emit errorLoadingScript(_fileNameString);
-		return;
+    if (!hasValidScriptSuffix(_fileNameString)) {
+        scriptErrorMessage("File extension of file: " + _fileNameString + " is not a currently supported script type");
+        emit errorLoadingScript(_fileNameString);
+        return;
 	}
 
     const auto maxRetries = 0; // for consistency with previous scriptCache->getScript() behavior
