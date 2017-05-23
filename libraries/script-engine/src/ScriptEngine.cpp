@@ -428,7 +428,7 @@ QString ScriptEngine::getFilename() const {
 bool ScriptEngine::hasValidScriptSuffix(const QString& scriptFileName) {
 	QFileInfo fileInfo(scriptFileName);
 	QString scriptSuffixToLower = fileInfo.completeSuffix().toLower();
-	return ((scriptSuffixToLower == "js") || (scriptSuffixToLower == "json"));
+	return scriptSuffixToLower.contains(QString("js"), Qt::CaseInsensitive);
 }
 
 void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
