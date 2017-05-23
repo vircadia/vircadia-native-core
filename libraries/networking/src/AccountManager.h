@@ -79,6 +79,7 @@ public:
 
     bool isLoggedIn() { return !_authURL.isEmpty() && hasValidAccessToken(); }
     bool hasValidAccessToken();
+    bool needsToRefreshToken();
     Q_INVOKABLE bool checkAndSignalForAccessToken();
     void setAccessTokenForCurrentAuthURL(const QString& accessToken);
 
@@ -97,10 +98,13 @@ public:
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
     void requestAccessTokenWithSteam(QByteArray authSessionTicket);
+    void refreshAccessToken();
 
     void requestAccessTokenFinished();
+    void refreshAccessTokenFinished();
     void requestProfileFinished();
     void requestAccessTokenError(QNetworkReply::NetworkError error);
+    void refreshAccessTokenError(QNetworkReply::NetworkError error);
     void requestProfileError(QNetworkReply::NetworkError error);
     void logout();
     void generateNewUserKeypair() { generateNewKeypair(); }
@@ -141,6 +145,7 @@ private:
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
 
     DataServerAccountInfo _accountInfo;
+    bool _isWaitingForTokenRefresh { false };
     bool _isAgent { false };
 
     bool _isWaitingForKeypairResponse { false };
