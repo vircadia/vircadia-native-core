@@ -285,7 +285,7 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
 GL41VariableAllocationTexture::~GL41VariableAllocationTexture() {
     Backend::textureResourceCount.decrement();
     Backend::textureResourceGPUMemSize.update(_size, 0);
-    Backend::textureResourcePopulatedGPUMemSize.update(_size, 0);
+    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
 void GL41VariableAllocationTexture::incrementPopulatedSize(Size delta) const {
