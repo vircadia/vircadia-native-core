@@ -221,7 +221,13 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                 case gpu::SRGBA:
                     result = GL_SRGB8_ALPHA8; // standard 2.2 gamma correction color
                     break;
-
+                default:
+                    qCWarning(gpugllogging) << "Unknown combination of texel format";
+            }
+            break;
+        }
+        case gpu::TILE4x4: {
+            switch (dstFormat.getSemantic()) {
                 case gpu::COMPRESSED_BC4_RED:
                     result = GL_COMPRESSED_RED_RGTC1;
                     break;

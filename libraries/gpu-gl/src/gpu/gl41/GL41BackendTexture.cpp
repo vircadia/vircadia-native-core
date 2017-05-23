@@ -78,13 +78,6 @@ GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture&
     : GLTexture(backend, texture, allocate(texture)) {
 }
 
-GLuint GL41Texture::allocate(const Texture& texture) {
-    GLuint result;
-    glGenTextures(1, &result);
-    return result;
-}
-
-
 void GL41Texture::withPreservedTexture(std::function<void()> f) const {
     glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_TRANSFER_TEX_UNIT);
     glBindTexture(_target, _texture);
@@ -94,6 +87,14 @@ void GL41Texture::withPreservedTexture(std::function<void()> f) const {
     glBindTexture(_target, 0);
     (void)CHECK_GL_ERROR();
 }
+
+
+GLuint GL41Texture::allocate(const Texture& texture) {
+    GLuint result;
+    glGenTextures(1, &result);
+    return result;
+}
+
 
 
 void GL41Texture::generateMips() const {
@@ -279,6 +280,7 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
     allocateStorage(allocatedMip);
     _memoryPressureStateStale = true;
     copyMipsFromTexture();
+
     syncSampler();
 }
 
@@ -318,6 +320,8 @@ Size GL41VariableAllocationTexture::copyMipsFromTexture() {
             amount += copyMipFaceFromTexture(sourceMip, targetMip, face);
         }
     }
+
+
     return amount;
 }
 
@@ -468,7 +472,6 @@ void GL41VariableAllocationTexture::copyTextureMipsInGPUMem(GLuint srcId, GLuint
         } else {
             copyUncompressedTexGPUMem(_gpuObject, _target, srcId, destId, numMips, srcMipOffset, destMipOffset, populatedMips);
         }
-        syncSampler();
     });
 }
 
