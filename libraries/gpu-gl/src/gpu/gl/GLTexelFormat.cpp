@@ -18,11 +18,10 @@ bool GLTexelFormat::isCompressed() const {
         case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
         case GL_COMPRESSED_RED_RGTC1:
         case GL_COMPRESSED_RG_RGTC2:
+        case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
             return true;
-            break;
         default:
             return false;
-            break;
     }
 }
 
@@ -238,6 +237,9 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                 case gpu::COMPRESSED_BC5_XY:
                     result = GL_COMPRESSED_RG_RGTC2;
                     break;
+                case gpu::COMPRESSED_BC7_SRGBA:
+                    result = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
+                    break;
 
                 default:
                     qCWarning(gpugllogging) << "Unknown combination of texel format";
@@ -363,6 +365,9 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 break;
             case gpu::COMPRESSED_BC5_XY:
                 texel.internalFormat = GL_COMPRESSED_RG_RGTC2;
+                break;
+            case gpu::COMPRESSED_BC7_SRGBA:
+                texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
                 break;
 
             default:
@@ -634,6 +639,10 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::COMPRESSED_BC5_XY:
                 texel.internalFormat = GL_COMPRESSED_RG_RGTC2;
                 break;
+            case gpu::COMPRESSED_BC7_SRGBA:
+                texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
+                break;
+
             default:
                 qCWarning(gpugllogging) << "Unknown combination of texel format";
             }

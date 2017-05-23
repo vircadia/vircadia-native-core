@@ -23,7 +23,7 @@ class SoftAttachmentModel : public CauterizedModel {
     Q_OBJECT
 
 public:
-    SoftAttachmentModel(RigPointer rig, QObject* parent, RigPointer rigOverride);
+    SoftAttachmentModel(QObject* parent, const Rig& rigOverride);
     ~SoftAttachmentModel();
 
     void updateRig(float deltaTime, glm::mat4 parentTransform) override;
@@ -32,7 +32,7 @@ public:
 protected:
     int getJointIndexOverride(int i) const;
 
-    RigPointer _rigOverride;
+    const Rig& _rigOverride;
 };
 
 #endif // hifi_SoftAttachmentModel_h

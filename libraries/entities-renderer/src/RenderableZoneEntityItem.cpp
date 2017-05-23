@@ -112,15 +112,17 @@ void RenderableZoneEntityItem::changeProperties(Lambda setNewProperties) {
     QString oldShapeURL = getCompoundShapeURL();
     glm::vec3 oldPosition = getPosition(), oldDimensions = getDimensions();
     glm::quat oldRotation = getRotation();
-    
+
     setNewProperties();
-    
+
     if (oldShapeURL != getCompoundShapeURL()) {
         if (_model) {
-            delete _model;
+            _model.reset();
         }
-        
-        _model = getModel();
+
+        _model = std::make_shared<Model>();
+        _model->setIsWireframe(true);
+        _model->init();
         _needsInitialSimulation = true;
         _model->setURL(getCompoundShapeURL());
     }
@@ -166,35 +168,24 @@ int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     return bytesRead;
 }
 
-Model* RenderableZoneEntityItem::getModel() {
-    Model* model = new Model(nullptr);
-    model->setIsWireframe(true);
-    model->init();
-    return model;
-}
-
-void RenderableZoneEntityItem::initialSimulation() {
-    _model->setScaleToFit(true, getDimensions());
-    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-    _model->setRotation(getRotation());
-    _model->setTranslation(getPosition());
-    _model->simulate(0.0f);
-    _needsInitialSimulation = false;
-}
-
 void RenderableZoneEntityItem::updateGeometry() {
     if (_model && !_model->isActive() && hasCompoundShapeURL()) {
         // Since we have a delayload, we need to update the geometry if it has been downloaded
         _model->setURL(getCompoundShapeURL());
     }
     if (_model && _model->isActive() && _needsInitialSimulation) {
-        initialSimulation();
+        _model->setScaleToFit(true, getDimensions());
+        _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+        _model->simulate(0.0f);
+        _needsInitialSimulation = false;
     }
 }
 
 void RenderableZoneEntityItem::render(RenderArgs* args) {
     Q_ASSERT(getType() == EntityTypes::Zone);
-    
+
     if (_drawZoneBoundaries) {
         switch (getShapeType()) {
             case SHAPE_TYPE_COMPOUND: {
@@ -209,9 +200,9 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                     render::Item::Status::Getters statusGetters;
                     makeEntityItemStatusGetters(getThisPointer(), statusGetters);
                     _model->addToScene(scene, transaction);
-                    
+
                     scene->enqueueTransaction(transaction);
-                    
+
                     _model->setVisibleInScene(getVisible(), scene);
                 }
                 break;
@@ -220,7 +211,7 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
             case SHAPE_TYPE_SPHERE: {
                 PerformanceTimer perfTimer("zone->renderPrimitive");
                 glm::vec4 DEFAULT_COLOR(1.0f, 1.0f, 1.0f, 1.0f);
-                
+
                 Q_ASSERT(args->_batch);
                 gpu::Batch& batch = *args->_batch;
 
@@ -245,7 +236,7 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 break;
         }
     }
-    
+
     if ((!_drawZoneBoundaries || getShapeType() != SHAPE_TYPE_COMPOUND) &&
         _model && !_model->needsFixupInScene()) {
         // If the model is in the scene but doesn't need to be, remove it.
@@ -283,14 +274,13 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
         return EntityItem::contains(point);
     }
     const_cast<RenderableZoneEntityItem*>(this)->updateGeometry();
-    
+
     if (_model && _model->isActive() && EntityItem::contains(point)) {
         return _model->convexHullContains(point);
     }
-    
+
     return false;
 }
-
 
 bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
     render::Transaction& transaction) {

@@ -16,8 +16,8 @@
 #include "RenderUtilsLogging.h"
 
 
-CauterizedModel::CauterizedModel(RigPointer rig, QObject* parent) :
-        Model(rig, parent) {
+CauterizedModel::CauterizedModel(QObject* parent) :
+        Model(parent) {
 }
 
 CauterizedModel::~CauterizedModel() {
@@ -78,7 +78,7 @@ void CauterizedModel::createVisibleRenderItemSet() {
             // Create the render payloads
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                auto ptr = std::make_shared<CauterizedMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
+                auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
                 shapeID++;
             }
@@ -107,7 +107,7 @@ void CauterizedModel::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-            auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+            auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }
 
@@ -130,14 +130,14 @@ void CauterizedModel::updateClusterMatrices() {
             glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-        auto cauterizeMatrix = _rig->getJointTransform(geometry.neckJointIndex) * zeroScale;
+        auto cauterizeMatrix = _rig.getJointTransform(geometry.neckJointIndex) * zeroScale;
 
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
             const FBXMesh& mesh = geometry.meshes.at(i);
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointMatrix = cauterizeMatrix;
                 }
@@ -207,11 +207,12 @@ void CauterizedModel::updateRenderItems() {
             QList<render::ItemID> keys = self->getRenderItems().keys();
             foreach (auto itemID, keys) {
                 transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter](CauterizedMeshPartPayload& data) {
-                    if (data._model && data._model->isLoaded()) {
+                    ModelPointer model = data._model.lock();
+                    if (model && model->isLoaded()) {
                         // Ensure the model geometry was not reset between frames
-                        if (deleteGeometryCounter == data._model->getGeometryCounter()) {
+                        if (deleteGeometryCounter == model->getGeometryCounter()) {
                             // this stuff identical to what happens in regular Model
-                            const Model::MeshState& state = data._model->getMeshState(data._meshIndex);
+                            const Model::MeshState& state = model->getMeshState(data._meshIndex);
                             Transform renderTransform = modelTransform;
                             if (state.clusterMatrices.size() == 1) {
                                 renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
@@ -219,7 +220,7 @@ void CauterizedModel::updateRenderItems() {
                             data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
 
                             // this stuff for cauterized mesh
-                            CauterizedModel* cModel = static_cast<CauterizedModel*>(data._model);
+                            CauterizedModel* cModel = static_cast<CauterizedModel*>(model.get());
                             const Model::MeshState& cState = cModel->getCauterizeMeshState(data._meshIndex);
                             renderTransform = modelTransform;
                             if (cState.clusterMatrices.size() == 1) {
