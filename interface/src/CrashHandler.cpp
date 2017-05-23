@@ -28,7 +28,7 @@
 
 #include <RunningMarker.h>
 
-bool CrashHandler::checkForResetSettings(bool suppressPrompt) {
+bool CrashHandler::checkForResetSettings(bool wasLikelyCrash, bool suppressPrompt) {
     Settings settings;
     settings.beginGroup("Developer");
     QVariant displayCrashOptions = settings.value(MenuOption::DisplayCrashOptions);
@@ -38,9 +38,6 @@ bool CrashHandler::checkForResetSettings(bool suppressPrompt) {
 
     // If option does not exist in Interface.ini so assume default behavior.
     bool displaySettingsResetOnCrash = !displayCrashOptions.isValid() || displayCrashOptions.toBool();
-
-    QFile runningMarkerFile(RunningMarker::getMarkerFilePath(RUNNING_MARKER_FILENAME));
-    bool wasLikelyCrash = runningMarkerFile.exists();
 
     if (suppressPrompt) {
         return wasLikelyCrash;

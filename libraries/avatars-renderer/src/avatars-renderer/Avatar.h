@@ -75,7 +75,7 @@ public:
     static void setShowCollisionShapes(bool render);
     static void setShowNamesAboveHeads(bool show);
 
-    explicit Avatar(QThread* thread, RigPointer rig = nullptr);
+    explicit Avatar(QThread* thread);
     ~Avatar();
 
     virtual void instantiableAvatar() = 0;
