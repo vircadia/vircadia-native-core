@@ -414,15 +414,17 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             entityFound = true;
             // make sure the properties has a type, so that the encode can know which properties to include
             properties.setType(entity->getType());
-            bool hasTerseUpdateChanges = properties.hasTerseUpdateChanges();
-            bool hasPhysicsChanges = properties.hasMiscPhysicsChanges() || hasTerseUpdateChanges;
-            if (_bidOnSimulationOwnership && hasPhysicsChanges) {
+            bool hasMiscPhysicsChanges = properties.hasMiscPhysicsChanges();
+            bool hasDynamicsChanges = properties.hasDynamicPhysicsChanges();
+            // _bidOnSimulationOwnership is set per-instance of the scripting interface.
+            // It essentially corresponds to "Am I an AC or an Interface client?" - ACs will never bid.
+            if ((_bidOnSimulationOwnership && ((hasMiscPhysicsChanges && entity->isMoving()) || hasDynamicsChanges))) {
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
 
                 if (entity->getSimulatorID() == myNodeID) {
                     // we think we already own the simulation, so make sure to send ALL TerseUpdate properties
-                    if (hasTerseUpdateChanges) {
+                    if (properties.hasTerseUpdateChanges()) {
                         entity->getAllTerseUpdateProperties(properties);
                     }
                     // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object
