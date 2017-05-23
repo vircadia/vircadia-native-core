@@ -8,11 +8,9 @@
 
 #include "SoftAttachmentModel.h"
 
-SoftAttachmentModel::SoftAttachmentModel(RigPointer rig, QObject* parent, RigPointer rigOverride) :
-    CauterizedModel(rig, parent),
+SoftAttachmentModel::SoftAttachmentModel(QObject* parent, const Rig& rigOverride) :
+    CauterizedModel(parent),
     _rigOverride(rigOverride) {
-    assert(_rig);
-    assert(_rigOverride);
 }
 
 SoftAttachmentModel::~SoftAttachmentModel() {
@@ -24,11 +22,11 @@ void SoftAttachmentModel::updateRig(float deltaTime, glm::mat4 parentTransform) 
 }
 
 int SoftAttachmentModel::getJointIndexOverride(int i) const {
-    QString name = _rig->nameOfJoint(i);
+    QString name = _rig.nameOfJoint(i);
     if (name.isEmpty()) {
         return -1;
     }
-    return _rigOverride->indexOfJoint(name);
+    return _rigOverride.indexOfJoint(name);
 }
 
 // virtual
@@ -51,10 +49,10 @@ void SoftAttachmentModel::updateClusterMatrices() {
             // TODO: cache these look-ups as an optimization
             int jointIndexOverride = getJointIndexOverride(cluster.jointIndex);
             glm::mat4 jointMatrix;
-            if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride->getJointStateCount()) {
-                jointMatrix = _rigOverride->getJointTransform(jointIndexOverride);
+            if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride.getJointStateCount()) {
+                jointMatrix = _rigOverride.getJointTransform(jointIndexOverride);
             } else {
-                jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+                jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             }
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }

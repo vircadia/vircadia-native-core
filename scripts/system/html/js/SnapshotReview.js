@@ -44,6 +44,7 @@ function showSetupComplete() {
             '<p>Snapshot location set.</p>' +
             '<p>Press the big red button to take a snap!</p>' +
         '</div>';
+    document.getElementById("snap-button").disabled = false;
 }
 function showSnapshotInstructions() {
     var snapshotImagesDiv = document.getElementById("snapshot-images");
@@ -69,7 +70,6 @@ function login() {
     }));
 }
 function clearImages() {
-    document.getElementById("snap-button").disabled = false;
     var snapshotImagesDiv = document.getElementById("snapshot-images");
     snapshotImagesDiv.classList.remove("snapshotInstructions");
     while (snapshotImagesDiv.hasChildNodes()) {
@@ -300,7 +300,7 @@ function addImage(image_data, isLoggedIn, canShare, isGifLoading, isShowingPrevi
     if (!isGifLoading) {
         appendShareBar(id, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast);
     }
-    if (!isGifLoading && !isShowingPreviousImages) {
+    if (!isGifLoading || (isShowingPreviousImages && !image_data.story_id)) {
         shareForUrl(id);
     }
     if (isShowingPreviousImages && isLoggedIn && image_data.story_id) {
@@ -650,6 +650,7 @@ window.onload = function () {
                             shareForUrl("p1");
                             appendShareBar("p1", messageOptions.isLoggedIn, messageOptions.canShare, true, false, false, messageOptions.canBlast);
                             document.getElementById("p1").classList.remove("processingGif");
+                            document.getElementById("snap-button").disabled = false;
                         }
                     } else {
                         imageCount = message.image_data.length;
@@ -688,6 +689,9 @@ function takeSnapshot() {
         type: "snapshot",
         action: "takeSnapshot"
     }));
+    if (document.getElementById('stillAndGif').checked === true) {
+        document.getElementById("snap-button").disabled = true;
+    }
 }
 
 function testInBrowser(test) {

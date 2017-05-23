@@ -535,12 +535,14 @@ void GLVariableAllocationSupport::processWorkQueue(WorkQueue& workQueue) {
             vartexture->demote();
             workQueue.pop();
             addToWorkQueue(texture);
+            _memoryPressureStateStale = true;
             break;
 
         case MemoryPressureState::Undersubscribed:
             vartexture->promote();
             workQueue.pop();
             addToWorkQueue(texture);
+            _memoryPressureStateStale = true;
             break;
 
         case MemoryPressureState::Transfer:

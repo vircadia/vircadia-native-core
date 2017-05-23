@@ -68,7 +68,7 @@ public:
 
     static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
-    Model(RigPointer rig, QObject* parent = nullptr, SpatiallyNestable* spatiallyNestableOverride = nullptr);
+    Model(QObject* parent = nullptr, SpatiallyNestable* spatiallyNestableOverride = nullptr);
     virtual ~Model();
 
     inline ModelPointer getThisPointer() const {
@@ -174,7 +174,7 @@ public:
     }
 
     /// Returns the number of joint states in the model.
-    int getJointStateCount() const { return (int)_rig->getJointStateCount(); }
+    int getJointStateCount() const { return (int)_rig.getJointStateCount(); }
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
@@ -223,7 +223,8 @@ public:
         return ((index < 0) && (index >= _blendshapeCoefficients.size())) ? 0.0f : _blendshapeCoefficients.at(index);
      }
 
-    virtual RigPointer getRig() const { return _rig; }
+    Rig& getRig() { return _rig; }
+    const Rig& getRig() const { return _rig; }
 
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
 
@@ -390,7 +391,7 @@ protected:
     mutable bool _needsUpdateTextures { true };
 
     friend class ModelMeshPartPayload;
-    RigPointer _rig;
+    Rig _rig;
 
     uint32_t _deleteGeometryCounter { 0 };
 

@@ -23,7 +23,7 @@ public:
     
     RenderableZoneEntityItem(const EntityItemID& entityItemID) :
         ZoneEntityItem(entityItemID),
-        _model(NULL),
+        _model(nullptr),
         _needsInitialSimulation(true)
     { }
     
@@ -48,14 +48,12 @@ private:
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
     void notifyBoundChanged();
 
-    Model* getModel();
-    void initialSimulation();
     void updateGeometry();
     
     template<typename Lambda>
     void changeProperties(Lambda functor);
     
-    Model* _model;
+    ModelPointer _model;
     bool _needsInitialSimulation;
     
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };

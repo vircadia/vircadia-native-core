@@ -954,7 +954,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
 
-        AnimContext context(_enableDebugDrawIKTargets, _enableDebugDrawIKConstraints,
+        AnimContext context(_enableDebugDrawIKTargets, _enableDebugDrawIKConstraints, _enableDebugDrawIKChains,
                             getGeometryToRigTransform(), rigToWorldTransform);
 
         // evaluate the animation
@@ -1403,7 +1403,6 @@ void Rig::computeAvatarBoundingCapsule(
     AnimInverseKinematics ikNode("boundingShape");
     ikNode.setSkeleton(_animSkeleton);
 
-    // AJT: FIX ME!!!!! ensure that empty weights vector does something reasonable....
     ikNode.setTargetVars("LeftHand",
                          "leftHandPosition",
                          "leftHandRotation",
@@ -1452,7 +1451,7 @@ void Rig::computeAvatarBoundingCapsule(
 
     // call overlay twice: once to verify AnimPoseVec joints and again to do the IK
     AnimNode::Triggers triggersOut;
-    AnimContext context(false, false, glm::mat4(), glm::mat4());
+    AnimContext context(false, false, false, glm::mat4(), glm::mat4());
     float dt = 1.0f; // the value of this does not matter
     ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
     AnimPoseVec finalPoses =  ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
