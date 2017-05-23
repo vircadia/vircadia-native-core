@@ -1010,29 +1010,6 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
         int numFrames = numSamples / (_isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
 
-        //bool didClip = false;
-
-        //bool shouldRemoveDCOffset = !_isPlayingBackRecording && !_isStereoInput;
-        //if (shouldRemoveDCOffset) {
-        //    _noiseGate.removeDCOffset(samples, numSamples);
-        //}
-
-        //bool shouldNoiseGate = (_isPlayingBackRecording || !_isStereoInput) && _isNoiseGateEnabled;
-        //if (shouldNoiseGate) {
-        //    _noiseGate.gateSamples(samples, numSamples);
-        //    _lastInputLoudness = _noiseGate.getLastLoudness();
-        //    didClip = _noiseGate.clippedInLastBlock();
-        //} else {
-        //    float loudness = 0.0f;
-        //    for (int i = 0; i < numSamples; ++i) {
-        //        int16_t sample = std::abs(samples[i]);
-        //        loudness += (float)sample;
-        //        didClip = didClip ||
-        //            (sample > (AudioConstants::MAX_SAMPLE_VALUE * AudioNoiseGate::CLIPPING_THRESHOLD));
-        //    }
-        //    _lastInputLoudness = fabs(loudness / numSamples);
-        //}
-
         if (_isNoiseGateEnabled) {
             // The audio gate includes DC removal
             _audioGate->render(samples, samples, numFrames);
