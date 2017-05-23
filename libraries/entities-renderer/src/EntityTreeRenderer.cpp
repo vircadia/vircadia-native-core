@@ -1091,15 +1091,18 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
 
     // trigger scripted collision sounds and events for locally owned objects
     EntityItemPointer entityA = entityTree->findEntityByEntityItemID(idA);
-    if ((bool)entityA && myNodeID == entityA->getSimulatorID()) {
+    EntityItemPointer entityB = entityTree->findEntityByEntityItemID(idB);
+    QUuid entityASimulatorID = entityA->getSimulatorID();
+    QUuid entityBSimulatorID = entityB->getSimulatorID();
+    if ((bool)entityA && (myNodeID == entityASimulatorID || ((bool)entityB && myNodeID == entityBSimulatorID && entityASimulatorID.isNull()))) {
         playEntityCollisionSound(entityA, collision);
         emit collisionWithEntity(idA, idB, collision);
         if (_entitiesScriptEngine) {
             _entitiesScriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
         }
     }
-    EntityItemPointer entityB = entityTree->findEntityByEntityItemID(idB);
-    if ((bool)entityB && myNodeID == entityB->getSimulatorID()) {
+
+    if ((bool)entityB && (myNodeID == entityBSimulatorID || ((bool)entityA && myNodeID == entityASimulatorID && entityBSimulatorID.isNull()))) {
         playEntityCollisionSound(entityB, collision);
         // since we're swapping A and B we need to send the inverted collision
         Collision invertedCollision(collision);
