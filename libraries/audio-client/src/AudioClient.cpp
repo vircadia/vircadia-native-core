@@ -1007,7 +1007,7 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         _timeSinceLastClip = 0.0f;
     } else {
         int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
-        int numSamples = audioBuffer.size() / sizeof(AudioConstants::SAMPLE_SIZE);
+        int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
         bool didClip = false;
 
         bool shouldRemoveDCOffset = !_isPlayingBackRecording && !_isStereoInput;
