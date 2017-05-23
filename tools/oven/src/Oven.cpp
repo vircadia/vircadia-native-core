@@ -34,6 +34,7 @@ Oven::Oven(int argc, char* argv[]) :
     image::setColorTexturesCompressionEnabled(true);
     image::setGrayscaleTexturesCompressionEnabled(true);
     image::setNormalTexturesCompressionEnabled(true);
+    image::setCubeTexturesCompressionEnabled(true);
 
     // check if we were passed any command line arguments that would tell us just to run without the GUI
 
