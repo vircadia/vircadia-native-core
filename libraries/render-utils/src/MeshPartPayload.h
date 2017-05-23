@@ -21,6 +21,8 @@
 
 #include <model/Geometry.h>
 
+#include "Model.h"
+
 const uint8_t FADE_WAITING_TO_START = 0;
 const uint8_t FADE_IN_PROGRESS = 1;
 const uint8_t FADE_COMPLETE = 2;
@@ -83,7 +85,7 @@ namespace render {
 
 class ModelMeshPartPayload : public MeshPartPayload {
 public:
-    ModelMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
+    ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
 
     typedef render::Payload<ModelMeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
@@ -110,7 +112,7 @@ public:
     void computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices);
 
     gpu::BufferPointer _clusterBuffer;
-    Model* _model;
+    ModelWeakPointer _model;
 
     int _meshIndex;
     int _shapeID;
