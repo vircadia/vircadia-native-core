@@ -1041,12 +1041,13 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         }
 
         // TODO: optimize this
+        const float CLIPPING_THRESHOLD = 0.90f;
         float loudness = 0.0f;
         bool didClip = false;
         for (int i = 0; i < numSamples; ++i) {
             int16_t sample = std::abs(samples[i]);
             loudness += (float)sample;
-            didClip = didClip || (sample > (AudioConstants::MAX_SAMPLE_VALUE * AudioNoiseGate::CLIPPING_THRESHOLD));
+            didClip = didClip || (sample > (AudioConstants::MAX_SAMPLE_VALUE * CLIPPING_THRESHOLD));
         }
         _lastInputLoudness = fabs(loudness / numSamples);
 
