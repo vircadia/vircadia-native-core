@@ -428,10 +428,7 @@ QString ScriptEngine::getFilename() const {
 bool ScriptEngine::hasValidScriptSuffix(const QString& scriptFileName) {
 	QFileInfo fileInfo(scriptFileName);
 	QString scriptSuffixToLower = fileInfo.completeSuffix().toLower();
-    if (scriptSuffixToLower == "js" || scriptSuffixToLower == "json") {
-		return true;
-	}
-	return false;
+	return ((scriptSuffixToLower == "js") || (scriptSuffixToLower == "json"));
 }
 
 void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
@@ -443,9 +440,10 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     _fileNameString = url.toString();
     _isReloading = reload;
 
-	// Check that script is an actual script
+	// Check that script has a supported file extension
 	if (!hasValidScriptSuffix(_fileNameString)) {
-		qCDebug(scriptengine) << "File extension of file: " + _fileNameString + " is not a currently supported script type";
+		scriptErrorMessage("File extension of file: " + _fileNameString + " is not a currently supported script type");
+		emit errorLoadingScript(_fileNameString);
 		return;
 	}
 
