@@ -957,6 +957,24 @@ void EntityTree::bumpTimestamp(EntityItemProperties& properties) { //fixme put c
     properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
 }
 
+bool EntityTree::isScriptInWhitelist(const QString& scriptProperty) {
+
+    // grab a URL representation of the entity script so we can check the host for this script
+    auto entityScriptURL = QUrl::fromUserInput(scriptProperty);
+
+    for (const auto& whiteListedPrefix : _entityScriptSourceWhitelist) {
+        auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
+
+        // check if this script URL matches the whitelist domain and, optionally, is beneath the path
+        if (entityScriptURL.host().compare(whiteListURL.host(), Qt::CaseInsensitive) == 0 &&
+            entityScriptURL.path().startsWith(whiteListURL.path(), Qt::CaseInsensitive)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
@@ -986,7 +1004,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             quint64 startFilter = 0, endFilter = 0;
             quint64 startLogging = 0, endLogging = 0;
 
-            bool suppressDisallowedScript = false;
+            bool suppressDisallowedClientScript = false;
+            bool suppressDisallowedServerScript = false;
             bool isPhysics = message.getType() == PacketType::EntityPhysics;
 
             _totalEditMessages++;
@@ -1011,36 +1030,57 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
             }
 
-            if (validEditPacket && !_entityScriptSourceWhitelist.isEmpty() && !properties.getScript().isEmpty()) {
-                bool passedWhiteList = false;
+            if (validEditPacket && !_entityScriptSourceWhitelist.isEmpty()) {
 
-                // grab a URL representation of the entity script so we can check the host for this script
-                auto entityScriptURL = QUrl::fromUserInput(properties.getScript());
+                bool wasDeletedBecauseOfClientScript = false;
 
-                for (const auto& whiteListedPrefix : _entityScriptSourceWhitelist) {
-                    auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
+                // check the client entity script to make sure its URL is in the whitelist
+                if (!properties.getScript().isEmpty()) {
+                    bool clientScriptPassedWhitelist = isScriptInWhitelist(properties.getScript());
 
-                    // check if this script URL matches the whitelist domain and, optionally, is beneath the path
-                    if (entityScriptURL.host().compare(whiteListURL.host(), Qt::CaseInsensitive) == 0 &&
-                        entityScriptURL.path().startsWith(whiteListURL.path(), Qt::CaseInsensitive)) {
-                        passedWhiteList = true;
-                        break;
+                    if (!clientScriptPassedWhitelist) {
+                        if (wantEditLogging()) {
+                            qCDebug(entities) << "User [" << senderNode->getUUID()
+                                << "] attempting to set entity script not on whitelist, edit rejected";
+                        }
+
+                        // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
+                        if (isAdd) {
+                            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                            validEditPacket = false;
+                            wasDeletedBecauseOfClientScript = true;
+                        } else {
+                            suppressDisallowedClientScript = true;
+                        }
                     }
                 }
-                if (!passedWhiteList) {
-                    if (wantEditLogging()) {
-                        qCDebug(entities) << "User [" << senderNode->getUUID() << "] attempting to set entity script not on whitelist, edit rejected";
-                    }
 
-                    // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
-                    if (isAdd) {
-                        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
-                        validEditPacket = passedWhiteList;
-                    } else {
-                        suppressDisallowedScript = true;
+                // check all server entity scripts to make sure their URLs are in the whitelist
+                if (!properties.getServerScripts().isEmpty()) {
+                    bool serverScriptPassedWhitelist = isScriptInWhitelist(properties.getServerScripts());
+
+                    if (!serverScriptPassedWhitelist) {
+                        if (wantEditLogging()) {
+                            qCDebug(entities) << "User [" << senderNode->getUUID()
+                                << "] attempting to set server entity script not on whitelist, edit rejected";
+                        }
+
+                        // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
+                        if (isAdd) {
+                            // Make sure we didn't already need to send back a delete because the client script failed
+                            // the whitelist check
+                            if (!wasDeletedBecauseOfClientScript) {
+                                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                                validEditPacket = false;
+                            }
+                        } else {
+                            suppressDisallowedServerScript = true;
+                        }
                     }
                 }
+
             }
 
             if ((isAdd || properties.lifetimeChanged()) &&
@@ -1075,9 +1115,14 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
                 if (existingEntity && !isAdd) {
 
-                    if (suppressDisallowedScript) {
+                    if (suppressDisallowedClientScript) {
                         bumpTimestamp(properties);
                         properties.setScript(existingEntity->getScript());
+                    }
+
+                    if (suppressDisallowedServerScript) {
+                        bumpTimestamp(properties);
+                        properties.setServerScripts(existingEntity->getServerScripts());
                     }
 
                     // if the EntityItem exists, then update it
