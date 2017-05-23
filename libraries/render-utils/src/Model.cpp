@@ -716,6 +716,11 @@ Extents Model::getBindExtents() const {
     return scaledExtents;
 }
 
+glm::vec3 Model::getNaturalDimensions() const {
+    Extents modelMeshExtents = getUnscaledMeshExtents();
+    return modelMeshExtents.maximum - modelMeshExtents.minimum;
+}
+
 Extents Model::getMeshExtents() const {
     if (!isActive()) {
         return Extents();
@@ -939,8 +944,8 @@ void Blender::run() {
         Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
-void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
-    if (_scaleToFit != scaleToFit || _scaleToFitDimensions != dimensions) {
+void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale) {
+    if (forceRescale || _scaleToFit != scaleToFit || _scaleToFitDimensions != dimensions) {
         _scaleToFit = scaleToFit;
         _scaleToFitDimensions = dimensions;
         _scaledToFit = false; // force rescaling

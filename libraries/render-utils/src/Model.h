@@ -122,8 +122,6 @@ public:
     void init();
     void reset();
 
-    void setScaleToFit(bool scaleToFit, const glm::vec3& dimensions);
-
     void setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint);
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
@@ -164,6 +162,7 @@ public:
     const glm::vec3& getOffset() const { return _offset; }
 
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f, bool forceRescale = false);
+    void setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale = false);
     bool getScaleToFit() const { return _scaleToFit; } /// is scale to fit enabled
 
     void setSnapModelToCenter(bool snapModelToCenter) {
@@ -208,6 +207,8 @@ public:
 
     const glm::vec3& getTranslation() const { return _translation; }
     const glm::quat& getRotation() const { return _rotation; }
+
+    glm::vec3 getNaturalDimensions() const;
 
     Transform getTransform() const;
 
