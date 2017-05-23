@@ -158,7 +158,7 @@
           "label": "HTTP Password",
           "type": "password",
           "help": "Password used for basic HTTP authentication. Leave this alone if you do not want to change it.",
-          "default" : "password",
+          "password_placeholder" : "******",
           "value-hidden": true
         },
         {
