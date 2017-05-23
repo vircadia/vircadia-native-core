@@ -1057,19 +1057,24 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         }
 
         emit inputReceived(audioBuffer);
-
-        if (_noiseGate.openedInLastBlock()) {
-            emit noiseGateOpened();
-        } else if (_noiseGate.closedInLastBlock()) {
-            emit noiseGateClosed();
-        }
     }
 
-    // the codec needs a flush frame before sending silent packets, so
-    // do not send one if the gate closed in this block (eventually this can be crossfaded).
-    auto packetType = _shouldEchoToServer ?
-        PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
-    if (_lastInputLoudness == 0.0f && !_noiseGate.closedInLastBlock()) {
+    // state machine to detect gate opening and closing
+    bool audioGateOpen = (_lastInputLoudness != 0.0f);
+    bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
+    bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
+    _audioGateOpen = audioGateOpen;
+
+    if (openedInLastBlock) {
+        emit noiseGateOpened();
+    } else if (closedInLastBlock) {
+        emit noiseGateClosed();
+    }
+
+    // the codec must be flushed to silence before sending silent packets,
+    // so delay the transition to silent packets by one packet after becoming silent.
+    auto packetType = _shouldEchoToServer ? PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
+    if (!audioGateOpen && !closedInLastBlock) {
         packetType = PacketType::SilentAudioFrame;
         _silentOutbound.increment();
     } else {

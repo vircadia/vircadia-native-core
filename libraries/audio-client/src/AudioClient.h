@@ -363,6 +363,7 @@ private:
 
     AudioNoiseGate _noiseGate;
     AudioGate* _audioGate { nullptr };
+    bool _audioGateOpen { false };
 
     AudioPositionGetter _positionGetter;
     AudioOrientationGetter _orientationGetter;
