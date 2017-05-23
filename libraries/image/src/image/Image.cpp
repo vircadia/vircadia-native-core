@@ -494,7 +494,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(const QImage& s
     if (validAlpha) {
         processTextureAlpha(image, validAlpha, alphaAsMask);
 
-        // NOTE: This disables BC1a compression becuase it was producing odd artifacts on text textures
+        // NOTE: This disables BC1a compression because it was producing odd artifacts on text textures
         // for the tutorial. Instead we use BC3 (which is larger) but doesn't produce the same artifacts).
         alphaAsMask = false;
     }

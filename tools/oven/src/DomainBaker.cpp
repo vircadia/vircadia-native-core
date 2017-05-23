@@ -167,15 +167,15 @@ void DomainBaker::enumerateEntities() {
                 // check if the file pointed to by this URL is a bakeable model, by comparing extensions
                 auto modelFileName = modelURL.fileName();
 
-                static const QStringList BAKEABLE_MODEL_EXTENSIONS { ".fbx" };
-                auto completeLowerExtension = modelFileName.mid(modelFileName.indexOf('.')).toLower();
-
+                static const QString BAKEABLE_MODEL_EXTENSION { ".fbx" };
                 static const QString BAKED_MODEL_EXTENSION = ".baked.fbx";
 
-                if (BAKEABLE_MODEL_EXTENSIONS.contains(completeLowerExtension) ||
-                    (_shouldRebakeOriginals && completeLowerExtension == BAKED_MODEL_EXTENSION)) {
+                bool isBakedFBX = modelFileName.endsWith(BAKED_MODEL_EXTENSION, Qt::CaseInsensitive);
+                bool isUnbakedFBX = modelFileName.endsWith(BAKEABLE_MODEL_EXTENSION, Qt::CaseInsensitive) && !isBakedFBX;
 
-                    if (completeLowerExtension == BAKED_MODEL_EXTENSION) {
+                if (isUnbakedFBX || (_shouldRebakeOriginals && isBakedFBX)) {
+
+                    if (isBakedFBX) {
                         // grab a URL to the original, that we assume is stored a directory up, in the "original" folder
                         // with just the fbx extension
                         qDebug() << "Re-baking original for" << modelURL;
