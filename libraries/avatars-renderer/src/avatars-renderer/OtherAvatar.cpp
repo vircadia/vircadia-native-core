@@ -8,9 +8,9 @@
 
 #include "OtherAvatar.h"
 
-OtherAvatar::OtherAvatar(QThread* thread, RigPointer rig) : Avatar(thread, rig) {
+OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = new Head(this);
-    _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr, rig);
+    _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
 }

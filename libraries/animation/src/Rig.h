@@ -27,7 +27,6 @@
 
 class Rig;
 class AnimInverseKinematics;
-typedef std::shared_ptr<Rig> RigPointer;
 
 // Rig instances are reentrant.
 // However only specific methods thread-safe.  Noted below.

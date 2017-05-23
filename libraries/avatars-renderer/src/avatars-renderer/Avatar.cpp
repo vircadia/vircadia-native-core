@@ -98,7 +98,7 @@ void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
 
-Avatar::Avatar(QThread* thread, RigPointer rig) :
+Avatar::Avatar(QThread* thread) :
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
@@ -344,9 +344,9 @@ void Avatar::simulate(float deltaTime, bool inView) {
         if (inView) {
             Head* head = getHead();
             if (_hasNewJointData) {
-                _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
+                _skeletonModel->getRig().copyJointsFromJointData(_jointData);
                 glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
-                _skeletonModel->getRig()->computeExternalPoses(rootTransform);
+                _skeletonModel->getRig().computeExternalPoses(rootTransform);
                 _jointDataSimulationRate.increment();
 
                 _skeletonModel->simulate(deltaTime, true);
@@ -907,17 +907,16 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
 
 glm::quat Avatar::getAbsoluteDefaultJointRotationInObjectFrame(int index) const {
     glm::quat rotation;
-    auto rig = _skeletonModel->getRig();
-    glm::quat rot = rig->getAnimSkeleton()->getAbsoluteDefaultPose(index).rot();
+    glm::quat rot = _skeletonModel->getRig().getAnimSkeleton()->getAbsoluteDefaultPose(index).rot();
     return Quaternions::Y_180 * rot;
 }
 
 glm::vec3 Avatar::getAbsoluteDefaultJointTranslationInObjectFrame(int index) const {
     glm::vec3 translation;
-    auto rig = _skeletonModel->getRig();
-    glm::vec3 trans = rig->getAnimSkeleton()->getAbsoluteDefaultPose(index).trans();
+    const Rig& rig = _skeletonModel->getRig();
+    glm::vec3 trans = rig.getAnimSkeleton()->getAbsoluteDefaultPose(index).trans();
     glm::mat4 y180Mat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
-    return transformPoint(y180Mat * rig->getGeometryToRigTransform(), trans);
+    return transformPoint(y180Mat * rig.getGeometryToRigTransform(), trans);
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
@@ -1083,16 +1082,16 @@ void Avatar::setModelURLFinished(bool success) {
 
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
-static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride, bool isCauterized) {
+static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, const Rig& rigOverride, bool isCauterized) {
     if (isSoft) {
         // cast to std::shared_ptr<Model>
-        std::shared_ptr<SoftAttachmentModel> softModel = std::make_shared<SoftAttachmentModel>(std::make_shared<Rig>(), nullptr, rigOverride);
+        std::shared_ptr<SoftAttachmentModel> softModel = std::make_shared<SoftAttachmentModel>(nullptr, rigOverride);
         if (isCauterized) {
             softModel->flagAsCauterized();
         }
         return std::dynamic_pointer_cast<Model>(softModel);
     } else {
-        return std::make_shared<Model>(std::make_shared<Rig>());
+        return std::make_shared<Model>();
     }
 }
 
@@ -1409,21 +1408,19 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
 QList<QVariant> Avatar::getSkeleton() {
     SkeletonModelPointer skeletonModel = _skeletonModel;
     if (skeletonModel) {
-        RigPointer rig = skeletonModel->getRig();
-        if (rig) {
-            AnimSkeleton::ConstPointer skeleton = rig->getAnimSkeleton();
-            if (skeleton) {
-                QList<QVariant> list;
-                list.reserve(skeleton->getNumJoints());
-                for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                    QVariantMap obj;
-                    obj["name"] = skeleton->getJointName(i);
-                    obj["index"] = i;
-                    obj["parentIndex"] = skeleton->getParentIndex(i);
-                    list.push_back(obj);
-                }
-                return list;
+        const Rig& rig = skeletonModel->getRig();
+        AnimSkeleton::ConstPointer skeleton = rig.getAnimSkeleton();
+        if (skeleton) {
+            QList<QVariant> list;
+            list.reserve(skeleton->getNumJoints());
+            for (int i = 0; i < skeleton->getNumJoints(); i++) {
+                QVariantMap obj;
+                obj["name"] = skeleton->getJointName(i);
+                obj["index"] = i;
+                obj["parentIndex"] = skeleton->getParentIndex(i);
+                list.push_back(obj);
             }
+            return list;
         }
     }
 

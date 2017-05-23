@@ -344,7 +344,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
 
     nvtt::TextureType textureType = nvtt::TextureType_2D;
     nvtt::InputFormat inputFormat = nvtt::InputFormat_BGRA_8UB;
-    nvtt::WrapMode wrapMode = nvtt::WrapMode_Repeat;
+    nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
     nvtt::RoundMode roundMode = nvtt::RoundMode_None;
     nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
 
@@ -380,6 +380,9 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
         compressionOptions.setFormat(nvtt::Format_BC4);
     } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_XY) {
         compressionOptions.setFormat(nvtt::Format_BC5);
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_SRGBA_HIGH) {
+        alphaMode = nvtt::AlphaMode_Transparency;
+        compressionOptions.setFormat(nvtt::Format_BC7);
     } else if (mipFormat == gpu::Element::COLOR_RGBA_32) {
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
@@ -934,8 +937,8 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
         gpu::Element formatMip;
         gpu::Element formatGPU;
         if (isCubeTexturesCompressionEnabled()) {
-            formatMip = gpu::Element::COLOR_COMPRESSED_SRGBA;
-            formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA;
+            formatMip = gpu::Element::COLOR_COMPRESSED_SRGBA_HIGH;
+            formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA_HIGH;
         } else {
             formatMip = gpu::Element::COLOR_SRGBA_32;
             formatGPU = gpu::Element::COLOR_SRGBA_32;

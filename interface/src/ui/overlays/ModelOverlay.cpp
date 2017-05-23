@@ -18,7 +18,7 @@
 QString const ModelOverlay::TYPE = "model";
 
 ModelOverlay::ModelOverlay()
-    : _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
+    : _model(std::make_shared<Model>(nullptr, this)),
       _modelTextures(QVariantMap())
 {
     _model->init();
@@ -28,7 +28,7 @@ ModelOverlay::ModelOverlay()
 
 ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     Volume3DOverlay(modelOverlay),
-    _model(std::make_shared<Model>(std::make_shared<Rig>(), nullptr, this)),
+    _model(std::make_shared<Model>(nullptr, this)),
     _modelTextures(QVariantMap()),
     _url(modelOverlay->_url),
     _updateModel(false),
@@ -211,12 +211,10 @@ QVariant ModelOverlay::getProperty(const QString& property) {
     if (property == "jointNames") {
         if (_model && _model->isActive()) {
             // note: going through Rig because Model::getJointNames() (which proxies to FBXGeometry) was always empty
-            const RigPointer rig = _model->getRig();
-            if (rig) {
-                return mapJoints<QStringList, QString>([rig](int jointIndex) -> QString {
-                    return rig->nameOfJoint(jointIndex);
-                });
-            }
+            const Rig* rig = &(_model->getRig());
+            return mapJoints<QStringList, QString>([rig](int jointIndex) -> QString {
+                return rig->nameOfJoint(jointIndex);
+            });
         }
     }
 

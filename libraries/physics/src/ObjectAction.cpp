@@ -58,6 +58,10 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
         return;
     }
 
+    if (ownerEntity->getLocked()) {
+        return;
+    }
+
     updateActionWorker(deltaTimeStep);
 }
 

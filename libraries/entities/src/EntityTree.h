@@ -303,6 +303,8 @@ protected:
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
+    bool isScriptInWhitelist(const QString& scriptURL);
+    
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 

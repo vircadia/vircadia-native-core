@@ -148,7 +148,7 @@ public:
     };
     Q_ENUM(DriveKeys)
 
-    explicit MyAvatar(QThread* thread, RigPointer rig);
+    explicit MyAvatar(QThread* thread);
     ~MyAvatar();
 
     void instantiableAvatar() override {};
@@ -322,9 +322,9 @@ public:
     // adding one of the other handlers. While any handler may change a value in animStateDictionaryIn (or supply different values in animStateDictionaryOut)
     // a handler must not remove properties from animStateDictionaryIn, nor change property values that it does not intend to change.
     // It is not specified in what order multiple handlers are called.
-    Q_INVOKABLE QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { return _rig->addAnimationStateHandler(handler, propertiesList); }
+    Q_INVOKABLE QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { return _skeletonModel->getRig().addAnimationStateHandler(handler, propertiesList); }
     // Removes a handler previously added by addAnimationStateHandler.
-    Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _rig->removeAnimationStateHandler(handler); }
+    Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _skeletonModel->getRig().removeAnimationStateHandler(handler); }
 
     Q_INVOKABLE bool getSnapTurn() const { return _useSnapTurn; }
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
@@ -713,7 +713,6 @@ private:
     glm::quat _goToOrientation;
 
     std::unordered_set<int> _headBoneSet;
-    RigPointer _rig;
     bool _prevShouldDrawHead;
     bool _rigEnabled { true };
 
