@@ -39,31 +39,37 @@ GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
     Backend::textureResourceGPUMemSize.update(_size, 0);
     Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
-void GL45VariableAllocationTexture::incrementPopulatedSize(Size delta) const {
-    _populatedSize += delta;
-    // Keep the 2 code paths to be able to debug
-    if (_size < _populatedSize) {
-        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
-    } else  {
-        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
-    }
-}
-void GL45VariableAllocationTexture::decrementPopulatedSize(Size delta) const {
-    _populatedSize -= delta;
-    // Keep the 2 code paths to be able to debug
-    if (_size < _populatedSize) {
-        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
-    } else  {
-        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
-    }
-}
-        
+
 Size GL45VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     Size amountCopied = 0;
     amountCopied = Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
     incrementPopulatedSize(amountCopied);
     return amountCopied;
 }
+
+
+void copyTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {
+    for (uint16_t mip = populatedMips; mip < numMips; ++mip) {
+        auto mipDimensions = texture.evalMipDimensions(mip);
+        uint16_t targetMip = mip - destMipOffset;
+        uint16_t sourceMip = mip - srcMipOffset;
+        auto faces = GLTexture::getFaceCount(texTarget);
+        for (uint8_t face = 0; face < faces; ++face) {
+            glCopyImageSubData(
+                srcId, texTarget, sourceMip, 0, 0, face,
+                destId, texTarget, targetMip, 0, 0, face,
+                mipDimensions.x, mipDimensions.y, 1
+                );
+            (void)CHECK_GL_ERROR();
+        }
+    }
+}
+
+void GL45VariableAllocationTexture::copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {
+    uint16_t numMips = _gpuObject.getNumMips();
+    copyTexGPUMem(_gpuObject, _target, srcId, destId, numMips, srcMipOffset, destMipOffset, populatedMips);
+}
+
 
 // Managed size resource textures
 using GL45ResourceTexture = GL45Backend::GL45ResourceTexture;
@@ -124,24 +130,6 @@ void GL45ResourceTexture::syncSampler() const {
     glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, _populatedMip - _allocatedMip);
 }
 
-
-void copyTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {
-    for (uint16_t mip = populatedMips; mip < numMips; ++mip) {
-        auto mipDimensions = texture.evalMipDimensions(mip);
-        uint16_t targetMip = mip - destMipOffset;
-        uint16_t sourceMip = mip - srcMipOffset;
-        auto faces = GLTexture::getFaceCount(texTarget);
-        for (uint8_t face = 0; face < faces; ++face) {
-            glCopyImageSubData(
-                srcId, texTarget, sourceMip, 0, 0, face,
-                destId, texTarget, targetMip, 0, 0, face,
-                mipDimensions.x, mipDimensions.y, 1
-                );
-            (void)CHECK_GL_ERROR();
-        }
-    }
-}
-
 void GL45ResourceTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
@@ -160,15 +148,18 @@ void GL45ResourceTexture::promote() {
     allocateStorage(targetAllocatedMip);
     
     // copy pre-existing mips
-    uint16_t numMips = _gpuObject.getNumMips();
-    copyTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
+    copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
 
     // destroy the old texture
     glDeleteTextures(1, &oldId);
+
+    // Update sampler
+    syncSampler();
+
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
     // no change to Backend::textureResourcePopulatedGPUMemSize
-    syncSampler();
+
     populateTransferQueue();
 }
 
@@ -186,11 +177,14 @@ void GL45ResourceTexture::demote() {
     _populatedMip = std::max(_populatedMip, _allocatedMip);
 
     // copy pre-existing mips
-    uint16_t numMips = _gpuObject.getNumMips();
-    copyTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
+    copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
 
     // destroy the old texture
     glDeleteTextures(1, &oldId);
+
+    // Update sampler
+    syncSampler();
+
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
      // Demoting unpopulate the memory delta
@@ -202,10 +196,9 @@ void GL45ResourceTexture::demote() {
         }
        decrementPopulatedSize(amountUnpopulated);
     }
-    syncSampler();
+
     populateTransferQueue();
 }
-
 
 void GL45ResourceTexture::populateTransferQueue() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);

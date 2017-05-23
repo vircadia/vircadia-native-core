@@ -673,3 +673,24 @@ void GLVariableAllocationSupport::executeNextBuffer(const TexturePointer& curren
     }
 }
 #endif
+
+void GLVariableAllocationSupport::incrementPopulatedSize(Size delta) const {
+    _populatedSize += delta;
+    // Keep the 2 code paths to be able to debug
+    if (_size < _populatedSize) {
+        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
+    } else  {
+        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
+    }
+}
+void GLVariableAllocationSupport::decrementPopulatedSize(Size delta) const {
+    _populatedSize -= delta;
+    // Keep the 2 code paths to be able to debug
+    if (_size < _populatedSize) {
+        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
+    } else  {
+        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
+    }
+}
+
+

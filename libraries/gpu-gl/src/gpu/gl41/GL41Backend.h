@@ -55,7 +55,7 @@ public:
         GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         void generateMips() const override;
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
-        virtual void syncSampler() const;
+        void syncSampler() const override;
 
         void withPreservedTexture(std::function<void()> f) const;
     };
@@ -114,11 +114,9 @@ public:
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         Size copyMipsFromTexture();
 
+        void copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) override;
+
         Size size() const override { return _size; }
-        Size _size { 0 };
-        void incrementPopulatedSize(Size delta) const;
-        void decrementPopulatedSize(Size delta) const;
-        mutable Size _populatedSize { 0 };
     };
 
     class GL41ResourceTexture : public GL41VariableAllocationTexture {
