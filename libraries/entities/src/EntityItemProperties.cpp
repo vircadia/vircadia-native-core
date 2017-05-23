@@ -1825,13 +1825,13 @@ bool EntityItemProperties::hasTerseUpdateChanges() const {
 }
 
 bool EntityItemProperties::hasDynamicPhysicsChanges() const {
-    return _dynamicChanged || _velocityChanged || _angularVelocityChanged || _accelerationChanged;
+    return _velocityChanged || _angularVelocityChanged || _accelerationChanged;
 }
 
 bool EntityItemProperties::hasMiscPhysicsChanges() const {
     return _gravityChanged || _dimensionsChanged || _densityChanged || _frictionChanged
         || _restitutionChanged || _dampingChanged || _angularDampingChanged || _registrationPointChanged ||
-        _compoundShapeURLChanged || _collisionlessChanged || _collisionMaskChanged ||
+        _compoundShapeURLChanged || _dynamicChanged || _collisionlessChanged || _collisionMaskChanged ||
         _rotationChanged || _positionChanged;
 }
 
