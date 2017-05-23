@@ -1017,16 +1017,16 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
             _audioGate->removeDC(samples, samples, numFrames);
         }
 
-        // TODO: optimize this
-        const float CLIPPING_THRESHOLD = 0.90f;
-        float loudness = 0.0f;
+        int32_t loudness = 0;
+        assert(numSamples < 65536); // int32_t loudness cannot overflow
         bool didClip = false;
         for (int i = 0; i < numSamples; ++i) {
-            int16_t sample = std::abs(samples[i]);
-            loudness += (float)sample;
-            didClip = didClip || (sample > (AudioConstants::MAX_SAMPLE_VALUE * CLIPPING_THRESHOLD));
+            const int32_t CLIPPING_THRESHOLD = (int32_t)(AudioConstants::MAX_SAMPLE_VALUE * 0.9f);
+            int32_t sample = std::abs((int32_t)samples[i]);
+            loudness += sample;
+            didClip |= (sample > CLIPPING_THRESHOLD);
         }
-        _lastInputLoudness = fabs(loudness / numSamples);
+        _lastInputLoudness = (float)loudness / numSamples;
 
         if (didClip) {
             _timeSinceLastClip = 0.0f;
