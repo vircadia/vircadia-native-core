@@ -163,12 +163,15 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
 }
 
 ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) {
+
     _configStringMap[Config::Auto] =  QString("Auto");
     _configStringMap[Config::Feet] =  QString("Feet");
     _configStringMap[Config::FeetAndHips] =  QString("FeetAndHips");
     _configStringMap[Config::FeetHipsAndChest] =  QString("FeetHipsAndChest");
 
-    createPreferences();
+    if (openVrSupported()) {
+        createPreferences();
+    }
 }
 
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
