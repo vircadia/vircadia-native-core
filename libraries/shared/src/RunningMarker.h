@@ -25,12 +25,15 @@ public:
 
     void startRunningMarker();
 
-    QString getFilePath();
+    QString getFilePath() const;
     static QString getMarkerFilePath(QString name);
-protected:
-    void writeRunningMarkerFiler();
+
+    bool fileExists() const;
+
+    void writeRunningMarkerFile();
     void deleteRunningMarkerFile();
 
+private:
     QObject* _parent { nullptr };
     QString _name;
     QThread* _runningMarkerThread { nullptr };

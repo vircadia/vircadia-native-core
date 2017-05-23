@@ -52,6 +52,7 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 static const int TRANSLATION_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
 static const float AUDIO_LOUDNESS_SCALE = 1024.0f;
+static const float DEFAULT_AVATAR_DENSITY = 1000.0f; // density of water
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
@@ -65,7 +66,8 @@ AvatarData::AvatarData() :
     _headData(NULL),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
-    _targetVelocity(0.0f)
+    _targetVelocity(0.0f),
+    _density(DEFAULT_AVATAR_DENSITY)
 {
     setBodyPitch(0.0f);
     setBodyYaw(-90.0f);
@@ -310,7 +312,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAvatarOrientation) {
         auto startSection = destinationBuffer;
-        auto localOrientation = getLocalOrientation();
+        auto localOrientation = getOrientationOutbound();
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, localOrientation);
 
         int numBytes = destinationBuffer - startSection;
@@ -445,17 +447,17 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasFaceTrackerInfo) {
         auto startSection = destinationBuffer;
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
+        const auto& blendshapeCoefficients = _headData->getSummedBlendshapeCoefficients();
 
         faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
         faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
         faceTrackerInfo->averageLoudness = _headData->_averageLoudness;
         faceTrackerInfo->browAudioLift = _headData->_browAudioLift;
-        faceTrackerInfo->numBlendshapeCoefficients = _headData->_blendshapeCoefficients.size();
+        faceTrackerInfo->numBlendshapeCoefficients = blendshapeCoefficients.size();
         destinationBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
 
-        // followed by a variable number of float coefficients
-        memcpy(destinationBuffer, _headData->_blendshapeCoefficients.data(), _headData->_blendshapeCoefficients.size() * sizeof(float));
-        destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
+        memcpy(destinationBuffer, blendshapeCoefficients.data(), blendshapeCoefficients.size() * sizeof(float));
+        destinationBuffer += blendshapeCoefficients.size() * sizeof(float);
 
         int numBytes = destinationBuffer - startSection;
         if (outboundDataRateOut) {
@@ -965,7 +967,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         const int coefficientsSize = sizeof(float) * numCoefficients;
         PACKET_READ_CHECK(FaceTrackerCoefficients, coefficientsSize);
         _headData->_blendshapeCoefficients.resize(numCoefficients);  // make sure there's room for the copy!
-        _headData->_baseBlendshapeCoefficients.resize(numCoefficients);
+        _headData->_transientBlendshapeCoefficients.resize(numCoefficients);
         memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
         sourceBuffer += coefficientsSize;
         int numBytesRead = sourceBuffer - startSection;
@@ -1487,6 +1489,10 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
         << "identityOut.sessionDisplayName:" << identityOut.sessionDisplayName;
 #endif
 
+}
+
+glm::quat AvatarData::getOrientationOutbound() const {
+    return (getLocalOrientation());
 }
 
 static const QUrl emptyURL("");
@@ -2041,11 +2047,13 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             setSkeletonModelURL(bodyModelURL);
         }
     }
+
+    QString newDisplayName = "";
     if (json.contains(JSON_AVATAR_DISPLAY_NAME)) {
-        auto newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
-        if (newDisplayName != getDisplayName()) {
-            setDisplayName(newDisplayName);
-        }
+        newDisplayName = json[JSON_AVATAR_DISPLAY_NAME].toString();
+    }
+    if (newDisplayName != getDisplayName()) {
+        setDisplayName(newDisplayName);
     }
 
     auto currentBasis = getRecordingBasis();
@@ -2075,14 +2083,16 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         setTargetScale((float)json[JSON_AVATAR_SCALE].toDouble());
     }
 
+    QVector<AttachmentData> attachments;
     if (json.contains(JSON_AVATAR_ATTACHMENTS) && json[JSON_AVATAR_ATTACHMENTS].isArray()) {
         QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
-        QVector<AttachmentData> attachments;
         for (auto attachmentJson : attachmentsJson) {
             AttachmentData attachment;
             attachment.fromJson(attachmentJson.toObject());
             attachments.push_back(attachment);
         }
+    }
+    if (attachments != getAttachmentData()) {
         setAttachmentData(attachments);
     }
 

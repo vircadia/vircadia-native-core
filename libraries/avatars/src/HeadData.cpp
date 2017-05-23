@@ -28,14 +28,9 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _basePitch(0.0f),
     _baseRoll(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
-    _isFaceTrackerConnected(false),
-    _isEyeTrackerConnected(false),
-    _leftEyeBlink(0.0f),
-    _rightEyeBlink(0.0f),
-    _averageLoudness(0.0f),
-    _browAudioLift(0.0f),
-    _baseBlendshapeCoefficients(QVector<float>(0, 0.0f)),
-    _currBlendShapeCoefficients(QVector<float>(0, 0.0f)),
+    _blendshapeCoefficients(QVector<float>(0, 0.0f)),
+    _transientBlendshapeCoefficients(QVector<float>(0, 0.0f)),
+    _summedBlendshapeCoefficients(QVector<float>(0, 0.0f)),
     _owningAvatar(owningAvatar)
 {
 
@@ -85,22 +80,22 @@ static const QMap<QString, int>& getBlendshapesLookupMap() {
 }
 
 const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
-    int maxSize = std::max(_baseBlendshapeCoefficients.size(), _blendshapeCoefficients.size());
-    if (_currBlendShapeCoefficients.size() != maxSize) {
-        _currBlendShapeCoefficients.resize(maxSize);
+    int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
+    if (_summedBlendshapeCoefficients.size() != maxSize) {
+        _summedBlendshapeCoefficients.resize(maxSize);
     }
 
     for (int i = 0; i < maxSize; i++) {
-        if (i >= _baseBlendshapeCoefficients.size()) {
-            _currBlendShapeCoefficients[i] = _blendshapeCoefficients[i];
-        } else if (i >= _blendshapeCoefficients.size()) {
-            _currBlendShapeCoefficients[i] = _baseBlendshapeCoefficients[i];
+        if (i >= _blendshapeCoefficients.size()) {
+            _summedBlendshapeCoefficients[i] = _transientBlendshapeCoefficients[i];
+        } else if (i >= _transientBlendshapeCoefficients.size()) {
+            _summedBlendshapeCoefficients[i] = _blendshapeCoefficients[i];
         } else {
-            _currBlendShapeCoefficients[i] = _baseBlendshapeCoefficients[i] + _blendshapeCoefficients[i];
+            _summedBlendshapeCoefficients[i] = _blendshapeCoefficients[i] + _transientBlendshapeCoefficients[i];
         }
     }
 
-    return _currBlendShapeCoefficients;
+    return _summedBlendshapeCoefficients;
 }
 
 void HeadData::setBlendshape(QString name, float val) {
@@ -112,10 +107,10 @@ void HeadData::setBlendshape(QString name, float val) {
         if (_blendshapeCoefficients.size() <= it.value()) {
             _blendshapeCoefficients.resize(it.value() + 1);
         }
-        if (_baseBlendshapeCoefficients.size() <= it.value()) {
-            _baseBlendshapeCoefficients.resize(it.value() + 1);
+        if (_transientBlendshapeCoefficients.size() <= it.value()) {
+            _transientBlendshapeCoefficients.resize(it.value() + 1);
         }
-        _baseBlendshapeCoefficients[it.value()] = val;
+        _blendshapeCoefficients[it.value()] = val;
     }
 }
 
@@ -131,14 +126,16 @@ QJsonObject HeadData::toJson() const {
     QJsonObject blendshapesJson;
     for (auto name : blendshapeLookupMap.keys()) {
         auto index = blendshapeLookupMap[name];
-        if (index >= _blendshapeCoefficients.size()) {
-            continue;
+        float value = 0.0f;
+        if (index < _blendshapeCoefficients.size()) {
+            value += _blendshapeCoefficients[index];
         }
-        auto value = _blendshapeCoefficients[index];
-        if (value == 0.0f) {
-            continue;
+        if (index < _transientBlendshapeCoefficients.size()) {
+            value += _transientBlendshapeCoefficients[index];
         }
-        blendshapesJson[name] = value;
+        if (value != 0.0f) {
+            blendshapesJson[name] = value;
+        }
     }
     if (!blendshapesJson.isEmpty()) {
         headJson[JSON_AVATAR_HEAD_BLENDSHAPE_COEFFICIENTS] = blendshapesJson;
@@ -163,8 +160,8 @@ void HeadData::fromJson(const QJsonObject& json) {
             QJsonArray blendshapeCoefficientsJson = jsonValue.toArray();
             for (const auto& blendshapeCoefficient : blendshapeCoefficientsJson) {
                 blendshapeCoefficients.push_back((float)blendshapeCoefficient.toDouble());
-                setBlendshapeCoefficients(blendshapeCoefficients);
             }
+            setBlendshapeCoefficients(blendshapeCoefficients);
         } else if (jsonValue.isObject()) {
             QJsonObject blendshapeCoefficientsJson = jsonValue.toObject();
             for (const QString& name : blendshapeCoefficientsJson.keys()) {

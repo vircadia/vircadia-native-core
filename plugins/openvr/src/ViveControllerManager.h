@@ -14,15 +14,18 @@
 
 #include <QObject>
 #include <unordered_set>
+#include <vector>
+#include <map>
+#include <utility>
 
 #include <GLMHelpers.h>
-
 #include <model/Geometry.h>
 #include <gpu/Texture.h>
 #include <controllers/InputDevice.h>
 #include <plugins/InputPlugin.h>
 #include <RenderArgs.h>
 #include <render/Scene.h>
+#include "OpenVrHelpers.h"
 
 namespace vr {
     class IVRSystem;
@@ -48,24 +51,33 @@ public:
 private:
     class InputDevice : public controller::InputDevice {
     public:
-        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) {}
+        InputDevice(vr::IVRSystem*& system);
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;
         QString getDefaultMappingConfig() const override;
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
-
+        void createPreferences();
         bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         void hapticsHelper(float deltaTime, bool leftHand);
-
+        void calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration);
+        void calibrate(const controller::InputCalibrationData& inputCalibration);
+        void uncalibrate();
+        controller::Pose addOffsetToPuckPose(int joint) const;
+        void updateCalibratedLimbs();
+        bool checkForCalibrationEvent();
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
+        void handleHmd(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData);
         void handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand);
         void handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand);
         void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
                              const vec3& linearVelocity, const vec3& angularVelocity, bool isLeftHand);
+        void handleHeadPoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat, const vec3& linearVelocity,
+                                 const vec3& angularVelocity);
         void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
+        void printDeviceTrackingResultChange(uint32_t deviceIndex);
 
         class FilteredStick {
         public:
@@ -90,10 +102,17 @@ private:
             float _timer { 0.0f };
             glm::vec2 _stick { 0.0f, 0.0f };
         };
-
+        enum class Config { Feet, FeetAndHips, FeetHipsAndChest, Auto };
+        Config _config { Config::Auto };
+        Config _preferedConfig { Config::Auto };
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
 
+        std::vector<std::pair<uint32_t, controller::Pose>> _validTrackedObjects;
+        std::map<uint32_t, glm::mat4> _pucksOffset;
+        std::map<int, uint32_t> _jointToPuckMap;
+        std::map<Config, QString> _configStringMap;
+        PoseData _lastSimPoseData;
         // perform an action when the InputDevice mutex is acquired.
         using Locker = std::unique_lock<std::recursive_mutex>;
         template <typename F>
@@ -101,12 +120,20 @@ private:
 
         int _trackedControllers { 0 };
         vr::IVRSystem*& _system;
+        quint64 _timeTilCalibration { 0.0f };
         float _leftHapticStrength { 0.0f };
         float _leftHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
+        bool _triggersPressedHandled { false };
+        bool _calibrated { false };
+        bool _timeTilCalibrationSet { false };
         mutable std::recursive_mutex _lock;
 
+        QString configToString(Config config);
+        void setConfigFromString(const QString& value);
+        void loadSettings();
+        void saveSettings() const;
         friend class ViveControllerManager;
     };
 

@@ -105,11 +105,11 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
         }
         message += context->argument(i).toString();
     }
-    qCDebug(scriptengineScript).noquote() << "script:print()<<" << message;  // noquote() so that \n is treated as newline
+    qCDebug(scriptengineScript).noquote() << message;  // noquote() so that \n is treated as newline
 
-    // FIXME - this approach neeeds revisiting. print() comes here, which ends up calling Script.print?
-    engine->globalObject().property("Script").property("print")
-        .call(engine->nullValue(), QScriptValueList({ message }));
+    if (ScriptEngine *scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
+        scriptEngine->print(message);
+    }
 
     return QScriptValue();
 }
@@ -470,6 +470,11 @@ void ScriptEngine::scriptWarningMessage(const QString& message) {
 void ScriptEngine::scriptInfoMessage(const QString& message) {
     qCInfo(scriptengine) << message;
     emit infoMessage(message, getFilename());
+}
+
+void ScriptEngine::scriptPrintedMessage(const QString& message) {
+    qCDebug(scriptengine) << message;
+    emit printedMessage(message, getFilename());
 }
 
 // Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of

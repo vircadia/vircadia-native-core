@@ -197,7 +197,7 @@ Menu::Menu() {
         0, // QML Qt::Key_Apostrophe,
         qApp, SLOT(resetSensors()));
 
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableAvatarCollisions, 0, true,
         avatar.get(), SLOT(updateMotionBehaviorFromMenu()));
 
     // Avatar > AvatarBookmarks related menus -- Note: the AvatarBookmarks class adds its own submenus here.
@@ -523,6 +523,8 @@ Menu::Menu() {
         avatar.get(), SLOT(setEnableDebugDrawSensorToWorldMatrix(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderIKTargets, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawIKTargets(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderIKConstraints, 0, false,
+        avatar.get(), SLOT(setEnableDebugDrawIKConstraints(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ActionMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar.get(), SLOT(updateMotionBehaviorFromMenu()),

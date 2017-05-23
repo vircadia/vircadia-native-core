@@ -112,17 +112,7 @@ class Application : public QApplication,
     // TODO? Get rid of those
     friend class OctreePacketProcessor;
 
-private:
-    bool _shouldRunServer { false };
-    QString _runServerPath;
-    RunningMarker _runningMarker;
-
 public:
-    // startup related getter/setters
-    bool shouldRunServer() const { return _shouldRunServer; }
-    bool hasRunServerPath() const { return !_runServerPath.isEmpty(); }
-    QString getRunServerPath() const { return _runServerPath; }
-
     // virtual functions required for PluginContainer
     virtual ui::Menu* getPrimaryMenu() override;
     virtual void requestReset() override { resetSensors(true); }
@@ -146,7 +136,7 @@ public:
     static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
-    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runServer, QString runServerPathOption);
+    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runningMarkerExisted);
     ~Application();
 
     void postLambdaEvent(std::function<void()> f) override;
@@ -451,6 +441,8 @@ private slots:
     void onAssetToWorldMessageBoxClosed();
     void addAssetToWorldInfoTimeout();
     void addAssetToWorldErrorTimeout();
+
+    void handleSandboxStatus(QNetworkReply* reply);
 
 private:
     static void initDisplay();

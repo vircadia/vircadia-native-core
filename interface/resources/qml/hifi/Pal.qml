@@ -844,7 +844,7 @@ Rectangle {
                     boxSize: 24;
                     onClicked: {
                         var newValue = model.connection !== "friend";
-                        connectionsUserModel.setProperty(model.userIndex, styleData.role, newValue);
+                        connectionsUserModel.setProperty(model.userIndex, styleData.role, (newValue ? "friend" : "connection"));
                         connectionsUserModelData[model.userIndex][styleData.role] = newValue; // Defensive programming
                         pal.sendToScript({method: newValue ? 'addFriend' : 'removeFriend', params: model.userName});
 

@@ -604,6 +604,9 @@ public:
         return _lastSentJointData;
     }
 
+    // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
+    virtual glm::quat getOrientationOutbound() const;
+
     static const float OUT_OF_VIEW_PENALTY;
 
     static void sortAvatars(
@@ -625,6 +628,8 @@ public:
         _identityDataChanged = true;
         _identitySequenceId++;
     }
+
+    float getDensity() const { return _density; }
 
 signals:
     void displayNameChanged();
@@ -782,6 +787,7 @@ protected:
 
     bool _identityDataChanged { false };
     quint64 _identitySequenceId { 0 };
+    float _density;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

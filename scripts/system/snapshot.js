@@ -51,6 +51,11 @@ function openLoginWindow() {
     }
 }
 
+function removeFromStoryIDsToMaybeDelete(story_id) {
+    storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(story_id), 1);
+    print('storyIDsToMaybeDelete[] now:', JSON.stringify(storyIDsToMaybeDelete));
+}
+
 function onMessage(message) {
     // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
     // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
@@ -111,7 +116,7 @@ function onMessage(message) {
         case 'openSettings':
             if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
                 || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
-                Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "General Preferences");
+                Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
             } else {
                 tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
             }
@@ -133,10 +138,10 @@ function onMessage(message) {
                     isLoggedIn = Account.isLoggedIn();
                     if (isLoggedIn) {
                         print('Sharing snapshot with audience "for_url":', message.data);
-                        Window.shareSnapshot(message.data, message.href || href);
+                        Window.shareSnapshot(message.data, Settings.getValue("previousSnapshotHref"));
                     } else {
                         shareAfterLogin = true;
-                        snapshotToShareAfterLogin.push({ path: message.data, href: message.href || href });
+                        snapshotToShareAfterLogin.push({ path: message.data, href: Settings.getValue("previousSnapshotHref") });
                     }
                 }
             });
@@ -191,6 +196,7 @@ function onMessage(message) {
                                 return;
                             } else {
                                 print("SUCCESS uploading announcement story! Story ID:", response.user_story.id);
+                                removeFromStoryIDsToMaybeDelete(message.story_id); // Don't delete original "for_url" story
                             }
                         });
                     }
@@ -230,13 +236,13 @@ function onMessage(message) {
                         return;
                     } else {
                         print("SUCCESS changing audience" + (message.isAnnouncement ? " and posting announcement!" : "!"));
+                        removeFromStoryIDsToMaybeDelete(message.story_id);
                     }
                 });
             }
             break;
         case 'removeFromStoryIDsToMaybeDelete':
-            storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
-            print('storyIDsToMaybeDelete[] now:', JSON.stringify(storyIDsToMaybeDelete));
+            removeFromStoryIDsToMaybeDelete(message.story_id);
             break;
         default:
             print('Unknown message action received by snapshot.js!');
@@ -343,6 +349,7 @@ function takeSnapshot() {
     // We will record snapshots based on the starting location. That could change, e.g., when recording a .gif.
     // Even the domainId could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
+    Settings.setValue("previousSnapshotHref", href);
     domainId = location.domainId;
     Settings.setValue("previousSnapshotDomainID", domainId);
 

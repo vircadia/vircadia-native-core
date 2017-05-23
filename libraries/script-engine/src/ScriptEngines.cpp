@@ -453,7 +453,8 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         (scriptFilename.scheme() != "http" &&
          scriptFilename.scheme() != "https" &&
          scriptFilename.scheme() != "atp" &&
-         scriptFilename.scheme() != "file")) {
+         scriptFilename.scheme() != "file" &&
+         scriptFilename.scheme() != "about")) {
         // deal with a "url" like c:/something
         scriptUrl = normalizeScriptURL(QUrl::fromLocalFile(scriptFilename.toString()));
     } else {
@@ -472,7 +473,7 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
     }, Qt::QueuedConnection);
 
 
-    if (scriptFilename.isEmpty()) {
+    if (scriptFilename.isEmpty() || !scriptUrl.isValid()) {
         launchScriptEngine(scriptEngine);
     } else {
         // connect to the appropriate signals of this script engine

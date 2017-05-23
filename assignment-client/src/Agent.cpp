@@ -57,6 +57,7 @@ Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
     _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES)
 {
+    _entityEditSender.setPacketsPerSecond(DEFAULT_ENTITY_PPS_PER_SCRIPT);
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     ResourceManager::init();
@@ -583,6 +584,7 @@ void Agent::setIsAvatar(bool isAvatar) {
 void Agent::sendAvatarIdentityPacket() {
     if (_isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+        scriptedAvatar->markIdentityDataChanged();
         scriptedAvatar->sendIdentityPacket();
     }
 }

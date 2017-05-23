@@ -40,16 +40,12 @@ protected:
     glm::vec3 _pivotInA;
     glm::vec3 _axisInA;
 
-    EntityItemID _otherEntityID;
     glm::vec3 _pivotInB;
     glm::vec3 _axisInB;
 
     float _swingSpan1 { TWO_PI };
     float _swingSpan2 { TWO_PI };;
     float _twistSpan { TWO_PI };;
-    float _softness { 1.0f };
-    float _biasFactor {0.3f };
-    float _relaxationFactor { 1.0f };
 };
 
 #endif // hifi_ObjectConstraintConeTwist_h
