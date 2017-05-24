@@ -1095,10 +1095,20 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     if ((bool)entityA && (bool)entityB) {
         QUuid entityASimulatorID = entityA->getSimulatorID();
         QUuid entityBSimulatorID = entityB->getSimulatorID();
-        bool entityAIsStatic = !entityA->getDynamic() && !entityA->isMoving();
-        bool entityBIsStatic = !entityB->getDynamic() && !entityB->isMoving();
+        bool entityAIsDynamic = entityA->getDynamic();
+        bool entityBIsDynamic = entityB->getDynamic();
 
-        if (myNodeID == entityASimulatorID || (myNodeID == entityBSimulatorID && entityAIsStatic)) {
+#ifdef WANT_DEBUG
+        bool bothEntitiesStatic = !entityAIsDynamic && !entityBIsDynamic;
+        if (bothEntitiesStatic) {
+            qCDebug(entities) << "A collision has occurred between two static entities!";
+            qCDebug(entities) << "Entity A ID:" << entityA->getID();
+            qCDebug(entities) << "Entity B ID:" << entityB->getID();
+        }
+        assert(!bothEntitiesStatic);
+#endif
+
+        if ((myNodeID == entityASimulatorID && entityAIsDynamic) || (myNodeID == entityBSimulatorID && !entityAIsDynamic)) {
             playEntityCollisionSound(entityA, collision);
             emit collisionWithEntity(idA, idB, collision);
             if (_entitiesScriptEngine) {
@@ -1106,7 +1116,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
             }
         }
 
-        if (myNodeID == entityBSimulatorID || (myNodeID == entityASimulatorID && entityBIsStatic)) {
+        if ((myNodeID == entityBSimulatorID && entityBIsDynamic) || (myNodeID == entityASimulatorID && !entityBIsDynamic)) {
             playEntityCollisionSound(entityB, collision);
             // since we're swapping A and B we need to send the inverted collision
             Collision invertedCollision(collision);
