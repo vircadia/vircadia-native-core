@@ -579,6 +579,9 @@ void AccountManager::refreshAccessToken() {
         QNetworkReply* requestReply = networkAccessManager.post(request, postData);
         connect(requestReply, &QNetworkReply::finished, this, &AccountManager::refreshAccessTokenFinished);
         connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(refreshAccessTokenError(QNetworkReply::NetworkError)));
+    } else {
+        qCWarning(networking) << "Cannot refresh access token without refresh token."
+            << "Access token will need to be manually refreshed.";
     }
 }
 
