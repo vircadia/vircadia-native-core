@@ -9,23 +9,13 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/*global window, alert, EventBridge, dat, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
+/* global window, alert, ParticleExplorerTool, EventBridge, dat, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
 
 
-var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath(' .html');
+var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath('particleExplorer.html');
 
 ParticleExplorerTool = function() {
     var that = {};
-    var bound = false;
-    that.bindWebView = function() {
-        if (!bound) {
-            that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            that.webView.setVisible = function(value) {};
-            that.webView.webEventReceived.connect(that.webEventReceived);
-            bound = true;
-        }
-    }
-    /*
     that.createWebView = function() {
         that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         that.webView.setVisible = function(value) {};
@@ -44,17 +34,17 @@ ParticleExplorerTool = function() {
         that.webView.emitScriptEvent(JSON.stringify(messageData));
     }
 
-    */
     that.webEventReceived = function(data) {
-        var message = JSON.parse(data);
-        if (message.messageType === "settings_update") {
-            Entities.editEntity(that.activeParticleEntity, message.updatedSettings);
+        var data = JSON.parse(data);
+        if (data.messageType === "settings_update") {
+            data.updatedSettings.emitOrientation = Quat.fromVec3Degrees(data.updatedSettings.emitOrientation);
+            Entities.editEntity(that.activeParticleEntity, data.updatedSettings);
         }
-    };
+    }
 
     that.setActiveParticleEntity = function(id) {
         that.activeParticleEntity = id;
-    };
+    }
 
     return that;
 };

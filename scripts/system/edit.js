@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, 
+/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger,
    Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -83,6 +83,7 @@ selectionManager.addEventListener(function () {
             // Destroy the old particles web view first
             particleExplorerTool.destroyWebView();
             particleExplorerTool.createWebView();
+            print("Particle Selected");
             var properties = Entities.getEntityProperties(selectedEntityID);
             var particleData = {
                 messageType: "particle_settings",
@@ -90,13 +91,8 @@ selectionManager.addEventListener(function () {
             };
             selectedParticleEntityID = selectedEntityID;
             particleExplorerTool.setActiveParticleEntity(selectedParticleEntityID);
-
-            particleExplorerTool.webView.webEventReceived.connect(function (data) {
-                data = JSON.parse(data);
-                if (data.messageType === "page_loaded") {
-                    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-                }
-            });
+            particleData.emitOrientation = Quat.safeEulerAngles(particleData.emitOrientation);
+            particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
 
             // Switch to particle explorer
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -2083,6 +2079,7 @@ var selectedParticleEntityID = null;
 
 function selectParticleEntity(entityID) {
     var properties = Entities.getEntityProperties(entityID);
+    print("selected particle Entity");
     var particleData = {
         messageType: "particle_settings",
         currentProperties: properties
@@ -2114,6 +2111,7 @@ entityListTool.webView.webEventReceived.connect(function (data) {
                     return;
                 }
                 // Destroy the old particles web view first
+                print("select particles");
                 selectParticleEntity(ids[0]);
             } else {
                 selectedParticleEntity = 0;
@@ -2124,4 +2122,3 @@ entityListTool.webView.webEventReceived.connect(function (data) {
 });
 
 }()); // END LOCAL_SCOPE
-
