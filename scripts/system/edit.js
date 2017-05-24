@@ -83,7 +83,6 @@ selectionManager.addEventListener(function () {
             // Destroy the old particles web view first
             particleExplorerTool.destroyWebView();
             particleExplorerTool.createWebView();
-            print("Particle Selected");
             var properties = Entities.getEntityProperties(selectedEntityID);
             var particleData = {
                 messageType: "particle_settings",
