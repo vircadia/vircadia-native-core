@@ -3601,10 +3601,6 @@ void Application::idle(float nsecsElapsed) {
     _overlayConductor.update(secondsSinceLastUpdate);
 }
 
-void Application::setLowVelocityFilter(bool lowVelocityFilter) {
-    controller::InputDevice::setLowVelocityFilter(lowVelocityFilter);
-}
-
 ivec2 Application::getMouse() const {
     return getApplicationCompositor().getReticlePosition();
 }
@@ -4380,6 +4376,7 @@ void Application::update(float deltaTime) {
         }
     }
 
+    userInputMapper->setInputCalibrationData(calibrationData);
     userInputMapper->update(deltaTime);
 
     if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
