@@ -16,7 +16,14 @@
 
 #include "AvatarMixerClientData.h"
 
+AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID) :
+    NodeData(nodeID)
+{
+    _currentViewFrustum.invalidate();
 
+    // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
+    _avatar->setID(nodeID);
+}
 
 void AvatarMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
     if (!_packetQueue.node) {

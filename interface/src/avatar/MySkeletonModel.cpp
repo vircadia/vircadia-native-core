@@ -13,7 +13,7 @@
 #include "Application.h"
 #include "InterfaceLogging.h"
 
-MySkeletonModel::MySkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) : SkeletonModel(owningAvatar, parent, rig) {
+MySkeletonModel::MySkeletonModel(Avatar* owningAvatar, QObject* parent) : SkeletonModel(owningAvatar, parent) {
 }
 
 Rig::CharacterControllerState convertCharacterControllerState(CharacterController::State state) {
@@ -63,7 +63,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             glm::mat4 rigToWorld = createMatFromQuatAndPos(getRotation(), getTranslation());
             glm::mat4 worldToRig = glm::inverse(rigToWorld);
             glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
-            _rig->computeHeadFromHMD(AnimPose(rigHMDMat), headParams.rigHeadPosition, headParams.rigHeadOrientation);
+            _rig.computeHeadFromHMD(AnimPose(rigHMDMat), headParams.rigHeadPosition, headParams.rigHeadOrientation);
             headParams.headEnabled = true;
         } else {
             // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and down in desktop mode.
@@ -94,7 +94,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
 
-    _rig->updateFromHeadParameters(headParams, deltaTime);
+    _rig.updateFromHeadParameters(headParams, deltaTime);
 
     Rig::HandAndFeetParameters handAndFeetParams;
 
@@ -138,14 +138,14 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     handAndFeetParams.bodyCapsuleHalfHeight = myAvatar->getCharacterController()->getCapsuleHalfHeight();
     handAndFeetParams.bodyCapsuleLocalOffset = myAvatar->getCharacterController()->getCapsuleLocalOffset();
 
-    _rig->updateFromHandAndFeetParameters(handAndFeetParams, deltaTime);
+    _rig.updateFromHandAndFeetParameters(handAndFeetParams, deltaTime);
 
     Rig::CharacterControllerState ccState = convertCharacterControllerState(myAvatar->getCharacterController()->getState());
 
     auto velocity = myAvatar->getLocalVelocity();
     auto position = myAvatar->getLocalPosition();
     auto orientation = myAvatar->getLocalOrientation();
-    _rig->computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
+    _rig.computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
 
     // evaluate AnimGraph animation and update jointStates.
     Model::updateRig(deltaTime, parentTransform);
@@ -158,6 +158,6 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
     eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
-    _rig->updateFromEyeParameters(eyeParams);
+    _rig.updateFromEyeParameters(eyeParams);
 }
 

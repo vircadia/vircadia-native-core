@@ -16,18 +16,20 @@
 
 class AnimContext {
 public:
-    AnimContext(bool enableDebugDrawIKTargets, bool enableDebugDrawIKConstraints,
+    AnimContext(bool enableDebugDrawIKTargets, bool enableDebugDrawIKConstraints, bool enableDebugDrawIKChains,
                 const glm::mat4& geometryToRigMatrix, const glm::mat4& rigToWorldMatrix);
 
     bool getEnableDebugDrawIKTargets() const { return _enableDebugDrawIKTargets; }
     bool getEnableDebugDrawIKConstraints() const { return _enableDebugDrawIKConstraints; }
+    bool getEnableDebugDrawIKChains() const { return _enableDebugDrawIKChains; }
     const glm::mat4& getGeometryToRigMatrix() const { return _geometryToRigMatrix; }
     const glm::mat4& getRigToWorldMatrix() const { return _rigToWorldMatrix; }
 
 protected:
 
     bool _enableDebugDrawIKTargets { false };
-    bool _enableDebugDrawIKConstraints{ false };
+    bool _enableDebugDrawIKConstraints { false };
+    bool _enableDebugDrawIKChains { false };
     glm::mat4 _geometryToRigMatrix;
     glm::mat4 _rigToWorldMatrix;
 };

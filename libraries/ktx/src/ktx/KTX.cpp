@@ -56,6 +56,7 @@ uint32_t Header::evalPixelOrBlockHeight(uint32_t level) const {
             case GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: // BC3
             case GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1: // BC4
             case GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2: // BC5
+            case GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_BPTC_UNORM: // BC7
                 return (pixelWidth + 3) / 4;
             default:
                 throw std::runtime_error("Unknown format");
@@ -80,6 +81,8 @@ size_t Header::evalPixelOrBlockSize() const {
         } else if (format == GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1) {
             return 8;
         } else if (format == GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2) {
+            return 16;
+        } else if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_BPTC_UNORM) {
             return 16;
         }
     } else {

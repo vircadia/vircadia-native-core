@@ -28,7 +28,7 @@ class SkeletonModel : public CauterizedModel {
 
 public:
 
-    SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr, RigPointer rig = nullptr);
+    SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr);
     ~SkeletonModel();
 
     void initJointStates() override;

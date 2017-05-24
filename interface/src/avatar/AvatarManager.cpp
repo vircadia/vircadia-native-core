@@ -52,7 +52,7 @@ const QUuid MY_AVATAR_KEY;  // NULL key
 
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
-    _myAvatar(std::make_shared<MyAvatar>(qApp->thread(), std::make_shared<Rig>()))
+    _myAvatar(std::make_shared<MyAvatar>(qApp->thread()))
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
@@ -300,7 +300,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return std::make_shared<OtherAvatar>(qApp->thread(), std::make_shared<Rig>());
+    return std::make_shared<OtherAvatar>(qApp->thread());
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {

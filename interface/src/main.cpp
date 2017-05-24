@@ -192,6 +192,7 @@ int main(int argc, const char* argv[]) {
     int exitCode;
     {
         RunningMarker runningMarker(nullptr, RUNNING_MARKER_FILENAME);
+        bool runningMarkerExisted = runningMarker.fileExists();
         runningMarker.writeRunningMarkerFile();
 
         bool noUpdater = parser.isSet(noUpdaterOption);
@@ -202,7 +203,7 @@ int main(int argc, const char* argv[]) {
             SandboxUtils::runLocalSandbox(serverContentPath, true, RUNNING_MARKER_FILENAME, noUpdater);
         }
 
-        Application app(argc, const_cast<char**>(argv), startupTime);
+        Application app(argc, const_cast<char**>(argv), startupTime, runningMarkerExisted);
 
         // Now that the main event loop is setup, launch running marker thread
         runningMarker.startRunningMarker();
