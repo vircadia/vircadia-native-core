@@ -108,14 +108,11 @@ private:
             Auto,
             Head,
             Feet,
-            Hands,
             Shoulders,
             FeetAndHips,
-            FeetAndShoulders,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
-            FeetHipsChestAndHands,
-            FeetHipsShouldersAndHands
+            FeetHipsChestAndHead
         };
         Config _config { Config::Auto };
         Config _preferedConfig { Config::Auto };
@@ -152,9 +149,6 @@ private:
         void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        
-        void calibrateHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
-                            PuckPosePair firstHand, PuckPosePair secondHand);
         
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                 int firstShoulderIndex, int secondShoulderIndex);

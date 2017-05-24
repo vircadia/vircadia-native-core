@@ -178,7 +178,6 @@ ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : contro
     _configStringMap[Config::FeetAndHips] =  QString("FeetAndHips");
     _configStringMap[Config::FeetHipsAndChest] =  QString("FeetHipsAndChest");
     _configStringMap[Config::FeetHipsAndShoulders] = QString("FeetHipsAndShoulders");
-    _configStringMap[Config::FeetAndShoulders] = QString("FeetAndShoulders");
 }
 
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -342,11 +341,6 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 
     if (_config == Config::Feet) {
         calibrateFeet(defaultToReferenceMat, inputCalibration);
-    } else if (_config == Config::FeetAndShoulders && puckCount >= MIN_FEET_HIPS_CHEST) {
-        calibrateFeet(defaultToReferenceMat, inputCalibration);
-        int firstShoulder = 2;
-        int secondShoulder = 3;
-        calibrateShoulders(defaultToReferenceMat, inputCalibration, firstShoulder, secondShoulder);
     } else if (_config == Config::FeetAndHips && puckCount >= MIN_FEET_AND_HIPS) {
         calibrateFeet(defaultToReferenceMat, inputCalibration);
         calibrateHips(defaultToReferenceMat, inputCalibration);
@@ -666,10 +660,6 @@ void ViveControllerManager::InputDevice::calibrateShoulders(glm::mat4& defaultTo
     }
 }
 
-void ViveControllerManager::InputDevice::calibrateHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
-                                                        PuckPosePair firstHand, PuckPosePair secondHand) {
-}
-
 void ViveControllerManager::InputDevice::calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     int headIndex = _validTrackedObjects.size() - 1;
 }
@@ -708,8 +698,6 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
         _preferedConfig = Config::FeetHipsAndChest;
     } else if (value == "FeetHipsAndShoulders") {
         _preferedConfig = Config::FeetHipsAndShoulders;
-    } else if (value == "FeetAndShoulders") {
-        _preferedConfig = Config::FeetAndShoulders;
     }
 }
 
@@ -722,7 +710,7 @@ void ViveControllerManager::InputDevice::createPreferences() {
         auto getter = [this]()->QString { return _configStringMap[_preferedConfig]; };
         auto setter = [this](const QString& value) { setConfigFromString(value); saveSettings(); };
         auto preference = new ComboBoxPreference(VIVE_PUCKS_CONFIG, "Configuration", getter, setter);
-        QStringList list = (QStringList() << "Auto" << "Feet" << "FeetAndHips" << "FeetHipsAndChest" << "FeetAndShoulders");
+        QStringList list = (QStringList() << "Auto" << "Feet" << "FeetAndHips" << "FeetHipsAndChest" << "FeetHipsAndShoulders");
         preference->setItems(list);
         preferences->addPreference(preference);
 
