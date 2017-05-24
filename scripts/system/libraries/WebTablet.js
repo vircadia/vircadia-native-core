@@ -41,7 +41,7 @@ var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
-function calcSpawnInfo(hand, height) {
+function calcSpawnInfo(hand, tabletHeight) {
     var finalPosition;
 
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
@@ -52,29 +52,24 @@ function calcSpawnInfo(hand, height) {
     }
 
     if (HMD.active && hand !== NO_HANDS) {
-        var handController = getControllerWorldLocation(hand, true);
+        // Orient tablet per hand orientation.
+        // Angle it back similar to holding it like a book.
+        // Move tablet up so that hand is at bottom.
+        // Move tablet back so that hand is in front.
 
-        var TABLET_UP_OFFSET = 0.1;
-        var TABLET_FORWARD_OFFSET = 0.1;
-        var normal = Vec3.multiplyQbyV(handController.rotation, {x: 0, y: -1, z: 0});
-        var pitch = Math.asin(normal.y);
-        var MAX_PITCH = Math.PI / 4;
-        if (pitch < -MAX_PITCH) {
-            pitch = -MAX_PITCH;
-        } else if (pitch > MAX_PITCH) {
-            pitch = MAX_PITCH;
+        var handController = getControllerWorldLocation(hand, true);
+        var position = handController.position;
+        var rotation = handController.rotation;
+        if (hand === Controller.Standard.LeftHand) {
+            rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(-60, 90, 0));
+        } else {
+            rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(-60, -90, 0));
         }
 
-        // rebuild normal from pitch and heading.
-        var heading = Math.atan2(normal.z, normal.x);
-        normal = {x: Math.cos(heading), y: Math.sin(pitch), z: Math.sin(heading)};
-
-        var position = Vec3.sum(handController.position, {x: 0, y: TABLET_UP_OFFSET, z: 0});
-        var rotation = Quat.lookAt({x: 0, y: 0, z: 0}, normal, Y_AXIS);
-        var offset = Vec3.multiplyQbyV(rotation, {x: 0, y: height / 2, z: TABLET_FORWARD_OFFSET});
+        position = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x: 0, y: tabletHeight * 0.4, z: tabletHeight * 0.05 }));
 
         return {
-            position: Vec3.sum(offset, position),
+            position: position,
             rotation: rotation
         };
     } else {
