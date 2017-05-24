@@ -152,7 +152,7 @@ public:
     void paintGL();
     void resizeGL();
 
-    bool event(QEvent* event) override;
+	bool event(QEvent* event) override;
     bool eventFilter(QObject* object, QEvent* event) override;
 
     glm::uvec2 getCanvasSize() const;
@@ -443,7 +443,7 @@ private slots:
     void addAssetToWorldErrorTimeout();
 
     void handleSandboxStatus(QNetworkReply* reply);
-
+	void switchmode();
 private:
     static void initDisplay();
     void init();
@@ -683,6 +683,10 @@ private:
     FileScriptingInterface* _fileDownload;
     AudioInjector* _snapshotSoundInjector { nullptr };
     SharedSoundPointer _snapshotSound;
+	
+	bool isOculusRiftPluginAvailable();
+	DisplayPluginPointer oculusRiftPlugin;
+	bool _isDisplayVisible;
 };
 
 

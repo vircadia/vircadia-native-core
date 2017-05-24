@@ -1338,6 +1338,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
 
+		if (isOculusRiftPluginAvailable()){
+			qCDebug(interfaceapp) << "Oculus Rift Plugin is available";
+			QTimer *switchModeTimer = new QTimer(this);
+			connect(switchModeTimer, SIGNAL(timeout()), this, SLOT(switchmode()));
+			switchModeTimer->start(500);
+		}
+
         auto glInfo = getGLContextData();
         properties["gl_info"] = glInfo;
         properties["gpu_used_memory"] = (int)BYTES_TO_MB(gpu::Context::getUsedGPUMemory());
@@ -6831,6 +6838,39 @@ void Application::updateDisplayMode() {
     getMyAvatar()->reset(false);
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
+}
+
+bool Application::isOculusRiftPluginAvailable(){
+	bool isOculusRiftPluginAvailable = false;
+	auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+	// Default to the first item on the list, in case none of the menu items match
+	DisplayPluginPointer defaultplugin = displayPlugins.at(0);
+	if (defaultplugin->isHmd() && defaultplugin->getName() == "Oculus Rift"){
+		oculusRiftPlugin = defaultplugin;
+		return true; // No need to iterate again,so return
+	}
+	// Iterate to check If Oculus Rift Plugin is available
+	foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
+		QString pluginname = displayPlugin->getName();
+		if (displayPlugin->isHmd() && pluginname == "Oculus Rift") {
+			oculusRiftPlugin = displayPlugin;
+			_isDisplayVisible = displayPlugin->isDisplayVisible();
+			isOculusRiftPluginAvailable = true;
+			break;
+		}
+	}
+	return isOculusRiftPluginAvailable;
+}
+
+void Application::switchmode(){
+	bool isDisplayVisible = oculusRiftPlugin->isDisplayVisible();
+	if (isDisplayVisible != _isDisplayVisible){
+		if (isDisplayVisible == false && _isDisplayVisible == true){
+			qCDebug(interfaceapp) << "switching from HMD to desktop mode";
+			setActiveDisplayPlugin("Desktop");
+		}
+	}
+	_isDisplayVisible = isDisplayVisible; // assign current status
 }
 
 mat4 Application::getEyeProjection(int eye) const {
