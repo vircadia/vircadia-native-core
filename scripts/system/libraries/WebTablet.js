@@ -57,9 +57,8 @@ function calcSpawnInfo(hand, tabletHeight) {
     }
 
     if (handController && handController.valid) {
-        // Orient tablet per hand orientation.
+        // Orient tablet per hand pitch and yaw.
         // Angle it back similar to holding it like a book.
-        // Make it horizontal.
         // Move tablet up so that hand is at bottom.
         // Move tablet back so that hand is in front.
 
@@ -67,12 +66,13 @@ function calcSpawnInfo(hand, tabletHeight) {
         var rotation = handController.rotation;
 
         if (hand === Controller.Standard.LeftHand) {
-            rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(-60, 90, 0));
+            rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, 90, 0));
         } else {
-            rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(-60, -90, 0));
+            rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, -90, 0));
         }
-        var eulers = Quat.safeEulerAngles(rotation);
-        rotation = Quat.fromPitchYawRollDegrees(eulers.x, eulers.y, 0);
+        var normal = Vec3.multiplyQbyV(rotation, Vec3.UNIT_NEG_Y);
+        var lookAt =  Quat.lookAt({x: 0, y: 0, z: 0}, normal, Vec3.UNIT_Y);
+        rotation = Quat.multiply(lookAt, Quat.fromPitchYawRollDegrees(30, 0, 0));
 
         position = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x: 0, y: tabletHeight * 0.4, z: tabletHeight * 0.05 }));
 
