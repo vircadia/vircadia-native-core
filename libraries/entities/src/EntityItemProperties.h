@@ -274,7 +274,6 @@ public:
     void setCreated(QDateTime& v);
 
     bool hasTerseUpdateChanges() const;
-    bool hasDynamicPhysicsChanges() const;
     bool hasMiscPhysicsChanges() const;
 
     void clearSimulationOwner();
