@@ -22,7 +22,7 @@ TabView {
         enabled: true
         property string originalUrl: ""
 
-        Rectangle {
+        Rectangle { 
             color: "#404040"
 
             Text {
@@ -218,6 +218,22 @@ TabView {
         }
     }
 
+    Tab {
+        title: "P"
+        active: true
+        enabled: true
+        property string originalUrl: ""
+
+        WebView {
+            id: particleExplorerWebView
+            url: "../../../../../scripts/system/particle_explorer/particleExplorer.html"
+            eventBridge: editRoot.eventBridge
+            anchors.fill: parent
+            enabled: true
+        }
+    }
+
+
     style: TabViewStyle {
         frameOverlap: 1
         tab: Rectangle {
@@ -262,23 +278,8 @@ TabView {
             case 'selectTab':
                 selectTab(message.params.id);
                 break;
-            case 'enableParticles':
-                enableParticles(message.params.enabled);
-                break;
             default:
-                console.warn('Unrecognized test message:', JSON.stringify(message));
-        }
-    }
-
-    // This should eventually be done properly so that if more tabs are added
-    // that it would remove by title name instead.
-    function enableParticles(enabled) {
-        if (enabled && editTabView.count < 5) {
-            console.log("ADDING PARTICLES TAB");
-            editTabView.addTab("P",  Qt.createComponent("tabs/ParticleTab.qml"));
-        } else if (!enabled && editTabView.count > 4) {
-            console.log("REMOVING PARTICLES TAB");
-            editTabView.removeTab(4);
+                console.warn('Unrecognized message:', JSON.stringify(message));
         }
     }
 
@@ -289,7 +290,7 @@ TabView {
                 editTabView.currentIndex = id;
             } else {
                 console.warn('Attempt to switch to invalid tab:', id);
-            }
+            }			
         } else if (typeof id === 'string'){
             switch (id.toLowerCase()) {
                 case 'create':
@@ -297,16 +298,16 @@ TabView {
                     break;
                 case 'list':
                     editTabView.currentIndex = 1;
-                    break;
+                    break; 
                 case 'properties':
                     editTabView.currentIndex = 2;
-                    break;
+                    break; 
                 case 'grid':
                     editTabView.currentIndex = 3;
-                    break;
+                    break; 
                 case 'particle':
                     editTabView.currentIndex = 4;
-                    break;
+                    break; 
                 default:
                     console.warn('Attempt to switch to invalid tab:', id);
             }

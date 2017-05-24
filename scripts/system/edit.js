@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger,
+/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, 
    Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -70,7 +70,7 @@ var entityListTool = new EntityListTool();
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
     entityIconOverlayManager.updatePositions();
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+
     // Update particle explorer
     var needToDestroyParticleExplorer = false;
     if (selectionManager.selections.length === 1) {
@@ -78,13 +78,11 @@ selectionManager.addEventListener(function () {
         if (selectedEntityID === selectedParticleEntityID) {
             return;
         }
-
         var type = Entities.getEntityProperties(selectedEntityID, "type").type;
         if (type === "ParticleEffect") {
             // Destroy the old particles web view first
-
-            // particleExplorerTool.destroyWebView();
-            particleExplorerTool.bindWebView();
+            particleExplorerTool.destroyWebView();
+            particleExplorerTool.createWebView();
             var properties = Entities.getEntityProperties(selectedEntityID);
             var particleData = {
                 messageType: "particle_settings",
@@ -101,6 +99,7 @@ selectionManager.addEventListener(function () {
             });
 
             // Switch to particle explorer
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.sendToQml({method: 'selectTab', params: {id: 'particle'}});
         } else {
             needToDestroyParticleExplorer = true;
@@ -110,9 +109,8 @@ selectionManager.addEventListener(function () {
     }
 
     if (needToDestroyParticleExplorer && selectedParticleEntityID !== null) {
-        tablet.sendToQml({method: 'enableParticles', params: {enabled: false}});
         selectedParticleEntityID = null;
-        particleExplorerTool.bindWebView();
+        particleExplorerTool.destroyWebView();
     }
 });
 
@@ -829,14 +827,11 @@ function mouseClickEvent(event) {
         if (foundEntity === HMD.tabletID) {
             return;
         }
-
-        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         properties = Entities.getEntityProperties(foundEntity);
         if (isLocked(properties)) {
             if (wantDebug) {
                 print("Model locked " + properties.id);
             }
-            tablet.sendToQml({method: 'enableParticles', params: {enabled: false}});
         } else {
             var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
@@ -870,15 +865,12 @@ function mouseClickEvent(event) {
                 selectedEntityID = foundEntity;
                 orientation = MyAvatar.orientation;
                 intersection = rayPlaneIntersection(pickRay, P, Quat.getForward(orientation));
-                /*
+
                 if (event.isShifted) {
                     particleExplorerTool.destroyWebView();
-                }*/
+                }
                 if (properties.type !== "ParticleEffect") {
-                    tablet.sendToQml({method: 'enableParticles', params: {enabled: false}});
-                    // particleExplorerTool.destroyWebView();
-                } else {
-                    tablet.sendToQml({method: 'enableParticles', params: {enabled: true}});
+                    particleExplorerTool.destroyWebView();
                 }
 
                 if (!event.isShifted) {
@@ -1310,7 +1302,7 @@ function parentSelectedEntities() {
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         selectedParticleEntityID = null;
-        // particleExplorerTool.destroyWebView();
+        particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
         var newSortedSelection = sortSelectedEntities(selectionManager.selections);
@@ -2095,8 +2087,8 @@ function selectParticleEntity(entityID) {
         messageType: "particle_settings",
         currentProperties: properties
     };
-    // particleExplorerTool.destroyWebView();
-    particleExplorerTool.bindWebView();
+    particleExplorerTool.destroyWebView();
+    particleExplorerTool.createWebView();
 
     selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
@@ -2115,8 +2107,6 @@ entityListTool.webView.webEventReceived.connect(function (data) {
         unparentSelectedEntities();
     } else if (data.type === "selectionUpdate") {
         var ids = data.entityIds;
-
-        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (ids.length === 1) {
             if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
                 if (JSON.stringify(selectedParticleEntity) === JSON.stringify(ids[0])) {
@@ -2126,12 +2116,12 @@ entityListTool.webView.webEventReceived.connect(function (data) {
                 // Destroy the old particles web view first
                 selectParticleEntity(ids[0]);
             } else {
-                tablet.sendToQml({method: 'enableParticles', params: {enabled: false}});
                 selectedParticleEntity = 0;
-                //particleExplorerTool.destroyWebView();
+                particleExplorerTool.destroyWebView();
             }
         }
     }
 });
 
 }()); // END LOCAL_SCOPE
+
