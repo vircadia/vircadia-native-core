@@ -27,6 +27,8 @@
 #include <render/Scene.h>
 #include "OpenVrHelpers.h"
 
+using PuckPosePair = std::pair<uint32_t, controller::Pose>;
+
 namespace vr {
     class IVRSystem;
 }
@@ -104,10 +106,12 @@ private:
         };
         enum class Config {
             Auto,
+            Head,
             Feet,
             Hands,
             Shoulders,
             FeetAndHips,
+            FeetAndShoulders,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
             FeetHipsChestAndHands,
@@ -118,7 +122,7 @@ private:
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
 
-        std::vector<std::pair<uint32_t, controller::Pose>> _validTrackedObjects;
+        std::vector<PuckPosePair> _validTrackedObjects;
         std::map<uint32_t, glm::mat4> _pucksOffset;
         std::map<int, uint32_t> _jointToPuckMap;
         std::map<Config, QString> _configStringMap;
@@ -145,6 +149,17 @@ private:
         void setConfigFromString(const QString& value);
         void loadSettings();
         void saveSettings() const;
+        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        
+        void calibrateHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
+                            PuckPosePair firstHand, PuckPosePair secondHand);
+        
+        void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
+                                int firstShoulderIndex, int secondShoulderIndex);
+
+        void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         friend class ViveControllerManager;
     };
 

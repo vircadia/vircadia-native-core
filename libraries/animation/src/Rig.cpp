@@ -1047,6 +1047,17 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     } else {
         _animVars.set("spine2Type", (int)IKTarget::Type::Unknown);
     }
+
+    if (params.leftArmEnabled) {
+        
+    } else {
+        _animVars.set("leftArmType", (int)IKTarget::Type::Unknown);
+    }
+
+    if (params.rightArmEnabled) {
+    } else {
+        _animVars.set("rightArmType", (int)IKTarget::Type::Unknown);
+    }
 }
 
 void Rig::updateFromEyeParameters(const EyeParameters& params) {

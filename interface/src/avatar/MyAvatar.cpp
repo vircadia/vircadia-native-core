@@ -1479,6 +1479,37 @@ controller::Pose MyAvatar::getHeadControllerPoseInAvatarFrame() const {
     return getHeadControllerPoseInWorldFrame().transform(invAvatarMatrix);
 }
 
+void MyAvatar::setArmControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
+    _leftArmControllerPoseInSensorFrameCache.set(left);
+    _rightArmControllerPoseInSensorFrameCache.set(right);
+}
+
+controller::Pose MyAvatar::getLeftArmControllerInSensorFrame() const {
+    return _leftArmControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getRightArmControllerInSensorFrame() const {
+    return _rightArmControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getLeftArmControllerInWorldFrame() const {
+    return getLeftArmControllerInSensorFrame().transform(getSensorToWorldMatrix());
+}
+
+controller::Pose MyAvatar::getRightArmControllerInWorldFrame() const {
+    return getRightArmControllerInSensorFrame().transform(getSensorToWorldMatrix());
+}
+
+controller::Pose MyAvatar::getLeftArmControllerInAvatarFrame() const {
+    glm::mat4 worldToAvatarMat = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
+    return getLeftArmControllerInWorldFrame().transform(worldToAvatarMat);
+}
+
+controller::Pose MyAvatar::getRightArmControllerInAvatarFrame() const {
+    glm::mat4 worldToAvatarMat = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
+    return getRightArmControllerInWorldFrame().transform(worldToAvatarMat);
+}
+
 void MyAvatar::updateMotors() {
     _characterController.clearMotors();
     glm::quat motorRotation;
@@ -2794,7 +2825,7 @@ glm::mat4 MyAvatar::getRightFootCalibrationMat() const {
 
 
 glm::mat4 MyAvatar::getRightArmCalibrationMat() const {
-    int rightArmIndex = _rig->indexOfJoint("RightArm");
+    int rightArmIndex = _skeletonModel->getRig().indexOfJoint("RightArm");
     if (rightArmIndex >= 0) {
         auto rightArmPos = getAbsoluteDefaultJointTranslationInObjectFrame(rightArmIndex);
         auto rightArmRot = getAbsoluteDefaultJointRotationInObjectFrame(rightArmIndex);
@@ -2805,8 +2836,7 @@ glm::mat4 MyAvatar::getRightArmCalibrationMat() const {
 }
 
 glm::mat4 MyAvatar::getLeftArmCalibrationMat() const {
-    int leftArmIndex = _rig->indexOfJoint("LeftArm");
-    auto skeleton = _rig->getAnimSkeleton();
+    int leftArmIndex = _skeletonModel->getRig().indexOfJoint("LeftArm");
     if (leftArmIndex >= 0) {
         auto leftArmPos = getAbsoluteDefaultJointTranslationInObjectFrame(leftArmIndex);
         auto leftArmRot = getAbsoluteDefaultJointRotationInObjectFrame(leftArmIndex);
@@ -2817,8 +2847,7 @@ glm::mat4 MyAvatar::getLeftArmCalibrationMat() const {
 }
 
 glm::mat4 MyAvatar::getRightHandCalibrationMat() const {
-    int rightHandIndex = _rig->indexOfJoint("RightHand");
-    auto skeleton = _rig->getAnimSkeleton();
+    int rightHandIndex = _skeletonModel->getRig().indexOfJoint("RightHand");
     if (rightHandIndex >= 0) {
         auto rightHandPos = getAbsoluteDefaultJointTranslationInObjectFrame(rightHandIndex);
         auto rightHandRot = getAbsoluteDefaultJointRotationInObjectFrame(rightHandIndex);
@@ -2829,8 +2858,7 @@ glm::mat4 MyAvatar::getRightHandCalibrationMat() const {
 }
 
 glm::mat4 MyAvatar::getLeftHandCalibrationMat() const {
-    int leftHandIndex = _rig->indexOfJoint("LeftHand");
-    auto skeleton = _rig->getAnimSkeleton();
+    int leftHandIndex = _skeletonModel->getRig().indexOfJoint("LeftHand");
     if (leftHandIndex >= 0) {
         auto leftHandPos = getAbsoluteDefaultJointTranslationInObjectFrame(leftHandIndex);
         auto leftHandRot = getAbsoluteDefaultJointRotationInObjectFrame(leftHandIndex);
