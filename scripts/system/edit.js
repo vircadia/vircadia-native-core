@@ -83,8 +83,8 @@ selectionManager.addEventListener(function () {
         if (type === "ParticleEffect") {
             // Destroy the old particles web view first
 
-            particleExplorerTool.destroyWebView();
-            particleExplorerTool.createWebView();
+            // particleExplorerTool.destroyWebView();
+            particleExplorerTool.bindWebView();
             var properties = Entities.getEntityProperties(selectedEntityID);
             var particleData = {
                 messageType: "particle_settings",
@@ -112,7 +112,7 @@ selectionManager.addEventListener(function () {
     if (needToDestroyParticleExplorer && selectedParticleEntityID !== null) {
         tablet.sendToQml({method: 'enableParticles', params: {enabled: false}});
         selectedParticleEntityID = null;
-        particleExplorerTool.destroyWebView();
+        particleExplorerTool.bindWebView();
     }
 });
 
@@ -870,13 +870,13 @@ function mouseClickEvent(event) {
                 selectedEntityID = foundEntity;
                 orientation = MyAvatar.orientation;
                 intersection = rayPlaneIntersection(pickRay, P, Quat.getForward(orientation));
-
+                /*
                 if (event.isShifted) {
                     particleExplorerTool.destroyWebView();
-                }
+                }*/
                 if (properties.type !== "ParticleEffect") {
                     tablet.sendToQml({method: 'enableParticles', params: {enabled: false}});
-                    particleExplorerTool.destroyWebView();
+                    // particleExplorerTool.destroyWebView();
                 } else {
                     tablet.sendToQml({method: 'enableParticles', params: {enabled: true}});
                 }
@@ -1310,7 +1310,7 @@ function parentSelectedEntities() {
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         selectedParticleEntityID = null;
-        particleExplorerTool.destroyWebView();
+        // particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
         var newSortedSelection = sortSelectedEntities(selectionManager.selections);
@@ -2095,8 +2095,8 @@ function selectParticleEntity(entityID) {
         messageType: "particle_settings",
         currentProperties: properties
     };
-    particleExplorerTool.destroyWebView();
-    particleExplorerTool.createWebView();
+    // particleExplorerTool.destroyWebView();
+    particleExplorerTool.bindWebView();
 
     selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
@@ -2128,7 +2128,7 @@ entityListTool.webView.webEventReceived.connect(function (data) {
             } else {
                 tablet.sendToQml({method: 'enableParticles', params: {enabled: false}});
                 selectedParticleEntity = 0;
-                particleExplorerTool.destroyWebView();
+                //particleExplorerTool.destroyWebView();
             }
         }
     }

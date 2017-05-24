@@ -69,7 +69,6 @@ HifiEntityUI.prototype = {
             data = JSON.parse(data);
             if (data.messageType === 'particle_settings') {
                 // Update settings
-                console.log(data);
                 var currentProperties = data.currentProperties;
                 // Do expected property match with structure;
                 Object.keys(currentProperties).forEach(function(value, index) {
@@ -81,7 +80,7 @@ HifiEntityUI.prototype = {
                         if (field.className.indexOf("radian") !== -1) {
                             el.value = property / RADIAN;
                             el.onchange({target: el});
-                        } else if (field.className.indexOf("range") !== -1 || field.className.indexOf("texture") !== -1){
+                        } else if (field.className.indexOf("range") !== -1 || field.className.indexOf("texture") !== -1) {
                             el.value = property;
                             el.onchange({target: el});
                         } else if (field.className.indexOf("checkbox") !== -1) {
@@ -102,19 +101,16 @@ HifiEntityUI.prototype = {
                                 // crashes here.
 
                             } else if (field.className.indexOf("xyz")) {
-
+                                /*
                                 var x = document.getElementById(value+"-x");
                                 var y = document.getElementById(value+"-y");
                                 var z = document.getElementById(value+"-z");
                                 // crashes here.
 
-                                if (value === "emitOrientation") {
-
-                                } else {
-                                    x.value = property.x;
-                                    y.value = property.y;
-                                    z.value = property.z;
-                                }
+                                x.value = property.x;
+                                y.value = property.y;
+                                z.value = property.z;
+                                */
                             }
                         }
                     }
@@ -157,7 +153,7 @@ HifiEntityUI.prototype = {
 
         for (var property in properties) {
 
-            var builtRow = self.addElement(animationWrapper, properties[property])
+            var builtRow = self.addElement(animationWrapper, properties[property]);
             var id = properties[property].id;
             if (id) {
                 self.builtRows[id] = builtRow;
@@ -207,20 +203,14 @@ HifiEntityUI.prototype = {
         }
         return label;
     },
-    addVector: function(parent, group){
+    addVector: function(parent, group, labels){
         var self = this;
-        var inputs = ["x","y","z"];
+        var inputs = labels | ["x","y","z"];
         var domArray = [];
         parent.id = group.id;
         for (var index in inputs) {
             var element = document.createElement("input");
-            if (group.defaultColor) {
-                element.value = group.defaultColor[inputs[index]];
-            } else if (inputs[index] === "red"){
-                element.value = 255;
-            } else {
-                element.value = 0;
-            }
+
             element.setAttribute("type","number");
             element.className = inputs[index];
             element.id = group.id + "-" + inputs[index];
@@ -232,7 +222,11 @@ HifiEntityUI.prototype = {
         }
 
         this.addLabel(parent, group);
-        parent.className += " property  vector-section xyz";
+        var className = "";
+        for ( var i = 0; i < inputs.length; i++) {
+            className += inputs[i];
+        }
+        parent.className += " property  vector-section " + className;
 
         // Add Tuple and the rest
         var tupleContainer = document.createElement("div");
@@ -250,7 +244,7 @@ HifiEntityUI.prototype = {
         parent.appendChild(tupleContainer);
     },
     addVectorQuaternion: function(parent, group) {
-        this.addVector(parent,group);
+        this.addVector(parent,group, ["Pitch", "Yaw", "Roll"]);
     },
     addColorPicker: function(parent, group) {
         var self = this;

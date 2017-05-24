@@ -16,8 +16,17 @@ var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath(' .html');
 
 ParticleExplorerTool = function() {
     var that = {};
-
-    that.createWebView = function() { 
+    var bound = false;
+    that.bindWebView = function() {
+        if (!bound) {
+            that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            that.webView.setVisible = function(value) {};
+            that.webView.webEventReceived.connect(that.webEventReceived);
+            bound = true;
+        }
+    }
+    /*
+    that.createWebView = function() {
         that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         that.webView.setVisible = function(value) {};
         that.webView.webEventReceived.connect(that.webEventReceived);
@@ -35,16 +44,17 @@ ParticleExplorerTool = function() {
         that.webView.emitScriptEvent(JSON.stringify(messageData));
     }
 
+    */
     that.webEventReceived = function(data) {
-        var data = JSON.parse(data);
-        if (data.messageType === "settings_update") {
-            Entities.editEntity(that.activeParticleEntity, data.updatedSettings);
+        var message = JSON.parse(data);
+        if (message.messageType === "settings_update") {
+            Entities.editEntity(that.activeParticleEntity, message.updatedSettings);
         }
-    }
+    };
 
     that.setActiveParticleEntity = function(id) {
         that.activeParticleEntity = id;
-    }
+    };
 
     return that;
 };

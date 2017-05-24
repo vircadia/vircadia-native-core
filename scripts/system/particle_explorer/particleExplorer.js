@@ -81,7 +81,7 @@
                 id: "emitOrientation",
                 unit: "deg",
                 name: "Emit Orientation",
-                type: "Vector"
+                type: "VectorQuaternion"
             },
             { type: "Row" },
             {
