@@ -373,12 +373,6 @@ void RenderableZoneEntityItem::updateKeyZoneItemFromEntity(RenderableZoneEntityI
     if (!success) {
         keyZonePayload.editBound() = render::Item::Bound();
     }
-
-    updateKeySunFromEntity(keyZonePayload);
-
-    updateKeyAmbientFromEntity(keyZonePayload);
-
-    updateKeyBackgroundFromEntity(keyZonePayload);
 }
 
 
@@ -387,8 +381,25 @@ void RenderableZoneEntityItem::sceneUpdateRenderItemFromEntity(render::Transacti
         return;
     }
 
-    transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [&](RenderableZoneEntityItemMeta& data) {
+    bool sunChanged = _keyLightPropertiesChanged;
+    bool backgroundChanged = _backgroundPropertiesChanged;
+    bool stageChanged = _stagePropertiesChanged;
+    bool skyboxChanged = _skyboxPropertiesChanged;
+
+    transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [=](RenderableZoneEntityItemMeta& data) {
+        
         updateKeyZoneItemFromEntity(data);
+
+        if (sunChanged) {
+            updateKeySunFromEntity(data);
+        }
+
+        if (sunChanged || skyboxChanged) {
+            updateKeyAmbientFromEntity(data);
+        }
+        if (backgroundChanged || skyboxChanged) {
+            updateKeyBackgroundFromEntity(data);
+        }
     });
 }
 

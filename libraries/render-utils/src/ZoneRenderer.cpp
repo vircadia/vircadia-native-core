@@ -127,34 +127,34 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
     auto deferredTransform = inputs;
 
     auto lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
-	std::vector<model::LightPointer> keyLightStack;
+    std::vector<model::LightPointer> keyLightStack;
     if (lightStage && lightStage->_currentFrame._sunLights.size()) {
-		for (auto index : lightStage->_currentFrame._sunLights) {
-			keyLightStack.push_back(lightStage->getLight(index));
-		}
+        for (auto index : lightStage->_currentFrame._sunLights) {
+            keyLightStack.push_back(lightStage->getLight(index));
+        }
     }
-	keyLightStack.push_back(DependencyManager::get<DeferredLightingEffect>()->getGlobalLight());
+    keyLightStack.push_back(DependencyManager::get<DeferredLightingEffect>()->getGlobalLight());
 
-	std::vector<model::LightPointer> ambientLightStack;
-	if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
-		for (auto index : lightStage->_currentFrame._ambientLights) {
-			ambientLightStack.push_back(lightStage->getLight(index));
-		}
-	}
-	ambientLightStack.push_back(DependencyManager::get<DeferredLightingEffect>()->getGlobalLight());
+    std::vector<model::LightPointer> ambientLightStack;
+    if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
+        for (auto index : lightStage->_currentFrame._ambientLights) {
+            ambientLightStack.push_back(lightStage->getLight(index));
+        }
+    }
+    ambientLightStack.push_back(DependencyManager::get<DeferredLightingEffect>()->getGlobalLight());
 
 
     auto backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
-	std::vector<model::SkyboxPointer> skyboxStack;
+    std::vector<model::SkyboxPointer> skyboxStack;
     if (backgroundStage && backgroundStage->_currentFrame._backgrounds.size()) {
-		for (auto index : backgroundStage->_currentFrame._backgrounds) {
-			auto background = backgroundStage->getBackground(index);
-			if (background) {
-				skyboxStack.push_back(background->getSkybox());
-			}
-		}
+        for (auto index : backgroundStage->_currentFrame._backgrounds) {
+            auto background = backgroundStage->getBackground(index);
+            if (background) {
+                skyboxStack.push_back(background->getSkybox());
+            }
+        }
     } 
-	skyboxStack.push_back(DependencyManager::get<DeferredLightingEffect>()->getDefaultSkybox());
+    skyboxStack.push_back(DependencyManager::get<DeferredLightingEffect>()->getDefaultSkybox());
 
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
@@ -169,40 +169,40 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
         batch.setUniformBuffer(ZONE_DEFERRED_TRANSFORM_BUFFER, deferredTransform->getFrameTransformBuffer());
 
         batch.setPipeline(getKeyLightPipeline());
-		auto numKeys = keyLightStack.size();
-		for (int i = numKeys - 1; i >= 0; i--) {
-			model.setTranslation(glm::vec3(-4.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
-			batch.setModelTransform(model);
-			if (keyLightStack[i]) {
-				batch.setUniformBuffer(ZONE_KEYLIGHT_BUFFER, keyLightStack[i]->getLightSchemaBuffer());
-				batch.draw(gpu::TRIANGLE_STRIP, 4);
-			}
-		}
+        auto numKeys = keyLightStack.size();
+        for (int i = numKeys - 1; i >= 0; i--) {
+            model.setTranslation(glm::vec3(-4.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
+            batch.setModelTransform(model);
+            if (keyLightStack[i]) {
+                batch.setUniformBuffer(ZONE_KEYLIGHT_BUFFER, keyLightStack[i]->getLightSchemaBuffer());
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            }
+        }
 
         batch.setPipeline(getAmbientPipeline());
-		auto numAmbients = ambientLightStack.size();
-		for (int i = numAmbients - 1; i >= 0; i--) {
-			model.setTranslation(glm::vec3(0.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
-			batch.setModelTransform(model);
-			if (ambientLightStack[i]) {
-				batch.setUniformBuffer(ZONE_AMBIENT_BUFFER, ambientLightStack[i]->getAmbientSchemaBuffer());
-				if (ambientLightStack[i]->getAmbientMap()) {
-					batch.setResourceTexture(ZONE_AMBIENT_MAP, ambientLightStack[i]->getAmbientMap());
-				}
-				batch.draw(gpu::TRIANGLE_STRIP, 4);
-			}
-		}
+        auto numAmbients = ambientLightStack.size();
+        for (int i = numAmbients - 1; i >= 0; i--) {
+            model.setTranslation(glm::vec3(0.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
+            batch.setModelTransform(model);
+            if (ambientLightStack[i]) {
+                batch.setUniformBuffer(ZONE_AMBIENT_BUFFER, ambientLightStack[i]->getAmbientSchemaBuffer());
+                if (ambientLightStack[i]->getAmbientMap()) {
+                    batch.setResourceTexture(ZONE_AMBIENT_MAP, ambientLightStack[i]->getAmbientMap());
+                }
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            }
+        }
 
         batch.setPipeline(getBackgroundPipeline());
-		auto numBackgrounds = skyboxStack.size();
-		for (int i = numBackgrounds - 1; i >= 0; i--) {
-			model.setTranslation(glm::vec3(4.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
-			batch.setModelTransform(model);
-			if (skyboxStack[i]) {
-				batch.setResourceTexture(ZONE_SKYBOX_MAP, skyboxStack[i]->getCubemap());
-				batch.setUniformBuffer(ZONE_SKYBOX_BUFFER, skyboxStack[i]->getSchemaBuffer());
-				batch.draw(gpu::TRIANGLE_STRIP, 4);
-			}
-		}
+        auto numBackgrounds = skyboxStack.size();
+        for (int i = numBackgrounds - 1; i >= 0; i--) {
+            model.setTranslation(glm::vec3(4.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
+            batch.setModelTransform(model);
+            if (skyboxStack[i]) {
+                batch.setResourceTexture(ZONE_SKYBOX_MAP, skyboxStack[i]->getCubemap());
+                batch.setUniformBuffer(ZONE_SKYBOX_BUFFER, skyboxStack[i]->getSchemaBuffer());
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            }
+        }
     }); 
 }

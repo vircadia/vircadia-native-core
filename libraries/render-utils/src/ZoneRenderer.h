@@ -54,11 +54,17 @@ protected:
 
 class DebugZoneLighting {
 public:
+    class Config : public render::JobConfig {
+    public:
+        Config(bool enabled = false) : JobConfig(enabled) {}
+    };
+
     using Inputs = DeferredFrameTransformPointer;
-    using JobModel = render::Job::ModelI<DebugZoneLighting, Inputs>;
+    using JobModel = render::Job::ModelI<DebugZoneLighting, Inputs, Config>;
 
     DebugZoneLighting() {}
 
+    void configure(const Config& configuration) {}
     void run(const render::RenderContextPointer& context, const Inputs& inputs);
 
 protected:
