@@ -315,8 +315,7 @@ bool OpenGLDisplayPlugin::activate() {
     if (isHmd() && (getHmdScreen() >= 0)) {
         _container->showDisplayPluginsTools();
     }
-
-    return Parent::activate();
+	return Parent::activate();
 }
 
 void OpenGLDisplayPlugin::deactivate() {
@@ -337,6 +336,18 @@ void OpenGLDisplayPlugin::deactivate() {
         _container->currentDisplayActions().clear();
     }
     Parent::deactivate();
+}
+
+bool OpenGLDisplayPlugin::startStandBySession() {
+	if (!activateStandBySession()) {
+		return false;
+	}
+	return Parent::startStandBySession();
+}
+
+void OpenGLDisplayPlugin::endStandBySession() {
+	deactivateStandBySession();
+	return Parent::endStandBySession();
 }
 
 void OpenGLDisplayPlugin::customizeContext() {
