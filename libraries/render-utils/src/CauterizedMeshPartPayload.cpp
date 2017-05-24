@@ -17,7 +17,7 @@
 
 using namespace render;
 
-CauterizedMeshPartPayload::CauterizedMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform)
+CauterizedMeshPartPayload::CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform)
     : ModelMeshPartPayload(model, meshIndex, partIndex, shapeIndex, transform, offsetTransform) {}
 
 void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(
@@ -29,8 +29,16 @@ void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(
 
 void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
     // Still relying on the raw data from the model
-    CauterizedModel* skeleton = static_cast<CauterizedModel*>(_model);
-    bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE) && skeleton->getEnableCauterization();
+    bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE);
+    if (useCauterizedMesh) {
+        ModelPointer model = _model.lock();
+        if (model) {
+            CauterizedModel* skeleton = static_cast<CauterizedModel*>(model.get());
+            useCauterizedMesh = useCauterizedMesh && skeleton->getEnableCauterization();
+        } else {
+            useCauterizedMesh = false;
+        }
+    }
 
     if (useCauterizedMesh) {
         if (_cauterizedClusterBuffer) {

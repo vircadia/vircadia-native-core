@@ -58,12 +58,21 @@ public:
 
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
-    void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
-    int solveTargetWithCCD(const IKTarget& target, AnimPoseVec& absolutePoses);
+    void solveWithCyclicCoordinateDescent(const AnimContext& context, const std::vector<IKTarget>& targets);
+    void solveTargetWithCCD(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
+    struct DebugJoint {
+        DebugJoint() : relRot(), constrained(false) {}
+        DebugJoint(const glm::quat& relRotIn, bool constrainedIn) : relRot(relRotIn), constrained(constrainedIn) {}
+        glm::quat relRot;
+        bool constrained;
+    };
+    void debugDrawIKChain(std::map<int, DebugJoint>& debugJointMap, const AnimContext& context) const;
+    void debugDrawRelativePoses(const AnimContext& context) const;
     void debugDrawConstraints(const AnimContext& context) const;
     void initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPose);
     void blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPose, float blendFactor);
+
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override { return _relativePoses; }
