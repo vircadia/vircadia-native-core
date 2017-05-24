@@ -946,6 +946,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
     }
 
+    // add firstRun flag from settings to launch event
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    properties["first_run"] = firstRun.get();
+
     UserActivityLogger::getInstance().logAction("launch", properties);
 
     // Tell our entity edit sender about our known jurisdictions
@@ -1305,6 +1309,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["kbps_in"] = bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond();
         properties["kbps_out"] = bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond();
 
+        properties["asset_in_kbps"] = bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer);
+
         auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer entityServerNode = nodeList->soloNodeOfType(NodeType::EntityServer);
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
@@ -1317,9 +1323,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["asset_ping"] = assetServerNode ? assetServerNode->getPingMs() : -1;
         properties["messages_ping"] = messagesMixerNode ? messagesMixerNode->getPingMs() : -1;
 
+
         auto loadingRequests = ResourceCache::getLoadingRequests();
         properties["active_downloads"] = loadingRequests.size();
         properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
+
+        properties["processing_resources"] = DependencyManager::get<StatTracker>()->getStat("Processing").toInt();
+        properties["pending_processing_resources"] = DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt();
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
 
@@ -1334,6 +1344,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["added_entity_cnt"] = entityActivityTracking.addedEntityCount;
         properties["deleted_entity_cnt"] = entityActivityTracking.deletedEntityCount;
         properties["edited_entity_cnt"] = entityActivityTracking.editedEntityCount;
+
+        NodeToOctreeSceneStats* octreeServerSceneStats = getOcteeSceneStats();
+        unsigned long totalServerOctreeElements = 0;
+        for (NodeToOctreeSceneStatsIterator i = octreeServerSceneStats->begin(); i != octreeServerSceneStats->end(); i++) {
+            totalServerOctreeElements += i->second.getTotalElements();
+        }
+
+        properties["local_octree_elements"] = (qint64) OctreeElement::getInternalNodeCount();
+        properties["server_octree_elements"] = (qint64) totalServerOctreeElements;
 
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
