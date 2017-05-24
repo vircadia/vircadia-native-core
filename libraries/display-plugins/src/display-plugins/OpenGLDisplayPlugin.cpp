@@ -645,7 +645,7 @@ void OpenGLDisplayPlugin::present() {
             internalPresent();
         }
 
-        gpu::Backend::setFreeGPUMemory(gpu::gl::getFreeDedicatedMemory());
+        gpu::Backend::freeGPUMemSize.set(gpu::gl::getFreeDedicatedMemory());
     }
 }
 
