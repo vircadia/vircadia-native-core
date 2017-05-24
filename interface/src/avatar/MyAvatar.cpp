@@ -1323,28 +1323,10 @@ void MyAvatar::rebuildCollisionShape() {
     _characterController.setLocalBoundingBox(corner, diagonal);
 }
 
-static controller::Pose applyLowVelocityFilter(const controller::Pose& oldPose, const controller::Pose& newPose) {
-    controller::Pose finalPose = newPose;
-    if (newPose.isValid()) {
-        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-        //  no latency.
-        float velocityFilter = glm::clamp(1.0f - glm::length(oldPose.getVelocity()), 0.0f, 1.0f);
-        finalPose.translation = oldPose.getTranslation() * velocityFilter + newPose.getTranslation() * (1.0f - velocityFilter);
-        finalPose.rotation = safeMix(oldPose.getRotation(), newPose.getRotation(), 1.0f - velocityFilter);
-    }
-    return finalPose;
-}
 
 void MyAvatar::setHandControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
-    if (controller::InputDevice::getLowVelocityFilter()) {
-        auto oldLeftPose = getLeftHandControllerPoseInSensorFrame();
-        auto oldRightPose = getRightHandControllerPoseInSensorFrame();
-        _leftHandControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldLeftPose, left));
-        _rightHandControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldRightPose, right));
-    } else {
-        _leftHandControllerPoseInSensorFrameCache.set(left);
-        _rightHandControllerPoseInSensorFrameCache.set(right);
-    }
+    _leftHandControllerPoseInSensorFrameCache.set(left);
+    _rightHandControllerPoseInSensorFrameCache.set(right);
 }
 
 controller::Pose MyAvatar::getLeftHandControllerPoseInSensorFrame() const {
@@ -1374,15 +1356,8 @@ controller::Pose MyAvatar::getRightHandControllerPoseInAvatarFrame() const {
 }
 
 void MyAvatar::setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
-    if (controller::InputDevice::getLowVelocityFilter()) {
-        auto oldLeftPose = getLeftFootControllerPoseInSensorFrame();
-        auto oldRightPose = getRightFootControllerPoseInSensorFrame();
-        _leftFootControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldLeftPose, left));
-        _rightFootControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldRightPose, right));
-    } else {
-        _leftFootControllerPoseInSensorFrameCache.set(left);
-        _rightFootControllerPoseInSensorFrameCache.set(right);
-    }
+    _leftFootControllerPoseInSensorFrameCache.set(left);
+    _rightFootControllerPoseInSensorFrameCache.set(right);
 }
 
 controller::Pose MyAvatar::getLeftFootControllerPoseInSensorFrame() const {
@@ -1412,15 +1387,8 @@ controller::Pose MyAvatar::getRightFootControllerPoseInAvatarFrame() const {
 }
 
 void MyAvatar::setSpineControllerPosesInSensorFrame(const controller::Pose& hips, const controller::Pose& spine2) {
-    if (controller::InputDevice::getLowVelocityFilter()) {
-        auto oldHipsPose = getHipsControllerPoseInSensorFrame();
-        auto oldSpine2Pose = getSpine2ControllerPoseInSensorFrame();
-        _hipsControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldHipsPose, hips));
-        _spine2ControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldSpine2Pose, spine2));
-    } else {
-        _hipsControllerPoseInSensorFrameCache.set(hips);
-        _spine2ControllerPoseInSensorFrameCache.set(spine2);
-    }
+    _hipsControllerPoseInSensorFrameCache.set(hips);
+    _spine2ControllerPoseInSensorFrameCache.set(spine2);
 }
 
 controller::Pose MyAvatar::getHipsControllerPoseInSensorFrame() const {
@@ -1450,12 +1418,7 @@ controller::Pose MyAvatar::getSpine2ControllerPoseInAvatarFrame() const {
 }
 
 void MyAvatar::setHeadControllerPoseInSensorFrame(const controller::Pose& head) {
-    if (controller::InputDevice::getLowVelocityFilter()) {
-        auto oldHeadPose = getHeadControllerPoseInSensorFrame();
-        _headControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldHeadPose, head));
-    } else {
-        _headControllerPoseInSensorFrameCache.set(head);
-    }
+    _headControllerPoseInSensorFrameCache.set(head);
 }
 
 controller::Pose MyAvatar::getHeadControllerPoseInSensorFrame() const {

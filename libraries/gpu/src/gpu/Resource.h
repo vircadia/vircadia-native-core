@@ -42,6 +42,7 @@ protected:
 
 }
 
+
 // FIXME Compatibility with headers that rely on Resource.h for the buffer and buffer view definitions
 #include "Buffer.h"
 
