@@ -1824,15 +1824,10 @@ bool EntityItemProperties::hasTerseUpdateChanges() const {
     return _positionChanged || _velocityChanged || _rotationChanged || _angularVelocityChanged || _accelerationChanged;
 }
 
-bool EntityItemProperties::hasDynamicPhysicsChanges() const {
-    return _velocityChanged || _angularVelocityChanged || _accelerationChanged;
-}
-
 bool EntityItemProperties::hasMiscPhysicsChanges() const {
     return _gravityChanged || _dimensionsChanged || _densityChanged || _frictionChanged
         || _restitutionChanged || _dampingChanged || _angularDampingChanged || _registrationPointChanged ||
-        _compoundShapeURLChanged || _dynamicChanged || _collisionlessChanged || _collisionMaskChanged ||
-        _rotationChanged || _positionChanged;
+        _compoundShapeURLChanged || _dynamicChanged || _collisionlessChanged || _collisionMaskChanged;
 }
 
 void EntityItemProperties::clearSimulationOwner() {

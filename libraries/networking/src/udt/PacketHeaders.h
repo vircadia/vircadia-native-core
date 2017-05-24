@@ -114,8 +114,8 @@ public:
         EntityServerScriptLog,
         AdjustAvatarSorting,
         OctreeFileReplacement,
-        SimulationBiddingChanges,
-        LAST_PACKET_TYPE = SimulationBiddingChanges
+        CollisionEventChanges,
+        LAST_PACKET_TYPE = CollisionEventChanges
     };
 };
 
