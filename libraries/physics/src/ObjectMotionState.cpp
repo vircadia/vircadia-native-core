@@ -239,7 +239,7 @@ void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
         }
     }
 
-    if (_body->getCollisionShape()->getShapeType() != TRIANGLE_MESH_SHAPE_PROXYTYPE) {
+    if (_body && _body->getCollisionShape()->getShapeType() != TRIANGLE_MESH_SHAPE_PROXYTYPE) {
         if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
             btVector3 newLinearVelocity = glmToBullet(getObjectLinearVelocity());
             if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {

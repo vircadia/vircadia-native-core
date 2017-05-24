@@ -31,8 +31,9 @@ using namespace gpu;
 
 int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
 
-std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
-std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
+
+ContextMetricCount Texture::_textureCPUCount;
+ContextMetricSize Texture::_textureCPUMemSize;
 std::atomic<Texture::Size> Texture::_allowedCPUMemoryUsage { 0 };
 
 
@@ -58,61 +59,18 @@ void Texture::setEnableSparseTextures(bool enabled) {
 #endif
 }
 
-void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
-    if (prevObjectSize == newObjectSize) {
-        return;
-    }
-    if (prevObjectSize > newObjectSize) {
-        _textureCPUMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
-    } else {
-        _textureCPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
-    }
-}
-
 bool Texture::getEnableSparseTextures() { 
     return _enableSparseTextures.load(); 
 }
 
 uint32_t Texture::getTextureCPUCount() {
-    return _textureCPUCount.load();
+    return _textureCPUCount.getValue();
 }
 
-Texture::Size Texture::getTextureCPUMemoryUsage() {
-    return _textureCPUMemoryUsage.load();
+Texture::Size Texture::getTextureCPUMemSize() {
+    return _textureCPUMemSize.getValue();
 }
 
-uint32_t Texture::getTextureGPUCount() {
-    return Context::getTextureGPUCount();
-}
-
-uint32_t Texture::getTextureGPUSparseCount() {
-    return Context::getTextureGPUSparseCount();
-}
-
-Texture::Size Texture::getTextureTransferPendingSize() {
-    return Context::getTextureTransferPendingSize();
-}
-
-Texture::Size Texture::getTextureGPUMemoryUsage() {
-    return Context::getTextureGPUMemoryUsage();
-}
-
-Texture::Size Texture::getTextureGPUVirtualMemoryUsage() {
-    return Context::getTextureGPUVirtualMemoryUsage();
-}
-
-
-Texture::Size Texture::getTextureGPUFramebufferMemoryUsage() {
-    return Context::getTextureGPUFramebufferMemoryUsage();
-}
-
-Texture::Size Texture::getTextureGPUSparseMemoryUsage() {
-    return Context::getTextureGPUSparseMemoryUsage();
-}
-
-uint32_t Texture::getTextureGPUTransferCount() {
-    return Context::getTextureGPUTransferCount();
-}
 
 Texture::Size Texture::getAllowedGPUMemoryUsage() {
     return _allowedCPUMemoryUsage;
@@ -262,11 +220,11 @@ TexturePointer Texture::create(TextureUsageType usageType, Type type, const Elem
 
 Texture::Texture(TextureUsageType usageType) :
     Resource(), _usageType(usageType) {
-    _textureCPUCount++;
+    _textureCPUCount.increment();
 }
 
 Texture::~Texture() {
-    _textureCPUCount--;
+    _textureCPUCount.decrement();
     if (_usageType == TextureUsageType::EXTERNAL) {
         Texture::ExternalUpdates externalUpdates;
         {

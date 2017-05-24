@@ -36,4 +36,6 @@ WebEngineView {
             }
         }
     }
+
+    WebSpinner { }
 }

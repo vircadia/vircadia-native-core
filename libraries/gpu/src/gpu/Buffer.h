@@ -21,16 +21,12 @@
 #include "Resource.h"
 #include "Sysmem.h"
 #include "PageManager.h"
+#include "Metric.h"
 
 namespace gpu {
-
 class Buffer : public Resource {
-    static std::atomic<uint32_t> _bufferCPUCount;
-    static std::atomic<Size> _bufferCPUMemoryUsage;
-    static void updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
-    static void incrementBufferCPUCount();
-    static void decrementBufferCPUCount();
-
+    static ContextMetricCount _bufferCPUCount;
+    static ContextMetricSize _bufferCPUMemSize;
 public:
     using Flag = PageManager::Flag;
 
@@ -50,9 +46,7 @@ public:
     };
 
     static uint32_t getBufferCPUCount();
-    static Size getBufferCPUMemoryUsage();
-    static uint32_t getBufferGPUCount();
-    static Size getBufferGPUMemoryUsage();
+    static Size getBufferCPUMemSize();
 
     Buffer(Size pageSize = PageManager::DEFAULT_PAGE_SIZE);
     Buffer(Size size, const Byte* bytes, Size pageSize = PageManager::DEFAULT_PAGE_SIZE);
