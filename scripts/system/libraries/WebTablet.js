@@ -51,14 +51,18 @@ function calcSpawnInfo(hand, tabletHeight) {
         hand = NO_HANDS;
     }
 
+    var handController = null;
     if (HMD.active && hand !== NO_HANDS) {
+        handController = getControllerWorldLocation(hand, true);
+    }
+
+    if (handController && handController.valid) {
         // Orient tablet per hand orientation.
         // Angle it back similar to holding it like a book.
         // Make it horizontal.
         // Move tablet up so that hand is at bottom.
         // Move tablet back so that hand is in front.
 
-        var handController = getControllerWorldLocation(hand, true);
         var position = handController.position;
         var rotation = handController.rotation;
 
