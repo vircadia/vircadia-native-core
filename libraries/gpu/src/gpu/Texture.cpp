@@ -123,42 +123,40 @@ bool MemoryStorage::isMipAvailable(uint16 level, uint8 face) const {
     return (mipFace && mipFace->getSize());
 }
 
-bool MemoryStorage::allocateMip(uint16 level) {
-    bool changed = false;
+void MemoryStorage::allocateMip(uint16 level) {
+    auto faceCount = Texture::NUM_FACES_PER_TYPE[getType()];
     if (level >= _mips.size()) {
-        _mips.resize(level+1, std::vector<PixelsPointer>(Texture::NUM_FACES_PER_TYPE[getType()]));
-        changed = true;
+        _mips.resize(level + 1, std::vector<PixelsPointer>(faceCount));
     }
 
     auto& mip = _mips[level];
-    for (auto& face : mip) {
-        if (!face) {
-            changed = true;
-        }
+    if (mip.size() != faceCount) {
+        mip.resize(faceCount);
     }
-
     bumpStamp();
-
-    return changed;
 }
 
 void MemoryStorage::assignMipData(uint16 level, const storage::StoragePointer& storagePointer) {
-
     allocateMip(level);
     auto& mip = _mips[level];
+
+    auto faceCount = Texture::NUM_FACES_PER_TYPE[getType()];
 
     // here we grabbed an array of faces
     // The bytes assigned here are supposed to contain all the faces bytes of the mip.
     // For tex1D, 2D, 3D there is only one face
     // For Cube, we expect the 6 faces in the order X+, X-, Y+, Y-, Z+, Z-
-    auto sizePerFace = storagePointer->size() / mip.size();
-    size_t offset = 0;
-    for (auto& face : mip) {
-        face = storagePointer->createView(sizePerFace, offset);
-        offset += sizePerFace;
-    }
+    auto sizePerFace = storagePointer->size() / faceCount;
 
-    bumpStamp();
+    if (sizePerFace > 0) {
+        size_t offset = 0;
+        for (auto& face : mip) {
+            face = storagePointer->createView(sizePerFace, offset);
+            offset += sizePerFace;
+        }
+
+        bumpStamp();
+    }
 }
 
 
