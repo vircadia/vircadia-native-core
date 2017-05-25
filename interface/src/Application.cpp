@@ -1339,14 +1339,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["using_hmd"] = isHMDMode();
 
 		if (isOculusRiftPluginAvailable()) {
-			// If Oculus Rift Plugin is Available,And Current Display Plugin is not Oculus Rift
+			// If Oculus Rift Plugin is available and current display plugin is not Oculus Rift 
 			// then startOculusRiftStandBySession to listen Oculus HMD Mounted status. 
 			if (getActiveDisplayPlugin()->getName() != "Oculus Rift" && 
-				!oculusRiftPlugin->isFakeSessionActive()) {
+				!oculusRiftPlugin->isStandBySessionActive()) {
 					startOculusRiftStandBySession();
 			}
-			// Poll periodically to check whether the user has worn Oculus HMD or not. And switch mode
-			// accordingly. If the user wear HMD, switch to VR mode, if remove switch to Desktop mode.
+			// Poll periodically to check whether the user has worn Oculus HMD or not. And switch Display mode accordingly.
+			// If the user wear Oculus HMD then switch to VR mode. If the user removes Oculus HMD then switch to Desktop mode.
 			QTimer *switchDisplayModeTimer = new QTimer(this);
 			connect(switchDisplayModeTimer, SIGNAL(timeout()), this, SLOT(switchDisplayModeForOculus()));
 			switchDisplayModeTimer->start(500);
@@ -1581,7 +1581,7 @@ void Application::aboutToQuit() {
     }
 
     getActiveDisplayPlugin()->deactivate();
-	if (oculusRiftPlugin && oculusRiftPlugin->isFakeSessionActive()){
+	if (oculusRiftPlugin && oculusRiftPlugin->isStandBySessionActive()) {
 		oculusRiftPlugin->endStandBySession();
 	}
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
@@ -6846,14 +6846,14 @@ void Application::updateDisplayMode() {
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
 
-bool Application::isOculusRiftPluginAvailable(){
+bool Application::isOculusRiftPluginAvailable() {
 	bool isOculusRiftPluginAvailable = false;
 	auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
 	// Default to the first item on the list, in case none of the menu items match
 	DisplayPluginPointer defaultplugin = displayPlugins.at(0);
 	if (defaultplugin->isHmd() && defaultplugin->getName() == "Oculus Rift") {
 		oculusRiftPlugin = defaultplugin;
-		return true; // No need to iterate again,so return
+		return true;
 	}
 	// Iterate to check If Oculus Rift Plugin is available
 	foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
@@ -6868,9 +6868,9 @@ bool Application::isOculusRiftPluginAvailable(){
 	return isOculusRiftPluginAvailable;
 }
 
-void Application::switchDisplayModeForOculus(){
+void Application::switchDisplayModeForOculus() {
 	bool currenthmdMountedStatus = oculusRiftPlugin->isDisplayVisible();
-	if (currenthmdMountedStatus != _oculusHMDMountedStatus){
+	if (currenthmdMountedStatus != _oculusHMDMountedStatus) {
 		// Switch to respective mode as soon as currenthmdMountedStatus changes 
 		if (currenthmdMountedStatus == false && _oculusHMDMountedStatus == true) {
 			qCDebug(interfaceapp) << "Switching from HMD to desktop mode";
@@ -6886,13 +6886,13 @@ void Application::switchDisplayModeForOculus(){
 	_oculusHMDMountedStatus = currenthmdMountedStatus;
 }
 
-bool Application::startOculusRiftStandBySession(){
+bool Application::startOculusRiftStandBySession() {
 	bool isStandBySessionStarted = oculusRiftPlugin->startStandBySession();
 	qCDebug(interfaceapp) << "startOculusRiftStandBySession: " << isStandBySessionStarted;
 	return isStandBySessionStarted;
 }
 
-void Application::endOculusRiftStandBySession(){
+void Application::endOculusRiftStandBySession() {
 	oculusRiftPlugin->endStandBySession();
 }
 

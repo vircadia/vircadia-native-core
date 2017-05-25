@@ -152,7 +152,7 @@ public:
     void paintGL();
     void resizeGL();
 
-	bool event(QEvent* event) override;
+    bool event(QEvent* event) override;
     bool eventFilter(QObject* object, QEvent* event) override;
 
     glm::uvec2 getCanvasSize() const;
@@ -685,9 +685,8 @@ private:
 	
 	
 	DisplayPluginPointer oculusRiftPlugin;
-	
 	bool isOculusRiftPluginAvailable();
-	bool _oculusHMDMountedStatus; // Keep track of HMD Mounted Flag
+	bool _oculusHMDMountedStatus; // Keep track of Oculus Rift HMDMounted Flag
 	bool startOculusRiftStandBySession();
 	void endOculusRiftStandBySession();
 };

@@ -315,7 +315,7 @@ bool OpenGLDisplayPlugin::activate() {
     if (isHmd() && (getHmdScreen() >= 0)) {
         _container->showDisplayPluginsTools();
     }
-	return Parent::activate();
+    return Parent::activate();
 }
 
 void OpenGLDisplayPlugin::deactivate() {
