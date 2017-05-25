@@ -4874,12 +4874,6 @@ QRect Application::getDesirableApplicationGeometry() const {
     return applicationGeometry;
 }
 
-glm::vec3 Application::getSunDirection() const {
-    // Sun direction is in fact just the location of the sun relative to the origin
-    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-    return skyStage->getSunLight()->getDirection();
-}
-
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
@@ -4946,90 +4940,6 @@ namespace render {
     }
 }
 
-// Background Render Data & rendering functions
-class BackgroundRenderData {
-public:
-    typedef render::Payload<BackgroundRenderData> Payload;
-    typedef Payload::DataPointer Pointer;
-
-    static render::ItemID _item; // unique WorldBoxRenderData
-};
-
-render::ItemID BackgroundRenderData::_item = 0;
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
-        return ItemKey::Builder::background();
-    }
-
-    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) {
-        return Item::Bound();
-    }
-
-    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
-        Q_ASSERT(args->_batch);
-        gpu::Batch& batch = *args->_batch;
-
-        // Background rendering decision
-        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        auto backgroundMode = skyStage->getBackgroundMode();
-
-        switch (backgroundMode) {
-            case model::SunSkyStage::SKY_DEFAULT: {
-                auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-                auto sceneKeyLight = scene->getKeyLight();
-
-                scene->setSunModelEnable(false);
-                sceneKeyLight->setColor(ColorUtils::toVec3(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_COLOR));
-                sceneKeyLight->setIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_INTENSITY);
-                sceneKeyLight->setAmbientIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY);
-                sceneKeyLight->setDirection(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_DIRECTION);
-                // fall through: render a skybox (if available), or the defaults (if requested)
-           }
-
-            case model::SunSkyStage::SKY_BOX: {
-                auto skybox = skyStage->getSkybox();
-                if (!skybox->empty()) {
-                    PerformanceTimer perfTimer("skybox");
-                    skybox->render(batch, args->getViewFrustum());
-                    break;
-                }
-                // fall through: render defaults (if requested)
-            }
-
-            case model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
-                    auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-                    auto sceneKeyLight = scene->getKeyLight();
-                    auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                    if (defaultSkyboxAmbientTexture) {
-                        sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
-                        sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
-                    } else {
-                        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(
-                            "Failed to get a valid Default Skybox Ambient Texture ? probably because it couldn't be find during initialization step");
-                    }
-                    // fall through: render defaults skybox
-                } else {
-                    break;
-                }
-            }
-
-            case model::SunSkyStage::SKY_DEFAULT_TEXTURE:
-                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
-                    qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
-                }
-                break;
-
-            // Any other cases require no extra rendering
-            case model::SunSkyStage::NO_BACKGROUND:
-            default:
-                break;
-        }
-    }
-}
-
-
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
 
     // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
@@ -5052,15 +4962,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // The pending changes collecting the changes here
     render::Transaction transaction;
-
-    // FIXME: Move this out of here!, Background / skybox should be driven by the enityt content just like the other entities
-    // Background rendering decision
-    if (!render::Item::isValidID(BackgroundRenderData::_item)) {
-        auto backgroundRenderData = make_shared<BackgroundRenderData>();
-        auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
-        BackgroundRenderData::_item = _main3DScene->allocateID();
-        transaction.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
-    }
 
     // Assuming nothing gets rendered through that
     if (!selfAvatarOnly) {

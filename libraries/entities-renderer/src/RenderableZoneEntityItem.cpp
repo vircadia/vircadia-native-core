@@ -245,28 +245,6 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
         _model->removeFromScene(scene, transaction);
         scene->enqueueTransaction(transaction);
     }
-
-    /*
-    {
-        // Set the keylight
-        sceneKeyLight->setColor(ColorUtils::toVec3(this->getKeyLightProperties().getColor()));
-        sceneKeyLight->setIntensity(this->getKeyLightProperties().getIntensity());
-        sceneKeyLight->setAmbientIntensity(this->getKeyLightProperties().getAmbientIntensity());
-        sceneKeyLight->setDirection(this->getKeyLightProperties().getDirection());
-
-        // Set the stage
-        bool isSunModelEnabled = this->getStageProperties().getSunModelEnabled();
-        sceneStage->setSunModelEnable(isSunModelEnabled);
-        if (isSunModelEnabled) {
-            sceneStage->setLocation(this->getStageProperties().getLongitude(),
-                this->getStageProperties().getLatitude(),
-                this->getStageProperties().getAltitude());
-
-            auto sceneTime = sceneStage->getTime();
-            sceneTime->setHour(this->getStageProperties().calculateHour());
-            sceneTime->setDay(this->getStageProperties().calculateDay());
-        }
-    }*/
 }
 
 bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
@@ -289,6 +267,9 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::
     auto renderData = std::make_shared<RenderableZoneEntityItemMeta>(self);
     auto renderPayload = std::make_shared<RenderableZoneEntityItemMeta::Payload>(renderData);
     updateKeyZoneItemFromEntity((*renderData));
+    updateKeySunFromEntity((*renderData));
+    updateKeyAmbientFromEntity((*renderData));
+    updateKeyBackgroundFromEntity((*renderData));
 
     render::Item::Status::Getters statusGetters;
     makeEntityItemStatusGetters(getThisPointer(), statusGetters);
@@ -373,6 +354,22 @@ void RenderableZoneEntityItem::updateKeyZoneItemFromEntity(RenderableZoneEntityI
     if (!success) {
         keyZonePayload.editBound() = render::Item::Bound();
     }
+
+    /* TODO: Implement the sun model behavior / Keep this code here for reference, this is how we
+    {
+        // Set the stage
+        bool isSunModelEnabled = this->getStageProperties().getSunModelEnabled();
+        sceneStage->setSunModelEnable(isSunModelEnabled);
+        if (isSunModelEnabled) {
+            sceneStage->setLocation(this->getStageProperties().getLongitude(),
+                this->getStageProperties().getLatitude(),
+                this->getStageProperties().getAltitude());
+
+            auto sceneTime = sceneStage->getTime();
+            sceneTime->setHour(this->getStageProperties().calculateHour());
+            sceneTime->setDay(this->getStageProperties().calculateDay());
+        }
+    }*/
 }
 
 

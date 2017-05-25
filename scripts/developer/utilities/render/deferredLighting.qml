@@ -64,6 +64,7 @@ Column {
                      "Point:LightingModel:enablePointLight",
                      "Spot:LightingModel:enableSpotLight",
                      "Light Contour:LightingModel:showLightContour",
+                     "Zone Stack:DrawZoneStack:enabled",
                      "Shadow:RenderShadowTask:enabled"
                 ]
                 CheckBox {
