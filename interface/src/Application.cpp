@@ -1371,7 +1371,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         QJsonObject cacheRequests;
         cacheRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_CACHE).toInt();
-        cacheRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_FAILED).toInt();
+        cacheRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_CACHE).toInt();
         cacheRequests["total"] = cacheRequests["atp"].toInt() + cacheRequests["http"].toInt();
         properties["cache_requests"] = cacheRequests;
 
