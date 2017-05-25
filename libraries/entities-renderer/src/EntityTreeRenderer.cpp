@@ -1108,7 +1108,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         assert(!bothEntitiesStatic);
 #endif
 
-        if ((myNodeID == entityASimulatorID && entityAIsDynamic) || (myNodeID == entityBSimulatorID && !entityAIsDynamic)) {
+        if ((myNodeID == entityASimulatorID && entityAIsDynamic) || (myNodeID == entityBSimulatorID && (!entityAIsDynamic || entityASimulatorID.isNull()))) {
             playEntityCollisionSound(entityA, collision);
             emit collisionWithEntity(idA, idB, collision);
             if (_entitiesScriptEngine) {
@@ -1116,7 +1116,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
             }
         }
 
-        if ((myNodeID == entityBSimulatorID && entityBIsDynamic) || (myNodeID == entityASimulatorID && !entityBIsDynamic)) {
+        if ((myNodeID == entityBSimulatorID && entityBIsDynamic) || (myNodeID == entityASimulatorID && (!entityBIsDynamic || entityBSimulatorID.isNull()))) {
             playEntityCollisionSound(entityB, collision);
             // since we're swapping A and B we need to send the inverted collision
             Collision invertedCollision(collision);
