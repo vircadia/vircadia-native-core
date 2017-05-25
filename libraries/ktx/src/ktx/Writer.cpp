@@ -70,7 +70,7 @@ namespace ktx {
         for (uint32_t l = 0; l < numMips; l++) {
             if (images.size() > l) {
                 storageSize += sizeof(uint32_t);
-                storageSize += evalPadded(images[l]._imageSize);
+                storageSize += evalPaddedSize(images[l]._imageSize);
             }
         }
         return storageSize;
@@ -88,7 +88,7 @@ namespace ktx {
         for (uint32_t l = 0; l < numMips; l++) {
             if (imageDescriptors.size() > l) {
                 storageSize += sizeof(uint32_t);
-                storageSize += evalPadded(imageDescriptors[l]._imageSize);
+                storageSize += evalPaddedSize(imageDescriptors[l]._imageSize);
             }
         }
         return storageSize;

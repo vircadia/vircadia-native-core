@@ -96,13 +96,13 @@ int main(int argc, char** argv) {
     Q_ASSERT(ktx::evalPadding(4) == 0);
     Q_ASSERT(ktx::evalPadding(1024) == 0);
     Q_ASSERT(ktx::evalPadding(1025) == 3);
-    Q_ASSERT(ktx::evalPadded(0) == 0);
-    Q_ASSERT(ktx::evalPadded(1) == 4);
-    Q_ASSERT(ktx::evalPadded(2) == 4);
-    Q_ASSERT(ktx::evalPadded(3) == 4);
-    Q_ASSERT(ktx::evalPadded(4) == 4);
-    Q_ASSERT(ktx::evalPadded(1024) == 1024);
-    Q_ASSERT(ktx::evalPadded(1025) == 1028);
+    Q_ASSERT(ktx::evalPaddedSize(0) == 0);
+    Q_ASSERT(ktx::evalPaddedSize(1) == 4);
+    Q_ASSERT(ktx::evalPaddedSize(2) == 4);
+    Q_ASSERT(ktx::evalPaddedSize(3) == 4);
+    Q_ASSERT(ktx::evalPaddedSize(4) == 4);
+    Q_ASSERT(ktx::evalPaddedSize(1024) == 1024);
+    Q_ASSERT(ktx::evalPaddedSize(1025) == 1028);
     Q_ASSERT(sizeof(ktx::Header) == 12 + (sizeof(uint32_t) * 13));
 
     DependencyManager::set<tracing::Tracer>();

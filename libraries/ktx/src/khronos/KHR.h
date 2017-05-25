@@ -209,6 +209,44 @@ namespace khronos {
                 COMPRESSED_SIGNED_RG11_EAC = 0x9273,
             };
 
+            template <uint32_t ALIGNMENT> 
+            inline uint32_t evalAlignedCompressedBlockCount(uint32_t value) {
+                // FIXME add static assert that ALIGNMENT is a power of 2
+                return (value + (ALIGNMENT - 1) / ALIGNMENT);
+            }
+
+            inline uint8_t evalBlockAlignemnt(InternalFormat format, uint32_t value) {
+                switch (format) {
+                    case InternalFormat::COMPRESSED_SRGB_S3TC_DXT1_EXT: // BC1
+                    case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: // BC1A
+                    case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: // BC3
+                    case InternalFormat::COMPRESSED_RED_RGTC1: // BC4
+                    case InternalFormat::COMPRESSED_RG_RGTC2: // BC5
+                    case InternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM: // BC7
+                        return evalAlignedCompressedBlockCount<4>(value);
+
+                    default:
+                        throw std::runtime_error("Unknown format");
+                }
+            }
+
+            inline uint8_t evalCompressedBlockSize(InternalFormat format) {
+                switch (format) {
+                    case InternalFormat::COMPRESSED_SRGB_S3TC_DXT1_EXT:
+                    case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+                    case InternalFormat::COMPRESSED_RED_RGTC1:
+                        return 8;
+
+                    case InternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+                    case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+                    case InternalFormat::COMPRESSED_RG_RGTC2:
+                        return 16;
+
+                    default:
+                        return 0;
+                }
+            }
+
             enum class BaseInternalFormat : uint32_t {
                 // GL 4.4 Table 8.11
                 DEPTH_COMPONENT = 0x1902,
@@ -220,19 +258,46 @@ namespace khronos {
                 STENCIL_INDEX = 0x1901,
             };
 
-            enum CubeMapFace {
-                POS_X = 0,
-                NEG_X = 1,
-                POS_Y = 2,
-                NEG_Y = 3,
-                POS_Z = 4,
-                NEG_Z = 5,
-                NUM_CUBEMAPFACES = 6,
-            };
+            inline uint8_t evalComponentCount(BaseInternalFormat format) {
+                switch (format) {
+                    case BaseInternalFormat::DEPTH_COMPONENT:
+                    case BaseInternalFormat::STENCIL_INDEX:
+                    case BaseInternalFormat::RED:
+                        return 1;
+
+                    case BaseInternalFormat::DEPTH_STENCIL:
+                    case BaseInternalFormat::RG:
+                        return 2;
+
+                    case BaseInternalFormat::RGB:
+                        return 3;
+
+                    case BaseInternalFormat::RGBA:
+                        return 4;
+
+                    default: 
+                        break;
+                }
+
+                return 0;
+            }
+
+            namespace cubemap {
+                enum Constants {
+                    NUM_CUBEMAPFACES = 6,
+                };
+
+                enum class Face {
+                    POSITIVE_X = 0x8515,
+                    NEGATIVE_X = 0x8516,
+                    POSITIVE_Y = 0x8517,
+                    NEGATIVE_Y = 0x8518,
+                    POSITIVE_Z = 0x8519,
+                    NEGATIVE_Z = 0x851A,
+                };
+            }
         }
-
     }
-
 }
 
 #endif // khronos_khr_hpp

@@ -281,9 +281,7 @@ struct AlignedStreamBuffer {
     }
 
     bool skip(size_t skipSize) {
-        if ((skipSize % 4) != 0) {
-            skipSize += (3 - ((skipSize + 3) % 4));
-        }
+        skipSize = ktx::evalPaddedSize(skipSize);
         if (skipSize > _size) {
             return false;
         }
@@ -323,7 +321,7 @@ bool validateKeyValueData(AlignedStreamBuffer kvbuffer) {
 }
 
 bool KTX::validate(const StoragePointer& src) {
-    if ((src->size() % 4) != 0) {
+    if (!checkAlignment(src->size())) {
         // All KTX data is 4-byte aligned
         qDebug() << "Invalid size, not 4 byte aligned";
         return false;
@@ -363,16 +361,13 @@ bool KTX::validate(const StoragePointer& src) {
             return false;
         }
 
-        if (header.numberOfArrayElements == 0 && header.numberOfFaces == 6) {
-            for (uint8_t face = 0; face < NUM_CUBEMAPFACES; ++face) {
+        uint32_t arrayElements = header.numberOfArrayElements == 0 ? 1 : header.numberOfArrayElements;
+        for (uint32_t arrayElement = 0; arrayElement < arrayElements; ++arrayElement) {
+            for (uint8_t face = 0; face < header.numberOfFaces; ++face) {
                 if (!buffer.skip(imageSize)) {
-                    qDebug() << "Unable to skip past cubemap data";
+                    qDebug() << "Unable to skip past image data";
                     return false;
                 }
-            }
-        } else {
-            if (!buffer.skip(imageSize)) {
-                return false;
             }
         }
     }

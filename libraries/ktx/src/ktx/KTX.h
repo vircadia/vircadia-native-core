@@ -82,7 +82,7 @@ namespace ktx {
     // Alignment constants
     static const uint32_t ALIGNMENT { sizeof(uint32_t) };
     static const uint32_t ALIGNMENT_REMAINDER { ALIGNMENT - 1 };
-    static const uint32_t NUM_CUBEMAPFACES = khronos::gl::texture::CubeMapFace::NUM_CUBEMAPFACES;
+    static const uint32_t NUM_CUBEMAPFACES = khronos::gl::texture::cubemap::NUM_CUBEMAPFACES;
 
     // FIXME move out of this header, not specific to ktx
     const std::string HIFI_MIN_POPULATED_MIP_KEY { "hifi.minMip" };
@@ -94,7 +94,6 @@ namespace ktx {
     using GLFormat = khronos::gl::texture::Format;
     using GLInternalFormat = khronos::gl::texture::InternalFormat;
     using GLBaseInternalFormat = khronos::gl::texture::BaseInternalFormat;
-    using CubeMapFace = khronos::gl::texture::CubeMapFace;
 
     using Storage = storage::Storage;
     using StoragePointer = std::shared_ptr<Storage>;
@@ -112,7 +111,7 @@ namespace ktx {
 
     // Returns the passed value rounded up to the next 4 byte aligned value, if it's not already 4 byte aligned
     template <typename T>
-    inline T evalPadded(T value) {
+    inline T evalPaddedSize(T value) {
         return (value + ALIGNMENT_REMAINDER) & ~(T)ALIGNMENT_REMAINDER;
     }
 
@@ -123,7 +122,7 @@ namespace ktx {
 
     template <typename T>
     inline bool checkAlignment(T value) {
-        return ((value & 0x3) == 0);
+        return ((value & ALIGNMENT_REMAINDER) == 0);
     }
 
 
@@ -216,6 +215,13 @@ namespace ktx {
         ImageDescriptors generateImageDescriptors() const;
 
     private:
+        uint32_t evalPixelOrBlockDimension(uint32_t pixelDimension) const;
+        uint32_t evalMipPixelOrBlockDimension(uint32_t level, uint32_t pixelDimension) const;
+
+        static inline uint32_t evalMipDimension(uint32_t mipLevel, uint32_t pixelDimension) {
+            return std::max(pixelDimension >> mipLevel, 1U);
+        }
+
         void setDimensions(uint32_t width, uint32_t height = 0, uint32_t depth = 0, uint32_t numSlices = 0, uint32_t numFaces = 1) {
             pixelWidth = (width > 0 ? width : 1);
             pixelHeight = height;

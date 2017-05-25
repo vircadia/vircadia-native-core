@@ -28,70 +28,45 @@ uint32_t Header::evalMaxDimension() const {
     return std::max(getPixelWidth(), std::max(getPixelHeight(), getPixelDepth()));
 }
 
-uint32_t Header::evalPixelOrBlockWidth(uint32_t level) const {
-    auto pixelWidth = std::max(getPixelWidth() >> level, 1U);
+uint32_t Header::evalPixelOrBlockDimension(uint32_t pixelDimension) const {
     if (isCompressed()) {
-        return evalAlignedCount(pixelWidth);
-    } else {
-        return pixelWidth;
-    }
+        return khronos::gl::texture::evalBlockAlignemnt(getGLInternaFormat(), pixelDimension);
+    } 
+    return pixelDimension;
 }
+
+uint32_t Header::evalMipPixelOrBlockDimension(uint32_t mipLevel, uint32_t pixelDimension) const {
+    uint32_t mipPixelDimension = evalMipDimension(mipLevel, pixelDimension);
+    return evalPixelOrBlockDimension(mipPixelDimension);
+}
+
+uint32_t Header::evalPixelOrBlockWidth(uint32_t level) const {
+    return evalMipPixelOrBlockDimension(level, getPixelWidth());
+}
+
 uint32_t Header::evalPixelOrBlockHeight(uint32_t level) const {
-    auto pixelWidth = std::max(getPixelHeight() >> level, 1U);
-    if (glType == COMPRESSED_TYPE) {
-        auto format = getGLInternaFormat();
-        switch (format) {
-            case GLInternalFormat::COMPRESSED_SRGB_S3TC_DXT1_EXT: // BC1
-            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: // BC1A
-            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: // BC3
-            case GLInternalFormat::COMPRESSED_RED_RGTC1: // BC4
-            case GLInternalFormat::COMPRESSED_RG_RGTC2: // BC5
-            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM: // BC7
-                return evalAlignedCount(pixelWidth);
-            default:
-                throw std::runtime_error("Unknown format");
-        }
-    } else {
-        return pixelWidth;
-    }
+    return evalMipPixelOrBlockDimension(level, getPixelHeight());
 }
+
 uint32_t Header::evalPixelOrBlockDepth(uint32_t level) const {
-    return std::max(getPixelDepth() >> level, 1U);
+    return evalMipDimension(level, getPixelDepth());
 }
 
 size_t Header::evalPixelOrBlockSize() const {
+    size_t result = 0;
     if (isCompressed()) {
         auto format = getGLInternaFormat();
-        switch (format) {
-            case GLInternalFormat::COMPRESSED_SRGB_S3TC_DXT1_EXT:
-            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
-            case GLInternalFormat::COMPRESSED_RED_RGTC1:
-                return 8;
-            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
-            case GLInternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
-            case GLInternalFormat::COMPRESSED_RG_RGTC2:
-                return 16;
-            default:
-                break;
-        }
+        result = khronos::gl::texture::evalCompressedBlockSize(format);
     } else {
+        // FIXME should really be using the internal format, not the base internal format
         auto baseFormat = getGLBaseInternalFormat();
-        switch (baseFormat) {
-            case GLBaseInternalFormat::RED:
-                return 1;
-            case GLBaseInternalFormat::RG:
-                return 2;
-            case GLBaseInternalFormat::RGB:
-                return 3;
-            case GLBaseInternalFormat::RGBA:
-                return 4;
-            default: 
-                break;
-        }
+        result = khronos::gl::texture::evalComponentCount(baseFormat);
     }
 
-    qWarning() << "Unknown ktx format: " << glFormat << " " << glBaseInternalFormat << " " << glInternalFormat;
-    return 0;
+    if (0 == result) {
+        qWarning() << "Unknown ktx format: " << glFormat << " " << glBaseInternalFormat << " " << glInternalFormat;
+    }
+    return result;
 }
 
 size_t Header::evalRowSize(uint32_t level) const {
@@ -100,7 +75,7 @@ size_t Header::evalRowSize(uint32_t level) const {
     if (pixSize == 0) {
         return 0;
     }
-    return evalPadded(pixWidth * pixSize);
+    return evalPaddedSize(pixWidth * pixSize);
 }
 
 size_t Header::evalFaceSize(uint32_t level) const {
@@ -184,7 +159,7 @@ KeyValue::KeyValue(const std::string& key, const std::string& value) :
 }
 
 uint32_t KeyValue::serializedByteSize() const {
-    return (uint32_t)sizeof(uint32_t) + evalPadded(_byteSize);
+    return (uint32_t)sizeof(uint32_t) + evalPaddedSize(_byteSize);
 }
 
 uint32_t KeyValue::serializedKeyValuesByteSize(const KeyValues& keyValues) {
