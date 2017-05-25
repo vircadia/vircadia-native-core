@@ -2199,12 +2199,16 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     auto halfHeight = _characterController.getCapsuleHalfHeight();
     if (halfHeight == 0) {
         return direct("zero height avatar");
-    }   
+    }
     auto entityTree = DependencyManager::get<EntityTreeRenderer>()->getTree();
     if (!entityTree) {
         return direct("no entity tree");
     }
     // FIXME: capsule has an offset from position!
+    // We could repeat this whole test for each of the four corners of our bounding box, in case the surface is uneven.
+    // However:
+    // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes.
+    // 2) My feeling is that this code is already at the limit of what can realistically be reviewed and maintained.
 
     QVector<EntityItemID> include{};
     QVector<EntityItemID> ignore{};
@@ -2225,8 +2229,12 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
         element, distance, face, surfaceNormal,
         (void**)&intersectedEntity, lockType, accurateResult);
     if (!intersects || !intersectedEntity) {
+        // We currently believe that physics will reliably push us out if our feet are embedded,
+        // as long as our capsule center is out and there's room above us. Here we have those
+        // conditions, so no need to check our feet below.
         return direct("no above");
     }
+    // FIXME: use _worldUpDirection and negative instead of UNIT_Y?  If we use normalMumble.y, will need to also dot against _worldUpDirection.
     glm::vec3 upperIntersection = position + (Vectors::UNIT_Y * distance);
     auto upperId = intersectedEntity->getEntityItemID();
     auto upperY = surfaceNormal.y;
@@ -2236,19 +2244,55 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
         element, distance, face, surfaceNormal,
         (void**)&intersectedEntity, lockType, accurateResult);
     if (!intersects || !intersectedEntity) {
+        // Our head may be embedded, but our center is out and there's room below. See corresponding comment above.
         return direct("no below");
     }
     glm::vec3 lowerIntersection = position + (Vectors::UNIT_NEG_Y * distance);
     auto lowerId = intersectedEntity->getEntityItemID();
     auto lowerY = surfaceNormal.y;
  
-    auto delta = glm::distance(upperIntersection, lowerIntersection);
-    //qDebug() << "FIXME position:" << position << "upper:" << upperId << upperIntersection << "lower:" << lowerId << lowerIntersection << "distance:" << delta << "height:" << (2 * _characterController.getCapsuleHalfHeight());
-    if ((upperId != lowerId) && (delta > (2 * halfHeight))) {
-        qDebug() << "FIXME upper:" << upperId << upperIntersection << " n:" << upperY << "lower:" << lowerId << lowerIntersection << " n:" << lowerY  << "delta:" << delta << "halfHeight:" << halfHeight;
-        return direct("enough room");
+    if ((upperY < 0) && (lowerY > 0)) {
+        // The surface above us is the bottom of something, and the surface below us it the top of something.
+        // I.e., we are in a clearing between two objects.
+        auto delta = glm::distance(upperIntersection, lowerIntersection);
+        //qDebug() << "FIXME position:" << position << "upper:" << upperId << upperIntersection << "lower:" << lowerId << lowerIntersection << "distance:" << delta << "height:" << (2 * _characterController.getCapsuleHalfHeight());
+        if (delta > (2 * halfHeight)) {
+            // There is room for us to fit in that clearing. If there wasn't, physics would oscilate us between the objects above and below.
+            if (upperId != lowerId) { // An optimization over what follows: the simplest case of not being inside an entity.
+                // We're going to iterate upwards through successive roofIntersections, testing to see if we're contained within the top surface of some entity.
+                // There will be one of two outcomes:
+                // a) We're not contained, so we have enough room and our position is good.
+                // b) We are contained, so we'll bail out of this but try again at a position above the containing entity.
+                auto entityAbove = upperId;
+                auto roofIntersection = upperIntersection;
+                while (1) {
+                    ignore.push_back(entityAbove);
+                    intersects = entityTree->findRayIntersection(roofIntersection, Vectors::UNIT_Y,
+                        include, ignore, visibleOnly, collidableOnly, precisionPicking,
+                        element, distance, face, surfaceNormal,
+                        (void**)&intersectedEntity, lockType, accurateResult);
+                    if (!intersects || !intersectedEntity) {
+                        // We're not inside an entity, and from the nested tests, we have room between what is above and below. So position is good!
+                        qDebug() << "FIXME upper:" << upperId << upperIntersection << " n:" << upperY << " lower:" << lowerId << lowerIntersection << " n:" << lowerY << " delta:" << delta << " halfHeight:" << halfHeight;
+                        return direct("enough room");
+                    }
+                    roofIntersection = roofIntersection + (Vectors::UNIT_Y * distance);
+                    if (surfaceNormal.y > 0) {
+                        // This new intersection is the top surface of an entity that we have not yet seen, which means we're contained within it.
+                        // We could break here and recurse from the top of the original ceiling, but since we've already done the work to find the top
+                        // of the enclosing entity, let's put our feet at roofIntersection and start over.
+                        safeLanding(roofIntersection + (Vectors::UNIT_Y * halfHeight));
+                        return true;
+                    }
+                    // We found a new bottom surface, which we're not interested in.
+                    // But there could still be a top surface above us for an entity we haven't seen, so keep looking upward.
+                    entityAbove = intersectedEntity->getEntityItemID();
+                }
+                ignore.clear(); // We didn't find anything, but in what happens below, don't ignore the entities we've encountered.
+            }
+        }
     }
-    qDebug() << "FIXME need to compute safe landing for" << position;
+    qDebug() << "FIXME need to compute safe landing for" << position << " based on " << upperIntersection << "@" << upperId << " and " << lowerIntersection << "@" << lowerId;
     const float big = (float)TREE_SCALE;
     const auto skyHigh = Vectors::UNIT_Y * big;
     include.push_back(upperId);
@@ -2263,7 +2307,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     // Bottom of capsule is at intersection, so capsule center is above that, which also avoids looping on the same intersection.
     auto newFloor = fromAbove + (Vectors::UNIT_NEG_Y * distance);
     auto newTarget = newFloor + (Vectors::UNIT_Y * halfHeight);
-    qDebug() << "FIXME newFloor:" << newFloor << "newTarget:" << newTarget;
+    qDebug() << "FIXME newFloor:" << newFloor << " newTarget:" << newTarget;
     safeLanding(newTarget);
     return true;
 }
