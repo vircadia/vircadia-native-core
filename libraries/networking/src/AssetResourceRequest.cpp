@@ -156,7 +156,11 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
         }
 
         auto statTracker = DependencyManager::get<StatTracker>();
-        
+
+        if (_assetRequest->loadedFromCache()) {
+            _loadedFromCache = true;
+        }
+
         _state = Finished;
         emit finished();
 
