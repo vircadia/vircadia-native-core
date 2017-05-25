@@ -1379,6 +1379,8 @@ function addTableRow(row) {
   var setting_name = table.attr("name");
   row.addClass(Settings.DATA_ROW_CLASS + " " + Settings.NEW_ROW_CLASS);
 
+  var focusChanged = false;
+
   _.each(row.children(), function(element) {
     if ($(element).hasClass("numbered")) {
       // Index row
@@ -1427,6 +1429,11 @@ function addTableRow(row) {
         keyInput.on('change', function(){
           input.attr("name", setting_name + "." +  $(this).val() + "." + colName);
         });
+      }
+
+      if (!focusChanged) {
+          input.focus();
+          focusChanged = true;
       }
 
       if (isCheckbox) {
