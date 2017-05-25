@@ -145,10 +145,7 @@ void RenderableZoneEntityItem::somethingChangedNotification() {
     DependencyManager::get<EntityTreeRenderer>()->updateZone(_id);
 
     // If graphics elements are changed, we need to update the render items
-    if (_keyLightPropertiesChanged || _backgroundPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged) {
-
-        notifyChangedRenderItem();
-    }
+    notifyChangedRenderItem();
 
     // Poopagate back to parent
     ZoneEntityItem::somethingChangedNotification();
@@ -290,17 +287,7 @@ void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, const ren
 }
 
 void RenderableZoneEntityItem::notifyBoundChanged() {
-    if (!render::Item::isValidID(_myMetaItem)) {
-        return;
-    }
-    render::Transaction transaction;
-    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-    if (scene) {
-        transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {});
-        scene->enqueueTransaction(transaction);
-    } else {
-        qCWarning(entitiesrenderer) << "RenderableZoneEntityItem::notifyBoundChanged(), Unexpected null scene, possibly during application shutdown";
-    }
+    notifyChangedRenderItem();
 }
 
 void RenderableZoneEntityItem::updateKeySunFromEntity(RenderableZoneEntityItemMeta& keyZonePayload) {
