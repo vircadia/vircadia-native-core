@@ -2349,7 +2349,7 @@ function MyController(hand) {
                     var startPosition = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.rotation, IN_FRONT_OF_AVATAR));
                     var rayHitProps = entityPropertiesCache.getProps(rayPickInfo.entityID);
                     var finishPisition = Vec3.sum(rayHitProps.position,  // Entity's centroid.
-                        Vec3.multiplyQbyV(rayHitProps.rotation ,
+                        Vec3.multiplyQbyV(rayHitProps.rotation,
                         Vec3.multiplyVbyV(rayHitProps.dimensions,
                         Vec3.subtract(DEFAULT_REGISTRATION_POINT, rayHitProps.registrationPoint))));
                     this.otherGrabbingLineOn(startPosition, finishPisition, COLORS_GRAB_DISTANCE_HOLD);
