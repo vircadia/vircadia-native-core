@@ -139,7 +139,7 @@ bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(AudioInjector*
     if (_options.secondOffset > 0.0f) {
         int numChannels = _options.ambisonic ? 4 : (_options.stereo ? 2 : 1);
         byteOffset = (int)(AudioConstants::SAMPLE_RATE * _options.secondOffset * numChannels);
-        byteOffset *= sizeof(AudioConstants::SAMPLE_SIZE);
+        byteOffset *= AudioConstants::SAMPLE_SIZE;
     }
     _currentSendOffset = byteOffset;
 

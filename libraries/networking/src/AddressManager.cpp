@@ -136,7 +136,13 @@ void AddressManager::goForward() {
 }
 
 void AddressManager::storeCurrentAddress() {
-    currentAddressHandle.set(currentAddress());
+    auto url = currentAddress();
+    
+    if (!url.host().isEmpty()) {
+        currentAddressHandle.set(url);
+    } else {
+        qCWarning(networking) << "Ignoring attempt to save current address with an empty host" << url;
+    }
 }
 
 QString AddressManager::currentPath(bool withOrientation) const {
