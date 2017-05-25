@@ -2181,19 +2181,24 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 }
 
 bool MyAvatar::safeLanding(const glm::vec3& position) {
-    // Considers all collision hull or non-collisionless primitive intersections on a vertical line through the point, regardless of "face direction".
-    // There to be a need for a "landing" if the closest above and the closest below are either:
-    // a) less than the avatar capsule height apart, or
-    // b) on the same entity (thus enclosing the point).
+    // Considers all collision hull or non-collisionless primitive intersections on a vertical line through the point.
+    // There needs to be a "landing" if:
+    // a) the closest above and the closest below are less than the avatar capsule height apart, or
+    // b) the above point is the top surface of an entity, indicating that we are inside it.
     // If no landing is required, we go to that point directly and return false;
-    // When a landing is required, we the entity that has the nearest "above" intersection, and find the highest intersection on the same entity
+    // When a landing is required by a, we find the highest intersection on that closest-above entity
     // (which may be that same "nearest above intersection"). That highest intersection is the candidate landing point.
-    // We then recurse with that, and when it bottoms out, the last candidate point is where we place the avatar's feet, and return true;
-    // FIXME test: MyAvatar.safeLanding({x: 100, y: 100, z: 100})
-    //qDebug() << "FIXME avatar position:" << getPosition() << "halfHeight:" << _characterController.getCapsuleHalfHeight() << "height:" << _skeletonModel->getBoundingCapsuleHeight() << "offset:" << _characterController.getCapsuleLocalOffset();
-    auto direct = [&](QString label) {
-        qDebug() << "Already safe" << label << position;
-        goToLocation(position);
+    // For b, use that top surface point.
+    // We then place our feet there, recurse with new capsule center point, and return true;
+
+    const auto offset = _characterController.getCapsuleLocalOffset();
+    const auto capsuleCenter = position + offset;
+    // We could repeat this whole test for each of the four corners of our bounding box, in case the surface is uneven. However:
+    // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes in the surfaces or avatar.
+    // 2) My feeling is that this code is already at the limit of what can realistically be reviewed and maintained.
+    auto direct = [&](const char* label) {  // position is good to go, or at least, we cannot do better
+        //qDebug() << "Already safe" << label << position;
+        goToLocation(position);  // I.e., capsuleCenter - offset
         return false;
     };
     auto halfHeight = _characterController.getCapsuleHalfHeight();
@@ -2204,58 +2209,58 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     if (!entityTree) {
         return direct("no entity tree");
     }
-    // FIXME: capsule has an offset from position!
-    // We could repeat this whole test for each of the four corners of our bounding box, in case the surface is uneven.
-    // However:
-    // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes.
-    // 2) My feeling is that this code is already at the limit of what can realistically be reviewed and maintained.
 
+    glm::vec3 upperIntersection, upperNormal, lowerIntersection, lowerNormal;
+    EntityItemID upperId, lowerId;
+    const auto up = _worldUpDirection, down = -up;
     QVector<EntityItemID> include{};
     QVector<EntityItemID> ignore{};
-    OctreeElementPointer element;
-    EntityItemPointer intersectedEntity = NULL;
-    bool intersects;
-    float distance;
-    BoxFace face;
-    glm::vec3 surfaceNormal;
-    const bool visibleOnly = false;
-    const bool collidableOnly = true;
-    const bool precisionPicking = true;
-    const auto lockType = Octree::Lock; // Should we refactor to take a lock just once?
-    bool* accurateResult = NULL;
-    // FIXME DRY this, and get rid of the extra vector arithmetic.
-    intersects = entityTree->findRayIntersection(position, Vectors::UNIT_Y,
-        include, ignore, visibleOnly, collidableOnly, precisionPicking,
-        element, distance, face, surfaceNormal,
-        (void**)&intersectedEntity, lockType, accurateResult);
-    if (!intersects || !intersectedEntity) {
+    auto recurse = [&] {  // Place bottom of capsule at the upperIntersection, and check again based on the capsule center.
+        safeLanding(upperIntersection + (up * halfHeight) - offset);
+        return true;
+    };
+    auto isUp = [&](const glm::vec3& normal) { return glm::dot(normal, up) > 0.0f; }; // true iff normal points up
+    auto isDown = [&](const glm::vec3& normal) { return glm::dot(normal, up) < 0.0f; };
+    auto findIntersection = [&](const glm::vec3& startPointIn, const glm::vec3& directionIn, glm::vec3& intersectionOut, EntityItemID& entityIdOut, glm::vec3& normalOut) {
+        OctreeElementPointer element;
+        EntityItemPointer intersectedEntity = NULL;
+        float distance;
+        BoxFace face;
+        const bool visibleOnly = false;
+        const bool collidableOnly = true;
+        const bool precisionPicking = true;
+        const auto lockType = Octree::Lock; // Should we refactor to take a lock just once?
+        bool* accurateResult = NULL;
+
+        bool intersects = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
+            element, distance, face, normalOut, (void**)&intersectedEntity, lockType, accurateResult);
+        if (!intersects || !intersectedEntity) {
+             return false;
+        }
+        intersectionOut = startPointIn + (directionIn * distance);
+        entityIdOut = intersectedEntity->getEntityItemID();
+        return true;
+    };
+
+    // The Algorithm, in four parts:
+
+    if (!findIntersection(capsuleCenter, up, upperIntersection, upperId, upperNormal)) {
         // We currently believe that physics will reliably push us out if our feet are embedded,
         // as long as our capsule center is out and there's room above us. Here we have those
         // conditions, so no need to check our feet below.
-        return direct("no above");
+        return direct("nothing above");
     }
-    // FIXME: use _worldUpDirection and negative instead of UNIT_Y?  If we use normalMumble.y, will need to also dot against _worldUpDirection.
-    glm::vec3 upperIntersection = position + (Vectors::UNIT_Y * distance);
-    auto upperId = intersectedEntity->getEntityItemID();
-    auto upperY = surfaceNormal.y;
 
-    intersects = entityTree->findRayIntersection(position, Vectors::UNIT_NEG_Y,
-        include, ignore, visibleOnly, collidableOnly, precisionPicking,
-        element, distance, face, surfaceNormal,
-        (void**)&intersectedEntity, lockType, accurateResult);
-    if (!intersects || !intersectedEntity) {
+    if (!findIntersection(capsuleCenter, down, lowerIntersection, lowerId, lowerNormal)) {
         // Our head may be embedded, but our center is out and there's room below. See corresponding comment above.
-        return direct("no below");
+        return direct("nothing below");
     }
-    glm::vec3 lowerIntersection = position + (Vectors::UNIT_NEG_Y * distance);
-    auto lowerId = intersectedEntity->getEntityItemID();
-    auto lowerY = surfaceNormal.y;
  
-    if ((upperY < 0) && (lowerY > 0)) {
+    // See if we have room between entities above and below, but that we are not contained.
+    if (isDown(upperNormal) && isUp(lowerNormal)) {
         // The surface above us is the bottom of something, and the surface below us it the top of something.
         // I.e., we are in a clearing between two objects.
         auto delta = glm::distance(upperIntersection, lowerIntersection);
-        //qDebug() << "FIXME position:" << position << "upper:" << upperId << upperIntersection << "lower:" << lowerId << lowerIntersection << "distance:" << delta << "height:" << (2 * _characterController.getCapsuleHalfHeight());
         if (delta > (2 * halfHeight)) {
             // There is room for us to fit in that clearing. If there wasn't, physics would oscilate us between the objects above and below.
             if (upperId != lowerId) { // An optimization over what follows: the simplest case of not being inside an entity.
@@ -2263,53 +2268,36 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
                 // There will be one of two outcomes:
                 // a) We're not contained, so we have enough room and our position is good.
                 // b) We are contained, so we'll bail out of this but try again at a position above the containing entity.
-                auto entityAbove = upperId;
-                auto roofIntersection = upperIntersection;
-                while (1) {
-                    ignore.push_back(entityAbove);
-                    intersects = entityTree->findRayIntersection(roofIntersection, Vectors::UNIT_Y,
-                        include, ignore, visibleOnly, collidableOnly, precisionPicking,
-                        element, distance, face, surfaceNormal,
-                        (void**)&intersectedEntity, lockType, accurateResult);
-                    if (!intersects || !intersectedEntity) {
+                for (;;) {
+                    ignore.push_back(upperId);
+                    if (!findIntersection(upperIntersection, up, upperIntersection, upperId, upperNormal)) {
                         // We're not inside an entity, and from the nested tests, we have room between what is above and below. So position is good!
-                        qDebug() << "FIXME upper:" << upperId << upperIntersection << " n:" << upperY << " lower:" << lowerId << lowerIntersection << " n:" << lowerY << " delta:" << delta << " halfHeight:" << halfHeight;
+                        //qDebug() << "FIXME upper:" << upperId << upperIntersection << " n:" << upperNormal.y << " lower:" << lowerId << lowerIntersection << " n:" << lowerNormal.y << " delta:" << delta << " halfHeight:" << halfHeight;
                         return direct("enough room");
                     }
-                    roofIntersection = roofIntersection + (Vectors::UNIT_Y * distance);
-                    if (surfaceNormal.y > 0) {
+                    if (isUp(upperNormal)) {
                         // This new intersection is the top surface of an entity that we have not yet seen, which means we're contained within it.
                         // We could break here and recurse from the top of the original ceiling, but since we've already done the work to find the top
-                        // of the enclosing entity, let's put our feet at roofIntersection and start over.
-                        safeLanding(roofIntersection + (Vectors::UNIT_Y * halfHeight));
-                        return true;
+                        // of the enclosing entity, let's put our feet at upperIntersection and start over.
+                        return recurse();
                     }
                     // We found a new bottom surface, which we're not interested in.
                     // But there could still be a top surface above us for an entity we haven't seen, so keep looking upward.
-                    entityAbove = intersectedEntity->getEntityItemID();
                 }
-                ignore.clear(); // We didn't find anything, but in what happens below, don't ignore the entities we've encountered.
             }
         }
     }
-    qDebug() << "FIXME need to compute safe landing for" << position << " based on " << upperIntersection << "@" << upperId << " and " << lowerIntersection << "@" << lowerId;
+
+    //qDebug() << "FIXME need to compute safe landing for" << capsuleCenter << " based on " << upperIntersection << "@" << upperId << " and " << lowerIntersection << "@" << lowerId;
     const float big = (float)TREE_SCALE;
-    const auto skyHigh = Vectors::UNIT_Y * big;
-    include.push_back(upperId);
-    auto fromAbove = position + skyHigh;
-    intersects = entityTree->findRayIntersection(fromAbove, Vectors::UNIT_NEG_Y,
-        include, ignore, visibleOnly, collidableOnly, precisionPicking,
-        element, distance, face, surfaceNormal,
-        (void**)&intersectedEntity, lockType, accurateResult);
-    if (!intersects || !intersectedEntity) {
-        return direct("no landing");
+    const auto skyHigh = up * big;
+    auto fromAbove = capsuleCenter + skyHigh;
+    include.push_back(upperId); // We're looking for the intersection from above onto this entity.
+    if (!findIntersection(fromAbove, down, upperIntersection, upperId, upperNormal)) {
+        return direct("Unable to find a landing");
     }
-    // Bottom of capsule is at intersection, so capsule center is above that, which also avoids looping on the same intersection.
-    auto newFloor = fromAbove + (Vectors::UNIT_NEG_Y * distance);
-    auto newTarget = newFloor + (Vectors::UNIT_Y * halfHeight);
-    qDebug() << "FIXME newFloor:" << newFloor << " newTarget:" << newTarget;
-    safeLanding(newTarget);
-    return true;
+    // Our arbitrary rule is to always go up. There's no need to look down or sideways for a "closer" safe candidate.
+    return recurse();
 }
 
 void MyAvatar::updateMotionBehaviorFromMenu() {
