@@ -69,6 +69,7 @@
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
+#include <FingerprintUtils.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -950,6 +951,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
     properties["first_run"] = firstRun.get();
+
+    // add the user's machine ID to the launch event
+    properties["machine_fingerprint"] = FingerprintUtils::getMachineFingerprint().toString();
 
     UserActivityLogger::getInstance().logAction("launch", properties);
 
