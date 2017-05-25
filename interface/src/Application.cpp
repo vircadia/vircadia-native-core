@@ -1325,8 +1325,20 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["messages_ping"] = messagesMixerNode ? messagesMixerNode->getPingMs() : -1;
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
+
+        QJsonArray loadingRequestsStats;
+        for (const auto& request : loadingRequests) {
+            QJsonObject requestStats;
+            requestStats["filename"] = request->getURL().fileName();
+            requestStats["received"] = request->getBytesReceived();
+            requestStats["total"] = request->getBytesTotal();
+            requestStats["attempts"] = (int)request->getDownloadAttempts();
+            loadingRequestsStats.append(requestStats);
+        }
+
         properties["active_downloads"] = loadingRequests.size();
         properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
+        properties["active_downloads_details"] = loadingRequestsStats;
 
         auto statTracker = DependencyManager::get<StatTracker>();
 
