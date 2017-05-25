@@ -953,7 +953,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     properties["first_run"] = firstRun.get();
 
     // add the user's machine ID to the launch event
-    properties["machine_fingerprint"] = FingerprintUtils::getMachineFingerprint().toString();
+    properties["machine_fingerprint"] = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
 
     UserActivityLogger::getInstance().logAction("launch", properties);
 
