@@ -212,7 +212,10 @@ public:
 glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParentMap,
         const QHash<QString, FBXModel>& models, QString nodeID, bool mixamoHack) {
     glm::mat4 globalTransform;
+    QVector<QString> visitedNodes; // Used to prevent following a cycle
     while (!nodeID.isNull()) {
+        visitedNodes.append(nodeID); // Append each node we visit
+
         const FBXModel& model = models.value(nodeID);
         globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
             model.rotation * model.postRotation) * model.postTransform * globalTransform;
@@ -223,7 +226,7 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
         QList<QString> parentIDs = _connectionParentMap.values(nodeID);
         nodeID = QString();
         foreach (const QString& parentID, parentIDs) {
-            if (models.contains(parentID)) {
+            if (models.contains(parentID) && !visitedNodes.contains(parentID)) {
                 nodeID = parentID;
                 break;
             }
@@ -349,9 +352,12 @@ void addBlendshapes(const ExtractedBlendshape& extracted, const QList<WeightedIn
 QString getTopModelID(const QMultiMap<QString, QString>& connectionParentMap,
         const QHash<QString, FBXModel>& models, const QString& modelID) {
     QString topID = modelID;
+    QVector<QString> visitedNodes; // Used to prevent following a cycle
     forever {
+        visitedNodes.append(topID); // Append each node we visit
+
         foreach (const QString& parentID, connectionParentMap.values(topID)) {
-            if (models.contains(parentID)) {
+            if (models.contains(parentID) && !visitedNodes.contains(parentID)) {
                 topID = parentID;
                 goto outerContinue;
             }
