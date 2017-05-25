@@ -28,7 +28,8 @@ public:
     // This means that we need to put all of the FBX importing/exporting from the same process on the same thread.
     // That means you must pass a usable running QThread when constructing a domain baker.
     DomainBaker(const QUrl& localEntitiesFileURL, const QString& domainName,
-                const QString& baseOutputPath, const QUrl& destinationPath);
+                const QString& baseOutputPath, const QUrl& destinationPath,
+                bool shouldRebakeOriginals = false);
 
 signals:
     void allModelsFinished();
@@ -65,6 +66,8 @@ private:
 
     int _totalNumberOfSubBakes { 0 };
     int _completedSubBakes { 0 };
+
+    bool _shouldRebakeOriginals { false };
 };
 
 #endif // hifi_DomainBaker_h

@@ -238,6 +238,8 @@ Item {
         onNewViewRequested: {
             request.openIn(webview);
         }
+
+        HiFiControls.WebSpinner { }
     }
 
     HiFiControls.Keyboard {

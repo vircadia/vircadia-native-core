@@ -28,6 +28,7 @@
 #include "filters/TransformFilter.h"
 #include "filters/PostTransformFilter.h"
 #include "filters/RotateFilter.h"
+#include "filters/LowVelocityFilter.h"
 
 using namespace controller;
 
@@ -45,6 +46,7 @@ REGISTER_FILTER_CLASS_INSTANCE(TranslateFilter, "translate")
 REGISTER_FILTER_CLASS_INSTANCE(TransformFilter, "transform")
 REGISTER_FILTER_CLASS_INSTANCE(PostTransformFilter, "postTransform")
 REGISTER_FILTER_CLASS_INSTANCE(RotateFilter, "rotate")
+REGISTER_FILTER_CLASS_INSTANCE(LowVelocityFilter, "lowVelocity")
 
 const QString JSON_FILTER_TYPE = QStringLiteral("type");
 const QString JSON_FILTER_PARAMS = QStringLiteral("params");

@@ -186,6 +186,9 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
     }
 
     if (_entity->getLocked()) {
+        if (_entity->isMoving()) {
+            return MOTION_TYPE_KINEMATIC;
+        }
         return MOTION_TYPE_STATIC;
     }
 
