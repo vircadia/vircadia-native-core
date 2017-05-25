@@ -111,6 +111,7 @@
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
 #include <ResourceCache.h>
+#include <ResourceRequest.h>
 #include <SandboxUtils.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngines.h>
@@ -1328,8 +1329,36 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["active_downloads"] = loadingRequests.size();
         properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
 
-        properties["processing_resources"] = DependencyManager::get<StatTracker>()->getStat("Processing").toInt();
-        properties["pending_processing_resources"] = DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt();
+        auto statTracker = DependencyManager::get<StatTracker>();
+
+        properties["processing_resources"] = statTracker->getStat("Processing").toInt();
+        properties["pending_processing_resources"] = statTracker->getStat("PendingProcessing").toInt();
+
+        properties["started_atp_requests"] = statTracker->getStat(STAT_ATP_REQUEST_STARTED).toInt();
+        properties["started_http_requests"] = statTracker->getStat(STAT_HTTP_REQUEST_STARTED).toInt();
+        properties["started_file_requests"] = statTracker->getStat(STAT_FILE_REQUEST_STARTED).toInt();
+        auto totalRequestsStarted = properties["started_atp_requests"].toInt()
+            + properties["started_http_requests"].toInt() + properties["started_file_requests"].toInt();
+        properties["started_requests"] = totalRequestsStarted;
+
+        properties["successful_atp_requests"] = statTracker->getStat(STAT_ATP_REQUEST_SUCCESS).toInt();
+        properties["successful_http_requests"] = statTracker->getStat(STAT_HTTP_REQUEST_SUCCESS).toInt();
+        properties["successful_file_requests"] = statTracker->getStat(STAT_FILE_REQUEST_SUCCESS).toInt();
+        auto totalRequestsSuccessful = properties["successful_atp_requests"].toInt()
+            + properties["successful_http_requests"].toInt() + properties["successful_file_requests"].toInt();
+        properties["successful_requests"] = totalRequestsSuccessful;
+
+        properties["failed_atp_requests"] = statTracker->getStat(STAT_ATP_REQUEST_FAILED).toInt();
+        properties["failed_http_requests"] = statTracker->getStat(STAT_HTTP_REQUEST_FAILED).toInt();
+        properties["failed_file_requests"] = statTracker->getStat(STAT_FILE_REQUEST_FAILED).toInt();
+        auto totalRequestsFailed = properties["failed_atp_requests"].toInt()
+            + properties["failed_http_requests"].toInt() + properties["failed_file_requests"].toInt();
+        properties["failed_requests"] = totalRequestsFailed;
+
+        properties["cache_atp_requests"] = statTracker->getStat(STAT_ATP_REQUEST_CACHE).toInt();
+        properties["cache_http_requests"] = statTracker->getStat(STAT_HTTP_REQUEST_FAILED).toInt();
+        auto totalRequestsCache = properties["cache_atp_requests"].toInt() + properties["cache_http_requests"].toInt();
+        properties["cache_requests"] = totalRequestsCache;
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
 

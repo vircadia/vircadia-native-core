@@ -13,12 +13,14 @@
 
 #include <QtCore/QLoggingCategory>
 
+#include <Trace.h>
+#include <Profile.h>
+#include <StatTracker.h>
+
 #include "AssetClient.h"
 #include "AssetUtils.h"
 #include "MappingRequest.h"
 #include "NetworkLogging.h"
-#include <Trace.h>
-#include <Profile.h>
 
 static const int DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS = 5;
 
@@ -48,6 +50,8 @@ bool AssetResourceRequest::urlIsAssetHash(const QUrl& url) {
 }
 
 void AssetResourceRequest::doSend() {
+    DependencyManager::get<StatTracker>()->incrementStat(STAT_ATP_REQUEST_STARTED);
+
     // We'll either have a hash or an ATP path to a file (that maps to a hash)
     if (urlIsAssetHash(_url)) {
         // We've detected that this is a hash - simply use AssetClient to request that asset
@@ -100,6 +104,8 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
                 _state = Finished;
                 emit finished();
 
+                DependencyManager::get<StatTracker>()->incrementStat(STAT_ATP_REQUEST_FAILED);
+
                 break;
             }
         }
@@ -140,9 +146,21 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
                 _result = Error;
                 break;
         }
+
+        auto statTracker = DependencyManager::get<StatTracker>();
         
         _state = Finished;
         emit finished();
+
+        if (_result == Success) {
+            statTracker->incrementStat(STAT_ATP_REQUEST_SUCCESS);
+
+            if (loadedFromCache()) {
+                statTracker->incrementStat(STAT_ATP_REQUEST_CACHE);
+            }
+        } else {
+            statTracker->incrementStat(STAT_ATP_REQUEST_FAILED);
+        }
 
         _assetRequest->deleteLater();
         _assetRequest = nullptr;
