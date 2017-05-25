@@ -19,6 +19,7 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
+#include <procedural/ProceduralSkybox.h>
 
 #include "EntityTreeRenderer.h"
 #include "RenderableEntityItem.h"
@@ -26,7 +27,6 @@
 #include <LightPayload.h>
 #include "DeferredLightingEffect.h"
 
-#include <procedural\ProceduralSkybox.h>
 
 class RenderableZoneEntityItemMeta {
 public:

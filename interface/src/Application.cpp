@@ -337,7 +337,7 @@ public:
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
                 #ifdef NDEBUG
-               //     deadlockDetectionCrash();
+                    deadlockDetectionCrash();
                 #endif
             }
         }
@@ -5095,12 +5095,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             [](WorldBoxRenderData& payload) {
             payload._val++;
         });
-    }
-
-    // Setup the current Zone Entity lighting
-    {
-   //     auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-  //      DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
     }
 
     {
