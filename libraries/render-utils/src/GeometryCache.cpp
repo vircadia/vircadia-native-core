@@ -324,6 +324,80 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
     shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
 }
 
+template <uint32_t N>
+void extrudeConical(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
+    using namespace geometry;
+    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
+    VertexVector vertices; 
+    IndexVector solidIndices, wireIndices;
+
+    std::vector<vec3> base = polygon<N>();
+
+    for (const vec3& v : base) {
+        vertices.push_back(vec3(0, 0.5f, 0));
+        vertices.push_back(vec3(0, 1, 0));
+    }
+
+    for (const vec3& v : base) {
+        vertices.push_back(vec3(v.x, -0.5f, v.z));
+        vertices.push_back(vec3(0, -1, 0));
+    }
+
+
+    for (uint32_t i = 2; i < N; ++i) {
+        solidIndices.push_back(baseVertex + 0);
+        solidIndices.push_back(baseVertex + i);
+        solidIndices.push_back(baseVertex + i - 1);
+        solidIndices.push_back(baseVertex + N);
+        solidIndices.push_back(baseVertex + i + N - 1);
+        solidIndices.push_back(baseVertex + i + N);
+    }
+    for (uint32_t i = 1; i <= N; ++i) {
+        wireIndices.push_back(baseVertex + (i % N));
+        wireIndices.push_back(baseVertex + i - 1);
+        wireIndices.push_back(baseVertex + (i % N) + N);
+        wireIndices.push_back(baseVertex + (i - 1) + N);
+    }
+
+    // Now do the sides
+    baseVertex += 2 * N;
+
+    for (uint32_t i = 0; i < N; ++i) {
+        vec3 left = base[i];
+        vec3 right = base[(i + 1) % N];
+        vec3 normal = glm::normalize(left + right);
+        vec3 topLeft = vec3(0.0, 0.5f, 0.0);
+        vec3 topRight = vec3(0.0, 0.5f, 0.0);
+        vec3 bottomLeft = vec3(left.x, -0.5f, left.z);
+        vec3 bottomRight = vec3(right.x, -0.5f, right.z);
+
+        vertices.push_back(topLeft);
+        vertices.push_back(normal);
+        vertices.push_back(bottomLeft);
+        vertices.push_back(normal);
+        vertices.push_back(topRight);
+        vertices.push_back(normal);
+        vertices.push_back(bottomRight);
+        vertices.push_back(normal);
+
+        solidIndices.push_back(baseVertex + 0);
+        solidIndices.push_back(baseVertex + 2);
+        solidIndices.push_back(baseVertex + 1);
+        solidIndices.push_back(baseVertex + 1);
+        solidIndices.push_back(baseVertex + 2);
+        solidIndices.push_back(baseVertex + 3);
+        wireIndices.push_back(baseVertex + 0);
+        wireIndices.push_back(baseVertex + 1);
+        wireIndices.push_back(baseVertex + 3);
+        wireIndices.push_back(baseVertex + 2);
+        baseVertex += 4;
+    }
+
+    shapeData.setupVertices(vertexBuffer, vertices);
+    shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
+
+}
+
 // FIXME solids need per-face vertices, but smooth shaded
 // components do not.  Find a way to support using draw elements
 // or draw arrays as appropriate
@@ -373,13 +447,15 @@ void GeometryCache::buildShapes() {
     //Octagon,
     extrudePolygon<8>(_shapes[Octagon], _shapeVertices, _shapeIndices);
     //Cylinder,
-    extrudePolygon<48>(_shapes[Cylinder], _shapeVertices, _shapeIndices);
-
+    extrudePolygon<64>(_shapes[Cylinder], _shapeVertices, _shapeIndices);
+    //Cone,
+    extrudeConical<64>(_shapes[Cone], _shapeVertices, _shapeIndices);
+    
     // Not implememented yet:
     //Quad,
     //Circle,
     //Torus,
-    //Cone,
+    
     
 }
 
