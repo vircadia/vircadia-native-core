@@ -1447,30 +1447,30 @@ void MyAvatar::setArmControllerPosesInSensorFrame(const controller::Pose& left, 
     _rightArmControllerPoseInSensorFrameCache.set(right);
 }
 
-controller::Pose MyAvatar::getLeftArmControllerInSensorFrame() const {
+controller::Pose MyAvatar::getLeftArmControllerPoseInSensorFrame() const {
     return _leftArmControllerPoseInSensorFrameCache.get();
 }
 
-controller::Pose MyAvatar::getRightArmControllerInSensorFrame() const {
+controller::Pose MyAvatar::getRightArmControllerPoseInSensorFrame() const {
     return _rightArmControllerPoseInSensorFrameCache.get();
 }
 
-controller::Pose MyAvatar::getLeftArmControllerInWorldFrame() const {
-    return getLeftArmControllerInSensorFrame().transform(getSensorToWorldMatrix());
+controller::Pose MyAvatar::getLeftArmControllerPoseInWorldFrame() const {
+    return getLeftArmControllerPoseInSensorFrame().transform(getSensorToWorldMatrix());
 }
 
-controller::Pose MyAvatar::getRightArmControllerInWorldFrame() const {
-    return getRightArmControllerInSensorFrame().transform(getSensorToWorldMatrix());
+controller::Pose MyAvatar::getRightArmControllerPoseInWorldFrame() const {
+    return getRightArmControllerPoseInSensorFrame().transform(getSensorToWorldMatrix());
 }
 
-controller::Pose MyAvatar::getLeftArmControllerInAvatarFrame() const {
+controller::Pose MyAvatar::getLeftArmControllerPoseInAvatarFrame() const {
     glm::mat4 worldToAvatarMat = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getLeftArmControllerInWorldFrame().transform(worldToAvatarMat);
+    return getLeftArmControllerPoseInWorldFrame().transform(worldToAvatarMat);
 }
 
-controller::Pose MyAvatar::getRightArmControllerInAvatarFrame() const {
+controller::Pose MyAvatar::getRightArmControllerPoseInAvatarFrame() const {
     glm::mat4 worldToAvatarMat = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getRightArmControllerInWorldFrame().transform(worldToAvatarMat);
+    return getRightArmControllerPoseInWorldFrame().transform(worldToAvatarMat);
 }
 
 void MyAvatar::updateMotors() {

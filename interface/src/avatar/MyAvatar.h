@@ -472,12 +472,12 @@ public:
     controller::Pose getHeadControllerPoseInAvatarFrame() const;
 
     void setArmControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
-    controller::Pose getLeftArmControllerInSensorFrame() const;
-    controller::Pose getRightArmControllerInSensorFrame() const;
-    controller::Pose getLeftArmControllerInWorldFrame() const;
-    controller::Pose getRightArmControllerInWorldFrame() const;
-    controller::Pose getLeftArmControllerInAvatarFrame() const;
-    controller::Pose getRightArmControllerInAvatarFrame() const;
+    controller::Pose getLeftArmControllerPoseInSensorFrame() const;
+    controller::Pose getRightArmControllerPoseInSensorFrame() const;
+    controller::Pose getLeftArmControllerPoseInWorldFrame() const;
+    controller::Pose getRightArmControllerPoseInWorldFrame() const;
+    controller::Pose getLeftArmControllerPoseInAvatarFrame() const;
+    controller::Pose getRightArmControllerPoseInAvatarFrame() const;
 
     bool hasDriveInput() const;
 

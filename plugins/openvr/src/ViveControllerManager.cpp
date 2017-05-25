@@ -661,11 +661,7 @@ void ViveControllerManager::InputDevice::calibrateShoulders(glm::mat4& defaultTo
         _jointToPuckMap[controller::RIGHT_ARM] = firstShoulder.first;
         _pucksOffset[firstShoulder.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultRightArm, firstShoulder.second);
     }
-}
-
-void ViveControllerManager::InputDevice::calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
-    int headIndex = _validTrackedObjects.size() - 1;
-}
+}   
 
 
 void ViveControllerManager::InputDevice::loadSettings() {

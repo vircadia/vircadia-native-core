@@ -80,6 +80,15 @@ private:
                                  const vec3& angularVelocity);
         void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
         void printDeviceTrackingResultChange(uint32_t deviceIndex);
+        void setConfigFromString(const QString& value);
+        void loadSettings();
+        void saveSettings() const;
+        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        
+        void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
+                                int firstShoulderIndex, int secondShoulderIndex);
 
         class FilteredStick {
         public:
@@ -106,13 +115,10 @@ private:
         };
         enum class Config {
             Auto,
-            Head,
             Feet,
-            Shoulders,
             FeetAndHips,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
-            FeetHipsChestAndHead
         };
         Config _config { Config::Auto };
         Config _preferedConfig { Config::Auto };
@@ -139,21 +145,9 @@ private:
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
-        bool overrideHands { false };
         mutable std::recursive_mutex _lock;
 
         QString configToString(Config config);
-        void setConfigFromString(const QString& value);
-        void loadSettings();
-        void saveSettings() const;
-        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        
-        void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
-                                int firstShoulderIndex, int secondShoulderIndex);
-
-        void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         friend class ViveControllerManager;
     };
 
