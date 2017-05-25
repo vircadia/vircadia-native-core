@@ -143,7 +143,7 @@ public:
         Icosahedron,
         Torus, // not yet implemented
         Cone, // not yet implemented
-        Cylinder, // not yet implemented
+        Cylinder, 
         NUM_SHAPES,
     };
 

@@ -372,14 +372,15 @@ void GeometryCache::buildShapes() {
     extrudePolygon<6>(_shapes[Hexagon], _shapeVertices, _shapeIndices);
     //Octagon,
     extrudePolygon<8>(_shapes[Octagon], _shapeVertices, _shapeIndices);
+    //Cylinder,
+    extrudePolygon<48>(_shapes[Cylinder], _shapeVertices, _shapeIndices);
 
     // Not implememented yet:
     //Quad,
     //Circle,
     //Torus,
     //Cone,
-    //Cylinder
-    extrudePolygon<48>(_shapes[Cylinder], _shapeVertices, _shapeIndices);
+    
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {
