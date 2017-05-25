@@ -1682,6 +1682,10 @@ Application::~Application() {
 
     _physicsEngine->setCharacterController(nullptr);
 
+    // the _shapeManager should have zero references
+    _shapeManager.collectGarbage();
+    assert(_shapeManager.getNumShapes() == 0);
+
     // shutdown render engine
     _main3DScene = nullptr;
     _renderEngine = nullptr;
