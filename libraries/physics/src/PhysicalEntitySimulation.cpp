@@ -130,7 +130,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     }
 
     // then remove the objects (aka MotionStates) from physics
-    _physicsEngine->removeObjects(_physicalObjects);
+    _physicsEngine->removeSetOfObjects(_physicalObjects);
 
     // delete the MotionStates
     // TODO: after we invert the entities/physics lib dependencies we will let EntityItem delete
