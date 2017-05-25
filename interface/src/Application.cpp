@@ -1324,7 +1324,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["asset_ping"] = assetServerNode ? assetServerNode->getPingMs() : -1;
         properties["messages_ping"] = messagesMixerNode ? messagesMixerNode->getPingMs() : -1;
 
-
         auto loadingRequests = ResourceCache::getLoadingRequests();
         properties["active_downloads"] = loadingRequests.size();
         properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
@@ -1334,31 +1333,41 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["processing_resources"] = statTracker->getStat("Processing").toInt();
         properties["pending_processing_resources"] = statTracker->getStat("PendingProcessing").toInt();
 
-        properties["started_atp_requests"] = statTracker->getStat(STAT_ATP_REQUEST_STARTED).toInt();
-        properties["started_http_requests"] = statTracker->getStat(STAT_HTTP_REQUEST_STARTED).toInt();
-        properties["started_file_requests"] = statTracker->getStat(STAT_FILE_REQUEST_STARTED).toInt();
-        auto totalRequestsStarted = properties["started_atp_requests"].toInt()
-            + properties["started_http_requests"].toInt() + properties["started_file_requests"].toInt();
-        properties["started_requests"] = totalRequestsStarted;
+        QJsonObject startedRequests;
+        startedRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_STARTED).toInt();
+        startedRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_STARTED).toInt();
+        startedRequests["file"] = statTracker->getStat(STAT_FILE_REQUEST_STARTED).toInt();
+        startedRequests["total"] = startedRequests["atp"].toInt() + startedRequests["http"].toInt()
+            + startedRequests["file"].toInt();
+        properties["started_requests"] = startedRequests;
 
-        properties["successful_atp_requests"] = statTracker->getStat(STAT_ATP_REQUEST_SUCCESS).toInt();
-        properties["successful_http_requests"] = statTracker->getStat(STAT_HTTP_REQUEST_SUCCESS).toInt();
-        properties["successful_file_requests"] = statTracker->getStat(STAT_FILE_REQUEST_SUCCESS).toInt();
-        auto totalRequestsSuccessful = properties["successful_atp_requests"].toInt()
-            + properties["successful_http_requests"].toInt() + properties["successful_file_requests"].toInt();
-        properties["successful_requests"] = totalRequestsSuccessful;
+        QJsonObject successfulRequests;
+        successfulRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_SUCCESS).toInt();
+        successfulRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_SUCCESS).toInt();
+        successfulRequests["file"] = statTracker->getStat(STAT_FILE_REQUEST_SUCCESS).toInt();
+        successfulRequests["total"] = successfulRequests["atp"].toInt() + successfulRequests["http"].toInt()
+            + successfulRequests["file"].toInt();
+        properties["successful_requests"] = successfulRequests;
 
-        properties["failed_atp_requests"] = statTracker->getStat(STAT_ATP_REQUEST_FAILED).toInt();
-        properties["failed_http_requests"] = statTracker->getStat(STAT_HTTP_REQUEST_FAILED).toInt();
-        properties["failed_file_requests"] = statTracker->getStat(STAT_FILE_REQUEST_FAILED).toInt();
-        auto totalRequestsFailed = properties["failed_atp_requests"].toInt()
-            + properties["failed_http_requests"].toInt() + properties["failed_file_requests"].toInt();
-        properties["failed_requests"] = totalRequestsFailed;
+        QJsonObject failedRequests;
+        failedRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_FAILED).toInt();
+        failedRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_FAILED).toInt();
+        failedRequests["file"] = statTracker->getStat(STAT_FILE_REQUEST_FAILED).toInt();
+        failedRequests["total"] = failedRequests["atp"].toInt() + failedRequests["http"].toInt()
+            + failedRequests["file"].toInt();
+        properties["failed_requests"] = failedRequests;
 
-        properties["cache_atp_requests"] = statTracker->getStat(STAT_ATP_REQUEST_CACHE).toInt();
-        properties["cache_http_requests"] = statTracker->getStat(STAT_HTTP_REQUEST_FAILED).toInt();
-        auto totalRequestsCache = properties["cache_atp_requests"].toInt() + properties["cache_http_requests"].toInt();
-        properties["cache_requests"] = totalRequestsCache;
+        QJsonObject cacheRequests;
+        cacheRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_CACHE).toInt();
+        cacheRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_FAILED).toInt();
+        cacheRequests["total"] = cacheRequests["atp"].toInt() + cacheRequests["http"].toInt();
+        properties["cache_requests"] = cacheRequests;
+
+        QJsonObject atpMappingRequests;
+        atpMappingRequests["started"] = statTracker->getStat(STAT_ATP_MAPPING_REQUEST_STARTED).toInt();
+        atpMappingRequests["failed"] = statTracker->getStat(STAT_ATP_MAPPING_REQUEST_FAILED).toInt();
+        atpMappingRequests["successful"] = statTracker->getStat(STAT_ATP_MAPPING_REQUEST_SUCCESS).toInt();
+        properties["atp_mapping_requests"] = atpMappingRequests;
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
 

@@ -69,11 +69,14 @@ void AssetResourceRequest::doSend() {
 }
 
 void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
+    auto statTracker = DependencyManager::get<StatTracker>();
+    statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_STARTED);
+
     auto assetClient = DependencyManager::get<AssetClient>();
     _assetMappingRequest = assetClient->createGetMappingRequest(path);
 
     // make sure we'll hear about the result of the get mapping request
-    connect(_assetMappingRequest, &GetMappingRequest::finished, this, [this, path](GetMappingRequest* request){
+    connect(_assetMappingRequest, &GetMappingRequest::finished, this, [this, path, statTracker](GetMappingRequest* request){
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(request == _assetMappingRequest);
 
@@ -83,6 +86,8 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
                 qCDebug(networking) << "Got mapping for:" << path << "=>" << request->getHash();
 
                 requestHash(request->getHash());
+
+                statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_SUCCESS);
 
                 break;
             default: {
@@ -104,7 +109,8 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
                 _state = Finished;
                 emit finished();
 
-                DependencyManager::get<StatTracker>()->incrementStat(STAT_ATP_REQUEST_FAILED);
+                statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_FAILED);
+                statTracker->incrementStat(STAT_ATP_REQUEST_FAILED);
 
                 break;
             }

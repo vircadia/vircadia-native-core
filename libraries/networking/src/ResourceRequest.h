@@ -30,6 +30,9 @@ const QString STAT_HTTP_REQUEST_FAILED = "FailedHTTPRequest";
 const QString STAT_FILE_REQUEST_FAILED = "FailedFileRequest";
 const QString STAT_ATP_REQUEST_CACHE = "CacheATPRequest";
 const QString STAT_HTTP_REQUEST_CACHE = "CacheHTTPRequest";
+const QString STAT_ATP_MAPPING_REQUEST_STARTED = "StartedATPMappingRequest";
+const QString STAT_ATP_MAPPING_REQUEST_FAILED = "FailedATPMappingRequest";
+const QString STAT_ATP_MAPPING_REQUEST_SUCCESS = "SuccessfulATPMappingRequest";
 
 class ResourceRequest : public QObject {
     Q_OBJECT
