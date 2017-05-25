@@ -12,6 +12,7 @@
 #ifndef hifi_Sound_h
 #define hifi_Sound_h
 
+#include <QRunnable>
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
 #include <QtScript/qscriptengine.h>
@@ -28,9 +29,14 @@ public:
     bool isAmbisonic() const { return _isAmbisonic; }    
     bool isReady() const { return _isReady; }
     float getDuration() const { return _duration; }
-
  
     const QByteArray& getByteArray() const { return _byteArray; }
+
+    void setStereo(bool stereo) { _isStereo = stereo; }
+    void setReady(bool ready);
+
+    void downSample(const QByteArray& rawAudioByteArray, int sampleRate);
+    int interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
 
 signals:
     void ready();
@@ -42,10 +48,25 @@ private:
     bool _isReady;
     float _duration; // In seconds
     
-    void downSample(const QByteArray& rawAudioByteArray, int sampleRate);
-    int interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
-    
     virtual void downloadFinished(const QByteArray& data) override;
+};
+
+class SoundProcessor : public QObject, public QRunnable {
+    Q_OBJECT
+
+public:
+    SoundProcessor(const QUrl& url, const QByteArray& data, Sound* sound)
+        : _url(url), _data(data), _sound(sound)
+    {
+    }
+
+    virtual void run() override;
+
+private:
+    QUrl _url;
+    QByteArray _data;
+    Sound* _sound;
+
 };
 
 typedef QSharedPointer<Sound> SharedSoundPointer;

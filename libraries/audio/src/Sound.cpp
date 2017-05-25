@@ -13,6 +13,8 @@
 
 #include <glm/glm.hpp>
 
+#include <QRunnable>
+#include <QThreadPool>
 #include <QDataStream>
 #include <QtCore/QDebug>
 #include <QtNetwork/QNetworkRequest>
@@ -53,9 +55,25 @@ Sound::Sound(const QUrl& url, bool isStereo, bool isAmbisonic) :
 }
 
 void Sound::downloadFinished(const QByteArray& data) {
+    SoundProcessor* soundProcessor = new SoundProcessor(_url, data, this);
+    QThreadPool::globalInstance()->start(soundProcessor);
+}
+
+void Sound::setReady(bool isReady) {
+    if (isReady) {
+        finishedLoading(true);
+        _isReady = true;
+        emit ready();
+        qCDebug(audio) << "Setting ready state for audio asset" << _url;
+    }
+}
+
+void SoundProcessor::run() {
     // replace our byte array with the downloaded data
-    QByteArray rawAudioByteArray = QByteArray(data);
-    QString fileName = getURL().fileName().toLower();
+    QByteArray rawAudioByteArray = QByteArray(_data);
+    QString fileName = _url.fileName().toLower();
+
+    //Sound* sound = dynamic_cast<Sound*>(_sound);
 
     static const QString WAV_EXTENSION = ".wav";
     static const QString RAW_EXTENSION = ".raw";
@@ -63,28 +81,25 @@ void Sound::downloadFinished(const QByteArray& data) {
 
         QByteArray outputAudioByteArray;
 
-        int sampleRate = interpretAsWav(rawAudioByteArray, outputAudioByteArray);
+        int sampleRate = _sound->interpretAsWav(rawAudioByteArray, outputAudioByteArray);
         if (sampleRate != 0) {
-            downSample(outputAudioByteArray, sampleRate);
+            _sound->downSample(outputAudioByteArray, sampleRate);
         }
     } else if (fileName.endsWith(RAW_EXTENSION)) {
         // check if this was a stereo raw file
         // since it's raw the only way for us to know that is if the file was called .stereo.raw
         if (fileName.toLower().endsWith("stereo.raw")) {
-            _isStereo = true;
-            qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << getURL() << "as stereo audio file.";
+            _sound->setStereo(true);
+            qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << _url << "as stereo audio file.";
         }
 
         // Process as 48khz RAW file
-        downSample(rawAudioByteArray, 48000);
+        _sound->downSample(rawAudioByteArray, 48000);
     } else {
         qCDebug(audio) << "Unknown sound file type";
     }
 
-    finishedLoading(true);
-
-    _isReady = true;
-    emit ready();
+    _sound->setReady(true);
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray, int sampleRate) {
