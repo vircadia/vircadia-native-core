@@ -401,7 +401,7 @@ void MyAvatar::update(float deltaTime) {
     // update moving average of HMD facing in xz plane.
     const float HMD_FACING_TIMESCALE = 4.0f; // very slow average
     float tau = deltaTime / HMD_FACING_TIMESCALE;
-    _hmdSensorFacingMovingAverage = lerp(_hmdSensorFacingMovingAverage, _hmdSensorFacing, tau);
+    _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, _headControllerFacing, tau);
 
     if (_smoothOrientationTimer < SMOOTH_TIME_ORIENTATION) {
         _rotationChanged = usecTimestampNow();
@@ -409,16 +409,18 @@ void MyAvatar::update(float deltaTime) {
     }
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
-    glm::vec3 p = transformPoint(getSensorToWorldMatrix(), _hmdSensorPosition + glm::vec3(_hmdSensorFacingMovingAverage.x, 0.0f, _hmdSensorFacingMovingAverage.y));
+    glm::vec3 p = transformPoint(getSensorToWorldMatrix(), getHeadControllerPoseInAvatarFrame() +
+                                 glm::vec3(_headControllerFacingMovingAverage.x, 0.0f, _headControllerFacingMovingAverage.y));
     DebugDraw::getInstance().addMarker("facing-avg", getOrientation(), p, glm::vec4(1.0f));
-    p = transformPoint(getSensorToWorldMatrix(), _hmdSensorPosition + glm::vec3(_hmdSensorFacing.x, 0.0f, _hmdSensorFacing.y));
+    p = transformPoint(getSensorToWorldMatrix(), getHMDSensorPosition() +
+                       glm::vec3(_headControllerFacing.x, 0.0f, _headControllerFacing.y));
     DebugDraw::getInstance().addMarker("facing", getOrientation(), p, glm::vec4(1.0f));
 #endif
 
     if (_goToPending) {
         setPosition(_goToPosition);
         setOrientation(_goToOrientation);
-        _hmdSensorFacingMovingAverage = _hmdSensorFacing;  // reset moving average
+        _headControllerFacingMovingAverage = _headControllerFacing;  // reset moving average
         _goToPending = false;
         // updateFromHMDSensorMatrix (called from paintGL) expects that the sensorToWorldMatrix is updated for any position changes
         // that happen between render and Application::update (which calls updateSensorToWorldMatrix to do so).
@@ -625,7 +627,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorMatrix = hmdSensorMatrix;
     auto newHmdSensorPosition = extractTranslation(hmdSensorMatrix);
 
-    if (newHmdSensorPosition != _hmdSensorPosition &&
+    if (newHmdSensorPosition != getHMDSensorPosition() &&
         glm::length(newHmdSensorPosition) > MAX_HMD_ORIGIN_DISTANCE) {
         qWarning() << "Invalid HMD sensor position " << newHmdSensorPosition;
         // Ignore unreasonable HMD sensor data
@@ -633,7 +635,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     }
     _hmdSensorPosition = newHmdSensorPosition;
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
-    _hmdSensorFacing = getFacingDir2D(_hmdSensorOrientation);
+    _headControllerFacing = getFacingDir2D(_headControllerPoseInSensorFrameCache.get().rotation);
 }
 
 void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache) {
@@ -671,7 +673,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
 
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromTrackers(float deltaTime) {
-    glm::vec3 estimatedPosition, estimatedRotation;
+    glm::vec3 estimatedRotation;
 
     bool inHmd = qApp->isHMDMode();
     bool playing = DependencyManager::get<recording::Deck>()->isPlaying();
@@ -682,11 +684,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     FaceTracker* tracker = qApp->getActiveFaceTracker();
     bool inFacetracker = tracker && !FaceTracker::isMuted();
 
-    if (inHmd) {
-        estimatedPosition = extractTranslation(getHMDSensorMatrix());
-        estimatedPosition.x *= -1.0f;
-    } else if (inFacetracker) {
-        estimatedPosition = tracker->getHeadTranslation();
+    if (inFacetracker) {
         estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
     }
 
@@ -1884,20 +1882,14 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
-    if (qApp->isHMDMode()) {
-        glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
-        glm::quat bodyOrientation = getWorldBodyOrientation();
-        glm::quat localOrientation = glm::inverse(bodyOrientation) * orientation;
-
-        // these angles will be in radians
-        // ... so they need to be converted to degrees before we do math...
-        glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
-
-        Head* head = getHead();
-        head->setBaseYaw(YAW(euler));
-        head->setBasePitch(PITCH(euler));
-        head->setBaseRoll(ROLL(euler));
-    }
+    glm::quat localOrientation = getHeadControllerPoseInAvatarFrame();
+    // these angles will be in radians
+    // ... so they need to be converted to degrees before we do math...
+    glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
+    Head* head = getHead();
+    head->setBaseYaw(YAW(euler));
+    head->setBasePitch(PITCH(euler));
+    head->setBaseRoll(ROLL(euler));
 }
 
 void MyAvatar::updateActionMotor(float deltaTime) {
@@ -2332,8 +2324,8 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
     // HMD is in sensor space.
-    const glm::vec3 hmdPosition = getHMDSensorPosition();
-    const glm::quat hmdOrientation = getHMDSensorOrientation();
+    const glm::vec3 hmdPosition = getHeadControllerPoseInSensorFrame();
+    const glm::quat hmdOrientation = getHeadControllerPoseInSensorFrame();
     const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
 
     const Rig& rig = _skeletonModel->getRig();
@@ -2478,7 +2470,7 @@ bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, co
     } else {
         const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
         glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
-        return glm::dot(myAvatar.getHMDSensorFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
+        return glm::dot(myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
     }
 }
 
@@ -2625,9 +2617,10 @@ glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& c
         cameraWorldMatrix *= createMatFromScaleQuatAndPos(vec3(-1.0f, 1.0f, 1.0f), glm::quat(), glm::vec3());
     }
 
-    // compute a NEW sensorToWorldMatrix for the camera.  The equation is cameraWorldMatrix = cameraSensorToWorldMatrix * _hmdSensorMatrix.
+    // compute a NEW sensorToWorldMatrix for the camera.
+    // The equation is cameraWorldMatrix = cameraSensorToWorldMatrix * _hmdSensorMatrix.
     // here we solve for the unknown cameraSensorToWorldMatrix.
-    glm::mat4 cameraSensorToWorldMatrix = cameraWorldMatrix * glm::inverse(_hmdSensorMatrix);
+    glm::mat4 cameraSensorToWorldMatrix = cameraWorldMatrix * glm::inverse(getHMDSensorMatrix());
 
     // Using the new cameraSensorToWorldMatrix, compute where the controller is in world space.
     glm::mat4 controllerWorldMatrix = cameraSensorToWorldMatrix * controllerSensorMatrix;

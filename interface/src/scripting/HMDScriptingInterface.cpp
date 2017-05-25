@@ -118,7 +118,7 @@ bool HMDScriptingInterface::getHUDLookAtPosition3D(glm::vec3& result) const {
 
 glm::mat4 HMDScriptingInterface::getWorldHMDMatrix() const {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    return myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+    return myAvatar->getSensorToWorldMatrix() * (glm::mat4)myAvatar->getHeadControllerPoseInSensorFrame();
 }
 
 glm::vec3 HMDScriptingInterface::getPosition() const {
