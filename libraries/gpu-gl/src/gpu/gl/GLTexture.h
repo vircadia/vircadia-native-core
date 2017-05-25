@@ -127,6 +127,14 @@ protected:
     virtual void promote() = 0;
     virtual void demote() = 0;
 
+    // THe amount of memory currently allocated
+    Size _size { 0 };
+
+    // The amount of memory currnently populated
+    void incrementPopulatedSize(Size delta) const;
+    void decrementPopulatedSize(Size delta) const;
+    mutable Size _populatedSize { 0 };
+
     // The allocated mip level, relative to the number of mips in the gpu::Texture object 
     // The relationship between a given glMip to the original gpu::Texture mip is always 
     // glMip + _allocatedMip
@@ -174,8 +182,11 @@ public:
 protected:
     virtual Size size() const = 0;
     virtual void generateMips() const = 0;
-    virtual void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const = 0;
-    virtual void copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const final;
+    virtual void syncSampler() const = 0;
+
+    virtual Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const = 0;
+    virtual Size copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const final;
+    virtual void copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {} // Only relevant for Variable Allocation textures
 
     GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
 };
@@ -188,7 +199,8 @@ public:
 protected:
     GLExternalTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
     void generateMips() const override {}
-    void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override {}
+    void syncSampler() const override {}
+    Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override { return 0;}
 
     Size size() const override { return 0; }
 };

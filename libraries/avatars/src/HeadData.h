@@ -101,6 +101,8 @@ private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HeadData(const HeadData&);
     HeadData& operator= (const HeadData&);
+
+    void setHeadOrientation(const glm::quat& orientation);
 };
 
 #endif // hifi_HeadData_h

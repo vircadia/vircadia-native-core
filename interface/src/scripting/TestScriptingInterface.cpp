@@ -31,7 +31,7 @@ void TestScriptingInterface::quit() {
 
 void TestScriptingInterface::waitForTextureIdle() {
     waitForCondition(0, []()->bool {
-        return (0 == gpu::Context::getTextureGPUTransferCount());
+        return (0 == gpu::Context::getTexturePendingGPUTransferCount());
     });
 }
 

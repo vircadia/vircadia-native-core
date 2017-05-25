@@ -18,7 +18,7 @@
 
 #include "Forward.h"
 #include "Batch.h"
-#include "Resource.h"
+#include "Buffer.h"
 #include "Texture.h"
 #include "Pipeline.h"
 #include "Framebuffer.h"
@@ -94,24 +94,27 @@ public:
 
     virtual bool isTextureManagementSparseEnabled() const = 0;
 
-    // These should only be accessed by Backend implementation to repport the buffer and texture allocations,
-    // they are NOT public calls
-    static Resource::Size getFreeGPUMemory();
-    static void setFreeGPUMemory(Resource::Size prevObjectSize);
-    static void incrementBufferGPUCount();
-    static void decrementBufferGPUCount();
-    static void updateBufferGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
-    static void incrementTextureGPUCount();
-    static void decrementTextureGPUCount();
-    static void incrementTextureGPUSparseCount();
-    static void decrementTextureGPUSparseCount();
-    static void updateTextureTransferPendingSize(Resource::Size prevObjectSize, Resource::Size newObjectSize);
-    static void updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
-    static void updateTextureGPUSparseMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
-    static void updateTextureGPUVirtualMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
-    static void updateTextureGPUFramebufferMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
-    static void incrementTextureGPUTransferCount();
-    static void decrementTextureGPUTransferCount();
+    // These should only be accessed by Backend implementation to report the buffer and texture allocations,
+    // they are NOT public objects
+    static ContextMetricSize  freeGPUMemSize;
+
+    static ContextMetricCount bufferCount;
+    static ContextMetricSize  bufferGPUMemSize;
+
+    static ContextMetricCount textureResidentCount;
+    static ContextMetricCount textureFramebufferCount;
+    static ContextMetricCount textureResourceCount;
+    static ContextMetricCount textureExternalCount;
+
+    static ContextMetricSize  textureResidentGPUMemSize;
+    static ContextMetricSize  textureFramebufferGPUMemSize;
+    static ContextMetricSize  textureResourceGPUMemSize;
+    static ContextMetricSize  textureExternalGPUMemSize;
+
+    static ContextMetricCount texturePendingGPUTransferCount;
+    static ContextMetricSize  texturePendingGPUTransferMemSize;
+    static ContextMetricSize  textureResourcePopulatedGPUMemSize;
+
 
 protected:
     virtual bool isStereo() {
@@ -220,19 +223,28 @@ public:
     double getFrameTimerGPUAverage() const;
     double getFrameTimerBatchAverage() const;
 
+    static Size getFreeGPUMemSize();
+    static Size getUsedGPUMemSize();
+
     static uint32_t getBufferGPUCount();
-    static Size getBufferGPUMemoryUsage();
+    static Size getBufferGPUMemSize();
 
     static uint32_t getTextureGPUCount();
-    static uint32_t getTextureGPUSparseCount();
-    static Size getFreeGPUMemory();
-    static Size getUsedGPUMemory();
-    static Size getTextureTransferPendingSize();
-    static Size getTextureGPUMemoryUsage();
-    static Size getTextureGPUVirtualMemoryUsage();
-    static Size getTextureGPUFramebufferMemoryUsage();
-    static Size getTextureGPUSparseMemoryUsage();
-    static uint32_t getTextureGPUTransferCount();
+    static uint32_t getTextureResidentGPUCount();
+    static uint32_t getTextureFramebufferGPUCount();
+    static uint32_t getTextureResourceGPUCount();
+    static uint32_t getTextureExternalGPUCount();
+
+    static Size getTextureGPUMemSize();
+    static Size getTextureResidentGPUMemSize();
+    static Size getTextureFramebufferGPUMemSize();
+    static Size getTextureResourceGPUMemSize(); 
+    static Size getTextureExternalGPUMemSize();
+
+    static uint32_t getTexturePendingGPUTransferCount();
+    static Size getTexturePendingGPUTransferMemSize();
+
+    static Size getTextureResourcePopulatedGPUMemSize();
 
 protected:
     Context(const Context& context);
@@ -257,44 +269,6 @@ protected:
     static std::once_flag _initialized;
 
     friend class Shader;
-
-    // These should only be accessed by the Backend, they are NOT public calls
-    static void incrementBufferGPUCount();
-    static void decrementBufferGPUCount();
-    static void updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
-
-    static void incrementFenceCount();
-    static void decrementFenceCount();
-
-    static void setFreeGPUMemory(Size size);
-    static void incrementTextureGPUCount();
-    static void decrementTextureGPUCount();
-    static void incrementTextureGPUSparseCount();
-    static void decrementTextureGPUSparseCount();
-    static void updateTextureTransferPendingSize(Size prevObjectSize, Size newObjectSize);
-    static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
-    static void updateTextureGPUSparseMemoryUsage(Size prevObjectSize, Size newObjectSize);
-    static void updateTextureGPUVirtualMemoryUsage(Size prevObjectSize, Size newObjectSize);
-    static void updateTextureGPUFramebufferMemoryUsage(Size prevObjectSize, Size newObjectSize);
-    static void incrementTextureGPUTransferCount();
-    static void decrementTextureGPUTransferCount();
-
-    // Buffer, Texture and Fence Counters
-    static std::atomic<Size> _freeGPUMemory;
-    static std::atomic<uint32_t> _fenceCount;
-
-    static std::atomic<uint32_t> _bufferGPUCount;
-    static std::atomic<Size> _bufferGPUMemoryUsage;
-
-    static std::atomic<uint32_t> _textureGPUCount;
-    static std::atomic<uint32_t> _textureGPUSparseCount;
-    static std::atomic<Size> _textureTransferPendingSize;
-    static std::atomic<Size> _textureGPUMemoryUsage;
-    static std::atomic<Size> _textureGPUSparseMemoryUsage;
-    static std::atomic<Size> _textureGPUVirtualMemoryUsage;
-    static std::atomic<Size> _textureGPUFramebufferMemoryUsage;
-    static std::atomic<uint32_t> _textureGPUTransferCount;
-
     friend class Backend;
 };
 typedef std::shared_ptr<Context> ContextPointer;

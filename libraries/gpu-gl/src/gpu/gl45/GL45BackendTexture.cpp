@@ -116,7 +116,6 @@ using GL45Texture = GL45Backend::GL45Texture;
 
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture)
     : GLTexture(backend, texture, allocate(texture)) {
-    incrementTextureGPUCount();
 }
 
 GLuint GL45Texture::allocate(const Texture& texture) {
@@ -134,7 +133,8 @@ void GL45Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+Size GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+    Size amountCopied = sourceSize;
     if (GL_TEXTURE_2D == _target) {
         switch (internalFormat) {
             case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
@@ -142,6 +142,7 @@ void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
             case GL_COMPRESSED_RED_RGTC1:
             case GL_COMPRESSED_RG_RGTC2:
+            case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
                 glCompressedTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat,
                                               static_cast<GLsizei>(sourceSize), sourcePointer);
                 break;
@@ -156,6 +157,7 @@ void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
             case GL_COMPRESSED_RED_RGTC1:
             case GL_COMPRESSED_RG_RGTC2:
+            case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
                 if (glCompressedTextureSubImage2DEXT) {
                     auto target = GLTexture::CUBE_FACE_LAYOUT[face];
                     glCompressedTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, internalFormat,
@@ -177,9 +179,12 @@ void GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
                 break;
         }
     } else {
-        Q_ASSERT(false);
+        assert(false);
+        amountCopied = 0;
     }
     (void)CHECK_GL_ERROR();
+
+    return amountCopied;
 }
 
 void GL45Texture::syncSampler() const {
@@ -241,17 +246,22 @@ void GL45FixedAllocationTexture::syncSampler() const {
 using GL45AttachmentTexture = GL45Backend::GL45AttachmentTexture;
 
 GL45AttachmentTexture::GL45AttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45FixedAllocationTexture(backend, texture) {
-    Backend::updateTextureGPUFramebufferMemoryUsage(0, size());
+    Backend::textureFramebufferCount.increment();
+    Backend::textureFramebufferGPUMemSize.update(0, size());
 }
 
 GL45AttachmentTexture::~GL45AttachmentTexture() {
-    Backend::updateTextureGPUFramebufferMemoryUsage(size(), 0);
+    Backend::textureFramebufferCount.decrement();
+    Backend::textureFramebufferGPUMemSize.update(size(), 0);
 }
 
 // Strict resource textures
 using GL45StrictResourceTexture = GL45Backend::GL45StrictResourceTexture;
 
 GL45StrictResourceTexture::GL45StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45FixedAllocationTexture(backend, texture) {
+    Backend::textureResidentCount.increment();
+    Backend::textureResidentGPUMemSize.update(0, size());
+
     auto mipLevels = _gpuObject.getNumMips();
     for (uint16_t sourceMip = 0; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip;
@@ -263,5 +273,10 @@ GL45StrictResourceTexture::GL45StrictResourceTexture(const std::weak_ptr<GLBacke
     if (texture.isAutogenerateMips()) {
         generateMips();
     }
+}
+
+GL45StrictResourceTexture::~GL45StrictResourceTexture() {
+    Backend::textureResidentCount.decrement();
+    Backend::textureResidentGPUMemSize.update(size(), 0);
 }
 

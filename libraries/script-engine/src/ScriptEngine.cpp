@@ -231,7 +231,7 @@ void ScriptEngine::disconnectNonEssentialSignals() {
     // Ensure the thread should be running, and does exist
     if (_isRunning && _isThreaded && (workerThread = thread())) {
         connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
-        connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
+        connect(this, &QObject::destroyed, workerThread, &QObject::deleteLater);
     }
 }
 
@@ -346,7 +346,7 @@ void ScriptEngine::runInThread() {
     // disconnectNonEssentialSignals() method
     connect(workerThread, &QThread::started, this, &ScriptEngine::run);
     connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
-    connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
+    connect(this, &QObject::destroyed, workerThread, &QObject::deleteLater);
 
     workerThread->start();
 }
@@ -397,16 +397,12 @@ void ScriptEngine::waitTillDoneRunning() {
                 }
             }
 
-            // NOTE: This will be called on the main application thread from stopAllScripts.
-            //       The application thread will need to continue to process events, because
+            // NOTE: This will be called on the main application thread (among other threads) from stopAllScripts.
+            //       The thread will need to continue to process events, because
             //       the scripts will likely need to marshall messages across to the main thread, e.g.
             //       if they access Settings or Menu in any of their shutdown code. So:
-            // Process events for the main application thread, allowing invokeMethod calls to pass between threads.
+            // Process events for this thread, allowing invokeMethod calls to pass between threads.
             QCoreApplication::processEvents();
-            // In some cases (debugging), processEvents may give the thread enough time to shut down, so recheck it.
-            if (!thread()) {
-                break;
-            }
 
             // Avoid a pure busy wait
             QThread::yieldCurrentThread();
@@ -425,6 +421,12 @@ QString ScriptEngine::getFilename() const {
     return lastPart;
 }
 
+bool ScriptEngine::hasValidScriptSuffix(const QString& scriptFileName) {
+    QFileInfo fileInfo(scriptFileName);
+    QString scriptSuffixToLower = fileInfo.completeSuffix().toLower();
+    return scriptSuffixToLower.contains(QString("js"), Qt::CaseInsensitive);
+}
+
 void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     if (_isRunning) {
         return;
@@ -433,6 +435,13 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     QUrl url = expandScriptUrl(scriptURL);
     _fileNameString = url.toString();
     _isReloading = reload;
+
+	// Check that script has a supported file extension
+    if (!hasValidScriptSuffix(_fileNameString)) {
+        scriptErrorMessage("File extension of file: " + _fileNameString + " is not a currently supported script type");
+        emit errorLoadingScript(_fileNameString);
+        return;
+	}
 
     const auto maxRetries = 0; // for consistency with previous scriptCache->getScript() behavior
     auto scriptCache = DependencyManager::get<ScriptCache>();

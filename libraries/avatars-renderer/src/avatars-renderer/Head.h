@@ -83,11 +83,6 @@ public:
     float getTimeWithoutTalking() const { return _timeWithoutTalking; }
 
 protected:
-    void computeAudioLoudness(float deltaTime);
-    void computeEyeMovement(float deltaTime);
-    void computeFaceMovement(float deltaTime);
-    void computeEyePosition();
-
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
     Head& operator= (const Head&);
