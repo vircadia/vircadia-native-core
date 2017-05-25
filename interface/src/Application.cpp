@@ -1310,7 +1310,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["kbps_in"] = bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond();
         properties["kbps_out"] = bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond();
 
-        properties["asset_in_kbps"] = bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer);
+        properties["atp_in_kbps"] = bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer);
 
         auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer entityServerNode = nodeList->soloNodeOfType(NodeType::EntityServer);
