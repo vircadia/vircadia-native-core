@@ -332,6 +332,39 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
     shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
 }
 
+void drawCircle(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
+    // Draw a circle with radius 1/4th the size of the bounding box
+    using namespace geometry;
+
+    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
+    VertexVector vertices;
+    IndexVector solidIndices, wireIndices;
+
+    std::vector<vec3> shape = polygon<64>();
+    for (const vec3& v : shape) {
+        vertices.push_back(vec3(v.x, 0, v.z));
+        vertices.push_back(vec3(0, 0, 0));
+    }
+
+    for (uint32_t i = 2; i < 64; ++i) {
+        solidIndices.push_back(baseVertex + 0);
+        solidIndices.push_back(baseVertex + i);
+        solidIndices.push_back(baseVertex + i - 1);
+        solidIndices.push_back(baseVertex + 64);
+        solidIndices.push_back(baseVertex + i + 64 - 1);
+        solidIndices.push_back(baseVertex + i + 64);
+    }
+    for (uint32_t i = 1; i <= 64; ++i) {
+        wireIndices.push_back(baseVertex + (i % 64));
+        wireIndices.push_back(baseVertex + i - 1);
+        wireIndices.push_back(baseVertex + (i % 64) + 64);
+        wireIndices.push_back(baseVertex + (i - 1) + 64);
+    }
+
+    shapeData.setupVertices(vertexBuffer, vertices);
+    shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
+}
+
 // FIXME solids need per-face vertices, but smooth shaded
 // components do not.  Find a way to support using draw elements
 // or draw arrays as appropriate
@@ -384,13 +417,12 @@ void GeometryCache::buildShapes() {
     extrudePolygon<64>(_shapes[Cylinder], _shapeVertices, _shapeIndices);
     //Cone,
     extrudePolygon<64>(_shapes[Cone], _shapeVertices, _shapeIndices, true);
-    
+    //Circle
+    drawCircle(_shapes[Circle], _shapeVertices, _shapeIndices);
     // Not implememented yet:
     //Quad,
     //Circle,
-    //Torus,
-    
-    
+    //Torus,   
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {
