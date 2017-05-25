@@ -366,8 +366,6 @@ void GeometryCache::buildShapes() {
         shapeData.setupIndices(_shapeIndices, IndexVector(), wireIndices);
     }
 
-    // Not implememented yet:
-
     //Triangle,
     extrudePolygon<3>(_shapes[Triangle], _shapeVertices, _shapeIndices);
     //Hexagon,
@@ -375,11 +373,13 @@ void GeometryCache::buildShapes() {
     //Octagon,
     extrudePolygon<8>(_shapes[Octagon], _shapeVertices, _shapeIndices);
 
+    // Not implememented yet:
     //Quad,
     //Circle,
     //Torus,
     //Cone,
-    //Cylinder,
+    //Cylinder
+    extrudePolygon<48>(_shapes[Cylinder], _shapeVertices, _shapeIndices);
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {
