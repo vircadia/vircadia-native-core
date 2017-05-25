@@ -273,7 +273,19 @@ bool KinectPlugin::activate() {
     return false;
 }
 
-bool KinectPlugin::isHandController() const { 
+bool KinectPlugin::isHandController() const {
+    bool sensorAvailable = false;
+#ifdef HAVE_KINECT
+    if (_kinectSensor) {
+        BOOLEAN sensorIsAvailable = FALSE;
+        HRESULT hr = _kinectSensor->get_IsAvailable(&sensorIsAvailable);
+        sensorAvailable = SUCCEEDED(hr) && (sensorIsAvailable == TRUE);
+    }
+#endif
+    return _enabled && _initialized && sensorAvailable;
+}
+
+bool KinectPlugin::isHeadController() const {
     bool sensorAvailable = false;
 #ifdef HAVE_KINECT
     if (_kinectSensor) {

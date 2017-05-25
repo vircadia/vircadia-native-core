@@ -40,6 +40,7 @@ public:
     virtual const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return false; }
+    bool isHeadController() const override { return false; }
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;

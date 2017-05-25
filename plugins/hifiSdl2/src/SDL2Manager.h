@@ -28,6 +28,7 @@ public:
 
     QStringList getSubdeviceNames() override;
     bool isHandController() const override { return false; }
+    bool isHeadController() const override { return false; }
 
     void init() override;
     void deinit() override;

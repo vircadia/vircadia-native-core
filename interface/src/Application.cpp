@@ -4851,6 +4851,21 @@ bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
 }
 
+bool Application::isHeadControllerEnabled() const {
+    const InputPluginList& inputPlugins = PluginManager::getInstance()->getInputPlugins();
+    for (auto& ip : inputPlugins) {
+        if (ip->isActive() && ip->isHeadController()) {
+            return true;
+        }
+    }
+    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
+        if (displayPlugin->isActive() && displayPlugin->isHeadController()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 float Application::getTargetFrameRate() const { return getActiveDisplayPlugin()->getTargetFrameRate(); }
 
 QRect Application::getDesirableApplicationGeometry() const {

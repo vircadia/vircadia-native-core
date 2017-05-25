@@ -39,6 +39,7 @@ public:
     const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return true; }
+    bool isHeadController() const override { return true; }
 
     bool activate() override;
     void deactivate() override;

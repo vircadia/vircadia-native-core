@@ -248,6 +248,7 @@ public:
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
     virtual bool isHMDMode() const override;
+    bool isHeadControllerEnabled() const;
     glm::mat4 getHMDSensorPose() const;
     glm::mat4 getEyeOffset(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;

@@ -22,7 +22,7 @@ namespace controller {
             _translationConstant(translationConstant), _rotationConstant(rotationConstant) {}
 
         virtual float apply(float value) const override { return value; }
-        virtual Pose apply(Pose newPose) const;
+        virtual Pose apply(Pose newPose) const override;
         virtual bool parseParameters(const QJsonValue& parameters) override;
 
     private:

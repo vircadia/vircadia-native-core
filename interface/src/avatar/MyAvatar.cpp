@@ -1845,14 +1845,16 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
-    glm::quat localOrientation = getHeadControllerPoseInAvatarFrame();
-    // these angles will be in radians
-    // ... so they need to be converted to degrees before we do math...
-    glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
-    Head* head = getHead();
-    head->setBaseYaw(YAW(euler));
-    head->setBasePitch(PITCH(euler));
-    head->setBaseRoll(ROLL(euler));
+    if (qApp->isHeadControllerEnabled()) {
+        glm::quat localOrientation = getHeadControllerPoseInAvatarFrame();
+        // these angles will be in radians
+        // ... so they need to be converted to degrees before we do math...
+        glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
+        Head* head = getHead();
+        head->setBaseYaw(YAW(euler));
+        head->setBasePitch(PITCH(euler));
+        head->setBaseRoll(ROLL(euler));
+    }
 }
 
 void MyAvatar::updateActionMotor(float deltaTime) {

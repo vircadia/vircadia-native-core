@@ -26,6 +26,8 @@ public:
 
     virtual bool isThrottled() const override;
 
+    virtual bool isHeadController() const override { return false; }
+
 protected:
     mutable bool _isThrottled = false;
 

@@ -26,6 +26,7 @@ public:
     friend void FrameDataReceivedCallback(void* context, void* sender, _BvhDataHeaderEx* header, float* data);
 
     bool isHandController() const override { return false; }
+    bool isHeadController() const override { return false; }
 
     // Plugin functions
     virtual void init() override;

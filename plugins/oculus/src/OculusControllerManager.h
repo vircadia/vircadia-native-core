@@ -28,6 +28,7 @@ public:
     const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return _touch != nullptr; }
+    bool isHeadController() const override { return true; }
     QStringList getSubdeviceNames() override;
 
     bool activate() override;
