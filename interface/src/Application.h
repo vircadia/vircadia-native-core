@@ -314,7 +314,6 @@ public slots:
     void updateThreadPoolCount() const;
     void updateSystemTabletMode();
 
-    static void setLowVelocityFilter(bool lowVelocityFilter);
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
