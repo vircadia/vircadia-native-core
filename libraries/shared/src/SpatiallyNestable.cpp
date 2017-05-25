@@ -946,12 +946,13 @@ AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
     return AACube(getPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
 }
 
-void SpatiallyNestable::checkAndAdjustQueryAACube() {
+bool SpatiallyNestable::checkAndAdjustQueryAACube() {
     bool success;
     AACube maxAACube = getMaximumAACube(success);
     if (success && (!_queryAACubeSet || !_queryAACube.contains(maxAACube))) {
         setQueryAACube(maxAACube);
     }
+    return success;
 }
 
 void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
