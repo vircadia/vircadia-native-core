@@ -20,6 +20,7 @@
 #include "ElbowConstraint.h"
 #include "SwingTwistConstraint.h"
 #include "AnimationLogging.h"
+#include "CubicHermiteSpline.h"
 
 AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
                                                 const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn) :
@@ -457,10 +458,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     // allows solutionSource to be overridden by an animVar
     auto solutionSource = animVars.lookup(_solutionSourceVar, (int)_solutionSource);
 
-    if (context.getEnableDebugDrawIKConstraints()) {
-        debugDrawConstraints(context);
-    }
-
     const float MAX_OVERLAY_DT = 1.0f / 30.0f; // what to clamp delta-time to in AnimInverseKinematics::overlay
     if (dt > MAX_OVERLAY_DT) {
         dt = MAX_OVERLAY_DT;
@@ -580,6 +577,11 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             }
         }
     }
+
+    if (context.getEnableDebugDrawIKConstraints()) {
+        debugDrawConstraints(context);
+    }
+    debugDrawSpineSpline(context);
 
     return _relativePoses;
 }
@@ -1315,4 +1317,61 @@ void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource s
         blendToPoses(_limitCenterPoses, underPoses, COPY_BLEND_FACTOR);
         break;
     }
+}
+
+void AnimInverseKinematics::debugDrawSpineSpline(const AnimContext& context) const {
+    AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
+
+    AnimPose hipsPose = geomToWorldPose * _skeleton->getAbsolutePose(_hipsIndex, _relativePoses);
+    AnimPose headPose = geomToWorldPose * _skeleton->getAbsolutePose(_headIndex, _relativePoses);
+
+    float d = glm::length(hipsPose.trans() - headPose.trans());
+
+    const float BACK_GAIN = 1.0f;
+    const float NECK_GAIN = 0.33f;
+    glm::vec3 cp0 = hipsPose.trans();
+    glm::vec3 cm0 = BACK_GAIN * d * (hipsPose.rot() * Vectors::UNIT_Y);
+    glm::vec3 cp1 = headPose.trans();
+    glm::vec3 cm1 = NECK_GAIN * d * (headPose.rot() * Vectors::UNIT_Y);
+
+    CubicHermiteSplineFunctorWithArcLength hermiteFunc(cp0, cm0, cp1, cm1);
+
+    const glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+    const glm::vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
+    const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+    const glm::vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
+    const glm::vec4 CYAN(0.0f, 1.0f, 1.0f, 1.0f);
+
+    int NUM_SUBDIVISIONS = 20;
+    float totalArcLength = hermiteFunc.arcLength(1.0f);
+    const float dArcLength = totalArcLength / NUM_SUBDIVISIONS;
+    float arcLength = 0.0f;
+    for (int i = 0; i < NUM_SUBDIVISIONS; i++) {
+        float prevT = hermiteFunc.arcLengthInverse(arcLength);
+        float nextT = hermiteFunc.arcLengthInverse(arcLength + dArcLength);
+        DebugDraw::getInstance().drawRay(hermiteFunc(prevT), hermiteFunc(nextT), (i % 2) == 0 ? RED : WHITE);
+        arcLength += dArcLength;
+    }
+
+    /*
+    AnimPose p0 = hipsPose;
+    AnimPose p1 = AnimPose(glm::vec3(1.0f), glm::normalize(glm::lerp(hipsPose.rot(), headPose.rot(), 0.25f)), hermiteSpline(cp0, cm0, cp1, cm1, 0.25f));
+    AnimPose p2 = AnimPose(glm::vec3(1.0f), glm::normalize(glm::lerp(hipsPose.rot(), headPose.rot(), 0.75f)), hermiteSpline(cp0, cm0, cp1, cm1, 0.75f));
+    AnimPose p3 = headPose;
+
+    DebugDraw::getInstance().drawRay(cp0, cp0 + cm0, GREEN);
+    DebugDraw::getInstance().drawRay(cp0 + cm0, cp1, CYAN);
+    DebugDraw::getInstance().drawRay(cp1, cp1 + cm1, GREEN);
+
+    // draw the spline itself
+    int NUM_SUBDIVISIONS = 20;
+    float D_ALPHA = 1.0f / NUM_SUBDIVISIONS;
+    float alpha = 0.0f;
+    for (int i = 0; i < NUM_SUBDIVISIONS; i++) {
+        DebugDraw::getInstance().drawRay(hermiteSpline(cp0, cm0, cp1, cm1, alpha),
+                                         hermiteSpline(cp0, cm0, cp1, cm1, alpha + D_ALPHA),
+                                         (i % 2) == 0 ? RED : WHITE);
+        alpha += D_ALPHA;
+    }
+    */
 }

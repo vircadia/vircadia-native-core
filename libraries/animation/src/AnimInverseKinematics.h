@@ -70,6 +70,7 @@ protected:
     void debugDrawIKChain(std::map<int, DebugJoint>& debugJointMap, const AnimContext& context) const;
     void debugDrawRelativePoses(const AnimContext& context) const;
     void debugDrawConstraints(const AnimContext& context) const;
+    void debugDrawSpineSpline(const AnimContext& context) const;
     void initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPose);
     void blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPose, float blendFactor);
 
