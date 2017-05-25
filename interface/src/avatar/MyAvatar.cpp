@@ -2180,6 +2180,10 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
     emit transformChanged();
 }
 
+void MyAvatar::goToLocationAndEnableCollisions(const glm::vec3& position) { // See use case in safeLanding.
+    goToLocation(position);
+    QMetaObject::invokeMethod(this, "setCollisionsEnabled", Qt::QueuedConnection, Q_ARG(bool, true));
+}
 bool MyAvatar::safeLanding(const glm::vec3& position) {
     // Considers all collision hull or non-collisionless primitive intersections on a vertical line through the point.
     // There needs to be a "landing" if:
@@ -2198,7 +2202,14 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     // 2) My feeling is that this code is already at the limit of what can realistically be reviewed and maintained.
     auto direct = [&](const char* label) {  // position is good to go, or at least, we cannot do better
         //qDebug() << "Already safe" << label << position;
-        goToLocation(position);  // I.e., capsuleCenter - offset
+        if (!getCollisionsEnabled()) {
+            goToLocation(position);
+        } else { // If you try to go while stuck, physics will keep you stuck.
+            setCollisionsEnabled(false);
+            // Don't goToLocation just yet. Yield so that physics can act on the above.
+            QMetaObject::invokeMethod(this, "goToLocationAndEnableCollisions", Qt::QueuedConnection, // The equivalent of javascript nextTick
+                Q_ARG(glm::vec3, position)); // I.e., capsuleCenter - offset
+         }
         return false;
     };
     auto halfHeight = _characterController.getCapsuleHalfHeight();
