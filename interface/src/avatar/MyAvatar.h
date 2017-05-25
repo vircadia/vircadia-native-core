@@ -506,6 +506,7 @@ public slots:
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
                       bool shouldFaceLocation = false);
     void goToLocation(const QVariant& properties);
+    bool safeLanding(const glm::vec3& position);
 
     void restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject);
     void clearScaleRestriction();
