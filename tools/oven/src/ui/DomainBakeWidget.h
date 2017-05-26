@@ -19,6 +19,7 @@
 #include "../DomainBaker.h"
 #include "BakeWidget.h"
 
+class QCheckBox;
 class QLineEdit;
 
 class DomainBakeWidget : public BakeWidget {
@@ -44,6 +45,7 @@ private:
     QLineEdit* _entitiesFileLineEdit;
     QLineEdit* _outputDirLineEdit;
     QLineEdit* _destinationPathLineEdit;
+    QCheckBox* _rebakeOriginalsCheckBox;
 
     Setting::Handle<QString> _domainNameSetting;
     Setting::Handle<QString> _exportDirectory;
