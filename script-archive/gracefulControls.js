@@ -35,6 +35,7 @@ var BRAKE_PARAMETERS = {
     MOUSE_SENSITIVITY: 0.5,
 }
 
+var DRIVE_AVATAR_ENABLED = true;
 var UPDATE_RATE = 90;
 var USE_INTERVAL = true;
 
@@ -50,7 +51,13 @@ var KEY_UP = "e";
 var KEY_DOWN = "c";
 var KEY_TOGGLE= "SPACE";
 var KEY_DISABLE = "ESC";
-var CAPTURED_KEYS = [KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_TOGGLE];
+var CAPTURED_KEYS;
+
+if (DRIVE_AVATAR_ENABLED) {
+    CAPTURED_KEYS = [KEY_TOGGLE, KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN];
+} else {
+    CAPTURED_KEYS = [KEY_TOGGLE];
+}
 
 // Global Variables
 var keys = {};
@@ -143,28 +150,35 @@ function update(dt) {
     MyAvatar.headPitch = newPitch;
     pitchFromMouse -= pitchMove;
 
-    // If force isn't being applied in a direction, add drag;
-    if (targetVelocity.x == 0) {
-        targetVelocity.x -= (velocity.x * movementParameters.DRAG_COEFFICIENT * dt);
-    }
-    if (targetVelocity.z == 0) {
-        targetVelocity.z -= (velocity.z * movementParameters.DRAG_COEFFICIENT * dt);
-    }
-    velocity = Vec3.sum(velocity, targetVelocity);
 
-    var maxSpeed = movementParameters.MAX_SPEED;
-    velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.x));
-    velocity.z = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.z));
-    var v = Vec3.multiplyQbyV(MyAvatar.headOrientation, velocity);
+    if (DRIVE_AVATAR_ENABLED) {
+        // If force isn't being applied in a direction, add drag;
+        var drag = Math.min(movementParameters.DRAG_COEFFICIENT * dt, 1.0);
+        if (targetVelocity.x == 0) {
+            targetVelocity.x -= (velocity.x * drag);
+        }
+        if (targetVelocity.z == 0) {
+            targetVelocity.z -= (velocity.z * drag);
+        }
+        velocity = Vec3.sum(velocity, targetVelocity);
 
-    if (targetVelocityVertical == 0) {
-        targetVelocityVertical -= (velocityVertical * movementParameters.DRAG_COEFFICIENT * dt);
+        var maxSpeed = movementParameters.MAX_SPEED;
+        velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.x));
+        velocity.z = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.z));
+        var v = Vec3.multiplyQbyV(MyAvatar.headOrientation, velocity);
+
+        if (targetVelocityVertical == 0) {
+            targetVelocityVertical -= (velocityVertical * movementParameters.DRAG_COEFFICIENT * dt);
+        }
+        velocityVertical += targetVelocityVertical;
+        velocityVertical = Math.max(-maxSpeed, Math.min(maxSpeed, velocityVertical));
+        v.y += velocityVertical;
+
+        MyAvatar.motorReferenceFrame = 'world';
+        MyAvatar.motorVelocity = v;
+        MyAvatar.motorTimescale = 1;
+        Vec3.print('vel', v);
     }
-    velocityVertical += targetVelocityVertical;
-    velocityVertical = Math.max(-maxSpeed, Math.min(maxSpeed, velocityVertical));
-    v.y += velocityVertical;
-
-    MyAvatar.setVelocity(v);
 }
 
 function vecToString(vec) {
