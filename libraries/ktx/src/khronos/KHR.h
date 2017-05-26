@@ -212,10 +212,11 @@ namespace khronos {
             template <uint32_t ALIGNMENT> 
             inline uint32_t evalAlignedCompressedBlockCount(uint32_t value) {
                 // FIXME add static assert that ALIGNMENT is a power of 2
-                return (value + (ALIGNMENT - 1) / ALIGNMENT);
+                static uint32_t ALIGNMENT_REMAINDER = ALIGNMENT - 1;
+                return (value + ALIGNMENT_REMAINDER) / ALIGNMENT;
             }
 
-            inline uint8_t evalBlockAlignemnt(InternalFormat format, uint32_t value) {
+            inline uint32_t evalCompressedBlockCount(InternalFormat format, uint32_t value) {
                 switch (format) {
                     case InternalFormat::COMPRESSED_SRGB_S3TC_DXT1_EXT: // BC1
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: // BC1A
