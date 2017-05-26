@@ -294,6 +294,7 @@ void MyAvatar::simulateAttachments(float deltaTime) {
 QByteArray MyAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
     CameraMode mode = qApp->getCamera().getMode();
     _globalPosition = getPosition();
+    // This might not be right! Isn't the capsule local offset in avatar space? -HR 5/26/17
     _globalBoundingBoxDimensions.x = _characterController.getCapsuleRadius();
     _globalBoundingBoxDimensions.y = _characterController.getCapsuleHalfHeight();
     _globalBoundingBoxDimensions.z = _characterController.getCapsuleRadius();
@@ -448,6 +449,7 @@ void MyAvatar::update(float deltaTime) {
     setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
     glm::vec3 halfBoundingBoxDimensions(_characterController.getCapsuleRadius(), _characterController.getCapsuleHalfHeight(), _characterController.getCapsuleRadius());
+    // This might not be right! Isn't the capsule local offset in avatar space? -HR 5/26/17
     halfBoundingBoxDimensions += _characterController.getCapsuleLocalOffset();
     QMetaObject::invokeMethod(audio.data(), "setAvatarBoundingBoxParameters",
         Q_ARG(glm::vec3, (getPosition() - halfBoundingBoxDimensions)),
@@ -2230,7 +2232,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     // a) the closest above and the closest below are less than the avatar capsule height apart, or
     // b) the above point is the top surface of an entity, indicating that we are inside it.
     // If no landing is required, we go to that point directly and return false;
-    // When a landing is required by a, we find the highest intersection on that closest-above entity
+    // When a landing is required by a, we find the highest intersection on that closest-agbove entity
     // (which may be that same "nearest above intersection"). That highest intersection is the candidate landing point.
     // For b, use that top surface point.
     // We then place our feet there, recurse with new capsule center point, and return true.
@@ -2243,7 +2245,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
         return result;
     }
 
-    const auto offset = _characterController.getCapsuleLocalOffset(); // FIXME: correct space.
+    const auto offset = getOrientation() *_characterController.getCapsuleLocalOffset();
     const auto capsuleCenter = position + offset;
     // We could repeat this whole test for each of the four corners of our bounding box, in case the surface is uneven. However:
     // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes in the surfaces or avatar.
