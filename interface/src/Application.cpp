@@ -245,6 +245,8 @@ Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTRE
 
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 
+static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
+
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
@@ -1523,7 +1525,7 @@ QString Application::getUserAgent() {
 void Application::toggleTabletUI() const {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     bool messageOpen = tablet->isMessageDialogOpen();
     if (!messageOpen || (messageOpen && !hmd->getShouldShowTablet())) {
         auto HMD = DependencyManager::get<HMDScriptingInterface>();
@@ -2295,7 +2297,7 @@ void Application::showHelp() {
     queryString.addQueryItem("handControllerName", handControllerName);
     queryString.addQueryItem("defaultTab", defaultTab);
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     tablet->gotoWebScreen(INFO_HELP_PATH + "?" + queryString.toString());
     //InfoView::show(INFO_HELP_PATH, false, queryString.toString());
 }
@@ -5766,7 +5768,7 @@ void Application::toggleRunningScriptsWidget() const {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     bool scriptsRunning = !scriptEngines->getRunningScripts().isEmpty();
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
 
     if (tablet->getToolbarMode() || false == scriptsRunning) {
         static const QUrl url("hifi/dialogs/RunningScripts.qml");
@@ -5815,7 +5817,7 @@ void Application::showAssetServerWidget(QString filePath) {
         }
     };
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     if (tablet->getToolbarMode()) {
         DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
@@ -5852,7 +5854,7 @@ void Application::addAssetToWorldFromURL(QString url) {
 
 void Application::showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     if (tablet->getToolbarMode()) {
         DependencyManager::get<OffscreenUi>()->show(desktopURL, name);
@@ -6348,7 +6350,7 @@ void Application::loadScriptURLDialog() const {
 
 void Application::loadLODToolsDialog() {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->lodTools();
@@ -6360,7 +6362,7 @@ void Application::loadLODToolsDialog() {
 
 void Application::loadEntityStatisticsDialog() {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->octreeStatsDetails();
@@ -6371,7 +6373,7 @@ void Application::loadEntityStatisticsDialog() {
 
 void Application::loadDomainConnectionDialog() {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->showDomainConnectionDialog();
