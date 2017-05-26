@@ -43,6 +43,26 @@ var minuteHandID = Entities.addEntity({
     modelURL: Script.resolvePath("models/Stopwatch-min-hand.fbx"),
 });
 
+var startStopButtonID = Entities.addEntity({
+    type: "Shape",
+    shape: "Octagon",
+    name: "stopwatch/startStop",
+    parentID: stopwatchID,
+    dimensions: Vec3.multiply(scale, { x: 0.8, y: 1.0, z: 0.8 }),
+    localPosition: Vec3.multiply(scale, { x: 0, y: -0.1, z: -2.06 }),
+    localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 }),
+});
+
+var resetButtonID = Entities.addEntity({
+    type: "Shape",
+    shape: "Octagon",
+    name: "stopwatch/startStop",
+    parentID: stopwatchID,
+    dimensions: Vec3.multiply(scale, { x: 0.6, y: 0.8, z: 0.6 }),
+    localPosition: Vec3.multiply(scale, { x: -1.5, y: -0.1, z: -1.2 }),
+    localRotation: Quat.fromVec3Degrees({ x: 90, y: 36, z: 0 }),
+});
+
 Entities.editEntity(stopwatchID, {
     userData: JSON.stringify({
         secondHandID: secondHandID,
