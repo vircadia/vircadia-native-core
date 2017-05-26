@@ -24,16 +24,29 @@ void EngineStats::run(const RenderContextPointer& renderContext) {
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
     config->bufferCPUCount = gpu::Buffer::getBufferCPUCount();
-    config->bufferGPUCount = gpu::Buffer::getBufferGPUCount();
-    config->bufferCPUMemoryUsage = gpu::Buffer::getBufferCPUMemoryUsage();
-    config->bufferGPUMemoryUsage = gpu::Buffer::getBufferGPUMemoryUsage();
+    config->bufferGPUCount = gpu::Context::getBufferGPUCount();
+    config->bufferCPUMemSize = gpu::Buffer::getBufferCPUMemSize();
+    config->bufferGPUMemSize = gpu::Context::getBufferGPUMemSize();
 
     config->textureCPUCount = gpu::Texture::getTextureCPUCount();
-    config->textureGPUCount = gpu::Texture::getTextureGPUCount();
-    config->textureCPUMemoryUsage = gpu::Texture::getTextureCPUMemoryUsage();
-    config->textureGPUMemoryUsage = gpu::Texture::getTextureGPUMemoryUsage();
-    config->textureGPUVirtualMemoryUsage = gpu::Texture::getTextureGPUVirtualMemoryUsage();
-    config->textureGPUTransferCount = gpu::Texture::getTextureGPUTransferCount();
+    config->textureGPUCount = gpu::Context::getTextureGPUCount();
+    config->textureCPUMemSize = gpu::Texture::getTextureCPUMemSize();
+    config->textureGPUMemSize = gpu::Context::getTextureGPUMemSize();
+
+    config->textureResidentGPUCount = gpu::Context::getTextureResidentGPUCount();
+    config->textureFramebufferGPUCount = gpu::Context::getTextureFramebufferGPUCount();
+    config->textureResourceGPUCount = gpu::Context::getTextureResourceGPUCount();
+    config->textureExternalGPUCount = gpu::Context::getTextureExternalGPUCount();
+
+    config->textureResidentGPUMemSize = gpu::Context::getTextureResidentGPUMemSize();
+    config->textureFramebufferGPUMemSize = gpu::Context::getTextureFramebufferGPUMemSize();
+    config->textureResourceGPUMemSize = gpu::Context::getTextureResourceGPUMemSize();
+    config->textureExternalGPUMemSize = gpu::Context::getTextureExternalGPUMemSize();
+
+    config->texturePendingGPUTransferCount = gpu::Context::getTexturePendingGPUTransferCount();
+    config->texturePendingGPUTransferSize = gpu::Context::getTexturePendingGPUTransferMemSize();
+
+    config->textureResourcePopulatedGPUMemSize = gpu::Context::getTextureResourcePopulatedGPUMemSize();
 
     renderContext->args->_context->getFrameStats(_gpuStats);
 
