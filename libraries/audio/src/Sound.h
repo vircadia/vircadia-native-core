@@ -53,7 +53,7 @@ class SoundProcessor : public QObject, public QRunnable {
     Q_OBJECT
 
 public:
-    SoundProcessor(const QUrl& url, const QByteArray& data, const bool stereo, const bool ambisonic)
+    SoundProcessor(const QUrl& url, const QByteArray& data, bool stereo, bool ambisonic)
         : _url(url), _data(data), _isStereo(stereo), _isAmbisonic(ambisonic)
     {
     }

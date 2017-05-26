@@ -56,8 +56,8 @@ Sound::Sound(const QUrl& url, bool isStereo, bool isAmbisonic) :
 void Sound::downloadFinished(const QByteArray& data) {
     // this is a QRunnable, will delete itself after it has finished running
     SoundProcessor* soundProcessor = new SoundProcessor(_url, data, _isStereo, _isAmbisonic);
-    connect(soundProcessor, SIGNAL(onSuccess(QByteArray, bool, bool, float)), SLOT(soundProcessSuccess(QByteArray, bool, bool, float)));
-    connect(soundProcessor, SIGNAL(onError(int, QString)), SLOT(soundProcessError(int, QString)));
+    connect(soundProcessor, &SoundProcessor::onSuccess, this, &Sound::soundProcessSuccess);
+    connect(soundProcessor, &SoundProcessor::onError, this, &Sound::soundProcessError);
     QThreadPool::globalInstance()->start(soundProcessor);
 }
 
