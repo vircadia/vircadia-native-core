@@ -210,9 +210,12 @@ public:
 };
 
 glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParentMap,
-        const QHash<QString, FBXModel>& models, QString nodeID, bool mixamoHack) {
+        const QHash<QString, FBXModel>& models, QString nodeID, bool mixamoHack, const QString& url) {
     glm::mat4 globalTransform;
+    QVector<QString> visitedNodes; // Used to prevent following a cycle
     while (!nodeID.isNull()) {
+        visitedNodes.append(nodeID); // Append each node we visit
+
         const FBXModel& model = models.value(nodeID);
         globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
             model.rotation * model.postRotation) * model.postTransform * globalTransform;
@@ -223,6 +226,11 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
         QList<QString> parentIDs = _connectionParentMap.values(nodeID);
         nodeID = QString();
         foreach (const QString& parentID, parentIDs) {
+            if (visitedNodes.contains(parentID)) {
+                qCWarning(modelformat) << "Ignoring loop detected in FBX connection map for" << url;
+                continue;
+            }
+
             if (models.contains(parentID)) {
                 nodeID = parentID;
                 break;
@@ -347,10 +355,18 @@ void addBlendshapes(const ExtractedBlendshape& extracted, const QList<WeightedIn
 }
 
 QString getTopModelID(const QMultiMap<QString, QString>& connectionParentMap,
-        const QHash<QString, FBXModel>& models, const QString& modelID) {
+        const QHash<QString, FBXModel>& models, const QString& modelID, const QString& url) {
     QString topID = modelID;
+    QVector<QString> visitedNodes; // Used to prevent following a cycle
     forever {
+        visitedNodes.append(topID); // Append each node we visit
+
         foreach (const QString& parentID, connectionParentMap.values(topID)) {
+            if (visitedNodes.contains(parentID)) {
+                qCWarning(modelformat) << "Ignoring loop detected in FBX connection map for" << url;
+                continue;
+            }
+
             if (models.contains(parentID)) {
                 topID = parentID;
                 goto outerContinue;
@@ -1307,7 +1323,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 if (!clusters.contains(clusterID)) {
                     continue;
                 }
-                QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID));
+                QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID), url);
                 _connectionChildMap.remove(_connectionParentMap.take(model.key()), model.key());
                 _connectionParentMap.insert(model.key(), topID);
                 goto outerBreak;
@@ -1329,7 +1345,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 first = id;
             }
         }
-        QString topID = getTopModelID(_connectionParentMap, models, first);
+        QString topID = getTopModelID(_connectionParentMap, models, first, url);
         appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs);
     }
 
@@ -1511,7 +1527,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : _connectionParentMap.value(it.key());
-        glm::mat4 modelTransform = getGlobalTransform(_connectionParentMap, models, modelID, geometry.applicationName == "mixamo.com");
+        glm::mat4 modelTransform = getGlobalTransform(_connectionParentMap, models, modelID, geometry.applicationName == "mixamo.com", url);
 
         // compute the mesh extents from the transformed vertices
         foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
