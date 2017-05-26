@@ -111,8 +111,11 @@ function update(dt) {
         var x = Reticle.getPosition().x;
         var y = Reticle.getPosition().y;
 
-        yawFromMouse += ((x - lastX) * movementParameters.MOUSE_YAW_SCALE * movementParameters.MOUSE_SENSITIVITY);
-        pitchFromMouse += ((y - lastY) * movementParameters.MOUSE_PITCH_SCALE * movementParameters.MOUSE_SENSITIVITY);
+        var dx = x - lastX;
+        var dy = y - lastY;
+
+        yawFromMouse += (dx * movementParameters.MOUSE_YAW_SCALE * movementParameters.MOUSE_SENSITIVITY);
+        pitchFromMouse += (dy * movementParameters.MOUSE_PITCH_SCALE * movementParameters.MOUSE_SENSITIVITY);
         pitchFromMouse = Math.max(-180, Math.min(180, pitchFromMouse));
 
         resetCursorPosition();
@@ -170,8 +173,8 @@ function scriptEnding() {
 }
 
 function resetCursorPosition() {
-    var newX = Window.x + Window.innerWidth / 2;
-    var newY = Window.y + Window.innerHeight / 2;
+    var newX = Math.floor(Window.x + Window.innerWidth / 2);
+    var newY = Math.floor(Window.y + Window.innerHeight / 2);
     Reticle.setPosition({ x: newX, y: newY});
     lastX = newX;
     lastY = newY;
