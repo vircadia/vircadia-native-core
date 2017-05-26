@@ -1051,8 +1051,7 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     if (params.leftArmEnabled) {
         _animVars.set("leftArmType", (int)IKTarget::Type::RotationAndPosition);
         _animVars.set("leftArmPosition", params.leftArmPosition);
-        _animVars.set("leftArmRotation", params.leftArmRotation);
-        
+        _animVars.set("leftArmRotation", params.leftArmRotation);        
     } else {
         _animVars.set("leftArmType", (int)IKTarget::Type::Unknown);
     }

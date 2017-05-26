@@ -90,8 +90,8 @@ private:
         
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                 int firstShoulderIndex, int secondShoulderIndex);
-
         void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+
 
         class FilteredStick {
         public:
@@ -122,7 +122,8 @@ private:
             FeetAndHips,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
-            FeetHipsChestAndHead
+            FeetHipsChestAndHead,
+            FeetHipsAndHead
         };
         Config _config { Config::Auto };
         Config _preferedConfig { Config::Auto };
@@ -153,7 +154,6 @@ private:
         mutable std::recursive_mutex _lock;
 
         QString configToString(Config config);
-        
         friend class ViveControllerManager;
     };
 

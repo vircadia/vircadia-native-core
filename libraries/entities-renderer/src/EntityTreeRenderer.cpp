@@ -1091,22 +1091,40 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
 
     // trigger scripted collision sounds and events for locally owned objects
     EntityItemPointer entityA = entityTree->findEntityByEntityItemID(idA);
-    if ((bool)entityA && myNodeID == entityA->getSimulatorID()) {
-        playEntityCollisionSound(entityA, collision);
-        emit collisionWithEntity(idA, idB, collision);
-        if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
-        }
-    }
     EntityItemPointer entityB = entityTree->findEntityByEntityItemID(idB);
-    if ((bool)entityB && myNodeID == entityB->getSimulatorID()) {
-        playEntityCollisionSound(entityB, collision);
-        // since we're swapping A and B we need to send the inverted collision
-        Collision invertedCollision(collision);
-        invertedCollision.invert();
-        emit collisionWithEntity(idB, idA, invertedCollision);
-        if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, invertedCollision);
+    if ((bool)entityA && (bool)entityB) {
+        QUuid entityASimulatorID = entityA->getSimulatorID();
+        QUuid entityBSimulatorID = entityB->getSimulatorID();
+        bool entityAIsDynamic = entityA->getDynamic();
+        bool entityBIsDynamic = entityB->getDynamic();
+
+#ifdef WANT_DEBUG
+        bool bothEntitiesStatic = !entityAIsDynamic && !entityBIsDynamic;
+        if (bothEntitiesStatic) {
+            qCDebug(entities) << "A collision has occurred between two static entities!";
+            qCDebug(entities) << "Entity A ID:" << entityA->getID();
+            qCDebug(entities) << "Entity B ID:" << entityB->getID();
+        }
+        assert(!bothEntitiesStatic);
+#endif
+
+        if ((myNodeID == entityASimulatorID && entityAIsDynamic) || (myNodeID == entityBSimulatorID && (!entityAIsDynamic || entityASimulatorID.isNull()))) {
+            playEntityCollisionSound(entityA, collision);
+            emit collisionWithEntity(idA, idB, collision);
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
+            }
+        }
+
+        if ((myNodeID == entityBSimulatorID && entityBIsDynamic) || (myNodeID == entityASimulatorID && (!entityBIsDynamic || entityBSimulatorID.isNull()))) {
+            playEntityCollisionSound(entityB, collision);
+            // since we're swapping A and B we need to send the inverted collision
+            Collision invertedCollision(collision);
+            invertedCollision.invert();
+            emit collisionWithEntity(idB, idA, invertedCollision);
+            if (_entitiesScriptEngine) {
+                _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, invertedCollision);
+            }
         }
     }
 }

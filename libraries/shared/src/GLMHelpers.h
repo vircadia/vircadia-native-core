@@ -147,7 +147,8 @@ bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, gl
 
 glm::vec3 extractTranslation(const glm::mat4& matrix);
 
-void setTranslation(glm::mat4& matrix, const glm::vec3& translation);
+void setTranslation(glm::mat4& matrix, cons
+                    t glm::vec3& translation);
 
 glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal = false);
 glm::quat glmExtractRotation(const glm::mat4& matrix);

@@ -40,7 +40,6 @@ public:
 
     void loadScripts();
     void saveScripts();
-    void clearScripts();
 
     QString getScriptsLocation() const;
     void loadDefaultScripts();
