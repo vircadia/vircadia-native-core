@@ -46,9 +46,15 @@ public:
         glm::mat4 spine2Matrix = glm::mat4();         // rig space
         glm::quat rigHeadOrientation = glm::quat();   // rig space (-z forward)
         glm::vec3 rigHeadPosition = glm::vec3();      // rig space
+        glm::vec3 rightArmPosition = glm::vec3();     // rig space
+        glm::quat rightArmRotation = glm::quat();     // rig space
+        glm::vec3 leftArmPosition = glm::vec3();      // rig space
+        glm::quat leftArmRotation = glm::quat();      // rig space
         bool hipsEnabled = false;
         bool headEnabled = false;
         bool spine2Enabled = false;
+        bool leftArmEnabled = false;
+        bool rightArmEnabled = false;
         bool isTalking = false;
     };
 

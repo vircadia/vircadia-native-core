@@ -92,6 +92,26 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         headParams.spine2Enabled = false;
     }
 
+    auto avatarRightArmPose = myAvatar->getRightArmControllerPoseInAvatarFrame();
+    if (avatarRightArmPose.isValid()) {
+        glm::mat4 rightArmMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarRightArmPose.getRotation(), avatarRightArmPose.getTranslation());
+        headParams.rightArmPosition = extractTranslation(rightArmMat);
+        headParams.rightArmRotation = glmExtractRotation(rightArmMat);
+        headParams.rightArmEnabled = true;
+    } else {
+        headParams.rightArmEnabled = false;
+    }
+    
+    auto avatarLeftArmPose = myAvatar->getLeftArmControllerPoseInAvatarFrame();
+    if (avatarLeftArmPose.isValid()) {
+        glm::mat4 leftArmMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarLeftArmPose.getRotation(), avatarLeftArmPose.getTranslation());
+        headParams.leftArmPosition = extractTranslation(leftArmMat);
+        headParams.leftArmRotation = glmExtractRotation(leftArmMat);
+        headParams.leftArmEnabled = true;
+    } else {
+        headParams.leftArmEnabled = false;
+    }
+
     headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
 
     _rig.updateFromHeadParameters(headParams, deltaTime);
