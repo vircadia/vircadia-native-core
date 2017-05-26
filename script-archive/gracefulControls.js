@@ -35,6 +35,9 @@ var BRAKE_PARAMETERS = {
     MOUSE_SENSITIVITY: 0.5,
 }
 
+var UPDATE_RATE = 90;
+var USE_INTERVAL = true;
+
 var movementParameters = DEFAULT_PARAMETERS;
 
 // Movement keys
@@ -189,6 +192,8 @@ function toggleEnabled() {
     }
 }
 
+
+var timerID = null;
 function enable() {
     if (!enabled && Window.hasFocus()) {
         enabled = true;
@@ -206,7 +211,17 @@ function enable() {
             Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
         }
         Reticle.setVisible(false);
-        Script.update.connect(update);
+        if (USE_INTERVAL) {
+            var lastTime = Date.now();
+            timerID = Script.setInterval(function() {
+                var now = Date.now();
+                var dt = now - lastTime;
+                lastTime = now;
+                update(dt / 1000);
+            }, (1.0 / UPDATE_RATE) * 1000);
+        } else {
+            Script.update.connect(update);
+        }
     }
 }
 
@@ -217,7 +232,12 @@ function disable() {
             Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
         }
         Reticle.setVisible(true);
-        Script.update.disconnect(update);
+        if (USE_INTERVAL) {
+            Script.clearInterval(timerID);
+            timerID = null;
+        } else {
+            Script.update.disconnect(update);
+        }
     }
 }
 
