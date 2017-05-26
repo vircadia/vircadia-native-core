@@ -104,6 +104,8 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         makePair(RIGHT_HAND, "RightHand"),
         makePair(LEFT_FOOT, "LeftFoot"),
         makePair(RIGHT_FOOT, "RightFoot"),
+        makePair(RIGHT_ARM, "RightArm"),
+        makePair(LEFT_ARM, "LeftArm"),
         makePair(HIPS, "Hips"),
         makePair(SPINE2, "Spine2"),
         makePair(HEAD, "Head"),
