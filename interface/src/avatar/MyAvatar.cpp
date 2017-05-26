@@ -2233,6 +2233,11 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     // (which may be that same "nearest above intersection"). That highest intersection is the candidate landing point.
     // For b, use that top surface point.
     // We then place our feet there, recurse with new capsule center point, and return true;
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        QMetaObject::invokeMethod(this, "safeLanding", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, result), Q_ARG(const glm::vec3&, position));
+        return result;
+    }
 
     const auto offset = _characterController.getCapsuleLocalOffset();
     const auto capsuleCenter = position + offset;
