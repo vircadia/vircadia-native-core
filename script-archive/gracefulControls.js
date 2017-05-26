@@ -12,9 +12,9 @@
 var DEFAULT_PARAMETERS = {
     // Coefficient to use for linear drag.  Higher numbers will cause motion to
     // slow down more quickly.
-    DRAG_COEFFICIENT: 0.9,
-    MAX_SPEED: 40.0,
-    ACCELERATION: 1.0,
+    DRAG_COEFFICIENT: 60.0,
+    MAX_SPEED: 10.0,
+    ACCELERATION: 10.0,
 
     MOUSE_YAW_SCALE: -0.125,
     MOUSE_PITCH_SCALE: -0.125,
@@ -93,30 +93,6 @@ function keyReleaseEvent(event) {
 }
 
 function update(dt) {
-    var maxMove = 3.0 * dt;
-    var targetVelocity = { x: 0, y: 0, z: 0 };
-    var targetVelocityVertical = 0;
-    var acceleration = movementParameters.ACCELERATION;
-
-    if (keys[KEY_FORWARD]) {
-        targetVelocity.z -= acceleration * dt;
-    }
-    if (keys[KEY_LEFT]) {
-        targetVelocity.x -= acceleration * dt;
-    }
-    if (keys[KEY_BACKWARD]) {
-        targetVelocity.z += acceleration * dt;
-    }
-    if (keys[KEY_RIGHT]) {
-        targetVelocity.x += acceleration * dt;
-    }
-    if (keys[KEY_UP]) {
-        targetVelocityVertical += acceleration * dt;
-    }
-    if (keys[KEY_DOWN]) {
-        targetVelocityVertical -= acceleration * dt;
-    }
-
     if (enabled && Window.hasFocus()) {
         var x = Reticle.getPosition().x;
         var y = Reticle.getPosition().y;
@@ -152,13 +128,36 @@ function update(dt) {
 
 
     if (DRIVE_AVATAR_ENABLED) {
+        var targetVelocity = { x: 0, y: 0, z: 0 };
+        var targetVelocityVertical = 0;
+        var acceleration = movementParameters.ACCELERATION;
+
+        if (keys[KEY_FORWARD]) {
+            targetVelocity.z -= acceleration * dt;
+        }
+        if (keys[KEY_LEFT]) {
+            targetVelocity.x -= acceleration * dt;
+        }
+        if (keys[KEY_BACKWARD]) {
+            targetVelocity.z += acceleration * dt;
+        }
+        if (keys[KEY_RIGHT]) {
+            targetVelocity.x += acceleration * dt;
+        }
+        if (keys[KEY_UP]) {
+            targetVelocityVertical += acceleration * dt;
+        }
+        if (keys[KEY_DOWN]) {
+            targetVelocityVertical -= acceleration * dt;
+        }
+
         // If force isn't being applied in a direction, add drag;
-        var drag = Math.min(movementParameters.DRAG_COEFFICIENT * dt, 1.0);
+        var drag = Math.max(movementParameters.DRAG_COEFFICIENT * dt, 1.0);
         if (targetVelocity.x == 0) {
-            targetVelocity.x -= (velocity.x * drag);
+            targetVelocity.x = -velocity.x * drag;
         }
         if (targetVelocity.z == 0) {
-            targetVelocity.z -= (velocity.z * drag);
+            targetVelocity.z = -velocity.z * drag;
         }
         velocity = Vec3.sum(velocity, targetVelocity);
 
@@ -174,9 +173,7 @@ function update(dt) {
         velocityVertical = Math.max(-maxSpeed, Math.min(maxSpeed, velocityVertical));
         v.y += velocityVertical;
 
-        MyAvatar.motorReferenceFrame = 'world';
         MyAvatar.motorVelocity = v;
-        MyAvatar.motorTimescale = 1;
         Vec3.print('vel', v);
     }
 }
@@ -220,6 +217,11 @@ function enable() {
         yawSpeed = 0;
         pitchSpeed = 0;
         velocityVertical = 0;
+        velocity = { x: 0, y: 0, z: 0 };
+
+        MyAvatar.motorReferenceFrame = 'world';
+        MyAvatar.motorVelocity = { x: 0, y: 0, z: 0 };
+        MyAvatar.motorTimescale = 1;
 
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
             Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
@@ -246,6 +248,7 @@ function disable() {
             Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
         }
         Reticle.setVisible(true);
+        MyAvatar.motorVelocity = { x: 0, y: 0, z: 0 };
         if (USE_INTERVAL) {
             Script.clearInterval(timerID);
             timerID = null;
