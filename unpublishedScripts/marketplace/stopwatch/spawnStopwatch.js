@@ -51,6 +51,7 @@ var startStopButtonID = Entities.addEntity({
     dimensions: Vec3.multiply(scale, { x: 0.8, y: 1.0, z: 0.8 }),
     localPosition: Vec3.multiply(scale, { x: 0, y: -0.1, z: -2.06 }),
     localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 }),
+    visible: false
 });
 
 var resetButtonID = Entities.addEntity({
@@ -61,15 +62,29 @@ var resetButtonID = Entities.addEntity({
     dimensions: Vec3.multiply(scale, { x: 0.6, y: 0.8, z: 0.6 }),
     localPosition: Vec3.multiply(scale, { x: -1.5, y: -0.1, z: -1.2 }),
     localRotation: Quat.fromVec3Degrees({ x: 90, y: 36, z: 0 }),
+    visible: false
 });
 
 Entities.editEntity(stopwatchID, {
     userData: JSON.stringify({
         secondHandID: secondHandID,
-        minuteHandID: minuteHandID,
+        minuteHandID: minuteHandID
     }),
-    script: Script.resolvePath("stopwatchClient.js"),
     serverScripts: Script.resolvePath("stopwatchServer.js")
+});
+
+Entities.editEntity(startStopButtonID, {
+    userData: JSON.stringify({
+        stopwatchID: stopwatchID
+    }),
+    script: Script.resolvePath("stopwatchStartStop.js")
+});
+
+Entities.editEntity(resetButtonID, {
+    userData: JSON.stringify({
+        stopwatchID: stopwatchID
+    }),
+    script: Script.resolvePath("stopwatchReset.js")
 });
 
 Script.stop()
