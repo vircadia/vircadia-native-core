@@ -20,9 +20,9 @@ Item {
         id: stats
         spacing: 8
         anchors.fill:parent
- 
+
         property var config: Render.getConfig("Stats")
- 
+
         function evalEvenHeight() {
             // Why do we have to do that manually ? cannot seem to find a qml / anchor / layout mode that does that ?
             return (height - spacing * (children.length - 1)) / children.length
@@ -81,7 +81,7 @@ Item {
                     color: "#1AC567"
                 },
                 {
-                    prop: "textureGPUTransferCount",
+                    prop: "texturePendingGPUTransferCount",
                     label: "Transfer",
                     color: "#9495FF"
                 }
@@ -158,7 +158,7 @@ Item {
                 }
             ]
         }
- 
+
         PlotPerf {
             title: "State Changes"
             height: parent.evalEvenHeight()
@@ -180,7 +180,7 @@ Item {
                     color: "#1AC567"
                 }
             ]
-        }  
+        }
 
         property var drawOpaqueConfig: Render.getConfig("DrawOpaqueDeferred")
         property var drawTransparentConfig: Render.getConfig("DrawTransparentDeferred")
@@ -211,7 +211,7 @@ Item {
                     color: "#FED959"
                 }
             ]
-        } 
+        }
 
         PlotPerf {
            title: "Timing"
@@ -250,4 +250,3 @@ Item {
     }
 
 }
-
