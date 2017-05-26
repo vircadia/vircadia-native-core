@@ -44,25 +44,22 @@ var minuteHandID = Entities.addEntity({
 });
 
 var startStopButtonID = Entities.addEntity({
-    type: "Shape",
-    shape: "Octagon",
+    type: "Model",
     name: "stopwatch/startStop",
     parentID: stopwatchID,
-    dimensions: Vec3.multiply(scale, { x: 0.8, y: 1.0, z: 0.8 }),
+    dimensions: Vec3.multiply(scale, { x: 0.8, y: 0.8, z: 1.0 }),
     localPosition: Vec3.multiply(scale, { x: 0, y: -0.1, z: -2.06 }),
-    localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 }),
-    visible: false
+    modelURL: Script.resolvePath("models/transparent-box.fbx")
 });
 
 var resetButtonID = Entities.addEntity({
-    type: "Shape",
-    shape: "Octagon",
+    type: "Model",
     name: "stopwatch/startStop",
     parentID: stopwatchID,
-    dimensions: Vec3.multiply(scale, { x: 0.6, y: 0.8, z: 0.6 }),
+    dimensions: Vec3.multiply(scale, { x: 0.6, y: 0.6, z: 0.8 }),
     localPosition: Vec3.multiply(scale, { x: -1.5, y: -0.1, z: -1.2 }),
-    localRotation: Quat.fromVec3Degrees({ x: 90, y: 36, z: 0 }),
-    visible: false
+    localRotation: Quat.fromVec3Degrees({ x: 0, y: 36, z: 0 }),
+    modelURL: Script.resolvePath("models/transparent-box.fbx")
 });
 
 Entities.editEntity(stopwatchID, {
@@ -75,14 +72,16 @@ Entities.editEntity(stopwatchID, {
 
 Entities.editEntity(startStopButtonID, {
     userData: JSON.stringify({
-        stopwatchID: stopwatchID
+        stopwatchID: stopwatchID,
+        grabbableKey: { wantsTrigger: true }
     }),
     script: Script.resolvePath("stopwatchStartStop.js")
 });
 
 Entities.editEntity(resetButtonID, {
     userData: JSON.stringify({
-        stopwatchID: stopwatchID
+        stopwatchID: stopwatchID,
+        grabbableKey: { wantsTrigger: true }
     }),
     script: Script.resolvePath("stopwatchReset.js")
 });
