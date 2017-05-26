@@ -2220,6 +2220,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 }
 
 void MyAvatar::goToLocationAndEnableCollisions(const glm::vec3& position) { // See use case in safeLanding.
+    // FIXME: Doesn't work 100% of time. Need to figure out what isn't happening fast enough. E.g., don't goToLocation until confirmed removed from physics?
     goToLocation(position);
     QMetaObject::invokeMethod(this, "setCollisionsEnabled", Qt::QueuedConnection, Q_ARG(bool, true));
 }
@@ -2232,14 +2233,17 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     // When a landing is required by a, we find the highest intersection on that closest-above entity
     // (which may be that same "nearest above intersection"). That highest intersection is the candidate landing point.
     // For b, use that top surface point.
-    // We then place our feet there, recurse with new capsule center point, and return true;
+    // We then place our feet there, recurse with new capsule center point, and return true.
+
+    // I'm not sure the true/false return is useful, and it does make things more complicated. Might get rid of it.
+    // E.g., Q_RETURN_ARG, and direct() could be a normal method.
     if (QThread::currentThread() != thread()) {
         bool result;
         QMetaObject::invokeMethod(this, "safeLanding", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, result), Q_ARG(const glm::vec3&, position));
         return result;
     }
 
-    const auto offset = _characterController.getCapsuleLocalOffset();
+    const auto offset = _characterController.getCapsuleLocalOffset(); // FIXME: correct space.
     const auto capsuleCenter = position + offset;
     // We could repeat this whole test for each of the four corners of our bounding box, in case the surface is uneven. However:
     // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes in the surfaces or avatar.
@@ -2274,14 +2278,13 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
         safeLanding(upperIntersection + (up * halfHeight) - offset);
         return true;
     };
-    auto isUp = [&](const glm::vec3& normal) { return glm::dot(normal, up) > 0.0f; }; // true iff normal points up
-    auto isDown = [&](const glm::vec3& normal) { return glm::dot(normal, up) < 0.0f; };
     auto findIntersection = [&](const glm::vec3& startPointIn, const glm::vec3& directionIn, glm::vec3& intersectionOut, EntityItemID& entityIdOut, glm::vec3& normalOut) {
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         float distance;
         BoxFace face;
         const bool visibleOnly = false;
+        // FIXME: this doesn't do what we want here. findRayIntersection always works on mesh, skipping entirely based on collidable. What we really want is to use the collision hull! See CharacterGhostObject::rayTest?
         const bool collidableOnly = true;
         const bool precisionPicking = true;
         const auto lockType = Octree::Lock; // Should we refactor to take a lock just once?
