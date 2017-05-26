@@ -32,14 +32,12 @@ public:
  
     const QByteArray& getByteArray() const { return _byteArray; }
 
-    void setStereo(bool stereo) { _isStereo = stereo; }
-    void setReady(bool ready);
-
-    void downSample(const QByteArray& rawAudioByteArray, int sampleRate);
-    int interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
-
 signals:
     void ready();
+
+protected slots:
+    void soundProcessSuccess(QByteArray data, bool stereo, bool ambisonic, float duration);
+    void soundProcessError(int error, QString str);
     
 private:
     QByteArray _byteArray;
@@ -55,18 +53,26 @@ class SoundProcessor : public QObject, public QRunnable {
     Q_OBJECT
 
 public:
-    SoundProcessor(const QUrl& url, const QByteArray& data, Sound* sound)
-        : _url(url), _data(data), _sound(sound)
+    SoundProcessor(const QUrl& url, const QByteArray& data, const bool stereo, const bool ambisonic)
+        : _url(url), _data(data), _isStereo(stereo), _isAmbisonic(ambisonic)
     {
     }
 
     virtual void run() override;
 
+    void downSample(const QByteArray& rawAudioByteArray, int sampleRate);
+    int interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
+
+signals:
+    void onSuccess(QByteArray data, bool stereo, bool ambisonic, float duration);
+    void onError(int error, QString str);
+
 private:
     QUrl _url;
     QByteArray _data;
-    Sound* _sound;
-
+    bool _isStereo;
+    bool _isAmbisonic;
+    float _duration;
 };
 
 typedef QSharedPointer<Sound> SharedSoundPointer;
