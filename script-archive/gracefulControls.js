@@ -21,7 +21,7 @@ var DEFAULT_PARAMETERS = {
     MOUSE_SENSITIVITY: 0.5,
 
     // Damping frequency, adjust to change mouse look behavior
-    W: 4.2,
+    W: 2.2,
 }
 
 var BRAKE_PARAMETERS = {
