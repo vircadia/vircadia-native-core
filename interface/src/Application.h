@@ -318,7 +318,8 @@ public slots:
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
     void toggleEntityScriptServerLogDialog();
-    void toggleRunningScriptsWidget() const;
+    void toggleMenu(const QString title, const QUrl widgetUrl, const QUrl tabletUrl) const;
+    void toggleMenuRunningScripts() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
 

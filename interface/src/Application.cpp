@@ -5764,38 +5764,25 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
     }
 }
 
-void Application::toggleRunningScriptsWidget() const {    
-    auto scriptEngines = DependencyManager::get<ScriptEngines>();
-    bool scriptsRunning = !scriptEngines->getRunningScripts().isEmpty();
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
+void Application::toggleMenu(const QString title, const QUrl widgetUrl, const QUrl tabletUrl) const {
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
+    auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet(SYSTEM_TABLET);
+    bool onTablet = false;
 
-    if (tablet->getToolbarMode() || false == scriptsRunning) {
-        static const QUrl url("hifi/dialogs/RunningScripts.qml");
-        DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
-    } else {
-        auto hmd = DependencyManager::get<HMDScriptingInterface>();
-        if (!hmd->getShouldShowTablet() && !isHMDMode()) {
-            static const QUrl url("hifi/dialogs/RunningScripts.qml");
-            DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
-        } else {
-            static const QUrl url("../../hifi/dialogs/TabletRunningScripts.qml");
-            tablet->pushOntoStack(url);
-        }
+    if (!tablet->getToolbarMode() && (hmd->getShouldShowTablet() || isHMDMode())) {
+        onTablet = tablet->pushOntoStack(tabletUrl);
     }
-    //DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
-    //if (_runningScriptsWidget->isVisible()) {
-    //    if (_runningScriptsWidget->hasFocus()) {
-    //        _runningScriptsWidget->hide();
-    //    } else {
-    //        _runningScriptsWidget->raise();
-    //        setActiveWindow(_runningScriptsWidget);
-    //        _runningScriptsWidget->setFocus();
-    //    }
-    //} else {
-    //    _runningScriptsWidget->show();
-    //    _runningScriptsWidget->setFocus();
-    //}
+
+    if (!onTablet) {
+        DependencyManager::get<OffscreenUi>()->show(widgetUrl, title);
+    }
+}
+
+void Application::toggleMenuRunningScripts() const {
+    static const QString title("RunningScripts");
+    static const QUrl widgetUrl("hifi/dialogs/RunningScripts.qml");
+    static const QUrl tabletUrl("../../hifi/dialogs/TabletRunningScripts.qml");
+    toggleMenu(title, widgetUrl, tabletUrl);
 }
 
 void Application::showScriptLogs() {
