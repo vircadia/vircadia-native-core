@@ -1622,7 +1622,6 @@ void Application::cleanupBeforeQuit() {
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
 
-    DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
 
@@ -4364,7 +4363,11 @@ void Application::update(float deltaTime) {
         myAvatar->getSpine2CalibrationMat(),
         myAvatar->getHipsCalibrationMat(),
         myAvatar->getLeftFootCalibrationMat(),
-        myAvatar->getRightFootCalibrationMat()
+        myAvatar->getRightFootCalibrationMat(),
+        myAvatar->getRightArmCalibrationMat(),
+        myAvatar->getLeftArmCalibrationMat(),
+        myAvatar->getRightHandCalibrationMat(),
+        myAvatar->getLeftHandCalibrationMat()
     };
 
     InputPluginPointer keyboardMousePlugin;
@@ -4419,6 +4422,10 @@ void Application::update(float deltaTime) {
 
     controller::Pose headPose = userInputMapper->getPoseState(controller::Action::HEAD);
     myAvatar->setHeadControllerPoseInSensorFrame(headPose.transform(avatarToSensorMatrix));
+
+    controller::Pose leftArmPose = userInputMapper->getPoseState(controller::Action::LEFT_ARM);
+    controller::Pose rightArmPose = userInputMapper->getPoseState(controller::Action::RIGHT_ARM);
+    myAvatar->setArmControllerPosesInSensorFrame(leftArmPose.transform(avatarToSensorMatrix), rightArmPose.transform(avatarToSensorMatrix));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present

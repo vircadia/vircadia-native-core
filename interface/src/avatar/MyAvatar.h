@@ -471,6 +471,14 @@ public:
     controller::Pose getHeadControllerPoseInWorldFrame() const;
     controller::Pose getHeadControllerPoseInAvatarFrame() const;
 
+    void setArmControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
+    controller::Pose getLeftArmControllerPoseInSensorFrame() const;
+    controller::Pose getRightArmControllerPoseInSensorFrame() const;
+    controller::Pose getLeftArmControllerPoseInWorldFrame() const;
+    controller::Pose getRightArmControllerPoseInWorldFrame() const;
+    controller::Pose getLeftArmControllerPoseInAvatarFrame() const;
+    controller::Pose getRightArmControllerPoseInAvatarFrame() const;
+
     bool hasDriveInput() const;
 
     Q_INVOKABLE void setCollisionsEnabled(bool enabled);
@@ -488,6 +496,10 @@ public:
     glm::mat4 getHipsCalibrationMat() const;
     glm::mat4 getLeftFootCalibrationMat() const;
     glm::mat4 getRightFootCalibrationMat() const;
+    glm::mat4 getRightArmCalibrationMat() const;
+    glm::mat4 getLeftArmCalibrationMat() const;
+    glm::mat4 getLeftHandCalibrationMat() const;
+    glm::mat4 getRightHandCalibrationMat() const;
 
     void addHoldAction(AvatarActionHold* holdAction);  // thread-safe
     void removeHoldAction(AvatarActionHold* holdAction);  // thread-safe
@@ -739,6 +751,8 @@ private:
     ThreadSafeValueCache<controller::Pose> _hipsControllerPoseInSensorFrameCache{ controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _spine2ControllerPoseInSensorFrameCache{ controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _headControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _leftArmControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _rightArmControllerPoseInSensorFrameCache{ controller::Pose() };
 
     bool _hmdLeanRecenterEnabled = true;
 
