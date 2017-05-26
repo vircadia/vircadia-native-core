@@ -45,8 +45,9 @@ var KEY_LEFT = "a";
 var KEY_RIGHT = "d";
 var KEY_UP = "e";
 var KEY_DOWN = "c";
-var KEY_ENABLE = "SPACE";
-var CAPTURED_KEYS = [KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_ENABLE];
+var KEY_TOGGLE= "SPACE";
+var KEY_DISABLE = "ESC";
+var CAPTURED_KEYS = [KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_TOGGLE];
 
 // Global Variables
 var keys = {};
@@ -63,12 +64,10 @@ var yawSpeed = 0;
 var pitchSpeed = 0;
 
 function keyPressEvent(event) {
-    if (event.text == "ESC") {
+    if (event.text == KEY_DISABLE) {
         disable();
-    } else if (event.text == KEY_ENABLE) {
-        if (Window.hasFocus()) {
-            enable();
-        }
+    } else if (event.text == KEY_TOGGLE) {
+        toggleEnabled();
     } else if (event.text == KEY_BRAKE) {
         movementParameters = BRAKE_PARAMETERS;
     }
@@ -178,8 +177,17 @@ function resetCursorPosition() {
     lastY = newY;
 }
 
+
+function toggleEnabled() {
+    if (enabled) {
+        disable();
+    } else {
+        enable();
+    }
+}
+
 function enable() {
-    if (!enabled) {
+    if (!enabled && Window.hasFocus()) {
         enabled = true;
 
         resetCursorPosition();
