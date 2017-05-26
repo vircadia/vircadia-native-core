@@ -385,17 +385,17 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
         case PointerEvent::Press:
             touchType = QEvent::TouchBegin;
             touchPointState = Qt::TouchPointPressed;
-			mouseType = QEvent::MouseButtonPress;
+            mouseType = QEvent::MouseButtonPress;
             break;
         case PointerEvent::Release:
             touchType = QEvent::TouchEnd;
             touchPointState = Qt::TouchPointReleased;
-			mouseType = QEvent::MouseButtonRelease;
+            mouseType = QEvent::MouseButtonRelease;
             break;
         case PointerEvent::Move:
             touchType = QEvent::TouchUpdate;
             touchPointState = Qt::TouchPointMoved;
-			mouseType = QEvent::MouseMove;
+            mouseType = QEvent::MouseMove;
 
             if (((event.getButtons() & PointerEvent::PrimaryButton) > 0) != this->_pressed) {
                 // Mouse was pressed/released while off the overlay; convert touch and mouse events to press/release to reflect
@@ -404,12 +404,12 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
                 if (this->_pressed) {
                     touchType = QEvent::TouchBegin;
                     touchPointState = Qt::TouchPointPressed;
-					mouseType = QEvent::MouseButtonPress;
+                    mouseType = QEvent::MouseButtonPress;
 
                 } else {
                     touchType = QEvent::TouchEnd;
                     touchPointState = Qt::TouchPointReleased;
-					mouseType = QEvent::MouseButtonRelease;
+                    mouseType = QEvent::MouseButtonRelease;
 
                 }
                 button = Qt::LeftButton;
@@ -427,34 +427,32 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
             event.getButtons() == PointerEvent::SecondaryButton) {
         return;
     }
-	
-	QTouchEvent::TouchPoint point;
-	point.setId(event.getID());
-	point.setState(touchPointState);
-	point.setPos(windowPoint);
-	point.setScreenPos(windowPoint);
-	QList<QTouchEvent::TouchPoint> touchPoints;
-	touchPoints.push_back(point);
 
-	QTouchEvent* touchEvent = new QTouchEvent(touchType, &_touchDevice, event.getKeyboardModifiers());
-	touchEvent->setWindow(_webSurface->getWindow());
-	touchEvent->setTarget(_webSurface->getRootItem());
-	touchEvent->setTouchPoints(touchPoints);
-	touchEvent->setTouchPointStates(touchPointState);
+    QTouchEvent::TouchPoint point;
+    point.setId(event.getID());
+    point.setState(touchPointState);
+    point.setPos(windowPoint);
+    point.setScreenPos(windowPoint);
+    QList<QTouchEvent::TouchPoint> touchPoints;
+    touchPoints.push_back(point);
 
-	QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
-	
-	if (this->_pressed && event.getType() == PointerEvent::Move) {	
-		return;
-	}
+    QTouchEvent* touchEvent = new QTouchEvent(touchType, &_touchDevice, event.getKeyboardModifiers());
+    touchEvent->setWindow(_webSurface->getWindow());
+    touchEvent->setTarget(_webSurface->getRootItem());
+    touchEvent->setTouchPoints(touchPoints);
+    touchEvent->setTouchPointStates(touchPointState);
 
-	// Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
-	// FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
-	// This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
+    QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
 
-	QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-	QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
-	
+    if (this->_pressed && event.getType() == PointerEvent::Move) {	
+        return;
+    }
+    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
+    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
+    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
+
+    QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+    QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
 }
 
 void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
