@@ -439,7 +439,7 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
     }
 }
 
-void TabletProxy::pushOntoStack(const QVariant& path) {
+bool TabletProxy::pushOntoStack(const QVariant& path) {
     QObject* root = nullptr;
     if (!_toolbarMode && _qmlTabletRoot) {
         root = _qmlTabletRoot;
@@ -457,6 +457,8 @@ void TabletProxy::pushOntoStack(const QVariant& path) {
     } else {
         qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
     }
+
+    return root;
 }
 
 void TabletProxy::popFromStack() {
