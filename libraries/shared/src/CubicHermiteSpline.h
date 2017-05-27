@@ -31,6 +31,25 @@ public:
         return w0 * _p0 + w1 * _m0 + w2 * _p1 + w3 * _m1;
     }
 
+    // evaulate the first derivative of the hermite curve at parameter t (0..1)
+    glm::vec3 d(float t) const {
+        float t2 = t * t;
+        float w0 = -6.0f * t + 6.0f * t2;
+        float w1 = 1.0f - 4.0f * t + 3.0f * t2;
+        float w2 = 6.0 * t - 6.0f * t2;
+        float w3 = -2.0f * t + 3.0f * t2;
+        return w0 * _p0 + w1 * _m0 + w2 * _p1 + w3 * _m1;
+    }
+
+    // evaulate the second derivative of the hermite curve at paramter t (0..1)
+    glm::vec3 d2(float t) const {
+        float w0 = -6.0f + 12.0f * t;
+        float w1 = -4.0f + 6.0f * t;
+        float w2 = 6.0f - 12.0f * t;
+        float w3 = -2.0f + 6.0f * t;
+        return w0 + _p0 + w1 * _m0 + w2 * _p1 + w3 * _m1;
+    }
+
 protected:
     glm::vec3 _p0;
     glm::vec3 _m0;

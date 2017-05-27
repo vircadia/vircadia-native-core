@@ -540,7 +540,7 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
 
     // if secondaryAxis is parallel with the primaryAxis, pick another axis.
     const float EPSILON = 1.0e-4f;
-    if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > EPSILON) {
+    if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > EPSILON) { 
         // pick a better secondaryAxis.
         normSecondary = glm::vec3(1.0f, 0.0f, 0.0f);
         if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > EPSILON) {
