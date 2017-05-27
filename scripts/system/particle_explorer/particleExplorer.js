@@ -13,7 +13,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 /* global HifiEntityUI, openEventBridge, console, EventBridge, document, window */
-/* eslint no-console: 0 */
+/* eslint no-console: 0, no-global-assign: 0 */
 
 (function(){
 
@@ -22,45 +22,69 @@
     window.onload = function(){
         var ui = new HifiEntityUI(root);
         var textarea = document.createElement("textarea");
-
+        var properties = "";
         var menuStructure = {
             General: [
                 { type: "Row", id: "export-import-field" },
                 {
-                    id: "importSettings",
-                    name: "Import Settings",
+                    id: "show-properties-button",
+                    name: "Show Properties",
                     type: "Button",
                     class: "blue",
                     callback: function(event){
-
                         var insertZone = document.getElementById("export-import-field");
-
                         var json = ui.getSettings();
-                        textarea.value = JSON.stringify(json);
+                        properties = JSON.stringify(json);
+                        textarea.value = properties;
                         if (!insertZone.contains(textarea)) {
                             insertZone.appendChild(textarea);
                             insertZone.parentNode.parentNode.style.maxHeight =
                                 insertZone.parentNode.clientHeight + "px";
-
+                            document.getElementById("export-properties-button").removeAttribute("disabled");
+                            textarea.onchange = function(e) {
+                                if (e.target.value !== properties){
+                                    document.getElementById("import-properties-button").removeAttribute("disabled");
+                                }
+                            };
+                            textarea.oninput = textarea.onchange;
+                        } else {
+                            textarea.onchange = function(){};
+                            textarea.oninput = textarea.onchange;
+                            textarea.value = "";
+                            textarea.remove();
+                            insertZone.parentNode.parentNode.style.maxHeight =
+                            insertZone.parentNode.clientHeight + "px";
+                            document.getElementById("export-properties-button").setAttribute("disabled",true);
+                            document.getElementById("import-properties-button").setAttribute("disabled",true);
                         }
-                        textarea.onchange = function () {
-                            ui.fillFields(JSON.parse(textarea.value));
-                            ui.submitChanges(JSON.parse(textarea.value));
-                        };
                     }
                 },
                 {
-                    id: "exportSettings",
-                    name: "Export Settings",
+                    id: "import-properties-button",
+                    name: "Import",
+                    type: "Button",
+                    class: "blue",
+                    disabled: true,
+                    callback: function(event){
+                        ui.fillFields(JSON.parse(textarea.value));
+                        ui.submitChanges(JSON.parse(textarea.value));
+                    }
+                },
+                {
+                    id: "export-properties-button",
+                    name: "Export",
                     type: "Button",
                     class: "red",
+                    disabled: true,
                     callback:  function(event){
-                        var json = ui.getSettings();
-                        textarea.onchange = function(){};
-                        var insertZone = document.getElementById("export-import-field");
-                        textarea.value = JSON.stringify(json);
-                        if (!insertZone.parentNode.contains(textarea)) {
-                            insertZone.appendChild(textarea);
+                        textarea.select();
+                        try {
+                            var success = document.execCommand('copy');
+                            if (!success ){
+                                throw "Not success :(";
+                            }
+                        } catch (e) {
+                            print("couldnt copy field");
                         }
                     }
                 },
@@ -99,7 +123,8 @@
                     id: "emitRate",
                     name: "Emit Rate",
                     type: "SliderInteger",
-                    max: 1000
+                    max: 1000,
+                    min: 1
                 },
                 { type: "Row" },
                 {
@@ -108,7 +133,16 @@
                     type: "SliderFloat",
                     max: 5
                 },
-
+                { type: "Row" },
+                {
+                    id: "emitDimensions",
+                    name: "Emit Dimension",
+                    type: "Vector",
+                    defaultRange: {
+                        min: 0,
+                        step: 0.01
+                    }
+                },
                 { type: "Row" },
                 {
                     id: "emitOrientation",
@@ -121,6 +155,36 @@
                     id: "emitShouldTrail",
                     name: "Emit Should Trail",
                     type: "Boolean"
+                },
+                { type: "Row" }
+            ],
+            Radius: [
+                {
+                    id: "particleRadius",
+                    name: "Particle Radius",
+                    type: "SliderFloat",
+                    max: 4.0
+                },
+                { type: "Row" },
+                {
+                    id: "radiusSpread",
+                    name: "Radius Spread",
+                    type: "SliderFloat",
+                    max: 4.0
+                },
+                { type: "Row" },
+                {
+                    id: "radiusStart",
+                    name: "Radius Start",
+                    type: "SliderFloat",
+                    max: 4.0
+                },
+                { type: "Row" },
+                {
+                    id: "radiusFinish",
+                    name: "Radius Finish",
+                    type: "SliderFloat",
+                    max: 4.0
                 },
                 { type: "Row" }
             ],
@@ -174,13 +238,19 @@
                 {
                     id: "emitAcceleration",
                     name: "Emit Acceleration",
-                    type: "Vector"
+                    type: "Vector",
+                    defaultRange: {
+                        step: 0.01
+                    }
                 },
                 { type: "Row" },
                 {
                     id: "accelerationSpread",
                     name: "Acceleration Spread",
-                    type: "Vector"
+                    type: "Vector",
+                    defaultRange: {
+                        step: 0.01
+                    }
                 },
                 { type: "Row" }
             ],
@@ -243,42 +313,31 @@
                     type: "SliderRadian"
                 },
                 { type: "Row" }
-            ],
-            Radius: [
-                {
-                    id: "particleRadius",
-                    name: "Particle Radius",
-                    type: "SliderFloat",
-                    max: 4.0
-                },
-                { type: "Row" },
-                {
-                    id: "radiusSpread",
-                    name: "Radius Spread",
-                    type: "SliderFloat",
-                    max: 4.0
-                },
-                { type: "Row" },
-                {
-                    id: "radiusStart",
-                    name: "Radius Start",
-                    type: "SliderFloat",
-                    max: 4.0
-                },
-                { type: "Row" },
-                {
-                    id: "radiusFinish",
-                    name: "Radius Finish",
-                    type: "SliderFloat",
-                    max: 4.0
-                },
-                { type: "Row" }
             ]
         };
         ui.setUI(menuStructure);
+        ui.build();
+        var overrideLoad = false;
+        if (openEventBridge === undefined) {
+            overrideLoad = true,
+            openEventBridge = function(callback) {
+                callback(
+                    {
+                        emitWebEvent: function(){},
+                        submitChanges: function(){},
+                        scriptEventReceived: {
+                            connect: function() {
+
+                            }
+                        }
+                    });
+            };
+        }
         openEventBridge( function(EventBridge) {
-            ui.build();
             ui.connect(EventBridge);
         });
+        if (overrideLoad) {
+            openEventBridge();
+        }
     };
 })();

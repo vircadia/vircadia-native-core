@@ -8,10 +8,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
-input[type="button"] {
-    margin: 0.4rem;
-
-}
 
 .property-group {
     max-height: 0;
@@ -35,9 +31,16 @@ input[type="button"] {
 .property.range label{
     display: block;
 }
+
+input[type="button"] {
+    margin: 0.2rem;
+}
+input[type="text"] {
+    margin: 0;
+}
 .property.range input[type=number]{
     margin-left: 0.8rem;
-    width: 4.2rem;
+    width: 5.4rem;
     height: 1.8rem;
 }
 input[type=range] {
@@ -54,6 +57,9 @@ input[type=range]::-webkit-slider-thumb {
     margin: 0;
     background-color: #696969;
     border-radius: 1rem;
+}
+input[type=range]::-webkit-slider-thumb:hover {
+    background-color: white;
 }
 input[type=range]:focus { /*#252525*/
     outline: none;
@@ -80,9 +86,7 @@ hr.splitter:last-of-type{
     width: 1rem;
 }
 .property {
-    width: 14rem;
     min-height: 2rem;
-    float:left;
 }
 .property.vector-section{
 

@@ -77,8 +77,6 @@ HifiEntityUI.prototype = {
                 fields[i].value = "";
             }
         }
-
-
         var textareas = document.getElementsByTagName("textarea");
         for (var x = 0; x < textareas.length; x++) {
             textareas[x].remove();
@@ -299,10 +297,10 @@ HifiEntityUI.prototype = {
         }
         return label;
     },
-    addVector: function(parent, group, labels) {
+    addVector: function(parent, group, labels, domArray) {
         var self = this;
         var inputs = labels ? labels : ["x", "y", "z"];
-        var domArray = [];
+        domArray = domArray ? domArray: [];
         parent.id = group.id;
         for (var index in inputs) {
             var element = document.createElement("input");
@@ -310,13 +308,29 @@ HifiEntityUI.prototype = {
             element.setAttribute("type", "number");
             element.className = inputs[index];
             element.id = group.id + "-" + inputs[index];
-            element.oninput = function(event) {
-                self.webBridgeSync(group.id, {
-                    x: domArray[0].value,
-                    y: domArray[1].value,
-                    z: domArray[2].value
-                });
-            };
+
+            if (group.defaultRange) {
+                if (group.defaultRange.min) {
+                    element.setAttribute("min", group.defaultRange.min);
+                }
+                if (group.defaultRange.max) {
+                    element.setAttribute("max", group.defaultRange.max);
+                }
+                if (group.defaultRange.step) {
+                    element.setAttribute("step", group.defaultRange.step);
+                }
+            }
+            if (group.oninput) {
+                element.oninput = group.oninput;
+            } else {
+                element.oninput = function(event) {
+                    self.webBridgeSync(group.id, {
+                        x: domArray[0].value,
+                        y: domArray[1].value,
+                        z: domArray[2].value
+                    });
+                };
+            }
             element.onchange = element.oninput;
             domArray.push(element);
         }
@@ -361,33 +375,23 @@ HifiEntityUI.prototype = {
 
         var inputs = ["red", "green", "blue"];
         var domArray = [];
+        group.oninput = function(event) {
+            $colPickContainer.colpickSetColor(
+                {
+                    r: domArray[0].value,
+                    g: domArray[1].value,
+                    b: domArray[2].value
+                },
+                true);
+        };
+        group.defaultRange = {
+            min: 0,
+            max: 255,
+            step: 1
+        };
 
-        for (var index in inputs) {
-            var element = document.createElement("input");
-            if (group.defaultColor) {
-                element.value = group.defaultColor[inputs[index]];
-            } else if (inputs[index] === "red") {
-                element.value = 255;
-            } else {
-                element.value = 0;
-            }
-            element.setAttribute("type", "number");
-            element.className = inputs[index];
-            element.setAttribute("min", 0);
-            element.setAttribute("max", 255);
-            element.id = group.id + "-" + inputs[index];
-            element.oninput = function(event) {
-                $colPickContainer.colpickSetColor(
-                    {
-                        r: domArray[0].value,
-                        g: domArray[1].value,
-                        b: domArray[2].value
-                    },
-                    true);
-            };
-            element.onchange = element.oninput;
-            domArray.push(element);
-        }
+        parent.appendChild($colPickContainer[0]);
+        self.addVector(parent, group, inputs, domArray);
 
         updateColors(domArray[0].value, domArray[1].value, domArray[2].value);
 
@@ -396,7 +400,6 @@ HifiEntityUI.prototype = {
 
         /* Color Picker Logic Here */
 
-        parent.appendChild($colPickContainer[0]);
 
         $colPickContainer.colpick({
             colorScheme: 'dark',
@@ -431,29 +434,6 @@ HifiEntityUI.prototype = {
                 });
             }
         });
-        var li = document.createElement("li");
-        li.className = "cr object color";
-
-
-        this.addLabel(parent, group);
-        parent.className += " property vector-section rgb";
-
-        // Add Tuple and the rest
-        var tupleContainer = document.createElement("div");
-        tupleContainer.className = "tuple";
-        for (var domIndex in domArray) {
-            var container = domArray[domIndex];
-            var div = document.createElement("div");
-            var label = document.createElement("label");
-            label.innerHTML = inputs[domIndex] + ":";
-            label.setAttribute("for", container.id);
-            div.appendChild(container);
-            div.appendChild(label);
-            tupleContainer.appendChild(div);
-        }
-        parent.appendChild(tupleContainer);
-
-
     },
     addTextureField: function(parent, group) {
         var self = this;
@@ -602,6 +582,10 @@ HifiEntityUI.prototype = {
             case "Button":
                 var button = document.createElement("input");
                 button.setAttribute("type", "button");
+                button.id = group.id;
+                if (group.disabled) {
+                    button.disabled = group.disabled;
+                }
                 button.className = group.class;
                 button.value = group.name;
 
