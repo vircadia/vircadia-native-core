@@ -2078,7 +2078,6 @@ var selectedParticleEntityID = null;
 
 function selectParticleEntity(entityID) {
     var properties = Entities.getEntityProperties(entityID);
-    print("selected particle Entity");
     var particleData = {
         messageType: "particle_settings",
         currentProperties: properties
@@ -2110,7 +2109,6 @@ entityListTool.webView.webEventReceived.connect(function (data) {
                     return;
                 }
                 // Destroy the old particles web view first
-                print("select particles");
                 selectParticleEntity(ids[0]);
             } else {
                 selectedParticleEntity = 0;
