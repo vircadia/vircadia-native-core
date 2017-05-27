@@ -71,8 +71,8 @@ function calcSpawnInfo(hand, tabletHeight) {
             rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, -90, 0));
         }
         var normal = Vec3.multiplyQbyV(rotation, Vec3.UNIT_NEG_Y);
-        var lookAt =  Quat.lookAt({x: 0, y: 0, z: 0}, normal, Vec3.UNIT_Y);
-        rotation = Quat.multiply(lookAt, Quat.fromPitchYawRollDegrees(30, 0, 0));
+        var lookAt =  Quat.lookAt({x: 0, y: 0, z: 0}, normal, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
+        rotation = Quat.multiply(Quat.angleAxis(30, Vec3.multiplyQbyV(lookAt, Vec3.UNIT_X)), lookAt);
 
         position = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x: 0, y: tabletHeight * 0.4, z: tabletHeight * 0.05 }));
 
