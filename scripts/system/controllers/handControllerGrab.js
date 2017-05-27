@@ -1036,8 +1036,8 @@ function getControllerJointIndex(hand) {
                                       "_CONTROLLER_RIGHTHAND" :
                                       "_CONTROLLER_LEFTHAND");
     }
-    
-    return MyAvatar.getJointIndex("Head");    
+
+    return MyAvatar.getJointIndex("Head");
 }
 
 // global EquipHotspotBuddy instance
@@ -1331,7 +1331,7 @@ function MyController(hand) {
         if (this.stylus) {
             return;
         }
-        
+
         var stylusProperties = {
             name: "stylus",
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
@@ -2134,7 +2134,7 @@ function MyController(hand) {
             return null;
         }
     };
-        
+
     this.chooseNearEquipHotspotsForFarToNearEquip = function(candidateEntities, distance) {
         var equippableHotspots = flatten(candidateEntities.map(function(entityID) {
                 return _this.collectEquipHotspots(entityID);
@@ -2291,7 +2291,7 @@ function MyController(hand) {
                 return;
             }
         }
-        
+
         if (isInEditMode()) {
             this.searchIndicatorOn(rayPickInfo.searchRay);
             if (this.triggerSmoothedGrab()) {
@@ -2347,10 +2347,11 @@ function MyController(hand) {
                     var avatar = AvatarList.getAvatar(this.otherGrabbingUUID);
                     var IN_FRONT_OF_AVATAR = { x: 0, y: 0.2, z: 0.4 };  // Up from hips and in front of avatar.
                     var startPosition = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.rotation, IN_FRONT_OF_AVATAR));
-                    var finishPisition = Vec3.sum(rayPickInfo.properties.position,  // Entity's centroid.
-                        Vec3.multiplyQbyV(rayPickInfo.properties.rotation ,
-                        Vec3.multiplyVbyV(rayPickInfo.properties.dimensions,
-                        Vec3.subtract(DEFAULT_REGISTRATION_POINT, rayPickInfo.properties.registrationPoint))));
+                    var rayHitProps = entityPropertiesCache.getProps(rayPickInfo.entityID);
+                    var finishPisition = Vec3.sum(rayHitProps.position,  // Entity's centroid.
+                        Vec3.multiplyQbyV(rayHitProps.rotation,
+                        Vec3.multiplyVbyV(rayHitProps.dimensions,
+                        Vec3.subtract(DEFAULT_REGISTRATION_POINT, rayHitProps.registrationPoint))));
                     this.otherGrabbingLineOn(startPosition, finishPisition, COLORS_GRAB_DISTANCE_HOLD);
                 } else {
                     this.otherGrabbingLineOff();
@@ -3442,14 +3443,14 @@ function MyController(hand) {
     };
 
     this.offEnter = function() {
-        // Reuse the existing search distance if lasers were active since 
+        // Reuse the existing search distance if lasers were active since
         // they will be shown in OFF state while in edit mode.
         var existingSearchDistance = this.searchSphereDistance;
         this.release();
-        
+
         if (isInEditMode()) {
             this.searchSphereDistance = existingSearchDistance;
-        }        
+        }
     };
 
     this.entityLaserTouchingEnter = function() {
@@ -4154,7 +4155,7 @@ var updateWrapper = function () {
     }
 
     Script.setTimeout(updateWrapper, UPDATE_SLEEP_MS);
-}
+};
 
 Script.setTimeout(updateWrapper, UPDATE_SLEEP_MS);
 function cleanup() {

@@ -90,6 +90,14 @@ const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 // static const glm::quat DEFAULT_AVATAR_MIDDLE_EYE_ROT { Quaternions::Y_180 };
 static const glm::vec3 DEFAULT_AVATAR_MIDDLE_EYE_POS { 0.0f, 0.6f, 0.0f };
 static const glm::vec3 DEFAULT_AVATAR_HEAD_POS { 0.0f, 0.53f, 0.0f };
+static const glm::vec3 DEFAULT_AVATAR_RIGHTARM_POS { -0.134824f, 0.396348f, -0.0515777f };
+static const glm::quat DEFAULT_AVATAR_RIGHTARM_ROT { -0.536241f, 0.536241f, -0.460918f, -0.460918f };
+static const glm::vec3 DEFAULT_AVATAR_LEFTARM_POS { 0.134795f, 0.396349f, -0.0515881f };
+static const glm::quat DEFAULT_AVATAR_LEFTARM_ROT { 0.536257f, 0.536258f, -0.460899f, 0.4609f };
+static const glm::vec3 DEFAULT_AVATAR_RIGHTHAND_POS { -0.72768f, 0.396349f, -0.0515779f };
+static const glm::quat DEFAULT_AVATAR_RIGHTHAND_ROT { 0.479184f, -0.520013f, 0.522537f, 0.476365f};
+static const glm::vec3 DEFAULT_AVATAR_LEFTHAND_POS { 0.727588f, 0.39635f, -0.0515878f };
+static const glm::quat DEFAULT_AVATAR_LEFTHAND_ROT { -0.479181f, -0.52001f, 0.52254f, -0.476369f };
 static const glm::vec3 DEFAULT_AVATAR_NECK_POS { 0.0f, 0.445f, 0.025f };
 static const glm::vec3 DEFAULT_AVATAR_SPINE2_POS { 0.0f, 0.32f, 0.02f };
 static const glm::vec3 DEFAULT_AVATAR_HIPS_POS { 0.0f, 0.0f, 0.0f };
@@ -1323,28 +1331,10 @@ void MyAvatar::rebuildCollisionShape() {
     _characterController.setLocalBoundingBox(corner, diagonal);
 }
 
-static controller::Pose applyLowVelocityFilter(const controller::Pose& oldPose, const controller::Pose& newPose) {
-    controller::Pose finalPose = newPose;
-    if (newPose.isValid()) {
-        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-        //  no latency.
-        float velocityFilter = glm::clamp(1.0f - glm::length(oldPose.getVelocity()), 0.0f, 1.0f);
-        finalPose.translation = oldPose.getTranslation() * velocityFilter + newPose.getTranslation() * (1.0f - velocityFilter);
-        finalPose.rotation = safeMix(oldPose.getRotation(), newPose.getRotation(), 1.0f - velocityFilter);
-    }
-    return finalPose;
-}
 
 void MyAvatar::setHandControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
-    if (controller::InputDevice::getLowVelocityFilter()) {
-        auto oldLeftPose = getLeftHandControllerPoseInSensorFrame();
-        auto oldRightPose = getRightHandControllerPoseInSensorFrame();
-        _leftHandControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldLeftPose, left));
-        _rightHandControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldRightPose, right));
-    } else {
-        _leftHandControllerPoseInSensorFrameCache.set(left);
-        _rightHandControllerPoseInSensorFrameCache.set(right);
-    }
+    _leftHandControllerPoseInSensorFrameCache.set(left);
+    _rightHandControllerPoseInSensorFrameCache.set(right);
 }
 
 controller::Pose MyAvatar::getLeftHandControllerPoseInSensorFrame() const {
@@ -1374,15 +1364,8 @@ controller::Pose MyAvatar::getRightHandControllerPoseInAvatarFrame() const {
 }
 
 void MyAvatar::setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
-    if (controller::InputDevice::getLowVelocityFilter()) {
-        auto oldLeftPose = getLeftFootControllerPoseInSensorFrame();
-        auto oldRightPose = getRightFootControllerPoseInSensorFrame();
-        _leftFootControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldLeftPose, left));
-        _rightFootControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldRightPose, right));
-    } else {
-        _leftFootControllerPoseInSensorFrameCache.set(left);
-        _rightFootControllerPoseInSensorFrameCache.set(right);
-    }
+    _leftFootControllerPoseInSensorFrameCache.set(left);
+    _rightFootControllerPoseInSensorFrameCache.set(right);
 }
 
 controller::Pose MyAvatar::getLeftFootControllerPoseInSensorFrame() const {
@@ -1412,15 +1395,8 @@ controller::Pose MyAvatar::getRightFootControllerPoseInAvatarFrame() const {
 }
 
 void MyAvatar::setSpineControllerPosesInSensorFrame(const controller::Pose& hips, const controller::Pose& spine2) {
-    if (controller::InputDevice::getLowVelocityFilter()) {
-        auto oldHipsPose = getHipsControllerPoseInSensorFrame();
-        auto oldSpine2Pose = getSpine2ControllerPoseInSensorFrame();
-        _hipsControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldHipsPose, hips));
-        _spine2ControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldSpine2Pose, spine2));
-    } else {
-        _hipsControllerPoseInSensorFrameCache.set(hips);
-        _spine2ControllerPoseInSensorFrameCache.set(spine2);
-    }
+    _hipsControllerPoseInSensorFrameCache.set(hips);
+    _spine2ControllerPoseInSensorFrameCache.set(spine2);
 }
 
 controller::Pose MyAvatar::getHipsControllerPoseInSensorFrame() const {
@@ -1450,12 +1426,7 @@ controller::Pose MyAvatar::getSpine2ControllerPoseInAvatarFrame() const {
 }
 
 void MyAvatar::setHeadControllerPoseInSensorFrame(const controller::Pose& head) {
-    if (controller::InputDevice::getLowVelocityFilter()) {
-        auto oldHeadPose = getHeadControllerPoseInSensorFrame();
-        _headControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldHeadPose, head));
-    } else {
-        _headControllerPoseInSensorFrameCache.set(head);
-    }
+    _headControllerPoseInSensorFrameCache.set(head);
 }
 
 controller::Pose MyAvatar::getHeadControllerPoseInSensorFrame() const {
@@ -1469,6 +1440,37 @@ controller::Pose MyAvatar::getHeadControllerPoseInWorldFrame() const {
 controller::Pose MyAvatar::getHeadControllerPoseInAvatarFrame() const {
     glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
     return getHeadControllerPoseInWorldFrame().transform(invAvatarMatrix);
+}
+
+void MyAvatar::setArmControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
+    _leftArmControllerPoseInSensorFrameCache.set(left);
+    _rightArmControllerPoseInSensorFrameCache.set(right);
+}
+
+controller::Pose MyAvatar::getLeftArmControllerPoseInSensorFrame() const {
+    return _leftArmControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getRightArmControllerPoseInSensorFrame() const {
+    return _rightArmControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getLeftArmControllerPoseInWorldFrame() const {
+    return getLeftArmControllerPoseInSensorFrame().transform(getSensorToWorldMatrix());
+}
+
+controller::Pose MyAvatar::getRightArmControllerPoseInWorldFrame() const {
+    return getRightArmControllerPoseInSensorFrame().transform(getSensorToWorldMatrix());
+}
+
+controller::Pose MyAvatar::getLeftArmControllerPoseInAvatarFrame() const {
+    glm::mat4 worldToAvatarMat = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
+    return getLeftArmControllerPoseInWorldFrame().transform(worldToAvatarMat);
+}
+
+controller::Pose MyAvatar::getRightArmControllerPoseInAvatarFrame() const {
+    glm::mat4 worldToAvatarMat = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
+    return getRightArmControllerPoseInWorldFrame().transform(worldToAvatarMat);
 }
 
 void MyAvatar::updateMotors() {
@@ -2781,6 +2783,51 @@ glm::mat4 MyAvatar::getRightFootCalibrationMat() const {
         return createMatFromQuatAndPos(rightFootRot, rightFootPos);
     } else {
         return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTFOOT_POS, DEFAULT_AVATAR_RIGHTFOOT_POS);
+    }
+}
+
+
+glm::mat4 MyAvatar::getRightArmCalibrationMat() const {
+    int rightArmIndex = _skeletonModel->getRig().indexOfJoint("RightArm");
+    if (rightArmIndex >= 0) {
+        auto rightArmPos = getAbsoluteDefaultJointTranslationInObjectFrame(rightArmIndex);
+        auto rightArmRot = getAbsoluteDefaultJointRotationInObjectFrame(rightArmIndex);
+        return createMatFromQuatAndPos(rightArmRot, rightArmPos);
+    } else {
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTARM_ROT, DEFAULT_AVATAR_RIGHTARM_POS);
+    }
+}
+
+glm::mat4 MyAvatar::getLeftArmCalibrationMat() const {
+    int leftArmIndex = _skeletonModel->getRig().indexOfJoint("LeftArm");
+    if (leftArmIndex >= 0) {
+        auto leftArmPos = getAbsoluteDefaultJointTranslationInObjectFrame(leftArmIndex);
+        auto leftArmRot = getAbsoluteDefaultJointRotationInObjectFrame(leftArmIndex);
+        return createMatFromQuatAndPos(leftArmRot, leftArmPos);
+    } else {
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_RIGHTARM_POS);
+    }
+}
+
+glm::mat4 MyAvatar::getRightHandCalibrationMat() const {
+    int rightHandIndex = _skeletonModel->getRig().indexOfJoint("RightHand");
+    if (rightHandIndex >= 0) {
+        auto rightHandPos = getAbsoluteDefaultJointTranslationInObjectFrame(rightHandIndex);
+        auto rightHandRot = getAbsoluteDefaultJointRotationInObjectFrame(rightHandIndex);
+        return createMatFromQuatAndPos(rightHandRot, rightHandPos);
+    } else {
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTHAND_ROT, DEFAULT_AVATAR_RIGHTHAND_POS);
+    }
+}
+
+glm::mat4 MyAvatar::getLeftHandCalibrationMat() const {
+    int leftHandIndex = _skeletonModel->getRig().indexOfJoint("LeftHand");
+    if (leftHandIndex >= 0) {
+        auto leftHandPos = getAbsoluteDefaultJointTranslationInObjectFrame(leftHandIndex);
+        auto leftHandRot = getAbsoluteDefaultJointRotationInObjectFrame(leftHandIndex);
+        return createMatFromQuatAndPos(leftHandRot, leftHandPos);
+    } else {
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTHAND_ROT, DEFAULT_AVATAR_LEFTHAND_POS);
     }
 }
 

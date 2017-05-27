@@ -314,7 +314,6 @@ public slots:
     void updateThreadPoolCount() const;
     void updateSystemTabletMode();
 
-    static void setLowVelocityFilter(bool lowVelocityFilter);
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
@@ -460,8 +459,6 @@ private:
     void updateDialogs(float deltaTime) const;
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
-
-    glm::vec3 getSunDirection() const;
 
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 

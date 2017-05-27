@@ -67,11 +67,11 @@
             self.tickIntervalID = null;
         }
         Entities.editEntity(self.secondHandID, {
-            rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+            localRotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
             angularVelocity: { x: 0, y: 0, z: 0 },
         });
         Entities.editEntity(self.minuteHandID, {
-            rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+            localRotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
             angularVelocity: { x: 0, y: 0, z: 0 },
         });
         self.isActive = false;
@@ -100,11 +100,12 @@
             seconds++;
             const degreesPerTick = -360 / 60;
             Entities.editEntity(self.secondHandID, {
-                rotation: Quat.fromPitchYawRollDegrees(0, seconds * degreesPerTick, 0),
+                localRotation: Quat.fromPitchYawRollDegrees(0, seconds * degreesPerTick, 0),
             });
+
             if (seconds % 60 == 0) {
                 Entities.editEntity(self.minuteHandID, {
-                    rotation: Quat.fromPitchYawRollDegrees(0, (seconds / 60) * degreesPerTick, 0),
+                    localRotation: Quat.fromPitchYawRollDegrees(0, (seconds / 60) * degreesPerTick, 0),
                 });
                 Audio.playSound(self.chimeSound, {
                     position: self.getStopwatchPosition(),

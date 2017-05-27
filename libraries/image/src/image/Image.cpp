@@ -502,7 +502,9 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(const QImage& s
         gpu::Element formatGPU;
         if (isColorTexturesCompressionEnabled()) {
             if (validAlpha) {
-                formatGPU = alphaAsMask ? gpu::Element::COLOR_COMPRESSED_SRGBA_MASK : gpu::Element::COLOR_COMPRESSED_SRGBA;
+                // NOTE: This disables BC1a compression because it was producing odd artifacts on text textures
+                // for the tutorial. Instead we use BC3 (which is larger) but doesn't produce the same artifacts).
+                formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA;
             } else {
                 formatGPU = gpu::Element::COLOR_COMPRESSED_SRGB;
             }

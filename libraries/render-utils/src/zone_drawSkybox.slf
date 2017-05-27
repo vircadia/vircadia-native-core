@@ -1,0 +1,48 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 5/16/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@include zone_draw.slh@>
+
+uniform samplerCube skyboxMap;
+
+struct Skybox {
+    vec4 color;
+};
+
+uniform skyboxBuffer {
+    Skybox skybox;
+};
+
+in vec2 varTexCoord0;
+out vec4 _fragColor;
+
+void main(void) {
+    <$evalGlobeWidget()$>
+
+    vec3 spherePos = normalize(vec3(sphereUV, -sqrt(1.0 - sphereR2)));
+
+    vec3 direction = vec3(getViewInverse() * vec4(spherePos, 0.0));
+
+    vec3 color = skybox.color.rgb;
+
+    // blend is only set if there is a cubemap
+    if (skybox.color.a > 0.0) {
+        color = texture(skyboxMap, direction).rgb;
+        if (skybox.color.a < 1.0) {
+            color *= skybox.color.rgb;
+        }
+    }
+
+    color = color * 1.0 - base.w + base.xyz * base.w;
+    const float INV_GAMMA_22 = 1.0 / 2.2;
+    _fragColor = vec4(pow(color, vec3(INV_GAMMA_22)), 1.0);
+}
+
+

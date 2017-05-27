@@ -753,8 +753,8 @@ private:
     void updateText() {
         QString title = QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4 Max GPU %5")
             .arg(_fps).arg(_cullingEnabled)
-            .arg(toHumanSize(gpu::Context::getTextureGPUMemoryUsage(), 2))
-            .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2))
+            .arg(toHumanSize(gpu::Context::getTextureGPUMemSize(), 2))
+            .arg(toHumanSize(gpu::Texture::getTextureCPUMemSize(), 2))
             .arg(toHumanSize(gpu::Texture::getAllowedGPUMemoryUsage(), 2));
         setTitle(title);
 #if 0

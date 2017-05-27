@@ -21,6 +21,7 @@
 
 #include "Forward.h"
 #include "Resource.h"
+#include "Metric.h"
 
 const int ABSOLUTE_MAX_TEXTURE_NUM_PIXELS = 8192 * 8192;
 
@@ -167,8 +168,9 @@ enum class TextureUsageType : uint8 {
 };
 
 class Texture : public Resource {
-    static std::atomic<uint32_t> _textureCPUCount;
-    static std::atomic<Size> _textureCPUMemoryUsage;
+    static ContextMetricCount _textureCPUCount;
+    static ContextMetricSize _textureCPUMemSize;
+
     static std::atomic<Size> _allowedCPUMemoryUsage;
     static std::atomic<bool> _enableSparseTextures;
     static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
@@ -176,15 +178,8 @@ class Texture : public Resource {
 public:
     static const uint32_t CUBE_FACE_COUNT { 6 };
     static uint32_t getTextureCPUCount();
-    static Size getTextureCPUMemoryUsage();
-    static uint32_t getTextureGPUCount();
-    static uint32_t getTextureGPUSparseCount();
-    static Size getTextureTransferPendingSize();
-    static Size getTextureGPUMemoryUsage();
-    static Size getTextureGPUVirtualMemoryUsage();
-    static Size getTextureGPUFramebufferMemoryUsage();
-    static Size getTextureGPUSparseMemoryUsage();
-    static uint32_t getTextureGPUTransferCount();
+    static Size getTextureCPUMemSize();
+
     static Size getAllowedGPUMemoryUsage();
     static void setAllowedGPUMemoryUsage(Size size);
 
@@ -309,7 +304,7 @@ public:
         bool isMipAvailable(uint16 level, uint8 face = 0) const override;
 
     protected:
-        bool allocateMip(uint16 level);
+        void allocateMip(uint16 level);
         std::vector<std::vector<PixelsPointer>> _mips; // an array of mips, each mip is an array of faces
     };
 
@@ -421,32 +416,44 @@ public:
     // Same but applied to this texture's num max mips from evalNumMips()
     uint16 safeNumMips(uint16 askedNumMips) const;
 
-    // Eval the size that the mips level SHOULD have
+    // Eval the dimensions & sizes that the mips level SHOULD have
     // not the one stored in the Texture
 
+    // Dimensions
     Vec3u evalMipDimensions(uint16 level) const;
     uint16 evalMipWidth(uint16 level) const { return std::max(_width >> level, 1); }
     uint16 evalMipHeight(uint16 level) const { return std::max(_height >> level, 1); }
     uint16 evalMipDepth(uint16 level) const { return std::max(_depth >> level, 1); }
 
-    // The size of a face is a multiple of the padded line = (width * texelFormat_size + alignment padding)
-    Size evalMipLineSize(uint16 level) const { return evalPaddedSize(evalMipWidth(level) * getTexelFormat().getSize()); }
+    // The true size of an image line or surface depends on the format, tiling and padding rules
+    // 
+    // Here are the static function to compute the different sizes from parametered dimensions and format
+    // Tile size must be a power of 2
+    static uint16 evalTiledPadding(uint16 length, int tile) { int tileMinusOne = (tile - 1); return (tileMinusOne - (length + tileMinusOne) % tile); }
+    static uint16 evalTiledLength(uint16 length, int tile) { return length / tile + (evalTiledPadding(length, tile) != 0); }
+    static uint16 evalTiledWidth(uint16 width, int tileX) { return evalTiledLength(width, tileX); }
+    static uint16 evalTiledHeight(uint16 height, int tileY) { return evalTiledLength(height, tileY); }
+    static Size evalLineSize(uint16 width, const Element& format) { return evalPaddedSize(evalTiledWidth(width, format.getTile().x) * format.getSize()); }
+    static Size evalSurfaceSize(uint16 width, uint16 height, const Element& format) { return evalLineSize(width, format) * evalTiledHeight(height, format.getTile().x); }
 
-    // Size for each face of a mip at a particular level
-    uint32 evalMipFaceNumTexels(uint16 level) const { return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level); }
-    Size evalMipFaceSize(uint16 level) const { return evalMipLineSize(level) * evalMipHeight(level) * evalMipDepth(level); }
-    
-    // Total size for the mip
-    uint32 evalMipNumTexels(uint16 level) const { return evalMipFaceNumTexels(level) * getNumFaces(); }
-    Size evalMipSize(uint16 level) const { return evalMipFaceSize(level) * getNumFaces(); }
+    // Compute the theorical size of the texture elements storage depending on the specified format
+    Size evalStoredMipLineSize(uint16 level, const Element& format) const { return evalLineSize(evalMipWidth(level), format); }
+    Size evalStoredMipSurfaceSize(uint16 level, const Element& format) const { return evalSurfaceSize(evalMipWidth(level), evalMipHeight(level), format); }
+    Size evalStoredMipFaceSize(uint16 level, const Element& format) const { return evalStoredMipSurfaceSize(level, format) * evalMipDepth(level); }
+    Size evalStoredMipSize(uint16 level, const Element& format) const { return evalStoredMipFaceSize(level, format) * getNumFaces(); }
+
+    // For this texture's texel format and dimensions, compute the various mem sizes
+    Size evalMipLineSize(uint16 level) const { return evalStoredMipLineSize(level, getTexelFormat()); }
+    Size evalMipSurfaceSize(uint16 level) const { return evalStoredMipSurfaceSize(level, getTexelFormat()); }
+    Size evalMipFaceSize(uint16 level) const { return evalStoredMipFaceSize(level, getTexelFormat()); }
+    Size evalMipSize(uint16 level) const { return evalStoredMipSize(level, getTexelFormat()); }
 
     // Total size for all the mips of the texture
     Size evalTotalSize(uint16 startingMip = 0) const;
 
-    // Compute the theorical size of the texture elements storage depending on the specified format
-    Size evalStoredMipLineSize(uint16 level, const Element& format) const { return evalPaddedSize(evalMipWidth(level) * format.getSize()); }
-    Size evalStoredMipFaceSize(uint16 level, const Element& format) const { return evalMipFaceNumTexels(level) * format.getSize(); }
-    Size evalStoredMipSize(uint16 level, const Element& format) const { return evalMipNumTexels(level) * format.getSize(); }
+    // Number of texels (not it s not directly proprtional to the size!
+    uint32 evalMipFaceNumTexels(uint16 level) const { return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level); }
+    uint32 evalMipNumTexels(uint16 level) const { return evalMipFaceNumTexels(level) * getNumFaces(); }
 
     // For convenience assign a source name 
     const std::string& source() const { return _source; }

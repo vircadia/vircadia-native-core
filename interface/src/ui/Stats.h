@@ -117,15 +117,15 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuBuffers, 0)
     STATS_PROPERTY(int, gpuBufferMemory, 0)
     STATS_PROPERTY(int, gpuTextures, 0)
-    STATS_PROPERTY(int, gpuTexturesSparse, 0)
     STATS_PROPERTY(int, glContextSwapchainMemory, 0)
     STATS_PROPERTY(int, qmlTextureMemory, 0)
     STATS_PROPERTY(int, texturePendingTransfers, 0)
     STATS_PROPERTY(int, gpuTextureMemory, 0)
-    STATS_PROPERTY(int, gpuTextureVirtualMemory, 0)
+    STATS_PROPERTY(int, gpuTextureResidentMemory, 0)
     STATS_PROPERTY(int, gpuTextureFramebufferMemory, 0)
-    STATS_PROPERTY(int, gpuTextureSparseMemory, 0)
-    STATS_PROPERTY(int, gpuSparseTextureEnabled, 0)
+    STATS_PROPERTY(int, gpuTextureResourceMemory, 0)
+    STATS_PROPERTY(int, gpuTextureResourcePopulatedMemory, 0)
+    STATS_PROPERTY(int, gpuTextureExternalMemory, 0)
     STATS_PROPERTY(QString, gpuTextureMemoryPressureState, QString())
     STATS_PROPERTY(int, gpuFreeMemory, 0)
     STATS_PROPERTY(float, gpuFrameTime, 0)
@@ -245,13 +245,13 @@ signals:
     void gpuBuffersChanged();
     void gpuBufferMemoryChanged();
     void gpuTexturesChanged();
-    void gpuTexturesSparseChanged();
     void gpuTextureMemoryChanged();
-    void gpuTextureVirtualMemoryChanged();
+    void gpuTextureResidentMemoryChanged();
     void gpuTextureFramebufferMemoryChanged();
-    void gpuTextureSparseMemoryChanged();
+    void gpuTextureResourceMemoryChanged();
+    void gpuTextureResourcePopulatedMemoryChanged();
+    void gpuTextureExternalMemoryChanged();
     void gpuTextureMemoryPressureStateChanged();
-    void gpuSparseTextureEnabledChanged();
     void gpuFreeMemoryChanged();
     void gpuFrameTimeChanged();
     void batchFrameTimeChanged();

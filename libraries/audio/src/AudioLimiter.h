@@ -9,7 +9,7 @@
 #ifndef hifi_AudioLimiter_h
 #define hifi_AudioLimiter_h
 
-#include "stdint.h"
+#include <stdint.h>
 
 class LimiterImpl;
 

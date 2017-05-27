@@ -151,7 +151,7 @@ namespace ktx {
             auto expectedImageSize = header.evalImageSize((uint32_t) images.size());
             if (imageSize != expectedImageSize) {
                 break;
-            } else if (!Header::checkAlignment(imageSize)) {
+            } else if (!checkAlignment(imageSize)) {
                 break;
             }
 
@@ -163,7 +163,7 @@ namespace ktx {
 
             // If enough data ahead then capture the pointer
             if ((currentPtr - srcBytes) + imageSize <= (srcSize)) {
-                auto padding = Header::evalPadding(imageSize);
+                auto padding = evalPadding(imageSize);
 
                 if (numFaces == NUM_CUBEMAPFACES) {
                     Image::FaceBytes faces(NUM_CUBEMAPFACES);

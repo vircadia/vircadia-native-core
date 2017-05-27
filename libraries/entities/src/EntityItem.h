@@ -187,7 +187,7 @@ public:
 
     const Transform getTransformToCenter(bool& success) const;
 
-    inline void requiresRecalcBoxes();
+    void requiresRecalcBoxes();
 
     // Hyperlink related getters and setters
     QString getHref() const;
@@ -476,6 +476,8 @@ public:
 
     virtual bool getMeshes(MeshProxyList& result) { return true; }
 
+    virtual void locationChanged(bool tellPhysics = true) override;
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }
@@ -483,7 +485,6 @@ protected:
     const QByteArray getDynamicDataInternal() const;
     void setDynamicDataInternal(QByteArray dynamicData);
 
-    virtual void locationChanged(bool tellPhysics = true) override;
     virtual void dimensionsChanged() override;
 
     EntityTypes::EntityType _type;
