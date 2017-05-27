@@ -59,6 +59,9 @@ function HifiEntityUI(parent) {
 }
 
 HifiEntityUI.prototype = {
+    setOnSelect: function (callback){
+        this.onSelect = callback;
+    },
     submitChanges: function (structure) {
         var message = {
             messageType: "settings_update",
@@ -72,11 +75,22 @@ HifiEntityUI.prototype = {
     disableFields: function() {
         var fields = document.getElementsByTagName("input");
         for (var i = 0; i < fields.length; i++) {
-            fields[i].setAttribute("disabled", true);
             if (fields[i].getAttribute("type") !== "button") {
                 fields[i].value = "";
             }
+
+            fields[i].setAttribute("disabled", true);
         }
+        var textures = document.getElementsByTagName("img");
+        for (i = 0; i < textures.length; i++) {
+            textures[i].src = "";
+        }
+
+        textures = document.getElementsByClassName("with-texture");
+        for (i = 0; i < textures.length; i++) {
+            textures[i].className = textures[i].className.replace("with-texture", "no-texture");
+        }
+
         var textareas = document.getElementsByTagName("textarea");
         for (var x = 0; x < textareas.length; x++) {
             textareas[x].remove();
@@ -131,7 +145,9 @@ HifiEntityUI.prototype = {
         for (var i = 0; i < fields.length; i++) {
             fields[i].removeAttribute("disabled");
         }
-
+        if (self.onSelect) {
+            self.onSelect();
+        }
         var keys = Object.keys(currentProperties);
         for (var e in keys) {
             var value = keys[e];
@@ -447,7 +463,7 @@ HifiEntityUI.prototype = {
         var image = document.createElement("img");
         var imageLoad = _.debounce(function(url) {
             if (url.length > 0) {
-                textureImage.className = textureImage.className.replace(' no-texture', '');
+                textureImage.className = textureImage.className.replace(' no-texture', ' with-texture');
                 image.src = url;
                 image.style.display = "block";
             } else {

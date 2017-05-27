@@ -31,6 +31,7 @@
                     name: "Show Properties",
                     type: "Button",
                     class: "blue",
+                    disabled: true,
                     callback: function(event){
                         var insertZone = document.getElementById("export-import-field");
                         var json = ui.getSettings();
@@ -316,6 +317,11 @@
             ]
         };
         ui.setUI(menuStructure);
+        ui.setOnSelect(function(){
+            document.getElementById("show-properties-button").removeAttribute("disabled");
+            document.getElementById("export-properties-button").setAttribute("disabled",true);
+            document.getElementById("import-properties-button").setAttribute("disabled",true);
+        });
         ui.build();
         var overrideLoad = false;
         if (openEventBridge === undefined) {

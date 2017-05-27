@@ -33,7 +33,8 @@
 }
 
 input[type="button"] {
-    margin: 0.2rem;
+    margin: 0.4rem;
+    min-width: 6rem;
 }
 input[type="text"] {
     margin: 0;
