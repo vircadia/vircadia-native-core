@@ -238,7 +238,13 @@ GridTool = function(opts) {
     });
 
     webView.webEventReceived.connect(function(data) {
-        data = JSON.parse(data);
+        try {
+            data = JSON.parse(data);
+        } catch(e) {
+            print("gridTool.js: Error parsing JSON: " + e.name + " data " + data)
+            return;
+        }
+
         if (data.type == "init") {
             horizontalGrid.emitUpdate();
         } else if (data.type == "update") {
