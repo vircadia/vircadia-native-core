@@ -150,7 +150,6 @@
 #include "scripting/TestScriptingInterface.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
-#include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/DesktopScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
@@ -1896,7 +1895,6 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Stats", Stats::getInstance());
     rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
-    rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     rootContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
     rootContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
@@ -5485,7 +5483,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Snapshot", DependencyManager::get<Snapshot>().data());
-    scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
     scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());

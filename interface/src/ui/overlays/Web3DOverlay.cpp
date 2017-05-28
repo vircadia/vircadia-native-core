@@ -47,7 +47,6 @@
 #include "LODManager.h"
 #include "ui/OctreeStatsProvider.h"
 #include "ui/DomainConnectionModel.h"
-#include "scripting/AudioDeviceScriptingInterface.h"
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
@@ -196,7 +195,6 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getRootContext()->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
             _webSurface->getRootContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
             _webSurface->getRootContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
-            _webSurface->getRootContext()->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
             _webSurface->getRootContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
             _webSurface->getRootContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
             _webSurface->getRootContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
