@@ -148,28 +148,13 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
                                   QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
-
-    // Audio menu ----------------------------------
-    MenuWrapper* audioMenu = addMenu("Audio");
-    auto audioIO = DependencyManager::get<AudioClient>();
-
-    // Audio > Mute
-    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::MuteAudio, Qt::CTRL | Qt::Key_M, false,
-        audioIO.data(), SLOT(toggleMute()));
-
-    // Audio > Show Level Meter
-    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, false);
-
-    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioNoiseReduction, 0, true,
-        audioIO.data(), SLOT(toggleAudioNoiseReduction()));
-
     // Avatar menu ----------------------------------
     MenuWrapper* avatarMenu = addMenu("Avatar");
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto avatar = avatarManager->getMyAvatar();
 
     // Avatar > Attachments...
-    auto action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
+    action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AttachmentsDialog.qml"),
             QString("../../hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
@@ -300,6 +285,14 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
             QString("../../hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
+    });
+
+    action = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
+    connect(action, &QAction::triggered, [] {
+        static const QUrl widgetUrl("hifi/dialogs/Audio.qml");
+        static const QUrl tabletUrl("../../hifi/dialogs/Audio.qml");
+        static const QString name("Audio");
+        qApp->showDialog(widgetUrl, tabletUrl, name);
     });
 
     // Settings > Avatar...
