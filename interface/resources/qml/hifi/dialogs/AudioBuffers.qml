@@ -16,4 +16,3 @@ PreferencesDialog {
         property alias height: root.height
     }
 }
-

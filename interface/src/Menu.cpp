@@ -621,10 +621,11 @@ Menu::Menu() {
 
     action = addActionToQMenuAndActionHash(audioDebugMenu, "Buffers...");
     connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/AudioPreferencesDialog.qml"),
-            QString("../../hifi/tablet/TabletAudioPreferences.qml"), "AudioPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/AudioBuffers.qml"),
+            QString("../../hifi/dialogs/AudioBuffers.qml"), "AudioPreferencesDialog");
     });
 
+    auto audioIO = DependencyManager::get<AudioClient>();
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
         audioIO.data(), SLOT(toggleServerEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,
