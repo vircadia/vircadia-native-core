@@ -94,8 +94,13 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(editMenu, redoAction);
 
     // Edit > Running Scripts
-    addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
-        qApp, SLOT(toggleMenuRunningScripts()));
+    auto action = addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J);
+    connect(action, &QAction::triggered, [] {
+        static const QUrl widgetUrl("hifi/dialogs/RunningScripts.qml");
+        static const QUrl tabletUrl("../../hifi/dialogs/TabletRunningScripts.qml");
+        static const QString name("RunningScripts");
+        qApp->showDialog(widgetUrl, tabletUrl, name);
+    });
 
     // Edit > Open and Run Script from File... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,

@@ -5764,25 +5764,21 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
     }
 }
 
-void Application::toggleMenu(const QString title, const QUrl widgetUrl, const QUrl tabletUrl) const {
-    auto hmd = DependencyManager::get<HMDScriptingInterface>();
+void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const {
     auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet(SYSTEM_TABLET);
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
     bool onTablet = false;
 
-    if (!tablet->getToolbarMode() && (hmd->getShouldShowTablet() || isHMDMode())) {
+    if (!tablet->getToolbarMode()) {
         onTablet = tablet->pushOntoStack(tabletUrl);
     }
 
     if (!onTablet) {
-        DependencyManager::get<OffscreenUi>()->show(widgetUrl, title);
+        DependencyManager::get<OffscreenUi>()->show(widgetUrl, name);
     }
-}
-
-void Application::toggleMenuRunningScripts() const {
-    static const QString title("RunningScripts");
-    static const QUrl widgetUrl("hifi/dialogs/RunningScripts.qml");
-    static const QUrl tabletUrl("../../hifi/dialogs/TabletRunningScripts.qml");
-    toggleMenu(title, widgetUrl, tabletUrl);
+    if (tablet->getToolbarMode()) {
+        DependencyManager::get<OffscreenUi>()->show(widgetUrl, name);
+    }
 }
 
 void Application::showScriptLogs() {
@@ -5837,21 +5833,6 @@ void Application::addAssetToWorldFromURL(QString url) {
     auto request = ResourceManager::createResourceRequest(nullptr, QUrl(url));
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
-}
-
-void Application::showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const {
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
-    auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    if (tablet->getToolbarMode()) {
-        DependencyManager::get<OffscreenUi>()->show(desktopURL, name);
-    } else {
-        tablet->pushOntoStack(tabletURL);
-        if (!hmd->getShouldShowTablet() && !isHMDMode()) {
-            hmd->openTablet();
-        }
-        
-    }
 }
 
 void Application::addAssetToWorldFromURLRequestFinished() {

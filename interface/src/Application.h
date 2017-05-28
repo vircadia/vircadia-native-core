@@ -318,12 +318,10 @@ public slots:
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
     void toggleEntityScriptServerLogDialog();
-    void toggleMenu(const QString title, const QUrl widgetUrl, const QUrl tabletUrl) const;
-    void toggleMenuRunningScripts() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
 
-    void showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const;
+    void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
 
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
