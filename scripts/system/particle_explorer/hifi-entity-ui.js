@@ -509,7 +509,12 @@ HifiEntityUI.prototype = {
             slider.setAttribute("step", 1);
 
             inputField.oninput = function(event) {
+
+                if (parseInt(event.target.value) > parseInt(slider.getAttribute("max")) && group.max !== 1) {
+                    slider.setAttribute("max", event.target.value);
+                }
                 slider.value = event.target.value;
+
                 self.webBridgeSync(group.id, slider.value);
             };
             inputField.onchange = inputField.oninput;
@@ -560,6 +565,10 @@ HifiEntityUI.prototype = {
             slider.setAttribute("step", 0.01);
 
             inputField.oninput = function(event) {
+                if (parseFloat(event.target.value) > parseFloat(slider.getAttribute("max")) && group.max !== 1) {
+                    slider.setAttribute("max", event.target.value);
+                }
+
                 slider.value = event.target.value;
                 self.webBridgeSync(group.id, slider.value);
                 // bind web sock update here.
