@@ -1522,12 +1522,12 @@ QString Application::getUserAgent() {
     return userAgent;
 }
 
-void Application::toggleTabletUI() const {
+void Application::toggleTabletUI(bool shouldOpen) const {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     bool messageOpen = tablet->isMessageDialogOpen();
-    if (!messageOpen || (messageOpen && !hmd->getShouldShowTablet())) {
+    if ((!messageOpen || (messageOpen && !hmd->getShouldShowTablet())) && !(shouldOpen && hmd->getShouldShowTablet())) {
         auto HMD = DependencyManager::get<HMDScriptingInterface>();
         HMD->toggleShouldShowTablet();
     }
@@ -5771,6 +5771,9 @@ void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const
 
     if (!tablet->getToolbarMode()) {
         onTablet = tablet->pushOntoStack(tabletUrl);
+        if (onTablet) {
+            toggleTabletUI(true);
+        }
     }
 
     if (!onTablet) {

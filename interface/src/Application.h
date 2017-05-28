@@ -504,7 +504,7 @@ private:
     static void dragEnterEvent(QDragEnterEvent* event);
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
-    void toggleTabletUI() const;
+    void toggleTabletUI(bool shouldOpen = false) const;
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
