@@ -9,24 +9,25 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/*global window, alert, EventBridge, dat, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
+/* global window, alert, EventBridge, dat, listenForSettingsUpdates, createVec3Folder, createQuatFolder, writeVec3ToInterface, writeDataToInterface, 
+   $, document, _, openEventBridge */
 
-var Settings = function() {
-    this.exportSettings = function() {
-        //copyExportSettingsToClipboard();
+var Settings = function () {
+    this.exportSettings = function () {
+        // copyExportSettingsToClipboard();
         showPreselectedPrompt();
     };
-    this.importSettings = function() {
+    this.importSettings = function () {
         importSettings();
     };
 };
 
-//2-way bindings-aren't quite ready yet.  see bottom of file.
+// 2-way bindings-aren't quite ready yet.  see bottom of file.
 var AUTO_UPDATE = false;
 var UPDATE_ALL_FREQUENCY = 100;
 
 var controllers = [];
-var colorControllers = [];
+var colpickKeys = [];
 var folders = [];
 var gui = null;
 var settings = new Settings();
@@ -36,7 +37,7 @@ var active = false;
 
 var currentInputField;
 var storedController;
-//CHANGE TO WHITELIST
+// CHANGE TO WHITELIST
 var keysToAllow = [
     'isEmitting',
     'maxParticles',
@@ -73,9 +74,8 @@ var vec3Keys = [];
 var quatKeys = [];
 var colorKeys = [];
 
-window.onload = function() {
-
-    openEventBridge(function() {
+window.onload = function () {
+    openEventBridge(function () {
         var stringifiedData = JSON.stringify({
             messageType: 'page_loaded'
         });
@@ -86,17 +86,17 @@ window.onload = function() {
 
         listenForSettingsUpdates();
         window.onresize = setGUIWidthToWindowWidth;
-    })
+    });
 
 };
 
 function loadGUI() {
-    //whether or not to autoplace
+    // whether or not to autoplace
     gui = new dat.GUI({
         autoPlace: false
     });
 
-    //if not autoplacing, put gui in a custom container
+    // if not autoplacing, put gui in a custom container
     if (gui.autoPlace === false) {
         var customContainer = document.getElementById('my-gui-container');
         customContainer.appendChild(gui.domElement);
@@ -105,6 +105,7 @@ function loadGUI() {
     // presets for the GUI itself.   a little confusing and import/export is mostly what we want to do at the moment.
     // gui.remember(settings);
 
+    colpickKeys = [];
     var keys = _.keys(settings);
 
     _.each(keys, function(key) {
@@ -133,22 +134,22 @@ function loadGUI() {
         }
     });
 
-    //alphabetize our keys
+    // alphabetize our keys
     individualKeys.sort();
     vec3Keys.sort();
     quatKeys.sort();
     colorKeys.sort();
 
-    //add to gui in the order they should appear
+    // add to gui in the order they should appear
     gui.add(settings, 'importSettings');
     gui.add(settings, 'exportSettings');
     addIndividualKeys();
     addFolders();
 
-    //set the gui width to match the web window width
+    // set the gui width to match the web window width
     gui.width = window.innerWidth;
 
-    //2-way binding stuff
+    // 2-way binding stuff
     // if (AUTO_UPDATE) {
     //     setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
     //     registerDOMElementsForListenerBlocking();
@@ -158,7 +159,7 @@ function loadGUI() {
 
 function addIndividualKeys() {
     _.each(individualKeys, function(key) {
-        //temporary patch for not crashing when this goes below 0
+        // temporary patch for not crashing when this goes below 0
         var controller;
 
         if (key.indexOf('emitRate') > -1) {
@@ -167,13 +168,13 @@ function addIndividualKeys() {
             controller = gui.add(settings, key);
         }
 
-        //2-way - need to fix not being able to input exact values if constantly listening
-        //controller.listen();
+        // 2-way - need to fix not being able to input exact values if constantly listening
+        // controller.listen();
 
-        //keep track of our controller
+        // keep track of our controller
         controllers.push(controller);
 
-        //hook into change events for this gui controller
+        // hook into change events for this gui controller
         controller.onChange(function(value) {
             // Fires on every change, drag, keypress, etc.
             writeDataToInterface(this.property, value);
@@ -196,26 +197,42 @@ function addFolders() {
 
 function createColorPicker(key) {
     var colorObject = settings[key];
-    var colorArray = convertColorObjectToArray(colorObject);
-    settings[key] = colorArray;
-    var controller = gui.addColor(settings, key);
-    controller.onChange(function(value) {
-        // Handle hex colors
-        if(_.isString(value) && value[0] === '#') {
-            const BASE_HEX = 16;
-            var colorRegExResult = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(value);
-            value = [
-                parseInt(colorRegExResult[1], BASE_HEX),
-                parseInt(colorRegExResult[2], BASE_HEX),
-                parseInt(colorRegExResult[3], BASE_HEX)
-            ];
+
+    // Embed colpick's color picker into dat.GUI
+    var name = document.createElement('span');
+    name.className = 'property-name';
+    name.innerHTML = key;
+
+    var container = document.createElement('div');
+    container.appendChild(name);
+
+    var $colPickContainer = $('<div>', {
+        id: key.toString(), 
+        class: "color-box"        
+    });
+    $colPickContainer.css('background-color', "rgb(" + colorObject.red + "," + colorObject.green + "," + colorObject.blue + ")");
+    container.appendChild($colPickContainer[0]);
+
+    var $li = $('<li>', { class: 'cr object color' });    
+    $li.append(container);
+    gui.__ul.appendChild($li[0]);
+    gui.onResize();
+
+    $colPickContainer.colpick({
+        colorScheme: 'dark',
+        layout: 'hex',
+        color: { r: colorObject.red, g: colorObject.green, b: colorObject.blue },
+        onSubmit: function (hsb, hex, rgb, el) {
+            $(el).css('background-color', '#' + hex);
+            $(el).colpickHide();
+
+            var obj = {};
+            obj[key] = { red: rgb.r, green: rgb.g, blue: rgb.b };
+            writeVec3ToInterface(obj);
         }
-        var obj = {};
-        obj[key] = convertColorArrayToObject(value);
-        writeVec3ToInterface(obj);
     });
 
-    return;
+    colpickKeys.push(key);    
 }
 
 function createVec3Folder(category) {
@@ -389,6 +406,14 @@ function manuallyUpdateDisplay() {
     for (i in gui.__controllers) {
         gui.__controllers[i].updateDisplay();
     }
+
+    // Update color pickers
+    for (i in colpickKeys) {       
+        var color = settings[colpickKeys[i]];
+        var $object = $('#' + colpickKeys[i]);
+        $object.css('background-color', "rgb(" + color.red + "," + color.green + "," + color.blue + ")");
+        $object.colpickSetColor({ r: color.red, g: color.green, b: color.blue }, true);
+    }
 }
 
 function setGUIWidthToWindowWidth() {
@@ -457,9 +482,9 @@ function showPreselectedPrompt() {
     var elem = document.getElementById("exported-props");
     var exportSettings = prepareSettingsForExport();
     elem.innerHTML = "";
-    var buttonnode= document.createElement('input');
-    buttonnode.setAttribute('type','button');
-    buttonnode.setAttribute('value','close');
+    var buttonnode = document.createElement('input');
+    buttonnode.setAttribute('type', 'button');
+    buttonnode.setAttribute('value', 'close');
     elem.appendChild(document.createTextNode("COPY THE BELOW FIELD TO CLIPBOARD:"));
     elem.appendChild(document.createElement("br"));
     var textAreaNode = document.createElement("textarea");
@@ -469,11 +494,11 @@ function showPreselectedPrompt() {
     elem.appendChild(buttonnode);
 
     buttonnode.onclick = function() {
-        console.log("click")
+        console.log("click");
         elem.innerHTML = "";
-    }
+    };
 
-    //window.alert("Ctrl-C to copy, then Enter.", prepareSettingsForExport());
+    // window.alert("Ctrl-C to copy, then Enter.", prepareSettingsForExport());
 }
 
 function removeContainerDomElement() {
@@ -490,7 +515,7 @@ function removeListenerFromGUI(key) {
     });
 }
 
-//the section below is to try to work at achieving two way bindings;
+// the section below is to try to work at achieving two way bindings;
 
 function addListenersBackToGUI() {
     gui.__listening.push(storedController);

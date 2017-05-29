@@ -54,3 +54,29 @@ GLuint GL45Backend::getBufferID(const Buffer& buffer) {
 GLBuffer* GL45Backend::syncGPUObject(const Buffer& buffer) {
     return GL45Buffer::sync<GL45Buffer>(*this, buffer);
 }
+
+
+bool GL45Backend::bindResourceBuffer(uint32_t slot, BufferPointer& buffer) {
+    GLBuffer* object = syncGPUObject((*buffer));
+    if (object) {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slot, object->_id);
+
+        (void)CHECK_GL_ERROR();
+
+        _resource._buffers[slot] = buffer;
+
+        return true;
+    }
+
+    return false;
+}
+
+void GL45Backend::releaseResourceBuffer(uint32_t slot) {
+    auto& buf = _resource._buffers[slot];
+    if (buf) {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slot, 0);
+        buf.reset();
+    }
+}
+
+

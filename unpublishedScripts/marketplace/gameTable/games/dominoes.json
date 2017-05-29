@@ -1,0 +1,8 @@
+{
+    "gameName": "dominoes",
+    "matURL": "assets/mats/Felt.jpg",
+    "spawnStyle": "pile",
+    "howMany": 28,
+    "identicalPieces": true,
+    "pieces": ["assets/dominoes/domino.json"]
+}

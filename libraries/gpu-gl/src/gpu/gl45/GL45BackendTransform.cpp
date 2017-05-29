@@ -19,7 +19,10 @@ void GL45Backend::initTransform() {
     _transform._objectBuffer = transformBuffers[0];
     _transform._cameraBuffer = transformBuffers[1];
     _transform._drawCallInfoBuffer = transformBuffers[2];
+#ifdef GPU_SSBO_TRANSFORM_OBJECT
+#else
     glCreateTextures(GL_TEXTURE_BUFFER, 1, &_transform._objectBufferTexture);
+#endif
     size_t cameraSize = sizeof(TransformStageState::CameraBufferElement);
     while (_transform._cameraUboSize < cameraSize) {
         _transform._cameraUboSize += _uboAlignment;
@@ -53,10 +56,10 @@ void GL45Backend::transferTransformState(const Batch& batch) const {
         glNamedBufferData(_transform._drawCallInfoBuffer, bufferData.size(), bufferData.data(), GL_STREAM_DRAW);
     }
 
-#ifdef GPU_SSBO_DRAW_CALL_INFO
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _transform._objectBuffer);
+#ifdef GPU_SSBO_TRANSFORM_OBJECT
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, GL45Backend::TRANSFORM_OBJECT_SLOT, _transform._objectBuffer);
 #else
-    glActiveTexture(GL_TEXTURE0 + TRANSFORM_OBJECT_SLOT);
+    glActiveTexture(GL_TEXTURE0 + GL45Backend::TRANSFORM_OBJECT_SLOT);
     glBindTexture(GL_TEXTURE_BUFFER, _transform._objectBufferTexture);
     glTextureBuffer(_transform._objectBufferTexture, GL_RGBA32F, _transform._objectBuffer);
 #endif

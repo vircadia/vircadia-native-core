@@ -21,7 +21,7 @@
 #include <typeinfo>
 
 #define SINGLETON_DEPENDENCY \
-    friend class DependencyManager;
+    friend class ::DependencyManager;
 
 class Dependency {
 public:

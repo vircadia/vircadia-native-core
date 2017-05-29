@@ -14,7 +14,9 @@
 
 #include <QObject>
 #include <QVariant>
-#include <QScriptValue>
+#include <QtScript/QScriptValue>
+#include <QScriptEngine>
+#include <QScriptValueIterator>
 #include <QQuickItem>
 #include <QUuid>
 
@@ -45,7 +47,7 @@ public:
      * @param name {String} tablet name
      * @return {TabletProxy} tablet instance
      */
-    Q_INVOKABLE QObject* getTablet(const QString& tabletId);
+    Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 
     void setToolbarMode(bool toolbarMode);
 
@@ -70,7 +72,7 @@ private:
 
 protected:
     std::mutex _mutex;
-    std::map<QString, QSharedPointer<TabletProxy>> _tabletProxies;
+    std::map<QString, TabletProxy*> _tabletProxies;
     QObject* _toolbarScriptingInterface { nullptr };
     bool _toolbarMode { false };
 };
@@ -99,7 +101,7 @@ public:
     bool getToolbarMode() const { return _toolbarMode; }
     void setToolbarMode(bool toolbarMode);
 
-    void initialScreen(const QVariant& url);
+    Q_INVOKABLE void initialScreen(const QVariant& url);
 
     /**jsdoc
      * transition to the home screen
@@ -119,6 +121,13 @@ public:
     Q_INVOKABLE void loadQMLSource(const QVariant& path);
     Q_INVOKABLE void pushOntoStack(const QVariant& path);
     Q_INVOKABLE void popFromStack();
+
+    Q_INVOKABLE void loadQMLOnTop(const QVariant& path);
+    Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url);
+    Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url, const QString& injectedJavaScriptUrl);
+    Q_INVOKABLE void returnToPreviousApp();
+
+    
 
     /** jsdoc
      * Check if the tablet has a message dialog open
@@ -251,6 +260,11 @@ protected:
     State _state { State::Uninitialized };
     bool _landscape { false };
 };
+
+Q_DECLARE_METATYPE(TabletProxy*);
+
+QScriptValue tabletToScriptValue(QScriptEngine* engine, TabletProxy* const &in);
+void tabletFromScriptValue(const QScriptValue& value, TabletProxy* &out);
 
 /**jsdoc
  * @class TabletButtonProxy

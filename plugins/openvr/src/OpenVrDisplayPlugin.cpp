@@ -196,9 +196,10 @@ public:
             std::string vsSource = HMD_REPROJECTION_VERT;
             std::string fsSource = HMD_REPROJECTION_FRAG;
             GLuint vertexShader { 0 }, fragmentShader { 0 };
-            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader);
-            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader);
-            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } });
+            std::string error;
+            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader, error);
+            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader, error);
+            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } }, error);
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
             qDebug() << "Rebuild proigram";
@@ -494,7 +495,7 @@ void OpenVrDisplayPlugin::customizeContext() {
         _compositeInfos[0].texture = _compositeFramebuffer->getRenderBuffer(0);
         for (size_t i = 0; i < COMPOSITING_BUFFER_SIZE; ++i) {
             if (0 != i) {
-                _compositeInfos[i].texture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _renderTargetSize.x, _renderTargetSize.y, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT)));
+                _compositeInfos[i].texture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _renderTargetSize.x, _renderTargetSize.y, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT));
             }
             _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture);
         }

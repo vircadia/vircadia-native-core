@@ -19,7 +19,7 @@ const uint16_t ObjectActionTravelOriented::actionVersion = 1;
 
 
 ObjectActionTravelOriented::ObjectActionTravelOriented(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectAction(ACTION_TYPE_TRAVEL_ORIENTED, id, ownerEntity) {
+    ObjectAction(DYNAMIC_TYPE_TRAVEL_ORIENTED, id, ownerEntity) {
     #if WANT_DEBUG
     qCDebug(physics) << "ObjectActionTravelOriented::ObjectActionTravelOriented";
     #endif
@@ -106,16 +106,16 @@ bool ObjectActionTravelOriented::updateArguments(QVariantMap arguments) {
     float angularTimeScale;
 
     bool needUpdate = false;
-    bool somethingChanged = ObjectAction::updateArguments(arguments);
+    bool somethingChanged = ObjectDynamic::updateArguments(arguments);
     withReadLock([&]{
         bool ok = true;
-        forward = EntityActionInterface::extractVec3Argument("travel oriented action", arguments, "forward", ok, true);
+        forward = EntityDynamicInterface::extractVec3Argument("travel oriented action", arguments, "forward", ok, true);
         if (!ok) {
             forward = _forward;
         }
         ok = true;
         angularTimeScale =
-            EntityActionInterface::extractFloatArgument("travel oriented action", arguments, "angularTimeScale", ok, false);
+            EntityDynamicInterface::extractFloatArgument("travel oriented action", arguments, "angularTimeScale", ok, false);
         if (!ok) {
             angularTimeScale = _angularTimeScale;
         }
@@ -136,8 +136,8 @@ bool ObjectActionTravelOriented::updateArguments(QVariantMap arguments) {
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
-                ownerEntity->setActionDataDirty(true);
-                ownerEntity->setActionDataNeedsTransmit(true);
+                ownerEntity->setDynamicDataDirty(true);
+                ownerEntity->setDynamicDataNeedsTransmit(true);
             }
         });
         activateBody();
@@ -147,7 +147,7 @@ bool ObjectActionTravelOriented::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap ObjectActionTravelOriented::getArguments() {
-    QVariantMap arguments = ObjectAction::getArguments();
+    QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
         arguments["forward"] = glmToQMap(_forward);
         arguments["angularTimeScale"] = _angularTimeScale;
@@ -159,7 +159,7 @@ QByteArray ObjectActionTravelOriented::serialize() const {
     QByteArray serializedActionArguments;
     QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
 
-    dataStream << ACTION_TYPE_TRAVEL_ORIENTED;
+    dataStream << DYNAMIC_TYPE_TRAVEL_ORIENTED;
     dataStream << getID();
     dataStream << ObjectActionTravelOriented::actionVersion;
 
@@ -177,7 +177,7 @@ QByteArray ObjectActionTravelOriented::serialize() const {
 void ObjectActionTravelOriented::deserialize(QByteArray serializedArguments) {
     QDataStream dataStream(serializedArguments);
 
-    EntityActionType type;
+    EntityDynamicType type;
     dataStream >> type;
     assert(type == getType());
 

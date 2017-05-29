@@ -48,6 +48,7 @@ public:
 
     Q_INVOKABLE QUrl home();
     Q_INVOKABLE QStringList standardPath(StandardLocation location);
+    Q_INVOKABLE QString writableLocation(StandardLocation location);
     Q_INVOKABLE QStringList drives();
     Q_INVOKABLE QString urlToPath(const QUrl& url);
     Q_INVOKABLE bool urlIsDir(const QUrl& url);

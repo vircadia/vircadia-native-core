@@ -72,9 +72,10 @@ Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer
     return Pointer();
 }
 
-void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& buffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs) {
+void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& uniformBuffers, const SlotSet& resourceBuffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs) {
     _uniforms = uniforms;
-    _buffers = buffers;
+    _uniformBuffers = uniformBuffers;
+    _resourceBuffers = resourceBuffers;
     _textures = textures;
     _samplers = samplers;
     _inputs = inputs;

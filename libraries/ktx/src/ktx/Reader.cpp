@@ -144,6 +144,7 @@ namespace ktx {
         while ((currentPtr - srcBytes) + sizeof(uint32_t) <= (srcSize)) {
 
             // Grab the imageSize coming up
+            uint32_t imageOffset = currentPtr - srcBytes;
             size_t imageSize = *reinterpret_cast<const uint32_t*>(currentPtr);
             currentPtr += sizeof(uint32_t);
 
@@ -158,10 +159,10 @@ namespace ktx {
                         faces[face] = currentPtr;
                         currentPtr += faceSize;
                     }
-                    images.emplace_back(Image((uint32_t) faceSize, padding, faces));
+                    images.emplace_back(Image(imageOffset, (uint32_t) faceSize, padding, faces));
                     currentPtr += padding;
                 } else {
-                    images.emplace_back(Image((uint32_t) imageSize, padding, currentPtr));
+                    images.emplace_back(Image(imageOffset, (uint32_t) imageSize, padding, currentPtr));
                     currentPtr += imageSize + padding;
                 }
             } else {

@@ -1401,6 +1401,13 @@ Rectangle {
         var selectedIDs = getSelectedConnectionsUserNames();
         connectionsUserModelData.sort(function (a, b) {
             var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
+            if (!aValue && !bValue) {
+                return 0;
+            } else if (!aValue) {
+                return after;
+            } else if (!bValue) {
+                return before;
+            }
             switch (true) {
             case (aValue < bValue): return before;
             case (aValue > bValue): return after;

@@ -532,7 +532,7 @@ function onNotify(msg) {
     createNotification(wordWrap(msg), NotificationType.UNKNOWN); // Needs a generic notification system for user feedback, thus using this
 }
 
-function onSnapshotTaken(pathStillSnapshot, pathAnimatedSnapshot, notify) {
+function onSnapshotTaken(pathStillSnapshot, notify) {
     if (notify) {
         var imageProperties = {
             path: "file:///" + pathStillSnapshot,
@@ -656,8 +656,8 @@ Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
 Window.domainConnectionRefused.connect(onDomainConnectionRefused);
-Window.snapshotTaken.connect(onSnapshotTaken);
-Window.processingGif.connect(processingGif);
+Window.stillSnapshotTaken.connect(onSnapshotTaken);
+Window.processingGifStarted.connect(processingGif);
 Window.connectionAdded.connect(connectionAdded);
 Window.connectionError.connect(connectionError);
 Window.notifyEditError = onEditError;

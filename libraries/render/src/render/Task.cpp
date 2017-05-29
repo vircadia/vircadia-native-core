@@ -15,12 +15,42 @@
 
 using namespace render;
 
+void TaskConfig::connectChildConfig(QConfigPointer childConfig, const std::string& name) {
+    childConfig->setParent(this);
+    childConfig->setObjectName(name.c_str());
+
+    // Connect loaded->refresh
+    QObject::connect(childConfig.get(), SIGNAL(loaded()), this, SLOT(refresh()));
+    static const char* DIRTY_SIGNAL = "dirty()";
+    if (childConfig->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
+        // Connect dirty->refresh if defined
+        QObject::connect(childConfig.get(), SIGNAL(dirty()), this, SLOT(refresh()));
+    }
+}
+
+void TaskConfig::transferChildrenConfigs(QConfigPointer source) {
+    if (!source) {
+        return;
+    }
+    // Transfer children to the new configuration
+    auto children = source->children();
+    for (auto& child : children) {
+        child->setParent(this);
+        QObject::connect(child, SIGNAL(loaded()), this, SLOT(refresh()));
+        static const char* DIRTY_SIGNAL = "dirty()";
+        if (child->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
+            // Connect dirty->refresh if defined
+            QObject::connect(child, SIGNAL(dirty()), this, SLOT(refresh()));
+        }
+    }
+}
+
 void TaskConfig::refresh() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "refresh", Qt::BlockingQueuedConnection);
         return;
     }
 
-    _task->configure(*this);
+    _task->applyConfiguration();
 }
 

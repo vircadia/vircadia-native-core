@@ -179,7 +179,7 @@ void MakeLightingModel::configure(const Config& config) {
     _lightingModel->setWireframe(config.enableWireframe);
 }
 
-void MakeLightingModel::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, LightingModelPointer& lightingModel) {
+void MakeLightingModel::run(const render::RenderContextPointer& renderContext, LightingModelPointer& lightingModel) {
 
     lightingModel = _lightingModel;
 

@@ -388,7 +388,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
     return data.extracted;
 }
 
-void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QUrl& url) {
+void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
 
     unsigned int totalSourceIndices = 0;

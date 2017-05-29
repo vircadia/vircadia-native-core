@@ -34,9 +34,13 @@ void HFTabletWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestI
             QString bearerTokenString = "Bearer " + accountManager->getAccountInfo().getAccessToken().token;
             info.setHttpHeader(OAUTH_AUTHORIZATION_HEADER.toLocal8Bit(), bearerTokenString.toLocal8Bit());
         }
-    }
 
-    static const QString USER_AGENT = "User-Agent";
-    QString tokenString = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36";
-    info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
+        static const QString USER_AGENT = "User-Agent";
+        QString tokenString = "Chrome/48.0 (HighFidelityInterface)";
+        info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
+    } else {
+        static const QString USER_AGENT = "User-Agent";
+        QString tokenString = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36";
+        info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
+    }
 }

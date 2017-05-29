@@ -12,6 +12,13 @@
 
 namespace gpu { namespace gl {
 
+struct ShaderObject {
+    GLuint glshader { 0 };
+    GLuint glprogram { 0 };
+    GLint transformCameraSlot { -1 };
+    GLint transformObjectSlot { -1 };
+};
+
 class GLShader : public GPUObject {
 public:
     static GLShader* sync(GLBackend& backend, const Shader& shader);

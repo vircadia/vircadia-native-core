@@ -34,20 +34,6 @@ State::BlendOp blendOpFromGL(GLenum blendOp);
 State::BlendArg blendArgFromGL(GLenum blendArg);
 void getCurrentGLState(State::Data& state);
 
-struct ShaderObject {
-    GLuint glshader { 0 };
-    GLuint glprogram { 0 };
-    GLint transformCameraSlot { -1 };
-    GLint transformObjectSlot { -1 };
-};
-
-int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
-    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers);
-int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers);
-int makeInputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs);
-int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs);
-void makeProgramBindings(ShaderObject& shaderObject);
-
 enum GLSyncState {
     // The object is currently undergoing no processing, although it's content
     // may be out of date, or it's storage may be invalid relative to the 
@@ -150,6 +136,8 @@ class GLQuery;
 class GLState;
 class GLShader;
 class GLTexture;
+struct ShaderObject;
+
 
 } } // namespace gpu::gl 
 

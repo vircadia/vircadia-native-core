@@ -14,10 +14,13 @@
  -->    
 <html>
 <head>
+<link rel="stylesheet" type="text/css" href="../html/css/colpick.css">
 <script type="text/javascript" src="dat.gui.min.js"></script>
 <script type="text/javascript" src="underscore-min.js"></script>
 <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
 <script type="text/javascript" src="../html/js/eventBridgeLoader.js"></script>
+<script type="text/javascript" src="../html/js/jquery-2.1.4.min.js"></script>
+<script type="text/javascript" src="../html/js/colpick.js"></script>
 <script type="text/javascript" src="particleExplorer.js"></script>
 <script>
     function loaded() {
@@ -52,6 +55,19 @@ body{
     white-space: pre-wrap;       /* css-3 */
 }
 
+.color-box {
+    display: block;
+    width: 60%;
+    height: 21px;
+    margin-top: 4px;
+    float: left;
+}
+
+.color-box.highlight {
+    width: 13.5pt;
+    height: 13.5pt;
+    border: 1.5pt solid black;
+}
 
 ::-webkit-input-placeholder {
     text-align: center;

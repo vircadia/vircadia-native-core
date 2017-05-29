@@ -55,13 +55,13 @@ function setupToolBar() {
     }
     Tool.IMAGE_HEIGHT /= 2;
     Tool.IMAGE_WIDTH /= 2;
-    
+
     toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL);
-    
+
     toolBar.onMove = onToolbarMove;
 
     toolBar.setBack(COLOR_TOOL_BAR, ALPHA_OFF);
-    
+
     recordIcon = toolBar.addTool({
         imageURL: TOOL_ICON_URL + "recording-record.svg",
         subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
@@ -71,7 +71,7 @@ function setupToolBar() {
         alpha: Recording.isPlaying() ? ALPHA_OFF : ALPHA_ON,
         visible: true
     }, true, !Recording.isRecording());
-    
+
     var playLoopWidthFactor = 1.65;
     playIcon = toolBar.addTool({
         imageURL: TOOL_ICON_URL + "play-pause.svg",
@@ -80,7 +80,7 @@ function setupToolBar() {
         alpha: (Recording.isRecording() || Recording.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
         visible: true
     }, false);
-    
+
     playLoopIcon = toolBar.addTool({
         imageURL: TOOL_ICON_URL + "play-and-loop.svg",
         subImage: { x: 0, y: 0, width: playLoopWidthFactor * Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
@@ -89,10 +89,10 @@ function setupToolBar() {
         alpha: (Recording.isRecording() || Recording.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
         visible: true
     }, false);
-    
+
     timerOffset = toolBar.width + ToolBar.SPACING;
     spacing = toolBar.addSpacing(0);
-    
+
     saveIcon = toolBar.addTool({
         imageURL: TOOL_ICON_URL + "recording-save.svg",
         width: Tool.IMAGE_WIDTH,
@@ -100,7 +100,7 @@ function setupToolBar() {
         alpha: (Recording.isRecording() || Recording.isPlaying() || Recording.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
         visible: true
     }, false);
-    
+
     loadIcon = toolBar.addTool({
         imageURL: TOOL_ICON_URL + "recording-upload.svg",
         width: Tool.IMAGE_WIDTH,
@@ -153,10 +153,10 @@ function onToolbarMove(newX, newY, deltaX, deltaY) {
         x: newX + timerOffset - ToolBar.SPACING,
         y: newY
     });
-    
+
     slider.x = newX - ToolBar.SPACING;
     slider.y = newY - slider.h - ToolBar.SPACING;
-    
+
     Overlays.editOverlay(slider.background, {
         x: slider.x,
         y: slider.y
@@ -182,13 +182,13 @@ function updateTimer() {
         width: timerWidth
     });
     toolBar.changeSpacing(timerWidth + ToolBar.SPACING, spacing);
-    
+
     if (Recording.isRecording()) {
         slider.pos = 1.0;
     } else if (Recording.playerLength() > 0) {
         slider.pos = Recording.playerElapsed() / Recording.playerLength();
     }
-    
+
     Overlays.editOverlay(slider.foreground, {
         width: slider.pos * slider.w
     });
@@ -221,7 +221,7 @@ function moveUI() {
 
 function mousePressEvent(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
-    
+
     if (recordIcon === toolBar.clicked(clickedOverlay, false) && !Recording.isPlaying()) {
         if (!Recording.isRecording()) {
             Recording.startRecording();
@@ -281,8 +281,13 @@ function mousePressEvent(event) {
         if (!Recording.isRecording() && !Recording.isPlaying()) {
             recordingFile = Window.browse("Load recording from file", ".", "Recordings (*.hfr *.rec *.HFR *.REC)");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
-                Recording.loadRecording(recordingFile);
-                setDefaultPlayerOptions();
+                Recording.loadRecording(recordingFile, function(success) {
+                    if (success) {
+                        setDefaultPlayerOptions();
+                    } else {
+                        print("Failed to load recording from " + recordingFile);
+                    }
+                });
             }
             if (Recording.playerLength() > 0) {
                 toolBar.setAlpha(ALPHA_ON, playIcon);
@@ -323,7 +328,7 @@ function update() {
     }
 
     updateTimer();
-    
+
     if (watchStop && !Recording.isPlaying()) {
         watchStop = false;
         toolBar.setAlpha(ALPHA_ON, recordIcon);

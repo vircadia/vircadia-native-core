@@ -25,8 +25,8 @@ public:
 
     void updateRenderItem();
 
-    virtual bool addToScene(EntityItemPointer self, render::ScenePointer scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(EntityItemPointer self, render::ScenePointer scene, render::Transaction& transaction) override;
+    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
 protected:
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }

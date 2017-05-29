@@ -18,13 +18,14 @@ class DialogsManagerScriptingInterface : public QObject {
     Q_OBJECT
 public:
     DialogsManagerScriptingInterface();
+    static DialogsManagerScriptingInterface* getInstance();
     Q_INVOKABLE void showFeed();
 
 public slots:
-    void toggleAddressBar();
+    void showAddressBar();
+    void hideAddressBar();
 
 signals:
-    void addressBarToggled();
     void addressBarShown(bool visible);
 };
 

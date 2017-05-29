@@ -46,9 +46,6 @@ class Agent : public ThreadedAssignment {
 public:
     Agent(ReceivedMessage& message);
 
-    void setIsAvatar(bool isAvatar);
-    bool isAvatar() const { return _isAvatar; }
-
     bool isPlayingAvatarSound() const { return _avatarSound != NULL; }
 
     bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
@@ -65,6 +62,9 @@ public:
 public slots:
     void run() override;
     void playAvatarSound(SharedSoundPointer avatarSound);
+    
+    void setIsAvatar(bool isAvatar);
+    bool isAvatar() const { return _isAvatar; }
 
 private slots:
     void requestScript();

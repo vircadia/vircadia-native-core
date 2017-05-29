@@ -18,7 +18,7 @@
 
 #include <PerfStat.h>
 
-#include "EntityActionInterface.h"
+#include "EntityDynamicInterface.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
 
@@ -59,10 +59,10 @@ public:
 
 //    friend class EntityTree;
 
-    virtual void addAction(EntityActionPointer action);
-    virtual void removeAction(const QUuid actionID);
-    virtual void removeActions(QList<QUuid> actionIDsToRemove);
-    virtual void applyActionChanges();
+    virtual void addDynamic(EntityDynamicPointer dynamic);
+    virtual void removeDynamic(const QUuid dynamicID);
+    virtual void removeDynamics(QList<QUuid> dynamicIDsToRemove);
+    virtual void applyDynamicChanges();
 
     /// \param entity pointer to EntityItem to be added
     /// \sideeffect sets relevant backpointers in entity, but maybe later when appropriate data structures are locked
@@ -103,8 +103,8 @@ protected:
 
     SetOfEntities _entitiesToSort; // entities moved by simulation (and might need resort in EntityTree)
     SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
-    QList<EntityActionPointer> _actionsToAdd;
-    QSet<QUuid> _actionsToRemove;
+    QList<EntityDynamicPointer> _dynamicsToAdd;
+    QSet<QUuid> _dynamicsToRemove;
 
 protected:
     SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)

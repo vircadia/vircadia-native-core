@@ -3,6 +3,8 @@ import QtQuick.Controls 1.4
 
 StateImage {
     id: button
+
+    property bool buttonEnabled: true
     property bool isActive: false
     property bool isEntered: false
 
@@ -39,30 +41,37 @@ StateImage {
     }
 
     function updateState() {
-        if (!button.isEntered && !button.isActive) {
-            buttonState = imageOffOut;
-        } else if (!button.isEntered && button.isActive) {
-            buttonState = imageOnOut;
-        } else if (button.isEntered && !button.isActive) {
-            buttonState = imageOffIn;
+        if (buttonEnabled) {
+            if (!button.isEntered && !button.isActive) {
+                buttonState = imageOffOut;
+            } else if (!button.isEntered && button.isActive) {
+                buttonState = imageOnOut;
+            } else if (button.isEntered && !button.isActive) {
+                buttonState = imageOffIn;
+            } else {
+                buttonState = imageOnIn;
+            }
         } else {
-            buttonState = imageOnIn;
+            buttonState = 0;
         }
     }
 
     onIsActiveChanged: updateState();
+    onButtonEnabledChanged: updateState();
 
     Timer {
         id: asyncClickSender
         interval: 10
         repeat: false
         running: false
-        onTriggered: button.clicked();
+        onTriggered: {
+            button.clicked();
+        }
     }
 
     MouseArea {
         id: mouseArea
-        hoverEnabled: true
+        hoverEnabled: buttonEnabled
         anchors.fill: parent
         onClicked: asyncClickSender.start();
         onEntered: {

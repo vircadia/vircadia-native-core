@@ -43,7 +43,8 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
         QByteArray fbxContents = fbx.readAll();
         FBXGeometry* geom;
         if (filename.toLower().endsWith(".obj")) {
-            geom = OBJReader().readOBJ(fbxContents, QVariantHash());
+            bool combineParts = false;
+            geom = OBJReader().readOBJ(fbxContents, QVariantHash(), combineParts);
         } else if (filename.toLower().endsWith(".fbx")) {
             geom = readFBX(fbxContents, QVariantHash(), filename);
         } else {

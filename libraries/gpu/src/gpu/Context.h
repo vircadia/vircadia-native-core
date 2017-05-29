@@ -34,6 +34,7 @@ public:
     int _ISNumInputBufferChanges = 0;
     int _ISNumIndexBufferChanges = 0;
 
+    int _RSNumResourceBufferBounded = 0;
     int _RSNumTextureBounded = 0;
     int _RSAmountTextureMemoryBounded = 0;
 

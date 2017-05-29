@@ -1,0 +1,46 @@
+{
+    "Entities": [{
+        "clientOnly": 0,
+        "collisionsWillMove": 1,
+        "created": "2016-09-12T18:28:06Z",
+        "description": "hifi:gameTable:piece:deckOfCards",
+        "dimensions": {
+            "x": 0.26210001111030579,
+            "y": 0.10000000149011612,
+            "z": 0.45329999923706055
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "velocity": {
+            "x": 0,
+            "y": -0.9,
+            "z": 0
+        },
+        "friction":1,
+        "restitution":0,
+        "id": "{36bdb632-06be-4d13-b9be-e620ebec6422}",
+        "modelURL": "assets/cards/playing_card.fbx",
+        "name": "Deck of Cards",
+        "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+        "queryAACube": {
+            "scale": 0.53308284282684326,
+            "x": -0.26654142141342163,
+            "y": -0.26654142141342163,
+            "z": -0.26654142141342163
+        },
+        "rotation": {
+            "w": 0.9568779468536377,
+            "x": -7.62939453125e-05,
+            "y": -0.29045546054840088,
+            "z": 1.52587890625e-05
+        },
+        "script": "games/deckOfCards/deckOfCards.js",
+        "shapeType": "simple-compound",
+        "type": "Model"
+    }],
+    "Version": 64
+}

@@ -32,18 +32,16 @@ namespace render {
         void load();
 
         // Register the scene
-        void registerScene(const ScenePointer& scene) { _sceneContext->_scene = scene; }
+        void registerScene(const ScenePointer& scene) { _renderContext->_scene = scene; }
 
-        // Push a RenderContext
-        void setRenderContext(const RenderContext& renderContext) { (*_renderContext) = renderContext; }
+        // acces the RenderContext
         RenderContextPointer getRenderContext() const { return _renderContext; }
 
         // Render a frame
         // Must have a scene registered and a context set
-        void run() { assert(_sceneContext && _renderContext);  Task::run(_sceneContext, _renderContext); }
+        void run() { assert(_renderContext);  Task::run(_renderContext); }
 
     protected:
-        SceneContextPointer _sceneContext;
         RenderContextPointer _renderContext;
     };
     using EnginePointer = std::shared_ptr<Engine>;

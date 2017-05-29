@@ -354,12 +354,11 @@ void OpenGLDisplayPlugin::customizeContext() {
             }
             if ((image.width() > 0) && (image.height() > 0)) {
 
-                cursorData.texture.reset(
-                    gpu::Texture::createStrict(
+                cursorData.texture = gpu::Texture::createStrict(
                     gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
                     image.width(), image.height(),
                     gpu::Texture::MAX_NUM_MIPS,
-                    gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+                    gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
                 cursorData.texture->setSource("cursor texture");
                 auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
                 cursorData.texture->setUsage(usage.build());

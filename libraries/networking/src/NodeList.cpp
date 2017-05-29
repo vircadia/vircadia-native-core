@@ -257,13 +257,13 @@ void NodeList::reset() {
     _avatarGainMap.clear();
     _avatarGainMapLock.unlock();
 
-    // refresh the owner UUID to the NULL UUID
-    setSessionUUID(QUuid());
-
     if (sender() != &_domainHandler) {
         // clear the domain connection information, unless they're the ones that asked us to reset
         _domainHandler.softReset();
     }
+
+    // refresh the owner UUID to the NULL UUID
+    setSessionUUID(QUuid());
 
     // if we setup the DTLS socket, also disconnect from the DTLS socket readyRead() so it can handle handshaking
     if (_dtlsSocket) {

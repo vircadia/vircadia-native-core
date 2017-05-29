@@ -40,8 +40,8 @@ public:
 
     void doInitialModelSimulation();
 
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
+    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
 
     void updateModelBounds();
@@ -108,6 +108,7 @@ private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
 
+    void getCollisionGeometryResource();
     GeometryResource::Pointer _compoundShapeResource;
     ModelPointer _model = nullptr;
     bool _needsInitialSimulation = true;

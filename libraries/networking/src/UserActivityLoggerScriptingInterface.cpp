@@ -13,28 +13,28 @@
 #include "UserActivityLogger.h"
 
 void UserActivityLoggerScriptingInterface::enabledEdit() {
-    logAction("enabled_edit");
+    doLogAction("enabled_edit");
 }
 
 void UserActivityLoggerScriptingInterface::openedTablet(bool visibleToOthers) {
-    logAction("opened_tablet", { { "visible_to_others", visibleToOthers } });
+    doLogAction("opened_tablet", { { "visible_to_others", visibleToOthers } });
 }
 
 void UserActivityLoggerScriptingInterface::closedTablet() {
-    logAction("closed_tablet");
+    doLogAction("closed_tablet");
 }
 
 void UserActivityLoggerScriptingInterface::openedMarketplace() {
-    logAction("opened_marketplace");
+    doLogAction("opened_marketplace");
 }
 
 void UserActivityLoggerScriptingInterface::toggledAway(bool isAway) {
-    logAction("toggled_away", { { "is_away", isAway } });
+    doLogAction("toggled_away", { { "is_away", isAway } });
 }
 
 void UserActivityLoggerScriptingInterface::tutorialProgress( QString stepName, int stepNumber, float secondsToComplete,
         float tutorialElapsedTime, QString tutorialRunID, int tutorialVersion, QString controllerType) {
-    logAction("tutorial_progress", {
+    doLogAction("tutorial_progress", {
         { "tutorial_run_id", tutorialRunID },
         { "tutorial_version", tutorialVersion },
         { "step", stepName },
@@ -52,11 +52,11 @@ void UserActivityLoggerScriptingInterface::palAction(QString action, QString tar
     if (target.length() > 0) {
         payload["target"] = target;
     }
-    logAction("pal_activity", payload);
+    doLogAction("pal_activity", payload);
 }
 
 void UserActivityLoggerScriptingInterface::palOpened(float secondsOpened) {
-    logAction("pal_opened", { 
+    doLogAction("pal_opened", { 
         { "seconds_opened", secondsOpened }
     });
 }
@@ -68,10 +68,14 @@ void UserActivityLoggerScriptingInterface::makeUserConnection(QString otherID, b
     if (detailsString.length() > 0) {
         payload["details"] = detailsString;
     }
-    logAction("makeUserConnection", payload);
+    doLogAction("makeUserConnection", payload);
 }
 
-void UserActivityLoggerScriptingInterface::logAction(QString action, QJsonObject details) {
+void UserActivityLoggerScriptingInterface::logAction(QString action, QVariantMap details) {
+    doLogAction(action, QJsonObject::fromVariantMap(details));
+}
+
+void UserActivityLoggerScriptingInterface::doLogAction(QString action, QJsonObject details) {
     QMetaObject::invokeMethod(&UserActivityLogger::getInstance(), "logAction",
                               Q_ARG(QString, action),
                               Q_ARG(QJsonObject, details));

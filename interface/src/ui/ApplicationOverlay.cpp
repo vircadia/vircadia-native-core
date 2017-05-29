@@ -94,7 +94,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     PROFILE_RANGE(app, __FUNCTION__);
 
     if (!_uiTexture) {
-        _uiTexture = gpu::TexturePointer(gpu::Texture::createExternal(OffscreenQmlSurface::getDiscardLambda()));
+        _uiTexture = gpu::Texture::createExternal(OffscreenQmlSurface::getDiscardLambda());
         _uiTexture->setSource(__FUNCTION__);
     }
     // Once we move UI rendering and screen rendering to different
@@ -207,13 +207,13 @@ void ApplicationOverlay::buildFramebufferObject() {
     auto width = uiSize.x;
     auto height = uiSize.y;
     if (!_overlayFramebuffer->getDepthStencilBuffer()) {
-        auto overlayDepthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(DEPTH_FORMAT, width, height, gpu::Texture::SINGLE_MIP, DEFAULT_SAMPLER));
+        auto overlayDepthTexture = gpu::Texture::createRenderBuffer(DEPTH_FORMAT, width, height, gpu::Texture::SINGLE_MIP, DEFAULT_SAMPLER);
         _overlayFramebuffer->setDepthStencilBuffer(overlayDepthTexture, DEPTH_FORMAT);
     }
 
     if (!_overlayFramebuffer->getRenderBuffer(0)) {
         const gpu::Sampler OVERLAY_SAMPLER(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
-        auto colorBuffer = gpu::TexturePointer(gpu::Texture::createRenderBuffer(COLOR_FORMAT, width, height, gpu::Texture::SINGLE_MIP, OVERLAY_SAMPLER));
+        auto colorBuffer = gpu::Texture::createRenderBuffer(COLOR_FORMAT, width, height, gpu::Texture::SINGLE_MIP, OVERLAY_SAMPLER);
         _overlayFramebuffer->setRenderBuffer(0, colorBuffer);
     }
 }

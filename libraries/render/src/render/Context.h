@@ -16,20 +16,13 @@
 
 namespace render {
 
-class SceneContext {
-public:
-    ScenePointer _scene;
-  
-    SceneContext() {}
-};
-using SceneContextPointer = std::shared_ptr<SceneContext>;
-
-class JobConfig;
+    class JobConfig;
 
 class RenderContext {
 public:
     RenderArgs* args;
     std::shared_ptr<JobConfig> jobConfig{ nullptr };
+    ScenePointer _scene;
 };
 using RenderContextPointer = std::shared_ptr<RenderContext>;
 

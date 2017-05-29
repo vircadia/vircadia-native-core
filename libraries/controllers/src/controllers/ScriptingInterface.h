@@ -99,6 +99,13 @@ namespace controller {
         Q_INVOKABLE const QVariantMap& getHardware() { return _hardware; }
         Q_INVOKABLE const QVariantMap& getActions() { return _actions; }
         Q_INVOKABLE const QVariantMap& getStandard() { return _standard; }
+        Q_INVOKABLE void startInputRecording();
+        Q_INVOKABLE void stopInputRecording();
+        Q_INVOKABLE void startInputPlayback();
+        Q_INVOKABLE void stopInputPlayback();
+        Q_INVOKABLE void saveInputRecording();
+        Q_INVOKABLE void loadInputRecording(const QString& file);
+        Q_INVOKABLE QString getInputRecorderSaveDirectory();
 
         bool isMouseCaptured() const { return _mouseCaptured; }
         bool isTouchCaptured() const { return _touchCaptured; }

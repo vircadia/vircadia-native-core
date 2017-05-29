@@ -1686,7 +1686,7 @@ void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bo
         auto ps = gpu::Shader::createPixel(std::string(grid_frag));
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram((*program));
-        _gridSlot = program->getBuffers().findLocation("gridBuffer");
+        _gridSlot = program->getUniformBuffers().findLocation("gridBuffer");
 
         auto stateLayered = std::make_shared<gpu::State>();
         stateLayered->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);

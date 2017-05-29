@@ -29,10 +29,12 @@
 #include <udt/PacketHeaders.h>
 #include <ResourceCache.h>
 #include <ScriptCache.h>
-#include <SoundCache.h>
 #include <ScriptEngines.h>
+#include <SoundCache.h>
+#include <UsersScriptingInterface.h>
 #include <UUID.h>
 
+#include <recording/ClipCache.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Frame.h>
@@ -53,7 +55,8 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
 Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
-    _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES) {
+    _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES)
+{
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     ResourceManager::init();
@@ -64,11 +67,17 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<SoundCache>();
     DependencyManager::set<AudioScriptingInterface>();
     DependencyManager::set<AudioInjectorManager>();
+
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
-    DependencyManager::set<RecordingScriptingInterface>();
+    DependencyManager::set<recording::ClipCache>();
+
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT);
+
+    DependencyManager::set<RecordingScriptingInterface>();
+    DependencyManager::set<UsersScriptingInterface>();
+
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 
@@ -327,6 +336,8 @@ void Agent::executeScript() {
     _scriptEngine = std::unique_ptr<ScriptEngine>(new ScriptEngine(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload));
     _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
+    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(_scriptEngine.get());
+
     // setup an Avatar for the script to use
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
@@ -342,6 +353,10 @@ void Agent::executeScript() {
 
     // give this AvatarData object to the script engine
     _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
+
+    // give scripts access to the Users object
+    _scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
+
 
     auto player = DependencyManager::get<recording::Deck>();
     connect(player.data(), &recording::Deck::playbackStateChanged, [=] {
@@ -470,6 +485,8 @@ void Agent::executeScript() {
     Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
     Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
 
+    DependencyManager::destroy<RecordingScriptingInterface>();
+
     setFinished(true);
 }
 
@@ -527,7 +544,7 @@ void Agent::setIsAvatar(bool isAvatar) {
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
 
         // start the timers
-        _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
+        _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
 
         // tell the avatarAudioTimer to start ticking
         emit startAvatarAudioTimer();
@@ -753,7 +770,18 @@ void Agent::aboutToFinish() {
 
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
+
+    // destroy all other created dependencies
+    DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<ScriptEngines>();
+
+    DependencyManager::destroy<ResourceCacheSharedItems>();
+    DependencyManager::destroy<SoundCache>();
+    DependencyManager::destroy<AudioScriptingInterface>();
+
+    DependencyManager::destroy<recording::Deck>();
+    DependencyManager::destroy<recording::Recorder>();
+    DependencyManager::destroy<recording::ClipCache>();
 
     emit stopAvatarAudioTimer();
     _avatarAudioTimerThread.quit();

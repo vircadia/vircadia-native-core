@@ -112,6 +112,8 @@ public:
     void setResource(GeometryResource::Pointer resource);
 
     QUrl getURL() const { return (bool)_resource ? _resource->getURL() : QUrl(); }
+    int getResourceDownloadAttempts() { return _resource ? _resource->getDownloadAttempts() : 0; }
+    int getResourceDownloadAttemptsRemaining() { return _resource ? _resource->getDownloadAttemptsRemaining() : 0; }
 
 private:
     void startWatching();
@@ -136,13 +138,18 @@ class ModelCache : public ResourceCache, public Dependency {
 
 public:
     GeometryResource::Pointer getGeometryResource(const QUrl& url,
-        const QVariantHash& mapping = QVariantHash(), const QUrl& textureBaseUrl = QUrl());
+                                                  const QVariantHash& mapping = QVariantHash(),
+                                                  const QUrl& textureBaseUrl = QUrl());
+
+    GeometryResource::Pointer getCollisionGeometryResource(const QUrl& url,
+                                                           const QVariantHash& mapping = QVariantHash(),
+                                                           const QUrl& textureBaseUrl = QUrl());
 
 protected:
     friend class GeometryMappingResource;
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra) override;
+                                                    const void* extra) override;
 
 private:
     ModelCache();
@@ -175,13 +182,11 @@ protected:
     const bool& isOriginal() const { return _isOriginal; }
 
 private:
-    using TextureType = NetworkTexture::Type;
-
     // Helpers for the ctors
     QUrl getTextureUrl(const QUrl& baseUrl, const FBXTexture& fbxTexture);
     model::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
-        TextureType type, MapChannel channel);
-    model::TextureMapPointer fetchTextureMap(const QUrl& url, TextureType type, MapChannel channel);
+                                             image::TextureUsage::Type type, MapChannel channel);
+    model::TextureMapPointer fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel);
 
     Transform _albedoTransform;
     Transform _lightmapTransform;

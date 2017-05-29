@@ -114,7 +114,7 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
 void AssetResourceRequest::requestHash(const AssetHash& hash) {
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
-    _assetRequest = assetClient->createRequest(hash);
+    _assetRequest = assetClient->createRequest(hash, _byteRange);
 
     connect(_assetRequest, &AssetRequest::progress, this, &AssetResourceRequest::onDownloadProgress);
     connect(_assetRequest, &AssetRequest::finished, this, [this](AssetRequest* req) {

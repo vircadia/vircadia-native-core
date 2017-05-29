@@ -106,10 +106,10 @@ public:
     virtual void setZTextureURL(const QString& zTextureURL) override;
 
     virtual bool addToScene(EntityItemPointer self,
-                            std::shared_ptr<render::Scene> scene,
+                            const render::ScenePointer& scene,
                             render::Transaction& transaction) override;
     virtual void removeFromScene(EntityItemPointer self,
-                                 std::shared_ptr<render::Scene> scene,
+                                 const render::ScenePointer& scene,
                                  render::Transaction& transaction) override;
 
     virtual void setXNNeighborID(const EntityItemID& xNNeighborID) override;

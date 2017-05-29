@@ -32,6 +32,7 @@
 #include "assets/ATPAssetMigrator.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
+#include "AvatarBookmarks.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "MainWindow.h"
@@ -40,6 +41,7 @@
 #include "ui/DialogsManager.h"
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
+#include "LocationBookmarks.h"
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -154,6 +156,8 @@ Menu::Menu() {
     // Audio > Show Level Meter
     addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, false);
 
+    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioNoiseReduction, 0, true,
+        audioIO.data(), SLOT(toggleAudioNoiseReduction()));
 
     // Avatar menu ----------------------------------
     MenuWrapper* avatarMenu = addMenu("Avatar");
@@ -194,6 +198,12 @@ Menu::Menu() {
         0, // QML Qt::Key_Apostrophe,
         qApp, SLOT(resetSensors()));
 
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
+        avatar.get(), SLOT(updateMotionBehaviorFromMenu()));
+
+    // Avatar > AvatarBookmarks related menus -- Note: the AvatarBookmarks class adds its own submenus here.
+    auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
+    avatarBookmarks->setupMenus(this, avatarMenu);
 
     // Display menu ----------------------------------
     // FIXME - this is not yet matching Alan's spec because it doesn't have
@@ -254,10 +264,11 @@ Menu::Menu() {
 
     // Navigate > Show Address Bar
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::AddressBar, Qt::CTRL | Qt::Key_L,
-        dialogsManager.data(), SLOT(toggleAddressBar()));
+        dialogsManager.data(), SLOT(showAddressBar()));
 
-    // Navigate > Bookmark related menus -- Note: the Bookmark class adds its own submenus here.
-    qApp->getBookmarks()->setupMenus(this, navigateMenu);
+    // Navigate > LocationBookmarks related menus -- Note: the LocationBookmarks class adds its own submenus here.
+    auto locationBookmarks = DependencyManager::get<LocationBookmarks>();
+    locationBookmarks->setupMenus(this, navigateMenu);
 
     // Navigate > Copy Address [advanced]
     auto addressManager = DependencyManager::get<AddressManager>();
@@ -526,10 +537,6 @@ Menu::Menu() {
         avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableCharacterController, 0, true,
-        avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
-        UNSPECIFIED_POSITION, "Developer");
-
     // Developer > Hands >>>
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false,
@@ -616,8 +623,6 @@ Menu::Menu() {
             QString("../../hifi/tablet/TabletAudioPreferences.qml"), "AudioPreferencesDialog");
     });
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction, 0, true,
-        audioIO.data(), SLOT(toggleAudioNoiseReduction()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
         audioIO.data(), SLOT(toggleServerEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,

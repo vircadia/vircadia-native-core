@@ -808,7 +808,7 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         int index = changedProperties.indexOf("actionData");
         if (index >= 0) {
             QByteArray value = properties.getActionData();
-            QString changeHint = serializedActionsToDebugString(value);
+            QString changeHint = serializedDynamicsToDebugString(value);
             changedProperties[index] = QString("actionData:") + changeHint;
         }
     }

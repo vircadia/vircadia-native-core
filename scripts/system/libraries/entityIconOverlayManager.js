@@ -32,20 +32,25 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
         }
     };
 
+    // Finds the id for the corresponding entity that is associated with an overlay id. 
+    // Returns null if the overlay id is not contained in this manager.
+    this.findEntity = function(overlayId) {
+        for (var id in entityOverlays) {
+            if (overlayId === entityOverlays[id]) {
+                return entityIDs[id];
+            }
+        }
+        
+        return null;
+    };
+
     this.findRayIntersection = function(pickRay) {
         var result = Overlays.findRayIntersection(pickRay);
-        var found = false;
 
         if (result.intersects) {
-            for (var id in entityOverlays) {
-                if (result.overlayID === entityOverlays[id]) {
-                    result.entityID = entityIDs[id];
-                    found = true;
-                    break;
-                }
-            }
+            result.entityID = this.findEntity(result.overlayID);
 
-            if (!found) {
+            if (result.entityID === null) {
                 result.intersects = false;
             }
         }

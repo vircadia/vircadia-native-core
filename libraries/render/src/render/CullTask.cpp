@@ -16,8 +16,6 @@
 
 #include <OctreeUtils.h>
 #include <PerfStat.h>
-#include <ViewFrustum.h>
-#include <gpu/Context.h>
 
 using namespace render;
 
@@ -63,10 +61,10 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
     details._rendered += (int)outItems.size();
 }
 
-void FetchNonspatialItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems) {
+void FetchNonspatialItems::run(const RenderContextPointer& renderContext, ItemBounds& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
-    auto& scene = sceneContext->_scene;
+    auto& scene = renderContext->_scene;
 
     outItems.clear();
 
@@ -84,11 +82,11 @@ void FetchSpatialTree::configure(const Config& config) {
     _lodAngle = config.lodAngle;
 }
 
-void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection) {
+void FetchSpatialTree::run(const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
-    auto& scene = sceneContext->_scene;
+    auto& scene = renderContext->_scene;
 
     // start fresh
     outSelection.clear();
@@ -114,12 +112,12 @@ void CullSpatialSelection::configure(const Config& config) {
     _skipCulling = config.skipCulling;
 }
 
-void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+void CullSpatialSelection::run(const RenderContextPointer& renderContext,
     const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
-    auto& scene = sceneContext->_scene;
+    auto& scene = renderContext->_scene;
 
     auto& details = args->_details.edit(_detailType);
     details._considered += (int)inSelection.numItems();
@@ -305,20 +303,4 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     }
 
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
-}
-
-
-void FilterItemLayer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    auto& scene = sceneContext->_scene;
-
-    // Clear previous values
-    outItems.clear();
-
-    // For each item, filter it into one bucket
-    for (auto itemBound : inItems) {
-        auto& item = scene->getItem(itemBound.id);
-        if (item.getLayer() == _keepLayer) {
-            outItems.emplace_back(itemBound);
-        }
-    }
 }

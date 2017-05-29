@@ -43,7 +43,9 @@
 #include <NetworkAccessManager.h>
 #include <PathUtils.h>
 #include <ResourceScriptingInterface.h>
+#include <UserActivityLoggerScriptingInterface.h>
 #include <NodeList.h>
+#include <ScriptAvatarData.h>
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
 #include <ui/Menu.h>
@@ -59,6 +61,7 @@
 #include "FileScriptingInterface.h" // unzip project
 #include "MenuItemProperties.h"
 #include "ScriptAudioInjector.h"
+#include "ScriptAvatarData.h"
 #include "ScriptCache.h"
 #include "ScriptEngineLogging.h"
 #include "ScriptEngine.h"
@@ -109,14 +112,6 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
         .call(engine->nullValue(), QScriptValueList({ message }));
 
     return QScriptValue();
-}
-
-QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &in) {
-    return engine->newQObject(in, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
-}
-
-void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
-    out = qobject_cast<AvatarData*>(object.toQObject());
 }
 
 Q_DECLARE_METATYPE(controller::InputController*)
@@ -542,6 +537,16 @@ static QScriptValue createScriptableResourcePrototype(QScriptEngine* engine) {
     return prototype;
 }
 
+QScriptValue avatarDataToScriptValue(QScriptEngine* engine, ScriptAvatarData* const& in) {
+    return engine->newQObject(in, QScriptEngine::ScriptOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
+}
+
+void avatarDataFromScriptValue(const QScriptValue& object, ScriptAvatarData*& out) {
+    // This is not implemented because there are no slots/properties that take an AvatarSharedPointer from a script
+    assert(false);
+    out = nullptr;
+}
+
 void ScriptEngine::resetModuleCache(bool deleteScriptCache) {
     if (QThread::currentThread() != thread()) {
         executeOnScriptThread([=]() { resetModuleCache(deleteScriptCache); });
@@ -665,6 +670,7 @@ void ScriptEngine::init() {
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
     registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+    qScriptRegisterMetaType(this, tabletToScriptValue, tabletFromScriptValue);
     registerGlobalObject("Assets", &_assetScriptingInterface);
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
 
@@ -673,6 +679,8 @@ void ScriptEngine::init() {
     registerGlobalObject("Model", new ModelScriptingInterface(this));
     qScriptRegisterMetaType(this, meshToScriptValue, meshFromScriptValue);
     qScriptRegisterMetaType(this, meshesToScriptValue, meshesFromScriptValue);
+
+    registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
@@ -2312,6 +2320,8 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID, bool shouldR
 
     if (_entityScripts.contains(entityID)) {
         const EntityScriptDetails &oldDetails = _entityScripts[entityID];
+        auto scriptText = oldDetails.scriptText;
+
         if (isEntityScriptRunning(entityID)) {
             callEntityScriptMethod(entityID, "unload");
         }
@@ -2329,14 +2339,14 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID, bool shouldR
             newDetails.status = EntityScriptStatus::UNLOADED;
             newDetails.lastModified = QDateTime::currentMSecsSinceEpoch();
             // keep scriptText populated for the current need to "debouce" duplicate calls to unloadEntityScript
-            newDetails.scriptText = oldDetails.scriptText;
+            newDetails.scriptText = scriptText;
             setEntityScriptDetails(entityID, newDetails);
         }
 
         stopAllTimersForEntityScript(entityID);
         {
             // FIXME: shouldn't have to do this here, but currently something seems to be firing unloads moments after firing initial load requests
-            processDeferredEntityLoads(oldDetails.scriptText, entityID);
+            processDeferredEntityLoads(scriptText, entityID);
         }
     }
 }

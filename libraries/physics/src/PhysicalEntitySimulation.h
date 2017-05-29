@@ -34,8 +34,8 @@ public:
 
     void init(EntityTreePointer tree, PhysicsEnginePointer engine, EntityEditPacketSender* packetSender);
 
-    virtual void addAction(EntityActionPointer action) override;
-    virtual void applyActionChanges() override;
+    virtual void addDynamic(EntityDynamicPointer dynamic) override;
+    virtual void applyDynamicChanges() override;
 
     virtual void takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) override;
 

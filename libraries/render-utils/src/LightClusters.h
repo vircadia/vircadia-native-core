@@ -176,7 +176,7 @@ public:
     
     void configure(const Config& config);
     
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
     
 protected:
     LightClustersPointer _lightClusters;
@@ -221,7 +221,7 @@ public:
 
     void configure(const Config& config);
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     gpu::BufferPointer _gridBuffer;

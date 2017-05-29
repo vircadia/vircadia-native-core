@@ -10,4 +10,4 @@ GroupSources("src/controllers")
 
 add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
-target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS} "${CMAKE_BINARY_DIR}/includes")

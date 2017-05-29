@@ -132,7 +132,7 @@ public:
     SubsurfaceScattering();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, Outputs& outputs);
+    void run(const render::RenderContextPointer& renderContext, Outputs& outputs);
 
 private:
     SubsurfaceScatteringResourcePointer _scatteringResource;
@@ -170,7 +170,7 @@ public:
     DebugSubsurfaceScattering();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 private:
 

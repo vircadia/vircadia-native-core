@@ -1,0 +1,44 @@
+{
+    "Entities": [{
+        "clientOnly": 0,
+        "collisionsWillMove": 1,
+        "created": "2016-09-12T18:19:21Z",
+        "dimensions": {
+            "x": 0.11060647666454315,
+            "y": 0.016720227897167206,
+            "z": 0.050010401755571365
+        },
+        "dynamic": 1,
+        "description":"hifi:gameTable:piece:dominoes",
+        "id": "{e25e3ece-6b84-4c0d-925c-aacebf9ebc6c}",
+        "modelURL": "assets/dominoes/10.fbx",
+        "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+        "queryAACube": {
+            "scale": 0.12253325432538986,
+            "x": -0.061266627162694931,
+            "y": -0.061266627162694931,
+            "z": -0.061266627162694931
+        },
+        "velocity": {
+            "x": 0,
+            "y": -0.10,
+            "z": 0
+        },
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "rotation": {
+            "w": 1,
+            "x": -1.52587890625e-05,
+            "y": -1.52587890625e-05,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"grabbableKey\":{\"grabbable\":true}}",
+        "lifetime": 3600
+    }],
+    "Version": 64
+}

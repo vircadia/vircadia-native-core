@@ -17,6 +17,7 @@
 #include "DependencyManager.h"
 #include "AddressManager.h"
 #include "DialogsManager.h"
+#include "LocationBookmarks.h"
 
 HIFI_QML_DEF(AddressBarDialog)
 
@@ -52,7 +53,8 @@ void AddressBarDialog::loadAddress(const QString& address, bool fromSuggestions)
 
 void AddressBarDialog::loadHome() {
     qDebug() << "Called LoadHome";
-    QString homeLocation = qApp->getBookmarks()->addressForBookmark(Bookmarks::HOME_BOOKMARK);
+    auto locationBookmarks = DependencyManager::get<LocationBookmarks>();
+    QString homeLocation = locationBookmarks->addressForBookmark(LocationBookmarks::HOME_BOOKMARK);
     const QString DEFAULT_HOME_LOCATION = "localhost";
     if (homeLocation == "") {
         homeLocation = DEFAULT_HOME_LOCATION;

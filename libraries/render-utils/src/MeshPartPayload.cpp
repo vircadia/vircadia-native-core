@@ -118,7 +118,7 @@ void MeshPartPayload::drawCall(gpu::Batch& batch) const {
     batch.drawIndexed(gpu::TRIANGLES, _drawPart._numIndices, _drawPart._startIndex);
 }
 
-void MeshPartPayload::bindMesh(gpu::Batch& batch) const {
+void MeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
 
     batch.setInputFormat((_drawMesh->getVertexFormat()));
@@ -255,7 +255,7 @@ void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::Loca
 }
 
 
-void MeshPartPayload::render(RenderArgs* args) const {
+void MeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("MeshPartPayload::render");
 
     gpu::Batch& batch = *(args->_batch);
@@ -485,7 +485,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     return builder.build();
 }
 
-void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
+void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
     if (!_isBlendShaped) {
         batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
 
@@ -517,7 +517,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(_transform);
 }
 
-float ModelMeshPartPayload::computeFadeAlpha() const {
+float ModelMeshPartPayload::computeFadeAlpha() {
     if (_fadeState == FADE_WAITING_TO_START) {
         return 0.0f;
     }
@@ -536,7 +536,7 @@ float ModelMeshPartPayload::computeFadeAlpha() const {
     return Interpolate::simpleNonLinearBlend(fadeAlpha);
 }
 
-void ModelMeshPartPayload::render(RenderArgs* args) const {
+void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
     if (!_model->addedToScene() || !_model->isVisible()) {
@@ -544,7 +544,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     }
 
     if (_fadeState == FADE_WAITING_TO_START) {
-        if (_model->isLoaded() && _model->getGeometry()->areTexturesLoaded()) {
+        if (_model->isLoaded()) {
             if (EntityItem::getEntitiesShouldFadeFunction()()) {
                 _fadeStartTime = usecTimestampNow();
                 _fadeState = FADE_IN_PROGRESS;
@@ -555,6 +555,11 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         } else {
             return;
         }
+    }
+
+    if (_materialNeedsUpdate && _model->getGeometry()->areTexturesLoaded()) {
+        _model->setRenderItemsNeedUpdate();
+        _materialNeedsUpdate = false;
     }
 
     if (!args) {

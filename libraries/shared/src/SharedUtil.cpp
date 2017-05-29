@@ -769,7 +769,7 @@ bool similarStrings(const QString& stringA, const QString& stringB) {
 
 void disableQtBearerPoll() {
     // to work around the Qt constant wireless scanning, set the env for polling interval very high
-    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
+    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT16_MAX).toLocal8Bit();
     qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
 }
 

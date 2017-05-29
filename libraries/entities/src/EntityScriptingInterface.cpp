@@ -24,8 +24,8 @@
 #include <model-networking/MeshProxy.h>
 
 #include "EntitiesLogging.h"
-#include "EntityActionFactoryInterface.h"
-#include "EntityActionInterface.h"
+#include "EntityDynamicFactoryInterface.h"
+#include "EntityDynamicInterface.h"
 #include "EntitySimulation.h"
 #include "EntityTree.h"
 #include "LightEntityItem.h"
@@ -1133,7 +1133,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     QUuid actionID = QUuid::createUuid();
-    auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
+    auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
     bool success = false;
     actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
         // create this action even if the entity doesn't have physics info.  it will often be the
@@ -1142,11 +1142,11 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
         // if (!entity->getPhysicsInfo()) {
         //     return false;
         // }
-        EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
-        if (actionType == ACTION_TYPE_NONE) {
+        EntityDynamicType dynamicType = EntityDynamicInterface::dynamicTypeFromString(actionTypeString);
+        if (dynamicType == DYNAMIC_TYPE_NONE) {
             return false;
         }
-        EntityActionPointer action = actionFactory->factory(actionType, actionID, entity, arguments);
+        EntityDynamicPointer action = actionFactory->factory(dynamicType, actionID, entity, arguments);
         if (!action) {
             return false;
         }

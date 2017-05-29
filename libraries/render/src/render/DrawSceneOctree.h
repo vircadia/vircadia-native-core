@@ -71,7 +71,7 @@ namespace render {
         DrawSceneOctree() {}
 
         void configure(const Config& config);
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& selection);
+        void run(const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& selection);
 
         const gpu::PipelinePointer getDrawCellBoundsPipeline();
         const gpu::PipelinePointer getDrawLODReticlePipeline();
@@ -129,7 +129,7 @@ namespace render {
         DrawItemSelection() {}
 
         void configure(const Config& config);
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& selection);
+        void run(const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& selection);
 
         const gpu::PipelinePointer getDrawItemBoundPipeline();
     };

@@ -16,11 +16,14 @@
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
 
-class RenderForwardTask : public render::Task {
+class RenderForwardTask {
 public:
-    using JobModel = Model<RenderForwardTask>;
+    using Input = RenderFetchCullSortTask::Output;
+    using JobModel = render::Task::ModelI<RenderForwardTask, Input>;
 
-    RenderForwardTask(RenderFetchCullSortTask::Output items);
+    RenderForwardTask() {}
+
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 };
 
 class PrepareFramebuffer {
@@ -28,7 +31,7 @@ public:
     using Inputs = gpu::FramebufferPointer;
     using JobModel = render::Job::ModelO<PrepareFramebuffer, Inputs>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+    void run(const render::RenderContextPointer& renderContext,
             gpu::FramebufferPointer& framebuffer);
 
 private:
@@ -41,7 +44,7 @@ public:
     using JobModel = render::Job::ModelI<Draw, Inputs>;
 
     Draw(const render::ShapePlumberPointer& shapePlumber) : _shapePlumber(shapePlumber) {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+    void run(const render::RenderContextPointer& renderContext,
             const Inputs& items);
 
 private:
@@ -52,7 +55,7 @@ class Stencil {
 public:
     using JobModel = render::Job::Model<Stencil>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    void run(const render::RenderContextPointer& renderContext);
 
 private:
     const gpu::PipelinePointer getPipeline();
@@ -64,7 +67,7 @@ public:
     using Inputs = render::ItemBounds;
     using JobModel = render::Job::ModelI<DrawBackground, Inputs>;
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+    void run(const render::RenderContextPointer& renderContext,
             const Inputs& background);
 };
 

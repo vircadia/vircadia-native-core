@@ -91,7 +91,7 @@ Item {
         }
         MouseArea {
             anchors.fill: parent
-            enabled: (selected || isMyCard) && activeTab == "nearbyTab";
+            enabled: (selected && activeTab == "nearbyTab") || isMyCard;
             hoverEnabled: enabled
             onClicked: {
                 userInfoViewer.url = defaultBaseUrl + "/users/" + userName;

@@ -231,8 +231,6 @@ void Model::updateRenderItems() {
         // We need to update them here so we can correctly update the bounding box.
         self->updateClusterMatrices();
 
-        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::Transaction transaction;
@@ -266,7 +264,7 @@ void Model::updateRenderItems() {
             });
         }
 
-        scene->enqueueTransaction(transaction);
+        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
     });
 }
 
@@ -534,7 +532,7 @@ void Model::calculateTriangleSets() {
     }
 }
 
-void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene) {
+void Model::setVisibleInScene(bool newValue, const render::ScenePointer& scene) {
     if (_isVisible != newValue) {
         _isVisible = newValue;
 
@@ -550,7 +548,7 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 }
 
 
-void Model::setLayeredInFront(bool layered, std::shared_ptr<render::Scene> scene) {
+void Model::setLayeredInFront(bool layered, const render::ScenePointer& scene) {
     if (_isLayeredInFront != layered) {
         _isLayeredInFront = layered;
 
@@ -565,7 +563,7 @@ void Model::setLayeredInFront(bool layered, std::shared_ptr<render::Scene> scene
     }
 }
 
-bool Model::addToScene(std::shared_ptr<render::Scene> scene,
+bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters) {
     bool readyToRender = _collisionGeometry || isLoaded();
@@ -622,7 +620,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
     return somethingAdded;
 }
 
-void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+void Model::removeFromScene(const render::ScenePointer& scene, render::Transaction& transaction) {
     foreach (auto item, _modelMeshRenderItemsMap.keys()) {
         transaction.removeItem(item);
     }
@@ -795,7 +793,7 @@ void Model::setURL(const QUrl& url) {
 
     {
         render::Transaction transaction;
-        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
         if (scene) {
             removeFromScene(scene, transaction);
             scene->enqueueTransaction(transaction);
@@ -1271,7 +1269,7 @@ bool Model::isRenderable() const {
     return !_meshStates.isEmpty() || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
-bool Model::initWhenReady(render::ScenePointer scene) {
+bool Model::initWhenReady(const render::ScenePointer& scene) {
     // NOTE: this only called by SkeletonModel
     if (_addedToScene || !isRenderable()) {
         return false;

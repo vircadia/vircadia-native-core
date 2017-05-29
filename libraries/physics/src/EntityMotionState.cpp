@@ -94,7 +94,7 @@ void EntityMotionState::updateServerPhysicsVariables() {
     _serverPosition = localTransform.getTranslation();
     _serverRotation = localTransform.getRotation();
     _serverAcceleration = _entity->getAcceleration();
-    _serverActionData = _entity->getActionData();
+    _serverActionData = _entity->getDynamicData();
 }
 
 void EntityMotionState::handleDeactivation() {
@@ -309,7 +309,7 @@ bool EntityMotionState::isCandidateForOwnership() const {
     assert(entityTreeIsLocked());
     return _outgoingPriority != 0
         || Physics::getSessionUUID() == _entity->getSimulatorID()
-        || _entity->actionDataNeedsTransmit();
+        || _entity->dynamicDataNeedsTransmit();
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
@@ -335,7 +335,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverAcceleration = Vectors::ZERO;
         _serverAngularVelocity = worldVelocityToLocal.transform(bulletToGLM(_body->getAngularVelocity()));
         _lastStep = simulationStep;
-        _serverActionData = _entity->getActionData();
+        _serverActionData = _entity->getDynamicData();
         _numInactiveUpdates = 1;
         return false;
     }
@@ -387,7 +387,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         }
     }
 
-    if (_entity->actionDataNeedsTransmit()) {
+    if (_entity->dynamicDataNeedsTransmit()) {
         _outgoingPriority = _entity->hasActions() ? SCRIPT_GRAB_SIMULATION_PRIORITY : SCRIPT_POKE_SIMULATION_PRIORITY;
         return true;
     }
@@ -474,7 +474,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
         return false;
     }
 
-    if (_entity->actionDataNeedsTransmit()) {
+    if (_entity->dynamicDataNeedsTransmit()) {
         return true;
     }
 
@@ -551,7 +551,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     _serverPosition = localTransform.getTranslation();
     _serverRotation = localTransform.getRotation();
     _serverAcceleration = _entity->getAcceleration();
-    _serverActionData = _entity->getActionData();
+    _serverActionData = _entity->getDynamicData();
 
     EntityItemProperties properties;
 
@@ -562,8 +562,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     properties.setVelocity(_serverVelocity);
     properties.setAcceleration(_serverAcceleration);
     properties.setAngularVelocity(_serverAngularVelocity);
-    if (_entity->actionDataNeedsTransmit()) {
-        _entity->setActionDataNeedsTransmit(false);
+    if (_entity->dynamicDataNeedsTransmit()) {
+        _entity->setDynamicDataNeedsTransmit(false);
         properties.setActionData(_serverActionData);
     }
 

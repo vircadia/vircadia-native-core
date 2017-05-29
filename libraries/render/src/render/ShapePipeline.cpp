@@ -80,12 +80,12 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->metallicTextureUnit = program->getTextures().findLocation("metallicMap");
     locations->emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
     locations->occlusionTextureUnit = program->getTextures().findLocation("occlusionMap");
-    locations->lightingModelBufferUnit = program->getBuffers().findLocation("lightingModelBuffer");
-    locations->skinClusterBufferUnit = program->getBuffers().findLocation("skinClusterBuffer");
-    locations->materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
-    locations->texMapArrayBufferUnit = program->getBuffers().findLocation("texMapArrayBuffer");
-    locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations->lightAmbientBufferUnit = program->getBuffers().findLocation("lightAmbientBuffer");
+    locations->lightingModelBufferUnit = program->getUniformBuffers().findLocation("lightingModelBuffer");
+    locations->skinClusterBufferUnit = program->getUniformBuffers().findLocation("skinClusterBuffer");
+    locations->materialBufferUnit = program->getUniformBuffers().findLocation("materialBuffer");
+    locations->texMapArrayBufferUnit = program->getUniformBuffers().findLocation("texMapArrayBuffer");
+    locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
+    locations->lightAmbientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
     locations->lightAmbientMapUnit = program->getTextures().findLocation("skyboxMap");
     
     ShapeKey key{filter._flags};

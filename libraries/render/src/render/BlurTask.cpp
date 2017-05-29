@@ -108,7 +108,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
         //    _blurredFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
         //}
         auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
-        auto blurringTarget = gpu::TexturePointer(gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), gpu::Texture::SINGLE_MIP, blurringSampler));
+        auto blurringTarget = gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), gpu::Texture::SINGLE_MIP, blurringSampler);
         _blurredFramebuffer->setRenderBuffer(0, blurringTarget);
     } 
 
@@ -131,7 +131,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
                 _outputFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
             }*/
             auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
-            auto blurringTarget = gpu::TexturePointer(gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), gpu::Texture::SINGLE_MIP, blurringSampler));
+            auto blurringTarget = gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), gpu::Texture::SINGLE_MIP, blurringSampler);
             _outputFramebuffer->setRenderBuffer(0, blurringTarget);
         }
 
@@ -200,7 +200,7 @@ void BlurGaussian::configure(const Config& config) {
 }
 
 
-void BlurGaussian::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer) {
+void BlurGaussian::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -308,7 +308,7 @@ void BlurGaussianDepthAware::configure(const Config& config) {
 }
 
 
-void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& SourceAndDepth, gpu::FramebufferPointer& blurredFramebuffer) {
+void BlurGaussianDepthAware::run(const RenderContextPointer& renderContext, const Inputs& SourceAndDepth, gpu::FramebufferPointer& blurredFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 

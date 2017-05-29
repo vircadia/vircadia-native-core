@@ -36,10 +36,16 @@ public:
 
     virtual ModelOverlay* createClone() const override;
 
-    virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override;
+    virtual bool addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
     void locationChanged(bool tellPhysics) override;
+
+protected:
+    // helper to extract metadata from our Model's rigged joints
+    template <typename itemType> using mapFunction = std::function<itemType(int jointIndex)>;
+    template <typename vectorType, typename itemType>
+        vectorType mapJoints(mapFunction<itemType> function) const;
 
 private:
 

@@ -101,6 +101,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_setStateScissorRect),
 
     (&::gpu::gl::GLBackend::do_setUniformBuffer),
+    (&::gpu::gl::GLBackend::do_setResourceBuffer),
     (&::gpu::gl::GLBackend::do_setResourceTexture),
 
     (&::gpu::gl::GLBackend::do_setFramebuffer),
@@ -744,6 +745,10 @@ void GLBackend::recycle() const {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
         }
     }
+
+    GLVariableAllocationSupport::manageMemory();
+    GLVariableAllocationSupport::_frameTexturesCreated = 0;
+
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {

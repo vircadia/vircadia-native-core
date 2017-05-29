@@ -21,7 +21,7 @@ const uint16_t ObjectActionSpring::springVersion = 1;
 
 
 ObjectActionSpring::ObjectActionSpring(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectAction(ACTION_TYPE_SPRING, id, ownerEntity),
+    ObjectAction(DYNAMIC_TYPE_SPRING, id, ownerEntity),
     _positionalTarget(glm::vec3(0.0f)),
     _desiredPositionalTarget(glm::vec3(0.0f)),
     _linearTimeScale(FLT_MAX),
@@ -64,11 +64,12 @@ bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
     bool valid = false;
     int springCount = 0;
 
-    QList<EntityActionPointer> springDerivedActions;
-    springDerivedActions.append(ownerEntity->getActionsOfType(ACTION_TYPE_SPRING));
-    springDerivedActions.append(ownerEntity->getActionsOfType(ACTION_TYPE_HOLD));
+    QList<EntityDynamicPointer> springDerivedActions;
+    springDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_SPRING));
+    springDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_FAR_GRAB));
+    springDerivedActions.append(ownerEntity->getActionsOfType(DYNAMIC_TYPE_HOLD));
 
-    foreach (EntityActionPointer action, springDerivedActions) {
+    foreach (EntityDynamicPointer action, springDerivedActions) {
         std::shared_ptr<ObjectActionSpring> springAction = std::static_pointer_cast<ObjectActionSpring>(action);
         glm::quat rotationForAction;
         glm::vec3 positionForAction;
@@ -190,29 +191,29 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     float angularTimeScale;
 
     bool needUpdate = false;
-    bool somethingChanged = ObjectAction::updateArguments(arguments);
+    bool somethingChanged = ObjectDynamic::updateArguments(arguments);
     withReadLock([&]{
         // targets are required, spring-constants are optional
         bool ok = true;
-        positionalTarget = EntityActionInterface::extractVec3Argument("spring action", arguments, "targetPosition", ok, false);
+        positionalTarget = EntityDynamicInterface::extractVec3Argument("spring action", arguments, "targetPosition", ok, false);
         if (!ok) {
             positionalTarget = _desiredPositionalTarget;
         }
         ok = true;
-        linearTimeScale = EntityActionInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", ok, false);
+        linearTimeScale = EntityDynamicInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", ok, false);
         if (!ok || linearTimeScale <= 0.0f) {
             linearTimeScale = _linearTimeScale;
         }
 
         ok = true;
-        rotationalTarget = EntityActionInterface::extractQuatArgument("spring action", arguments, "targetRotation", ok, false);
+        rotationalTarget = EntityDynamicInterface::extractQuatArgument("spring action", arguments, "targetRotation", ok, false);
         if (!ok) {
             rotationalTarget = _desiredRotationalTarget;
         }
 
         ok = true;
         angularTimeScale =
-            EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", ok, false);
+            EntityDynamicInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", ok, false);
         if (!ok) {
             angularTimeScale = _angularTimeScale;
         }
@@ -237,8 +238,8 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
-                ownerEntity->setActionDataDirty(true);
-                ownerEntity->setActionDataNeedsTransmit(true);
+                ownerEntity->setDynamicDataDirty(true);
+                ownerEntity->setDynamicDataNeedsTransmit(true);
             }
         });
         activateBody();
@@ -248,7 +249,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
 }
 
 QVariantMap ObjectActionSpring::getArguments() {
-    QVariantMap arguments = ObjectAction::getArguments();
+    QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
         arguments["linearTimeScale"] = _linearTimeScale;
         arguments["targetPosition"] = glmToQMap(_desiredPositionalTarget);
@@ -259,14 +260,7 @@ QVariantMap ObjectActionSpring::getArguments() {
     return arguments;
 }
 
-QByteArray ObjectActionSpring::serialize() const {
-    QByteArray serializedActionArguments;
-    QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
-
-    dataStream << ACTION_TYPE_SPRING;
-    dataStream << getID();
-    dataStream << ObjectActionSpring::springVersion;
-
+void ObjectActionSpring::serializeParameters(QDataStream& dataStream) const {
     withReadLock([&] {
         dataStream << _desiredPositionalTarget;
         dataStream << _linearTimeScale;
@@ -277,28 +271,22 @@ QByteArray ObjectActionSpring::serialize() const {
         dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
     });
+}
+
+QByteArray ObjectActionSpring::serialize() const {
+    QByteArray serializedActionArguments;
+    QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
+
+    dataStream << DYNAMIC_TYPE_SPRING;
+    dataStream << getID();
+    dataStream << ObjectActionSpring::springVersion;
+
+    serializeParameters(dataStream);
 
     return serializedActionArguments;
 }
 
-void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
-    QDataStream dataStream(serializedArguments);
-
-    EntityActionType type;
-    dataStream >> type;
-    assert(type == getType());
-
-    QUuid id;
-    dataStream >> id;
-    assert(id == getID());
-
-    uint16_t serializationVersion;
-    dataStream >> serializationVersion;
-    if (serializationVersion != ObjectActionSpring::springVersion) {
-        assert(false);
-        return;
-    }
-
+void ObjectActionSpring::deserializeParameters(QByteArray serializedArguments, QDataStream& dataStream) {
     withWriteLock([&] {
         dataStream >> _desiredPositionalTarget;
         dataStream >> _linearTimeScale;
@@ -316,4 +304,25 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
 
         _active = true;
     });
+}
+
+void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
+    QDataStream dataStream(serializedArguments);
+
+    EntityDynamicType type;
+    dataStream >> type;
+    assert(type == getType());
+
+    QUuid id;
+    dataStream >> id;
+    assert(id == getID());
+
+    uint16_t serializationVersion;
+    dataStream >> serializationVersion;
+    if (serializationVersion != ObjectActionSpring::springVersion) {
+        assert(false);
+        return;
+    }
+
+    deserializeParameters(serializedArguments, dataStream);
 }

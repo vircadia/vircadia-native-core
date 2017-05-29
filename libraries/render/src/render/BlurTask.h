@@ -105,7 +105,7 @@ public:
     BlurGaussian(bool generateOutputFramebuffer = false);
 
     void configure(const Config& config);
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer);
+    void run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer);
 
 protected:
 
@@ -141,7 +141,7 @@ public:
     BlurGaussianDepthAware(bool generateNewOutput = false, const BlurParamsPointer& params = BlurParamsPointer());
 
     void configure(const Config& config);
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& SourceAndDepth, gpu::FramebufferPointer& blurredFramebuffer);
+    void run(const RenderContextPointer& renderContext, const Inputs& SourceAndDepth, gpu::FramebufferPointer& blurredFramebuffer);
 
     const BlurParamsPointer& getParameters() const { return _parameters; }
  

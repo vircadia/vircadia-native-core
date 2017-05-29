@@ -87,6 +87,7 @@ namespace gpu {
     class Sampler;
     class Texture;
     using TexturePointer = std::shared_ptr<Texture>;
+    using TextureWeakPointer = std::weak_ptr<Texture>;
     using Textures = std::vector<TexturePointer>;
     class TextureView;
     using TextureViews = std::vector<TextureView>;

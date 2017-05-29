@@ -17,7 +17,7 @@
 #include "Task.h"
 #include "CullTask.h"
 
-class RenderFetchCullSortTask : public render::Task {
+class RenderFetchCullSortTask {
 public:
 
     enum Buckets {
@@ -34,9 +34,11 @@ public:
     };
 
     using Output = std::array<render::Varying, Buckets::NUM_BUCKETS>;
-    using JobModel = ModelO<RenderFetchCullSortTask>;
+    using JobModel = render::Task::ModelO<RenderFetchCullSortTask, Output>;
 
-    RenderFetchCullSortTask(render::CullFunctor cullFunctor);
+    RenderFetchCullSortTask() {}
+
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor);
 };
 
 #endif // hifi_RenderFetchCullSortTask_h

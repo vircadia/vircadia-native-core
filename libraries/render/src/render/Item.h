@@ -227,6 +227,7 @@ class ItemBound {
 
         ItemID id;
         AABox bound;
+        uint32_t padding;
 };
 
 // many Item Bounds in a vector

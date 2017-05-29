@@ -268,7 +268,7 @@ class FBXGeometry {
 public:
     using Pointer = std::shared_ptr<FBXGeometry>;
 
-    QUrl originalURL;
+    QString originalURL;
     QString author;
     QString applicationName; ///< the name of the application that generated the model
 
@@ -330,11 +330,11 @@ Q_DECLARE_METATYPE(FBXGeometry::Pointer)
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QUrl& url = QUrl(), bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QUrl& url = QUrl(), bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 class TextureParam {
 public:
@@ -402,17 +402,19 @@ public:
     FBXNode _fbxNode;
     static FBXNode parseFBX(QIODevice* device);
 
-    FBXGeometry* extractFBXGeometry(const QVariantHash& mapping, const QUrl& url);
+    FBXGeometry* extractFBXGeometry(const QVariantHash& mapping, const QString& url);
 
     ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex);
     QHash<QString, ExtractedMesh> meshes;
-    static void buildModelMesh(FBXMesh& extractedMesh, const QUrl& url);
+    static void buildModelMesh(FBXMesh& extractedMesh, const QString& url);
 
     FBXTexture getTexture(const QString& textureID);
 
     QHash<QString, QString> _textureNames;
     // Hashes the original RelativeFilename of textures
     QHash<QString, QByteArray> _textureFilepaths;
+    // Hashes the place to look for textures, in case they are not inlined
+    QHash<QString, QByteArray> _textureFilenames;
     // Hashes texture content by filepath, in case they are inlined
     QHash<QByteArray, QByteArray> _textureContent;
     QHash<QString, TextureParam> _textureParams;

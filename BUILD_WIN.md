@@ -8,23 +8,23 @@ Note: Newer versions of Visual Studio are not yet compatible.
 
 ###Step 2. Installing CMake
 
-Download and install the CMake 3.8.0-rc2 "win64-x64 Installer" from the [CMake Website](https://cmake.org/download/). Make sure "Add CMake to system PATH for all users" is checked when going through the installer.
+Download and install the [CMake 3.8.0 win64-x64 Installer](https://cmake.org/files/v3.8/cmake-3.8.0-win64-x64.msi). Make sure "Add CMake to system PATH for all users" is checked when going through the installer.
 
 ###Step 3. Installing Qt
 
-Download and install the [Qt 5.6.1 Installer](https://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-msvc2013_64-5.6.1-1.exe). Please note that the download file is large (850MB) and may take some time.
+Download and install the [Qt 5.6.2 for Windows 64-bit (VS 2013)](http://download.qt.io/official_releases/qt/5.6/5.6.2/qt-opensource-windows-x86-msvc2013_64-5.6.2.exe). 
 
-Make sure to select all components when going through the installer.
+Keep the default components checked when going through the installer.
 
 ###Step 4. Setting Qt Environment Variable
 
 Go to "Control Panel > System > Advanced System Settings > Environment Variables > New..." (or search “Environment Variables” in Start Search).
 * Set "Variable name": QT_CMAKE_PREFIX_PATH
-* Set "Variable value": `C:\Qt\Qt5.6.1\5.6\msvc2013_64\lib\cmake`
+* Set "Variable value": `%QT_DIR%\5.6\msvc2013_64\lib\cmake`
 
 ###Step 5. Installing OpenSSL
 
-Download and install the "Win64 OpenSSL v1.0.2k" Installer from [this website](https://slproweb.com/products/Win32OpenSSL.html).
+Download and install the [Win64 OpenSSL v1.0.2k Installer](https://slproweb.com/download/Win64OpenSSL-1_0_2k.exe).
 
 ###Step 6. Running CMake to Generate Build Files
 
@@ -77,5 +77,5 @@ If not, add the directory where nmake is located to the PATH environment variabl
 
 ####Qt is throwing an error
 
-Make sure you have the correct version (5.6.1-1) installed and 'QT_CMAKE_PREFIX_PATH' environment variable is set correctly.
+Make sure you have the correct version (5.6.2) installed and 'QT_CMAKE_PREFIX_PATH' environment variable is set correctly.
 

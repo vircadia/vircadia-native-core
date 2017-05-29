@@ -29,13 +29,13 @@ var COLORS_TELEPORT_SEAT = {
     red: 255,
     green: 0,
     blue: 170
-}
+};
 
 var COLORS_TELEPORT_CAN_TELEPORT = {
     red: 97,
     green: 247,
     blue: 255
-}
+};
 
 var COLORS_TELEPORT_CANNOT_TELEPORT = {
     red: 0,
@@ -52,7 +52,7 @@ var COLORS_TELEPORT_CANCEL = {
 var TELEPORT_CANCEL_RANGE = 1;
 var COOL_IN_DURATION = 500;
 
-const handInfo = {
+var handInfo = {
     right: {
         controllerInput: Controller.Standard.RightHand
     },
@@ -80,7 +80,7 @@ function Trigger(hand) {
 
     this.down = function() {
         var down = _this.buttonValue === 1 ? 1.0 : 0.0;
-        return down
+        return down;
     };
 }
 
@@ -90,8 +90,9 @@ var ignoredEntities = [];
 var TELEPORTER_STATES = {
     IDLE: 'idle',
     COOL_IN: 'cool_in',
+    TARGETTING: 'targetting',
     TARGETTING_INVALID: 'targetting_invalid',
-}
+};
 
 var TARGET = {
     NONE: 'none',            // Not currently targetting anything
@@ -99,7 +100,7 @@ var TARGET = {
     INVALID: 'invalid',      // The current target is invalid (wall, ceiling, etc.)
     SURFACE: 'surface',      // The current target is a valid surface
     SEAT: 'seat',            // The current target is a seat
-}
+};
 
 function Teleporter() {
     var _this = this;
@@ -114,8 +115,8 @@ function Teleporter() {
     this.updateConnected = null;
     this.activeHand = null;
 
-    this.telporterMappingInternalName = 'Hifi-Teleporter-Internal-Dev-' + Math.random();
-    this.teleportMappingInternal = Controller.newMapping(this.telporterMappingInternalName);
+    this.teleporterMappingInternalName = 'Hifi-Teleporter-Internal-Dev-' + Math.random();
+    this.teleportMappingInternal = Controller.newMapping(this.teleporterMappingInternalName);
 
     // Setup overlays
     this.cancelOverlay = Overlays.addOverlay("model", {
@@ -135,11 +136,11 @@ function Teleporter() {
     });
 
     this.enableMappings = function() {
-        Controller.enableMapping(this.telporterMappingInternalName);
+        Controller.enableMapping(this.teleporterMappingInternalName);
     };
 
     this.disableMappings = function() {
-        Controller.disableMapping(teleporter.telporterMappingInternalName);
+        Controller.disableMapping(teleporter.teleporterMappingInternalName);
     };
 
     this.cleanup = function() {
@@ -179,7 +180,7 @@ function Teleporter() {
             if (_this.state === TELEPORTER_STATES.COOL_IN) {
                 _this.state = TELEPORTER_STATES.TARGETTING;
             }
-        }, COOL_IN_DURATION)
+        }, COOL_IN_DURATION);
 
         this.activeHand = hand;
         this.enableMappings();
@@ -203,13 +204,13 @@ function Teleporter() {
     };
 
     this.deleteOverlayBeams = function() {
-        for (key in this.overlayLines) {
+        for (var key in this.overlayLines) {
             if (this.overlayLines[key] !== null) {
                 Overlays.deleteOverlay(this.overlayLines[key]);
                 this.overlayLines[key] = null;
             }
         }
-    }
+    };
 
     this.update = function() {
         if (_this.state === TELEPORTER_STATES.IDLE) {
@@ -272,7 +273,8 @@ function Teleporter() {
                 this.hideCancelOverlay();
                 this.hideSeatOverlay();
 
-                this.updateLineOverlay(_this.activeHand, pickRay.origin, intersection.intersection, COLORS_TELEPORT_CAN_TELEPORT);
+                this.updateLineOverlay(_this.activeHand, pickRay.origin, intersection.intersection,
+                                       COLORS_TELEPORT_CAN_TELEPORT);
                 this.updateDestinationOverlay(this.targetOverlay, intersection);
             }
         } else if (teleportLocationType === TARGET.SEAT) {
@@ -284,13 +286,15 @@ function Teleporter() {
         }
 
 
-        if (((_this.activeHand == 'left' ? leftPad : rightPad).buttonValue === 0) && inTeleportMode === true) {
+        if (((_this.activeHand === 'left' ? leftPad : rightPad).buttonValue === 0) && inTeleportMode === true) {
+            // remember the state before we exit teleport mode and set it back to IDLE
+            var previousState = this.state;
             this.exitTeleportMode();
             this.hideCancelOverlay();
             this.hideTargetOverlay();
             this.hideSeatOverlay();
 
-            if (teleportLocationType === TARGET.NONE || teleportLocationType === TARGET.INVALID || this.state === TELEPORTER_STATES.COOL_IN) {
+            if (teleportLocationType === TARGET.NONE || teleportLocationType === TARGET.INVALID || previousState === TELEPORTER_STATES.COOL_IN) {
                 // Do nothing
             } else if (teleportLocationType === TARGET.SEAT) {
                 Entities.callEntityMethod(intersection.entityID, 'sit');
@@ -321,7 +325,7 @@ function Teleporter() {
             this.overlayLines[hand] = Overlays.addOverlay("line3d", lineProperties);
 
         } else {
-            var success = Overlays.editOverlay(this.overlayLines[hand], {
+            Overlays.editOverlay(this.overlayLines[hand], {
                 start: closePoint,
                 end: farPoint,
                 color: color
@@ -361,7 +365,7 @@ function Teleporter() {
     };
 }
 
-//related to repositioning the avatar after you teleport
+// related to repositioning the avatar after you teleport
 function getAvatarFootOffset() {
     var data = getJointData();
     var upperLeg, lowerLeg, foot, toe, toeTop;
@@ -384,14 +388,14 @@ function getAvatarFootOffset() {
     var offset = upperLeg + lowerLeg + foot + toe + toeTop;
     offset = offset / 100;
     return offset;
-};
+}
 
 function getJointData() {
     var allJointData = [];
     var jointNames = MyAvatar.jointNames;
     jointNames.forEach(function(joint, index) {
         var translation = MyAvatar.getJointTranslation(index);
-        var rotation = MyAvatar.getJointRotation(index)
+        var rotation = MyAvatar.getJointRotation(index);
         allJointData.push({
             joint: joint,
             index: index,
@@ -401,7 +405,7 @@ function getJointData() {
     });
 
     return allJointData;
-};
+}
 
 var leftPad = new ThumbPad('left');
 var rightPad = new ThumbPad('right');
@@ -420,7 +424,7 @@ function isMoving() {
     } else {
         return false;
     }
-};
+}
 
 function parseJSON(json) {
     try {
@@ -433,7 +437,7 @@ function parseJSON(json) {
 // point that is being intersected with is looked at. If this normal is more
 // than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from <0, 1, 0> (straight up), then
 // you can't teleport there.
-const MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
+var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
 function getTeleportTargetType(intersection) {
     if (!intersection.intersects) {
         return TARGET.NONE;
@@ -465,7 +469,7 @@ function getTeleportTargetType(intersection) {
     } else {
         return TARGET.SURFACE;
     }
-};
+}
 
 function registerMappings() {
     mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
@@ -487,7 +491,7 @@ function registerMappings() {
             if (isMoving() === true) {
                 return;
             }
-            teleporter.enterTeleportMode('left')
+            teleporter.enterTeleportMode('left');
             return;
         });
     teleportMapping.from(Controller.Standard.RightPrimaryThumb)
@@ -502,10 +506,10 @@ function registerMappings() {
                 return;
             }
 
-            teleporter.enterTeleportMode('right')
+            teleporter.enterTeleportMode('right');
             return;
         });
-};
+}
 
 registerMappings();
 
@@ -521,7 +525,6 @@ Script.scriptEnding.connect(cleanup);
 
 var isDisabled = false;
 var handleTeleportMessages = function(channel, message, sender) {
-    var data;
     if (sender === MyAvatar.sessionUUID) {
         if (channel === 'Hifi-Teleport-Disabler') {
             if (message === 'both') {
@@ -531,7 +534,7 @@ var handleTeleportMessages = function(channel, message, sender) {
                 isDisabled = 'left';
             }
             if (message === 'right') {
-                isDisabled = 'right'
+                isDisabled = 'right';
             }
             if (message === 'none') {
                 isDisabled = false;
@@ -545,7 +548,7 @@ var handleTeleportMessages = function(channel, message, sender) {
             }
         }
     }
-}
+};
 
 Messages.subscribe('Hifi-Teleport-Disabler');
 Messages.subscribe('Hifi-Teleport-Ignore-Add');

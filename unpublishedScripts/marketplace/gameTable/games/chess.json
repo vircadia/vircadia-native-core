@@ -1,0 +1,31 @@
+{
+    "gameName": "chess",
+    "matURL": "http://brettedwards.com/wp-content/uploads/2011/12/chess1.jpg",
+    "spawnStyle": "arranged",
+    "snapToGrid": true,
+    "startingArrangement": [
+        ["1:rook", "1:knight", "1:bishop", "1:queen", "1:king", "1:bishop", "1:knight", "1:rook"],
+        ["1:pawn", "1:pawn", "1:pawn", "1:pawn", "1:pawn", "1:pawn", "1:pawn", "1:pawn"],
+        ["empty", "empty", "empty", "empty", "empty", "empty", "empty", "empty"],
+        ["empty", "empty", "empty", "empty", "empty", "empty", "empty", "empty"],
+        ["empty", "empty", "empty", "empty", "empty", "empty", "empty", "empty"],
+        ["empty", "empty", "empty", "empty", "empty", "empty", "empty", "empty"],
+        ["2:pawn", "2:pawn", "2:pawn", "2:pawn", "2:pawn", "2:pawn", "2:pawn", "2:pawn"],
+        ["2:rook", "2:knight", "2:bishop", "2:queen", "2:king", "2:bishop", "2:knight", "2:rook"]
+    ],
+    "pieces": [{
+        "king": "assets/chess/king_white.json",
+        "queen": "assets/chess/queen_white.json",
+        "rook": "assets/chess/rook_white.json",
+        "bishop": "assets/chess/bishop_white.json",
+        "knight": "assets/chess/knight_white.json",
+        "pawn": "assets/chess/pawn_white.json"
+    }, {
+        "king": "assets/chess/king_black.json",
+        "queen": "assets/chess/queen_black.json",
+        "rook": "assets/chess/rook_black.json",
+        "bishop": "assets/chess/bishop_black.json",
+        "knight": "assets/chess/knight_black.json",
+        "pawn": "assets/chess/pawn_black.json"
+    }]
+}

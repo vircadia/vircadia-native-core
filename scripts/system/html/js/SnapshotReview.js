@@ -21,6 +21,7 @@ function addImage(data) {
         img = document.createElement("IMG"),
         div2 = document.createElement("DIV"),
         id = "p" + idCounter++;
+        img.id = id + "img";
     function toggle() { data.share = input.checked; }
     div.style.height = "" + Math.floor(100 / imageCount) + "%";
     if (imageCount > 1) {
@@ -33,7 +34,7 @@ function addImage(data) {
         label.setAttribute('for', id); // cannot do label.for =
         input.id = id;
         input.type = "checkbox";
-        input.checked = (id === "p0");
+        input.checked = false;
         data.share = input.checked;
         input.addEventListener('change', toggle);
         div2.setAttribute("class", "property checkbox");
@@ -46,9 +47,9 @@ function addImage(data) {
     document.getElementById("snapshot-images").appendChild(div);
     paths.push(data);
 }
-function handleShareButtons(shareMsg) {
+function handleShareButtons(messageOptions) {
     var openFeed = document.getElementById('openFeed');
-    openFeed.checked = shareMsg.openFeedAfterShare;
+    openFeed.checked = messageOptions.openFeedAfterShare;
     openFeed.onchange = function () {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "snapshot",
@@ -56,7 +57,7 @@ function handleShareButtons(shareMsg) {
         }));
     };
 
-    if (!shareMsg.canShare) {
+    if (!messageOptions.canShare) {
         // this means you may or may not be logged in, but can't share
         // because you are not in a public place.
         document.getElementById("sharing").innerHTML = "<p class='prompt'>Snapshots can be shared when they're taken in shareable places.";
@@ -74,13 +75,28 @@ window.onload = function () {
                 return;
             }
 
-            // last element of list contains a bool for whether or not we can share stuff
-            var shareMsg = message.action.pop();
-            handleShareButtons(shareMsg);
-            
-            // rest are image paths which we add
-            imageCount = message.action.length;
-            message.action.forEach(addImage);
+            // The last element of the message contents list contains a bunch of options,
+            // including whether or not we can share stuff
+            // The other elements of the list contain image paths.
+            var messageOptions = message.action.pop();
+            handleShareButtons(messageOptions);
+
+            if (messageOptions.containsGif) {
+                if (messageOptions.processingGif) {
+                    imageCount = message.action.length + 1; // "+1" for the GIF that'll finish processing soon
+                    message.action.unshift({ localPath: messageOptions.loadingGifPath });
+                    message.action.forEach(addImage);
+                    document.getElementById('p0').disabled = true;
+                } else {
+                    var gifPath = message.action[0].localPath;
+                    document.getElementById('p0').disabled = false;
+                    document.getElementById('p0img').src = gifPath;
+                    paths[0].localPath = gifPath;
+                }
+            } else {
+                imageCount = message.action.length;
+                message.action.forEach(addImage);
+            }
         });
         EventBridge.emitWebEvent(JSON.stringify({
             type: "snapshot",

@@ -15,12 +15,12 @@
 #include "Engine.h"
 
 namespace render {
-    void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems);
+    void depthSortItems(const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems);
 
     class PipelineSortShapes {
     public:
         using JobModel = Job::ModelIO<PipelineSortShapes, ItemBounds, ShapeBounds>;
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ShapeBounds& outShapes);
+        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ShapeBounds& outShapes);
     };
 
     class DepthSortShapes {
@@ -30,7 +30,7 @@ namespace render {
         bool _frontToBack;
         DepthSortShapes(bool frontToBack = true) : _frontToBack(frontToBack) {}
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapeBounds& inShapes, ShapeBounds& outShapes);
+        void run(const RenderContextPointer& renderContext, const ShapeBounds& inShapes, ShapeBounds& outShapes);
     };
 
     class DepthSortItems {
@@ -40,7 +40,7 @@ namespace render {
         bool _frontToBack;
         DepthSortItems(bool frontToBack = true) : _frontToBack(frontToBack) {}
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 }
 

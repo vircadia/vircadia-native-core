@@ -54,7 +54,7 @@ namespace render {
 // Mixin class for implementing basic single item rendering
 class SimpleRenderableEntityItem {
 public:
-    bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+    bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
         _myItem = scene->allocateID();
 
         auto renderData = std::make_shared<RenderableEntityItemProxy>(self, _myItem);
@@ -69,7 +69,7 @@ public:
         return true;
     }
 
-    void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) {
+    void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
         transaction.removeItem(_myItem);
         render::Item::clearID(_myItem);
     }
@@ -99,8 +99,8 @@ private:
 
 #define SIMPLE_RENDERABLE() \
 public: \
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override { return _renderHelper.addToScene(self, scene, transaction); } \
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::Transaction& transaction) override { _renderHelper.removeFromScene(self, scene, transaction); } \
+    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override { return _renderHelper.addToScene(self, scene, transaction); } \
+    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override { _renderHelper.removeFromScene(self, scene, transaction); } \
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); _renderHelper.notifyChanged(); } \
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); _renderHelper.notifyChanged(); } \
     void checkFading() { \

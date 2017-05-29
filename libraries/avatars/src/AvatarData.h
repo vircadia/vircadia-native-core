@@ -110,7 +110,7 @@ const char LEFT_HAND_POINTING_FLAG = 1;
 const char RIGHT_HAND_POINTING_FLAG = 2;
 const char IS_FINGER_POINTING_FLAG = 4;
 
-// AvatarData state flags - we store the details about the packet encoding in the first byte, 
+// AvatarData state flags - we store the details about the packet encoding in the first byte,
 // before the "header" structure
 const char AVATARDATA_FLAGS_MINIMUM = 0;
 
@@ -448,10 +448,18 @@ public:
     void setHeadRoll(float value) { _headData->setBaseRoll(value); }
 
     // access to Head().set/getAverageLoudness
-    float getAudioLoudness() const { return _headData->getAudioLoudness(); }
-    void setAudioLoudness(float value) { _headData->setAudioLoudness(value); }
-    float getAudioAverageLoudness() const { return _headData->getAudioAverageLoudness(); }
-    void setAudioAverageLoudness(float value) { _headData->setAudioAverageLoudness(value); }
+
+    float getAudioLoudness() const { return _audioLoudness; }
+    void setAudioLoudness(float audioLoudness) {
+        if (audioLoudness != _audioLoudness) {
+            _audioLoudnessChanged = usecTimestampNow();
+        }
+        _audioLoudness = audioLoudness;
+    }
+    bool audioLoudnessChangedSince(quint64 time) const { return _audioLoudnessChanged >= time; }
+
+    float getAudioAverageLoudness() const { return _audioAverageLoudness; }
+    void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
 
     //  Scale
     virtual void setTargetScale(float targetScale);
@@ -487,6 +495,7 @@ public:
     Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
 
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
+    Q_INVOKABLE virtual QVector<glm::vec3> getJointTranslations() const;
     Q_INVOKABLE virtual void setJointRotations(QVector<glm::quat> jointRotations);
     Q_INVOKABLE virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
 
@@ -520,6 +529,7 @@ public:
         QString displayName;
         QString sessionDisplayName;
         AvatarEntityMap avatarEntityData;
+        quint64 updatedAt;
     };
 
     static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
@@ -536,7 +546,10 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
-    virtual void setSessionDisplayName(const QString& sessionDisplayName) { _sessionDisplayName = sessionDisplayName; };
+    virtual void setSessionDisplayName(const QString& sessionDisplayName) { 
+        _sessionDisplayName = sessionDisplayName; 
+        markIdentityDataChanged();
+    }
 
     Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
     Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
@@ -554,7 +567,6 @@ public:
 
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
 
-    int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
 
@@ -590,12 +602,6 @@ public:
         return _lastSentJointData;
     }
 
-
-    bool shouldDie() const {
-        const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
-        return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS;
-    }
-
     static const float OUT_OF_VIEW_PENALTY;
 
     static void sortAvatars(
@@ -612,11 +618,15 @@ public:
     static float _avatarSortCoefficientCenter;
     static float _avatarSortCoefficientAge;
 
-
+    bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
+    void markIdentityDataChanged() {
+        _identityDataChanged = true;
+        _identityUpdatedAt = usecTimestampNow();
+    }
 
 signals:
     void displayNameChanged();
-    
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -642,7 +652,6 @@ protected:
     bool avatarBoundingBoxChangedSince(quint64 time) const { return _avatarBoundingBoxChanged >= time; }
     bool avatarScaleChangedSince(quint64 time) const { return _avatarScaleChanged >= time; }
     bool lookAtPositionChangedSince(quint64 time) const { return _headData->lookAtPositionChangedSince(time); }
-    bool audioLoudnessChangedSince(quint64 time) const { return _headData->audioLoudnessChangedSince(time); }
     bool sensorToWorldMatrixChangedSince(quint64 time) const { return _sensorToWorldMatrixChanged >= time; }
     bool additionalFlagsChangedSince(quint64 time) const { return _additionalFlagsChanged >= time; }
     bool parentInfoChangedSince(quint64 time) const { return _parentChanged >= time; }
@@ -767,6 +776,13 @@ protected:
     ThreadSafeValueCache<glm::mat4> _controllerRightHandMatrixCache { glm::mat4() };
 
     int getFauxJointIndex(const QString& name) const;
+
+    float _audioLoudness { 0.0f };
+    quint64 _audioLoudnessChanged { 0 };
+    float _audioAverageLoudness { 0.0f };
+
+    bool _identityDataChanged { false };
+    quint64 _identityUpdatedAt { 0 };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

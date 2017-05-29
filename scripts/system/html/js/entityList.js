@@ -17,6 +17,7 @@ const DESCENDING_STRING = '&#x25BE;';
 const LOCKED_GLYPH = "&#xe006;";
 const VISIBLE_GLYPH = "&#xe007;";
 const TRANSPARENCY_GLYPH = "&#xe00b;";
+const BAKED_GLYPH = "&#xe01a;"
 const SCRIPT_GLYPH = "k";
 const DELETE = 46; // Key code for the delete key.
 const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
@@ -76,6 +77,9 @@ function loaded() {
       };
       document.getElementById("entity-hasTransparent").onclick = function () {
           setSortColumn('hasTransparent');
+      };
+      document.getElementById("entity-isBaked").onclick = function () {
+          setSortColumn('isBaked');
       };
       document.getElementById("entity-drawCalls").onclick = function () {
           setSortColumn('drawCalls');
@@ -147,7 +151,7 @@ function loaded() {
       }
 
       function addEntity(id, name, type, url, locked, visible, verticesCount, texturesCount, texturesSize, hasTransparent,
-          drawCalls, hasScript) {
+          isBaked, drawCalls, hasScript) {
 
           var urlParts = url.split('/');
           var filename = urlParts[urlParts.length - 1];
@@ -157,7 +161,7 @@ function loaded() {
                   id: id, name: name, type: type, url: filename, locked: locked, visible: visible,
                   verticesCount: displayIfNonZero(verticesCount), texturesCount: displayIfNonZero(texturesCount),
                   texturesSize: decimalMegabytes(texturesSize), hasTransparent: hasTransparent,
-                  drawCalls: displayIfNonZero(drawCalls), hasScript: hasScript
+                  isBaked: isBaked, drawCalls: displayIfNonZero(drawCalls), hasScript: hasScript
               }],
                   function (items) {
                       var currentElement = items[0].elm;
@@ -201,6 +205,7 @@ function loaded() {
           texturesCount: document.querySelector('#entity-texturesCount .sort-order'),
           texturesSize: document.querySelector('#entity-texturesSize .sort-order'),
           hasTransparent: document.querySelector('#entity-hasTransparent .sort-order'),
+          isBaked: document.querySelector('#entity-isBaked .sort-order'),
           drawCalls: document.querySelector('#entity-drawCalls .sort-order'),
           hasScript: document.querySelector('#entity-hasScript .sort-order'),
       }
@@ -350,6 +355,7 @@ function loaded() {
                               newEntities[i].visible ? VISIBLE_GLYPH : null,
                               newEntities[i].verticesCount, newEntities[i].texturesCount, newEntities[i].texturesSize,
                               newEntities[i].hasTransparent ? TRANSPARENCY_GLYPH : null,
+                              newEntities[i].isBaked ? BAKED_GLYPH : null,
                               newEntities[i].drawCalls,
                               newEntities[i].hasScript ? SCRIPT_GLYPH : null);
                       }

@@ -30,117 +30,6 @@ GLShader::~GLShader() {
     }
 }
 
-// GLSL version
-static const std::string glslVersion {
-    "#version 410 core"
-};
-
-// Shader domain
-static const size_t NUM_SHADER_DOMAINS = 3;
-
-// GL Shader type enums
-// Must match the order of type specified in gpu::Shader::Type
-static const std::array<GLenum, NUM_SHADER_DOMAINS> SHADER_DOMAINS { {
-    GL_VERTEX_SHADER,
-    GL_FRAGMENT_SHADER,
-    GL_GEOMETRY_SHADER,
-} };
-
-// Domain specific defines
-// Must match the order of type specified in gpu::Shader::Type
-static const std::array<std::string, NUM_SHADER_DOMAINS> DOMAIN_DEFINES { {
-    "#define GPU_VERTEX_SHADER",
-    "#define GPU_PIXEL_SHADER",
-    "#define GPU_GEOMETRY_SHADER",
-} };
-
-// Stereo specific defines
-static const std::string stereoVersion {
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-    "#define GPU_TRANSFORM_IS_STEREO\n#define GPU_TRANSFORM_STEREO_CAMERA\n#define GPU_TRANSFORM_STEREO_CAMERA_INSTANCED\n#define GPU_TRANSFORM_STEREO_SPLIT_SCREEN"
-#endif
-#ifdef GPU_STEREO_DRAWCALL_DOUBLED
-#ifdef GPU_STEREO_CAMERA_BUFFER
-    "#define GPU_TRANSFORM_IS_STEREO\n#define GPU_TRANSFORM_STEREO_CAMERA\n#define GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED"
-#else
-    "#define GPU_TRANSFORM_IS_STEREO"
-#endif
-#endif
-};
-
-// Versions specific of the shader
-static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
-    "",
-    stereoVersion
-} };
-
-GLShader* compileBackendShader(GLBackend& backend, const Shader& shader) {
-    // Any GLSLprogram ? normally yes...
-    const std::string& shaderSource = shader.getSource().getCode();
-    GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
-    GLShader::ShaderObjects shaderObjects;
-
-    for (int version = 0; version < GLShader::NumVersions; version++) {
-        auto& shaderObject = shaderObjects[version];
-
-        std::string shaderDefines = glslVersion + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version];
-
-#ifdef SEPARATE_PROGRAM
-        bool result = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram);
-#else
-        bool result = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader);
-#endif
-        if (!result) {
-            return nullptr;
-        }
-    }
-
-    // So far so good, the shader is created successfully
-    GLShader* object = new GLShader(backend.shared_from_this());
-    object->_shaderObjects = shaderObjects;
-
-    return object;
-}
-
-GLShader* compileBackendProgram(GLBackend& backend, const Shader& program) {
-    if (!program.isProgram()) {
-        return nullptr;
-    }
-
-    GLShader::ShaderObjects programObjects;
-
-    for (int version = 0; version < GLShader::NumVersions; version++) {
-        auto& programObject = programObjects[version];
-
-        // Let's go through every shaders and make sure they are ready to go
-        std::vector< GLuint > shaderGLObjects;
-        for (auto subShader : program.getShaders()) {
-            auto object = GLShader::sync(backend, *subShader);
-            if (object) {
-                shaderGLObjects.push_back(object->_shaderObjects[version].glshader);
-            } else {
-                qCWarning(gpugllogging) << "GLShader::compileBackendProgram - One of the shaders of the program is not compiled?";
-                return nullptr;
-            }
-        }
-
-        GLuint glprogram = ::gl::compileProgram(shaderGLObjects);
-        if (glprogram == 0) {
-            return nullptr;
-        }
-
-        programObject.glprogram = glprogram;
-
-        makeProgramBindings(programObject);
-    }
-
-    // So far so good, the program versions have all been created successfully
-    GLShader* object = new GLShader(backend.shared_from_this());
-    object->_shaderObjects = programObjects;
-
-    return object;
-}
-
 GLShader* GLShader::sync(GLBackend& backend, const Shader& shader) {
     GLShader* object = Backend::getGPUObject<GLShader>(shader);
 
@@ -150,13 +39,13 @@ GLShader* GLShader::sync(GLBackend& backend, const Shader& shader) {
     }
     // need to have a gpu object?
     if (shader.isProgram()) {
-        GLShader* tempObject = compileBackendProgram(backend, shader);
+        GLShader* tempObject = backend.compileBackendProgram(shader);
         if (tempObject) {
             object = tempObject;
             Backend::setGPUObject(shader, object);
         }
     } else if (shader.isDomain()) {
-        GLShader* tempObject = compileBackendShader(backend, shader);
+        GLShader* tempObject = backend.compileBackendShader(shader);
         if (tempObject) {
             object = tempObject;
             Backend::setGPUObject(shader, object);
@@ -180,22 +69,25 @@ bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::Bin
         auto& shaderObject = object->_shaderObjects[version];
         if (shaderObject.glprogram) {
             Shader::SlotSet buffers;
-            makeUniformBlockSlots(shaderObject.glprogram, slotBindings, buffers);
+            backend.makeUniformBlockSlots(shaderObject.glprogram, slotBindings, buffers);
 
             Shader::SlotSet uniforms;
             Shader::SlotSet textures;
             Shader::SlotSet samplers;
-            makeUniformSlots(shaderObject.glprogram, slotBindings, uniforms, textures, samplers);
+            backend.makeUniformSlots(shaderObject.glprogram, slotBindings, uniforms, textures, samplers);
+
+            Shader::SlotSet resourceBuffers;
+            backend.makeResourceBufferSlots(shaderObject.glprogram, slotBindings, resourceBuffers);
 
             Shader::SlotSet inputs;
-            makeInputSlots(shaderObject.glprogram, slotBindings, inputs);
+            backend.makeInputSlots(shaderObject.glprogram, slotBindings, inputs);
 
             Shader::SlotSet outputs;
-            makeOutputSlots(shaderObject.glprogram, slotBindings, outputs);
+            backend.makeOutputSlots(shaderObject.glprogram, slotBindings, outputs);
 
             // Define the public slots only from the default version
             if (version == 0) {
-                shader.defineSlots(uniforms, buffers, textures, samplers, inputs, outputs);
+                shader.defineSlots(uniforms, buffers, resourceBuffers, textures, samplers, inputs, outputs);
             } // else
             {
                 GLShader::UniformMapping mapping;
@@ -209,4 +101,6 @@ bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::Bin
 
     return true;
 }
+
+
 

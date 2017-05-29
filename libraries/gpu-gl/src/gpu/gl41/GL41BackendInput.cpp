@@ -112,9 +112,6 @@ void GL41Backend::updateInput() {
                                 glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency);
 #endif
                             }
-
-                            // TODO: Support properly the IAttrib version
-
                             (void)CHECK_GL_ERROR();
                         }
                     }

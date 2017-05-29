@@ -23,6 +23,7 @@
         HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index",
         HIFI_GRAB_DISABLE_MESSAGE_CHANNEL = "Hifi-Grab-Disable",
         HIFI_POINTER_DISABLE_MESSAGE_CHANNEL = "Hifi-Pointer-Disable";
+        HOW_TO_EXIT_MESSAGE = "Press B on your controller to exit FingerPainting mode";
 
     function paintBrush(name) {
         // Paints in 3D.
@@ -319,6 +320,15 @@
         }
     }
 
+    function howToExitTutorial() {
+        HMD.requestShowHandControllers();
+        setControllerPartLayer('button_b', 'highlight');
+        messageWindow = Window.alert(HOW_TO_EXIT_MESSAGE);
+        setControllerPartLayer('button_b', 'blank');
+        HMD.requestHideHandControllers();
+        Settings.setValue("FingerPaintTutorialComplete", true);
+    }
+
     function enableProcessing() {
         // Connect controller API to handController objects.
         leftHand = handController("left");
@@ -328,7 +338,12 @@
         controllerMapping.from(Controller.Standard.LeftGrip).to(leftHand.onGripPress);
         controllerMapping.from(Controller.Standard.RT).to(rightHand.onTriggerPress);
         controllerMapping.from(Controller.Standard.RightGrip).to(rightHand.onGripPress);
+        controllerMapping.from(Controller.Standard.B).to(onButtonClicked);
         Controller.enableMapping(CONTROLLER_MAPPING_NAME);
+        
+        if (!Settings.getValue("FingerPaintTutorialComplete")) {
+            howToExitTutorial();
+        }
 
         // Connect handController outputs to paintBrush objects.
         leftBrush = paintBrush("left");
@@ -432,6 +447,17 @@
 
         button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
+    }
+    
+    /**
+     * A controller is made up of parts, and each part can have multiple "layers,"
+     * which are really just different texures. For example, the "trigger" part
+     * has "normal" and "highlight" layers.
+     */
+    function setControllerPartLayer(part, layer) {
+        data = {};
+        data[part] = layer;
+        Messages.sendLocalMessage('Controller-Set-Part-Layer', JSON.stringify(data));
     }
 
     setUp();

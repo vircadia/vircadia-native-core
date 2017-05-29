@@ -68,7 +68,7 @@ const gpu::PipelinePointer& HitEffect::getHitEffectPipeline() {
     return _hitEffectPipeline;
 }
 
-void HitEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+void HitEffect::run(const render::RenderContextPointer& renderContext) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;

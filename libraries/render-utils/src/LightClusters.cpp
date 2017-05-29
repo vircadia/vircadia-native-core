@@ -558,7 +558,7 @@ void LightClusteringPass::configure(const Config& config) {
     _freeze = config.freeze;
 }
 
-void LightClusteringPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
+void LightClusteringPass::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
     auto args = renderContext->args;
     
     auto deferredTransform = inputs.get0();
@@ -697,7 +697,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterContentPipeline() {
 }
 
 
-void DebugLightClusters::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+void DebugLightClusters::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     if (!(doDrawClusterFromDepth || doDrawContent || doDrawGrid)) {
         return;
     }

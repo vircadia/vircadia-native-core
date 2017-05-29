@@ -28,6 +28,7 @@
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 static const QString LAST_BROWSE_LOCATION_SETTING = "LastBrowseLocation";
+static const QString LAST_BROWSE_ASSETS_LOCATION_SETTING = "LastBrowseAssetsLocation";
 
 
 QScriptValue CustomPromptResultToScriptValue(QScriptEngine* engine, const CustomPromptResult& result) {
@@ -149,6 +150,15 @@ void WindowScriptingInterface::setPreviousBrowseLocation(const QString& location
     Setting::Handle<QVariant>(LAST_BROWSE_LOCATION_SETTING).set(location);
 }
 
+QString WindowScriptingInterface::getPreviousBrowseAssetLocation() const {
+    QString ASSETS_ROOT_PATH = "/";
+    return Setting::Handle<QString>(LAST_BROWSE_ASSETS_LOCATION_SETTING, ASSETS_ROOT_PATH).get();
+}
+
+void WindowScriptingInterface::setPreviousBrowseAssetLocation(const QString& location) {
+    Setting::Handle<QVariant>(LAST_BROWSE_ASSETS_LOCATION_SETTING).set(location);
+}
+
 /// Makes sure that the reticle is visible, use this in blocking forms that require a reticle and
 /// might be in same thread as a script that sets the reticle to invisible
 void WindowScriptingInterface::ensureReticleVisible() const {
@@ -198,6 +208,31 @@ QScriptValue WindowScriptingInterface::save(const QString& title, const QString&
     QString result = OffscreenUi::getSaveFileName(nullptr, title, path, nameFilter);
     if (!result.isEmpty()) {
         setPreviousBrowseLocation(QFileInfo(result).absolutePath());
+    }
+    return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
+}
+
+/// Display a select asset dialog that lets the user select an asset from the Asset Server.  If `directory` is an invalid 
+/// directory the browser will start at the root directory.
+/// \param const QString& title title of the window
+/// \param const QString& directory directory to start the asset browser at
+/// \param const QString& nameFilter filter to filter asset names by - see `QFileDialog`
+/// \return QScriptValue asset path as a string if one was selected, otherwise `QScriptValue::NullValue`
+QScriptValue WindowScriptingInterface::browseAssets(const QString& title, const QString& directory, const QString& nameFilter) {
+    ensureReticleVisible();
+    QString path = directory;
+    if (path.isEmpty()) {
+        path = getPreviousBrowseAssetLocation();
+    }
+    if (path.left(1) != "/") {
+        path = "/" + path;
+    }
+    if (path.right(1) != "/") {
+        path = path + "/";
+    }
+    QString result = OffscreenUi::getOpenAssetName(nullptr, title, path, nameFilter);
+    if (!result.isEmpty()) {
+        setPreviousBrowseAssetLocation(QFileInfo(result).absolutePath());
     }
     return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
 }
