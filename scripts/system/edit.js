@@ -260,16 +260,17 @@ var toolBar = (function () {
         var position = getPositionToCreateEntity();
         var entityID = null;
         if (position !== null && position !== undefined) {
-            var ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
-            if (ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
-                var direction;
-                if (Camera.mode === "entity" || Camera.mode === "independent") {
-                    direction = Camera.orientation;
-                } else {
-                    direction = MyAvatar.orientation;
-                }
-                direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
+            var direction;
+            if (Camera.mode === "entity" || Camera.mode === "independent") {
+                direction = Camera.orientation;
+            } else {
+                direction = MyAvatar.orientation;
+            }
+            direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
 
+            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
+            if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                // Adjust position of entity per bounding box prior to creating it.
                 var registration = properties.registration;
                 if (registration === undefined) {
                     var DEFAULT_REGISTRATION = { x: 0.5, y: 0.5, z: 0.5 };
@@ -293,6 +294,32 @@ var toolBar = (function () {
             entityID = Entities.addEntity(properties);
             if (properties.type == "ParticleEffect") {
                 selectParticleEntity(entityID);
+            }
+
+            var POST_ADJUST_ENTITY_TYPES = ["Model"];
+            if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                // Adjust position of entity per bounding box after it has been created and auto-resized.
+                var initialDimensions = Entities.getEntityProperties(entityID, ["dimensions"]).dimensions;
+                var DIMENSIONS_CHECK_INTERVAL = 200;
+                var MAX_DIMENSIONS_CHECKS = 10;
+                var dimensionsCheckCount = 0;
+                var dimensionsCheckFunction = function () {
+                    dimensionsCheckCount++;
+                    var properties = Entities.getEntityProperties(entityID, ["dimensions", "registrationPoint", "orientation", "rotation"]);
+                    if (!Vec3.equal(properties.dimensions, initialDimensions)) {
+                        position = adjustPositionPerBoundingBox(position, direction, properties.registrationPoint,
+                            properties.dimensions, properties.rotation);
+                        position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions),
+                            properties.dimensions);
+                        Entities.editEntity(entityID, {
+                            position: position
+                        });
+                        selectionManager._update();
+                    } else if (dimensionsCheckCount < MAX_DIMENSIONS_CHECKS) {
+                        Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
+                    }
+                };
+                Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
             }
         } else {
             Window.notifyEditError("Can't create " + properties.type + ": " +
@@ -1458,6 +1485,7 @@ function handeMenuEvent(menuItem) {
     }
     tooltip.show(false);
 }
+
 function getPositionToCreateEntity() {
     var HALF_TREE_SCALE = 16384;
     var CREATE_DISTANCE = 2;
