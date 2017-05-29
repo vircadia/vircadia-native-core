@@ -1007,29 +1007,26 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         _timeSinceLastClip = 0.0f;
     } else {
         int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
-        int numSamples = audioBuffer.size() / sizeof(AudioConstants::SAMPLE_SIZE);
-        bool didClip = false;
+        int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
+        int numFrames = numSamples / (_isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
 
-        bool shouldRemoveDCOffset = !_isPlayingBackRecording && !_isStereoInput;
-        if (shouldRemoveDCOffset) {
-            _noiseGate.removeDCOffset(samples, numSamples);
-        }
-
-        bool shouldNoiseGate = (_isPlayingBackRecording || !_isStereoInput) && _isNoiseGateEnabled;
-        if (shouldNoiseGate) {
-            _noiseGate.gateSamples(samples, numSamples);
-            _lastInputLoudness = _noiseGate.getLastLoudness();
-            didClip = _noiseGate.clippedInLastBlock();
+        if (_isNoiseGateEnabled) {
+            // The audio gate includes DC removal
+            _audioGate->render(samples, samples, numFrames);
         } else {
-            float loudness = 0.0f;
-            for (int i = 0; i < numSamples; ++i) {
-                int16_t sample = std::abs(samples[i]);
-                loudness += (float)sample;
-                didClip = didClip ||
-                    (sample > (AudioConstants::MAX_SAMPLE_VALUE * AudioNoiseGate::CLIPPING_THRESHOLD));
-            }
-            _lastInputLoudness = fabs(loudness / numSamples);
+            _audioGate->removeDC(samples, samples, numFrames);
         }
+
+        int32_t loudness = 0;
+        assert(numSamples < 65536); // int32_t loudness cannot overflow
+        bool didClip = false;
+        for (int i = 0; i < numSamples; ++i) {
+            const int32_t CLIPPING_THRESHOLD = (int32_t)(AudioConstants::MAX_SAMPLE_VALUE * 0.9f);
+            int32_t sample = std::abs((int32_t)samples[i]);
+            loudness += sample;
+            didClip |= (sample > CLIPPING_THRESHOLD);
+        }
+        _lastInputLoudness = (float)loudness / numSamples;
 
         if (didClip) {
             _timeSinceLastClip = 0.0f;
@@ -1038,19 +1035,24 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         }
 
         emit inputReceived(audioBuffer);
-
-        if (_noiseGate.openedInLastBlock()) {
-            emit noiseGateOpened();
-        } else if (_noiseGate.closedInLastBlock()) {
-            emit noiseGateClosed();
-        }
     }
 
-    // the codec needs a flush frame before sending silent packets, so
-    // do not send one if the gate closed in this block (eventually this can be crossfaded).
-    auto packetType = _shouldEchoToServer ?
-        PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
-    if (_lastInputLoudness == 0.0f && !_noiseGate.closedInLastBlock()) {
+    // state machine to detect gate opening and closing
+    bool audioGateOpen = (_lastInputLoudness != 0.0f);
+    bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
+    bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
+    _audioGateOpen = audioGateOpen;
+
+    if (openedInLastBlock) {
+        emit noiseGateOpened();
+    } else if (closedInLastBlock) {
+        emit noiseGateClosed();
+    }
+
+    // the codec must be flushed to silence before sending silent packets,
+    // so delay the transition to silent packets by one packet after becoming silent.
+    auto packetType = _shouldEchoToServer ? PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
+    if (!audioGateOpen && !closedInLastBlock) {
         packetType = PacketType::SilentAudioFrame;
         _silentOutbound.increment();
     } else {
@@ -1415,6 +1417,10 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
         delete _inputToNetworkResampler;
         _inputToNetworkResampler = NULL;
     }
+    if (_audioGate) {
+        delete _audioGate;
+        _audioGate = nullptr;
+    }
 
     if (!inputDeviceInfo.isNull()) {
         qCDebug(audioclient) << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
@@ -1439,6 +1445,10 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
             } else {
                 qCDebug(audioclient) << "No resampling required for audio input to match desired network format.";
             }
+
+            // the audio gate runs after the resampler
+            _audioGate = new AudioGate(_desiredInputFormat.sampleRate(), _desiredInputFormat.channelCount());
+            qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount() << "channels.";
 
             // if the user wants stereo but this device can't provide then bail
             if (!_isStereoInput || _inputFormat.channelCount() == 2) {

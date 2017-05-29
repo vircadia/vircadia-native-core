@@ -70,8 +70,7 @@ namespace ktx {
         for (uint32_t l = 0; l < numMips; l++) {
             if (images.size() > l) {
                 storageSize += sizeof(uint32_t);
-                storageSize += images[l]._imageSize;
-                storageSize += Header::evalPadding(images[l]._imageSize);
+                storageSize += evalPaddedSize(images[l]._imageSize);
             }
         }
         return storageSize;
@@ -89,8 +88,7 @@ namespace ktx {
         for (uint32_t l = 0; l < numMips; l++) {
             if (imageDescriptors.size() > l) {
                 storageSize += sizeof(uint32_t);
-                storageSize += imageDescriptors[l]._imageSize;
-                storageSize += Header::evalPadding(imageDescriptors[l]._imageSize);
+                storageSize += evalPaddedSize(imageDescriptors[l]._imageSize);
             }
         }
         return storageSize;
@@ -221,7 +219,7 @@ namespace ktx {
 
                 // If enough data ahead then capture the copy source pointer
                 if (currentDataSize + imageSize <= (allocatedImagesDataSize)) {
-                    auto padding = Header::evalPadding(imageSize);
+                    auto padding = evalPadding(imageSize);
 
                     // Single face vs cubes
                     if (srcImages[l]._numFaces == 1) {

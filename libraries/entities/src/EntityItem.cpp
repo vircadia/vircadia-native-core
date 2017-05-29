@@ -1374,7 +1374,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         somethingChanged = true;
     }
 
-    // Now check the sub classes 
+    // Now check the sub classes
     somethingChanged |= setSubClassProperties(properties);
 
     // Finally notify if change detected
@@ -1606,11 +1606,19 @@ void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
 void EntityItem::updatePosition(const glm::vec3& value) {
     if (getLocalPosition() != value) {
         setLocalPosition(value);
+
+        EntityTreePointer tree = getTree();
         markDirtyFlags(Simulation::DIRTY_POSITION);
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+                if (tree) {
+                    tree->entityChanged(entity);
+                }
             }
         });
     }
@@ -1622,6 +1630,11 @@ void EntityItem::updateParentID(const QUuid& value) {
         // children are forced to be kinematic
         // may need to not collide with own avatar
         markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
+
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->addToNeedsParentFixupList(getThisPointer());
+        }
     }
 }
 
