@@ -161,9 +161,9 @@ Grid = function(opts) {
 
         if (data.origin) {
             var pos = data.origin;
-            pos.x = pos.x === undefined ? origin.x : pos.x;
-            pos.y = pos.y === undefined ? origin.y : pos.y;
-            pos.z = pos.z === undefined ? origin.z : pos.z;
+            pos.x = pos.x === undefined ? origin.x : parseFloat(pos.x);
+            pos.y = pos.y === undefined ? origin.y : parseFloat(pos.y);
+            pos.z = pos.z === undefined ? origin.z : parseFloat(pos.z);
             that.setPosition(pos, true);
         }
 
