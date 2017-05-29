@@ -45,7 +45,7 @@
 #include <AudioReverb.h>
 #include <AudioLimiter.h>
 #include <AudioConstants.h>
-#include <AudioNoiseGate.h>
+#include <AudioGate.h>
 
 #include <shared/RateCounter.h>
 
@@ -71,19 +71,6 @@ class QIODevice;
 class Transform;
 class NLPacket;
 
-class AudioInjectorsThread : public QThread {
-    Q_OBJECT
-
-public:
-    AudioInjectorsThread(AudioClient* audio) : _audio(audio) {}
-
-public slots :
-    void prepare();
-
-private:
-    AudioClient* _audio;
-};
-
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -96,8 +83,6 @@ public:
     using AudioPositionGetter = std::function<glm::vec3()>;
     using AudioOrientationGetter = std::function<glm::quat()>;
 
-    using RecursiveMutex = std::recursive_mutex;
-    using RecursiveLock = std::unique_lock<RecursiveMutex>;
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
 
@@ -109,7 +94,6 @@ public:
             _audio(audio), _unfulfilledReads(0) {}
 
         void start() { open(QIODevice::ReadOnly | QIODevice::Unbuffered); }
-        void stop() { close(); }
         qint64 readData(char * data, qint64 maxSize) override;
         qint64 writeData(const char * data, qint64 maxSize) override { return 0; }
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
@@ -124,7 +108,7 @@ public:
     void selectAudioFormat(const QString& selectedCodecName);
 
     Q_INVOKABLE QString getSelectedAudioFormat() const { return _selectedCodecName; }
-    Q_INVOKABLE bool getNoiseGateOpen() const { return _noiseGate.isOpen(); }
+    Q_INVOKABLE bool getNoiseGateOpen() const { return _audioGateOpen; }
     Q_INVOKABLE float getSilentInboundPPS() const { return _silentInbound.rate(); }
     Q_INVOKABLE float getAudioInboundPPS() const { return _audioInbound.rate(); }
     Q_INVOKABLE float getSilentOutboundPPS() const { return _silentOutbound.rate(); }
@@ -133,7 +117,7 @@ public:
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
 
-    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGate.getMeasuredFloor(), 0.0f); }
+    float getLastInputLoudness() const { return _lastInputLoudness; }   // TODO: relative to noise floor?
 
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
@@ -160,7 +144,7 @@ public:
 
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
 
-    void checkDevices();
+    bool outputLocalInjector(AudioInjector* injector) override;
 
     static const float CALLBACK_ACCELERATOR_RATIO;
 
@@ -171,6 +155,7 @@ public:
 public slots:
     void start();
     void stop();
+    void cleanupBeforeQuit();
 
     void handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message);
     void handleAudioDataPacket(QSharedPointer<ReceivedMessage> message);
@@ -186,8 +171,6 @@ public slots:
     void audioMixerKilled();
     void toggleMute();
 
-    void beforeAboutToQuit();
-
     virtual void setIsStereoInput(bool stereo) override;
 
     void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
@@ -200,8 +183,6 @@ public slots:
 
     int setOutputBufferSize(int numFrames, bool persist = true);
 
-    void prepareLocalAudioInjectors();
-    bool outputLocalInjector(AudioInjector* injector) override;
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
 
     bool switchInputToAudioDevice(const QString& inputDeviceName);
@@ -240,17 +221,23 @@ signals:
 
     void muteEnvironmentRequested(glm::vec3 position, float radius);
 
+    void currentOutputDeviceChanged(const QString& name);
+    void currentInputDeviceChanged(const QString& name);
+
 protected:
     AudioClient();
     ~AudioClient();
 
-    virtual void customDeleter() override {
-        deleteLater();
-    }
+    virtual void customDeleter() override;
 
 private:
+    friend class CheckDevicesThread;
+    friend class LocalInjectorsThread;
+
     void outputFormatChanged();
     void handleAudioInput(QByteArray& audioBuffer);
+    void checkDevices();
+    void prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock = nullptr);
     bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
@@ -297,8 +284,9 @@ private:
     AudioRingBuffer _inputRingBuffer;
     LocalInjectorsStream _localInjectorsStream;
     // In order to use _localInjectorsStream as a lock-free pipe,
-    // use it with a single producer/consumer, and track available samples
+    // use it with a single producer/consumer, and track available samples and injectors
     std::atomic<int> _localSamplesAvailable { 0 };
+    std::atomic<bool> _localInjectorsAvailable { false };
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
 
@@ -339,18 +327,16 @@ private:
     // for network audio (used by network audio thread)
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
 
-    // for local audio (used by audio injectors thread)
-    int _networkPeriod { 0 };
-    float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-    int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
-    float* _localOutputMixBuffer { NULL };
-    AudioInjectorsThread _localAudioThread;
-    RecursiveMutex _localAudioMutex;
-
     // for output audio (used by this thread)
     int _outputPeriod { 0 };
     float* _outputMixBuffer { NULL };
     int16_t* _outputScratchBuffer { NULL };
+
+    // for local audio (used by audio injectors thread)
+    float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+    int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
+    float* _localOutputMixBuffer { NULL };
+    Mutex _localAudioMutex;
 
     AudioLimiter _audioLimiter;
 
@@ -373,7 +359,8 @@ private:
 
     AudioIOStats _stats;
 
-    AudioNoiseGate _noiseGate;
+    AudioGate* _audioGate { nullptr };
+    bool _audioGateOpen { false };
 
     AudioPositionGetter _positionGetter;
     AudioOrientationGetter _orientationGetter;
@@ -394,12 +381,13 @@ private:
     QString _selectedCodecName;
     Encoder* _encoder { nullptr }; // for outbound mic stream
 
-    QThread* _checkDevicesThread { nullptr };
-
     RateCounter<> _silentOutbound;
     RateCounter<> _audioOutbound;
     RateCounter<> _silentInbound;
     RateCounter<> _audioInbound;
+
+    QThread* _checkDevicesThread { nullptr };
+    QThread* _localInjectorsThread { nullptr };
 };
 
 

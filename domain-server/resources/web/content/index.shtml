@@ -1,0 +1,44 @@
+<!--#include virtual="header.html"-->
+
+<div class="col-md-10 col-md-offset-1">
+  <div class="row">
+    <div class="col-xs-12">
+      <div class="alert" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-xs-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Upload Entities File</h3>
+        </div>
+        <form id="upload-form" action="upload" enctype="multipart/form-data" method="post">
+          <div class="panel-body">
+            <p>
+              Upload an entities file (e.g.: models.json.gz) to replace the content of this domain.<br>
+              Note: <strong>Your domain's content will be replaced by the content you upload</strong>, but the backup files of your domain's content will not immediately be changed.
+            </p>
+            <p>
+              If your domain has any content that you would like to re-use at a later date, save a manual backup of your models.json.gz file, which is usually stored at the following paths:<br>
+              <pre>C:\Users\[username]\AppData\Roaming\High Fidelity\assignment-client/entities/models.json.gz</pre>
+              <pre>/Users/[username]/Library/Application Support/High Fidelity/assignment-client/entities/models.json.gz</pre>
+              <pre>/home/[username]/.local/share/High Fidelity/assignment-client/entities/models.json.gz</pre>
+            </p>
+            <br>
+            <input type="file" name="entities-file" class="form-control-file" accept=".json, .gz">
+            <br>
+          </div>
+          <div class="panel-footer">
+            <input type="submit" class="btn btn-info" value="Upload">
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--#include virtual="footer.html"-->
+<script src='js/content.js'></script>
+<script src='/js/sweetalert.min.js'></script>
+<!--#include virtual="page-end.html"-->

@@ -11,12 +11,14 @@
 
 #include "OctreeServer.h"
 
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
 
 #include <time.h>
 
 #include <AccountManager.h>
+#include <Gzip.h>
 #include <HTTPConnection.h>
 #include <LogHandler.h>
 #include <shared/NetworkUtils.h>
@@ -924,6 +926,57 @@ void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessag
     _jurisdictionSender->queueReceivedPacket(message, senderNode);
 }
 
+void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> message) {
+    if (!_isFinished && !_isShuttingDown) {
+        // these messages are only allowed to come from the domain server, so make sure that is the case
+        auto nodeList = DependencyManager::get<NodeList>();
+        if (message->getSenderSockAddr() == nodeList->getDomainHandler().getSockAddr()) {
+            // it's far cleaner to load up the new content upon server startup
+            // so here we just store a special file at our persist path
+            // and then force a stop of the server so that it can pick it up when it relaunches
+            if (!_persistAbsoluteFilePath.isEmpty()) {
+
+                // before we restart the server and make it try and load this data, let's make sure it is valid
+                auto compressedOctree = message->getMessage();
+                QByteArray jsonOctree;
+
+                // assume we have GZipped content
+                bool wasCompressed = gunzip(compressedOctree, jsonOctree);
+                if (!wasCompressed) {
+                    // the source was not compressed, assume we were sent regular JSON data
+                    jsonOctree = compressedOctree;
+                }
+
+                // check the JSON data to verify it is an object
+                if (QJsonDocument::fromJson(jsonOctree).isObject()) {
+                    if (!wasCompressed) {
+                        // source was not compressed, we compress it before we write it locally
+                        gzip(jsonOctree, compressedOctree);
+                    }
+
+                    // write the compressed octree data to a special file
+                    auto replacementFilePath = _persistAbsoluteFilePath.append(OctreePersistThread::REPLACEMENT_FILE_EXTENSION);
+                    QFile replacementFile(replacementFilePath);
+                    if (replacementFile.open(QIODevice::WriteOnly) && replacementFile.write(compressedOctree) != -1) {
+                        // we've now written our replacement file, time to take the server down so it can
+                        // process it when it comes back up
+                        qInfo() << "Wrote octree replacement file to" << replacementFilePath << "- stopping server";
+                        setFinished(true);
+                    } else {
+                        qWarning() << "Could not write replacement octree data to file - refusing to process";
+                    }
+                } else {
+                    qDebug() << "Received replacement octree file that is invalid - refusing to process";
+                }
+            } else {
+                qDebug() << "Cannot perform octree file replacement since current persist file path is not yet known";
+            }
+        } else {
+            qDebug() << "Received an octree file replacement that was not from our domain server - refusing to process";
+        }
+    }
+}
+
 bool OctreeServer::readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result) {
     result = false; // assume it doesn't exist
     bool optionAvailable = false;
@@ -1148,6 +1201,7 @@ void OctreeServer::domainSettingsRequestComplete() {
     packetReceiver.registerListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
     packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
     packetReceiver.registerListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
+    packetReceiver.registerListener(PacketType::OctreeFileReplacement, this, "handleOctreeFileReplacement");
     
     readConfiguration();
     
@@ -1173,25 +1227,25 @@ void OctreeServer::domainSettingsRequestComplete() {
         // If persist filename does not exist, let's see if there is one beside the application binary
         // If there is, let's copy it over to our target persist directory
         QDir persistPath { _persistFilePath };
-        QString persistAbsoluteFilePath = persistPath.absolutePath();
+        _persistAbsoluteFilePath = persistPath.absolutePath();
 
         if (persistPath.isRelative()) {
             // if the domain settings passed us a relative path, make an absolute path that is relative to the
             // default data directory
-            persistAbsoluteFilePath = QDir(PathUtils::getAppDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
+            _persistAbsoluteFilePath = QDir(PathUtils::getAppDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
         }
 
         static const QString ENTITY_PERSIST_EXTENSION = ".json.gz";
 
         // force the persist file to end with .json.gz
-        if (!persistAbsoluteFilePath.endsWith(ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive)) {
-            persistAbsoluteFilePath += ENTITY_PERSIST_EXTENSION;
+        if (!_persistAbsoluteFilePath.endsWith(ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive)) {
+            _persistAbsoluteFilePath += ENTITY_PERSIST_EXTENSION;
         } else {
             // make sure the casing of .json.gz is correct
-            persistAbsoluteFilePath.replace(ENTITY_PERSIST_EXTENSION, ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive);
+            _persistAbsoluteFilePath.replace(ENTITY_PERSIST_EXTENSION, ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive);
         }
 
-        if (!QFile::exists(persistAbsoluteFilePath)) {
+        if (!QFile::exists(_persistAbsoluteFilePath)) {
             qDebug() << "Persist file does not exist, checking for existence of persist file next to application";
 
             static const QString OLD_DEFAULT_PERSIST_FILENAME = "resources/models.json.gz";
@@ -1217,7 +1271,7 @@ void OctreeServer::domainSettingsRequestComplete() {
                 pathToCopyFrom = oldDefaultPersistPath;
             }
 
-            QDir persistFileDirectory { QDir::cleanPath(persistAbsoluteFilePath + "/..") };
+            QDir persistFileDirectory { QDir::cleanPath(_persistAbsoluteFilePath + "/..") };
 
             if (!persistFileDirectory.exists()) {
                 qDebug() << "Creating data directory " << persistFileDirectory.absolutePath();
@@ -1225,15 +1279,15 @@ void OctreeServer::domainSettingsRequestComplete() {
             }
 
             if (shouldCopy) {
-                qDebug() << "Old persist file found, copying from " << pathToCopyFrom << " to " << persistAbsoluteFilePath;
+                qDebug() << "Old persist file found, copying from " << pathToCopyFrom << " to " << _persistAbsoluteFilePath;
 
-                QFile::copy(pathToCopyFrom, persistAbsoluteFilePath);
+                QFile::copy(pathToCopyFrom, _persistAbsoluteFilePath);
             } else {
                 qDebug() << "No existing persist file found";
             }
         }
 
-        auto persistFileDirectory = QFileInfo(persistAbsoluteFilePath).absolutePath();
+        auto persistFileDirectory = QFileInfo(_persistAbsoluteFilePath).absolutePath();
         if (_backupDirectoryPath.isEmpty()) {
             // Use the persist file's directory to store backups
             _backupDirectoryPath = persistFileDirectory;
@@ -1264,7 +1318,7 @@ void OctreeServer::domainSettingsRequestComplete() {
         qDebug() << "Backups will be stored in: " << _backupDirectoryPath;
         
         // now set up PersistThread
-        _persistThread = new OctreePersistThread(_tree, persistAbsoluteFilePath, _backupDirectoryPath, _persistInterval,
+        _persistThread = new OctreePersistThread(_tree, _persistAbsoluteFilePath, _backupDirectoryPath, _persistInterval,
                                                  _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
         _persistThread->initialize(true);
     }

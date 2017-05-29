@@ -1,7 +1,4 @@
 //
-//  Leapmotion.h
-//  interface/src/devices
-//
 //  Created by Sam Cake on 6/2/2014
 //  Copyright 2014 High Fidelity, Inc.
 //
@@ -14,7 +11,7 @@
 
 #include <QDateTime>
 
-#include "MotionTracker.h"
+#include <trackers/MotionTracker.h>
 
 #ifdef HAVE_LEAPMOTION
 #include <Leap.h>

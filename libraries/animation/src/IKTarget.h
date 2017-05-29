@@ -21,28 +21,35 @@ public:
         RotationOnly,
         HmdHead,
         HipsRelativeRotationAndPosition,
-        Unknown,
+        Unknown
     };
 
     IKTarget() {}
 
     const glm::vec3& getTranslation() const { return _pose.trans(); }
     const glm::quat& getRotation() const { return _pose.rot(); }
+    const AnimPose& getPose() const { return _pose; }
     int getIndex() const { return _index; }
     Type getType() const { return _type; }
 
     void setPose(const glm::quat& rotation, const glm::vec3& translation);
     void setIndex(int index) { _index = index; }
     void setType(int);
+    void setFlexCoefficients(size_t numFlexCoefficientsIn, const float* flexCoefficientsIn);
+    float getFlexCoefficient(size_t chainDepth) const;
 
-    // HACK: give HmdHead targets more "weight" during IK algorithm
-    float getWeight() const { return _type == Type::HmdHead ? HACK_HMD_TARGET_WEIGHT : 1.0f; }
+    void setWeight(float weight) { _weight = weight; }
+    float getWeight() const { return _weight; }
+
+    enum FlexCoefficients { MAX_FLEX_COEFFICIENTS = 10 };
 
 private:
     AnimPose _pose;
     int _index{-1};
     Type _type{Type::RotationAndPosition};
-
+    float _weight;
+    float _flexCoefficients[MAX_FLEX_COEFFICIENTS];
+    size_t _numFlexCoefficients;
 };
 
 #endif // hifi_IKTarget_h

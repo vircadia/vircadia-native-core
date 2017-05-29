@@ -33,11 +33,11 @@ void RunningMarker::startRunningMarker() {
     _runningMarkerThread->setObjectName("Running Marker Thread");
     _runningMarkerThread->start();
 
-    writeRunningMarkerFiler(); // write the first file, even before timer
+    writeRunningMarkerFile(); // write the first file, even before timer
 
     _runningMarkerTimer = new QTimer();
     QObject::connect(_runningMarkerTimer, &QTimer::timeout, [=](){
-        writeRunningMarkerFiler();
+        writeRunningMarkerFile();
     });
     _runningMarkerTimer->start(RUNNING_STATE_CHECK_IN_MSECS);
 
@@ -53,7 +53,12 @@ RunningMarker::~RunningMarker() {
     _runningMarkerThread->deleteLater();
 }
 
-void RunningMarker::writeRunningMarkerFiler() {
+bool RunningMarker::fileExists() const {
+    QFile runningMarkerFile(getFilePath());
+    return runningMarkerFile.exists();
+}
+
+void RunningMarker::writeRunningMarkerFile() {
     QFile runningMarkerFile(getFilePath());
 
     // always write, even it it exists, so that it touches the files
@@ -69,7 +74,7 @@ void RunningMarker::deleteRunningMarkerFile() {
     }
 }
 
-QString RunningMarker::getFilePath() {
+QString RunningMarker::getFilePath() const {
     return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + _name;
 }
 

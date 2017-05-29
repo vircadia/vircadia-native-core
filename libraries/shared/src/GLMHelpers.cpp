@@ -38,6 +38,11 @@ const quat Quaternions::X_180{ 0.0f, 1.0f, 0.0f, 0.0f };
 const quat Quaternions::Y_180{ 0.0f, 0.0f, 1.0f, 0.0f };
 const quat Quaternions::Z_180{ 0.0f, 0.0f, 0.0f, 1.0f };
 
+const mat4 Matrices::IDENTITY { glm::mat4() };
+const mat4 Matrices::X_180 { createMatFromQuatAndPos(Quaternions::X_180, Vectors::ZERO) };
+const mat4 Matrices::Y_180 { createMatFromQuatAndPos(Quaternions::Y_180, Vectors::ZERO) };
+const mat4 Matrices::Z_180 { createMatFromQuatAndPos(Quaternions::Z_180, Vectors::ZERO) };
+
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
@@ -577,3 +582,9 @@ glm::mat4 orthoInverse(const glm::mat4& m) {
     r[3][3] = 1.0f;
     return r;
 }
+
+//  Return a random vector of average length 1
+glm::vec3 randVector() {
+    return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.0f;
+}
+

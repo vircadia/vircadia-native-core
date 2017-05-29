@@ -13,8 +13,6 @@
 #define hifi_RenderFetchCullSortTask_h
 
 #include <gpu/Pipeline.h>
-
-#include "Task.h"
 #include "CullTask.h"
 
 class RenderFetchCullSortTask {

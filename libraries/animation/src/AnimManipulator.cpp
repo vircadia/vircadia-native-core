@@ -12,6 +12,16 @@
 #include "AnimUtil.h"
 #include "AnimationLogging.h"
 
+AnimManipulator::JointVar::JointVar(const QString& jointNameIn, Type rotationTypeIn, Type translationTypeIn,
+                                    const QString& rotationVarIn, const QString& translationVarIn) :
+    jointName(jointNameIn),
+    rotationType(rotationTypeIn),
+    translationType(translationTypeIn),
+    rotationVar(rotationVarIn),
+    translationVar(translationVarIn),
+    jointIndex(-1),
+    hasPerformedJointLookup(false) {}
+
 AnimManipulator::AnimManipulator(const QString& id, float alpha) :
     AnimNode(AnimNode::Type::Manipulator, id),
     _alpha(alpha) {
@@ -36,7 +46,10 @@ const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, cons
     }
 
     for (auto& jointVar : _jointVars) {
+
         if (!jointVar.hasPerformedJointLookup) {
+
+            // map from joint name to joint index and cache the result.
             jointVar.jointIndex = _skeleton->nameToJointIndex(jointVar.jointName);
             if (jointVar.jointIndex < 0) {
                 qCWarning(animation) << "AnimManipulator could not find jointName" << jointVar.jointName << "in skeleton";
@@ -100,34 +113,62 @@ AnimPose AnimManipulator::computeRelativePoseFromJointVar(const AnimVariantMap& 
 
     AnimPose defaultAbsPose = _skeleton->getAbsolutePose(jointVar.jointIndex, underPoses);
 
-    if (jointVar.type == JointVar::Type::AbsoluteRotation || jointVar.type == JointVar::Type::AbsolutePosition) {
+    // compute relative translation
+    glm::vec3 relTrans;
+    switch (jointVar.translationType) {
+        case JointVar::Type::Absolute: {
+            glm::vec3 absTrans = animVars.lookupRigToGeometry(jointVar.translationVar, defaultAbsPose.trans());
 
-        if (jointVar.type == JointVar::Type::AbsoluteRotation) {
-            defaultAbsPose.rot() = animVars.lookupRigToGeometry(jointVar.var, defaultAbsPose.rot());
-        } else if (jointVar.type == JointVar::Type::AbsolutePosition) {
-            defaultAbsPose.trans() = animVars.lookupRigToGeometry(jointVar.var, defaultAbsPose.trans());
+            // convert to from absolute to relative.
+            AnimPose parentAbsPose;
+            int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
+            if (parentIndex >= 0) {
+                parentAbsPose = _skeleton->getAbsolutePose(parentIndex, underPoses);
+            }
+
+            // convert from absolute to relative
+            relTrans = transformPoint(parentAbsPose.inverse(), absTrans);
+            break;
         }
-
-        // because jointVar is absolute, we must use an absolute parent frame to convert into a relative pose.
-        AnimPose parentAbsPose = AnimPose::identity;
-        int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
-        if (parentIndex >= 0) {
-            parentAbsPose = _skeleton->getAbsolutePose(parentIndex, underPoses);
-        }
-
-        // convert from absolute to relative
-        return parentAbsPose.inverse() * defaultAbsPose;
-
-    } else {
-
-        // override the default rel pose
-        AnimPose relPose = defaultRelPose;
-        if (jointVar.type == JointVar::Type::RelativeRotation) {
-            relPose.rot() = animVars.lookupRigToGeometry(jointVar.var, defaultRelPose.rot());
-        } else if (jointVar.type == JointVar::Type::RelativePosition) {
-            relPose.trans() = animVars.lookupRigToGeometry(jointVar.var, defaultRelPose.trans());
-        }
-
-        return relPose;
+        case JointVar::Type::Relative:
+            relTrans = animVars.lookupRigToGeometryVector(jointVar.translationVar, defaultRelPose.trans());
+            break;
+        case JointVar::Type::UnderPose:
+            relTrans = underPoses[jointVar.jointIndex].trans();
+            break;
+        case JointVar::Type::Default:
+        default:
+            relTrans = defaultRelPose.trans();
+            break;
     }
+
+    glm::quat relRot;
+    switch (jointVar.rotationType) {
+        case JointVar::Type::Absolute: {
+            glm::quat absRot = animVars.lookupRigToGeometry(jointVar.translationVar, defaultAbsPose.rot());
+
+            // convert to from absolute to relative.
+            AnimPose parentAbsPose;
+            int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
+            if (parentIndex >= 0) {
+                parentAbsPose = _skeleton->getAbsolutePose(parentIndex, underPoses);
+            }
+
+            // convert from absolute to relative
+            relRot = glm::inverse(parentAbsPose.rot()) * absRot;
+            break;
+        }
+        case JointVar::Type::Relative:
+            relRot = animVars.lookupRigToGeometry(jointVar.translationVar, defaultRelPose.rot());
+            break;
+        case JointVar::Type::UnderPose:
+            relRot = underPoses[jointVar.jointIndex].rot();
+            break;
+        case JointVar::Type::Default:
+        default:
+            relRot = defaultRelPose.rot();
+            break;
+    }
+
+    return AnimPose(glm::vec3(1), relRot, relTrans);
 }

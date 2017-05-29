@@ -194,3 +194,10 @@ void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
                                 multiPart);
 }
 
+QString Snapshot::getSnapshotsLocation() {
+    return snapshotsLocation.get("");
+}
+
+void Snapshot::setSnapshotsLocation(const QString& location) {
+    snapshotsLocation.set(location);
+}

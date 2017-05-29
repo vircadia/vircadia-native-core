@@ -1,6 +1,6 @@
 //
 //  ObjectMotionState.h
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2014.11.05
 //  Copyright 2014 High Fidelity, Inc.
@@ -93,8 +93,8 @@ public:
     MotionStateType getType() const { return _type; }
     virtual PhysicsMotionType getMotionType() const { return _motionType; }
 
-    void setMass(float mass) { _mass = fabsf(mass); }
-    float getMass() { return _mass; }
+    void setMass(float mass);
+    float getMass() const;
 
     void setBodyLinearVelocity(const glm::vec3& velocity) const;
     void setBodyAngularVelocity(const glm::vec3& velocity) const;
@@ -159,18 +159,18 @@ protected:
     void setRigidBody(btRigidBody* body);
     virtual void setShape(const btCollisionShape* shape);
 
-    MotionStateType _type = MOTIONSTATE_TYPE_INVALID; // type of MotionState
-    PhysicsMotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC
+    MotionStateType _type { MOTIONSTATE_TYPE_INVALID }; // type of MotionState
+    PhysicsMotionType _motionType { MOTION_TYPE_STATIC }; // type of motion: KINEMATIC, DYNAMIC, or STATIC
 
     const btCollisionShape* _shape;
-    btRigidBody* _body;
-    float _mass;
+    btRigidBody* _body { nullptr };
+    float _density { 1.0f };
 
     uint32_t _lastKinematicStep;
     bool _hasInternalKinematicChanges { false };
 };
 
-typedef QSet<ObjectMotionState*> SetOfMotionStates;
-typedef QVector<ObjectMotionState*> VectorOfMotionStates;
+using SetOfMotionStates = QSet<ObjectMotionState*>;
+using VectorOfMotionStates = QVector<ObjectMotionState*>;
 
 #endif // hifi_ObjectMotionState_h

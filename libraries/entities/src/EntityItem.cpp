@@ -810,7 +810,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, updateCollisionless);
     READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, updateCollisionMask);
     READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, updateDynamic);
-    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
+    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, updateLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
@@ -1344,6 +1344,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dynamic, updateDynamic);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, updateLocked);
 
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -1352,7 +1353,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
@@ -1374,7 +1374,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         somethingChanged = true;
     }
 
-    // Now check the sub classes 
+    // Now check the sub classes
     somethingChanged |= setSubClassProperties(properties);
 
     // Finally notify if change detected
@@ -1606,11 +1606,19 @@ void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
 void EntityItem::updatePosition(const glm::vec3& value) {
     if (getLocalPosition() != value) {
         setLocalPosition(value);
+
+        EntityTreePointer tree = getTree();
         markDirtyFlags(Simulation::DIRTY_POSITION);
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+                if (tree) {
+                    tree->entityChanged(entity);
+                }
             }
         });
     }
@@ -1622,6 +1630,11 @@ void EntityItem::updateParentID(const QUuid& value) {
         // children are forced to be kinematic
         // may need to not collide with own avatar
         markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
+
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->addToNeedsParentFixupList(getThisPointer());
+        }
     }
 }
 
@@ -1691,14 +1704,20 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
                 setLocalVelocity(Vectors::ZERO);
             }
         } else {
-            const float MIN_LINEAR_SPEED = 0.001f;
-            if (glm::length(value) < MIN_LINEAR_SPEED) {
-                velocity = ENTITY_ITEM_ZERO_VEC3;
-            } else {
-                velocity = value;
+            float speed = glm::length(value);
+            if (!glm::isnan(speed)) {
+                const float MIN_LINEAR_SPEED = 0.001f;
+                const float MAX_LINEAR_SPEED = 270.0f; // 3m per step at 90Hz
+                if (speed < MIN_LINEAR_SPEED) {
+                    velocity = ENTITY_ITEM_ZERO_VEC3;
+                } else if (speed > MAX_LINEAR_SPEED) {
+                    velocity = (MAX_LINEAR_SPEED / speed) * value;
+                } else {
+                    velocity = value;
+                }
+                setLocalVelocity(velocity);
+                _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
             }
-            setLocalVelocity(velocity);
-            _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
         }
     }
 }
@@ -1723,8 +1742,16 @@ void EntityItem::updateGravity(const glm::vec3& value) {
         if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
             _gravity = Vectors::ZERO;
         } else {
-            _gravity = value;
-            _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+            float magnitude = glm::length(value);
+            if (!glm::isnan(magnitude)) {
+                const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
+                if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
+                    _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
+                } else {
+                    _gravity = value;
+                }
+                _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+            }
         }
     }
 }
@@ -1735,14 +1762,20 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
         if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
             setLocalAngularVelocity(Vectors::ZERO);
         } else {
-            const float MIN_ANGULAR_SPEED = 0.0002f;
-            if (glm::length(value) < MIN_ANGULAR_SPEED) {
-                angularVelocity = ENTITY_ITEM_ZERO_VEC3;
-            } else {
-                angularVelocity = value;
+            float speed = glm::length(value);
+            if (!glm::isnan(speed)) {
+                const float MIN_ANGULAR_SPEED = 0.0002f;
+                const float MAX_ANGULAR_SPEED = 9.0f * TWO_PI; // 1/10 rotation per step at 90Hz
+                if (speed < MIN_ANGULAR_SPEED) {
+                    angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+                } else if (speed > MAX_ANGULAR_SPEED) {
+                    angularVelocity = (MAX_ANGULAR_SPEED / speed) * value;
+                } else {
+                    angularVelocity = value;
+                }
+                setLocalAngularVelocity(angularVelocity);
+                _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
             }
-            setLocalAngularVelocity(angularVelocity);
-            _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
         }
     }
 }
@@ -2747,6 +2780,23 @@ void EntityItem::setLocked(bool value) {
     withWriteLock([&] {
         _locked = value;
     });
+}
+
+void EntityItem::updateLocked(bool value) {
+    bool changed { false };
+    withWriteLock([&] {
+        if (_locked != value) {
+            _locked = value;
+            changed = true;
+        }
+    });
+    if (changed) {
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
+    }
 }
 
 QString EntityItem::getUserData() const { 

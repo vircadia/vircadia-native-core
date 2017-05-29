@@ -27,8 +27,6 @@
 
 #include "KTXCache.h"
 
-const int ABSOLUTE_MAX_TEXTURE_NUM_PIXELS = 8192 * 8192;
-
 namespace gpu {
 class Batch;
 }
@@ -46,6 +44,7 @@ class NetworkTexture : public Resource, public Texture {
 
 public:
     NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels);
+    ~NetworkTexture() override;
 
     QString getType() const override { return "NetworkTexture"; }
 
@@ -56,6 +55,8 @@ public:
     image::TextureUsage::Type getTextureType() const { return _type; }
 
     gpu::TexturePointer getFallbackTexture() const;
+
+    void refresh() override;
 
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);

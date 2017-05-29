@@ -109,7 +109,7 @@ public:
     }
 };
 
-class QWindowCamera : public Camera {
+class QWindowCamera : public SimpleCamera {
     Key forKey(int key) {
         switch (key) {
             case Qt::Key_W: return FORWARD;
@@ -753,8 +753,8 @@ private:
     void updateText() {
         QString title = QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4 Max GPU %5")
             .arg(_fps).arg(_cullingEnabled)
-            .arg(toHumanSize(gpu::Context::getTextureGPUMemoryUsage(), 2))
-            .arg(toHumanSize(gpu::Texture::getTextureCPUMemoryUsage(), 2))
+            .arg(toHumanSize(gpu::Context::getTextureGPUMemSize(), 2))
+            .arg(toHumanSize(gpu::Texture::getTextureCPUMemSize(), 2))
             .arg(toHumanSize(gpu::Texture::getAllowedGPUMemoryUsage(), 2));
         setTitle(title);
 #if 0
@@ -1067,7 +1067,7 @@ private:
     }
 
     void cycleMode() {
-        static auto defaultProjection = Camera().matrices.perspective;
+        static auto defaultProjection = SimpleCamera().matrices.perspective;
         _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);
         if (_renderMode == HMD) {
             _camera.matrices.perspective[0] = vec4 { 0.759056330, 0.000000000, 0.000000000, 0.000000000 };

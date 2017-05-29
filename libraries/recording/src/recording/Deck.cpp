@@ -166,6 +166,12 @@ void Deck::processFrames() {
     if (!overLimit) {
         auto nextFrameTime = nextClip->positionFrameTime();
         nextInterval = (int)Frame::frameTimeToMilliseconds(nextFrameTime - _position);
+        if (nextInterval < 0) {
+            qCWarning(recordingLog) << "Unexpected nextInterval < 0 nextFrameTime:" << nextFrameTime 
+                                    << "_position:" << _position << "-- setting nextInterval to 0";
+            nextInterval = 0;
+        }
+
 #ifdef WANT_RECORDING_DEBUG
         qCDebug(recordingLog) << "Now " << _position;
         qCDebug(recordingLog) << "Next frame time " << nextInterval;

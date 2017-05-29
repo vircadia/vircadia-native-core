@@ -26,7 +26,7 @@
 #include "SimpleMovingAverage.h"
 
 class Rig;
-typedef std::shared_ptr<Rig> RigPointer;
+class AnimInverseKinematics;
 
 // Rig instances are reentrant.
 // However only specific methods thread-safe.  Noted below.
@@ -42,16 +42,23 @@ public:
     };
 
     struct HeadParameters {
-        glm::quat worldHeadOrientation = glm::quat();  // world space (-z forward)
-        glm::quat rigHeadOrientation = glm::quat();  // rig space (-z forward)
-        glm::vec3 rigHeadPosition = glm::vec3();     // rig space
-        bool isInHMD = false;
-        int neckJointIndex = -1;
+        glm::mat4 hipsMatrix = glm::mat4();           // rig space
+        glm::mat4 spine2Matrix = glm::mat4();         // rig space
+        glm::quat rigHeadOrientation = glm::quat();   // rig space (-z forward)
+        glm::vec3 rigHeadPosition = glm::vec3();      // rig space
+        glm::vec3 rightArmPosition = glm::vec3();     // rig space
+        glm::quat rightArmRotation = glm::quat();     // rig space
+        glm::vec3 leftArmPosition = glm::vec3();      // rig space
+        glm::quat leftArmRotation = glm::quat();      // rig space
+        bool hipsEnabled = false;
+        bool headEnabled = false;
+        bool spine2Enabled = false;
+        bool leftArmEnabled = false;
+        bool rightArmEnabled = false;
         bool isTalking = false;
     };
 
     struct EyeParameters {
-        glm::quat worldHeadOrientation = glm::quat();
         glm::vec3 eyeLookAt = glm::vec3();  // world space
         glm::vec3 eyeSaccade = glm::vec3(); // world space
         glm::vec3 modelTranslation = glm::vec3();
@@ -110,6 +117,8 @@ public:
     void clearJointStates();
     void clearJointAnimationPriority(int index);
 
+    std::shared_ptr<AnimInverseKinematics> getAnimInverseKinematicsNode() const;
+
     void clearIKJointLimitHistory();
     void setMaxHipsOffsetLength(float maxLength);
     float getMaxHipsOffsetLength() const;
@@ -158,7 +167,7 @@ public:
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState);
 
     // Regardless of who started the animations or how many, update the joints.
-    void updateAnimations(float deltaTime, glm::mat4 rootTransform);
+    void updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform);
 
     // legacy
     void inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
@@ -227,6 +236,11 @@ public:
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
     void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
+    void setEnableDebugDrawIKConstraints(bool enableDebugDrawIKConstraints) { _enableDebugDrawIKConstraints = enableDebugDrawIKConstraints; }
+    void setEnableDebugDrawIKChains(bool enableDebugDrawIKChains) { _enableDebugDrawIKChains = enableDebugDrawIKChains; }
+
+    // input assumed to be in rig space
+    void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
 
 signals:
     void onLoadComplete();
@@ -237,10 +251,9 @@ protected:
     void applyOverridePoses();
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
-    void updateNeckJoint(int index, const HeadParameters& params);
-    void computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut,
-                                 glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const;
-    void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
+    void updateHeadAnimVars(const HeadParameters& params);
+
+    void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
     AnimPose _modelOffset;  // model to rig space
@@ -335,6 +348,8 @@ protected:
     float _maxHipsOffsetLength { 1.0f };
 
     bool _enableDebugDrawIKTargets { false };
+    bool _enableDebugDrawIKConstraints { false };
+    bool _enableDebugDrawIKChains { false };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

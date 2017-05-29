@@ -18,6 +18,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QtScript/QScriptable>
 
 /**jsdoc
  * A Quaternion
@@ -30,7 +31,7 @@
  */
 
 /// Scriptable interface a Quaternion helper class object. Used exclusively in the JavaScript API
-class Quat : public QObject {
+class Quat : public QObject, protected QScriptable {
     Q_OBJECT
 
 public slots:
@@ -58,8 +59,10 @@ public slots:
     glm::quat slerp(const glm::quat& q1, const glm::quat& q2, float alpha);
     glm::quat squad(const glm::quat& q1, const glm::quat& q2, const glm::quat& s1, const glm::quat& s2, float h);
     float dot(const glm::quat& q1, const glm::quat& q2);
-    void print(const QString& label, const glm::quat& q);
+    void print(const QString& label, const glm::quat& q, bool asDegrees = false);
     bool equal(const glm::quat& q1, const glm::quat& q2);
+    glm::quat cancelOutRollAndPitch(const glm::quat& q);
+    glm::quat cancelOutRoll(const glm::quat& q);
 };
 
 #endif // hifi_Quat_h

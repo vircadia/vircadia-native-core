@@ -11,9 +11,9 @@
 
 #include <AudioClient.h>
 #include <SettingHandle.h>
+#include <trackers/FaceTracker.h>
 
 #include "Application.h"
-#include "devices/FaceTracker.h"
 #include "Menu.h"
 
 HIFI_QML_DEF(AvatarInputs)

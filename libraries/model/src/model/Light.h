@@ -68,7 +68,8 @@ public:
 
  
     enum Type {
-        SUN = 0,
+        AMBIENT = 0,
+        SUN,
         POINT,
         SPOT,
 
@@ -112,7 +113,6 @@ public:
     void setIntensity(float intensity);
 
     bool isRanged() const { return (getType() == POINT) || (getType() == SPOT); }
-    bool hasAmbient() const { return (getType() == SUN); }
  
     // FalloffRradius is the physical radius of the light sphere through which energy shines,
     // expressed in meters. It is used only to calculate the falloff curve of the light.
@@ -143,7 +143,7 @@ public:
     const gpu::SphericalHarmonics& getAmbientSphere() const { return _ambientSchemaBuffer->ambientSphere; }
     void setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset);
 
-    void setAmbientMap(gpu::TexturePointer ambientMap);
+    void setAmbientMap(const gpu::TexturePointer& ambientMap);
     gpu::TexturePointer getAmbientMap() const { return _ambientMap; }
 
     void setAmbientMapNumMips(uint16_t numMips);

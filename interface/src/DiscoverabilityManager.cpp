@@ -23,6 +23,8 @@
 #include "DiscoverabilityManager.h"
 #include "Menu.h"
 
+#include <QThread>
+
 const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::Friends;
 
 DiscoverabilityManager::DiscoverabilityManager() :
@@ -37,6 +39,13 @@ const QString API_USER_HEARTBEAT_PATH = "/api/v1/user/heartbeat";
 const QString SESSION_ID_KEY = "session_id";
 
 void DiscoverabilityManager::updateLocation() {
+    // since we store the last location and compare it to
+    // the current one in this function, we need to do this in
+    // the object's main thread (or use a mutex)
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "updateLocation");
+        return;
+    }
     auto accountManager = DependencyManager::get<AccountManager>();
     auto addressManager = DependencyManager::get<AddressManager>();
     auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
@@ -143,7 +152,7 @@ void DiscoverabilityManager::removeLocation() {
 
 void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discoverabilityMode) {
     if (static_cast<Discoverability::Mode>(_mode.get()) != discoverabilityMode) {
-        
+
         // update the setting to the new value
         _mode.set(static_cast<int>(discoverabilityMode));
         updateLocation();  // update right away

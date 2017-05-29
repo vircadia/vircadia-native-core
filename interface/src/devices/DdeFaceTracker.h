@@ -12,6 +12,8 @@
 #ifndef hifi_DdeFaceTracker_h
 #define hifi_DdeFaceTracker_h
 
+#include <QtCore/QtGlobal>
+
 #if defined(Q_OS_WIN) || defined(Q_OS_OSX)
     #define HAVE_DDE
 #endif
@@ -22,7 +24,7 @@
 #include <DependencyManager.h>
 #include <ui/overlays/TextOverlay.h>
 
-#include "FaceTracker.h"
+#include <trackers/FaceTracker.h>
 
 class DdeFaceTracker : public FaceTracker, public Dependency {
     Q_OBJECT

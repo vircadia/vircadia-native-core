@@ -15,7 +15,9 @@
 
 #include <OctreeConstants.h>
 #include <GLMHelpers.h>
+#include <glm/gtx/string_cast.hpp>
 #include "ScriptEngineLogging.h"
+#include "ScriptEngine.h"
 #include "Quat.h"
 
 quat Quat::normalize(const glm::quat& q) {
@@ -114,11 +116,27 @@ float Quat::dot(const glm::quat& q1, const glm::quat& q2) {
     return glm::dot(q1, q2);
 }
 
-void Quat::print(const QString& label, const glm::quat& q) {
-    qCDebug(scriptengine) << qPrintable(label) << q.x << "," << q.y << "," << q.z << "," << q.w;
+void Quat::print(const QString& label, const glm::quat& q, bool asDegrees) {
+    QString message = QString("%1 %2").arg(qPrintable(label));
+    if (asDegrees) {
+        message = message.arg(glm::to_string(glm::dvec3(safeEulerAngles(q))).c_str());
+    } else {
+        message = message.arg(glm::to_string(glm::dquat(q)).c_str());
+    }
+    qCDebug(scriptengine) << message;
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
+        scriptEngine->print(message);
+    }
 }
 
 bool Quat::equal(const glm::quat& q1, const glm::quat& q2) {
     return q1 == q2;
 }
 
+glm::quat Quat::cancelOutRollAndPitch(const glm::quat& q) {
+    return ::cancelOutRollAndPitch(q);
+}
+
+glm::quat Quat::cancelOutRoll(const glm::quat& q) {
+    return ::cancelOutRoll(q);
+}

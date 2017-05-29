@@ -96,7 +96,7 @@ function calcSpawnInfo(hand, height) {
  * @param hand [number] -1 indicates no hand, Controller.Standard.RightHand or Controller.Standard.LeftHand
  * @param clientOnly [bool] true indicates tablet model is only visible to client.
  */
-WebTablet = function (url, width, dpi, hand, clientOnly, location) {
+WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     var _this = this;
 
@@ -106,6 +106,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
     this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
     this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
     this.landscape = false;
+
+    visible = visible === true;
 
     if (dpi) {
         this.dpi = dpi;
@@ -120,11 +122,13 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         modelURL: modelURL,
         url: modelURL, // for overlay
         grabbable: true, // for overlay
+        loadPriority: 10.0, // for overlay
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
         dimensions: this.getDimensions(),
-        parentID: AVATAR_SELF_ID
+        parentID: AVATAR_SELF_ID,
+        visible: visible
     };
 
     // compute position, rotation & parentJointIndex of the tablet
@@ -157,7 +161,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         parentID: this.tabletEntityID,
         parentJointIndex: -1,
         showKeyboardFocusHighlight: false,
-        isAA: HMD.active
+        isAA: HMD.active,
+        visible: visible
     });
 
     var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
@@ -167,7 +172,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         localRotation: {x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor},
         alpha: 0.0,
-        visible: true,
+        visible: visible,
         drawInFront: false,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
@@ -274,7 +279,8 @@ WebTablet.prototype.getLocation = function() {
 };
 
 WebTablet.prototype.setHomeButtonTexture = function() {
-    Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
+    // TODO - is this still needed?
+    // Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
 };
 
 WebTablet.prototype.setURL = function (url) {
@@ -337,7 +343,8 @@ WebTablet.prototype.geometryChanged = function (geometry) {
 
         // compute position, rotation & parentJointIndex of the tablet
         this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-        Entities.editEntity(this.tabletEntityID, tabletProperties);
+        // TODO -- is this still needed?
+        // Entities.editEntity(this.tabletEntityID, tabletProperties);
     }
 };
 
@@ -438,7 +445,8 @@ WebTablet.prototype.onHmdChanged = function () {
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-    Entities.editEntity(this.tabletEntityID, tabletProperties);
+    // TODO -- is this still needed?
+    // Entities.editEntity(this.tabletEntityID, tabletProperties);
 
     // Full scene FXAA should be disabled on the overlay when the tablet in desktop mode.
     // This should make the text more readable.
@@ -529,7 +537,8 @@ WebTablet.prototype.cameraModeChanged = function (newMode) {
         var tabletProperties = {};
         // compute position, rotation & parentJointIndex of the tablet
         self.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-        Entities.editEntity(self.tabletEntityID, tabletProperties);
+        // TODO -- is this still needed?
+        // Entities.editEntity(self.tabletEntityID, tabletProperties);
     }
 };
 

@@ -78,7 +78,7 @@ void initCollisionMaterials() {
     }
 }
 
-Model::Model(RigPointer rig, QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
+Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     QObject(parent),
     _renderGeometry(),
     _collisionGeometry(),
@@ -96,8 +96,7 @@ Model::Model(RigPointer rig, QObject* parent, SpatiallyNestable* spatiallyNestab
     _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
-    _isWireframe(false),
-    _rig(rig)
+    _isWireframe(false)
 {
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
@@ -236,13 +235,14 @@ void Model::updateRenderItems() {
         render::Transaction transaction;
         foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter](ModelMeshPartPayload& data) {
-                if (data._model && data._model->isLoaded()) {
+                ModelPointer model = data._model.lock();
+                if (model && model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
-                    if (deleteGeometryCounter == data._model->_deleteGeometryCounter) {
-                        Transform modelTransform = data._model->getTransform();
+                    if (deleteGeometryCounter == model->_deleteGeometryCounter) {
+                        Transform modelTransform = model->getTransform();
                         modelTransform.setScale(glm::vec3(1.0f));
 
-                        const Model::MeshState& state = data._model->getMeshState(data._meshIndex);
+                        const Model::MeshState& state = model->getMeshState(data._meshIndex);
                         Transform renderTransform = modelTransform;
                         if (state.clusterMatrices.size() == 1) {
                             renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
@@ -271,7 +271,7 @@ void Model::updateRenderItems() {
 void Model::initJointTransforms() {
     if (isLoaded()) {
         glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
-        _rig->setModelOffset(modelOffset);
+        _rig.setModelOffset(modelOffset);
     }
 }
 
@@ -281,7 +281,7 @@ void Model::init() {
 void Model::reset() {
     if (isLoaded()) {
         const FBXGeometry& geometry = getFBXGeometry();
-        _rig->reset(geometry);
+        _rig.reset(geometry);
     }
 }
 
@@ -294,7 +294,8 @@ bool Model::updateGeometry() {
 
     _needsReload = false;
 
-    if (_rig->jointStatesEmpty() && getFBXGeometry().joints.size() > 0) {
+    // TODO: should all Models have a valid _rig?
+    if (_rig.jointStatesEmpty() && getFBXGeometry().joints.size() > 0) {
         initJointStates();
         assert(_meshStates.empty());
 
@@ -326,7 +327,7 @@ void Model::initJointStates() {
     const FBXGeometry& geometry = getFBXGeometry();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
 
-    _rig->initJointStates(geometry, modelOffset);
+    _rig.initJointStates(geometry, modelOffset);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
@@ -376,7 +377,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
         glm::vec3 meshFrameDirection = glm::vec3(worldToMeshMatrix * glm::vec4(direction, 0.0f));
 
-        for (const auto& triangleSet : _modelSpaceMeshTriangleSets) {
+        for (auto& triangleSet : _modelSpaceMeshTriangleSets) {
             float triangleSetDistance = 0.0f;
             BoxFace triangleSetFace;
             glm::vec3 triangleSetNormal;
@@ -573,7 +574,7 @@ bool Model::addToScene(const render::ScenePointer& scene,
 
     bool somethingAdded = false;
     if (_collisionGeometry) {
-        if (_collisionRenderItems.empty()) {
+        if (_collisionRenderItemsMap.empty()) {
             foreach (auto renderItem, _collisionRenderItems) {
                 auto item = scene->allocateID();
                 auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
@@ -583,7 +584,7 @@ bool Model::addToScene(const render::ScenePointer& scene,
                 transaction.resetItem(item, renderPayload);
                 _collisionRenderItemsMap.insert(item, renderPayload);
             }
-            somethingAdded = !_collisionRenderItems.empty();
+            somethingAdded = !_collisionRenderItemsMap.empty();
         }
     } else {
         if (_modelMeshRenderItemsMap.empty()) {
@@ -632,7 +633,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
         transaction.removeItem(item);
     }
     _collisionRenderItems.clear();
-    _collisionRenderItems.clear();
+    _collisionRenderItemsMap.clear();
     _addedToScene = false;
 
     _renderInfoVertexCount = 0;
@@ -715,6 +716,11 @@ Extents Model::getBindExtents() const {
     return scaledExtents;
 }
 
+glm::vec3 Model::getNaturalDimensions() const {
+    Extents modelMeshExtents = getUnscaledMeshExtents();
+    return modelMeshExtents.maximum - modelMeshExtents.minimum;
+}
+
 Extents Model::getMeshExtents() const {
     if (!isActive()) {
         return Extents();
@@ -746,19 +752,19 @@ Extents Model::getUnscaledMeshExtents() const {
 }
 
 void Model::clearJointState(int index) {
-    _rig->clearJointState(index);
+    _rig.clearJointState(index);
 }
 
 void Model::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
-    _rig->setJointState(index, valid, rotation, translation, priority);
+    _rig.setJointState(index, valid, rotation, translation, priority);
 }
 
 void Model::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
-    _rig->setJointRotation(index, valid, rotation, priority);
+    _rig.setJointRotation(index, valid, rotation, priority);
 }
 
 void Model::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
-    _rig->setJointTranslation(index, valid, translation, priority);
+    _rig.setJointTranslation(index, valid, translation, priority);
 }
 
 int Model::getParentJointIndex(int jointIndex) const {
@@ -810,8 +816,10 @@ void Model::setURL(const QUrl& url) {
     deleteGeometry();
 
     auto resource = DependencyManager::get<ModelCache>()->getGeometryResource(url);
-    resource->setLoadPriority(this, _loadingPriority);
-    _renderWatcher.setResource(resource);
+    if (resource) {
+        resource->setLoadPriority(this, _loadingPriority);
+        _renderWatcher.setResource(resource);
+    }
     onInvalidate();
 }
 
@@ -823,43 +831,43 @@ void Model::loadURLFinished(bool success) {
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
-    return _rig->getJointPositionInWorldFrame(jointIndex, position, _translation, _rotation);
+    return _rig.getJointPositionInWorldFrame(jointIndex, position, _translation, _rotation);
 }
 
 bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
-    return _rig->getJointPosition(jointIndex, position);
+    return _rig.getJointPosition(jointIndex, position);
 }
 
 bool Model::getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const {
-    return _rig->getJointRotationInWorldFrame(jointIndex, rotation, _rotation);
+    return _rig.getJointRotationInWorldFrame(jointIndex, rotation, _rotation);
 }
 
 bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
-    return _rig->getJointRotation(jointIndex, rotation);
+    return _rig.getJointRotation(jointIndex, rotation);
 }
 
 bool Model::getJointTranslation(int jointIndex, glm::vec3& translation) const {
-    return _rig->getJointTranslation(jointIndex, translation);
+    return _rig.getJointTranslation(jointIndex, translation);
 }
 
 bool Model::getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotationOut) const {
-    return _rig->getAbsoluteJointRotationInRigFrame(jointIndex, rotationOut);
+    return _rig.getAbsoluteJointRotationInRigFrame(jointIndex, rotationOut);
 }
 
 bool Model::getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translationOut) const {
-    return _rig->getAbsoluteJointTranslationInRigFrame(jointIndex, translationOut);
+    return _rig.getAbsoluteJointTranslationInRigFrame(jointIndex, translationOut);
 }
 
 bool Model::getRelativeDefaultJointRotation(int jointIndex, glm::quat& rotationOut) const {
-    return _rig->getRelativeDefaultJointRotation(jointIndex, rotationOut);
+    return _rig.getRelativeDefaultJointRotation(jointIndex, rotationOut);
 }
 
 bool Model::getRelativeDefaultJointTranslation(int jointIndex, glm::vec3& translationOut) const {
-    return _rig->getRelativeDefaultJointTranslation(jointIndex, translationOut);
+    return _rig.getRelativeDefaultJointTranslation(jointIndex, translationOut);
 }
 
 bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {
-    return _rig->getJointCombinedRotation(jointIndex, rotation, _rotation);
+    return _rig.getJointCombinedRotation(jointIndex, rotation, _rotation);
 }
 
 QStringList Model::getJointNames() const {
@@ -936,8 +944,8 @@ void Blender::run() {
         Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
-void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
-    if (_scaleToFit != scaleToFit || _scaleToFitDimensions != dimensions) {
+void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale) {
+    if (forceRescale || _scaleToFit != scaleToFit || _scaleToFitDimensions != dimensions) {
         _scaleToFit = scaleToFit;
         _scaleToFitDimensions = dimensions;
         _scaledToFit = false; // force rescaling
@@ -1046,12 +1054,12 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 //virtual
 void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
-    _rig->updateAnimations(deltaTime, parentTransform);
+    glm::mat4 rigToWorldTransform = createMatFromQuatAndPos(getRotation(), getTranslation());
+    _rig.updateAnimations(deltaTime, parentTransform, rigToWorldTransform);
 }
 
 void Model::computeMeshPartLocalBounds() {
     for (auto& part : _modelMeshRenderItems) {
-        assert(part->_meshIndex < _modelMeshRenderItems.size());
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
         part->computeAdjustedLocalBound(state.clusterMatrices);
     }
@@ -1071,7 +1079,7 @@ void Model::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-            auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+            auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }
 
@@ -1098,19 +1106,19 @@ void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm:
     const FBXGeometry& geometry = getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
-    _rig->inverseKinematics(endIndex, targetPosition, targetRotation, priority, freeLineage, parentTransform);
+    _rig.inverseKinematics(endIndex, targetPosition, targetRotation, priority, freeLineage, parentTransform);
 }
 
 bool Model::restoreJointPosition(int jointIndex, float fraction, float priority) {
     const FBXGeometry& geometry = getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    return _rig->restoreJointPosition(jointIndex, fraction, priority, freeLineage);
+    return _rig.restoreJointPosition(jointIndex, fraction, priority, freeLineage);
 }
 
 float Model::getLimbLength(int jointIndex) const {
     const FBXGeometry& geometry = getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    return _rig->getLimbLength(jointIndex, freeLineage, _scale, geometry.joints);
+    return _rig.getLimbLength(jointIndex, freeLineage, _scale, geometry.joints);
 }
 
 bool Model::maybeStartBlender() {
@@ -1153,7 +1161,7 @@ void Model::deleteGeometry() {
     _deleteGeometryCounter++;
     _blendedVertexBuffers.clear();
     _meshStates.clear();
-    _rig->destroyAnimGraph();
+    _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
     _renderGeometry.reset();
     _collisionGeometry.reset();
@@ -1194,7 +1202,7 @@ void Model::createVisibleRenderItemSet() {
 
     // all of our mesh vectors must match in size
     if ((int)meshes.size() != _meshStates.size()) {
-        qCDebug(renderlogging) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
+        qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
 
@@ -1223,7 +1231,7 @@ void Model::createVisibleRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
+            _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
             shapeID++;
         }
     }

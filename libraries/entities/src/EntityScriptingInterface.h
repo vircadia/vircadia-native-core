@@ -212,8 +212,15 @@ public slots:
     /// - orientation
     /// - projection
     /// - centerRadius
-    /// this function will not find any models in script engine contexts which don't have access to models
+    /// this function will not find any models in script engine contexts which don't have access to entities
     Q_INVOKABLE QVector<QUuid> findEntitiesInFrustum(QVariantMap frustum) const;
+
+	/// finds entities of the indicated type within a sphere given by the center point and radius
+	/// @param {QString} string representation of entity type
+	/// @param {vec3} center point
+	/// @param {float} radius to search
+	/// this function will not find any entities in script engine contexts which don't have access to entities
+	Q_INVOKABLE QVector<QUuid> findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const;
 
     /// If the scripting context has visible entities, this will determine a ray intersection, the results
     /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate
@@ -303,6 +310,8 @@ public slots:
     Q_INVOKABLE QVector<QUuid> getChildrenIDs(const QUuid& parentID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
     Q_INVOKABLE bool isChildOfParent(QUuid childID, QUuid parentID);
+
+    Q_INVOKABLE QString getNestableType(QUuid id);
 
     Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
     Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);

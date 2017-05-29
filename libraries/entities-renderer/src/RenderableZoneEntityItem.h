@@ -16,6 +16,9 @@
 #include <ZoneEntityItem.h>
 
 class NetworkGeometry;
+class KeyLightPayload;
+
+class RenderableZoneEntityItemMeta;
 
 class RenderableZoneEntityItem : public ZoneEntityItem  {
 public:
@@ -23,7 +26,7 @@ public:
     
     RenderableZoneEntityItem(const EntityItemID& entityItemID) :
         ZoneEntityItem(entityItemID),
-        _model(NULL),
+        _model(nullptr),
         _needsInitialSimulation(true)
     { }
     
@@ -42,22 +45,28 @@ public:
     virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
     
     render::ItemID getRenderItemID() const { return _myMetaItem; }
-
+    
 private:
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
     void notifyBoundChanged();
 
-    Model* getModel();
-    void initialSimulation();
     void updateGeometry();
     
     template<typename Lambda>
     void changeProperties(Lambda functor);
-    
-    Model* _model;
+
+    void notifyChangedRenderItem();
+    void sceneUpdateRenderItemFromEntity(render::Transaction& transaction);
+    void updateKeyZoneItemFromEntity(RenderableZoneEntityItemMeta& keyZonePayload);
+
+    void updateKeySunFromEntity(RenderableZoneEntityItemMeta& keyZonePayload);
+    void updateKeyAmbientFromEntity(RenderableZoneEntityItemMeta& keyZonePayload);
+    void updateKeyBackgroundFromEntity(RenderableZoneEntityItemMeta& keyZonePayload);
+
+    ModelPointer _model;
     bool _needsInitialSimulation;
-    
+
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 };
 

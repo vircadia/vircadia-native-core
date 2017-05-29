@@ -26,6 +26,9 @@ public:
     virtual OverlayID getOverlayID() const override { return OverlayID(getID().toString()); }
     void setOverlayID(OverlayID overlayID) override { setID(overlayID); }
 
+    virtual QString getName() const override { return QString("Overlay:") + _name; }
+    void setName(QString name) { _name = name; }
+
     // getters
     virtual bool is3D() const override { return true; }
 
@@ -74,6 +77,8 @@ protected:
     bool _drawInFront;
     bool _isAA;
     bool _isGrabbable { false };
+
+    QString _name;
 };
 
 #endif // hifi_Base3DOverlay_h

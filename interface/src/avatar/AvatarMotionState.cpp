@@ -9,20 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarMotionState.h"
+
 #include <PhysicsCollisionGroups.h>
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
 
-#include "Avatar.h"
-#include "AvatarMotionState.h"
-#include "BulletUtil.h"
 
-AvatarMotionState::AvatarMotionState(Avatar* avatar, const btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
+AvatarMotionState::AvatarMotionState(AvatarSharedPointer avatar, const btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
     assert(_avatar);
     _type = MOTIONSTATE_TYPE_AVATAR;
-    if (_shape) {
-        _mass = 100.0f; // HACK
-    }
 }
 
 AvatarMotionState::~AvatarMotionState() {
@@ -49,7 +45,7 @@ PhysicsMotionType AvatarMotionState::computePhysicsMotionType() const {
 // virtual and protected
 const btCollisionShape* AvatarMotionState::computeNewShape() {
     ShapeInfo shapeInfo;
-    _avatar->computeShapeInfo(shapeInfo);
+    std::static_pointer_cast<Avatar>(_avatar)->computeShapeInfo(shapeInfo);
     return getShapeManager()->getShape(shapeInfo);
 }
 
@@ -130,7 +126,7 @@ glm::vec3 AvatarMotionState::getObjectAngularVelocity() const {
 
 // virtual
 glm::vec3 AvatarMotionState::getObjectGravity() const {
-    return _avatar->getAcceleration();
+    return std::static_pointer_cast<Avatar>(_avatar)->getAcceleration();
 }
 
 // virtual

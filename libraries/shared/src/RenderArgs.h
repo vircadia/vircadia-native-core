@@ -130,8 +130,8 @@ public:
     bool _enableTexturing { true };
 
     RenderDetails _details;
-    render::ScenePointer _scene; // HACK
-    int8_t _cameraMode { -1 }; // HACK
+    render::ScenePointer _scene;
+    int8_t _cameraMode { -1 };
 };
 
 #endif // hifi_RenderArgs_h

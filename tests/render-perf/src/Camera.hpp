@@ -2,7 +2,7 @@
 
 #include <GLMHelpers.h>
 
-class Camera {
+class SimpleCamera {
 protected:
     float fov { 60.0f };
     float znear { DEFAULT_NEAR_CLIP }, zfar { DEFAULT_FAR_CLIP };
@@ -42,7 +42,7 @@ public:
 
     std::bitset<KEYS_SIZE> keys;
 
-    Camera() {
+    SimpleCamera() {
         matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
     }
 

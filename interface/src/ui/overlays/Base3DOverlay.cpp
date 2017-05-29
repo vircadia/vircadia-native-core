@@ -81,6 +81,10 @@ QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& propert
 void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
     QVariantMap properties = originalProperties;
 
+    if (properties["name"].isValid()) {
+        setName(properties["name"].toString());
+    }
+
     // carry over some legacy keys
     if (!properties["position"].isValid() && !properties["localPosition"].isValid()) {
         if (properties["p1"].isValid()) {
@@ -207,6 +211,9 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
 }
 
 QVariant Base3DOverlay::getProperty(const QString& property) {
+    if (property == "name") {
+        return _name;
+    }
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
         return vec3toVariant(getPosition());
     }

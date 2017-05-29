@@ -21,6 +21,8 @@ public:
     ObjectConstraintHinge(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectConstraintHinge();
 
+    virtual void prepareForPhysicsSimulation() override;
+
     virtual bool updateArguments(QVariantMap arguments) override;
     virtual QVariantMap getArguments() override;
 
@@ -38,16 +40,17 @@ protected:
     glm::vec3 _pivotInA;
     glm::vec3 _axisInA;
 
-    EntityItemID _otherEntityID;
     glm::vec3 _pivotInB;
     glm::vec3 _axisInB;
 
-    float _low { -2.0f * PI };
-    float _high { 2.0f * PI };
-    float _softness { 0.9f };
-    float _biasFactor { 0.3f };
-    float _relaxationFactor { 1.0f };
-    float _motorVelocity { 0.0f };
+    float _low { -TWO_PI };
+    float _high { TWO_PI };
+
+    // https://gamedev.stackexchange.com/questions/71436/what-are-the-parameters-for-bthingeconstraintsetlimit
+    //
+    // softness: unused
+    // biasFactor: unused
+    // relaxationFactor: unused
 };
 
 #endif // hifi_ObjectConstraintHinge_h

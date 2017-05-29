@@ -113,9 +113,11 @@ Item {
             if (typeof desktop !== "undefined") {
                 desktop.openBrowserWindow(request, profile);
             } else {
-                console.log("onNewViewRequested: desktop not defined");
+                tabletRoot.openBrowserWindow(request, profile);
             }
         }
+
+        HiFiControls.WebSpinner { }
     }
 
     HiFiControls.Keyboard {

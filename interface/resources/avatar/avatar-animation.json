@@ -49,62 +49,116 @@
                         "id": "ik",
                         "type": "inverseKinematics",
                         "data": {
+                            "solutionSource": "relaxToUnderPoses",
+                            "solutionSourceVar": "solutionSource",
                             "targets": [
+                                {
+                                    "jointName": "Hips",
+                                    "positionVar": "hipsPosition",
+                                    "rotationVar": "hipsRotation",
+                                    "typeVar": "hipsType",
+                                    "weightVar": "hipsWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1]
+                                },
                                 {
                                     "jointName": "RightHand",
                                     "positionVar": "rightHandPosition",
                                     "rotationVar": "rightHandRotation",
-                                    "typeVar": "rightHandType"
+                                    "typeVar": "rightHandType",
+                                    "weightVar": "rightHandWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1, 0.5, 0.5, 0.2, 0.01, 0.005, 0.001, 0.0, 0.0]
                                 },
                                 {
                                     "jointName": "LeftHand",
                                     "positionVar": "leftHandPosition",
                                     "rotationVar": "leftHandRotation",
-                                    "typeVar": "leftHandType"
+                                    "typeVar": "leftHandType",
+                                    "weightVar": "leftHandWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1, 0.5, 0.5, 0.2, 0.01, 0.005, 0.001, 0.0, 0.0]
                                 },
                                 {
                                     "jointName": "RightFoot",
                                     "positionVar": "rightFootPosition",
                                     "rotationVar": "rightFootRotation",
-                                    "typeVar": "rightFootType"
+                                    "typeVar": "rightFootType",
+                                    "weightVar": "rightFootWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1, 0.45, 0.45]
                                 },
                                 {
                                     "jointName": "LeftFoot",
                                     "positionVar": "leftFootPosition",
                                     "rotationVar": "leftFootRotation",
-                                    "typeVar": "leftFootType"
+                                    "typeVar": "leftFootType",
+                                    "weightVar": "leftFootWeight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1, 0.45, 0.45]
                                 },
                                 {
-                                    "jointName": "Neck",
-                                    "positionVar": "neckPosition",
-                                    "rotationVar": "neckRotation",
-                                    "typeVar": "neckType"
+                                    "jointName": "Spine2",
+                                    "positionVar": "spine2Position",
+                                    "rotationVar": "spine2Rotation",
+                                    "typeVar": "spine2Type",
+                                    "weightVar": "spine2Weight",
+                                    "weight": 1.0,
+                                    "flexCoefficients": [1.0, 0.5, 0.5]
                                 },
                                 {
                                     "jointName": "Head",
                                     "positionVar": "headPosition",
                                     "rotationVar": "headRotation",
-                                    "typeVar": "headType"
+                                    "typeVar": "headType",
+                                    "weightVar": "headWeight",
+                                    "weight": 4.0,
+                                    "flexCoefficients": [1, 0.05, 0.25, 0.25, 0.25]
+                                },
+                                {
+                                    "jointName": "LeftArm",
+                                    "positionVar": "leftArmPosition",
+                                    "rotationVar": "leftArmRotation",
+                                    "typeVar": "leftArmType",
+                                    "weightVar": "leftArmWeight",
+                                    "weight": 0.75,
+                                    "flexCoefficients": [1.0, 0.35, 0.2, 0.1, 0.05, 0.0, 0.0, 0.0]
+                                },
+                                {
+                                    "jointName": "RightArm",
+                                    "positionVar": "rightArmPosition",
+                                    "rotationVar": "rightArmRotation",
+                                    "typeVar": "rightArmType",
+                                    "weightVar": "rightArmWeight",
+                                    "weight": 0.75,
+                                    "flexCoefficients": [1.0, 0.35, 0.2, 0.1, 0.05, 0.0, 0.0, 0.0]
                                 }
                             ]
                         },
                         "children": []
                     },
                     {
-                        "id": "manipulatorOverlay",
+                        "id": "hipsManipulatorOverlay",
                         "type": "overlay",
                         "data": {
-                            "alpha": 1.0,
-                            "boneSet": "spineOnly"
+                            "alpha": 0.0,
+                            "boneSet": "hipsOnly"
                         },
                         "children": [
                             {
-                                "id": "spineLean",
+                                "id": "hipsManipulator",
                                 "type": "manipulator",
                                 "data": {
                                     "alpha": 0.0,
+                                    "alphaVar": "hipsManipulatorAlpha",
                                     "joints": [
-                                        { "type": "absoluteRotation", "jointName": "Spine", "var": "lean" }
+                                        {
+                                            "jointName": "Hips",
+                                            "rotationType": "absolute",
+                                            "translationType": "absolute",
+                                            "rotationVar": "hipsManipulatorRotation",
+                                            "translationVar": "hipsManipulatorPosition"
+                                        }
                                     ]
                                 },
                                 "children": []

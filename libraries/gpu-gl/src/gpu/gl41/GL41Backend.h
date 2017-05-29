@@ -37,11 +37,15 @@ class GL41Backend : public GLBackend {
 public:
     static const GLint TRANSFORM_OBJECT_SLOT  { 31 };
     static const GLint RESOURCE_TRANSFER_TEX_UNIT { 32 };
-    static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 33 };
-    static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 34 };
+    static const GLint RESOURCE_TRANSFER_EXTRA_TEX_UNIT { 33 };
+    static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 34 };
+    static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 35 };
 
     explicit GL41Backend(bool syncCache) : Parent(syncCache) {}
     GL41Backend() : Parent() {}
+
+    static const std::string GL41_VERSION;
+    const std::string& getVersion() const override { return GL41_VERSION; }
 
     class GL41Texture : public GLTexture {
         using Parent = GLTexture;
@@ -50,8 +54,8 @@ public:
     protected:
         GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         void generateMips() const override;
-        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
-        virtual void syncSampler() const;
+        Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
+        void syncSampler() const override;
 
         void withPreservedTexture(std::function<void()> f) const;
     };
@@ -88,6 +92,7 @@ public:
         friend class GL41Backend;
     protected:
         GL41StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GL41StrictResourceTexture();
     };
 
     class GL41VariableAllocationTexture : public GL41Texture, public GLVariableAllocationSupport {
@@ -105,10 +110,13 @@ public:
         void promote() override;
         void demote() override;
         void populateTransferQueue() override;
-        void copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
+
+        Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
+        Size copyMipsFromTexture();
+
+        void copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) override;
 
         Size size() const override { return _size; }
-        Size _size { 0 };
     };
 
     class GL41ResourceTexture : public GL41VariableAllocationTexture {

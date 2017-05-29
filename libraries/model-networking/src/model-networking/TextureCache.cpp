@@ -50,7 +50,8 @@ Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.k
 const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
 const std::string TextureCache::KTX_EXT { "ktx" };
 
-static const int SKYBOX_LOAD_PRIORITY { 10 }; // Make sure skybox loads first
+static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
+static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
 
 TextureCache::TextureCache() :
     _ktxCache(KTX_DIRNAME, KTX_EXT) {
@@ -261,9 +262,6 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSh
     auto content = textureExtra ? textureExtra->content : QByteArray();
     auto maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
     NetworkTexture* texture = new NetworkTexture(url, type, content, maxNumPixels);
-    if (type == image::TextureUsage::CUBE_TEXTURE) {
-        texture->setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
-    }
     return QSharedPointer<Resource>(texture, &Resource::deleter);
 }
 
@@ -275,6 +273,12 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
 {
     _textureSource = std::make_shared<gpu::TextureSource>();
     _lowestRequestedMipLevel = 0;
+
+    if (type == image::TextureUsage::CUBE_TEXTURE) {
+        setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
+    } else if (_sourceIsKTX) {
+        setLoadPriority(this, HIGH_MIPS_LOAD_PRIORITY);
+    }
 
     if (!url.isValid()) {
         _loaded = true;
@@ -329,6 +333,22 @@ private:
     QByteArray _content;
     int _maxNumPixels;
 };
+
+NetworkTexture::~NetworkTexture() {
+    if (_ktxHeaderRequest || _ktxMipRequest) {
+        if (_ktxHeaderRequest) {
+            _ktxHeaderRequest->disconnect(this);
+            _ktxHeaderRequest->deleteLater();
+            _ktxHeaderRequest = nullptr;
+        }
+        if (_ktxMipRequest) {
+            _ktxMipRequest->disconnect(this);
+            _ktxMipRequest->deleteLater();
+            _ktxMipRequest = nullptr;
+        }
+        TextureCache::requestCompleted(_self);
+    }
+}
 
 const uint16_t NetworkTexture::NULL_MIP_LEVEL = std::numeric_limits<uint16_t>::max();
 void NetworkTexture::makeRequest() {
@@ -394,12 +414,18 @@ void NetworkTexture::startRequestForNextMipLevel() {
     }
 
     if (_ktxResourceState == WAITING_FOR_MIP_REQUEST) {
+        auto self = _self.lock();
+        if (!self) {
+            return;
+        }
+
         _ktxResourceState = PENDING_MIP_REQUEST;
 
-        init();
-        setLoadPriority(this, -static_cast<int>(_originalKtxDescriptor->header.numberOfMipmapLevels) + _lowestKnownPopulatedMip);
+        init(false);
+        float priority = -(float)_originalKtxDescriptor->header.numberOfMipmapLevels + (float)_lowestKnownPopulatedMip;
+        setLoadPriority(this, priority);
         _url.setFragment(QString::number(_lowestKnownPopulatedMip - 1));
-        TextureCache::attemptRequest(_self);
+        TextureCache::attemptRequest(self);
     }
 }
 
@@ -446,12 +472,20 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 void NetworkTexture::ktxHeaderRequestFinished() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA);
 
+    if (!_ktxHeaderRequest) {
+        return;
+    }
+
     _ktxHeaderRequestFinished = true;
     maybeHandleFinishedInitialLoad();
 }
 
 void NetworkTexture::ktxMipRequestFinished() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA || _ktxResourceState == REQUESTING_MIP);
+
+    if (!_ktxMipRequest) {
+        return;
+    }
 
     if (_ktxResourceState == LOADING_INITIAL_DATA) {
         _ktxHighMipRequestFinished = true;
@@ -467,20 +501,24 @@ void NetworkTexture::ktxMipRequestFinished() {
             if (texture) {
                 texture->assignStoredMip(_ktxMipLevelRangeInFlight.first,
                     _ktxMipRequest->getData().size(), reinterpret_cast<uint8_t*>(_ktxMipRequest->getData().data()));
-                _lowestKnownPopulatedMip = _textureSource->getGPUTexture()->minAvailableMipLevel();
-            }
-            else {
+
+                if (texture->minAvailableMipLevel() <= _ktxMipLevelRangeInFlight.first) {
+                    _lowestKnownPopulatedMip = texture->minAvailableMipLevel();
+                    _ktxResourceState = WAITING_FOR_MIP_REQUEST;
+                } else {
+                    qWarning(networking) << "Failed to load mip: " << _url << ":" << _ktxMipLevelRangeInFlight.first;
+                    _ktxResourceState = FAILED_TO_LOAD;
+                }
+            } else {
+                _ktxResourceState = WAITING_FOR_MIP_REQUEST;
                 qWarning(networking) << "Trying to update mips but texture is null";
             }
             finishedLoading(true);
-            _ktxResourceState = WAITING_FOR_MIP_REQUEST;
-        }
-        else {
+        } else {
             finishedLoading(false);
             if (handleFailedRequest(_ktxMipRequest->getResult())) {
                 _ktxResourceState = PENDING_MIP_REQUEST;
-            }
-            else {
+            } else {
                 qWarning(networking) << "Failed to load mip: " << _url;
                 _ktxResourceState = FAILED_TO_LOAD;
             }
@@ -492,8 +530,7 @@ void NetworkTexture::ktxMipRequestFinished() {
         if (_ktxResourceState == WAITING_FOR_MIP_REQUEST && _lowestRequestedMipLevel < _lowestKnownPopulatedMip) {
             startRequestForNextMipLevel();
         }
-    }
-    else {
+    } else {
         qWarning() << "Mip request finished in an unexpected state: " << _ktxResourceState;
     }
 }
@@ -660,6 +697,27 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, _maxNumPixels));
 }
 
+void NetworkTexture::refresh() {
+    if ((_ktxHeaderRequest || _ktxMipRequest) && !_loaded && !_failedToLoad) {
+        return;
+    }
+    if (_ktxHeaderRequest || _ktxMipRequest) {
+        if (_ktxHeaderRequest) {
+            _ktxHeaderRequest->disconnect(this);
+            _ktxHeaderRequest->deleteLater();
+            _ktxHeaderRequest = nullptr;
+        }
+        if (_ktxMipRequest) {
+            _ktxMipRequest->disconnect(this);
+            _ktxMipRequest->deleteLater();
+            _ktxMipRequest = nullptr;
+        }
+        TextureCache::requestCompleted(_self);
+    }
+
+    Resource::refresh();
+}
+
 ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url, const QByteArray& data, int maxNumPixels) :
     _resource(resource),
     _url(url),
@@ -741,6 +799,8 @@ void ImageReader::read() {
                 texture = gpu::Texture::unserialize(ktxFile->getFilepath());
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
+                } else {
+                    qCWarning(modelnetworking) << "Invalid cached KTX " << _url << " under hash " << hash.c_str() << ", recreating...";
                 }
             }
         }
@@ -784,7 +844,7 @@ void ImageReader::read() {
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
             size_t length = memKtx->_storage->size();
             auto& ktxCache = textureCache->_ktxCache;
-            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length));
+            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length)); // 
             if (!networkTexture->_file) {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {

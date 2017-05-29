@@ -34,7 +34,6 @@
 #include "avatar/AvatarManager.h"
 #include "AvatarBookmarks.h"
 #include "devices/DdeFaceTracker.h"
-#include "devices/Faceshift.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -198,7 +197,7 @@ Menu::Menu() {
         0, // QML Qt::Key_Apostrophe,
         qApp, SLOT(resetSensors()));
 
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableAvatarCollisions, 0, true,
         avatar.get(), SLOT(updateMotionBehaviorFromMenu()));
 
     // Avatar > AvatarBookmarks related menus -- Note: the AvatarBookmarks class adds its own submenus here.
@@ -451,12 +450,6 @@ Menu::Menu() {
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(noFaceTracker);
 
-#ifdef HAVE_FACESHIFT
-        QAction* faceshiftFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Faceshift,
-            0, false,
-            qApp, SLOT(setActiveFaceTracker()));
-        faceTrackerGroup->addAction(faceshiftFaceTracker);
-#endif
 #ifdef HAVE_DDE
         QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseCamera,
             0, true,
@@ -477,11 +470,10 @@ Menu::Menu() {
     QAction* ddeCalibrate = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::CalibrateCamera, 0,
         DependencyManager::get<DdeFaceTracker>().data(), SLOT(calibrate()));
     ddeCalibrate->setVisible(true);  // DDE face tracking is on by default
-#endif
-#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
     faceTrackingMenu->addSeparator();
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking,
-        Qt::CTRL | Qt::SHIFT | Qt::Key_F, true);  // DDE face tracking is on by default
+        [](bool mute) { FaceTracker::setIsMuted(mute); },
+        Qt::CTRL | Qt::SHIFT | Qt::Key_F, FaceTracker::isMuted());
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::AutoMuteAudio, 0, false);
 #endif
 
@@ -503,12 +495,15 @@ Menu::Menu() {
         qApp, SLOT(setActiveEyeTracker()));
 #endif
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
-        avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
+    action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false);
+    connect(action, &QAction::triggered, [this]{ Avatar::setShowReceiveStats(isOptionChecked(MenuOption::AvatarReceiveStats)); });
+    action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowBoundingCollisionShapes, 0, false);
+    connect(action, &QAction::triggered, [this]{ Avatar::setShowCollisionShapes(isOptionChecked(MenuOption::ShowBoundingCollisionShapes)); });
+    action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowMyLookAtVectors, 0, false);
+    connect(action, &QAction::triggered, [this]{ Avatar::setShowMyLookAtVectors(isOptionChecked(MenuOption::ShowMyLookAtVectors)); });
+    action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowOtherLookAtVectors, 0, false);
+    connect(action, &QAction::triggered, [this]{ Avatar::setShowOtherLookAtVectors(isOptionChecked(MenuOption::ShowOtherLookAtVectors)); });
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderMyLookAtVectors, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderOtherLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawDefaultPose(bool)));
@@ -528,6 +523,10 @@ Menu::Menu() {
         avatar.get(), SLOT(setEnableDebugDrawSensorToWorldMatrix(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderIKTargets, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawIKTargets(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderIKConstraints, 0, false,
+        avatar.get(), SLOT(setEnableDebugDrawIKConstraints(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderIKChains, 0, false,
+        avatar.get(), SLOT(setEnableDebugDrawIKChains(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ActionMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
@@ -541,8 +540,6 @@ Menu::Menu() {
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawHandControllers(bool)));
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
-        qApp, SLOT(setLowVelocityFilter(bool)));
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);

@@ -18,6 +18,8 @@ Q_DECLARE_LOGGING_CATEGORY(gpugllogging)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu_gl)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu_gl_detail)
 
+#define BUFFER_OFFSET(bytes) ((GLubyte*) nullptr + (bytes))
+
 namespace gpu { namespace gl { 
 
 // Create a fence and inject a GPU wait on the fence

@@ -51,6 +51,7 @@
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
+#include "ui/Snapshot.h"
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -177,6 +178,7 @@ void Web3DOverlay::loadSourceURL() {
         _webSurface->getRootContext()->setContextProperty("Quat", new Quat());
         _webSurface->getRootContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
         _webSurface->getRootContext()->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+        _webSurface->getRootContext()->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
@@ -223,10 +225,6 @@ void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
-    if (!_visible || !getParentVisible()) {
-        return;
-    }
-
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
@@ -278,6 +276,10 @@ void Web3DOverlay::render(RenderArgs* args) {
     if (_mayNeedResize) {
         _mayNeedResize = false;
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
+    }
+
+    if (!_visible || !getParentVisible()) {
+        return;
     }
 
     vec2 halfSize = getSize() / 2.0f;
@@ -419,6 +421,13 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
             return;
     }
 
+    //do not send secondary button events to tablet
+    if (event.getButton() == PointerEvent::SecondaryButton ||
+            //do not block composed events
+            event.getButtons() == PointerEvent::SecondaryButton) {
+        return;
+    }
+
     QTouchEvent::TouchPoint point;
     point.setId(event.getID());
     point.setState(touchPointState);
@@ -435,6 +444,9 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
 
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
 
+    if (this->_pressed && event.getType() == PointerEvent::Move) {	
+        return;
+    }
     // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
     // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
     // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".

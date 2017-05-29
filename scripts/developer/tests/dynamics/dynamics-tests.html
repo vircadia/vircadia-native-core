@@ -1,0 +1,37 @@
+<html>
+  <head>
+    <title>Dynamics Tests</title>
+    <meta charset="utf-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="dynamics-tests-interface.js"></script>
+  </head>
+  <body>
+
+    lifetime: <input id="lifetime" type="text" size=6>
+    <hr>
+    <input type="button" id="cone-twist-and-tractor-lever-test" value="Cone-Twist and Tractor-Action Lever"><br>
+    A platform with a lever.  The lever can be moved in a cone and rotated.  A tractor brings it back to its neutral position.
+    <hr>
+    <input type="button" id="door-vs-world-test" value="Hinge Between Swinging Door and World"><br>
+    A grabbable door with a hinge between it and world-space.
+    <hr>
+    <input type="button" id="hinge-chain-test" value="Hinge Chain"><br>
+    A chain of blocks connected by hinges.
+    <hr>
+    <input type="button" id="slider-vs-world-test" value="Slider vs World"><br>
+    The block can only move up and down over a range of 1/2 meter.
+    <hr>
+    <input type="button" id="slider-chain-test" value="Slider Chain"><br>
+    A chain of blocks connected by slider constraints.
+    <hr>
+    <input type="button" id="ball-socket-between-test" value="Ball-Socket Between Spheres Chain"><br>
+    A chain of spheres connected by ball-and-socket joints between the spheres.
+    <hr>
+    <input type="button" id="ball-socket-coincident-test" value="Ball-Socket Coincident Spheres Chain"><br>
+    A chain of spheres connected by ball-and-socket joints coincident-with the spheres.
+    <hr>
+    <input type="button" id="ragdoll-test" value="Ragdoll"><br>
+    A self-righting ragdoll.  The head is on a weak tractor vs the body.
+
+  </body>
+</html>

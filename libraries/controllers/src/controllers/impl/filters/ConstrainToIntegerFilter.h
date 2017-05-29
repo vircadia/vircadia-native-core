@@ -22,6 +22,9 @@ public:
     virtual float apply(float value) const override {
         return glm::sign(value);
     }
+
+    virtual Pose apply(Pose value) const override { return value; }
+
 protected:
 };
 

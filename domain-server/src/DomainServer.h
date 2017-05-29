@@ -100,6 +100,8 @@ private slots:
     void handleSuccessfulICEServerAddressUpdate(QNetworkReply& requestReply);
     void handleFailedICEServerAddressUpdate(QNetworkReply& requestReply);
 
+    void handleOctreeFileReplacement(QByteArray octreeFile);
+
 signals:
     void iceServerChanged();
     void userConnected();
@@ -160,6 +162,8 @@ private:
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
 
     void setupGroupCacheRefresh();
+
+    QString pathForRedirect(QString path = QString()) const;
 
     SubnetList _acSubnetWhitelist;
 

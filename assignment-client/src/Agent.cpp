@@ -55,8 +55,10 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
 Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
-    _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES)
+    _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
+    _audioGate(AudioConstants::SAMPLE_RATE, AudioConstants::MONO)
 {
+    _entityEditSender.setPacketsPerSecond(DEFAULT_ENTITY_PPS_PER_SCRIPT);
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     ResourceManager::init();
@@ -396,16 +398,23 @@ void Agent::executeScript() {
         QByteArray audio(frame->data);
 
         if (_isNoiseGateEnabled) {
-            static int numSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
-            _noiseGate.gateSamples(reinterpret_cast<int16_t*>(audio.data()), numSamples);
+            int16_t* samples = reinterpret_cast<int16_t*>(audio.data());
+            int numSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+            _audioGate.render(samples, samples, numSamples);
         }
 
         computeLoudness(&audio, scriptedAvatar);
 
-        // the codec needs a flush frame before sending silent packets, so
-        // do not send one if the gate closed in this block (eventually this can be crossfaded).
+        // state machine to detect gate opening and closing
+        bool audioGateOpen = (scriptedAvatar->getAudioLoudness() != 0.0f);
+        bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
+        bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
+        _audioGateOpen = audioGateOpen;
+
+        // the codec must be flushed to silence before sending silent packets,
+        // so delay the transition to silent packets by one packet after becoming silent.
         auto packetType = PacketType::MicrophoneAudioNoEcho;
-        if (scriptedAvatar->getAudioLoudness() == 0.0f && !_noiseGate.closedInLastBlock()) {
+        if (!audioGateOpen && !closedInLastBlock) {
             packetType = PacketType::SilentAudioFrame;
         }
 
@@ -583,6 +592,7 @@ void Agent::setIsAvatar(bool isAvatar) {
 void Agent::sendAvatarIdentityPacket() {
     if (_isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+        scriptedAvatar->markIdentityDataChanged();
         scriptedAvatar->sendIdentityPacket();
     }
 }
@@ -618,19 +628,21 @@ void Agent::encodeFrameOfZeros(QByteArray& encodedZeros) {
 }
 
 void Agent::computeLoudness(const QByteArray* decodedBuffer, QSharedPointer<ScriptableAvatar> scriptableAvatar) {
-    float loudness = 0.0f;
+    float lastInputLoudness = 0.0f;
     if (decodedBuffer) {
-        auto soundData = reinterpret_cast<const int16_t*>(decodedBuffer->constData());
-        int numFrames = decodedBuffer->size() / sizeof(int16_t);
-        // now iterate and come up with average
-        if (numFrames > 0) {
-            for(int i = 0; i < numFrames; i++) {
-                loudness += (float) std::abs(soundData[i]);
+        auto samples = reinterpret_cast<const int16_t*>(decodedBuffer->constData());
+        int numSamples = decodedBuffer->size() / AudioConstants::SAMPLE_SIZE;
+
+        assert(numSamples < 65536); // int32_t loudness cannot overflow
+        if (numSamples > 0) {
+            int32_t loudness = 0;
+            for (int i = 0; i < numSamples; ++i) {
+                loudness += std::abs((int32_t)samples[i]);
             }
-            loudness /= numFrames;
+            lastInputLoudness = (float)loudness / numSamples;
         }
     }
-    scriptableAvatar->setAudioLoudness(loudness);
+    scriptableAvatar->setAudioLoudness(lastInputLoudness);
 }
 
 void Agent::processAgentAvatarAudio() {

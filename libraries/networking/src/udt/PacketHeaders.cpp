@@ -39,7 +39,7 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::ICEServerPeerInformation << PacketType::ICEServerQuery << PacketType::ICEServerHeartbeat
     << PacketType::ICEServerHeartbeatACK << PacketType::ICEPing << PacketType::ICEPingReply
     << PacketType::ICEServerHeartbeatDenied << PacketType::AssignmentClientStatus << PacketType::StopNode
-    << PacketType::DomainServerRemovedNode << PacketType::UsernameFromIDReply;
+    << PacketType::DomainServerRemovedNode << PacketType::UsernameFromIDReply << PacketType::OctreeFileReplacement;
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
@@ -49,14 +49,14 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return VERSION_ENTITIES_HINGE_CONSTRAINT;
+            return VERSION_ENTITIES_BULLET_DYNAMICS;
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::JSONFilterWithFamilyTree);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::IdentityPacketsIncludeUpdateTime);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AvatarIdentitySequenceId);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         case PacketType::ICEServerHeartbeat:
