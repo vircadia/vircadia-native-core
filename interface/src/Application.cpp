@@ -246,6 +246,7 @@ Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTRE
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 static const int INTERVAL_TO_CHECK_HMD_MOUNTED_STATUS = 500; // milliseconds
 static const QString OCULUS_RIFT_DISPLAY_PLUGIN_NAME = "Oculus Rift";
+static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
@@ -1348,8 +1349,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 !_hmdPlugin->isStandBySessionActive()) {
                     startHMDStandBySession();
             }
-            // Poll periodically to check whether the user has worn HMD or not. And switch Display mode accordingly.
-            // If the user wear HMD then switch to VR mode. If the user removes HMD then switch to Desktop mode.
+            // Poll periodically to check whether the user has worn HMD or not. Switch Display mode accordingly.
+            // If the user wears HMD then switch to VR mode. If the user removes HMD then switch to Desktop mode.
             QTimer *switchDisplayModeTimer = new QTimer(this);
             connect(switchDisplayModeTimer, SIGNAL(timeout()), this, SLOT(switchDisplayMode()));
             switchDisplayModeTimer->start(INTERVAL_TO_CHECK_HMD_MOUNTED_STATUS);
@@ -6773,7 +6774,7 @@ void Application::switchDisplayMode() {
         // Switch to respective mode as soon as currenthmdMountedStatus changes 
         if (currentHMDMountedStatus == false && _hmdMountedStatus == true) {
             qCDebug(interfaceapp) << "Switching from HMD to desktop mode";
-            setActiveDisplayPlugin("Desktop");
+            setActiveDisplayPlugin(DESKTOP_DISPLAY_PLUGIN_NAME);
             startHMDStandBySession();
         }
         if (currentHMDMountedStatus == true && _hmdMountedStatus == false) {
