@@ -442,7 +442,7 @@ private slots:
     void addAssetToWorldErrorTimeout();
 
     void handleSandboxStatus(QNetworkReply* reply);
-	void switchDisplayModeForOculus();
+    void switchDisplayMode();
 private:
     static void initDisplay();
     void init();
@@ -684,11 +684,12 @@ private:
     SharedSoundPointer _snapshotSound;
 	
 	
-	DisplayPluginPointer oculusRiftPlugin;
-	bool isOculusRiftPluginAvailable();
-	bool _oculusHMDMountedStatus; // Keep track of Oculus Rift HMDMounted Flag
-	bool startOculusRiftStandBySession();
-	void endOculusRiftStandBySession();
+	DisplayPluginPointer _hmdPlugin; // HMD Enabled Plugin
+    QString _hmdPluginName;
+    bool isHMDPluginAvailable();
+	bool _hmdMountedStatus; // Check HMD Mounted status
+	bool startHMDStandBySession();
+	void endHMDStandBySession();
 };
 
 

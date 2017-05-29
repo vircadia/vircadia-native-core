@@ -128,15 +128,15 @@ void OculusBaseDisplayPlugin::internalDeactivate() {
 }
 
 bool OculusBaseDisplayPlugin::activateStandBySession() {
-	_session = acquireOculusSession();
-	if (!_session) {
-		return false;
-	}
-	return true;
+    _session = acquireOculusSession();
+    if (!_session) {
+        return false;
+    }
+    return true;
 }
 void OculusBaseDisplayPlugin::deactivateStandBySession() {
-	releaseOculusSession();
-	_session = nullptr;
+    releaseOculusSession();
+    _session = nullptr;
 }
 void OculusBaseDisplayPlugin::updatePresentPose() {
     //mat4 sensorResetMat;

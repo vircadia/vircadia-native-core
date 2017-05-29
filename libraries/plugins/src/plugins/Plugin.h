@@ -53,18 +53,18 @@ public:
     virtual bool isActive() {
         return _active;
     }
-	virtual bool startStandBySession() {
-		_standbysessionstatus = true;
-		return _standbysessionstatus;
-	}
+    virtual bool startStandBySession() {
+        _standbysessionstatus = true;
+        return _standbysessionstatus;
+    }
 
-	virtual void endStandBySession() {
-		_standbysessionstatus = false;
-	}
+    virtual void endStandBySession() {
+        _standbysessionstatus = false;
+    }
 
-	virtual bool isStandBySessionActive() {
-		return _standbysessionstatus;
-	}
+    virtual bool isStandBySessionActive() {
+        return _standbysessionstatus;
+    }
 
     /**
      * Called by the application during it's idle phase.  If the plugin needs to do
@@ -85,7 +85,7 @@ signals:
 
 protected:
     bool _active { false };
-	bool _standbysessionstatus { false };
+    bool _standbysessionstatus { false };
     PluginContainer* _container { nullptr };
     static const char* UNKNOWN_PLUGIN_ID;
 

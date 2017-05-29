@@ -339,15 +339,15 @@ void OpenGLDisplayPlugin::deactivate() {
 }
 
 bool OpenGLDisplayPlugin::startStandBySession() {
-	if (!activateStandBySession()) {
-		return false;
-	}
-	return Parent::startStandBySession();
+    if (!activateStandBySession()) {
+        return false;
+    }
+    return Parent::startStandBySession();
 }
 
 void OpenGLDisplayPlugin::endStandBySession() {
-	deactivateStandBySession();
-	return Parent::endStandBySession();
+    deactivateStandBySession();
+    return Parent::endStandBySession();
 }
 
 void OpenGLDisplayPlugin::customizeContext() {

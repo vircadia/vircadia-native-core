@@ -33,8 +33,8 @@ protected:
     void uncustomizeContext() override;
     bool internalActivate() override;
     void internalDeactivate() override;
-	bool activateStandBySession() override;
-	void deactivateStandBySession() override;
+    bool activateStandBySession() override;
+    void deactivateStandBySession() override;
     void updatePresentPose() override;
 
 protected:
