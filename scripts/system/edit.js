@@ -229,11 +229,62 @@ var toolBar = (function () {
         systemToolbar = null,
         tablet = null;
 
+    function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
+        // Adjust the position such that the bounding box lies behind the original position.
+        var CORNERS = [
+            { x: 0, y: 0, z: 0 },
+            { x: 0, y: 0, z: 1 },
+            { x: 0, y: 1, z: 0 },
+            { x: 0, y: 1, z: 1 },
+            { x: 1, y: 0, z: 0 },
+            { x: 1, y: 0, z: 1 },
+            { x: 1, y: 1, z: 0 },
+            { x: 1, y: 1, z: 1 },
+        ];
+
+        // Go through all corners and find least (most negative) distance in front of position.
+        var distance = 0;
+        for (var i = 0, length = CORNERS.length; i < length; i++) {
+            var cornerVector =
+                Vec3.multiplyQbyV(orientation, Vec3.multiplyVbyV(Vec3.subtract(CORNERS[i], registration), dimensions));
+            var cornerDistance = Vec3.dot(cornerVector, direction);
+            distance = Math.min(cornerDistance, distance);
+        }
+        position = Vec3.sum(Vec3.multiply(distance, direction), position);
+
+        return position;
+    }
+
     function createNewEntity(properties) {
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
         if (position !== null && position !== undefined) {
+            var ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
+            if (ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                var direction;
+                if (Camera.mode === "entity" || Camera.mode === "independent") {
+                    direction = Camera.orientation;
+                } else {
+                    direction = MyAvatar.orientation;
+                }
+                direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
+
+                var registration = properties.registration;
+                if (registration === undefined) {
+                    var DEFAULT_REGISTRATION = { x: 0.5, y: 0.5, z: 0.5 };
+                    registration = DEFAULT_REGISTRATION;
+                }
+
+                var orientation = properties.orientation;
+                if (orientation === undefined) {
+                    var DEFAULT_ORIENTATION = Quat.fromPitchYawRollDegrees(0, 0, 0);
+                    orientation = DEFAULT_ORIENTATION;
+                }
+
+                position = adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation);
+            }
+
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
             if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM)) {
