@@ -1409,14 +1409,15 @@ function handeMenuEvent(menuItem) {
 }
 function getPositionToCreateEntity() {
     var HALF_TREE_SCALE = 16384;
-    var direction = Quat.getForward(MyAvatar.orientation);
-    var distance = 1;
-    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
-
+    var CREATE_DISTANCE = 2;
+    var position;
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), distance));
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), CREATE_DISTANCE));
+    } else {
+        position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getForward(MyAvatar.orientation), CREATE_DISTANCE));
     }
     position.y += 0.5;
+
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
         return null;
     }
