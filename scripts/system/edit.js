@@ -1486,8 +1486,9 @@ function handeMenuEvent(menuItem) {
     tooltip.show(false);
 }
 
+var HALF_TREE_SCALE = 16384;
+
 function getPositionToCreateEntity() {
-    var HALF_TREE_SCALE = 16384;
     var CREATE_DISTANCE = 2;
     var position;
     if (Camera.mode === "entity" || Camera.mode === "independent") {
@@ -1503,22 +1504,20 @@ function getPositionToCreateEntity() {
     return position;
 }
 
-function getPositionToImportEntity() {
-    var dimensions = Clipboard.getContentsDimensions();
-    var HALF_TREE_SCALE = 16384;
-    var direction = Quat.getForward(MyAvatar.orientation);
-    var longest = 1;
-    longest = Math.sqrt(Math.pow(dimensions.x, 2) + Math.pow(dimensions.z, 2));
-    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, longest));
-
+function getPositionToImportEntities() {
+    var CREATE_DISTANCE = 2;
+    var distance = CREATE_DISTANCE + Clipboard.getClipboardContentsLargestDimension() / 2;
+    var position;
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), longest));
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), distance));
+    } else {
+        position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getForward(MyAvatar.orientation), distance));
+        position.y += 0.5;
     }
 
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
         return null;
     }
-
     return position;
 }
 function importSVO(importURL) {
@@ -1544,7 +1543,7 @@ function importSVO(importURL) {
             z: 0
         };
         if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
-            position = getPositionToImportEntity();
+            position = getPositionToImportEntities();
         }
         if (position !== null && position !== undefined) {
             var pastedEntityIDs = Clipboard.pasteEntities(position);
