@@ -54,9 +54,9 @@ var KEY_TOGGLE= "Space";
 
 var KEYS;
 if (DRIVE_AVATAR_ENABLED) {
-    KEYS = [KEY_TOGGLE, KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN];
+    KEYS = [KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN];
 } else {
-    KEYS = [KEY_TOGGLE];
+    KEYS = [];
 }
 
 // Global Variables
@@ -163,11 +163,6 @@ function vecToString(vec) {
     return vec.x + ", " + vec.y + ", " + vec.z;
 }
 
-function scriptEnding() {
-    disable();
-    Controller.disableMapping(MAPPING_NAME);
-}
-
 function resetCursorPosition() {
     var newX = Math.floor(Window.x + Window.innerWidth / 2);
     var newY = Math.floor(Window.y + Window.innerHeight / 2);
@@ -205,6 +200,8 @@ function enable() {
         MyAvatar.motorVelocity = { x: 0, y: 0, z: 0 };
         MyAvatar.motorTimescale = 1;
 
+        Controller.enableMapping(MAPPING_KEYS_NAME);
+
         Reticle.setVisible(false);
         if (USE_INTERVAL) {
             var lastTime = Date.now();
@@ -227,6 +224,8 @@ function disable() {
 
         MyAvatar.motorVelocity = { x: 0, y: 0, z: 0 };
 
+        Controller.disableMapping(MAPPING_KEYS_NAME);
+
         if (USE_INTERVAL) {
             Script.clearInterval(timerID);
             timerID = null;
@@ -236,9 +235,17 @@ function disable() {
     }
 }
 
+function scriptEnding() {
+    disable();
+    Controller.disableMapping(MAPPING_ENABLE_NAME);
+    Controller.disableMapping(MAPPING_KEYS_NAME);
+}
 
-var MAPPING_NAME = 'io.highfidelity.gracefulControls';
-var controllerMapping = Controller.newMapping(MAPPING_NAME);
+
+var MAPPING_ENABLE_NAME = 'io.highfidelity.gracefulControls.toggle';
+var MAPPING_KEYS_NAME = 'io.highfidelity.gracefulControls.keys';
+var keyControllerMapping = Controller.newMapping(MAPPING_KEYS_NAME);
+var enableControllerMapping = Controller.newMapping(MAPPING_ENABLE_NAME);
 
 function onKeyPress(key, value) {
     print(key, value);
@@ -261,7 +268,7 @@ for (var i = 0; i < KEYS.length; ++i) {
     var key = KEYS[i];
     var hw = Controller.Hardware.Keyboard[key];
     if (hw) {
-        controllerMapping.from(hw).to(function(key) {
+        keyControllerMapping.from(hw).to(function(key) {
             return function(value) {
                 onKeyPress(key, value);
             };
@@ -271,6 +278,10 @@ for (var i = 0; i < KEYS.length; ++i) {
     }
 }
 
-Controller.enableMapping(MAPPING_NAME);
+enableControllerMapping.from(Controller.Hardware.Keyboard[KEY_TOGGLE]).to(function(value) {
+    onKeyPress(KEY_TOGGLE, value);
+});
+
+Controller.enableMapping(MAPPING_ENABLE_NAME);
 
 Script.scriptEnding.connect(scriptEnding);
