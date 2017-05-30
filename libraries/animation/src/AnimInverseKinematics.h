@@ -70,7 +70,8 @@ protected:
     void debugDrawIKChain(std::map<int, DebugJoint>& debugJointMap, const AnimContext& context) const;
     void debugDrawRelativePoses(const AnimContext& context) const;
     void debugDrawConstraints(const AnimContext& context) const;
-    void debugDrawSpineSpline(const AnimContext& context) const;
+    void debugDrawSpineSpline(const AnimContext& context, const std::vector<IKTarget>& targets);
+    void computeSplineJointInfosForIKTarget(const AnimContext& context, int targetIndex, const IKTarget& target);
     void initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPose);
     void blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPose, float blendFactor);
 
@@ -111,6 +112,14 @@ protected:
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
     AnimPoseVec _limitCenterPoses;  // relative
+
+    struct SplineJointInfo {
+        int jointIndex;
+        float ratio;
+        AnimPose defaultPose;
+        AnimPose offsetPose;
+    };
+    std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;
 
     // experimental data for moving hips during IK
     glm::vec3 _hipsOffset { Vectors::ZERO };

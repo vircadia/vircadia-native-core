@@ -576,12 +576,12 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 _hipsOffset = Vectors::ZERO;
             }
         }
-    }
 
-    if (context.getEnableDebugDrawIKConstraints()) {
-        debugDrawConstraints(context);
+        if (context.getEnableDebugDrawIKConstraints()) {
+            debugDrawConstraints(context);
+        }
+        debugDrawSpineSpline(context, targets);
     }
-    debugDrawSpineSpline(context);
 
     return _relativePoses;
 }
@@ -1319,14 +1319,77 @@ void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource s
     }
 }
 
-struct SplineJointInfo {
-    int index;
-    float ratio;
-    AnimPose defaultPose;
-    AnimPose offsetPose;
-};
+void AnimInverseKinematics::computeSplineJointInfosForIKTarget(const AnimContext& context, int targetIndex, const IKTarget& target) {
+    std::vector<SplineJointInfo> splineJointInfoVec;
 
-void AnimInverseKinematics::debugDrawSpineSpline(const AnimContext& context) const {
+    // build default spline
+    AnimPose geomToRigPose(context.getGeometryToRigMatrix());
+    AnimPose tipPose = geomToRigPose * _skeleton->getAbsoluteDefaultPose(target.getIndex());
+    AnimPose basePose = geomToRigPose * _skeleton->getAbsoluteDefaultPose(_hipsIndex);
+
+    const float BASE_GAIN = 0.5f;
+    const float TIP_GAIN = 1.0f;
+    float d = glm::length(basePose.trans() - tipPose.trans());
+    glm::vec3 p0 = basePose.trans();
+    glm::vec3 m0 = BASE_GAIN * d * (basePose.rot() * Vectors::UNIT_Y);
+    glm::vec3 p1 = tipPose.trans();
+    glm::vec3 m1 = TIP_GAIN * d * (tipPose.rot() * Vectors::UNIT_Y);
+
+    // AJT: FIXME: TODO: this won't work for horizontal splines...
+    float baseToTipHeight = tipPose.trans().y - basePose.trans().y;
+
+    CubicHermiteSplineFunctorWithArcLength spline(p0, m0, p1, m1);
+    float totalArcLength = spline.arcLength(1.0f);
+
+    int index = _headIndex;
+    int endIndex = _skeleton->getParentIndex(_hipsIndex);
+    while (index != endIndex) {
+        AnimPose defaultPose = geomToRigPose * _skeleton->getAbsoluteDefaultPose(index);
+
+        // AJT: FIXME: TODO: this wont work for horizontal splines...
+        float ratio = (defaultPose.trans().y - basePose.trans().y) / baseToTipHeight;
+
+        // compute offset from default spline pose to default pose.
+        float t = spline.arcLengthInverse(ratio * totalArcLength);
+        AnimPose pose(glm::vec3(1.0f), glm::normalize(glm::lerp(basePose.rot(), tipPose.rot(), t)), spline(t));
+        AnimPose offset = pose.inverse() * defaultPose;
+
+        SplineJointInfo splineJointInfo = { index, ratio, defaultPose, offset };
+        splineJointInfoVec.push_back(splineJointInfo);
+        index = _skeleton->getParentIndex(index);
+    }
+
+    _splineJointInfoMap[targetIndex] = splineJointInfoVec;
+}
+
+void AnimInverseKinematics::debugDrawSpineSpline(const AnimContext& context, const std::vector<IKTarget>& targets) {
+
+    // find head target
+    int headTargetIndex = -1;
+    for (int i = 0; i < (int)targets.size(); i++) {
+        if (targets[i].getIndex() == _headIndex) {
+            headTargetIndex = i;
+            break;
+        }
+    }
+
+    // find or create splineJointInfo for the head target
+    const std::vector<SplineJointInfo>* splineJointInfoVec = nullptr;
+    if (headTargetIndex != -1) {
+        auto iter = _splineJointInfoMap.find(headTargetIndex);
+        if (iter != _splineJointInfoMap.end()) {
+            splineJointInfoVec = &(iter->second);
+        } else {
+            computeSplineJointInfosForIKTarget(context, headTargetIndex, targets[headTargetIndex]);
+            auto iter = _splineJointInfoMap.find(headTargetIndex);
+            if (iter != _splineJointInfoMap.end()) {
+                splineJointInfoVec = &(iter->second);
+            }
+        }
+    }
+
+    // AJT: TODO: render using splineJointInfoVec offset
+
     AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
 
     AnimPose hipsPose = geomToWorldPose * _skeleton->getAbsolutePose(_hipsIndex, _relativePoses);
@@ -1365,23 +1428,14 @@ void AnimInverseKinematics::debugDrawSpineSpline(const AnimContext& context) con
     AnimPose defaultHeadPose = _skeleton->getAbsoluteDefaultPose(_headIndex);
     float hipsToHeadHeight = defaultHeadPose.trans().y - defaultHipsPose.trans().y;
 
-    // iterate down the chain and build the splineJointInfoVec
-    std::vector<SplineJointInfo> splineJointInfoVec;
-    int index = _headIndex;
-    int endIndex = _skeleton->getParentIndex(_hipsIndex);
-    while (index != endIndex) {
-        AnimPose defaultPose = _skeleton->getAbsoluteDefaultPose(index);
-        float ratio = (defaultPose.trans().y - defaultHipsPose.trans().y) / hipsToHeadHeight;
-        SplineJointInfo splineJointInfo = { index, ratio, defaultPose, AnimPose() };
-        splineJointInfoVec.push_back(splineJointInfo);
-        index = _skeleton->getParentIndex(index);
-    }
-
-    for (auto& splineJointInfo : splineJointInfoVec) {
-        float t = hermiteFunc.arcLengthInverse(splineJointInfo.ratio * totalArcLength);
-        glm::vec3 trans = hermiteFunc(t);
-        glm::quat rot = glm::normalize(glm::lerp(hipsPose.rot(), headPose.rot(), t));
-        DebugDraw::getInstance().addMarker(QString("splineJoint%1").arg(splineJointInfo.index), rot, trans, BLUE);
+    if (splineJointInfoVec) {
+        for (auto& splineJointInfo : *splineJointInfoVec) {
+            float t = hermiteFunc.arcLengthInverse(splineJointInfo.ratio * totalArcLength);
+            glm::vec3 trans = hermiteFunc(t);
+            glm::quat rot = glm::normalize(glm::lerp(hipsPose.rot(), headPose.rot(), t));
+            AnimPose pose = AnimPose(glm::vec3(1.0f), rot, trans) * splineJointInfo.offsetPose;
+            DebugDraw::getInstance().addMarker(QString("splineJoint%1").arg(splineJointInfo.jointIndex), pose.rot(), pose.trans(), BLUE);
+        }
     }
 
 }
