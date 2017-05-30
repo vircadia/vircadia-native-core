@@ -435,6 +435,11 @@ void MyAvatar::update(float deltaTime) {
         // so we update now. It's ok if it updates again in the normal way.
         updateSensorToWorldMatrix();
         emit positionGoneTo();
+        _physicsSafetyPending = true;
+    }
+    if (_physicsSafetyPending && qApp->isPhysicsEnabled()) {
+        _physicsSafetyPending = false;
+        safeLanding(_goToPosition); // no-op if already safe
     }
 
     Head* head = getHead();
@@ -2244,22 +2249,30 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
         QMetaObject::invokeMethod(this, "safeLanding", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, result), Q_ARG(const glm::vec3&, position));
         return result;
     }
+    glm::vec3 better;
+    if (requiresSafeLanding(position, better)) {
+        qDebug() << "rechecking" << position << " => " << better << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
+        if (!getCollisionsEnabled()) {
+            goToLocation(better);  // recurses
+        } else { // If you try to go while stuck, physics will keep you stuck.
+            setCollisionsEnabled(false);
+            // Don't goToLocation just yet. Yield so that physics can act on the above.
+            QMetaObject::invokeMethod(this, "goToLocationAndEnableCollisions", Qt::QueuedConnection, // The equivalent of javascript nextTick
+                Q_ARG(glm::vec3, better)); // I.e., capsuleCenter - offset
+        }
+        return true;
+    }
+    return false;
+}
 
+bool MyAvatar::requiresSafeLanding(const glm::vec3& position, glm::vec3& betterPosition) {
     const auto offset = getOrientation() *_characterController.getCapsuleLocalOffset();
     const auto capsuleCenter = position + offset;
     // We could repeat this whole test for each of the four corners of our bounding box, in case the surface is uneven. However:
     // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes in the surfaces or avatar.
     // 2) My feeling is that this code is already at the limit of what can realistically be reviewed and maintained.
     auto direct = [&](const char* label) {  // position is good to go, or at least, we cannot do better
-        //qDebug() << "Already safe" << label << position;
-        if (!getCollisionsEnabled()) {
-            goToLocation(position);
-        } else { // If you try to go while stuck, physics will keep you stuck.
-            setCollisionsEnabled(false);
-            // Don't goToLocation just yet. Yield so that physics can act on the above.
-            QMetaObject::invokeMethod(this, "goToLocationAndEnableCollisions", Qt::QueuedConnection, // The equivalent of javascript nextTick
-                Q_ARG(glm::vec3, position)); // I.e., capsuleCenter - offset
-         }
+        qDebug() << "Already safe" << label << position << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
         return false;
     };
     auto halfHeight = _characterController.getCapsuleHalfHeight();
@@ -2277,7 +2290,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     QVector<EntityItemID> include{};
     QVector<EntityItemID> ignore{};
     auto recurse = [&] {  // Place bottom of capsule at the upperIntersection, and check again based on the capsule center.
-        safeLanding(upperIntersection + (up * halfHeight) - offset);
+        betterPosition = upperIntersection + (up * halfHeight) - offset;
         return true;
     };
     auto findIntersection = [&](const glm::vec3& startPointIn, const glm::vec3& directionIn, glm::vec3& intersectionOut, EntityItemID& entityIdOut, glm::vec3& normalOut) {
@@ -2287,6 +2300,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
         BoxFace face;
         const bool visibleOnly = false;
         // FIXME: this doesn't do what we want here. findRayIntersection always works on mesh, skipping entirely based on collidable. What we really want is to use the collision hull! See CharacterGhostObject::rayTest?
+        // See https://highfidelity.fogbugz.com/f/cases/5003/findRayIntersection-has-option-to-use-collidableOnly-but-doesn-t-actually-use-colliders
         const bool collidableOnly = true;
         const bool precisionPicking = true;
         const auto lockType = Octree::Lock; // Should we refactor to take a lock just once?
@@ -2378,6 +2392,7 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
+    qDebug() << "FIXME updateMotionBehaviorFromMenu collisions:" << menu->isOptionChecked(MenuOption::EnableAvatarCollisions) << "physics:" << qApp->isPhysicsEnabled();
     setCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
 }
 

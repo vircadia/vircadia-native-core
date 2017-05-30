@@ -571,7 +571,7 @@ private:
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
-
+    bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
 
@@ -722,7 +722,8 @@ private:
     };
     FollowHelper _follow;
 
-    bool _goToPending;
+    bool _goToPending { false };
+    bool _physicsSafetyPending { false };
     glm::vec3 _goToPosition;
     glm::quat _goToOrientation;
 
