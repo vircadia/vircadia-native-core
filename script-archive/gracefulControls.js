@@ -41,18 +41,18 @@ var USE_INTERVAL = true;
 
 var movementParameters = DEFAULT_PARAMETERS;
 
-// Movement keys
-var KEY_BRAKE = "q";
-var KEY_FORWARD = "w";
-var KEY_BACKWARD = "s";
-var KEY_LEFT = "a";
-var KEY_RIGHT = "d";
-var KEY_UP = "e";
-var KEY_DOWN = "c";
-var KEY_TOGGLE= "SPACE";
-var KEY_DISABLE = "ESC";
-var CAPTURED_KEYS;
 
+// Movement keys
+var KEY_BRAKE = "Q";
+var KEY_FORWARD = "W";
+var KEY_BACKWARD = "S";
+var KEY_LEFT = "A";
+var KEY_RIGHT = "D";
+var KEY_UP = "E";
+var KEY_DOWN = "C";
+var KEY_TOGGLE= "Space";
+
+var CAPTURED_KEYS;
 if (DRIVE_AVATAR_ENABLED) {
     CAPTURED_KEYS = [KEY_TOGGLE, KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN];
 } else {
@@ -73,24 +73,6 @@ var pitchFromMouse = 0;
 var yawSpeed = 0;
 var pitchSpeed = 0;
 
-function keyPressEvent(event) {
-    if (event.text == KEY_DISABLE) {
-        disable();
-    } else if (event.text == KEY_TOGGLE) {
-        toggleEnabled();
-    } else if (event.text == KEY_BRAKE) {
-        movementParameters = BRAKE_PARAMETERS;
-    }
-    keys[event.text] = true;
-}
-
-function keyReleaseEvent(event) {
-    if (event.text == KEY_BRAKE) {
-        movementParameters = DEFAULT_PARAMETERS;
-    }
-
-    delete keys[event.text];
-}
 
 function update(dt) {
     if (enabled && Window.hasFocus()) {
@@ -174,7 +156,6 @@ function update(dt) {
         v.y += velocityVertical;
 
         MyAvatar.motorVelocity = v;
-        Vec3.print('vel', v);
     }
 }
 
@@ -184,6 +165,7 @@ function vecToString(vec) {
 
 function scriptEnding() {
     disable();
+    Controller.disableMapping(MAPPING_NAME);
 }
 
 function resetCursorPosition() {
@@ -223,9 +205,6 @@ function enable() {
         MyAvatar.motorVelocity = { x: 0, y: 0, z: 0 };
         MyAvatar.motorTimescale = 1;
 
-        for (var i = 0; i < CAPTURED_KEYS.length; i++) {
-            Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
-        }
         Reticle.setVisible(false);
         if (USE_INTERVAL) {
             var lastTime = Date.now();
@@ -244,11 +223,11 @@ function enable() {
 function disable() {
     if (enabled) {
         enabled = false;
-        for (var i = 0; i < CAPTURED_KEYS.length; i++) {
-            Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
-        }
+        Controller.disableMapping(MAPPING_NAME);
         Reticle.setVisible(true);
+
         MyAvatar.motorVelocity = { x: 0, y: 0, z: 0 };
+
         if (USE_INTERVAL) {
             Script.clearInterval(timerID);
             timerID = null;
@@ -258,7 +237,41 @@ function disable() {
     }
 }
 
-Controller.keyPressEvent.connect(keyPressEvent);
-Controller.keyReleaseEvent.connect(keyReleaseEvent);
+
+var MAPPING_NAME = 'io.highfidelity.gracefulControls';
+var controllerMapping = Controller.newMapping(MAPPING_NAME);
+
+function onKeyPress(key, value) {
+    print(key, value);
+    keys[key] = value > 0;
+
+    if (value > 0) {
+        if (key == KEY_TOGGLE) {
+            toggleEnabled();
+        } else if (key == KEY_BRAKE) {
+            movementParameters = BRAKE_PARAMETERS;
+        }
+    } else {
+        if (key == KEY_BRAKE) {
+            movementParameters = DEFAULT_PARAMETERS;
+        }
+    }
+}
+
+for (var i = 0; i < CAPTURED_KEYS.length; ++i) {
+    var key = CAPTURED_KEYS[i];
+    var hw = Controller.Hardware.Keyboard[key];
+    if (hw) {
+        controllerMapping.from(hw).to(function(key) {
+            return function(value) {
+                onKeyPress(key, value);
+            };
+        }(key));
+    } else {
+        print("Unknown key: ", key);
+    }
+}
+
+Controller.enableMapping(MAPPING_NAME);
 
 Script.scriptEnding.connect(scriptEnding);
