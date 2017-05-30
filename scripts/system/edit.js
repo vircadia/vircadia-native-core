@@ -1490,30 +1490,14 @@ function handeMenuEvent(menuItem) {
 
 var HALF_TREE_SCALE = 16384;
 
-function getPositionToCreateEntity() {
+function getPositionToCreateEntity(extra) {
     var CREATE_DISTANCE = 2;
     var position;
+    var delta = extra !== undefined ? extra : 0;
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), CREATE_DISTANCE));
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), CREATE_DISTANCE + delta));
     } else {
-        position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getForward(MyAvatar.orientation), CREATE_DISTANCE));
-        position.y += 0.5;
-    }
-
-    if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
-        return null;
-    }
-    return position;
-}
-
-function getPositionToImportEntities() {
-    var CREATE_DISTANCE = 2;
-    var distance = CREATE_DISTANCE + Clipboard.getClipboardContentsLargestDimension() / 2;
-    var position;
-    if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), distance));
-    } else {
-        position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getForward(MyAvatar.orientation), distance));
+        position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getForward(MyAvatar.orientation), CREATE_DISTANCE + delta));
         position.y += 0.5;
     }
 
@@ -1543,7 +1527,7 @@ function importSVO(importURL) {
         var isLargeImport = Clipboard.getClipboardContentsLargestDimension() >= VERY_LARGE;
         var position = Vec3.ZERO;
         if (!isLargeImport) {
-            position = getPositionToImportEntities();
+            position = getPositionToCreateEntity(Clipboard.getClipboardContentsLargestDimension() / 2);
         }
         if (position !== null && position !== undefined) {
             var pastedEntityIDs = Clipboard.pasteEntities(position);
