@@ -1,6 +1,6 @@
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Android specific instructions are found in this file.
 
-###Android Dependencies
+### Android Dependencies
 
 You will need the following tools to build our Android targets.
 
@@ -17,23 +17,23 @@ You will need the following tools to build our Android targets.
 
 You will also need to cross-compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
 
-####Scribe
+#### Scribe
 
 High Fidelity has a shader pre-processing tool called `scribe` that various libraries will call on during the build process. You must compile scribe using your native toolchain (following the build instructions for your platform) and then pass a CMake variable or set an ENV variable `SCRIBE_PATH` that is a path to the scribe executable.
 
 CMake will fatally error if it does not find the scribe executable while using the android toolchain.
 
-####Optional Components
+#### Optional Components
 
 * [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) ~> 0.4.2
 
-####ANDROID_LIB_DIR
+#### ANDROID_LIB_DIR
 
 Since you won't be installing Android dependencies to system paths on your development machine, CMake will need a little help tracking down your Android dependencies.
 
 This is most easily accomplished by installing all Android dependencies in the same folder. You can place this folder wherever you like on your machine. In this build guide and across our CMakeLists files this folder is referred to as `ANDROID_LIB_DIR`. You can set `ANDROID_LIB_DIR` in your environment or by passing when you run CMake.
 
-####Qt
+#### Qt
 
 Install Qt 5.5.1 for Android for your host environment from the [Qt downloads page](http://www.qt.io/download/). Install Qt to ``$ANDROID_LIB_DIR/Qt``. This is required so that our root CMakeLists file can help CMake find your Android Qt installation.
 
@@ -41,7 +41,7 @@ The component required for the Android build is the `Android armv7` component.
 
 If you would like to install Qt to a different location, or attempt to build with a different Qt version, you can pass `ANDROID_QT_CMAKE_PREFIX_PATH` to CMake. Point to the `cmake` folder inside `$VERSION_NUMBER/android_armv7/lib`. Otherwise, our root CMakeLists will set it to `$ANDROID_LIB_DIR/Qt/5.5/android_armv7/lib/cmake`.
 
-####OpenSSL
+#### OpenSSL
 
 Cross-compilation of OpenSSL has been tested from an OS X machine running 10.10 compiling OpenSSL 1.0.2. It is likely that the steps below will work for other OpenSSL versions than 1.0.2.
 
@@ -76,7 +76,7 @@ This should generate libcrypto and libssl in the root of the OpenSSL directory. 
 
 If you have been building other components it is possible that the OpenSSL compile will fail based on the values other cross-compilations (tbb, bullet) have set. Ensure that you are in a new terminal window to avoid compilation errors from previously set environment variables.
 
-####Oculus Mobile SDK
+#### Oculus Mobile SDK
 
 The Oculus Mobile SDK is optional, for Gear VR support. It is not required to compile gvr-interface.
 
@@ -91,7 +91,7 @@ ndk-build
 
 This will create the liboculus.a archive that our FindLibOVR module will look for when cmake is run.
 
-#####Hybrid testing
+##### Hybrid testing
 
 Currently the 'vr_dual' mode that would allow us to run a hybrid app has limited support in the Oculus Mobile SDK. The best way to have an application we can launch without having to connect to the GearVR is to put the Gear VR Service into developer mode. This stops Oculus Home from taking over the device when it is plugged into the Gear VR headset, and allows the application to be launched from the Applications page.
 
@@ -99,7 +99,7 @@ To put the Gear VR Service into developer mode you need an application with an O
 
 Once the application is on your device, go to `Settings->Application Manager->Gear VR Service->Manage Storage`. Tap on `VR Service Version` six times. It will scan your device to verify that you have an osig file in an application on your device, and then it will let you enable Developer mode.
 
-###CMake
+### CMake
 
 We use CMake to generate the makefiles that compile and deploy the Android APKs to your device. In order to create Makefiles for the Android targets, CMake requires that some environment variables are set, and that other variables are passed to it when it is run.
 
