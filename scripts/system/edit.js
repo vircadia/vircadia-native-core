@@ -217,6 +217,32 @@ function hideMarketplace() {
 //     }
 // }
 
+function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
+    // Adjust the position such that the bounding box (registration, dimenions, and orientation) lies behind the original 
+    // position in the given direction.
+    var CORNERS = [
+        { x: 0, y: 0, z: 0 },
+        { x: 0, y: 0, z: 1 },
+        { x: 0, y: 1, z: 0 },
+        { x: 0, y: 1, z: 1 },
+        { x: 1, y: 0, z: 0 },
+        { x: 1, y: 0, z: 1 },
+        { x: 1, y: 1, z: 0 },
+        { x: 1, y: 1, z: 1 },
+    ];
+
+    // Go through all corners and find least (most negative) distance in front of position.
+    var distance = 0;
+    for (var i = 0, length = CORNERS.length; i < length; i++) {
+        var cornerVector =
+            Vec3.multiplyQbyV(orientation, Vec3.multiplyVbyV(Vec3.subtract(CORNERS[i], registration), dimensions));
+        var cornerDistance = Vec3.dot(cornerVector, direction);
+        distance = Math.min(cornerDistance, distance);
+    }
+    position = Vec3.sum(Vec3.multiply(distance, direction), position);
+    return position;
+}
+
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
 var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
@@ -229,33 +255,9 @@ var toolBar = (function () {
         systemToolbar = null,
         tablet = null;
 
-    function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
-        // Adjust the position such that the bounding box lies behind the original position.
-        var CORNERS = [
-            { x: 0, y: 0, z: 0 },
-            { x: 0, y: 0, z: 1 },
-            { x: 0, y: 1, z: 0 },
-            { x: 0, y: 1, z: 1 },
-            { x: 1, y: 0, z: 0 },
-            { x: 1, y: 0, z: 1 },
-            { x: 1, y: 1, z: 0 },
-            { x: 1, y: 1, z: 1 },
-        ];
-
-        // Go through all corners and find least (most negative) distance in front of position.
-        var distance = 0;
-        for (var i = 0, length = CORNERS.length; i < length; i++) {
-            var cornerVector =
-                Vec3.multiplyQbyV(orientation, Vec3.multiplyVbyV(Vec3.subtract(CORNERS[i], registration), dimensions));
-            var cornerDistance = Vec3.dot(cornerVector, direction);
-            distance = Math.min(cornerDistance, distance);
-        }
-        position = Vec3.sum(Vec3.multiply(distance, direction), position);
-
-        return position;
-    }
-
     function createNewEntity(properties) {
+
+
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
@@ -1520,6 +1522,7 @@ function getPositionToImportEntities() {
     }
     return position;
 }
+
 function importSVO(importURL) {
     if (!Entities.canRez() && !Entities.canRezTmp()) {
         Window.notifyEditError(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
@@ -1537,22 +1540,56 @@ function importSVO(importURL) {
 
     if (success) {
         var VERY_LARGE = 10000;
-        var position = {
-            x: 0,
-            y: 0,
-            z: 0
-        };
-        if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
+        var isLargeImport = Clipboard.getClipboardContentsLargestDimension() >= VERY_LARGE;
+        var position = Vec3.ZERO;
+        if (!isLargeImport) {
             position = getPositionToImportEntities();
         }
         if (position !== null && position !== undefined) {
             var pastedEntityIDs = Clipboard.pasteEntities(position);
+            if (!isLargeImport) {
+                // The first entity in Clipboard gets the specified position with the rest being relative to it. Therefore, move
+                // entities after they're imported so that they're all the correct distance in front of and with geometric mean
+                // centered on the avatar/camera direction.
+
+                var targetDirection;
+                if (Camera.mode === "entity" || Camera.mode === "independent") {
+                    targetDirection = Camera.orientation;
+                } else {
+                    targetDirection = MyAvatar.orientation;
+                }
+                targetDirection = Vec3.multiplyQbyV(targetDirection, Vec3.UNIT_Z);
+
+                var targetPosition = getPositionToCreateEntity();
+                var deltaParallel = HALF_TREE_SCALE;  // Distance to move entities parallel to targetDirection.
+                var deltaPerpendicular = Vec3.ZERO;  // Distance to move entities perpendicular to targetDirection.
+                var entityPositions = [];
+                for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
+                    var properties = Entities.getEntityProperties(pastedEntityIDs[i], ["position", "dimensions",
+                        "registrationPoint", "rotation"]);
+                    var adjustedPosition = adjustPositionPerBoundingBox(targetPosition, targetDirection, properties.registrationPoint,
+                        properties.dimensions, properties.rotation);
+                    var delta = Vec3.subtract(adjustedPosition, properties.position);
+                    var distance = Vec3.dot(delta, targetDirection);
+                    deltaParallel = Math.min(distance, deltaParallel);
+                    deltaPerpendicular = Vec3.sum(Vec3.subtract(delta, Vec3.multiply(distance, targetDirection)), deltaPerpendicular);
+                    entityPositions[i] = properties.position;
+                }
+                deltaPerpendicular = Vec3.multiply(1 / pastedEntityIDs.length, deltaPerpendicular);
+
+                var deltaPosition = Vec3.sum(Vec3.multiply(deltaParallel, targetDirection), deltaPerpendicular);
+                for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
+                    Entities.editEntity(pastedEntityIDs[i], {
+                        position: Vec3.sum(deltaPosition, entityPositions[i])
+                    });
+                }
+            }
 
             if (isActive) {
                 selectionManager.setSelections(pastedEntityIDs);
             }
         } else {
-            Window.notifyEditError("Can't import objects: objects would be out of bounds.");
+            Window.notifyEditError("Can't import entities: entities would be out of bounds.");
         }
     } else {
         Window.notifyEditError("There was an error importing the entity file.");
