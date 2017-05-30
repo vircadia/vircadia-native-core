@@ -116,6 +116,8 @@ Item {
                 tabletRoot.openBrowserWindow(request, profile);
             }
         }
+
+        HiFiControls.WebSpinner { }
     }
 
     HiFiControls.Keyboard {
