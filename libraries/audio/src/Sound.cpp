@@ -13,6 +13,8 @@
 
 #include <glm/glm.hpp>
 
+#include <QRunnable>
+#include <QThreadPool>
 #include <QDataStream>
 #include <QtCore/QDebug>
 #include <QtNetwork/QNetworkRequest>
@@ -49,13 +51,43 @@ Sound::Sound(const QUrl& url, bool isStereo, bool isAmbisonic) :
     _isAmbisonic(isAmbisonic),
     _isReady(false)
 {
-
 }
 
 void Sound::downloadFinished(const QByteArray& data) {
+    // this is a QRunnable, will delete itself after it has finished running
+    SoundProcessor* soundProcessor = new SoundProcessor(_url, data, _isStereo, _isAmbisonic);
+    connect(soundProcessor, &SoundProcessor::onSuccess, this, &Sound::soundProcessSuccess);
+    connect(soundProcessor, &SoundProcessor::onError, this, &Sound::soundProcessError);
+    QThreadPool::globalInstance()->start(soundProcessor);
+}
+
+void Sound::soundProcessSuccess(QByteArray data, bool stereo, bool ambisonic, float duration) {
+
+    qCDebug(audio) << "Setting ready state for sound file" << _url.toDisplayString();
+
+    _byteArray = data;
+    _isStereo = stereo;
+    _isAmbisonic = ambisonic;
+    _duration = duration;
+    _isReady = true;
+    finishedLoading(true);
+
+    emit ready();
+}
+
+void Sound::soundProcessError(int error, QString str) {
+    qCCritical(audio) << "Failed to process sound file" << _url.toDisplayString() << "code =" << error << str;
+    emit failed(QNetworkReply::UnknownContentError);
+    finishedLoading(false);
+}
+
+void SoundProcessor::run() {
+
+    qCDebug(audio) << "Processing sound file" << _url.toDisplayString();
+
     // replace our byte array with the downloaded data
-    QByteArray rawAudioByteArray = QByteArray(data);
-    QString fileName = getURL().fileName().toLower();
+    QByteArray rawAudioByteArray = QByteArray(_data);
+    QString fileName = _url.fileName().toLower();
 
     static const QString WAV_EXTENSION = ".wav";
     static const QString RAW_EXTENSION = ".raw";
@@ -72,31 +104,28 @@ void Sound::downloadFinished(const QByteArray& data) {
         // since it's raw the only way for us to know that is if the file was called .stereo.raw
         if (fileName.toLower().endsWith("stereo.raw")) {
             _isStereo = true;
-            qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << getURL() << "as stereo audio file.";
+            qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << _url << "as stereo audio file.";
         }
 
         // Process as 48khz RAW file
         downSample(rawAudioByteArray, 48000);
     } else {
         qCDebug(audio) << "Unknown sound file type";
+        emit onError(300, "Failed to load sound file, reason: unknown sound file type");
+        return;
     }
 
-    finishedLoading(true);
-
-    _isReady = true;
-    emit ready();
+    emit onSuccess(_data, _isStereo, _isAmbisonic, _duration);
 }
 
-void Sound::downSample(const QByteArray& rawAudioByteArray, int sampleRate) {
+void SoundProcessor::downSample(const QByteArray& rawAudioByteArray, int sampleRate) {
 
     // we want to convert it to the format that the audio-mixer wants
     // which is signed, 16-bit, 24Khz
 
     if (sampleRate == AudioConstants::SAMPLE_RATE) {
-
         // no resampling needed
-        _byteArray = rawAudioByteArray;
-
+        _data = rawAudioByteArray;
     } else {
 
         int numChannels = _isAmbisonic ? AudioConstants::AMBISONIC : (_isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
@@ -106,15 +135,15 @@ void Sound::downSample(const QByteArray& rawAudioByteArray, int sampleRate) {
         int numSourceFrames = rawAudioByteArray.size() / (numChannels * sizeof(AudioConstants::AudioSample));
         int maxDestinationFrames = resampler.getMaxOutput(numSourceFrames);
         int maxDestinationBytes = maxDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
-        _byteArray.resize(maxDestinationBytes);
+        _data.resize(maxDestinationBytes);
 
         int numDestinationFrames = resampler.render((int16_t*)rawAudioByteArray.data(), 
-                                                    (int16_t*)_byteArray.data(), 
+                                                    (int16_t*)_data.data(),
                                                     numSourceFrames);
 
         // truncate to actual output
         int numDestinationBytes = numDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
-        _byteArray.resize(numDestinationBytes);
+        _data.resize(numDestinationBytes);
     }
 }
 
@@ -163,7 +192,7 @@ struct WAVEFormat {
 };
 
 // returns wavfile sample rate, used for resampling
-int Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray) {
+int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray) {
 
     // Create a data stream to analyze the data
     QDataStream waveStream(const_cast<QByteArray *>(&inputAudioByteArray), QIODevice::ReadOnly);
