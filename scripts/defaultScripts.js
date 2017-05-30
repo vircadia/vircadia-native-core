@@ -13,7 +13,7 @@
 
 var DEFAULT_SCRIPTS_COMBINED = [
     "system/progress.js",
-    //"system/away.js",
+    "system/away.js",
     "system/audio.js",
     "system/hmd.js",
     "system/menu.js",
