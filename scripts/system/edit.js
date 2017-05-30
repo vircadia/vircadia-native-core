@@ -256,8 +256,6 @@ var toolBar = (function () {
         tablet = null;
 
     function createNewEntity(properties) {
-
-
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
@@ -307,7 +305,7 @@ var toolBar = (function () {
                 var dimensionsCheckCount = 0;
                 var dimensionsCheckFunction = function () {
                     dimensionsCheckCount++;
-                    var properties = Entities.getEntityProperties(entityID, ["dimensions", "registrationPoint", "orientation", "rotation"]);
+                    var properties = Entities.getEntityProperties(entityID, ["dimensions", "registrationPoint", "rotation"]);
                     if (!Vec3.equal(properties.dimensions, initialDimensions)) {
                         position = adjustPositionPerBoundingBox(position, direction, properties.registrationPoint,
                             properties.dimensions, properties.rotation);
@@ -1551,12 +1549,13 @@ function importSVO(importURL) {
                 for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
                     var properties = Entities.getEntityProperties(pastedEntityIDs[i], ["position", "dimensions",
                         "registrationPoint", "rotation"]);
-                    var adjustedPosition = adjustPositionPerBoundingBox(targetPosition, targetDirection, properties.registrationPoint,
-                        properties.dimensions, properties.rotation);
+                    var adjustedPosition = adjustPositionPerBoundingBox(targetPosition, targetDirection,
+                        properties.registrationPoint, properties.dimensions, properties.rotation);
                     var delta = Vec3.subtract(adjustedPosition, properties.position);
                     var distance = Vec3.dot(delta, targetDirection);
                     deltaParallel = Math.min(distance, deltaParallel);
-                    deltaPerpendicular = Vec3.sum(Vec3.subtract(delta, Vec3.multiply(distance, targetDirection)), deltaPerpendicular);
+                    deltaPerpendicular = Vec3.sum(Vec3.subtract(delta, Vec3.multiply(distance, targetDirection)),
+                        deltaPerpendicular);
                     entityPositions[i] = properties.position;
                 }
                 deltaPerpendicular = Vec3.multiply(1 / pastedEntityIDs.length, deltaPerpendicular);
