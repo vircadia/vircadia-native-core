@@ -30,7 +30,7 @@ uint32_t Header::evalMaxDimension() const {
 
 uint32_t Header::evalPixelOrBlockDimension(uint32_t pixelDimension) const {
     if (isCompressed()) {
-        return khronos::gl::texture::evalBlockAlignemnt(getGLInternaFormat(), pixelDimension);
+        return khronos::gl::texture::evalCompressedBlockCount(getGLInternaFormat(), pixelDimension);
     } 
     return pixelDimension;
 }

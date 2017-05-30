@@ -24,12 +24,15 @@
 
 #include "Application.h"
 #include "Menu.h"
-#include <SettingHandle.h>
 
 #include <RunningMarker.h>
+#include <SettingHandle.h>
+#include <SettingHelpers.h>
+
 
 bool CrashHandler::checkForResetSettings(bool wasLikelyCrash, bool suppressPrompt) {
-    Settings settings;
+    QSettings::setDefaultFormat(JSON_FORMAT);
+    QSettings settings;
     settings.beginGroup("Developer");
     QVariant displayCrashOptions = settings.value(MenuOption::DisplayCrashOptions);
     QVariant askToResetSettingsOption = settings.value(MenuOption::AskToResetSettings);
@@ -106,7 +109,7 @@ void CrashHandler::handleCrash(CrashHandler::Action action) {
         return;
     }
 
-    Settings settings;
+    QSettings settings;
     const QString ADDRESS_MANAGER_GROUP = "AddressManager";
     const QString ADDRESS_KEY = "address";
     const QString AVATAR_GROUP = "Avatar";

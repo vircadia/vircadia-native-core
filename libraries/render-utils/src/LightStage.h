@@ -77,7 +77,6 @@ public:
     };
     using Descs = std::vector<Desc>;
 
-
     Index findLight(const LightPointer& light) const;
     Index addLight(const LightPointer& light);
 
@@ -118,19 +117,25 @@ public:
     public:
         Frame() {}
         
-        void clear() { _pointLights.clear(); _spotLights.clear(); }
+        void clear() { _pointLights.clear(); _spotLights.clear(); _sunLights.clear(); _ambientLights.clear(); }
         void pushLight(LightStage::Index index, model::Light::Type type) {
             switch (type) {
                 case model::Light::POINT: { pushPointLight(index); break; }
                 case model::Light::SPOT: { pushSpotLight(index); break; }
+                case model::Light::SUN: { pushSunLight(index); break; }
+                case model::Light::AMBIENT: { pushAmbientLight(index); break; }
                 default: { break; }
             }
         }
         void pushPointLight(LightStage::Index index) { _pointLights.emplace_back(index); }
         void pushSpotLight(LightStage::Index index) { _spotLights.emplace_back(index); }
-        
+        void pushSunLight(LightStage::Index index) { _sunLights.emplace_back(index); }
+        void pushAmbientLight(LightStage::Index index) { _ambientLights.emplace_back(index); }
+
         LightStage::LightIndices _pointLights;
         LightStage::LightIndices _spotLights;
+        LightStage::LightIndices _sunLights;
+        LightStage::LightIndices _ambientLights;
     };
     
     Frame _currentFrame;

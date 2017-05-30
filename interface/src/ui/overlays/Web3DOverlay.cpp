@@ -444,6 +444,9 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
 
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
 
+    if (this->_pressed && event.getType() == PointerEvent::Move) {	
+        return;
+    }
     // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
     // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
     // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
