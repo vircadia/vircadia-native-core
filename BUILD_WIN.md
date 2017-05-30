@@ -24,7 +24,7 @@ Go to "Control Panel > System > Advanced System Settings > Environment Variables
 
 ###Step 5. Installing OpenSSL
 
-Download and install the [Win64 OpenSSL v1.0.2k Installer](https://slproweb.com/download/Win64OpenSSL-1_0_2k.exe).
+Download and install the [Win64 OpenSSL v1.0.2L Installer](https://slproweb.com/download/Win64OpenSSL-1_0_2L.exe).
 
 ###Step 6. Running CMake to Generate Build Files
 
