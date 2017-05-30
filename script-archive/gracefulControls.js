@@ -52,11 +52,11 @@ var KEY_UP = "E";
 var KEY_DOWN = "C";
 var KEY_TOGGLE= "Space";
 
-var CAPTURED_KEYS;
+var KEYS;
 if (DRIVE_AVATAR_ENABLED) {
-    CAPTURED_KEYS = [KEY_TOGGLE, KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN];
+    KEYS = [KEY_TOGGLE, KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN];
 } else {
-    CAPTURED_KEYS = [KEY_TOGGLE];
+    KEYS = [KEY_TOGGLE];
 }
 
 // Global Variables
@@ -258,8 +258,8 @@ function onKeyPress(key, value) {
     }
 }
 
-for (var i = 0; i < CAPTURED_KEYS.length; ++i) {
-    var key = CAPTURED_KEYS[i];
+for (var i = 0; i < KEYS.length; ++i) {
+    var key = KEYS[i];
     var hw = Controller.Hardware.Keyboard[key];
     if (hw) {
         controllerMapping.from(hw).to(function(key) {
