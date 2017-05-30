@@ -1533,33 +1533,38 @@ function importSVO(importURL) {
                 // The first entity in Clipboard gets the specified position with the rest being relative to it. Therefore, move
                 // entities after they're imported so that they're all the correct distance in front of and with geometric mean
                 // centered on the avatar/camera direction.
+                var deltaPosition = Vec3.ZERO;
 
-                var targetDirection;
-                if (Camera.mode === "entity" || Camera.mode === "independent") {
-                    targetDirection = Camera.orientation;
-                } else {
-                    targetDirection = MyAvatar.orientation;
-                }
-                targetDirection = Vec3.multiplyQbyV(targetDirection, Vec3.UNIT_Z);
+                var properties = Entities.getEntityProperties(pastedEntityIDs[0], ["type"]);
+                var NO_ADJUST_ENTITY_TYPES = ["Zone", "Light", "ParticleEffect"];
+                if (NO_ADJUST_ENTITY_TYPES.indexOf(properties.type) === -1) {
+                    var targetDirection;
+                    if (Camera.mode === "entity" || Camera.mode === "independent") {
+                        targetDirection = Camera.orientation;
+                    } else {
+                        targetDirection = MyAvatar.orientation;
+                    }
+                    targetDirection = Vec3.multiplyQbyV(targetDirection, Vec3.UNIT_Z);
 
-                var targetPosition = getPositionToCreateEntity();
-                var deltaParallel = HALF_TREE_SCALE;  // Distance to move entities parallel to targetDirection.
-                var deltaPerpendicular = Vec3.ZERO;  // Distance to move entities perpendicular to targetDirection.
-                var entityPositions = [];
-                for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
-                    var properties = Entities.getEntityProperties(pastedEntityIDs[i], ["position", "dimensions",
-                        "registrationPoint", "rotation"]);
-                    var adjustedPosition = adjustPositionPerBoundingBox(targetPosition, targetDirection,
-                        properties.registrationPoint, properties.dimensions, properties.rotation);
-                    var delta = Vec3.subtract(adjustedPosition, properties.position);
-                    var distance = Vec3.dot(delta, targetDirection);
-                    deltaParallel = Math.min(distance, deltaParallel);
-                    deltaPerpendicular = Vec3.sum(Vec3.subtract(delta, Vec3.multiply(distance, targetDirection)),
-                        deltaPerpendicular);
-                    entityPositions[i] = properties.position;
+                    var targetPosition = getPositionToCreateEntity();
+                    var deltaParallel = HALF_TREE_SCALE;  // Distance to move entities parallel to targetDirection.
+                    var deltaPerpendicular = Vec3.ZERO;  // Distance to move entities perpendicular to targetDirection.
+                    var entityPositions = [];
+                    for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
+                        var properties = Entities.getEntityProperties(pastedEntityIDs[i], ["position", "dimensions",
+                            "registrationPoint", "rotation"]);
+                        var adjustedPosition = adjustPositionPerBoundingBox(targetPosition, targetDirection,
+                            properties.registrationPoint, properties.dimensions, properties.rotation);
+                        var delta = Vec3.subtract(adjustedPosition, properties.position);
+                        var distance = Vec3.dot(delta, targetDirection);
+                        deltaParallel = Math.min(distance, deltaParallel);
+                        deltaPerpendicular = Vec3.sum(Vec3.subtract(delta, Vec3.multiply(distance, targetDirection)),
+                            deltaPerpendicular);
+                        entityPositions[i] = properties.position;
+                    }
+                    deltaPerpendicular = Vec3.multiply(1 / pastedEntityIDs.length, deltaPerpendicular);
+                    deltaPosition = Vec3.sum(Vec3.multiply(deltaParallel, targetDirection), deltaPerpendicular);
                 }
-                deltaPerpendicular = Vec3.multiply(1 / pastedEntityIDs.length, deltaPerpendicular);
-                var deltaPosition = Vec3.sum(Vec3.multiply(deltaParallel, targetDirection), deltaPerpendicular);
 
                 if (grid.getSnapToGrid()) {
                     var properties = Entities.getEntityProperties(pastedEntityIDs[0], ["position", "dimensions",
@@ -1570,10 +1575,12 @@ function importSVO(importURL) {
                     deltaPosition = Vec3.subtract(position, properties.position);
                 }
 
-                for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
-                    Entities.editEntity(pastedEntityIDs[i], {
-                        position: Vec3.sum(deltaPosition, entityPositions[i])
-                    });
+                if (!Vec3.equal(deltaPosition, Vec3.ZERO)) {
+                    for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
+                        Entities.editEntity(pastedEntityIDs[i], {
+                            position: Vec3.sum(deltaPosition, entityPositions[i])
+                        });
+                    }
                 }
             }
 
