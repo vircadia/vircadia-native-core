@@ -1559,8 +1559,17 @@ function importSVO(importURL) {
                     entityPositions[i] = properties.position;
                 }
                 deltaPerpendicular = Vec3.multiply(1 / pastedEntityIDs.length, deltaPerpendicular);
-
                 var deltaPosition = Vec3.sum(Vec3.multiply(deltaParallel, targetDirection), deltaPerpendicular);
+
+                if (grid.getSnapToGrid()) {
+                    var properties = Entities.getEntityProperties(pastedEntityIDs[0], ["position", "dimensions",
+                        "registrationPoint"]);
+                    var position = Vec3.sum(deltaPosition, properties.position);
+                    position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions, 
+                            properties.registrationPoint), properties.dimensions, properties.registrationPoint);
+                    deltaPosition = Vec3.subtract(position, properties.position);
+                }
+
                 for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
                     Entities.editEntity(pastedEntityIDs[i], {
                         position: Vec3.sum(deltaPosition, entityPositions[i])
