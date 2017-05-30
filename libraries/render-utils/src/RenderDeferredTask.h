@@ -13,6 +13,7 @@
 #define hifi_RenderDeferredTask_h
 
 #include <gpu/Pipeline.h>
+#include <model/Geometry.h>
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
 
@@ -184,6 +185,21 @@ protected:
     int _maxDrawn; // initialized by Config
     bool _opaquePass{ true };
 };
+
+class PrepareStencil {
+public:
+    using JobModel = render::Job::ModelI<PrepareStencil, gpu::FramebufferPointer>;
+
+    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& dstFramebuffer);
+private:
+    gpu::PipelinePointer _drawStencilPipeline;
+    gpu::PipelinePointer getDrawStencilPipeline();
+
+    model::MeshPointer _mesh;
+    model::MeshPointer getMesh();
+
+};
+
 
 class Blit {
 public:

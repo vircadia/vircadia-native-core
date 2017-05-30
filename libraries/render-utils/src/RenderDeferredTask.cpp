@@ -85,12 +85,15 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
+    // draw a stencil mask in hidden regions of the frmaebuffer.
+
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
     task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
 
     // Once opaque is all rendered create stencil background
     task.addJob<DrawStencilDeferred>("DrawOpaqueStencil", deferredFramebuffer);
+    task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
 
     task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
@@ -469,6 +472,71 @@ void DrawBackgroundDeferred::run(const RenderContextPointer& renderContext, cons
    // std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
 }
 
+gpu::PipelinePointer PrepareStencil::getDrawStencilPipeline() {
+    if (!_drawStencilPipeline) {
+        const gpu::int8 STENCIL_OPAQUE = 1;
+        auto vs = gpu::StandardShaderLib::getDrawTransformVertexPositionVS();
+        auto ps = gpu::StandardShaderLib::getDrawWhitePS();
+        auto program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram((*program));
+
+        auto state = std::make_shared<gpu::State>();
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP));
+        state->setColorWriteMask(0);
+
+        _drawStencilPipeline = gpu::Pipeline::create(program, state);
+    }
+    return _drawStencilPipeline;
+}
+
+model::MeshPointer PrepareStencil::getMesh() {
+    if (!_mesh) {
+
+        std::vector<glm::vec3> vertices {
+            { -1.0f, -1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f },
+            { -1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f },
+            { 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f },
+            { 1.0f, -1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } };
+
+        std::vector<uint32_t> indices { 0, 7, 1, 1, 3, 2, 3, 5, 4, 5, 7, 6 };
+
+        _mesh = model::Mesh::createIndexedTriangles_P3F((uint32_t) vertices.size(), (uint32_t) indices.size(), vertices.data(), indices.data());
+
+    }
+    return _mesh;
+}
+
+
+void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
+    assert(renderContext->args);
+    assert(renderContext->args->_context);
+
+    RenderArgs* args = renderContext->args;
+    doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        batch.resetViewTransform();
+        batch.setModelTransform(Transform());
+        glm::mat4 proj;
+        batch.setProjectionTransform(proj);
+
+        batch.setPipeline(getDrawStencilPipeline());
+
+        auto mesh = getMesh();
+        batch.setIndexBuffer(gpu::UINT32, (mesh->getIndexBuffer()._buffer), 0);
+        batch.setInputFormat((mesh->getVertexFormat()));
+        batch.setInputStream(0, mesh->getVertexStream());
+
+        // Draw
+        auto part = mesh->getPartBuffer().get<model::Mesh::Part>(0);
+        batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
+    });
+    args->_batch = nullptr;
+}
+
 void Blit::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
@@ -538,3 +606,4 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
         }
     });
 }
+

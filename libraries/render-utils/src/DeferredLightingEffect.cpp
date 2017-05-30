@@ -160,11 +160,11 @@ void DeferredLightingEffect::init() {
 
 
     lp->setAmbientIntensity(0.5f);
-	lp->setAmbientMap(_defaultSkyboxAmbientTexture);
-	auto irradianceSH = _defaultSkyboxAmbientTexture->getIrradiance();
-	if (irradianceSH) {
-		lp->setAmbientSphere((*irradianceSH));
-	}
+    lp->setAmbientMap(_defaultSkyboxAmbientTexture);
+    auto irradianceSH = _defaultSkyboxAmbientTexture->getIrradiance();
+    if (irradianceSH) {
+        lp->setAmbientSphere((*irradianceSH));
+    }
 }
 
 void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
