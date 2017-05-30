@@ -506,7 +506,7 @@ glm::mat4 ViveControllerManager::InputDevice::recalculateDefaultToReferenceForHe
                                       glm::vec4(zPrime, 0.0f), glm::vec4(headPuckTranslation, 1.0f));
 
     glm::mat4 headPuckOffset = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-                                         glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, -0.005f, 0.0f, 1.0f));
+                                         glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, -0.0254f, -0.152f, 1.0f));
 
     glm::mat4 finalHeadPuck = newHeadPuck * headPuckOffset;
 
