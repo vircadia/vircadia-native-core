@@ -223,7 +223,6 @@ function enable() {
 function disable() {
     if (enabled) {
         enabled = false;
-        Controller.disableMapping(MAPPING_NAME);
         Reticle.setVisible(true);
 
         MyAvatar.motorVelocity = { x: 0, y: 0, z: 0 };
