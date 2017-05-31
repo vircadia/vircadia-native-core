@@ -1137,7 +1137,7 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         glm::vec3 headUp = headQuat * Vectors::UNIT_Y;
         glm::vec3 z, y, x;
         generateBasisVectors(lookAtVector, headUp, z, y, x);
-        glm::mat3 m(glm::cross(y, z), y, z);
+        glm::mat3 m(-x, y, z);
         glm::quat desiredQuat = glm::normalize(glm::quat_cast(m));
 
         glm::quat deltaQuat = desiredQuat * glm::inverse(headQuat);
