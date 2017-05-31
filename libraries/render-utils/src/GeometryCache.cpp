@@ -365,52 +365,6 @@ void drawCircle(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexB
     shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
 }
 
-template <uint32_t sMajor, uint32_t sMinor>
-void drawTorus(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
-    using namespace geometry;
-    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
-    VertexVector vertices;
-    IndexVector solidIndices, wireIndices;
-
-    float MAJOR_RADIUS = 0.75f;
-    float MINOR_RADIUS = 0.25f;
-
-    // Minor segments
-    for (uint32_t j = 0; j < sMinor; j++) {
-        // Major segments
-        for (uint32_t i = 0; i < sMajor; i++) {
-            float_t u = float_t(i) / float_t(sMajor) * M_PI * 2;
-            float_t v = float_t(j + u) / float_t(sMinor) * M_PI * 2;
-
-            vec3 vertex((MAJOR_RADIUS + MINOR_RADIUS * glm::cos(v)) * glm::cos(u),
-                (MAJOR_RADIUS + MINOR_RADIUS * glm::cos(v)) * glm::sin(u),
-                MINOR_RADIUS * glm::sin(v));
-
-            vertices.push_back(vertex);
-        }
-    }
-
-    for (uint32_t x = 1; x <= sMinor; x++) {
-        for (uint32_t y = 1; y <= sMajor; y++) {
-            uint32_t a = (sMajor) * x + y - 1;
-            uint32_t b = (sMajor) * (x - 1) + y - 1;
-            uint32_t c = (sMajor) * (x - 1) + y;
-            uint32_t d = (sMajor) * x + y;
-
-            solidIndices.push_back(a);
-            solidIndices.push_back(b);
-            solidIndices.push_back(d);
-            solidIndices.push_back(b);
-            solidIndices.push_back(c);
-            solidIndices.push_back(d);
-
-        }
-    }
-
-    shapeData.setupVertices(vertexBuffer, vertices);
-    shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
-}
-
 // FIXME solids need per-face vertices, but smooth shaded
 // components do not.  Find a way to support using draw elements
 // or draw arrays as appropriate
@@ -469,7 +423,7 @@ void GeometryCache::buildShapes() {
     //Quad,
     //Circle,
     //Torus, 
-    drawTorus<6, 4>(_shapes[Torus], _shapeVertices, _shapeIndices);
+ 
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {
