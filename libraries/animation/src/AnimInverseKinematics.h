@@ -19,6 +19,7 @@
 #include "IKTarget.h"
 
 #include "RotationAccumulator.h"
+#include "TranslationAccumulator.h"
 
 class RotationConstraint;
 
@@ -58,20 +59,22 @@ public:
 
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
-    void solveWithCyclicCoordinateDescent(const AnimContext& context, const std::vector<IKTarget>& targets);
+    void solve(const AnimContext& context, const std::vector<IKTarget>& targets);
     void solveTargetWithCCD(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug);
+    void solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
     struct DebugJoint {
         DebugJoint() : relRot(), constrained(false) {}
-        DebugJoint(const glm::quat& relRotIn, bool constrainedIn) : relRot(relRotIn), constrained(constrainedIn) {}
+        DebugJoint(const glm::quat& relRotIn, const glm::vec3& relTransIn, bool constrainedIn) : relRot(relRotIn), relTrans(relTransIn), constrained(constrainedIn) {}
         glm::quat relRot;
+        glm::vec3 relTrans;
         bool constrained;
     };
     void debugDrawIKChain(std::map<int, DebugJoint>& debugJointMap, const AnimContext& context) const;
     void debugDrawRelativePoses(const AnimContext& context) const;
     void debugDrawConstraints(const AnimContext& context) const;
     void debugDrawSpineSpline(const AnimContext& context, const std::vector<IKTarget>& targets);
-    void computeSplineJointInfosForIKTarget(const AnimContext& context, int targetIndex, const IKTarget& target);
+    void computeSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target);
     void initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPose);
     void blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPose, float blendFactor);
 
@@ -107,7 +110,8 @@ protected:
     };
 
     std::map<int, RotationConstraint*> _constraints;
-    std::vector<RotationAccumulator> _accumulators;
+    std::vector<RotationAccumulator> _rotationAccumulators;
+    std::vector<TranslationAccumulator> _translationAccumulators;
     std::vector<IKTargetVar> _targetVarVec;
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
@@ -116,7 +120,6 @@ protected:
     struct SplineJointInfo {
         int jointIndex;
         float ratio;
-        AnimPose defaultPose;
         AnimPose offsetPose;
     };
     std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;

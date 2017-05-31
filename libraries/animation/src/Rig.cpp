@@ -1041,7 +1041,7 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     }
 
     if (params.spine2Enabled) {
-        _animVars.set("spine2Type", (int)IKTarget::Type::RotationAndPosition);
+        _animVars.set("spine2Type", (int)IKTarget::Type::Spline);
         _animVars.set("spine2Position", extractTranslation(params.spine2Matrix));
         _animVars.set("spine2Rotation", glmExtractRotation(params.spine2Matrix));
     } else {
@@ -1101,9 +1101,9 @@ void Rig::updateHeadAnimVars(const HeadParameters& params) {
             _animVars.set("headPosition", params.rigHeadPosition);
             _animVars.set("headRotation", params.rigHeadOrientation);
             if (params.hipsEnabled) {
-                // Since there is an explicit hips ik target, switch the head to use the more generic RotationAndPosition IK chain type.
-                // this will allow the spine to bend more, ensuring that it can reach the head target position.
-                _animVars.set("headType", (int)IKTarget::Type::RotationAndPosition);
+                // Since there is an explicit hips ik target, switch the head to use the more flexible Spline IK chain type.
+                // this will allow the spine to compress/expand and bend more natrually, ensuring that it can reach the head target position.
+                _animVars.set("headType", (int)IKTarget::Type::Spline);
                 _animVars.unset("headWeight");  // use the default weight for this target.
             } else {
                 // When there is no hips IK target, use the HmdHead IK chain type.  This will make the spine very stiff,
