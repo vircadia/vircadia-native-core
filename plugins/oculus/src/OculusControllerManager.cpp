@@ -19,6 +19,8 @@
 
 #include <PerfStat.h>
 #include <PathUtils.h>
+#include <NumericalConstants.h>
+#include <StreamUtils.h>
 
 #include <OVR_CAPI.h>
 
@@ -313,19 +315,16 @@ void OculusControllerManager::TouchDevice::handleHeadPose(float deltaTime,
     auto poseId = controller::HEAD;
     auto& pose = _poseStateMap[poseId];
 
+    static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
     pose.translation = toGlm(headPose.ThePose.Position);
-    pose.rotation = toGlm(headPose.ThePose.Orientation);
+    pose.rotation = toGlm(headPose.ThePose.Orientation) * yFlip;
     pose.angularVelocity = toGlm(headPose.AngularVelocity);
     pose.velocity = toGlm(headPose.LinearVelocity);
     pose.valid = true;
 
-    qDebug() << "handleHeadPose" << pose.translation.x << pose.translation.y << pose.translation.z;
-
     // transform into avatar frame
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     pose = pose.transform(controllerToAvatar);
-
-    qDebug() << "handleHeadPose after" << pose.translation.x << pose.translation.y << pose.translation.z;
 }
 
 void OculusControllerManager::TouchDevice::handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData,

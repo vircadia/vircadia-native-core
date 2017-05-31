@@ -2328,9 +2328,9 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
     // HMD is in sensor space.
-    const glm::vec3 hmdPosition = getHeadControllerPoseInSensorFrame();
-    const glm::quat hmdOrientation = getHeadControllerPoseInSensorFrame();
-    const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
+    const glm::vec3 headPosition = getHeadControllerPoseInSensorFrame();
+    const glm::quat headOrientation = (glm::quat)getHeadControllerPoseInSensorFrame() * Quaternions::Y_180;
+    const glm::quat headOrientationYawOnly = cancelOutRollAndPitch(headOrientation);
 
     const Rig& rig = _skeletonModel->getRig();
     int rightEyeIndex = rig.indexOfJoint("RightEye");
@@ -2353,12 +2353,12 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
     // eyeToNeck offset is relative full HMD orientation.
     // while neckToRoot offset is only relative to HMDs yaw.
-    // Y_180 is necessary because rig is z forward and hmdOrientation is -z forward
-    glm::vec3 eyeToNeck = hmdOrientation * Quaternions::Y_180 * (localNeck - localEyes);
-    glm::vec3 neckToRoot = hmdOrientationYawOnly * Quaternions::Y_180 * -localNeck;
-    glm::vec3 bodyPos = hmdPosition + eyeToNeck + neckToRoot;
+    // Y_180 is necessary because rig is z forward and headOrientation is -z forward
+    glm::vec3 eyeToNeck = headOrientation * Quaternions::Y_180 * (localNeck - localEyes);
+    glm::vec3 neckToRoot = headOrientationYawOnly * Quaternions::Y_180 * -localNeck;
+    glm::vec3 bodyPos = headPosition + eyeToNeck + neckToRoot;
 
-    return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
+    return createMatFromQuatAndPos(headOrientationYawOnly, bodyPos);
 }
 
 glm::vec3 MyAvatar::getPositionForAudio() {
@@ -2474,7 +2474,7 @@ bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, co
     } else {
         const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
         glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
-        return glm::dot(myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
+        return glm::dot(myAvatar.getHeadControllerFacingMovingAverage() * -1.0f, bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
     }
 }
 
