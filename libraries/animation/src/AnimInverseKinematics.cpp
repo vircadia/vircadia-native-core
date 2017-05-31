@@ -499,6 +499,13 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
         }
     }
 
+    // This prevents the rotation interpolation from rotating the wrong physical way (but correct mathematical way)
+    // when the head is arched backwards very far.
+    glm::quat halfRot = glm::normalize(glm::lerp(basePose.rot(), tipPose.rot(), 0.5f));
+    if (glm::dot(halfRot * Vectors::UNIT_Z, basePose.rot() * Vectors::UNIT_Z) < 0.0f) {
+        tipPose.rot() = -tipPose.rot();
+    }
+
     if (splineJointInfoVec && splineJointInfoVec->size() > 0) {
         const int baseParentIndex = _skeleton->getParentIndex(baseIndex);
         AnimPose parentAbsPose = (baseParentIndex >= 0) ? absolutePoses[baseParentIndex] : AnimPose();
@@ -662,7 +669,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         if (context.getEnableDebugDrawIKConstraints()) {
             debugDrawConstraints(context);
         }
-        debugDrawSpineSpline(context, targets);
     }
 
     return _relativePoses;
@@ -1447,79 +1453,45 @@ void AnimInverseKinematics::computeSplineJointInfosForIKTarget(const AnimContext
     _splineJointInfoMap[target.getIndex()] = splineJointInfoVec;
 }
 
-void AnimInverseKinematics::debugDrawSpineSpline(const AnimContext& context, const std::vector<IKTarget>& targets) {
+void AnimInverseKinematics::debugDrawSpineSplines(const AnimContext& context, const std::vector<IKTarget>& targets) const {
 
-    /*
-    // find head target
-    int headTargetIndex = -1;
-    for (int i = 0; i < (int)targets.size(); i++) {
-        if (targets[i].getIndex() == _headIndex) {
-            headTargetIndex = i;
-            break;
+    for (auto& target : targets) {
+
+        if (target.getType() != IKTarget::Type::Spline) {
+            continue;
+        }
+
+        const int baseIndex = _hipsIndex;
+
+        // build spline
+        AnimPose tipPose = AnimPose(glm::vec3(1.0f), target.getRotation(), target.getTranslation());
+        AnimPose basePose = _skeleton->getAbsolutePose(baseIndex, _relativePoses);
+
+        const float BASE_GAIN = 0.5f;
+        const float TIP_GAIN = 1.0f;
+        float d = glm::length(basePose.trans() - tipPose.trans());
+        glm::vec3 p0 = basePose.trans();
+        glm::vec3 m0 = BASE_GAIN * d * (basePose.rot() * Vectors::UNIT_Y);
+        glm::vec3 p1 = tipPose.trans();
+        glm::vec3 m1 = TIP_GAIN * d * (tipPose.rot() * Vectors::UNIT_Y);
+
+        CubicHermiteSplineFunctorWithArcLength spline(p0, m0, p1, m1);
+        float totalArcLength = spline.arcLength(1.0f);
+
+        const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+        const glm::vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
+
+        // draw red and white stripped spline, parameterized by arc length.
+        // i.e. each stripe should be the same length.
+        AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
+        int NUM_SUBDIVISIONS = 20;
+        const float dArcLength = totalArcLength / NUM_SUBDIVISIONS;
+        float arcLength = 0.0f;
+        for (int i = 0; i < NUM_SUBDIVISIONS; i++) {
+            float prevT = spline.arcLengthInverse(arcLength);
+            float nextT = spline.arcLengthInverse(arcLength + dArcLength);
+            DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(spline(prevT)), geomToWorldPose.xformPoint(spline(nextT)), (i % 2) == 0 ? RED : WHITE);
+            arcLength += dArcLength;
         }
     }
-
-    // find or create splineJointInfo for the head target
-    const std::vector<SplineJointInfo>* splineJointInfoVec = nullptr;
-    if (headTargetIndex != -1) {
-        auto iter = _splineJointInfoMap.find(headTargetIndex);
-        if (iter != _splineJointInfoMap.end()) {
-            splineJointInfoVec = &(iter->second);
-        } else {
-            computeSplineJointInfosForIKTarget(context, headTargetIndex, targets[headTargetIndex]);
-            auto iter = _splineJointInfoMap.find(headTargetIndex);
-            if (iter != _splineJointInfoMap.end()) {
-                splineJointInfoVec = &(iter->second);
-            }
-        }
-    }
-
-    AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
-
-    AnimPose hipsPose = geomToWorldPose * _skeleton->getAbsolutePose(_hipsIndex, _relativePoses);
-    AnimPose headPose = geomToWorldPose * _skeleton->getAbsolutePose(_headIndex, _relativePoses);
-
-    float d = glm::length(hipsPose.trans() - headPose.trans());
-
-    const float BACK_GAIN = 0.5f;
-    const float NECK_GAIN = 1.0f;
-    glm::vec3 p0 = hipsPose.trans();
-    glm::vec3 m0 = BACK_GAIN * d * (hipsPose.rot() * Vectors::UNIT_Y);
-    glm::vec3 p1 = headPose.trans();
-    glm::vec3 m1 = NECK_GAIN * d * (headPose.rot() * Vectors::UNIT_Y);
-
-    CubicHermiteSplineFunctorWithArcLength hermiteFunc(p0, m0, p1, m1);
-
-    const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
-    const glm::vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
-    const glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
-    const glm::vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
-
-    // draw red and white stripped spline, parameterized by arc length.
-    // i.e. each stripe should be the same length.
-    int NUM_SUBDIVISIONS = 20;
-    float totalArcLength = hermiteFunc.arcLength(1.0f);
-    const float dArcLength = totalArcLength / NUM_SUBDIVISIONS;
-    float arcLength = 0.0f;
-    for (int i = 0; i < NUM_SUBDIVISIONS; i++) {
-        float prevT = hermiteFunc.arcLengthInverse(arcLength);
-        float nextT = hermiteFunc.arcLengthInverse(arcLength + dArcLength);
-        DebugDraw::getInstance().drawRay(hermiteFunc(prevT), hermiteFunc(nextT), (i % 2) == 0 ? RED : WHITE);
-        arcLength += dArcLength;
-    }
-
-    AnimPose defaultHipsPose = _skeleton->getAbsoluteDefaultPose(_hipsIndex);
-    AnimPose defaultHeadPose = _skeleton->getAbsoluteDefaultPose(_headIndex);
-    float hipsToHeadHeight = defaultHeadPose.trans().y - defaultHipsPose.trans().y;
-
-    if (splineJointInfoVec) {
-        for (auto& splineJointInfo : *splineJointInfoVec) {
-            float t = hermiteFunc.arcLengthInverse(splineJointInfo.ratio * totalArcLength);
-            glm::vec3 trans = hermiteFunc(t);
-            glm::quat rot = glm::normalize(glm::lerp(hipsPose.rot(), headPose.rot(), t));
-            AnimPose pose = AnimPose(glm::vec3(1.0f), rot, trans) * splineJointInfo.offsetPose;
-            DebugDraw::getInstance().addMarker(QString("splineJoint%1").arg(splineJointInfo.jointIndex), pose.rot(), pose.trans(), BLUE);
-        }
-    }
-    */
 }
