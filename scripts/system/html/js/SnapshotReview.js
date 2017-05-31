@@ -21,6 +21,11 @@ var blastShareText = "Blast to my Connections",
     hifiAlreadySharedText = "Already Shared to Snaps Feed",
     facebookShareText = "Share to Facebook",
     twitterShareText = "Share to Twitter";
+
+function fileExtensionMatches(filePath, extension) {
+    return filePath.split('.').pop().toLowerCase() === extension;
+}
+
 function showSetupInstructions() {
     var snapshotImagesDiv = document.getElementById("snapshot-images");
     snapshotImagesDiv.className = "snapshotInstructions";
@@ -276,10 +281,10 @@ function addImage(image_data, isLoggedIn, canShare, isGifLoading, isShowingPrevi
     if (!image_data.localPath) {
         return;
     }
-    var id = "p" + (idCounter++),
-        imageContainer = document.createElement("DIV"),
+    var imageContainer = document.createElement("DIV"),
         img = document.createElement("IMG"),
-        isGif;
+        isGif = fileExtensionMatches(image_data.localPath, "gif"),
+        id = "p" + (isGif ? "1" : "0");
     imageContainer.id = id;
     imageContainer.style.width = "95%";
     imageContainer.style.height = "240px";
@@ -290,18 +295,17 @@ function addImage(image_data, isLoggedIn, canShare, isGifLoading, isShowingPrevi
     imageContainer.style.position = "relative";
     img.id = id + "img";
     img.src = image_data.localPath;
-    isGif = img.src.split('.').pop().toLowerCase() === "gif";
     imageContainer.appendChild(img);
     document.getElementById("snapshot-images").appendChild(imageContainer);
+    paths.push(image_data.localPath);
     img.onload = function () {
-        paths.push(image_data.localPath);
         if (isGif) {
             imageContainer.innerHTML += '<span class="gifLabel">GIF</span>';
         }
         if (!isGifLoading) {
             appendShareBar(id, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast);
         }
-        if ((!isGifLoading && !isShowingPreviousImages) || (isShowingPreviousImages && !image_data.story_id)) {
+        if ((!isShowingPreviousImages && ((isGif && !isGifLoading) || !isGif)) || (isShowingPreviousImages && !image_data.story_id)) {
             shareForUrl(id);
         }
         if (isShowingPreviousImages && isLoggedIn && image_data.story_id) {
@@ -638,9 +642,8 @@ window.onload = function () {
                     // The last element of the message contents list contains a bunch of options,
                     // including whether or not we can share stuff
                     // The other elements of the list contain image paths.
-
-                    if (messageOptions.containsGif) {
-                        if (messageOptions.processingGif) {
+                    if (messageOptions.containsGif === true) {
+                        if (messageOptions.processingGif === true) {
                             imageCount = message.image_data.length + 1; // "+1" for the GIF that'll finish processing soon
                             message.image_data.push({ localPath: messageOptions.loadingGifPath });
                             message.image_data.forEach(function (element, idx) {
@@ -669,7 +672,7 @@ window.onload = function () {
                     handleCaptureSetting(message.setting);
                     break;
                 case 'snapshotUploadComplete':
-                    var isGif = message.image_url.split('.').pop().toLowerCase() === "gif";
+                    var isGif = fileExtensionMatches(message.image_url, "gif");
                     updateShareInfo(isGif ? "p1" : "p0", message.story_id);
                     break;
                 default:

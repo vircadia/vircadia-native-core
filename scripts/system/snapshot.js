@@ -58,6 +58,10 @@ function removeFromStoryIDsToMaybeDelete(story_id) {
     print('storyIDsToMaybeDelete[] now:', JSON.stringify(storyIDsToMaybeDelete));
 }
 
+function fileExtensionMatches(filePath, extension) {
+    return filePath.split('.').pop().toLowerCase() === extension;
+}
+
 function onMessage(message) {
     // Receives message from the html dialog via the qwebchannel EventBridge. This is complicated by the following:
     // 1. Although we can send POJOs, we cannot receive a toplevel object. (Arrays of POJOs are fine, though.)
@@ -141,7 +145,7 @@ function onMessage(message) {
                     if (isLoggedIn) {
                         print('Sharing snapshot with audience "for_url":', message.data);
                         Window.shareSnapshot(message.data, Settings.getValue("previousSnapshotHref"));
-                        var isGif = message.data.split('.').pop().toLowerCase() === "gif";
+                        var isGif = fileExtensionMatches(message.data, "gif");
                         if (isGif) {
                             numGifSnapshotUploadsPending++;
                         } else {
@@ -318,7 +322,7 @@ function snapshotUploaded(isError, reply) {
         var replyJson = JSON.parse(reply),
             storyID = replyJson.user_story.id,
             imageURL = replyJson.user_story.details.image_url,
-            isGif = imageURL.split('.').pop().toLowerCase() === "gif",
+            isGif = fileExtensionMatches(imageURL, "gif"),
             ignoreGifSnapshotData = false,
             ignoreStillSnapshotData = false;
         storyIDsToMaybeDelete.push(storyID);
@@ -593,7 +597,7 @@ function onUsernameChanged() {
                     snapshotToShareAfterLogin.forEach(function (element) {
                         print('Uploading snapshot after login:', element.path);
                         Window.shareSnapshot(element.path, element.href);
-                        var isGif = element.path.split('.').pop().toLowerCase() === "gif";
+                        var isGif = fileExtensionMatches(element.path, "gif");
                         if (isGif) {
                             numGifSnapshotUploadsPending++;
                         } else {
