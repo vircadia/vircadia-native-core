@@ -503,6 +503,13 @@ glm::mat4 ViveControllerManager::InputDevice::recalculateDefaultToReferenceForHe
     glm::vec3 headPuckZAxis = cancelOutRollAndPitch(glmExtractRotation(headPuckAvatarMat)) * glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
+    // check that the head puck z axis is not parrallel to the world up
+    const float EPSILON = 1.0e-4f;
+    glm::vec3 zAxis = glmExtractRotation(headPuckAvatarMat) * glm::vec3(0.0f, 0.0f, 1.0f);
+    if (fabsf(fabsf(glm::dot(glm::normalize(worldUp), glm::normalize(zAxis))) - 1.0f) < EPSILON) {
+        headPuckZAxis = glm::vec3(1.0f, 0.0f, 0.0f);
+    }
+
     glm::vec3 yPrime = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 xPrime = glm::normalize(glm::cross(worldUp, headPuckZAxis));
     glm::vec3 zPrime = glm::normalize(glm::cross(xPrime, yPrime));
