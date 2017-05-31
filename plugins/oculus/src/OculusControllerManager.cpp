@@ -230,14 +230,14 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
             _lastControllerPose[controller] = tracking.HandPoses[hand];
             return;
         }
-        
+
         if (_lostTracking[controller]) {
             if (currentTime > _regainTrackingDeadline[controller]) {
                 _poseStateMap.erase(controller);
                 _poseStateMap[controller].valid = false;
                 return;
             }
-            
+
         } else {
             quint64 deadlineToRegainTracking = currentTime + LOST_TRACKING_DELAY;
             _regainTrackingDeadline[controller] = deadlineToRegainTracking;
@@ -245,6 +245,10 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
         }
         handleRotationForUntrackedHand(inputCalibrationData, hand, tracking.HandPoses[hand]);
     });
+
+    _poseStateMap.erase(controller::HEAD);
+    handleHeadPose(deltaTime, inputCalibrationData, tracking.HeadPose);
+
     using namespace controller;
     // Axes
     const auto& inputState = _parent._inputState;
@@ -269,7 +273,7 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
         if (inputState.Touches & pair.first) {
             _buttonPressedMap.insert(pair.second);
         }
-    } 
+    }
 
     // Haptics
     {
@@ -292,16 +296,36 @@ void OculusControllerManager::TouchDevice::focusOutEvent() {
     _buttonPressedMap.clear();
 };
 
-void OculusControllerManager::TouchDevice::handlePose(float deltaTime, 
-    const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, 
-    const ovrPoseStatef& handPose) {
+void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
+                                                      const controller::InputCalibrationData& inputCalibrationData,
+                                                      ovrHandType hand, const ovrPoseStatef& handPose) {
     auto poseId = hand == ovrHand_Left ? controller::LEFT_HAND : controller::RIGHT_HAND;
     auto& pose = _poseStateMap[poseId];
     pose = ovrControllerPoseToHandPose(hand, handPose);
     // transform into avatar frame
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     pose = pose.transform(controllerToAvatar);
+}
 
+void OculusControllerManager::TouchDevice::handleHeadPose(float deltaTime,
+                                                          const controller::InputCalibrationData& inputCalibrationData,
+                                                          const ovrPoseStatef& headPose) {
+    auto poseId = controller::HEAD;
+    auto& pose = _poseStateMap[poseId];
+
+    pose.translation = toGlm(headPose.ThePose.Position);
+    pose.rotation = toGlm(headPose.ThePose.Orientation);
+    pose.angularVelocity = toGlm(headPose.AngularVelocity);
+    pose.velocity = toGlm(headPose.LinearVelocity);
+    pose.valid = true;
+
+    qDebug() << "handleHeadPose" << pose.translation.x << pose.translation.y << pose.translation.z;
+
+    // transform into avatar frame
+    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    pose = pose.transform(controllerToAvatar);
+
+    qDebug() << "handleHeadPose after" << pose.translation.x << pose.translation.y << pose.translation.z;
 }
 
 void OculusControllerManager::TouchDevice::handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData,
@@ -382,6 +406,7 @@ controller::Input::NamedVector OculusControllerManager::TouchDevice::getAvailabl
 
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
+        makePair(HEAD, "Head"),
 
         makePair(LEFT_PRIMARY_THUMB_TOUCH, "LeftPrimaryThumbTouch"),
         makePair(LEFT_SECONDARY_THUMB_TOUCH, "LeftSecondaryThumbTouch"),

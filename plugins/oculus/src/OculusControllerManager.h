@@ -76,8 +76,13 @@ private:
 
     private:
         void stopHapticPulse(bool leftHand);
-        void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, const ovrPoseStatef& handPose);
-        void handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, const ovrPoseStatef& handPose);
+        void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
+                        ovrHandType hand, const ovrPoseStatef& handPose);
+        void handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData,
+                                            ovrHandType hand, const ovrPoseStatef& handPose);
+        void handleHeadPose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
+                            const ovrPoseStatef& headPose);
+
         int _trackedControllers { 0 };
 
         // perform an action when the TouchDevice mutex is acquired.
