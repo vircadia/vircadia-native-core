@@ -301,7 +301,7 @@ function addImage(image_data, isLoggedIn, canShare, isGifLoading, isShowingPrevi
         if (!isGifLoading) {
             appendShareBar(id, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast);
         }
-        if (!isGifLoading || (isShowingPreviousImages && !image_data.story_id)) {
+        if ((!isGifLoading && !isShowingPreviousImages) || (isShowingPreviousImages && !image_data.story_id)) {
             shareForUrl(id);
         }
         if (isShowingPreviousImages && isLoggedIn && image_data.story_id) {
