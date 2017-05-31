@@ -57,6 +57,8 @@ static const int FIRST_FOOT = 0;
 static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
+static const float HEAD_PUCK_Y_OFFSET = -0.0254f;
+static const float HEAD_PUCK_Z_OFFSET = -0.152f;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
@@ -82,24 +84,24 @@ static bool sortPucksXPosition(PuckPosePair firstPuck, PuckPosePair secondPuck) 
     return (firstPuck.second.translation.x < secondPuck.second.translation.x);
 }
 
-static bool comparePosePositions(const controller::Pose& poseA, const controller::Pose& poseB, glm::vec3 axis, glm::vec3 axisOrigin) {
+static bool determineFeetOrdering(const controller::Pose& poseA, const controller::Pose& poseB, glm::vec3 axis, glm::vec3 axisOrigin) {
     glm::vec3 poseAPosition = poseA.getTranslation();
     glm::vec3 poseBPosition = poseB.getTranslation();
 
-    glm::vec3 poseAFinalPosition = poseAPosition - axisOrigin;
-    glm::vec3 poseBFinalPosition = poseBPosition - axisOrigin;
+    glm::vec3 poseAVector = poseAPosition - axisOrigin;
+    glm::vec3 poseBVector = poseBPosition - axisOrigin;
 
-    float poseADistance = glm::dot(poseAFinalPosition, axis);
-    float poseBDistance = glm::dot(poseBFinalPosition, axis);
-    return (poseADistance > poseBDistance);
+    float poseAProjection = glm::dot(poseAVector, axis);
+    float poseBProjection = glm::dot(poseBVector, axis);
+    return (poseAProjection > poseBProjection);
 }
 
-static glm::vec3 getHeadXAxis(glm::mat4 defaultToReferenceMat, glm::mat4 defaultHead) {
+static glm::vec3 getReferenceHeadXAxis(glm::mat4 defaultToReferenceMat, glm::mat4 defaultHead) {
     glm::mat4 finalHead = defaultToReferenceMat * defaultHead;
     return glmExtractRotation(finalHead) * Vectors::UNIT_X;
 }
 
-static glm::vec3 getHeadPosition(glm::mat4 defaultToReferenceMat, glm::mat4 defaultHead) {
+static glm::vec3 getReferenceHeadPosition(glm::mat4 defaultToReferenceMat, glm::mat4 defaultHead) {
     glm::mat4 finalHead = defaultToReferenceMat * defaultHead;
     return extractTranslation(finalHead);
 }
@@ -383,19 +385,21 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
         calibrateShoulders(defaultToReferenceMat, inputCalibration, firstShoulderIndex, secondShoulderIndex);
     } else if (_config == Config::FeetHipsAndHead && puckCount == MIN_FEET_HIPS_HEAD) {
         glm::mat4 headPuckDefaultToReferenceMat = recalculateDefaultToReferenceForHeadPuck(inputCalibration);
-        glm::vec3 headXAxis = getHeadXAxis(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
-        glm::vec3 headPosition = getHeadPosition(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
+        glm::vec3 headXAxis = getReferenceHeadXAxis(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
+        glm::vec3 headPosition = getReferenceHeadPosition(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
         calibrateFeet(headPuckDefaultToReferenceMat, inputCalibration, headXAxis, headPosition);
         calibrateHips(headPuckDefaultToReferenceMat, inputCalibration);
         calibrateHead(headPuckDefaultToReferenceMat, inputCalibration);
+        _overrideHead = true;
     } else if (_config == Config::FeetHipsChestAndHead && puckCount == MIN_FEET_HIPS_CHEST_HEAD) {
         glm::mat4 headPuckDefaultToReferenceMat = recalculateDefaultToReferenceForHeadPuck(inputCalibration);
-        glm::vec3 headXAxis = getHeadXAxis(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
-        glm::vec3 headPosition = getHeadPosition(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
+        glm::vec3 headXAxis = getReferenceHeadXAxis(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
+        glm::vec3 headPosition = getReferenceHeadPosition(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
         calibrateFeet(headPuckDefaultToReferenceMat, inputCalibration, headXAxis, headPosition);
         calibrateHips(headPuckDefaultToReferenceMat, inputCalibration);
         calibrateChest(headPuckDefaultToReferenceMat, inputCalibration);
         calibrateHead(headPuckDefaultToReferenceMat, inputCalibration);
+        _overrideHead = true;
     } else {
         qDebug() << "Puck Calibration: " << configToString(_config) << " Config Failed: Could not meet the minimal # of pucks";
         uncalibrate();
@@ -506,7 +510,7 @@ glm::mat4 ViveControllerManager::InputDevice::recalculateDefaultToReferenceForHe
                                       glm::vec4(zPrime, 0.0f), glm::vec4(headPuckTranslation, 1.0f));
 
     glm::mat4 headPuckOffset = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-                                         glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, -0.0254f, -0.152f, 1.0f));
+                                         glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, HEAD_PUCK_Y_OFFSET, HEAD_PUCK_Z_OFFSET, 1.0f));
 
     glm::mat4 finalHeadPuck = newHeadPuck * headPuckOffset;
 
@@ -713,7 +717,7 @@ void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToRefer
     controller::Pose& firstFootPose = firstFoot.second;
     controller::Pose& secondFootPose = secondFoot.second;
     
-    if (comparePosePositions(firstFootPose, secondFootPose, headXAxis, headPosition)) {
+    if (determineFeetOrdering(firstFootPose, secondFootPose, headXAxis, headPosition)) {
         _jointToPuckMap[controller::LEFT_FOOT] = firstFoot.first;
         _pucksOffset[firstFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultLeftFoot, firstFootPose);
         _jointToPuckMap[controller::RIGHT_FOOT] = secondFoot.first;
@@ -766,7 +770,6 @@ void ViveControllerManager::InputDevice::calibrateHead(glm::mat4& defaultToRefer
 
     _jointToPuckMap[controller::HEAD] = head.first;
     _pucksOffset[head.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHeadMat, newHead);
-    _overrideHead = true;
 }
 
 
