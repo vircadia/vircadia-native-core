@@ -191,6 +191,9 @@ public:
     using JobModel = render::Job::ModelI<PrepareStencil, gpu::FramebufferPointer>;
 
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& dstFramebuffer);
+
+    static const gpu::int8 STENCIL_MASK = 64;
+
 private:
     gpu::PipelinePointer _drawStencilPipeline;
     gpu::PipelinePointer getDrawStencilPipeline();

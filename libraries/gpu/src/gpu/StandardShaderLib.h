@@ -39,6 +39,7 @@ public:
 
     // Shader draw the fed vertex position and transform it by the full model transform stack (Model, View, Proj).
     // simply output the world pos and the clip pos to the next stage
+    static ShaderPointer getDrawVertexPositionVS();
     static ShaderPointer getDrawTransformVertexPositionVS();
 
     static ShaderPointer getDrawWhitePS();
@@ -56,6 +57,8 @@ protected:
     static ShaderPointer _drawTransformUnitQuadVS;
     static ShaderPointer _drawTexcoordRectTransformUnitQuadVS;
     static ShaderPointer _drawViewportQuadTransformTexcoordVS;
+
+    static ShaderPointer _drawVertexPositionVS;
     static ShaderPointer _drawTransformVertexPositionVS;
 
     static ShaderPointer _drawWhitePS;

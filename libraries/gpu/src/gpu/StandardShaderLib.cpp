@@ -16,6 +16,7 @@
 #include "DrawTransformUnitQuad_vert.h"
 #include "DrawTexcoordRectTransformUnitQuad_vert.h"
 #include "DrawViewportQuadTransformTexcoord_vert.h"
+#include "DrawVertexPosition_vert.h"
 #include "DrawTransformVertexPosition_vert.h"
 #include "DrawWhite_frag.h"
 #include "DrawTexture_frag.h"
@@ -28,6 +29,7 @@ ShaderPointer StandardShaderLib::_drawUnitQuadTexcoordVS;
 ShaderPointer StandardShaderLib::_drawTransformUnitQuadVS;
 ShaderPointer StandardShaderLib::_drawTexcoordRectTransformUnitQuadVS;
 ShaderPointer StandardShaderLib::_drawViewportQuadTransformTexcoordVS;
+ShaderPointer StandardShaderLib::_drawVertexPositionVS;
 ShaderPointer StandardShaderLib::_drawTransformVertexPositionVS;
 ShaderPointer StandardShaderLib::_drawWhitePS;
 ShaderPointer StandardShaderLib::_drawTexturePS;
@@ -88,6 +90,14 @@ ShaderPointer StandardShaderLib::getDrawViewportQuadTransformTexcoordVS() {
     }
     return _drawViewportQuadTransformTexcoordVS;
 }
+
+ShaderPointer StandardShaderLib::getDrawVertexPositionVS() {
+    if (!_drawVertexPositionVS) {
+        _drawVertexPositionVS = gpu::Shader::createVertex(std::string(DrawVertexPosition_vert));
+    }
+    return _drawVertexPositionVS;
+}
+
 ShaderPointer StandardShaderLib::getDrawTransformVertexPositionVS() {
     if (!_drawTransformVertexPositionVS) {
         _drawTransformVertexPositionVS = gpu::Shader::createVertex(std::string(DrawTransformVertexPosition_vert));

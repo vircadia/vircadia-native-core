@@ -85,7 +85,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
-    // draw a stencil mask in hidden regions of the frmaebuffer.
+    // draw a stencil mask in hidden regions of the framebuffer.
+    task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
@@ -93,7 +94,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Once opaque is all rendered create stencil background
     task.addJob<DrawStencilDeferred>("DrawOpaqueStencil", deferredFramebuffer);
-    task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
 
     task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
@@ -401,7 +401,7 @@ gpu::PipelinePointer DrawStencilDeferred::getOpaquePipeline() {
 
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
         state->setColorWriteMask(0);
 
         _opaquePipeline = gpu::Pipeline::create(program, state);
@@ -410,6 +410,7 @@ gpu::PipelinePointer DrawStencilDeferred::getOpaquePipeline() {
 }
 
 void DrawStencilDeferred::run(const RenderContextPointer& renderContext, const DeferredFramebufferPointer& deferredFramebuffer) {
+  //  return;
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -474,15 +475,14 @@ void DrawBackgroundDeferred::run(const RenderContextPointer& renderContext, cons
 
 gpu::PipelinePointer PrepareStencil::getDrawStencilPipeline() {
     if (!_drawStencilPipeline) {
-        const gpu::int8 STENCIL_OPAQUE = 1;
-        auto vs = gpu::StandardShaderLib::getDrawTransformVertexPositionVS();
+        auto vs = gpu::StandardShaderLib::getDrawVertexPositionVS();
         auto ps = gpu::StandardShaderLib::getDrawWhitePS();
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP));
-        state->setColorWriteMask(0);
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_MASK, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
+     //   state->setColorWriteMask(0);
 
         _drawStencilPipeline = gpu::Pipeline::create(program, state);
     }
@@ -499,9 +499,7 @@ model::MeshPointer PrepareStencil::getMesh() {
             { 1.0f, -1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } };
 
         std::vector<uint32_t> indices { 0, 7, 1, 1, 3, 2, 3, 5, 4, 5, 7, 6 };
-
         _mesh = model::Mesh::createIndexedTriangles_P3F((uint32_t) vertices.size(), (uint32_t) indices.size(), vertices.data(), indices.data());
-
     }
     return _mesh;
 }
@@ -514,19 +512,14 @@ void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::F
     RenderArgs* args = renderContext->args;
     doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
+        batch.enableStereo(false);
 
         batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        batch.resetViewTransform();
-        batch.setModelTransform(Transform());
-        glm::mat4 proj;
-        batch.setProjectionTransform(proj);
 
         batch.setPipeline(getDrawStencilPipeline());
 
         auto mesh = getMesh();
-        batch.setIndexBuffer(gpu::UINT32, (mesh->getIndexBuffer()._buffer), 0);
+        batch.setIndexBuffer(mesh->getIndexBuffer());
         batch.setInputFormat((mesh->getVertexFormat()));
         batch.setInputStream(0, mesh->getVertexStream());
 
