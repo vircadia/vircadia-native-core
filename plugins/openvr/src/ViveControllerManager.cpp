@@ -57,8 +57,8 @@ static const int FIRST_FOOT = 0;
 static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
-static const float HEAD_PUCK_Y_OFFSET = -0.0254f;
-static const float HEAD_PUCK_Z_OFFSET = -0.152f;
+static float HEAD_PUCK_Y_OFFSET = -0.0254f;
+static float HEAD_PUCK_Z_OFFSET = -0.152f;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
@@ -825,6 +825,38 @@ void ViveControllerManager::InputDevice::createPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
     static const QString VIVE_PUCKS_CONFIG = "Vive Pucks Configuration";
 
+    {
+        static const float MIN_VALUE = -3.0f;
+        static const float MAX_VALUE = 3.0f;
+        static const float STEP = 0.01f;
+
+        auto getter = [this]()->float { return HEAD_PUCK_Y_OFFSET; };
+        auto setter = [this](const float& value) { HEAD_PUCK_Y_OFFSET = value; };
+
+        auto preference = new SpinnerPreference(VIVE_PUCKS_CONFIG, "HeadPuckYOffset", getter, setter);
+        preference->setMin(MIN_VALUE);
+        preference->setMax(MAX_VALUE);
+        preference->setDecimals(3);
+        preference->setStep(STEP);
+        preferences->addPreference(preference);
+    }
+
+    {
+        static const float MIN_VALUE = -3.0f;
+        static const float MAX_VALUE = 3.0f;
+        static const float STEP = 0.01f;
+
+        auto getter = [this]()->float { return HEAD_PUCK_Z_OFFSET; };
+        auto setter = [this](const float& value) { HEAD_PUCK_Z_OFFSET = value; };
+
+        auto preference = new SpinnerPreference(VIVE_PUCKS_CONFIG, "HeadPuckXOffset", getter, setter);
+        preference->setMin(MIN_VALUE);
+        preference->setMax(MAX_VALUE);
+        preference->setStep(STEP);
+        preference->setDecimals(3);
+        preferences->addPreference(preference);
+    }
+        
     {
         auto getter = [this]()->QString { return _configStringMap[_preferedConfig]; };
         auto setter = [this](const QString& value) { setConfigFromString(value); saveSettings(); };
