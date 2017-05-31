@@ -681,14 +681,10 @@ private:
     AudioInjector* _snapshotSoundInjector { nullptr };
     SharedSoundPointer _snapshotSound;
 	
-	
-	DisplayPluginPointer _hmdPlugin; // HMD Enabled Plugin
-    QString _hmdPluginName;
-    bool isHMDPluginAvailable();
-	bool _hmdMountedStatus; // Check HMD Mounted status
-	bool startHMDStandBySession();
-	void endHMDStandBySession();
+    DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin = nullptr;
+    QString _autoSwitchDisplayModeSupportedHMDPluginName;
+    bool _previousHMDWornStatus;
+    void startHMDStandBySession();
+    void endHMDStandBySession();
 };
-
-
 #endif // hifi_Application_h
