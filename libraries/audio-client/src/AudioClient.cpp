@@ -76,6 +76,13 @@ using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
 static Mutex _deviceMutex;
 
+// thread-safe
+QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
+    // NOTE: availableDevices() clobbers the Qt internal device list
+    Lock lock(_deviceMutex);
+    return QAudioDeviceInfo::availableDevices(mode);
+}
+
 class BackgroundThread : public QThread {
 public:
     BackgroundThread(AudioClient* client) : QThread((QObject*)client), _client(client) {}
@@ -114,6 +121,45 @@ private:
     std::mutex _joinMutex;
     std::condition_variable _joinCondition;
 };
+
+// now called from a background thread, to keep blocking operations off the audio thread
+void AudioClient::checkDevices() {
+    auto inputDevices = getAvailableDevices(QAudio::AudioInput);
+    auto outputDevices = getAvailableDevices(QAudio::AudioOutput);
+
+    Lock lock(_deviceMutex);
+
+    if (inputDevices != _inputDevices) {
+        _inputDevices.swap(inputDevices);
+        emit devicesChanged(QAudio::AudioInput, _inputDevices);
+    }
+
+    if (outputDevices != _outputDevices) {
+        _outputDevices.swap(outputDevices);
+        emit devicesChanged(QAudio::AudioOutput, _outputDevices);
+    }
+}
+
+QAudioDeviceInfo AudioClient::getActiveAudioDevice(QAudio::Mode mode) const {
+    Lock lock(_deviceMutex);
+
+    if (mode == QAudio::AudioInput) {
+        return _inputDeviceInfo;
+    } else { // if (mode == QAudio::AudioOutput)
+        return _outputDeviceInfo;
+    }
+}
+
+QList<QAudioDeviceInfo> AudioClient::getAudioDevices(QAudio::Mode mode) const {
+    Lock lock(_deviceMutex);
+
+    if (mode == QAudio::AudioInput) {
+        return _inputDevices;
+    } else { // if (mode == QAudio::AudioOutput)
+        return _outputDevices;
+    }
+}
+
 
 // background thread buffering local injectors
 class LocalInjectorsThread : public BackgroundThread {
@@ -220,8 +266,9 @@ AudioClient::AudioClient() :
 
     connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioClient::handleMismatchAudioFormat);
 
-    _inputDevices = getDeviceNames(QAudio::AudioInput);
-    _outputDevices = getDeviceNames(QAudio::AudioOutput);
+    // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
+    getAvailableDevices(QAudio::AudioInput);
+    getAvailableDevices(QAudio::AudioOutput);
 
     // start a thread to detect any device changes
     _checkDevicesThread = new CheckDevicesThread(this);
@@ -295,13 +342,6 @@ void AudioClient::audioMixerKilled() {
     emit disconnected();
 }
 
-// thread-safe
-QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
-    // NOTE: availableDevices() clobbers the Qt internal device list
-    Lock lock(_deviceMutex);
-    return QAudioDeviceInfo::availableDevices(mode);
-}
-
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
     foreach(QAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
@@ -315,7 +355,7 @@ QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& de
 }
 
 #ifdef Q_OS_WIN
-QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
+QString getWinDeviceName(IMMDevice* pEndpoint) {
     QString deviceName;
     IPropertyStore* pPropertyStore;
     pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
@@ -336,7 +376,7 @@ QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
     return deviceName;
 }
 
-QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
+QString AudioClient::getWinDeviceName(wchar_t* guid) {
     QString deviceName;
     HRESULT hr = S_OK;
     CoInitialize(nullptr);
@@ -348,7 +388,7 @@ QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
         printf("Audio Error: device not found\n");
         deviceName = QString("NONE");
     } else {
-        deviceName = ::friendlyNameForAudioDevice(pEndpoint);
+        deviceName = ::getWinDeviceName(pEndpoint);
     }
     pMMDeviceEnumerator->Release();
     pMMDeviceEnumerator = nullptr;
@@ -431,7 +471,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             printf("Audio Error: device not found\n");
             deviceName = QString("NONE");
         } else {
-            deviceName = friendlyNameForAudioDevice(pEndpoint);
+            deviceName = getWinDeviceName(pEndpoint);
         }
         pMMDeviceEnumerator->Release();
         pMMDeviceEnumerator = NULL;
@@ -791,29 +831,12 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
 
 }
    
-
-QString AudioClient::getDefaultDeviceName(QAudio::Mode mode) {
-    QAudioDeviceInfo deviceInfo = defaultAudioDeviceForMode(mode);
-    return deviceInfo.deviceName();
-}
-
-QVector<QString> AudioClient::getDeviceNames(QAudio::Mode mode) {
-    QVector<QString> deviceNames;
-    const QList<QAudioDeviceInfo> &availableDevice = getAvailableDevices(mode);
-    foreach(const QAudioDeviceInfo &audioDevice, availableDevice) {
-        deviceNames << audioDevice.deviceName().trimmed();
+bool AudioClient::switchAudioDevice(QAudio::Mode mode, const QAudioDeviceInfo& deviceInfo) {
+    if (mode == QAudio::AudioInput) {
+        return switchInputToAudioDevice(deviceInfo);
+    } else { // if (mode == QAudio::AudioOutput)
+        return switchOutputToAudioDevice(deviceInfo);
     }
-    return deviceNames;
-}
-
-bool AudioClient::switchInputToAudioDevice(const QString& inputDeviceName) {
-    qCDebug(audioclient) << "[" << inputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName).deviceName() << "]";
-    return switchInputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioInput, inputDeviceName));
-}
-
-bool AudioClient::switchOutputToAudioDevice(const QString& outputDeviceName) {
-    qCDebug(audioclient) << "[" << outputDeviceName << "] [" << getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName).deviceName() << "]";
-    return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
 }
 
 void AudioClient::configureReverb() {
@@ -1357,7 +1380,7 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
         }
 
         // change in channel count for desired input format, restart the input device
-        switchInputToAudioDevice(_inputAudioDeviceName);
+        switchInputToAudioDevice(_inputDeviceInfo);
     }
 }
 
@@ -1397,6 +1420,9 @@ void AudioClient::outputFormatChanged() {
 bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
     bool supportedFormat = false;
 
+    // NOTE: device start() uses the Qt internal device list
+    Lock lock(_deviceMutex);
+
     // cleanup any previously initialized device
     if (_audioInput) {
         // The call to stop() causes _inputDevice to be destructed.
@@ -1409,7 +1435,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
         _audioInput = NULL;
         _numInputCallbackBytes = 0;
 
-        _inputAudioDeviceName = "";
+        _inputDeviceInfo = QAudioDeviceInfo();
     }
 
     if (_inputToNetworkResampler) {
@@ -1424,8 +1450,8 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
 
     if (!inputDeviceInfo.isNull()) {
         qCDebug(audioclient) << "The audio input device " << inputDeviceInfo.deviceName() << "is available.";
-        _inputAudioDeviceName = inputDeviceInfo.deviceName().trimmed();
-        emit currentInputDeviceChanged(_inputAudioDeviceName);
+        _inputDeviceInfo = inputDeviceInfo;
+        emit deviceChanged(QAudio::AudioInput, inputDeviceInfo);
 
         if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
             qCDebug(audioclient) << "The format to be used for audio input is" << _inputFormat;
@@ -1460,10 +1486,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                 int numFrameSamples = calculateNumberOfFrameSamples(_numInputCallbackBytes);
                 _inputRingBuffer.resizeForFrameSize(numFrameSamples);
 
-                // NOTE: device start() uses the Qt internal device list
-                Lock lock(_deviceMutex);
                 _inputDevice = _audioInput->start();
-                lock.unlock();
 
                 if (_inputDevice) {
                     connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleMicAudioInput()));
@@ -1511,6 +1534,9 @@ void AudioClient::outputNotify() {
 bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
     bool supportedFormat = false;
 
+    // NOTE: device start() uses the Qt internal device list
+    Lock lock(_deviceMutex);
+
     Lock localAudioLock(_localAudioMutex);
     _localSamplesAvailable.exchange(0, std::memory_order_release);
 
@@ -1536,6 +1562,8 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
         delete[] _localOutputMixBuffer;
         _localOutputMixBuffer = NULL;
+
+        _outputDeviceInfo = QAudioDeviceInfo();
     }
 
     if (_networkToOutputResampler) {
@@ -1549,8 +1577,8 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
     if (!outputDeviceInfo.isNull()) {
         qCDebug(audioclient) << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
-        _outputAudioDeviceName = outputDeviceInfo.deviceName().trimmed();
-        emit currentOutputDeviceChanged(_outputAudioDeviceName);
+        _outputDeviceInfo = outputDeviceInfo;
+        emit deviceChanged(QAudio::AudioOutput, outputDeviceInfo);
 
         if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
             qCDebug(audioclient) << "The format to be used for audio output is" << _outputFormat;
@@ -1625,10 +1653,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
             _audioOutputIODevice.start();
 
-            // NOTE: device start() uses the Qt internal device list
-            Lock lock(_deviceMutex);
             _audioOutput->start(&_audioOutputIODevice);
-            lock.unlock();
 
             // setup a loopback audio output device
             _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
@@ -1819,19 +1844,6 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     }
 
     return bytesWritten;
-}
-
-// now called from a background thread, to keep blocking operations off the audio thread
-void AudioClient::checkDevices() {
-    QVector<QString> inputDevices = getDeviceNames(QAudio::AudioInput);
-    QVector<QString> outputDevices = getDeviceNames(QAudio::AudioOutput);
-
-    if (inputDevices != _inputDevices || outputDevices != _outputDevices) {
-        _inputDevices = inputDevices;
-        _outputDevices = outputDevices;
-
-        emit deviceChanged();
-    }
 }
 
 void AudioClient::loadSettings() {

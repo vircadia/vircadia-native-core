@@ -10,6 +10,7 @@
 //
 
 #include "AudioClient.h"
+/*
 #include "AudioDeviceScriptingInterface.h"
 #include "SettingsScriptingInterface.h"
 
@@ -269,3 +270,4 @@ void AudioDeviceScriptingInterface::currentDeviceUpdate(const QString& name, QAu
         }
     }
 }
+*/

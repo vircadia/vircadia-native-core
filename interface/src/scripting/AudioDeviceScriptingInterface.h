@@ -12,6 +12,7 @@
 #ifndef hifi_AudioDeviceScriptingInterface_h
 #define hifi_AudioDeviceScriptingInterface_h
 
+/*
 #include <QObject>
 #include <QString>
 #include <QVector>
@@ -103,5 +104,6 @@ private:
     QString _currentInputDevice;
     QString _currentOutputDevice;
 };
+*/
 
 #endif // hifi_AudioDeviceScriptingInterface_h
